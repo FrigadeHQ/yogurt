@@ -9,6 +9,7 @@ import { applyLanguage } from '../i18n'
 import { flushOpenNotes } from '../noteAutosave'
 import { Jargon } from '../components/Jargon'
 import { SpokenSetting } from '../components/SpokenSetting'
+import { BetterNotesSetting } from '../components/BetterNotesSetting'
 import { useScrollMemory } from '../useScrollMemory'
 import { appShortcuts } from '../components/Shortcuts'
 import { CalendarSettings } from '../components/CalendarSettings'
@@ -119,6 +120,7 @@ export function Settings({ revision = 0 }: { revision?: number }) {
                 onClick={() => { if (!prefs) return; const on = !prefs.recordingReminder; setPrefs({ ...prefs, recordingReminder: on }); void window.yogurt.settings.setRecordingReminder(on) }}
                 className="settings-toggle"><span className="settings-toggle-knob" /></button>
             </div>
+            <BetterNotesSetting />
           </LoadingContent></div>
 
           <h2 className="settings-section-heading">{t('What Yogurt can use')}</h2>

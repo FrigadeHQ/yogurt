@@ -645,5 +645,11 @@
   "You can restart once the recording stops.": "Poți reporni după ce se oprește înregistrarea.",
   "Check now": "Verifică acum",
   "Eject the Yogurt installer?": "Scoți programul de instalare Yogurt?",
-  "Eject": "Scoate"
+  "Eject": "Scoate",
+  "Better notes model": "Model mai bun pentru notițe",
+  "A bigger model that writes better notes. It downloads after the first one ({size} GB).": "Un model mai mare care scrie notițe mai bune. Se descarcă după primul ({size} GB).",
+  "Downloading · {progress}": "Se descarcă · {progress}",
+  "In use for notes": "Folosit pentru notițe",
+  "Notes use the smaller model.": "Notițele folosesc modelul mai mic.",
+  "Starts after the first notes model.": "Începe după primul model pentru notițe."
 }

@@ -632,5 +632,11 @@
   "You can restart once the recording stops.": "Je kunt opnieuw starten zodra de opname stopt.",
   "Check now": "Nu zoeken",
   "Eject the Yogurt installer?": "Yogurt-installatieprogramma verwijderen?",
-  "Eject": "Verwijder"
+  "Eject": "Verwijder",
+  "Better notes model": "Beter notitiemodel",
+  "A bigger model that writes better notes. It downloads after the first one ({size} GB).": "Een groter model dat betere notities schrijft. Het wordt na het eerste gedownload ({size} GB).",
+  "Downloading · {progress}": "Downloaden · {progress}",
+  "In use for notes": "In gebruik voor notities",
+  "Notes use the smaller model.": "Notities gebruiken het kleinere model.",
+  "Starts after the first notes model.": "Begint na het eerste notitiemodel."
 }

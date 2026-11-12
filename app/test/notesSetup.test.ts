@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { notesDownloadText, notesPercent, notesReadyNotice } from '../src/renderer/src/notesSetup'
+import { betterNotesText, notesDownloadText, notesPercent, notesReadyNotice } from '../src/renderer/src/notesSetup'
 import { setLanguage } from '../src/shared/i18n'
-import type { SetupState } from '../src/shared/types'
+import type { BetterNotesState, SetupState } from '../src/shared/types'
 
 const downloading: SetupState = { phase: 'ready', fraction: 1, notesDownloading: true, notesFraction: 0.42 }
 const ready: SetupState = { phase: 'ready', fraction: 1 }
@@ -72,5 +72,21 @@ describe('footer download details', () => {
   it('localizes the amounts and the whole detail line', () => {
     setLanguage('fr')
     expect(notesDownloadText(progress)).toEqual({ title: 'Téléchargement de l’IA de Yogurt : 2,1 sur 5,0 Go', detail: '2,1 sur 5,0 Go · reste environ 4 min' })
+  })
+})
+
+describe('the bigger notes model in Settings', () => {
+  const b = (over: Partial<BetterNotesState>): BetterNotesState => ({ status: 'downloading', totalBytes: 14.44e9, ...over })
+  it('says how far the download is, with time left once there is an estimate', () => {
+    expect(betterNotesText(b({ fraction: 0.25 }))).toBe('Downloading · 3.6 of 14.4 GB')
+    expect(betterNotesText(b({ fraction: 0.25, etaSec: 600 }))).toBe('Downloading · 3.6 of 14.4 GB · about 10 min left')
+    expect(betterNotesText(b({ fraction: 1, etaSec: 600 }))).toBe('Downloading · 14.4 of 14.4 GB')
+    expect(betterNotesText(b({}))).toBe('Downloading · 0.0 of 14.4 GB')
+  })
+  it('says when it waits, is in use, is off, or failed', () => {
+    expect(betterNotesText(b({ status: 'waiting' }))).toBe('Starts after the first notes model.')
+    expect(betterNotesText(b({ status: 'ready' }))).toBe('In use for notes')
+    expect(betterNotesText(b({ status: 'off' }))).toBe('Notes use the smaller model.')
+    expect(betterNotesText(b({ status: 'failed' }))).toBe('Download interrupted. Check your connection and try again.')
   })
 })

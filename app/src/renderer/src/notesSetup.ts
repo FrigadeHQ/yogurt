@@ -1,4 +1,4 @@
-import type { SetupState } from '../../shared/types'
+import type { BetterNotesState, SetupState } from '../../shared/types'
 import { language, t } from '../../shared/i18n'
 
 export const notesPercent = (fraction: number) => new Intl.NumberFormat(language(), { style: 'percent', maximumFractionDigits: 0 })
@@ -33,4 +33,20 @@ export function notesReadyNotice() {
     announced = true
     return true
   }
+}
+
+/** The bigger notes model's line in Settings: how far it is, that it's in use, or why not. failed has its own retry. */
+export function betterNotesText(b: BetterNotesState): string {
+  if (b.status === 'waiting') return t('Starts after the first notes model.')
+  if (b.status === 'ready') return t('In use for notes')
+  if (b.status === 'off') return t('Notes use the smaller model.')
+  if (b.status === 'failed') return t('Download interrupted. Check your connection and try again.')
+  const gb = new Intl.NumberFormat(language(), { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+  const fraction = Math.max(0, Math.min(1, b.fraction ?? 0))
+  const progress = t('{done} of {total} GB', { done: gb.format(b.totalBytes * fraction / 1e9), total: gb.format(b.totalBytes / 1e9) })
+  const seconds = b.etaSec
+  const withEta = fraction < 1 && seconds !== undefined && Number.isFinite(seconds) && seconds > 0
+    ? t('{progress} · about {minutes} min left', { progress, minutes: new Intl.NumberFormat(language()).format(Math.max(1, Math.round(seconds / 60))) })
+    : progress
+  return t('Downloading · {progress}', { progress: withEta })
 }

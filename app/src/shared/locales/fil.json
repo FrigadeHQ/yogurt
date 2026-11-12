@@ -632,5 +632,11 @@
   "You can restart once the recording stops.": "Puwede kang mag-restart kapag huminto na ang recording.",
   "Check now": "Tingnan ngayon",
   "Eject the Yogurt installer?": "I-eject ang installer ng Yogurt?",
-  "Eject": "I-eject"
+  "Eject": "I-eject",
+  "Better notes model": "Mas mahusay na notes model",
+  "A bigger model that writes better notes. It downloads after the first one ({size} GB).": "Mas malaking model na sumusulat ng mas mahusay na notes. Dina-download ito pagkatapos ng una ({size} GB).",
+  "Downloading · {progress}": "Nagda-download · {progress}",
+  "In use for notes": "Ginagamit para sa notes",
+  "Notes use the smaller model.": "Ginagamit ng notes ang mas maliit na model.",
+  "Starts after the first notes model.": "Magsisimula pagkatapos ng unang notes model."
 }

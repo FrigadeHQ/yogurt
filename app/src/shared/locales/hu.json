@@ -632,5 +632,11 @@
   "You can restart once the recording stops.": "A felvétel leállása után indíthatod újra.",
   "Check now": "Keresés most",
   "Eject the Yogurt installer?": "Kiadja a Yogurt telepítőjét?",
-  "Eject": "Kiadás"
+  "Eject": "Kiadás",
+  "Better notes model": "Jobb jegyzetmodell",
+  "A bigger model that writes better notes. It downloads after the first one ({size} GB).": "Egy nagyobb modell, amely jobb jegyzeteket ír. Az első után töltődik le ({size} GB).",
+  "Downloading · {progress}": "Letöltés · {progress}",
+  "In use for notes": "Jegyzetekhez használatban",
+  "Notes use the smaller model.": "A jegyzetek a kisebb modellt használják.",
+  "Starts after the first notes model.": "Az első jegyzetmodell után indul."
 }

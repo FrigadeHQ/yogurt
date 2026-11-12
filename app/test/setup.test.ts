@@ -481,3 +481,88 @@ describe('the speed check (Windows and Linux): speech models timed on this compu
     expect(s.timed).toEqual([])
   })
 })
+
+describe('the bigger notes model in Settings (#11)', () => {
+  const better = (c: SetupController) => c.state.betterNotes
+
+  it('shows its size and how far it is, then that it is in use', async () => {
+    const { c, states } = setup()
+    await c.start(); await c.idle()
+    const seen = states.map((s) => s.betterNotes).filter((b) => b !== undefined)
+    expect(seen[0]).toMatchObject({ status: 'waiting' })
+    expect(seen.some((b) => b.status === 'downloading' && b.fraction !== undefined)).toBe(true)
+    expect(seen.every((b) => b.totalBytes > 10e9)).toBe(true)
+    expect(better(c)).toMatchObject({ status: 'ready' })
+    expect(better(c)?.fraction).toBeUndefined()
+    expect(c.installed()?.recommendedLlm).toMatch(/gemma-4-26B/)
+  })
+
+  it('turned off in Settings: it never downloads and notes keep the first model; on downloads it', async () => {
+    const { c, rec } = setup({ betterNotesOn: () => false })
+    await c.start(); await c.idle()
+    expect(rec.asked).not.toContain(bigUrl)
+    expect(better(c)).toMatchObject({ status: 'off' })
+    expect(c.installed()?.recommendedLlm).toBeUndefined()
+    await c.setBetterNotes(true)
+    await c.idle()
+    expect(rec.asked).toContain(bigUrl)
+    expect(better(c)).toMatchObject({ status: 'ready' })
+    expect(c.installed()?.recommendedLlm).toMatch(/gemma-4-26B/)
+  })
+
+  it('turning it off mid-download stops it without counting as a failure, and on picks it up again', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'yogurt-setup-'))
+    const rec = recorder((u) => u === bigUrl)
+    const c = new SetupController({ getHardware: async () => m1max, getCatalog: async () => catalog, modelsDir: root, download: rec.deps, sha256Override: 'FAKE', retryDelaysMs: [0] })
+    await c.start()
+    await vi.waitFor(() => expect(rec.asked).toContain(bigUrl))
+    expect(better(c)).toMatchObject({ status: 'downloading' })
+    await c.setBetterNotes(false)
+    rec.release()
+    await c.idle()
+    expect(better(c)).toMatchObject({ status: 'off' })
+    expect(c.installed()?.recommendedLlm).toBeUndefined()
+    const on = c.setBetterNotes(true)
+    await vi.waitFor(() => expect(rec.asked.filter((u) => u === bigUrl)).toHaveLength(2))
+    rec.release()
+    await on; await c.idle()
+    expect(better(c)).toMatchObject({ status: 'ready' })
+  })
+
+  it('turned off while the first notes model still downloads: the bigger one never starts', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'yogurt-setup-'))
+    const rec = recorder((u) => u === starterUrl)
+    const c = new SetupController({ getHardware: async () => m1max, getCatalog: async () => catalog, modelsDir: root, download: rec.deps, sha256Override: 'FAKE', retryDelaysMs: [0] })
+    await c.start()
+    await vi.waitFor(() => expect(rec.asked).toContain(starterUrl))
+    await c.setBetterNotes(false)
+    rec.release()
+    await c.idle()
+    expect(rec.asked).not.toContain(bigUrl)
+    expect(better(c)).toMatchObject({ status: 'off' })
+  })
+
+  it('a failed download says so, and Try again downloads it', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'yogurt-setup-'))
+    const inner = fakeDownloadDeps({ stepMs: 0 })
+    let fail = true
+    const download: DownloadDeps['download'] = async (u, ...rest) => { if (u === bigUrl && fail) throw new Error('fetch failed'); return inner.download(u, ...rest) }
+    const c = new SetupController({ getHardware: async () => m1max, getCatalog: async () => catalog, modelsDir: root, download: { ...inner, download }, sha256Override: 'FAKE', retryDelaysMs: [0] })
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      await c.start(); await c.idle()
+      expect(better(c)).toMatchObject({ status: 'failed' })
+      fail = false
+      await c.retry(); await c.idle()
+      expect(better(c)).toMatchObject({ status: 'ready' })
+    } finally { warn.mockRestore() }
+  })
+
+  it('a computer with one notes model has no bigger one to show', async () => {
+    const { c } = setup({ getHardware: async () => mac8 })
+    await c.start(); await c.idle()
+    expect(better(c)).toBeUndefined()
+    await c.setBetterNotes(false)
+    expect(better(c)).toBeUndefined()
+  })
+})

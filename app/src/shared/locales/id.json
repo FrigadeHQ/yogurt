@@ -593,5 +593,11 @@
   "You can restart once the recording stops.": "Anda bisa memulai ulang setelah perekaman berhenti.",
   "Check now": "Periksa sekarang",
   "Eject the Yogurt installer?": "Keluarkan penginstal Yogurt?",
-  "Eject": "Keluarkan"
+  "Eject": "Keluarkan",
+  "Better notes model": "Model catatan yang lebih baik",
+  "A bigger model that writes better notes. It downloads after the first one ({size} GB).": "Model lebih besar yang menulis catatan lebih baik. Diunduh setelah model pertama ({size} GB).",
+  "Downloading · {progress}": "Mengunduh · {progress}",
+  "In use for notes": "Digunakan untuk catatan",
+  "Notes use the smaller model.": "Catatan memakai model yang lebih kecil.",
+  "Starts after the first notes model.": "Dimulai setelah model catatan pertama."
 }

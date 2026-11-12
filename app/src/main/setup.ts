@@ -2,7 +2,7 @@ import { asrCandidates, pick, pickAsr, pickBySpeed, speedKey, type Catalog, type
 import { rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { ChecksumError, DiskSpaceError, ensureFile, fileNameFor, isVerified, partialDownloadGB, type DownloadDeps } from './downloader'
-import type { SetupState } from '../shared/types'
+import type { BetterNotesState, SetupState } from '../shared/types'
 import { t } from '../shared/i18n'
 import { tooSlow, tooWeak } from './localCheck'
 
@@ -30,6 +30,8 @@ export type SetupDeps = {
   notesRetryMs?: number[]
   /** Windows and Linux: the speed check picks the speech model (a Mac never has it: turbo, as always) */
   speed?: SpeedDeps
+  /** Settings' switch for the bigger notes model, read when the notes models start; on when left out */
+  betterNotesOn?: () => boolean
 }
 
 /** Where the models ended up, for the parts of the app that use them; llm once the first notes model is in (after ready) */
@@ -61,8 +63,15 @@ export class SetupController {
   private listeners = new Set<(s: SetupState) => void>()
   private busy = false
   private background: Promise<void> | undefined
-  private backgroundItem: Item | undefined
-  private backgroundFailed = false
+  /** the bigger notes model, when this computer gets one after the first */
+  private betterItem: Item | undefined
+  /** the first notes model and the embedding one are done, so the bigger one may start */
+  private betterReached = false
+  /** Settings' switch, kept here so a change while the first notes model downloads still counts */
+  private wantBetter = true
+  /** the bigger model's current download, so turning it off can stop it and turning it on waits for that */
+  private betterRun: Promise<void> = Promise.resolve()
+  private betterAbort: AbortController | undefined
   private retryNotes: (() => void) | undefined
   private paths: Installed | undefined
   private notesListeners = new Set<() => void>()
@@ -112,7 +121,29 @@ export class SetupController {
   async retry() {
     if (this._state.phase === 'error') { this.recheck = true; return this.start() }
     if (this.retryNotes) { this.retryNotes(); return }
-    if (this._state.phase === 'ready' && this.backgroundFailed && this.backgroundItem) this.startBackground(this.backgroundItem)
+    if (this._state.phase === 'ready' && this._state.betterNotes?.status === 'failed') return this.setBetterNotes(true)
+  }
+
+  /**
+   * Settings' switch for the bigger notes model. Off stops its download (the part on disk stays, so on picks up where
+   * it stopped) and notes go back to the first model. On starts it, once the first notes model is in.
+   */
+  async setBetterNotes(on: boolean) {
+    this.wantBetter = on
+    const item = this.betterItem
+    if (!item) return
+    if (!on) {
+      this.betterAbort?.abort()
+      if (this.paths) this.paths = { ...this.paths, recommendedLlm: undefined }
+      return this.setBetter({ status: 'off' })
+    }
+    if (!this.betterReached) return this.setBetter({ status: 'waiting' })
+    const status = this._state.betterNotes?.status
+    if (status !== 'off' && status !== 'failed') return
+    this.setBetter({ status: 'waiting' })
+    // a stopped download lets go of its file before a new one opens it
+    await this.betterRun
+    if (this.wantBetter && this._state.betterNotes?.status === 'waiting') void this.startBackground(item)
   }
 
   private async run() {
@@ -216,6 +247,11 @@ export class SetupController {
    * meanwhile get their notes then). The bigger one follows.
    */
   private startNotes(first: Item, embed: Item, later: Item | undefined) {
+    if (later) {
+      this.betterItem = later
+      this.wantBetter = this.deps.betterNotesOn?.() ?? true
+      this.setBetter({ status: this.wantBetter ? 'waiting' : 'off' })
+    }
     this.background = (async () => {
       const waits = this.deps.notesRetryMs ?? NOTES_RETRY_MS
       // Waiting notes show whole percents; every 10% goes in the log.
@@ -249,7 +285,10 @@ export class SetupController {
       for (const l of this.notesListeners) { try { l() } catch (e) { console.error('notes model listener failed', e) } }
     })()
     this.background = this.background.then(() => this.startEmbedding(embed))
-    if (later) this.background = this.background.then(() => this.startBackground(later))
+    if (later) this.background = this.background.then(() => {
+      this.betterReached = true
+      if (this.wantBetter) return this.startBackground(later)
+    })
   }
 
   /**
@@ -271,20 +310,41 @@ export class SetupController {
     })()
   }
 
-  /** The bigger notes model downloads while Yogurt is already usable. Failing here is not an error screen. */
+  /**
+   * The bigger notes model downloads while Yogurt is already usable, and Settings shows how far it is. Failing here is
+   * not an error screen. Turning it off stops it without counting as a failure.
+   */
   private startBackground(item: Item): Promise<void> {
-    this.backgroundItem = item
-    this.backgroundFailed = false
+    const abort = new AbortController()
+    this.betterAbort = abort
     const already = isVerified(item.dir, item.fileName, this.sha(item))
-    if (!already) console.info('NOTES', `downloading the bigger notes model ${item.fileName} (${(item.bytes / 1e9).toFixed(1)} GB)`)
-    this.background = this.fetch(item).then((path) => {
+    let shown = -1
+    const progress = (p: { fraction: number; etaSec: number }) => {
+      const pct = Math.floor(p.fraction * 100)
+      if (pct === shown || abort.signal.aborted) return
+      shown = pct
+      this.setBetter({ status: 'downloading', fraction: p.fraction, etaSec: p.etaSec > 0 && Number.isFinite(p.etaSec) ? p.etaSec : undefined })
+    }
+    if (!already) {
+      console.info('NOTES', `downloading the bigger notes model ${item.fileName} (${(item.bytes / 1e9).toFixed(1)} GB)`)
+      this.setBetter({ status: 'downloading', fraction: 0 })
+    }
+    this.betterRun = this.fetch(item, already ? undefined : progress, abort.signal).then((path) => {
+      if (abort.signal.aborted) return
       if (!already) console.info('NOTES', 'the bigger notes model is in')
       if (this.paths) this.paths = { ...this.paths, recommendedLlm: path }
+      this.setBetter({ status: 'ready' })
     }).catch((err) => {
-      this.backgroundFailed = true
+      if (abort.signal.aborted) { console.info('NOTES', 'the bigger notes model was turned off; it stopped downloading'); return }
       console.warn('the bigger notes model did not download', err)
-    })
-    return this.background
+      this.setBetter({ status: 'failed' })
+    }).finally(() => { if (this.betterAbort === abort) this.betterAbort = undefined })
+    this.background = this.betterRun
+    return this.betterRun
+  }
+
+  private setBetter(s: Omit<BetterNotesState, 'totalBytes'>) {
+    if (this.betterItem) this.set({ ...this._state, betterNotes: { ...s, totalBytes: this.betterItem.bytes } })
   }
 
   private async checkDisk(items: Item[]) {
@@ -297,13 +357,13 @@ export class SetupController {
   private sha(i: Item) { return this.deps.sha256Override ?? i.sha256 }
 
   /** Download (or reuse) a verified file, retrying transient failures. */
-  private async fetch(i: Item, onProgress?: (p: { fraction: number; etaSec: number }) => void): Promise<string> {
+  private async fetch(i: Item, onProgress?: (p: { fraction: number; etaSec: number }) => void, signal?: AbortSignal): Promise<string> {
     const delays = this.deps.retryDelaysMs ?? [2000, 8000]
     for (let attempt = 0; ; attempt++) {
       try {
-        return await ensureFile({ url: i.url, sha256: this.sha(i), sizeGB: i.bytes / 1e9, dir: i.dir, fileName: i.fileName, onProgress }, this.deps.download)
+        return await ensureFile({ url: i.url, sha256: this.sha(i), sizeGB: i.bytes / 1e9, dir: i.dir, fileName: i.fileName, onProgress, signal }, this.deps.download)
       } catch (err) {
-        if (err instanceof DiskSpaceError || err instanceof ChecksumError || attempt >= delays.length) throw err
+        if (signal?.aborted || err instanceof DiskSpaceError || err instanceof ChecksumError || attempt >= delays.length) throw err
         await new Promise((r) => setTimeout(r, delays[attempt]))
       }
     }

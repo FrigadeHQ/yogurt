@@ -635,5 +635,11 @@
   "You can restart once the recording stops.": "Voit käynnistää uudelleen, kun tallennus päättyy.",
   "Check now": "Tarkista nyt",
   "Eject the Yogurt installer?": "Poistetaanko Yogurtin asennusohjelma?",
-  "Eject": "Poista"
+  "Eject": "Poista",
+  "Better notes model": "Parempi muistiinpanomalli",
+  "A bigger model that writes better notes. It downloads after the first one ({size} GB).": "Suurempi malli, joka kirjoittaa parempia muistiinpanoja. Se ladataan ensimmäisen jälkeen ({size} Gt).",
+  "Downloading · {progress}": "Ladataan · {progress}",
+  "In use for notes": "Käytössä muistiinpanoissa",
+  "Notes use the smaller model.": "Muistiinpanot käyttävät pienempää mallia.",
+  "Starts after the first notes model.": "Alkaa ensimmäisen muistiinpanomallin jälkeen."
 }

@@ -632,5 +632,11 @@
   "You can restart once the recording stops.": "Kayıt durduğunda yeniden başlatabilirsiniz.",
   "Check now": "Şimdi denetle",
   "Eject the Yogurt installer?": "Yogurt yükleyicisi çıkarılsın mı?",
-  "Eject": "Çıkar"
+  "Eject": "Çıkar",
+  "Better notes model": "Daha iyi not modeli",
+  "A bigger model that writes better notes. It downloads after the first one ({size} GB).": "Daha iyi notlar yazan daha büyük bir model. İlkinden sonra indirilir ({size} GB).",
+  "Downloading · {progress}": "İndiriliyor · {progress}",
+  "In use for notes": "Notlar için kullanılıyor",
+  "Notes use the smaller model.": "Notlar daha küçük modeli kullanır.",
+  "Starts after the first notes model.": "İlk not modelinden sonra başlar."
 }

@@ -593,5 +593,11 @@
   "You can restart once the recording stops.": "録音が止まったら再起動できます。",
   "Check now": "今すぐ確認",
   "Eject the Yogurt installer?": "Yogurt インストーラを取り出しますか？",
-  "Eject": "取り出す"
+  "Eject": "取り出す",
+  "Better notes model": "より良いノート用モデル",
+  "A bigger model that writes better notes. It downloads after the first one ({size} GB).": "より良いノートを書く大きなモデルです。最初のモデルの後にダウンロードされます（{size} GB）。",
+  "Downloading · {progress}": "ダウンロード中 · {progress}",
+  "In use for notes": "ノートに使用中",
+  "Notes use the smaller model.": "ノートには小さいモデルを使用します。",
+  "Starts after the first notes model.": "最初のノート用モデルの後に始まります。"
 }

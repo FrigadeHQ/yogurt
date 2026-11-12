@@ -688,5 +688,11 @@
   "You can restart once the recording stops.": "يمكنك إعادة التشغيل بعد توقف التسجيل.",
   "Check now": "تحقّق الآن",
   "Eject the Yogurt installer?": "إخراج مثبّت Yogurt؟",
-  "Eject": "إخراج"
+  "Eject": "إخراج",
+  "Better notes model": "نموذج ملاحظات أفضل",
+  "A bigger model that writes better notes. It downloads after the first one ({size} GB).": "نموذج أكبر يكتب ملاحظات أفضل. يُنزَّل بعد النموذج الأول ({size} غيغابايت).",
+  "Downloading · {progress}": "جارٍ التنزيل · {progress}",
+  "In use for notes": "قيد الاستخدام للملاحظات",
+  "Notes use the smaller model.": "تستخدم الملاحظات النموذج الأصغر.",
+  "Starts after the first notes model.": "يبدأ بعد نموذج الملاحظات الأول."
 }

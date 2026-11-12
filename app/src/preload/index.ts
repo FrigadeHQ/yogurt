@@ -16,6 +16,7 @@ const api: YogurtApi = {
       return () => { ipcRenderer.removeListener('setup:state', on) }
     },
     retry: () => ipcRenderer.invoke('setup:retry'),
+    setBetterNotes: (on) => ipcRenderer.invoke('setup:better-notes', on),
   },
   prompt: {
     state: () => ipcRenderer.invoke('prompt:state'),

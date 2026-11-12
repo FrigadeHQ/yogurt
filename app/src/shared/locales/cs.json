@@ -658,5 +658,11 @@
   "You can restart once the recording stops.": "Restartovat můžete, až nahrávání skončí.",
   "Check now": "Zkontrolovat",
   "Eject the Yogurt installer?": "Vysunout instalátor Yogurt?",
-  "Eject": "Vysunout"
+  "Eject": "Vysunout",
+  "Better notes model": "Lepší model pro poznámky",
+  "A bigger model that writes better notes. It downloads after the first one ({size} GB).": "Větší model, který píše lepší poznámky. Stáhne se po prvním ({size} GB).",
+  "Downloading · {progress}": "Stahování · {progress}",
+  "In use for notes": "Používá se pro poznámky",
+  "Notes use the smaller model.": "Poznámky používají menší model.",
+  "Starts after the first notes model.": "Začne po prvním modelu pro poznámky."
 }

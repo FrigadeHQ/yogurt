@@ -593,5 +593,11 @@
   "You can restart once the recording stops.": "녹음이 끝나면 다시 시작할 수 있습니다.",
   "Check now": "지금 확인",
   "Eject the Yogurt installer?": "Yogurt 설치 프로그램을 추출할까요?",
-  "Eject": "추출"
+  "Eject": "추출",
+  "Better notes model": "더 나은 노트 모델",
+  "A bigger model that writes better notes. It downloads after the first one ({size} GB).": "더 나은 노트를 쓰는 더 큰 모델이에요. 첫 번째 모델 다음에 다운로드돼요({size} GB).",
+  "Downloading · {progress}": "다운로드 중 · {progress}",
+  "In use for notes": "노트에 사용 중",
+  "Notes use the smaller model.": "노트는 더 작은 모델을 사용해요.",
+  "Starts after the first notes model.": "첫 번째 노트 모델 다음에 시작돼요."
 }

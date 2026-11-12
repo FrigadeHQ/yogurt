@@ -632,5 +632,11 @@
   "You can restart once the recording stops.": "Du kan starta om när inspelningen har stoppat.",
   "Check now": "Sök nu",
   "Eject the Yogurt installer?": "Mata ut installationsprogrammet för Yogurt?",
-  "Eject": "Mata ut"
+  "Eject": "Mata ut",
+  "Better notes model": "Bättre anteckningsmodell",
+  "A bigger model that writes better notes. It downloads after the first one ({size} GB).": "En större modell som skriver bättre anteckningar. Den hämtas efter den första ({size} GB).",
+  "Downloading · {progress}": "Hämtar · {progress}",
+  "In use for notes": "Används för anteckningar",
+  "Notes use the smaller model.": "Anteckningar använder den mindre modellen.",
+  "Starts after the first notes model.": "Börjar efter den första anteckningsmodellen."
 }

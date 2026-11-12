@@ -593,5 +593,11 @@
   "You can restart once the recording stops.": "Bạn có thể khởi động lại khi bản ghi dừng.",
   "Check now": "Kiểm tra ngay",
   "Eject the Yogurt installer?": "Đẩy trình cài đặt Yogurt ra?",
-  "Eject": "Đẩy ra"
+  "Eject": "Đẩy ra",
+  "Better notes model": "Mô hình ghi chú tốt hơn",
+  "A bigger model that writes better notes. It downloads after the first one ({size} GB).": "Một mô hình lớn hơn viết ghi chú tốt hơn. Mô hình này tải xuống sau mô hình đầu tiên ({size} GB).",
+  "Downloading · {progress}": "Đang tải xuống · {progress}",
+  "In use for notes": "Đang dùng cho ghi chú",
+  "Notes use the smaller model.": "Ghi chú dùng mô hình nhỏ hơn.",
+  "Starts after the first notes model.": "Bắt đầu sau mô hình ghi chú đầu tiên."
 }

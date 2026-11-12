@@ -35,7 +35,9 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   /** the language people speak in meetings: English only unless 'multi' (shared/spoken.ts) */
   spoken?: Spoken
   /** new versions download by themselves; on unless turned off */
-  autoUpdate?: boolean }
+  autoUpdate?: boolean
+  /** the bigger notes model downloads after the first one; on unless turned off (false: notes keep the first one) */
+  betterNotes?: boolean }
 
 /** "English only" unless Multi-language was picked */
 export const spokenSetting = (s: Settings): Spoken => spokenOf(s.spoken)
@@ -44,6 +46,7 @@ export const spokenSetting = (s: Settings): Spoken => spokenOf(s.spoken)
 export const stopsWhenCallEnds = (s: Settings): boolean => s.stopWhenCallEnds !== false
 export const recordingReminderOn = (s: Settings): boolean => s.recordingReminder !== false
 export const autoUpdateOn = (s: Settings): boolean => s.autoUpdate !== false
+export const betterNotesOn = (s: Settings): boolean => s.betterNotes !== false
 
 export function loadSettings(path: string): Settings {
   try { return existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : {} } catch { return {} }

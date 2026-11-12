@@ -645,5 +645,11 @@
   "You can restart once the recording stops.": "Vous pourrez redémarrer une fois l’enregistrement terminé.",
   "Check now": "Rechercher",
   "Eject the Yogurt installer?": "Éjecter le programme d’installation de Yogurt ?",
-  "Eject": "Éjecter"
+  "Eject": "Éjecter",
+  "Better notes model": "Meilleur modèle de notes",
+  "A bigger model that writes better notes. It downloads after the first one ({size} GB).": "Un modèle plus grand qui rédige de meilleures notes. Il se télécharge après le premier ({size} Go).",
+  "Downloading · {progress}": "Téléchargement · {progress}",
+  "In use for notes": "Utilisé pour les notes",
+  "Notes use the smaller model.": "Les notes utilisent le modèle plus petit.",
+  "Starts after the first notes model.": "Commence après le premier modèle de notes."
 }

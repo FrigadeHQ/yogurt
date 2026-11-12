@@ -16,7 +16,7 @@ import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { isFake, userDataDir } from './paths'
 import { logToFile } from './log'
-import { loadSettings, localeOf, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings } from './settings'
+import { betterNotesOn, loadSettings, localeOf, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings } from './settings'
 import { CALL_GONE_MS, useCallApps } from './detect'
 import { systemLocale } from './locale'
 import { onLanguage, setLanguage, t } from '../shared/i18n'
@@ -166,6 +166,8 @@ function createSetup(): SetupController {
     getCatalog: async () => loadCatalog({ bundled: bundledCatalog, licenses }),
     download: isFake() ? fakeDownloadDeps({ stepMs: Number(process.env.YOGURT_FAKE_STEP_MS ?? 5), notesMs: Number(process.env.YOGURT_FAKE_NOTES_MODEL_MS ?? 0) }) : realDeps,
     ...(isFake() ? { sha256Override: 'FAKE' } : {}),
+    // Settings' switch for the bigger notes model (on unless turned off)
+    betterNotesOn: () => betterNotesOn(loadSettings(join(userDataDir(), 'settings.json'))),
     // Windows and Linux: speech models timed on this computer (asr/speedCheck.ts); a Mac never is
     ...(platform === 'darwin' ? {} : { speed: { ...speedStore(speedFile()), measure: isFake() ? fakeMeasure() : (model: string) => measureSpeed(model, { binary: whisperServerPath(), vadModel: vadModelPath(), clip: speedClipPath() ?? '' }) } }),
   })
@@ -474,6 +476,11 @@ app.whenReady().then(() => {
   setup.onState((st) => win?.webContents.send('setup:state', st))
   ipcMain.handle('setup:state', () => setup.state)
   ipcMain.handle('setup:retry', () => setup.retry())
+  ipcMain.handle('setup:better-notes', (_e, on: unknown) => {
+    if (typeof on !== 'boolean') return
+    updateSettings(join(userDataDir(), 'settings.json'), { betterNotes: on ? undefined : false })
+    return setup.setBetterNotes(on)
+  })
   const store = openStore(join(userDataDir(), 'yogurt.db'))
   storeRef = store
   store.markInterrupted()

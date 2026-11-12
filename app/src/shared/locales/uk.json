@@ -658,5 +658,11 @@
   "You can restart once the recording stops.": "Перезапустити можна після зупинки запису.",
   "Check now": "Перевірити",
   "Eject the Yogurt installer?": "Витягти інсталятор Yogurt?",
-  "Eject": "Витягти"
+  "Eject": "Витягти",
+  "Better notes model": "Краща модель для нотаток",
+  "A bigger model that writes better notes. It downloads after the first one ({size} GB).": "Більша модель, яка пише кращі нотатки. Завантажується після першої ({size} ГБ).",
+  "Downloading · {progress}": "Завантаження · {progress}",
+  "In use for notes": "Використовується для нотаток",
+  "Notes use the smaller model.": "Нотатки використовують меншу модель.",
+  "Starts after the first notes model.": "Почнеться після першої моделі для нотаток."
 }

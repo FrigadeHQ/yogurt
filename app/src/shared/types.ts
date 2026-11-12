@@ -32,6 +32,8 @@ export type YogurtApi = {
     /** called with each change; returns the way to stop listening */
     onState(cb: (s: SetupState) => void): () => void
     retry(): Promise<void>
+    /** the bigger notes model: on downloads it (or picks up where it stopped), off stops it and notes use the first one */
+    setBetterNotes(on: boolean): Promise<void>
   }
   /** the "Take notes?" and "Stop recording?" card */
   prompt: {
@@ -306,7 +308,15 @@ export type SetupState = {
   notesEtaSec?: number
   /** The first notes model is still downloading after ready, on every system. */
   notesDownloading?: boolean
+  /** The bigger notes model, on a computer that gets one after the first; absent otherwise. */
+  betterNotes?: BetterNotesState
 }
+
+/**
+ * The bigger notes model's background download. waiting: queued behind the first notes model. off: turned off in
+ * Settings, so notes use the first one. fraction and etaSec only while downloading, etaSec once there is an estimate.
+ */
+export type BetterNotesState = { status: 'waiting' | 'downloading' | 'ready' | 'failed' | 'off'; totalBytes: number; fraction?: number; etaSec?: number }
 
 export type { Meeting, Person, Segment, SnippetPart, Folder } from '../main/store'
 export type { CalEvent, CalendarSource, CalendarStatus } from '../main/calendar'

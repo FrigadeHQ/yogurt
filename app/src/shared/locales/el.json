@@ -632,5 +632,11 @@
   "You can restart once the recording stops.": "Μπορείς να κάνεις επανεκκίνηση όταν σταματήσει η εγγραφή.",
   "Check now": "Έλεγχος τώρα",
   "Eject the Yogurt installer?": "Εξαγωγή του προγράμματος εγκατάστασης του Yogurt;",
-  "Eject": "Εξαγωγή"
+  "Eject": "Εξαγωγή",
+  "Better notes model": "Καλύτερο μοντέλο σημειώσεων",
+  "A bigger model that writes better notes. It downloads after the first one ({size} GB).": "Ένα μεγαλύτερο μοντέλο που γράφει καλύτερες σημειώσεις. Γίνεται λήψη μετά το πρώτο ({size} GB).",
+  "Downloading · {progress}": "Λήψη · {progress}",
+  "In use for notes": "Χρησιμοποιείται για σημειώσεις",
+  "Notes use the smaller model.": "Οι σημειώσεις χρησιμοποιούν το μικρότερο μοντέλο.",
+  "Starts after the first notes model.": "Ξεκινά μετά το πρώτο μοντέλο σημειώσεων."
 }

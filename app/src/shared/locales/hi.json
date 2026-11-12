@@ -632,5 +632,11 @@
   "You can restart once the recording stops.": "रिकॉर्डिंग रुकने के बाद आप रीस्टार्ट कर सकते हैं।",
   "Check now": "अभी देखें",
   "Eject the Yogurt installer?": "Yogurt इंस्टॉलर निकालें?",
-  "Eject": "निकालें"
+  "Eject": "निकालें",
+  "Better notes model": "बेहतर नोट्स का मॉडल",
+  "A bigger model that writes better notes. It downloads after the first one ({size} GB).": "एक बड़ा मॉडल जो बेहतर नोट्स लिखता है। यह पहले वाले के बाद डाउनलोड होता है ({size} GB)।",
+  "Downloading · {progress}": "डाउनलोड हो रहा है · {progress}",
+  "In use for notes": "नोट्स के लिए इस्तेमाल हो रहा है",
+  "Notes use the smaller model.": "नोट्स छोटे मॉडल का इस्तेमाल करते हैं।",
+  "Starts after the first notes model.": "पहले नोट्स मॉडल के बाद शुरू होगा।"
 }
