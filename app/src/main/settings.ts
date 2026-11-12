@@ -35,7 +35,9 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   /** the language people speak in meetings: English only unless 'multi' (shared/spoken.ts) */
   spoken?: Spoken
   /** new versions download by themselves; on unless turned off */
-  autoUpdate?: boolean }
+  autoUpdate?: boolean
+  /** notes model to use (a catalog id). The recommended one for this computer when left out. */
+  notesModel?: string }
 
 /** "English only" unless Multi-language was picked */
 export const spokenSetting = (s: Settings): Spoken => spokenOf(s.spoken)

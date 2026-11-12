@@ -1,8 +1,8 @@
-import { asrCandidates, pick, pickAsr, pickBySpeed, speedKey, type Catalog, type CatalogAsr, type Choice, type Hardware } from '@yogurt/picker'
+import { asrCandidates, pick, pickAsr, pickBySpeed, speedKey, type Catalog, type CatalogAsr, type Choice, type Hardware, type PickResult } from '@yogurt/picker'
 import { rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { ChecksumError, DiskSpaceError, ensureFile, fileNameFor, isVerified, partialDownloadGB, type DownloadDeps } from './downloader'
-import type { SetupState } from '../shared/types'
+import type { NotesModelChoice, SetupState } from '../shared/types'
 import { t } from '../shared/i18n'
 import { tooSlow, tooWeak } from './localCheck'
 
@@ -56,6 +56,8 @@ type Item = { url: string; sha256: string; bytes: number; dir: string; fileName:
 
 const llmItem = (dir: string, c: Choice): Item => ({ url: c.build.url, sha256: c.build.sha256, bytes: c.build.sizeGB * 1e9, dir, fileName: fileNameFor(c.build.url) })
 
+const stopped = (err: unknown) => !!err && typeof err === 'object' && 'name' in err && (err as { name: string }).name === 'AbortError'
+
 export class SetupController {
   private _state: SetupState = { phase: 'checking', fraction: 0 }
   private listeners = new Set<(s: SetupState) => void>()
@@ -63,7 +65,19 @@ export class SetupController {
   private background: Promise<void> | undefined
   private backgroundItem: Item | undefined
   private backgroundFailed = false
+  private backgroundStop: AbortController | undefined
+  /** bumped so a superseded larger-model download cannot clear the one that replaced it */
+  private choiceGen = 0
   private retryNotes: (() => void) | undefined
+  /** the pick for this computer, once known; the notes-model setting is one of its choices */
+  private picked: PickResult | undefined
+  private llmDir: string | undefined
+  /** catalog id the person chose; absent means the recommended model */
+  private wantedId: string | undefined
+  /** the model id whose file is in recommendedLlm */
+  private extraId: string | undefined
+  /** the first notes model has landed, so a settings change may start or stop the larger download */
+  private firstLanded = false
   private paths: Installed | undefined
   private notesListeners = new Set<() => void>()
   private embedListeners = new Set<() => void>()
@@ -112,7 +126,36 @@ export class SetupController {
   async retry() {
     if (this._state.phase === 'error') { this.recheck = true; return this.start() }
     if (this.retryNotes) { this.retryNotes(); return }
-    if (this._state.phase === 'ready' && this.backgroundFailed && this.backgroundItem) this.startBackground(this.backgroundItem)
+    if (this._state.phase === 'ready' && this.backgroundFailed) void this.followChoice()
+  }
+
+  /** Models Settings may offer. Safe before setup finishes: it reads the catalog once. */
+  async notesModelOptions(): Promise<NotesModelChoice[]> {
+    if (!this.picked) {
+      const [hw, catalog] = await Promise.all([this.deps.getHardware(), this.deps.getCatalog()])
+      this.picked = pick(hw, catalog.models)
+    }
+    const list = [...this.picked.all, ...(this.picked.smarter ? [this.picked.smarter] : [])]
+    const seen = new Set<string>()
+    return list.filter((c) => (seen.has(c.model.id) ? false : (seen.add(c.model.id), true))).map((c) => ({
+      id: c.model.id, name: c.model.name, sizeGB: c.build.sizeGB, recommended: c.model.id === this.picked!.recommended?.model.id,
+    }))
+  }
+
+  /**
+   * The notes model to download after the first one. The recommended id, or none, means "whatever this computer
+   * should use". Stored before the first model lands and applied then; applied at once after that.
+   */
+  setNotesModel(id: string | undefined) {
+    this.wantedId = id || undefined
+    if (this.firstLanded) return this.followChoice()
+  }
+
+  /** The file notes should load: the chosen larger model once it is in, otherwise the first one. */
+  notesModelPath(): string | undefined {
+    const choice = this.resolvedChoice()
+    if (this.paths?.recommendedLlm && choice && this.extraId === choice.model.id) return this.paths.recommendedLlm
+    return this.paths?.llm
   }
 
   private async run() {
@@ -120,6 +163,7 @@ export class SetupController {
     try {
       const [hw, catalog] = await Promise.all([this.deps.getHardware(), this.deps.getCatalog()])
       const llm = pick(hw, catalog.models)
+      this.picked = llm
       const weak = tooWeak(hw, !!llm.recommended)
       if (!llm.recommended || weak) return this.set({ phase: 'error', fraction: 0, message: weak ?? '' })
 
@@ -128,6 +172,7 @@ export class SetupController {
       const later = starter === llm.recommended ? undefined : llm.recommended
       console.info('NOTES', `notes models for this computer: ${starter.model.id}${later ? `, then ${later.model.id}` : ''} (graphics ${hw.gpu.kind}${hw.gpu.name ? ` ${hw.gpu.name}` : ''}, ${hw.totalRamGB} GB)`)
       const dirs = { asr: join(this.deps.modelsDir, 'asr'), llm: join(this.deps.modelsDir, 'llm'), embed: join(this.deps.modelsDir, 'embed') }
+      this.llmDir = dirs.llm
 
       // Speech first: ready (recording works) once it is in. The notes models come after.
       let asr = pickAsr(hw, catalog)
@@ -181,7 +226,7 @@ export class SetupController {
       }
       this.paths = { asr: asrPath }
       this.set({ phase: 'ready', fraction: 1 })
-      this.startNotes(starterItem, embedItem, later && llmItem(dirs.llm, later))
+      this.startNotes(starterItem, embedItem)
     } catch (err) {
       console.error('setup failed', err)
       this.set({ phase: 'error', fraction: this._state.fraction, message: friendly(err) })
@@ -215,7 +260,7 @@ export class SetupController {
    * The first notes model downloads while Yogurt already records: it is tried until it lands (meetings recorded
    * meanwhile get their notes then). The bigger one follows.
    */
-  private startNotes(first: Item, embed: Item, later: Item | undefined) {
+  private startNotes(first: Item, embed: Item) {
     this.background = (async () => {
       const waits = this.deps.notesRetryMs ?? NOTES_RETRY_MS
       // Waiting notes show whole percents; every 10% goes in the log.
@@ -249,7 +294,7 @@ export class SetupController {
       for (const l of this.notesListeners) { try { l() } catch (e) { console.error('notes model listener failed', e) } }
     })()
     this.background = this.background.then(() => this.startEmbedding(embed))
-    if (later) this.background = this.background.then(() => this.startBackground(later))
+    this.background = this.background.then(() => { this.firstLanded = true; return this.followChoice() })
   }
 
   /**
@@ -271,18 +316,96 @@ export class SetupController {
     })()
   }
 
-  /** The bigger notes model downloads while Yogurt is already usable. Failing here is not an error screen. */
-  private startBackground(item: Item): Promise<void> {
+  /** The choice to put in recommendedLlm, or null when the first model is the one to keep. */
+  private resolvedChoice(): Choice | null {
+    const picked = this.picked
+    if (!picked?.recommended) return null
+    if (!this.wantedId) return picked.recommended
+    const options = [...picked.all, ...(picked.smarter ? [picked.smarter] : [])]
+    return options.find((c) => c.model.id === this.wantedId) ?? picked.recommended
+  }
+
+  /** The second download, when the chosen model is not the file already fetched as the first. */
+  private laterItem(): { item: Item; id: string } | null {
+    const picked = this.picked
+    if (!picked?.recommended || !this.llmDir) return null
+    const choice = this.resolvedChoice()
+    if (!choice) return null
+    const first = picked.starter && picked.starter.build.sizeGB < picked.recommended.build.sizeGB ? picked.starter : picked.recommended
+    if (choice.model.id === first.model.id) return null
+    return { item: llmItem(this.llmDir, choice), id: choice.model.id }
+  }
+
+  private clearLargerUi() {
+    if (this._state.notesKind !== 'larger') return
+    this.set({ ...this._state, notesFraction: undefined, notesDownloading: undefined, notesTotalBytes: undefined, notesEtaSec: undefined, notesError: undefined, notesKind: undefined })
+  }
+
+  /**
+   * Download the chosen larger model, or stop if the person kept the first one. A newer choice cancels the one in
+   * flight. The partial file stays, so the next try continues it. The file is not deleted when they switch away.
+   */
+  private async followChoice() {
+    const gen = ++this.choiceGen
+    this.backgroundStop?.abort()
+    this.backgroundStop = undefined
+    const next = this.laterItem()
+    if (gen !== this.choiceGen) return
+    if (!next) {
+      this.backgroundFailed = false
+      this.backgroundItem = undefined
+      this.extraId = undefined
+      if (this.paths?.recommendedLlm) this.paths = { ...this.paths, recommendedLlm: undefined }
+      this.clearLargerUi()
+      return
+    }
+    if (isVerified(next.item.dir, next.item.fileName, this.sha(next.item))) {
+      if (this.paths) this.paths = { ...this.paths, recommendedLlm: join(next.item.dir, next.item.fileName) }
+      this.extraId = next.id
+      this.backgroundFailed = false
+      this.backgroundItem = next.item
+      this.clearLargerUi()
+      return
+    }
+    if (this.extraId !== next.id && this.paths?.recommendedLlm) {
+      this.extraId = undefined
+      this.paths = { ...this.paths, recommendedLlm: undefined }
+    }
+    await this.startBackground(next.item, next.id, gen)
+  }
+
+  /** The bigger notes model downloads while Yogurt is already usable. A failure stays in the footer, not an error screen. */
+  private startBackground(item: Item, modelId: string, gen: number): Promise<void> {
+    if (gen !== this.choiceGen) return Promise.resolve()
+    this.backgroundStop?.abort()
+    const stop = new AbortController()
+    this.backgroundStop = stop
     this.backgroundItem = item
     this.backgroundFailed = false
     const already = isVerified(item.dir, item.fileName, this.sha(item))
     if (!already) console.info('NOTES', `downloading the bigger notes model ${item.fileName} (${(item.bytes / 1e9).toFixed(1)} GB)`)
-    this.background = this.fetch(item).then((path) => {
+    let shown = -1
+    const progress = (p: { fraction: number; etaSec: number }) => {
+      if (gen !== this.choiceGen) return
+      const pct = Math.floor(p.fraction * 100)
+      if (pct === shown) return
+      shown = pct
+      this.set({ ...this._state, notesKind: 'larger', notesError: undefined, notesDownloading: true, notesFraction: p.fraction, notesTotalBytes: item.bytes, notesEtaSec: p.etaSec > 0 && Number.isFinite(p.etaSec) ? p.etaSec : undefined })
+    }
+    if (!already) this.set({ ...this._state, notesKind: 'larger', notesError: undefined, notesDownloading: true, notesFraction: 0, notesTotalBytes: item.bytes, notesEtaSec: undefined })
+    this.background = this.fetch(item, already ? undefined : progress, stop.signal).then((path) => {
+      if (gen !== this.choiceGen) return
       if (!already) console.info('NOTES', 'the bigger notes model is in')
       if (this.paths) this.paths = { ...this.paths, recommendedLlm: path }
+      this.extraId = modelId
+      this.backgroundStop = undefined
+      this.clearLargerUi()
     }).catch((err) => {
+      if (gen !== this.choiceGen || stopped(err)) return
       this.backgroundFailed = true
+      this.backgroundStop = undefined
       console.warn('the bigger notes model did not download', err)
+      this.set({ ...this._state, notesKind: 'larger', notesError: friendly(err), notesFraction: undefined, notesDownloading: undefined, notesTotalBytes: undefined, notesEtaSec: undefined })
     })
     return this.background
   }
@@ -297,13 +420,13 @@ export class SetupController {
   private sha(i: Item) { return this.deps.sha256Override ?? i.sha256 }
 
   /** Download (or reuse) a verified file, retrying transient failures. */
-  private async fetch(i: Item, onProgress?: (p: { fraction: number; etaSec: number }) => void): Promise<string> {
+  private async fetch(i: Item, onProgress?: (p: { fraction: number; etaSec: number }) => void, signal?: AbortSignal): Promise<string> {
     const delays = this.deps.retryDelaysMs ?? [2000, 8000]
     for (let attempt = 0; ; attempt++) {
       try {
-        return await ensureFile({ url: i.url, sha256: this.sha(i), sizeGB: i.bytes / 1e9, dir: i.dir, fileName: i.fileName, onProgress }, this.deps.download)
+        return await ensureFile({ url: i.url, sha256: this.sha(i), sizeGB: i.bytes / 1e9, dir: i.dir, fileName: i.fileName, onProgress, signal }, this.deps.download)
       } catch (err) {
-        if (err instanceof DiskSpaceError || err instanceof ChecksumError || attempt >= delays.length) throw err
+        if (stopped(err) || err instanceof DiskSpaceError || err instanceof ChecksumError || attempt >= delays.length) throw err
         await new Promise((r) => setTimeout(r, delays[attempt]))
       }
     }

@@ -1,9 +1,10 @@
 import { LoadingContent } from '../components/LoadingContent'
 import { useCallback, useEffect, useState } from 'react'
-import { Check, ChevronDown, Copy, Download, ExternalLink, Globe, Lock, Upload } from 'lucide-react'
+import { Check, ChevronDown, Copy, Download, ExternalLink, Globe, Lock, Sparkles, Upload } from 'lucide-react'
 import type { Access, McpStatus, PermissionKind, PermissionStatus, Theme, UpdateStatus } from '../../../shared/types'
 import { permissionCopy } from '../permissionCopy'
-import { LOCALES, t } from '../../../shared/i18n'
+import { LOCALES, language, t } from '../../../shared/i18n'
+import type { NotesModelChoice } from '../../../shared/types'
 import { osWords } from '../keys'
 import { applyLanguage } from '../i18n'
 import { flushOpenNotes } from '../noteAutosave'
@@ -133,6 +134,7 @@ export function Settings({ revision = 0 }: { revision?: number }) {
             <AppLanguage />
             <SpokenSetting />
             <Jargon />
+            <NotesModelSetting />
           </div>
 
           <Backup />
@@ -179,6 +181,33 @@ function AppLanguage() {
       <ChevronDown size={14} aria-hidden="true" />
       </span>
     </div></LoadingContent>
+  )
+}
+
+/** Settings → Language: which notes model to keep. Hidden when this computer can run only one. */
+function NotesModelSetting() {
+  const [model, setModel] = useState<{ selected: string; options: NotesModelChoice[] }>()
+  useEffect(() => { void window.yogurt.settings.notesModels().then(setModel) }, [])
+  if (!model || model.options.length < 2) return null
+  const choose = (id: string) => {
+    setModel({ ...model, selected: id })
+    void window.yogurt.settings.setNotesModel(id)
+  }
+  const gb = new Intl.NumberFormat(language(), { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+  return (
+    <div className="settings-row">
+      <span className="settings-permission-icon"><Sparkles size={17} strokeWidth={1.75} aria-hidden="true" /></span>
+      <div className="settings-row-copy">
+        <label htmlFor="settings-notes-model" className="settings-label">{t('Notes model')}</label>
+        <p className="settings-description">{t('The model that writes your notes. A larger one downloads in the background.')}</p>
+      </div>
+      <span className="settings-select-wrap">
+        <select id="settings-notes-model" data-testid="settings-notes-model" value={model.selected} onChange={(e) => choose(e.target.value)} className="settings-select">
+          {model.options.map((m) => <option key={m.id} value={m.id}>{t('{name}, {size} GB', { name: m.name, size: gb.format(m.sizeGB) })}</option>)}
+        </select>
+        <ChevronDown size={14} aria-hidden="true" />
+      </span>
+    </div>
   )
 }
 

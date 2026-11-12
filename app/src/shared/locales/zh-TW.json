@@ -593,5 +593,11 @@
   "You can restart once the recording stops.": "錄音停止後即可重新啟動。",
   "Check now": "立即檢查",
   "Eject the Yogurt installer?": "要退出 Yogurt 安裝程式嗎？",
-  "Eject": "退出"
+  "Eject": "退出",
+  "Better notes model · {percent}": "更好的筆記模型 · {percent}",
+  "Better notes model": "更好的筆記模型",
+  "Your notes already work. Yogurt switches to this model when the download finishes.": "筆記已經可用。下載完成後，Yogurt 會改用這個模型。",
+  "Notes model": "筆記模型",
+  "The model that writes your notes. A larger one downloads in the background.": "用來寫筆記的模型。更大的模型會在背景下載。",
+  "{name}, {size} GB": "{name}，{size} GB"
 }

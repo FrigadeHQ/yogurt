@@ -30,7 +30,10 @@ export function NotesSetup() {
   }
   if (!setup || (!setup.notesDownloading && !setup.notesError)) return null
   const failed = !!setup.notesError
-  const label = failed ? t("AI download stopped") : t('Downloading AI · {percent}', { percent: notesPercent(setup.notesFraction ?? 0) })
+  const larger = setup.notesKind === 'larger'
+  const label = failed ? t('AI download stopped') : larger
+    ? t('Better notes model · {percent}', { percent: notesPercent(setup.notesFraction ?? 0) })
+    : t('Downloading AI · {percent}', { percent: notesPercent(setup.notesFraction ?? 0) })
   const text = notesDownloadText(setup)
   return <span className="notes-download-status flex min-w-0 items-center gap-1.5">
     <span aria-hidden="true">·</span>
@@ -42,13 +45,15 @@ export function NotesSetup() {
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner side="top" align="start" sideOffset={8} collisionPadding={12} positionMethod="fixed" className="notes-download-positioner">
-          <Popover.Popup data-testid="notes-setup" data-failed={failed} data-pointer={pointer} data-anchor="bottom-start" aria-label={failed ? t('AI download stopped') : t('Downloading AI')} className="menu-entry notes-download-menu">
+          <Popover.Popup data-testid="notes-setup" data-failed={failed} data-kind={setup.notesKind ?? 'first'} data-pointer={pointer} data-anchor="bottom-start" aria-label={failed ? t('AI download stopped') : larger ? t('Better notes model') : t('Downloading AI')} className="menu-entry notes-download-menu">
             {failed ? <>
               <p role="status">{retryFailed ? t("Couldn't restart the download. Try again.") : setup.notesError}</p>
               <button data-testid="notes-setup-retry" className="inline-error-action notes-download-retry" disabled={retrying} onClick={() => void retry()}>{retrying ? t('Retrying…') : t('Try again')}</button>
             </> : <>
               <p>{text.detail}</p>
-              <p className="text-muted">{t('You can record now. Yogurt writes your notes and answers questions once this finishes.')}</p>
+              <p className="text-muted">{larger
+                ? t('Your notes already work. Yogurt switches to this model when the download finishes.')
+                : t('You can record now. Yogurt writes your notes and answers questions once this finishes.')}</p>
             </>}
           </Popover.Popup>
         </Popover.Positioner>

@@ -68,5 +68,11 @@
   "Downloading Yogurt's AI: {progress}": "Downloading Yogurt's AI: {progress}",
   "{done} of {total} GB": "{done} of {total} GB",
   "{progress} · about {minutes} min left": "{progress} · about {minutes} min left",
-  "You can record now. Yogurt writes your notes and answers questions once this finishes.": "You can record now. Yogurt writes your notes and answers questions once this finishes."
+  "You can record now. Yogurt writes your notes and answers questions once this finishes.": "You can record now. Yogurt writes your notes and answers questions once this finishes.",
+  "Better notes model · {percent}": "Better notes model · {percent}",
+  "Better notes model": "Better notes model",
+  "Your notes already work. Yogurt switches to this model when the download finishes.": "Your notes already work. Yogurt switches to this model when the download finishes.",
+  "Notes model": "Notes model",
+  "The model that writes your notes. A larger one downloads in the background.": "The model that writes your notes. A larger one downloads in the background.",
+  "{name}, {size} GB": "{name}, {size} GB"
 }

@@ -37,6 +37,13 @@ describe('first notes model progress', () => {
     expect(notice(downloading, true, 3000)).toBe(false)
     expect(notice(ready, true, 4000)).toBe(true)
   })
+  it('a larger-model download does not announce that notes just became ready', () => {
+    const notice = notesReadyNotice()
+    const larger = { ...downloading, notesKind: 'larger' as const }
+    expect(notice(larger, true, 0)).toBe(false)
+    expect(notice(larger, true, 2000)).toBe(false)
+    expect(notice(ready, true, 3000)).toBe(false)
+  })
   it('does not count hidden time toward a briefly visible download', () => {
     const notice = notesReadyNotice()
     notice(downloading, true, 0)

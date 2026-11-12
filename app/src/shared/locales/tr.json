@@ -632,5 +632,11 @@
   "You can restart once the recording stops.": "Kayıt durduğunda yeniden başlatabilirsiniz.",
   "Check now": "Şimdi denetle",
   "Eject the Yogurt installer?": "Yogurt yükleyicisi çıkarılsın mı?",
-  "Eject": "Çıkar"
+  "Eject": "Çıkar",
+  "Better notes model · {percent}": "Daha iyi not modeli · {percent}",
+  "Better notes model": "Daha iyi not modeli",
+  "Your notes already work. Yogurt switches to this model when the download finishes.": "Notların zaten çalışıyor. İndirme bitince Yogurt bu modele geçer.",
+  "Notes model": "Not modeli",
+  "The model that writes your notes. A larger one downloads in the background.": "Notlarını yazan model. Daha büyük olanı arka planda indirilir.",
+  "{name}, {size} GB": "{name}, {size} GB"
 }

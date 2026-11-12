@@ -254,6 +254,10 @@ export type YogurtApi = {
     onLanguage(cb: (locale: string) => void): () => void
     /** English only or Multi-language: the meeting being recorded and the next ones */
     setSpoken(v: import('./spoken').Spoken): Promise<void>
+    /** models that fit this computer; selected is the saved one, or the recommended one when none is saved. Empty until the catalog is read. */
+    notesModels(): Promise<{ selected: string; options: NotesModelChoice[] }>
+    /** a catalog id from notesModels(); the recommended id is stored as "no choice" */
+    setNotesModel(id: string): Promise<void>
   }
   /** finds meetings by title, transcript and notes; nothing typed: the latest. folder: only the meetings in it */
   search: { query(q: string, folder?: string): Promise<SearchResult[]> }
@@ -297,16 +301,21 @@ export type SetupState = {
   /** 0 to 1 over what ready waits for */
   fraction: number
   message?: string
-  /** Speech is ready, but the first notes-model download failed. Recording and transcription still work. */
+  /** Speech is ready, but a notes-model download failed. Recording and transcription still work. */
   notesError?: string
-  /** The first notes model is still downloading after ready, this far (0 to 1), on every system. */
+  /** A notes model is still downloading after ready, this far (0 to 1), on every system. */
   notesFraction?: number
-  /** Size of the first notes model; ETA is absent until the downloader has an estimate. */
+  /** Size of the notes model downloading now; ETA is absent until the downloader has an estimate. */
   notesTotalBytes?: number
   notesEtaSec?: number
-  /** The first notes model is still downloading after ready, on every system. */
+  /** A notes model is still downloading after ready, on every system. */
   notesDownloading?: boolean
+  /** Which download the notes fields describe. Absent on the first model, so older states keep meaning that one. */
+  notesKind?: 'first' | 'larger'
 }
+
+/** A notes model this computer can run, for Settings. Names stay the catalog's. */
+export type NotesModelChoice = { id: string; name: string; sizeGB: number; recommended: boolean }
 
 export type { Meeting, Person, Segment, SnippetPart, Folder } from '../main/store'
 export type { CalEvent, CalendarSource, CalendarStatus } from '../main/calendar'

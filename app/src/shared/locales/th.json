@@ -593,5 +593,11 @@
   "You can restart once the recording stops.": "คุณรีสตาร์ทได้เมื่อการบันทึกหยุดแล้ว",
   "Check now": "ตรวจสอบเลย",
   "Eject the Yogurt installer?": "นำตัวติดตั้ง Yogurt ออกไหม",
-  "Eject": "นำออก"
+  "Eject": "นำออก",
+  "Better notes model · {percent}": "โมเดลโน้ตที่ดีกว่า · {percent}",
+  "Better notes model": "โมเดลโน้ตที่ดีกว่า",
+  "Your notes already work. Yogurt switches to this model when the download finishes.": "โน้ตใช้งานได้แล้ว Yogurt จะสลับมาใช้โมเดลนี้เมื่อดาวน์โหลดเสร็จ",
+  "Notes model": "โมเดลโน้ต",
+  "The model that writes your notes. A larger one downloads in the background.": "โมเดลที่เขียนโน้ตให้คุณ โมเดลที่ใหญ่กว่าจะดาวน์โหลดอยู่เบื้องหลัง",
+  "{name}, {size} GB": "{name}, {size} GB"
 }

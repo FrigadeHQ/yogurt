@@ -21,8 +21,10 @@ export function NotesModelWait({ children, downloading }: { children: ReactNode;
     try { await window.yogurt.setup.retry() } catch { setRetryFailed(true) }
     finally { setRetrying(false) }
   }
-  if (!setup?.notesError) {
-    if (downloading && setup && (setup.notesFraction !== undefined || setup.notesDownloading)) return downloading(notesPercent(setup.notesFraction ?? 0))
+  // The larger model replaces the first one later. Notes and answers already work, so only the footer shows that download.
+  const larger = setup?.notesKind === 'larger'
+  if (larger || !setup?.notesError) {
+    if (!larger && downloading && setup && (setup.notesFraction !== undefined || setup.notesDownloading)) return downloading(notesPercent(setup.notesFraction ?? 0))
     return children
   }
   return (

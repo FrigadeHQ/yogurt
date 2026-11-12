@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
-import { speedKey, type Catalog, type Hardware } from '@yogurt/picker'
+import { pick, speedKey, type Catalog, type Hardware } from '@yogurt/picker'
 import bundled from '../../catalog/catalog.json'
 import { SetupController, type SetupDeps, type SpeedDeps, type SpeedResult } from '../src/main/setup'
 import { tooSlow } from '../src/main/localCheck'
@@ -23,7 +23,12 @@ function recorder(hold: (url: string) => boolean = () => false) {
   const inner = fakeDownloadDeps({ stepMs: 0 })
   const download: DownloadDeps['download'] = async (url, dir, file, onProgress, signal) => {
     asked.push(url)
-    if (hold(url)) await new Promise<void>((r) => released.push(r))
+    if (hold(url)) await new Promise<void>((resolve, reject) => {
+      if (signal?.aborted) { reject(Object.assign(new Error('Download stopped'), { name: 'AbortError' })); return }
+      const stop = () => reject(Object.assign(new Error('Download stopped'), { name: 'AbortError' }))
+      signal?.addEventListener('abort', stop, { once: true })
+      released.push(() => { signal?.removeEventListener('abort', stop); resolve() })
+    })
     return inner.download(url, dir, file, onProgress, signal)
   }
   return { asked, release: () => released.splice(0).forEach((r) => r()), deps: { ...inner, download } as DownloadDeps }
@@ -39,6 +44,10 @@ function setup(over: Partial<SetupDeps> = {}) {
   return { c, states, root, rec }
 }
 
+const fittingIds = (hw: Hardware) => {
+  const r = pick(hw, catalog.models)
+  return [...r.all, ...(r.smarter ? [r.smarter] : [])].map((c) => c.model.id)
+}
 const starterUrl = catalog.models.find((m) => m.starter)!.builds[0].url
 const bigUrl = catalog.models.find((m) => m.id === 'gemma-4-26b-a4b')!.builds[0].url
 const embedUrl = catalog.embedding.url
@@ -159,6 +168,71 @@ describe('SetupController', () => {
       await again.start(); await again.idle()
       expect(lines()).toEqual([])
     } finally { info.mockRestore() }
+  })
+
+  it('the larger notes model shows its progress, then clears it, and a failure stays in the footer until retry', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'yogurt-setup-'))
+    const inner = fakeDownloadDeps({ stepMs: 0 })
+    let fail = true
+    const download: DownloadDeps['download'] = async (url, dir, file, onProgress, signal) => {
+      if (url === bigUrl && fail) throw new Error('fetch failed')
+      return inner.download(url, dir, file, (p) => onProgress({ ...p, etaSec: url === bigUrl ? 240 : p.etaSec }), signal)
+    }
+    const c = new SetupController({ getHardware: async () => m1max, getCatalog: async () => catalog, modelsDir: root, download: { ...inner, download }, sha256Override: 'FAKE', retryDelaysMs: [0] })
+    const states: SetupState[] = []
+    c.onState((s) => states.push(s))
+    await c.start(); await c.idle()
+    expect(c.state.phase).toBe('ready')
+    expect(c.state).toMatchObject({ notesKind: 'larger', notesError: 'Download interrupted. Check your connection and try again.' })
+    expect(c.installed()?.llm).toMatch(/E4B/)
+    expect(c.installed()?.recommendedLlm).toBeUndefined()
+    const shown = states.filter((s) => s.notesKind === 'larger' && s.notesFraction !== undefined)
+    expect(shown[0]).toMatchObject({ notesFraction: 0, notesDownloading: true, notesTotalBytes: expect.any(Number) })
+    fail = false
+    await c.retry()
+    await c.idle()
+    expect(c.state.notesKind).toBeUndefined()
+    expect(c.state.notesError).toBeUndefined()
+    expect(c.state.notesFraction).toBeUndefined()
+    expect(c.installed()?.recommendedLlm).toMatch(/gemma-4-26B/)
+    expect(c.notesModelPath()).toBe(c.installed()?.recommendedLlm)
+  })
+
+  it('choosing the starter skips the larger model, and choosing another fitting model downloads that one', async () => {
+    const starterId = catalog.models.find((m) => m.starter)!.id
+    const other = fittingIds(m1max).find((id) => id !== starterId && id !== 'gemma-4-26b-a4b')!
+    const otherUrl = catalog.models.find((m) => m.id === other)!.builds[0].url
+    const kept = setup()
+    kept.c.setNotesModel(starterId)
+    await kept.c.start(); await kept.c.idle()
+    expect(kept.rec.asked).not.toContain(bigUrl)
+    expect(kept.c.installed()?.recommendedLlm).toBeUndefined()
+    expect(kept.c.notesModelPath()).toBe(kept.c.installed()?.llm)
+
+    const { c, rec } = setup()
+    c.setNotesModel(other)
+    await c.start(); await c.idle()
+    expect(rec.asked).toContain(otherUrl)
+    expect(rec.asked).not.toContain(bigUrl)
+    expect(c.notesModelPath()).toContain(name(otherUrl).replace(/\.gguf$/, ''))
+  })
+
+  it('switching to the starter aborts the larger download and clears the footer', async () => {
+    const starterId = catalog.models.find((m) => m.starter)!.id
+    const root = mkdtempSync(join(tmpdir(), 'yogurt-setup-'))
+    const rec = recorder((u) => u === bigUrl)
+    const c = new SetupController({ getHardware: async () => m1max, getCatalog: async () => catalog, modelsDir: root, download: rec.deps, sha256Override: 'FAKE', retryDelaysMs: [0] })
+    await c.start()
+    await vi.waitFor(() => expect(c.state.notesKind).toBe('larger'))
+    expect(c.state.notesDownloading).toBe(true)
+    await c.setNotesModel(starterId)
+    expect(c.state.notesKind).toBeUndefined()
+    expect(c.state.notesDownloading).toBeUndefined()
+    expect(c.installed()?.recommendedLlm).toBeUndefined()
+    expect(c.notesModelPath()).toMatch(/E4B/)
+    rec.release()
+    await c.idle()
+    expect(c.installed()?.recommendedLlm).toBeUndefined()
   })
 
   it('does not wait for a recommended model that fails: still ready', async () => {
@@ -352,7 +426,7 @@ describe('the speed check (Windows and Linux): speech models timed on this compu
     const s = speed({ 'whisper-small-q5_1': 0.3 })
     const { c, states } = setup({ getHardware: async () => cpuPc, speed: s.deps })
     await c.start(); await c.idle()
-    const shown = states.filter((x) => x.phase === 'ready' && x.notesFraction !== undefined).map((x) => x.notesFraction)
+    const shown = states.filter((x) => x.phase === 'ready' && x.notesFraction !== undefined && x.notesKind !== 'larger').map((x) => x.notesFraction)
     expect(shown).toEqual([0, 0.25, 0.5, 0.75, 1])
     expect(c.state.notesFraction).toBeUndefined()
     expect(c.installed()?.llm).toBeTruthy()
@@ -361,7 +435,7 @@ describe('the speed check (Windows and Linux): speech models timed on this compu
   it('a Mac reports the same notes download progress', async () => {
     const { c, states } = setup()
     await c.start(); await c.idle()
-    expect(states.filter(x => x.notesFraction !== undefined).map(x => x.notesFraction)).toEqual([0, 0.25, 0.5, 0.75, 1])
+    expect(states.filter(x => x.notesFraction !== undefined && x.notesKind !== 'larger').map(x => x.notesFraction)).toEqual([0, 0.25, 0.5, 0.75, 1])
     expect(c.state.notesFraction).toBeUndefined()
   })
 

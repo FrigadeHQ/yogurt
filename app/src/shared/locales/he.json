@@ -645,5 +645,11 @@
   "You can restart once the recording stops.": "אפשר להפעיל מחדש אחרי שההקלטה תיפסק.",
   "Check now": "בדיקה עכשיו",
   "Eject the Yogurt installer?": "להוציא את תוכנית ההתקנה של Yogurt?",
-  "Eject": "הוצא"
+  "Eject": "הוצא",
+  "Better notes model · {percent}": "מודל הערות טוב יותר · {percent}",
+  "Better notes model": "מודל הערות טוב יותר",
+  "Your notes already work. Yogurt switches to this model when the download finishes.": "ההערות כבר עובדות. Yogurt יעבור למודל הזה כשההורדה תסתיים.",
+  "Notes model": "מודל הערות",
+  "The model that writes your notes. A larger one downloads in the background.": "המודל שכותב את ההערות. מודל גדול יותר יורד ברקע.",
+  "{name}, {size} GB": "{name}, {size} GB"
 }

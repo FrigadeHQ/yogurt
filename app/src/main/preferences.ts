@@ -5,6 +5,7 @@ import { PERMISSION_KINDS, type PermissionKind, type Permissions } from './permi
 import { firstRunPlan, missing, nudge } from '../shared/onboarding'
 import type { OnboardingPlan } from '../shared/types'
 import { cleanJargon } from '../shared/jargon'
+import type { NotesModelChoice } from '../shared/types'
 import { isLocale, setLanguage } from '../shared/i18n'
 import { SPOKEN, type Spoken } from '../shared/spoken'
 
@@ -21,6 +22,10 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
   slowStartMs?: number
   /** the spoken language changed: the meeting being recorded follows it where it can */
   onSpoken?: (v: Spoken) => void
+  /** notes models that fit this computer, once the catalog has been read */
+  notesModels?: () => Promise<NotesModelChoice[]>
+  /** the person picked one of those ids */
+  setNotesModel?: (id: string) => void
   /** the permissions this computer has (supportedKinds in platform.ts); a Mac has them all */
   kinds?: readonly PermissionKind[] }) {
   const kinds = d.kinds ?? PERMISSION_KINDS
@@ -86,6 +91,21 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
     return jargon
   })
   // English only is the default, so only Multi-language is written down
+  ipcMain.handle('settings:notes-models', async () => {
+    const options = await d.notesModels?.() ?? []
+    const saved = loadSettings(d.file).notesModel
+    const recommended = options.find((o) => o.recommended)?.id
+    const selected = saved && options.some((o) => o.id === saved) ? saved : recommended ?? ''
+    return { selected, options }
+  })
+  ipcMain.handle('settings:notes-model', async (_e, id: unknown) => {
+    if (typeof id !== 'string' || !id) return
+    const options = await d.notesModels?.() ?? []
+    if (!options.some((o) => o.id === id)) return
+    const recommended = options.find((o) => o.recommended)?.id
+    updateSettings(d.file, { notesModel: id === recommended ? undefined : id })
+    d.setNotesModel?.(id)
+  })
   ipcMain.handle('settings:spoken', (_e, v: unknown) => {
     if (!SPOKEN.includes(v as Spoken)) return
     updateSettings(d.file, { spoken: v === 'multi' ? 'multi' : undefined })

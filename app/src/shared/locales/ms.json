@@ -593,5 +593,11 @@
   "You can restart once the recording stops.": "Anda boleh mula semula selepas rakaman berhenti.",
   "Check now": "Semak sekarang",
   "Eject the Yogurt installer?": "Keluarkan pemasang Yogurt?",
-  "Eject": "Keluarkan"
+  "Eject": "Keluarkan",
+  "Better notes model · {percent}": "Model nota yang lebih baik · {percent}",
+  "Better notes model": "Model nota yang lebih baik",
+  "Your notes already work. Yogurt switches to this model when the download finishes.": "Nota anda sudah berfungsi. Yogurt bertukar kepada model ini apabila muat turun selesai.",
+  "Notes model": "Model nota",
+  "The model that writes your notes. A larger one downloads in the background.": "Model yang menulis nota anda. Model yang lebih besar dimuat turun di latar belakang.",
+  "{name}, {size} GB": "{name}, {size} GB"
 }

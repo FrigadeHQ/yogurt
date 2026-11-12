@@ -26,7 +26,7 @@ export function notesReadyNotice() {
   return (setup: SetupState, visible: boolean, now: number): boolean => {
     if (announced) return false
     if (since !== undefined && now - since >= 1000) noticed = true
-    const waiting = setup.notesDownloading || !!setup.notesError
+    const waiting = setup.notesKind !== 'larger' && (setup.notesDownloading || !!setup.notesError)
     if (setup.phase === 'ready' && waiting && visible) since ??= now
     else since = undefined
     if (setup.phase !== 'ready' || waiting || !noticed) return false
