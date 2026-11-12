@@ -658,5 +658,12 @@
   "You can restart once the recording stops.": "Restartovat můžete, až nahrávání skončí.",
   "Check now": "Zkontrolovat",
   "Eject the Yogurt installer?": "Vysunout instalátor Yogurt?",
-  "Eject": "Vysunout"
+  "Eject": "Vysunout",
+  "{name} mentioned you": "{name} vás zmínil(a)",
+  "Someone mentioned you": "Někdo vás zmínil",
+  "Tell me when someone says my name": "Upozornit mě, když někdo řekne moje jméno",
+  "A notification shows the last few things said, so you can jump back in.": "Oznámení ukáže posledních pár vět, abyste se mohli hned zapojit.",
+  "Other names people call you": "Další jména, kterými vás oslovují",
+  "Your list is full. Remove a name to add another.": "Seznam je plný. Odeberte jméno, abyste mohli přidat jiné.",
+  "Add a name and press Enter": "Zadejte jméno a stiskněte Enter"
 }

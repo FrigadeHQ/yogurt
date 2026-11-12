@@ -632,5 +632,12 @@
   "You can restart once the recording stops.": "रिकॉर्डिंग रुकने के बाद आप रीस्टार्ट कर सकते हैं।",
   "Check now": "अभी देखें",
   "Eject the Yogurt installer?": "Yogurt इंस्टॉलर निकालें?",
-  "Eject": "निकालें"
+  "Eject": "निकालें",
+  "{name} mentioned you": "{name} ने आपका नाम लिया",
+  "Someone mentioned you": "किसी ने आपका नाम लिया",
+  "Tell me when someone says my name": "जब कोई मेरा नाम ले तो मुझे बताएँ",
+  "A notification shows the last few things said, so you can jump back in.": "एक सूचना पिछली कुछ बातें दिखाती है, ताकि आप फिर से बातचीत में जुड़ सकें।",
+  "Other names people call you": "दूसरे नाम जिनसे लोग आपको बुलाते हैं",
+  "Your list is full. Remove a name to add another.": "आपकी सूची भर गई है। दूसरा नाम जोड़ने के लिए एक नाम हटाएँ।",
+  "Add a name and press Enter": "नाम लिखें और Enter दबाएँ"
 }

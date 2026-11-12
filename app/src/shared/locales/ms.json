@@ -593,5 +593,12 @@
   "You can restart once the recording stops.": "Anda boleh mula semula selepas rakaman berhenti.",
   "Check now": "Semak sekarang",
   "Eject the Yogurt installer?": "Keluarkan pemasang Yogurt?",
-  "Eject": "Keluarkan"
+  "Eject": "Keluarkan",
+  "{name} mentioned you": "{name} menyebut anda",
+  "Someone mentioned you": "Seseorang menyebut anda",
+  "Tell me when someone says my name": "Beritahu saya apabila seseorang menyebut nama saya",
+  "A notification shows the last few things said, so you can jump back in.": "Pemberitahuan menunjukkan beberapa perkara terakhir yang disebut supaya anda boleh terus menyertai semula.",
+  "Other names people call you": "Nama lain yang orang panggil anda",
+  "Your list is full. Remove a name to add another.": "Senarai anda penuh. Alih keluar satu nama untuk menambah yang lain.",
+  "Add a name and press Enter": "Taip nama dan tekan Enter"
 }

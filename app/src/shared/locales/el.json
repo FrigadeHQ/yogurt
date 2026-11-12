@@ -632,5 +632,12 @@
   "You can restart once the recording stops.": "Μπορείς να κάνεις επανεκκίνηση όταν σταματήσει η εγγραφή.",
   "Check now": "Έλεγχος τώρα",
   "Eject the Yogurt installer?": "Εξαγωγή του προγράμματος εγκατάστασης του Yogurt;",
-  "Eject": "Εξαγωγή"
+  "Eject": "Εξαγωγή",
+  "{name} mentioned you": "Ο/Η {name} σας ανέφερε",
+  "Someone mentioned you": "Κάποιος σας ανέφερε",
+  "Tell me when someone says my name": "Ειδοποίησέ με όταν κάποιος λέει το όνομά μου",
+  "A notification shows the last few things said, so you can jump back in.": "Μια ειδοποίηση δείχνει τα τελευταία λόγια, ώστε να μπείτε ξανά στη συζήτηση.",
+  "Other names people call you": "Άλλα ονόματα με τα οποία σας φωνάζουν",
+  "Your list is full. Remove a name to add another.": "Η λίστα σας είναι πλήρης. Αφαιρέστε ένα όνομα για να προσθέσετε άλλο.",
+  "Add a name and press Enter": "Πληκτρολογήστε ένα όνομα και πατήστε Enter"
 }

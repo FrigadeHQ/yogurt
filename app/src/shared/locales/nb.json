@@ -632,5 +632,12 @@
   "You can restart once the recording stops.": "Du kan starte på nytt når opptaket stopper.",
   "Check now": "Se etter nå",
   "Eject the Yogurt installer?": "Løse ut Yogurt-installasjonsprogrammet?",
-  "Eject": "Løs ut"
+  "Eject": "Løs ut",
+  "{name} mentioned you": "{name} nevnte deg",
+  "Someone mentioned you": "Noen nevnte deg",
+  "Tell me when someone says my name": "Gi beskjed når noen sier navnet mitt",
+  "A notification shows the last few things said, so you can jump back in.": "Et varsel viser det siste som ble sagt, så du kan komme inn i samtalen igjen.",
+  "Other names people call you": "Andre navn folk kaller deg",
+  "Your list is full. Remove a name to add another.": "Listen din er full. Fjern et navn for å legge til et annet.",
+  "Add a name and press Enter": "Skriv inn et navn og trykk Enter"
 }

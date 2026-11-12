@@ -645,5 +645,12 @@
   "You can restart once the recording stops.": "Poți reporni după ce se oprește înregistrarea.",
   "Check now": "Verifică acum",
   "Eject the Yogurt installer?": "Scoți programul de instalare Yogurt?",
-  "Eject": "Scoate"
+  "Eject": "Scoate",
+  "{name} mentioned you": "{name} v-a menționat",
+  "Someone mentioned you": "Cineva v-a menționat",
+  "Tell me when someone says my name": "Anunță-mă când cineva îmi spune numele",
+  "A notification shows the last few things said, so you can jump back in.": "O notificare arată ultimele lucruri spuse, ca să puteți reveni imediat în discuție.",
+  "Other names people call you": "Alte nume pe care vi le spun oamenii",
+  "Your list is full. Remove a name to add another.": "Lista este plină. Eliminați un nume pentru a adăuga altul.",
+  "Add a name and press Enter": "Introduceți un nume și apăsați Enter"
 }

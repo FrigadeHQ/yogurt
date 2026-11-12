@@ -220,6 +220,8 @@ const api: YogurtApi = {
     setStopWhenCallEnds: (on) => ipcRenderer.invoke('settings:auto-stop', on),
     setRecordingReminder: (on) => ipcRenderer.invoke('settings:recording-reminder', on),
     setJargon: (terms) => ipcRenderer.invoke('settings:jargon', terms),
+    setMentionAlerts: (on) => ipcRenderer.invoke('settings:mention-alerts', on),
+    setNicknames: (names) => ipcRenderer.invoke('settings:nicknames', names),
     setLanguage: (id) => ipcRenderer.invoke('settings:language', id),
     onLanguage: (cb) => { const f = (_e: unknown, locale: string) => cb(locale); ipcRenderer.on('settings:language', f); return () => { ipcRenderer.off('settings:language', f) } },
     setSpoken: (v) => ipcRenderer.invoke('settings:spoken', v),

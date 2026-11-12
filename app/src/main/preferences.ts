@@ -1,10 +1,11 @@
 import { BrowserWindow, ipcMain, nativeTheme } from 'electron'
-import { loadSettings, localeOf, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings } from './settings'
+import { loadSettings, localeOf, mentionAlertsOn, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings } from './settings'
 import { systemLocale } from './locale'
 import { PERMISSION_KINDS, type PermissionKind, type Permissions } from './permissions'
 import { firstRunPlan, missing, nudge } from '../shared/onboarding'
 import type { OnboardingPlan } from '../shared/types'
 import { cleanJargon } from '../shared/jargon'
+import { cleanNicknames } from '../shared/mentions'
 import { isLocale, setLanguage } from '../shared/i18n'
 import { SPOKEN, type Spoken } from '../shared/spoken'
 
@@ -49,7 +50,7 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
     // what the Mac says, so a change in System Settings shows here
     // locale: every window (main, card, widget) shows the interface language
     // language: the one picked ('' is the Mac's); locale: the one in use; systemLocale: the Mac's, for the picker
-    return { theme: s.theme ?? 'system', openAtLogin: d.loginOn(s.openAtLogin), showInMenuBar: s.showInMenuBar !== false, language: isLocale(s.language) ? s.language : '', locale: localeOf(s, systemLocale()), systemLocale: systemLocale(), myName: s.myName?.trim() || d.macName(), macName: d.macName(), stopWhenCallEnds: stopsWhenCallEnds(s), recordingReminder: recordingReminderOn(s), jargon: cleanJargon(s.jargon), spoken: spokenSetting(s) }
+    return { theme: s.theme ?? 'system', openAtLogin: d.loginOn(s.openAtLogin), showInMenuBar: s.showInMenuBar !== false, language: isLocale(s.language) ? s.language : '', locale: localeOf(s, systemLocale()), systemLocale: systemLocale(), myName: s.myName?.trim() || d.macName(), macName: d.macName(), stopWhenCallEnds: stopsWhenCallEnds(s), recordingReminder: recordingReminderOn(s), jargon: cleanJargon(s.jargon), spoken: spokenSetting(s), mentionAlerts: mentionAlertsOn(s), nicknames: cleanNicknames(s.nicknames) }
   })
   // what the person is called in meetings (who "You" is when naming voices); blank: the Mac's full name again
   ipcMain.handle('settings:name', (_e, v: unknown) => {
@@ -78,6 +79,16 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
   ipcMain.handle('settings:recording-reminder', (_e, on: unknown) => {
     if (typeof on !== 'boolean') return
     updateSettings(d.file, { recordingReminder: on ? undefined : false })
+  })
+  ipcMain.handle('settings:mention-alerts', (_e, on: unknown) => {
+    if (typeof on !== 'boolean') return
+    updateSettings(d.file, { mentionAlerts: on ? undefined : false })
+  })
+  // the whole list each time, like jargon; what was kept comes back
+  ipcMain.handle('settings:nicknames', (_e, v: unknown) => {
+    const nicknames = cleanNicknames(v)
+    updateSettings(d.file, { nicknames: nicknames.length ? nicknames : undefined })
+    return nicknames
   })
   // the whole list each time, cleaned the same way the page cleans it; what was kept comes back
   ipcMain.handle('settings:jargon', (_e, v: unknown) => {

@@ -632,5 +632,12 @@
   "You can restart once the recording stops.": "A felvétel leállása után indíthatod újra.",
   "Check now": "Keresés most",
   "Eject the Yogurt installer?": "Kiadja a Yogurt telepítőjét?",
-  "Eject": "Kiadás"
+  "Eject": "Kiadás",
+  "{name} mentioned you": "{name} megemlített",
+  "Someone mentioned you": "Valaki megemlített",
+  "Tell me when someone says my name": "Szóljon, ha valaki kimondja a nevemet",
+  "A notification shows the last few things said, so you can jump back in.": "Egy értesítés megmutatja az utoljára elhangzottakat, így azonnal be tudsz kapcsolódni.",
+  "Other names people call you": "Más nevek, amelyeken szólítanak",
+  "Your list is full. Remove a name to add another.": "A listád megtelt. Távolíts el egy nevet, hogy újat adhass hozzá.",
+  "Add a name and press Enter": "Írj be egy nevet, és nyomd meg az Entert"
 }

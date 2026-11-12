@@ -593,5 +593,12 @@
   "You can restart once the recording stops.": "Bạn có thể khởi động lại khi bản ghi dừng.",
   "Check now": "Kiểm tra ngay",
   "Eject the Yogurt installer?": "Đẩy trình cài đặt Yogurt ra?",
-  "Eject": "Đẩy ra"
+  "Eject": "Đẩy ra",
+  "{name} mentioned you": "{name} đã nhắc đến bạn",
+  "Someone mentioned you": "Có người nhắc đến bạn",
+  "Tell me when someone says my name": "Báo cho tôi khi có người gọi tên tôi",
+  "A notification shows the last few things said, so you can jump back in.": "Thông báo hiển thị vài câu vừa nói để bạn có thể tham gia lại ngay.",
+  "Other names people call you": "Những tên khác mọi người gọi bạn",
+  "Your list is full. Remove a name to add another.": "Danh sách đã đầy. Hãy xóa một tên để thêm tên khác.",
+  "Add a name and press Enter": "Nhập tên rồi nhấn Enter"
 }

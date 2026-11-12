@@ -593,5 +593,12 @@
   "You can restart once the recording stops.": "録音が止まったら再起動できます。",
   "Check now": "今すぐ確認",
   "Eject the Yogurt installer?": "Yogurt インストーラを取り出しますか？",
-  "Eject": "取り出す"
+  "Eject": "取り出す",
+  "{name} mentioned you": "{name}さんがあなたの名前を呼びました",
+  "Someone mentioned you": "誰かがあなたの名前を呼びました",
+  "Tell me when someone says my name": "誰かが私の名前を言ったら知らせる",
+  "A notification shows the last few things said, so you can jump back in.": "直前の会話を通知に表示するので、すぐに話に戻れます。",
+  "Other names people call you": "ほかの呼ばれ方",
+  "Your list is full. Remove a name to add another.": "リストがいっぱいです。新しい名前を追加するには、どれかを削除してください。",
+  "Add a name and press Enter": "名前を入力してEnterキー"
 }

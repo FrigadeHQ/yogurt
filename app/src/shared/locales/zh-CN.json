@@ -593,5 +593,12 @@
   "You can restart once the recording stops.": "录音停止后即可重新启动。",
   "Check now": "立即检查",
   "Eject the Yogurt installer?": "要推出 Yogurt 安装器吗？",
-  "Eject": "推出"
+  "Eject": "推出",
+  "{name} mentioned you": "{name} 提到了你",
+  "Someone mentioned you": "有人提到了你",
+  "Tell me when someone says my name": "有人说出我的名字时通知我",
+  "A notification shows the last few things said, so you can jump back in.": "通知会显示刚才说的几句话，方便你马上接上话题。",
+  "Other names people call you": "别人对你的其他称呼",
+  "Your list is full. Remove a name to add another.": "列表已满。请移除一个名字后再添加。",
+  "Add a name and press Enter": "输入名字后按 Enter"
 }

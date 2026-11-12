@@ -645,5 +645,12 @@
   "You can restart once the recording stops.": "אפשר להפעיל מחדש אחרי שההקלטה תיפסק.",
   "Check now": "בדיקה עכשיו",
   "Eject the Yogurt installer?": "להוציא את תוכנית ההתקנה של Yogurt?",
-  "Eject": "הוצא"
+  "Eject": "הוצא",
+  "{name} mentioned you": "{name} הזכיר/ה אותך",
+  "Someone mentioned you": "מישהו הזכיר אותך",
+  "Tell me when someone says my name": "להודיע לי כשמישהו אומר את השם שלי",
+  "A notification shows the last few things said, so you can jump back in.": "התראה מציגה את הדברים האחרונים שנאמרו, כדי שתוכל/י לחזור לשיחה.",
+  "Other names people call you": "שמות אחרים שקוראים לך",
+  "Your list is full. Remove a name to add another.": "הרשימה מלאה. יש להסיר שם כדי להוסיף אחר.",
+  "Add a name and press Enter": "יש להקליד שם וללחוץ Enter"
 }

@@ -632,5 +632,12 @@
   "You can restart once the recording stops.": "Kayıt durduğunda yeniden başlatabilirsiniz.",
   "Check now": "Şimdi denetle",
   "Eject the Yogurt installer?": "Yogurt yükleyicisi çıkarılsın mı?",
-  "Eject": "Çıkar"
+  "Eject": "Çıkar",
+  "{name} mentioned you": "{name} sizden bahsetti",
+  "Someone mentioned you": "Biri sizden bahsetti",
+  "Tell me when someone says my name": "Biri adımı söylediğinde bana haber ver",
+  "A notification shows the last few things said, so you can jump back in.": "Bildirim son söylenenleri gösterir, böylece konuşmaya hemen geri dönebilirsiniz.",
+  "Other names people call you": "İnsanların size seslendiği diğer adlar",
+  "Your list is full. Remove a name to add another.": "Listeniz dolu. Başka bir ad eklemek için birini kaldırın.",
+  "Add a name and press Enter": "Bir ad yazın ve Enter'a basın"
 }

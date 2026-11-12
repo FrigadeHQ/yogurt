@@ -632,5 +632,12 @@
   "You can restart once the recording stops.": "Je kunt opnieuw starten zodra de opname stopt.",
   "Check now": "Nu zoeken",
   "Eject the Yogurt installer?": "Yogurt-installatieprogramma verwijderen?",
-  "Eject": "Verwijder"
+  "Eject": "Verwijder",
+  "{name} mentioned you": "{name} noemde je naam",
+  "Someone mentioned you": "Iemand noemde je naam",
+  "Tell me when someone says my name": "Laat het me weten als iemand mijn naam zegt",
+  "A notification shows the last few things said, so you can jump back in.": "Een melding toont wat er net gezegd is, zodat je meteen weer kunt aanhaken.",
+  "Other names people call you": "Andere namen waarmee mensen je noemen",
+  "Your list is full. Remove a name to add another.": "Je lijst is vol. Verwijder een naam om een andere toe te voegen.",
+  "Add a name and press Enter": "Typ een naam en druk op Enter"
 }

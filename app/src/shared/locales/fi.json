@@ -635,5 +635,12 @@
   "You can restart once the recording stops.": "Voit käynnistää uudelleen, kun tallennus päättyy.",
   "Check now": "Tarkista nyt",
   "Eject the Yogurt installer?": "Poistetaanko Yogurtin asennusohjelma?",
-  "Eject": "Poista"
+  "Eject": "Poista",
+  "{name} mentioned you": "{name} mainitsi sinut",
+  "Someone mentioned you": "Joku mainitsi sinut",
+  "Tell me when someone says my name": "Ilmoita, kun joku sanoo nimeni",
+  "A notification shows the last few things said, so you can jump back in.": "Ilmoitus näyttää viimeksi sanotun, jotta pääset heti mukaan.",
+  "Other names people call you": "Muut nimet, joilla sinua kutsutaan",
+  "Your list is full. Remove a name to add another.": "Luettelosi on täynnä. Poista nimi lisätäksesi toisen.",
+  "Add a name and press Enter": "Kirjoita nimi ja paina Enter"
 }

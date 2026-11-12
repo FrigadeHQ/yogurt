@@ -632,5 +632,12 @@
   "You can restart once the recording stops.": "Puwede kang mag-restart kapag huminto na ang recording.",
   "Check now": "Tingnan ngayon",
   "Eject the Yogurt installer?": "I-eject ang installer ng Yogurt?",
-  "Eject": "I-eject"
+  "Eject": "I-eject",
+  "{name} mentioned you": "Binanggit ka ni {name}",
+  "Someone mentioned you": "May bumanggit sa iyo",
+  "Tell me when someone says my name": "Sabihan ako kapag may bumanggit ng pangalan ko",
+  "A notification shows the last few things said, so you can jump back in.": "Ipinapakita ng notification ang huling ilang sinabi para makasabay ka ulit.",
+  "Other names people call you": "Iba pang pangalan na itinatawag sa iyo",
+  "Your list is full. Remove a name to add another.": "Puno na ang listahan mo. Mag-alis ng pangalan para magdagdag ng iba.",
+  "Add a name and press Enter": "Mag-type ng pangalan at pindutin ang Enter"
 }

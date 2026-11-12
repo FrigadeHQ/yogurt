@@ -688,5 +688,12 @@
   "You can restart once the recording stops.": "يمكنك إعادة التشغيل بعد توقف التسجيل.",
   "Check now": "تحقّق الآن",
   "Eject the Yogurt installer?": "إخراج مثبّت Yogurt؟",
-  "Eject": "إخراج"
+  "Eject": "إخراج",
+  "{name} mentioned you": "ذكرك {name}",
+  "Someone mentioned you": "ذكرك أحدهم",
+  "Tell me when someone says my name": "نبّهني عندما يذكر أحدهم اسمي",
+  "A notification shows the last few things said, so you can jump back in.": "يعرض الإشعار آخر ما قيل لتتمكن من العودة إلى الحديث.",
+  "Other names people call you": "أسماء أخرى يناديك بها الناس",
+  "Your list is full. Remove a name to add another.": "قائمتك ممتلئة. أزل اسمًا لإضافة آخر.",
+  "Add a name and press Enter": "اكتب اسمًا واضغط Enter"
 }

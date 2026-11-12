@@ -30,6 +30,9 @@ export function companyOf(email: string): string | null {
 let ownerName = () => ''
 const ownEmails = new Set<string>()
 export const setOwnerName = (f: () => string): void => { ownerName = f }
+/** other names people call them (Settings), so whisper writes those right too */
+let nicknamesOf = (): string[] => []
+export const setOwnerNicknames = (f: () => string[]): void => { nicknamesOf = f }
 export function noteOwnEmail(email: string | null | undefined): void { if (email?.includes('@')) ownEmails.add(email.toLowerCase()) }
 /** the person's jargon (Settings → Language), read each time so a change counts from the next line on */
 let jargonOf = (): string[] => []
@@ -44,7 +47,7 @@ const unique = (xs: string[]) => {
 
 /** A title from the calendar or the person is kept; one made from the transcript may have the misheard word in it */
 export function meetingWords(m: Pick<Meeting, 'title' | 'titleSource' | 'attendees'>): MeetingWords {
-  const names = unique([...m.attendees.map((a) => a.name).filter((n) => !n.includes('@')), ownerName()])
+  const names = unique([...m.attendees.map((a) => a.name).filter((n) => !n.includes('@')), ownerName(), ...nicknamesOf()])
   const emails = [...m.attendees.map((a) => a.email ?? (a.name.includes('@') ? a.name : '')), ...ownEmails]
   const companies = unique(emails.filter(Boolean).map((e) => companyOf(e) ?? ''))
   const title = m.titleSource === 'calendar' || m.titleSource === 'user' ? m.title.trim() : ''

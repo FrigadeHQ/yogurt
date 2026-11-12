@@ -593,5 +593,12 @@
   "You can restart once the recording stops.": "คุณรีสตาร์ทได้เมื่อการบันทึกหยุดแล้ว",
   "Check now": "ตรวจสอบเลย",
   "Eject the Yogurt installer?": "นำตัวติดตั้ง Yogurt ออกไหม",
-  "Eject": "นำออก"
+  "Eject": "นำออก",
+  "{name} mentioned you": "{name} พูดถึงคุณ",
+  "Someone mentioned you": "มีคนพูดถึงคุณ",
+  "Tell me when someone says my name": "แจ้งเมื่อมีคนพูดชื่อฉัน",
+  "A notification shows the last few things said, so you can jump back in.": "การแจ้งเตือนจะแสดงสิ่งที่เพิ่งพูดไป เพื่อให้คุณกลับเข้าสู่บทสนทนาได้ทันที",
+  "Other names people call you": "ชื่ออื่นที่คนอื่นเรียกคุณ",
+  "Your list is full. Remove a name to add another.": "รายการเต็มแล้ว ลบชื่อหนึ่งออกเพื่อเพิ่มชื่ออื่น",
+  "Add a name and press Enter": "พิมพ์ชื่อแล้วกด Enter"
 }

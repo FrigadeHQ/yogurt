@@ -16,7 +16,7 @@ import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { isFake, userDataDir } from './paths'
 import { logToFile } from './log'
-import { loadSettings, localeOf, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings } from './settings'
+import { loadSettings, localeOf, mentionAlertsOn, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings } from './settings'
 import { CALL_GONE_MS, useCallApps } from './detect'
 import { systemLocale } from './locale'
 import { onLanguage, setLanguage, t } from '../shared/i18n'
@@ -51,7 +51,9 @@ import { hookTranscription, onWhisperGpuOff, meetingLanguage, settleTranscriptio
 import { hookCallNames, type Watch } from './callNames'
 import { helperWatch, killAllWatches } from './callNames/watch'
 import { macFullName } from './user'
-import { setJargon, setOwnerName } from './vocab'
+import { setJargon, setOwnerName, setOwnerNicknames } from './vocab'
+import { createMentionAlerts } from './mentions'
+import { cleanNicknames, mentionNames } from '../shared/mentions'
 import { cleanJargon } from '../shared/jargon'
 import { setGenericTitles } from './titles'
 import { installAppMenu } from './appMenu'
@@ -484,6 +486,26 @@ app.whenReady().then(() => {
   const me = () => loadSettings(settingsFile).myName?.trim() || macName()
   setOwnerName(me)
   setJargon(() => cleanJargon(loadSettings(settingsFile).jargon))
+  const nicknames = () => cleanNicknames(loadSettings(settingsFile).nicknames)
+  setOwnerNicknames(nicknames)
+  // someone in the call says the person's name: a notification with the last few lines, unless they are looking at Yogurt
+  // (kept, so it is not collected with its click handler before it is clicked)
+  let mentionNotice: Notification | null = null
+  const mentions = createMentionAlerts({
+    on: () => mentionAlertsOn(loadSettings(settingsFile)),
+    names: () => mentionNames(me(), nicknames()),
+    recent: (id, count) => store.segments(id, { last: count }),
+    who: (l) => (l.track === 'me' ? t('You') : l.speaker || t('Them')),
+    title: (speaker) => (speaker ? t('{name} mentioned you', { name: speaker }) : t('Someone mentioned you')),
+    notify: (n) => {
+      if (BACKGROUND || !Notification.isSupported() || win?.isFocused()) return
+      mentionNotice?.close()
+      const notice = new Notification({ title: n.title, subtitle: store.meeting(n.meetingId)?.title || undefined, body: n.body })
+      notice.on('click', () => { goTo(`/note/${n.meetingId}`); if (mentionNotice === notice) mentionNotice = null })
+      notice.show()
+      mentionNotice = notice
+    },
+  })
   // names from the call: the call app is read while a meeting records, and each line of the other side gets the name talking then
   const callNames = hookCallNames({
     store, watch: !caps.callNames ? () => ({ stop() {} }) : isFake() ? fakeCallWatch : helperWatch(helperPath), myNames: () => [me(), macName()],
@@ -498,6 +520,7 @@ app.whenReady().then(() => {
     const order = seg.track === 'them' && seg.speaker ? store.speakerOrder(seg.meetingId, seg.speaker) : []
     const colored = { ...seg, speakerColor: speakerColor(seg.track, seg.speaker, order) }
     win?.webContents.send('transcript:segment', colored); sendWidgetTranscript('transcript:segment', colored)
+    mentions.line(seg)
   },
     nameOf: (id, a, b) => callNames.nameFor(id, a, b),
     refresh: (id) => { win?.webContents.send('transcript:speakers', id); sendWidgetTranscript('transcript:speakers', id) },

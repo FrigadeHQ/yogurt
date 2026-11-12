@@ -593,5 +593,12 @@
   "You can restart once the recording stops.": "녹음이 끝나면 다시 시작할 수 있습니다.",
   "Check now": "지금 확인",
   "Eject the Yogurt installer?": "Yogurt 설치 프로그램을 추출할까요?",
-  "Eject": "추출"
+  "Eject": "추출",
+  "{name} mentioned you": "{name} 님이 나를 언급했어요",
+  "Someone mentioned you": "누군가 나를 언급했어요",
+  "Tell me when someone says my name": "누군가 내 이름을 말하면 알려 주기",
+  "A notification shows the last few things said, so you can jump back in.": "알림에 마지막 몇 마디가 표시되어 바로 대화에 다시 참여할 수 있어요.",
+  "Other names people call you": "사람들이 나를 부르는 다른 이름",
+  "Your list is full. Remove a name to add another.": "목록이 가득 찼습니다. 다른 이름을 추가하려면 하나를 삭제하세요.",
+  "Add a name and press Enter": "이름을 입력하고 Enter 키를 누르세요"
 }

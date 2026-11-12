@@ -658,5 +658,12 @@
   "You can restart once the recording stops.": "Перезапустить можно после остановки записи.",
   "Check now": "Проверить",
   "Eject the Yogurt installer?": "Извлечь установщик Yogurt?",
-  "Eject": "Извлечь"
+  "Eject": "Извлечь",
+  "{name} mentioned you": "{name} упомянул(а) вас",
+  "Someone mentioned you": "Кто-то упомянул вас",
+  "Tell me when someone says my name": "Сообщать, когда кто-то называет моё имя",
+  "A notification shows the last few things said, so you can jump back in.": "В уведомлении видны последние реплики, чтобы вы могли сразу включиться в разговор.",
+  "Other names people call you": "Другие имена, которыми вас называют",
+  "Your list is full. Remove a name to add another.": "Список заполнен. Удалите имя, чтобы добавить другое.",
+  "Add a name and press Enter": "Введите имя и нажмите Enter"
 }

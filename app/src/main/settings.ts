@@ -32,6 +32,10 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   hiddenCalendarIds?: string[]
   /** names, products and acronyms to spell right in transcripts and notes (shared/jargon.ts) */
   jargon?: string[]
+  /** a notification when someone in the call says the person's name; on unless turned off */
+  mentionAlerts?: boolean
+  /** other names people call the person, listened for as well as myName (shared/mentions.ts) */
+  nicknames?: string[]
   /** the language people speak in meetings: English only unless 'multi' (shared/spoken.ts) */
   spoken?: Spoken
   /** new versions download by themselves; on unless turned off */
@@ -43,6 +47,7 @@ export const spokenSetting = (s: Settings): Spoken => spokenOf(s.spoken)
 /** "Finish recording when the call ends": on by default */
 export const stopsWhenCallEnds = (s: Settings): boolean => s.stopWhenCallEnds !== false
 export const recordingReminderOn = (s: Settings): boolean => s.recordingReminder !== false
+export const mentionAlertsOn = (s: Settings): boolean => s.mentionAlerts !== false
 export const autoUpdateOn = (s: Settings): boolean => s.autoUpdate !== false
 
 export function loadSettings(path: string): Settings {

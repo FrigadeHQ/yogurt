@@ -658,5 +658,12 @@
   "You can restart once the recording stops.": "Możesz uruchomić ponownie po zatrzymaniu nagrywania.",
   "Check now": "Sprawdź teraz",
   "Eject the Yogurt installer?": "Wysunąć instalator Yogurt?",
-  "Eject": "Wysuń"
+  "Eject": "Wysuń",
+  "{name} mentioned you": "{name} wspomina o Tobie",
+  "Someone mentioned you": "Ktoś wspomina o Tobie",
+  "Tell me when someone says my name": "Powiadom mnie, gdy ktoś powie moje imię",
+  "A notification shows the last few things said, so you can jump back in.": "Powiadomienie pokazuje ostatnie wypowiedzi, żebyś mógł od razu wrócić do rozmowy.",
+  "Other names people call you": "Inne imiona, jakimi się do Ciebie zwracają",
+  "Your list is full. Remove a name to add another.": "Lista jest pełna. Usuń imię, aby dodać inne.",
+  "Add a name and press Enter": "Wpisz imię i naciśnij Enter"
 }

@@ -8,6 +8,7 @@ import { osWords } from '../keys'
 import { applyLanguage } from '../i18n'
 import { flushOpenNotes } from '../noteAutosave'
 import { Jargon } from '../components/Jargon'
+import { MentionSetting } from '../components/MentionSetting'
 import { SpokenSetting } from '../components/SpokenSetting'
 import { useScrollMemory } from '../useScrollMemory'
 import { appShortcuts } from '../components/Shortcuts'
@@ -23,7 +24,7 @@ const trayLabel = () => osWords({ mac: t('Show Yogurt in the menu bar'), windows
 /** Settings, kept small: what Yogurt may use, your name, open at login, stop when the call ends, light or dark, a backup and updates. Nothing technical. */
 export function Settings({ revision = 0 }: { revision?: number }) {
   const [perms, setPerms] = useState<PermissionStatus>()
-  const [prefs, setPrefs] = useState<{ theme: Theme; openAtLogin: boolean; showInMenuBar: boolean; myName: string; macName: string; stopWhenCallEnds: boolean; recordingReminder: boolean }>()
+  const [prefs, setPrefs] = useState<{ theme: Theme; openAtLogin: boolean; showInMenuBar: boolean; myName: string; macName: string; stopWhenCallEnds: boolean; recordingReminder: boolean; mentionAlerts: boolean; nicknames: string[] }>()
   const [name, setName] = useState('')
   const scroll = useScrollMemory<HTMLDivElement>('settings', !!prefs && !!perms)
   useEffect(() => { void window.yogurt.settings.get().then(setPrefs) }, [revision])
@@ -84,6 +85,7 @@ export function Settings({ revision = 0 }: { revision?: number }) {
                 onChange={(e) => setName(e.target.value)} onBlur={saveName} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
                 className="settings-name-field" />
             </div>
+            <MentionSetting initial={prefs && { on: prefs.mentionAlerts, names: prefs.nicknames }} />
             <div className="settings-row">
               <div className="settings-row-copy">
                 <p className="settings-label">{loginLabel()}</p>
