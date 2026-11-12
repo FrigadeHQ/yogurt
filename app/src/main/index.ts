@@ -445,10 +445,9 @@ app.whenReady().then(() => {
   if (isFake()) setHelper(fakeHelper)
   // a moved or reinstalled Yogurt loses its login item: put it back if the person wanted it
   if (!isFake()) syncLoginItem(settings.openAtLogin)
-  const notesModelBridge: { list: () => ReturnType<SetupController['notesModelOptions']>; set: (id: string) => void } = {
-    list: () => Promise.resolve([]),
-    set: () => {},
-  }
+  const setup = createSetup()
+  const savedNotesModel = settings.notesModel
+  if (savedNotesModel) setup.setNotesModel(savedNotesModel)
   hookPreferences({
     file: join(userDataDir(), 'settings.json'), permissions, kinds: supportedKinds(caps),
     // fake mode asks the first-run questions only when a test sets the permissions
@@ -466,8 +465,8 @@ app.whenReady().then(() => {
     },
     slowStartMs: isFake() ? Number(process.env.YOGURT_FAKE_BOOT_MS ?? 0) : 0,
     onSpoken: () => spokenChanged(),
-    notesModels: () => notesModelBridge.list(),
-    setNotesModel: (id) => notesModelBridge.set(id),
+    notesModels: () => setup.notesModelOptions(),
+    setNotesModel: (id) => { void setup.setNotesModel(id) },
   })
   // Music and Spotify pause while a meeting records, and play again after
   const media = createMedia({ helper: runHelper })
@@ -476,11 +475,6 @@ app.whenReady().then(() => {
     onMeetingStart(() => void media.pause())
     onMeetingStop(() => void media.resume())
   }
-  const setup = createSetup()
-  notesModelBridge.list = () => setup.notesModelOptions()
-  notesModelBridge.set = (id) => { void setup.setNotesModel(id) }
-  const savedNotesModel = loadSettings(join(userDataDir(), 'settings.json')).notesModel
-  if (savedNotesModel) setup.setNotesModel(savedNotesModel)
   setup.onState((st) => win?.webContents.send('setup:state', st))
   ipcMain.handle('setup:state', () => setup.state)
   ipcMain.handle('setup:retry', () => setup.retry())

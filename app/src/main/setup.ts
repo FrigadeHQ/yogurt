@@ -135,9 +135,7 @@ export class SetupController {
       const [hw, catalog] = await Promise.all([this.deps.getHardware(), this.deps.getCatalog()])
       this.picked = pick(hw, catalog.models)
     }
-    const list = [...this.picked.all, ...(this.picked.smarter ? [this.picked.smarter] : [])]
-    const seen = new Set<string>()
-    return list.filter((c) => (seen.has(c.model.id) ? false : (seen.add(c.model.id), true))).map((c) => ({
+    return [...this.picked.all, ...(this.picked.smarter ? [this.picked.smarter] : [])].map((c) => ({
       id: c.model.id, name: c.model.name, sizeGB: c.build.sizeGB, recommended: c.model.id === this.picked!.recommended?.model.id,
     }))
   }
@@ -350,7 +348,6 @@ export class SetupController {
     this.backgroundStop?.abort()
     this.backgroundStop = undefined
     const next = this.laterItem()
-    if (gen !== this.choiceGen) return
     if (!next) {
       this.backgroundFailed = false
       this.backgroundItem = undefined
@@ -376,14 +373,11 @@ export class SetupController {
 
   /** The bigger notes model downloads while Yogurt is already usable. A failure stays in the footer, not an error screen. */
   private startBackground(item: Item, modelId: string, gen: number): Promise<void> {
-    if (gen !== this.choiceGen) return Promise.resolve()
-    this.backgroundStop?.abort()
     const stop = new AbortController()
     this.backgroundStop = stop
     this.backgroundItem = item
     this.backgroundFailed = false
-    const already = isVerified(item.dir, item.fileName, this.sha(item))
-    if (!already) console.info('NOTES', `downloading the bigger notes model ${item.fileName} (${(item.bytes / 1e9).toFixed(1)} GB)`)
+    console.info('NOTES', `downloading the bigger notes model ${item.fileName} (${(item.bytes / 1e9).toFixed(1)} GB)`)
     let shown = -1
     const progress = (p: { fraction: number; etaSec: number }) => {
       if (gen !== this.choiceGen) return
@@ -392,10 +386,10 @@ export class SetupController {
       shown = pct
       this.set({ ...this._state, notesKind: 'larger', notesError: undefined, notesDownloading: true, notesFraction: p.fraction, notesTotalBytes: item.bytes, notesEtaSec: p.etaSec > 0 && Number.isFinite(p.etaSec) ? p.etaSec : undefined })
     }
-    if (!already) this.set({ ...this._state, notesKind: 'larger', notesError: undefined, notesDownloading: true, notesFraction: 0, notesTotalBytes: item.bytes, notesEtaSec: undefined })
-    this.background = this.fetch(item, already ? undefined : progress, stop.signal).then((path) => {
+    this.set({ ...this._state, notesKind: 'larger', notesError: undefined, notesDownloading: true, notesFraction: 0, notesTotalBytes: item.bytes, notesEtaSec: undefined })
+    this.background = this.fetch(item, progress, stop.signal).then((path) => {
       if (gen !== this.choiceGen) return
-      if (!already) console.info('NOTES', 'the bigger notes model is in')
+      console.info('NOTES', 'the bigger notes model is in')
       if (this.paths) this.paths = { ...this.paths, recommendedLlm: path }
       this.extraId = modelId
       this.backgroundStop = undefined
