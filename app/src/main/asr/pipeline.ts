@@ -112,7 +112,10 @@ export function createPipeline(p: {
   const spell = (t: string) => { try { return p.respell?.(t) ?? t } catch { return t } }
   // the mic is always the person using Yogurt
   const speakerOf = (l: Line) => { if (l.track === 'me') return 'me'; try { return segmentSpeaker(p.nameOf?.(l.startMs, l.endMs)) } catch { return null } }
-  const out = (l: Line, hidden = false): Out => ({ meetingId: p.meetingId, track: l.track, startMs: l.startMs, endMs: l.endMs, text: spell(l.text), speaker: speakerOf(l), ...(hidden ? { hidden: true } : {}) })
+  // the mic's words never get saved (its lines are never re-split); the other side's are, so diarization can re-split without re-transcribing
+  const out = (l: Line, hidden = false): Out => ({ meetingId: p.meetingId, track: l.track, startMs: l.startMs, endMs: l.endMs, text: spell(l.text), speaker: speakerOf(l),
+    ...(l.track === 'them' && l.words?.length ? { words: l.words.map(w => ({ text: w.text, startMs: w.startMs, endMs: w.endMs })) } : {}),
+    ...(hidden ? { hidden: true } : {}) })
   const give = (lines: Line[]) => {
     if (!lines.length) return
     const segs = lines.map((l) => out(l))
