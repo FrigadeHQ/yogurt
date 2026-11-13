@@ -174,7 +174,7 @@ fn is_call_tree(tree: &Value) -> bool {
 fn call_window(kind: Kind, title: &str) -> bool {
     match kind {
         Kind::Teams => true,
-        Kind::Zoom => title.starts_with("Zoom Meeting") || title.starts_with("Zoom Webinar"),
+        Kind::Zoom => title.starts_with("Zoom Meeting") || title.starts_with("Zoom Webinar") || title == "Meeting",
         Kind::Meet => has_word(title, "meet"),
     }
 }
@@ -269,6 +269,7 @@ mod tests {
         assert!(call_window(Kind::Meet, "meet.google.com"));
         assert!(!call_window(Kind::Meet, "Meeting notes - Google Chrome"));
         assert!(call_window(Kind::Zoom, "Zoom Meeting"));
+        assert!(call_window(Kind::Zoom, "Meeting"));
         assert!(call_window(Kind::Zoom, "Zoom Webinar - 123"));
         assert!(!call_window(Kind::Zoom, "Zoom Workplace"));
     }

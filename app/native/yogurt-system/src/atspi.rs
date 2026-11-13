@@ -135,7 +135,15 @@ impl A11y {
     }
 
     fn props(&self, bus: &str, path: &OwnedObjectPath) -> HashMap<String, OwnedValue> {
-        self.call(bus, path.as_str(), PROPERTIES, "GetAll", &(ACCESSIBLE,)).unwrap_or_default()
+        // Qt's AT-SPI adaptor (Zoom) does not implement GetAll and crashes when asked; the two properties are
+        // asked for one at a time, which every app answers
+        let mut out = HashMap::new();
+        for key in ["Name", "Description"] {
+            if let Ok(v) = self.call(bus, path.as_str(), PROPERTIES, "Get", &(ACCESSIBLE, key)) {
+                out.insert(key.to_string(), v);
+            }
+        }
+        out
     }
 
     fn attrs(&self, bus: &str, path: &OwnedObjectPath) -> HashMap<String, String> {

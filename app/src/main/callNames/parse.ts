@@ -86,14 +86,37 @@ export function zoomTile(description: string): { name: string; talking: boolean 
   return name ? { name, talking } : null
 }
 
+// Linux's Zoom Workplace draws each video tile as a push button named "video item <name>", with " Active Speaker"
+// appended on the active-speaker view (Zoom 7.2.1: the only tile carries it even in a call of one). The words are
+// English only as measured; another language reads as nothing rather than a wrong name.
+const LINUX_TILE = /^video item\s+(.+)$/i
+const LINUX_ACTIVE = /\s+active speaker$/i
+
+/** "video item Ana Ruiz Active Speaker" → Ana Ruiz, talking; null when it isn't a tile */
+export function zoomLinuxTile(name: string): { name: string; talking: boolean } | null {
+  const m = LINUX_TILE.exec(name.normalize('NFKC').trim())
+  if (!m) return null
+  const talking = LINUX_ACTIVE.test(m[1])
+  const person = cleanZoom(m[1].replace(LINUX_ACTIVE, ''))
+  return person && person.length <= 60 ? { name: person, talking } : null
+}
+
 function readZoom(windows: AxWindow[]): CallReading {
   const speaking: string[] = [], participants: string[] = []
+  const linuxTiles: Array<{ name: string; talking: boolean }> = []
   let me: string | null = null
   for (const w of windows) {
     walk(w.tree, (n, up) => {
       if (TAB_GROUP.has(n.r) && n.d) {
         const tile = zoomTile(n.d)
         if (tile) { participants.push(tile.name); if (tile.talking) speaking.push(tile.name) }
+      }
+      // the Linux Zoom Workplace tile is a push button named "video item <name> [Active Speaker]"
+      if (n.r === 'push button' || n.r === 'toggle button') {
+        for (const raw of [n.t, n.d]) {
+          const tile = raw ? zoomLinuxTile(raw) : null
+          if (tile) { participants.push(tile.name); linuxTiles.push(tile) }
+        }
       }
       // the floating window's "Talking: Name"; AT-SPI labels carry it as their name
       if (STATIC_TEXT.has(n.r)) {
@@ -115,6 +138,9 @@ function readZoom(windows: AxWindow[]): CallReading {
       }
     })
   }
+  // The Linux view always says "Active Speaker" on the tile it is showing, even with one person in the call, so the
+  // mark is trusted only with three or more tiles (the same threshold the Mac mark has).
+  if (uniq(linuxTiles.map((t) => t.name)).length >= 3) for (const t of linuxTiles) if (t.talking) speaking.push(t.name)
   return { speaking: uniq(speaking), participants: uniq(participants), me }
 }
 

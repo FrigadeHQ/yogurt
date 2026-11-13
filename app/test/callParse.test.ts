@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { readCall, summarize, zoomTile, type AxNode, type AxWindow } from '../src/main/callNames/parse'
+import { readCall, summarize, zoomLinuxTile, zoomTile, type AxNode, type AxWindow } from '../src/main/callNames/parse'
 
 const node = (r: string, o: Partial<AxNode> = {}, ...k: AxNode[]): AxNode => ({ r, ...o, ...(k.length ? { k } : {}) })
 const win = (tree: AxNode, title?: string): AxWindow => ({ title, tree })
@@ -59,6 +59,26 @@ describe('Zoom', () => {
       node('label', { t: 'Talking: Ann Lee' }),
       node('tree table', { t: 'Participants list' }, node('table row', {}, node('label', { t: 'Alex Morgan (me)' }))))
     expect(readCall('zoom', [win(tree)])).toEqual({ speaking: ['Ana Ruiz', 'Ann Lee'], participants: ['Ana Ruiz', 'Alex Morgan'], me: 'Alex Morgan' })
+  })
+
+  it('reads the Linux Zoom Workplace tile: a push button named "video item <name>"', () => {
+    expect(zoomLinuxTile('video item Ana Ruiz Active Speaker')).toEqual({ name: 'Ana Ruiz', talking: true })
+    expect(zoomLinuxTile('video item Ana Ruiz')).toEqual({ name: 'Ana Ruiz', talking: false })
+    // a one-word name is a name
+    expect(zoomLinuxTile('video item Madonna')).toEqual({ name: 'Madonna', talking: false })
+    // not a tile
+    expect(zoomLinuxTile('share content item')).toBeNull()
+    expect(zoomLinuxTile('video item')).toBeNull()
+  })
+
+  it('the Linux window names the call from its tiles, and trusts the speaker mark only with three or more', () => {
+    const tile = (name: string, active = false) => node('push button', { t: `video item ${name}${active ? ' Active Speaker' : ''}` })
+    const meeting = (...tiles: AxNode[]) => win(node('frame', { t: 'Meeting' }, node('panel', {}, ...tiles)), 'Meeting')
+    expect(readCall('zoom', [meeting(tile('Alex Morgan', true), tile('Dana Smith'), tile('Ann Lee'))]))
+      .toEqual({ speaking: ['Alex Morgan'], participants: ['Alex Morgan', 'Dana Smith', 'Ann Lee'], me: null })
+    // the only tile of a call of one always says Active Speaker; it must not read as someone talking
+    expect(readCall('zoom', [meeting(tile('Alex Morgan', true))]))
+      .toEqual({ speaking: [], participants: ['Alex Morgan'], me: null })
   })
 })
 
