@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CLAIM_MIN_MS, CLAIM_SHARE, nextSpeakerNumber, resolveNames, reuseKeys } from '../src/main/diarize/naming'
+import { nextSpeakerNumber, resolveNames, reuseKeys } from '../src/main/diarize/naming'
 import type { Turn } from '../src/main/diarize/rttm'
 
 describe('reuseKeys', () => {
@@ -26,11 +26,13 @@ describe('nextSpeakerNumber', () => {
 
 describe('resolveNames', () => {
   const cluster = (key: string, name: string | null, ms: number) => ({ key, claims: [{ name, ms }], total: ms })
-  it(`keeps a call-app name claiming at least ${CLAIM_MIN_MS} ms and ${CLAIM_SHARE * 100}% of the cluster`, () => {
+  it('keeps a call-app name claiming at least 2 s and half the cluster', () => {
     expect(resolveNames([cluster('v1', 'Ann Lee', 3000)], { taken: [], startNumber: 1 })).toEqual([{ key: 'v1', speaker: 'Ann Lee' }])
-    expect(resolveNames([cluster('v1', 'Ann Lee', 1999)], { taken: [], startNumber: 1 })).toEqual([{ key: 'v1', speaker: null }])
     expect(resolveNames([{ key: 'v1', claims: [{ name: 'Ann Lee', ms: 2000 }, { name: null, ms: 2000 }], total: 4000 }], { taken: [], startNumber: 1 }))
-      .toEqual([{ key: 'v1', speaker: null }])
+      .toEqual([{ key: 'v1', speaker: 'Ann Lee' }])
+  })
+  it('drops to Speaker N when the claim is under the bar', () => {
+    expect(resolveNames([cluster('v1', 'Ann Lee', 1999)], { taken: [], startNumber: 1 })).toEqual([{ key: 'v1', speaker: 'Speaker 1' }])
   })
   it('one person is one voice: a weaker cluster claiming the same name drops to Speaker N', () => {
     const a = { key: 'v1', claims: [{ name: 'Ann Lee', ms: 5000 }], total: 5000 }

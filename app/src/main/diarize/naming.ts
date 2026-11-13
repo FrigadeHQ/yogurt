@@ -26,10 +26,9 @@ export function nextSpeakerNumber(names: readonly string[]): number {
 export type Cluster = { key: string; claims: Array<{ name: string | null; ms: number }>; total: number }
 
 /**
- * One name per voice. A call-app name wins when it claims ≥ 2 s and more than half the cluster's speech; when
- * two clusters claim the same person, the stronger keeps it and the other falls back to Speaker N. A named
- * claim that fails that evidence bar leaves the speaker unnamed (null). Unnamed clusters number in
- * first-appearance order (the order the array comes in), named clusters consume no numbers.
+ * One name per voice. A call-app name wins when it claims ≥ 2 s and ≥ half the cluster's speech; when two
+ * clusters claim the same person, the stronger keeps it and the other falls back to Speaker N. Unnamed
+ * clusters number in first-appearance order (the order the array comes in), named clusters consume no numbers.
  */
 export function resolveNames(clusters: Cluster[], opts: { taken: readonly string[]; startNumber: number }): Array<{ key: string; speaker: string | null }> {
   const candidates = new Map<string, { name: string; ms: number }>()
@@ -39,7 +38,7 @@ export function resolveNames(clusters: Cluster[], opts: { taken: readonly string
       if (!claim.name) continue
       if (!best || claim.ms > best.ms) best = { name: claim.name, ms: claim.ms }
     }
-    if (best && best.ms >= CLAIM_MIN_MS && best.ms > CLAIM_SHARE * c.total) candidates.set(c.key, best)
+    if (best && best.ms >= CLAIM_MIN_MS && best.ms >= CLAIM_SHARE * c.total) candidates.set(c.key, best)
   }
   // strongest claim keeps the person's name
   const winners = [...candidates.entries()].sort((a, b) => b[1].ms - a[1].ms)
@@ -50,10 +49,7 @@ export function resolveNames(clusters: Cluster[], opts: { taken: readonly string
   const out: Array<{ key: string; speaker: string | null }> = []
   for (const c of clusters) {
     const name = assigned.get(c.key)
-    if (name) { out.push({ key: c.key, speaker: name }); continue }
-    // a call-app name that failed the evidence bar is not enough to name OR number the voice: leave it unnamed
-    const rejected = !candidates.has(c.key) && c.claims.some((claim) => claim.name)
-    if (rejected) out.push({ key: c.key, speaker: null })
+    if (name) out.push({ key: c.key, speaker: name })
     else { out.push({ key: c.key, speaker: `Speaker ${n}` }); n++ }
   }
   return out
