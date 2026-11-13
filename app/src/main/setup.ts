@@ -79,6 +79,8 @@ export class SetupController {
   private embedListeners = new Set<() => void>()
   /** the embedding model's download, while it keeps being tried after a failure */
   private embedding: Promise<void> | undefined
+  /** the diarization model's download, while it keeps being tried after a failure */
+  private diarization: Promise<void> | undefined
   /** Try again after an error: time the speech models again instead of trusting what was stored */
   private recheck = false
 
@@ -180,11 +182,12 @@ export class SetupController {
   /** called once the embedding model is on the Mac (at ready when it already was) */
   onEmbedModel(cb: () => void) { this.embedListeners.add(cb); return () => this.embedListeners.delete(cb) }
 
-  /** Resolves when the notes and embedding models have finished downloading (or the bigger one gave up). Ready never waits for them. */
+  /** Resolves when the notes, embedding and diarization models have finished downloading (or the bigger one gave up). Ready never waits for them. */
   async idle(): Promise<void> {
     await this.background
     await this.upgradeDownload
     await this.embedding
+    await this.diarization
   }
 
   async start() {
@@ -385,24 +388,29 @@ export class SetupController {
     })()
   }
 
-  /** The diarization model, after the embedding model. Never blocks ready; failing keeps being tried quietly. */
+  /** The diarization model, after the embedding model. The chain never waits on it: it keeps being tried quietly, on its own. */
   private async startDiarization(item: Item) {
     const landed = (path: string) => { if (this.paths) this.paths = { ...this.paths, diarization: path } }
     try { landed(await this.fetch(item)); return } catch (err) { console.warn('the diarization model did not download yet, trying again', err) }
     const waits = this.deps.notesRetryMs ?? NOTES_RETRY_MS
-    for (let i = 0; ; i++) {
-      await new Promise((r) => setTimeout(r, waits[Math.min(i, waits.length - 1)]))
-      try { landed(await this.fetch(item)); return } catch (err) { console.warn('the diarization model did not download yet, trying again', err) }
-    }
+    this.diarization = (async () => {
+      for (let i = 0; ; i++) {
+        await new Promise((r) => setTimeout(r, waits[Math.min(i, waits.length - 1)]))
+        try { landed(await this.fetch(item)); return } catch (err) { console.warn('the diarization model did not download yet, trying again', err) }
+      }
+    })()
   }
 
-  /** The speaker embedding model, fetched the first time voice recognition is turned on. One retry, then the caller carries on without profiles. */
+  /** The speaker embedding model, fetched the first time voice recognition is turned on. One retry, then the caller carries on without profiles — and can ask again. */
   async ensureSpeakerModel(): Promise<string> {
     this.speakerPromise ??= (async () => {
-      const c = (await this.deps.getCatalog()).speaker
-      const item: Item = { url: c.url, sha256: c.sha256, bytes: c.bytes, dir: join(this.deps.modelsDir, 'speaker'), fileName: fileNameFor(c.url) }
-      try { return await this.fetch(item) } catch (err) { console.warn('the speaker model did not download, trying once more', err) }
-      return this.fetch(item)
+      try {
+        const c = (await this.deps.getCatalog()).speaker
+        const item: Item = { url: c.url, sha256: c.sha256, bytes: c.bytes, dir: join(this.deps.modelsDir, 'speaker'), fileName: fileNameFor(c.url) }
+        try { return await this.fetch(item) } catch (err) { console.warn('the speaker model did not download, trying once more', err) }
+        // await, so a second failure reaches the catch below and the cache clears (a bare return adopts the promise outside the try)
+        return await this.fetch(item)
+      } catch (err) { this.speakerPromise = undefined; throw err }
     })()
     return this.speakerPromise
   }
