@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { createTranscriber, isGarbled, requestTimeoutMs, wavBytes } from '../src/main/asr/transcribe'
 import type { Chunk } from '../src/main/asr/chunker'
 
-type Reply = { language?: string; prob?: number; segments?: Array<{ start: number; end: number; text: string }> }
+type Reply = { language?: string; prob?: number; segments?: Array<{ start: number; end: number; text: string; words?: Array<{ word: string; start: number; end: number }> }> }
 const verbose = (r: Reply) => ({
   task: 'transcribe', language: r.language ?? 'english', detected_language: r.language ?? 'english', detected_language_probability: r.prob ?? 0.99,
   text: (r.segments ?? []).map((s) => s.text).join(''),
