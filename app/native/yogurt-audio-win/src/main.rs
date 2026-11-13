@@ -4,6 +4,7 @@
 // loopback, every app except Yogurt, on YOGURT_AUDIO_LOOPBACK=process: it missed Teams, #35).
 //   yogurt-audio record --dir DIR [--part N --start-ms X] [--mic-muted] [--mic ID] [--speech LOCALE]
 //   yogurt-audio join --dir DIR | inspect --dir DIR | mic-devices | speech-locales | speech-install LOCALE
+//   yogurt-audio decode FILE (16 kHz mono f32 on stdout) | decode --in FILE --out WAV
 // Writes DIR/me.ogg and DIR/them.ogg (Opus 20 kb/s mono, 48 kHz), a page a second so a crash keeps what was recorded.
 // A restart after a crash is part N: DIR/me.N.ogg and DIR/them.N.ogg, whose file time starts at X; join stitches them.
 // File time is meeting time on both: gaps (startup, pause, device switches) are written as silence.
@@ -15,6 +16,7 @@
 //   {"t":"speech-off"}   for --speech: Apple's speech is Mac only, Whisper gives the live words
 // mute ID and unmute ID reply with {"t":"mic-muted","id":ID,"muted":bool,"ms":meeting time}.
 // stdin: pause, resume, stop (end of input also stops), mic ID or mic auto (switch without stopping). Problems go to stderr.
+mod decode;
 mod gap;
 mod mix;
 mod join;
@@ -43,7 +45,7 @@ fn testing() -> bool {
     std::env::var("YOGURT_AUDIO_TEST").as_deref() == Ok("1")
 }
 
-const USAGE: &str = "usage: yogurt-audio record --dir DIR [--part N --start-ms X] [--mic ID] [--speech LOCALE] | join --dir DIR | inspect --dir DIR | compact --dir DIR --out STAGING | decode FILE | mic-devices | speech-locales | speech-install LOCALE";
+const USAGE: &str = "usage: yogurt-audio record --dir DIR [--part N --start-ms X] [--mic ID] [--speech LOCALE] | join --dir DIR | inspect --dir DIR | compact --dir DIR --out STAGING | decode FILE | decode --in FILE --out WAV | mic-devices | speech-locales | speech-install LOCALE";
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -54,7 +56,13 @@ fn main() {
         "speech-install" => println!("{{\"installed\":false}}"),
         "mic-devices" => mic_devices(),
         "writer-probe" => writer_probe(&args),
-        "decode" if args.len() >= 3 => decode(&args[2]),
+        // decode FILE: the file as 16 kHz mono f32 on stdout (backfill, #30)
+        "decode" if args.len() >= 3 && arg_value(&args, "--in").is_none() => decode(&args[2]),
+        // decode --in FILE --out WAV: the file as a 16 kHz mono wav (diarization)
+        "decode" => {
+            let (Some(input), Some(out)) = (arg_value(&args, "--in"), arg_value(&args, "--out")) else { fail("usage: yogurt-audio decode FILE | decode --in FILE --out WAV") };
+            std::process::exit(decode::decode_file(Path::new(&input), Path::new(&out)));
+        }
         "record" | "join" | "inspect" | "compact" if args.len() >= 4 => {
             let Some(dir) = arg_value(&args, "--dir") else { fail(USAGE) };
             let dir = PathBuf::from(dir);
