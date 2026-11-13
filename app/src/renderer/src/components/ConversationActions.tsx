@@ -56,12 +56,14 @@ export function ConversationDialog({ id, title, kind, container, onClose, onDele
     title={kind === 'delete' ? t('Delete “{title}”?', { title: title || t('New chat') }) : t('Rename “{title}”', { title: title || t('New chat') })}
     description={kind === 'delete' ? osWords({ mac: t('This conversation is removed from this Mac for good. Your meetings stay as they are.'), other: t('This conversation is removed from this computer for good. Your meetings stay as they are.') }) : undefined}>
     <form onSubmit={e => { e.preventDefault(); void save() }}>
-      {kind === 'rename' && <input data-dialog-focus data-testid="chat-rename-input" aria-label={t('Conversation name')} value={draft} maxLength={200}
-        className="chat-rename-input" disabled={busy} onChange={e => setDraft(e.target.value)} />}
+      {kind === 'rename' && <div className="people-add-field mx-5 mb-4 flex h-9 items-center rounded-md border border-line bg-card px-2.5">
+        <input data-dialog-focus data-testid="chat-rename-input" aria-label={t('Conversation name')} value={draft} maxLength={200}
+          className="h-full min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted" disabled={busy} onChange={e => setDraft(e.target.value)} />
+      </div>}
       {error && <p className="chat-error" role="alert">{t("Couldn't save your changes")}</p>}
       <div className="modal-actions">
         <button type="submit" data-testid={kind === 'delete' ? 'chat-delete-yes' : 'chat-rename-save'} disabled={busy || kind === 'rename' && !draft.trim()}
-          className={`modal-button${kind === 'delete' ? ' danger' : ''}`}>{kind === 'delete' ? t('Delete') : t('Save')}</button>
+          className={`modal-button ${kind === 'delete' ? 'danger' : 'primary'}`}>{kind === 'delete' ? t('Delete') : t('Save')}</button>
         <ModalClose type="button" data-dialog-cancel data-testid="chat-delete-cancel" className="modal-button" disabled={busy}>{t('Cancel')}</ModalClose>
       </div>
     </form>

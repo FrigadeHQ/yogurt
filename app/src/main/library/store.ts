@@ -173,8 +173,8 @@ export class Library {
   }
   describe(chips: ContextChip[]): ContextTarget[] {
     return chips.map(c => {
-      const r = (c.kind === 'meeting' ? this.db.prepare('SELECT title,title_source FROM meetings WHERE id = ?') : this.db.prepare('SELECT name AS title FROM folders WHERE id = ?')).get(c.id) as Row | undefined
-      return { ...c, title: r?.title_source === 'generic' ? '' : String(r?.title ?? '').trim() }
+      const r = (c.kind === 'meeting' ? this.db.prepare('SELECT title FROM meetings WHERE id = ?') : this.db.prepare('SELECT name AS title FROM folders WHERE id = ?')).get(c.id) as Row | undefined
+      return { ...c, title: String(r?.title ?? '').trim() }
     })
   }
   scope(chips: ContextChip[]) {

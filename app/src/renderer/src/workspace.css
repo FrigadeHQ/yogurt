@@ -344,7 +344,6 @@
   100% { clip-path:inset(0 round 12px); }
 }
 @media(prefers-reduced-motion:reduce) { .citation-card { transition:none; }.citation-card * { animation:none!important; }.citation-liquid { filter:none!important; } }
-.chat-rename-input { width:100%;height:34px;padding:0 8px;border:1px solid var(--focus);border-radius:6px;background:var(--float);color:var(--ink); }
 ::highlight(citation-target) { background:color-mix(in srgb,var(--accent-soft) 70%,transparent); }
 [data-focused] { background:color-mix(in srgb,var(--accent-soft) 70%,transparent); }
 @container (max-width:700px) { .native-home { grid-template-columns:minmax(0,1fr) 235px; }.native-library { padding:24px 18px; }.native-agenda { padding-block:25px;--agenda-inset:15px; }.meeting-description strong { font-size:13px; }.meeting-meta { font-size:10px; } }

@@ -198,12 +198,12 @@ it('a failed question insert leaves the draft and first-message context intact',
   expect(l.conversation(id)).toMatchObject({ draft: 'Keep this draft', firstChips: null })
 })
 
-it('resolves current meeting and folder titles, preserving user titles and identifying unnamed meetings', () => {
+it('resolves current meeting and folder titles, showing the same title as the note', () => {
   const { store: s, library: l } = fresh(), m = meeting(s, 'Meeting')
   const folder = s.db.prepare('INSERT INTO folders (id,name,created_at) VALUES (?,?,?)')
   folder.run('f', 'Customers', 1)
   const chips = [{ kind: 'meeting' as const, id: m.id }, { kind: 'folder' as const, id: 'f' }]
-  expect(l.describe(chips).map(c => c.title)).toEqual(['', 'Customers'])
+  expect(l.describe(chips).map(c => c.title)).toEqual(['Meeting', 'Customers'])
   s.updateMeeting(m.id, { title: 'Design review with LT', titleSource: 'user' })
   s.db.prepare('UPDATE folders SET name = ? WHERE id = ?').run('Product', 'f')
   expect(l.describe(chips).map(c => c.title)).toEqual(['Design review with LT', 'Product'])
