@@ -12,7 +12,8 @@ export function folderSuggestionPrompt(folders: SuggestionFolder[], meeting: { t
 export function parseFolderSuggestion(raw: string, folders: Pick<SuggestionFolder, 'id' | 'name'>[]): { folderId: string | null; confidence: number | null } {
   const none = { folderId: null, confidence: null }
   try {
-    const value = JSON.parse(raw)
+    // local models often wrap the JSON in a code fence or a sentence: read the object itself
+    const value = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1))
     if (!value || Array.isArray(value) || Object.keys(value).sort().join(',') !== 'confidence,folder'
       || typeof value.confidence !== 'number' || !Number.isFinite(value.confidence) || value.confidence < 0 || value.confidence > 1
       || (value.folder !== null && typeof value.folder !== 'string')) return none

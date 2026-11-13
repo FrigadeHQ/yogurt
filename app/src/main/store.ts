@@ -630,7 +630,7 @@ export class Store {
     this.db.exec('SAVEPOINT file_meeting')
     try {
       this.db.prepare('INSERT OR IGNORE INTO folder_meetings (folder_id, meeting_id, added_at) VALUES (?, ?, ?)').run(folderId, meetingId, Date.now())
-      this.db.prepare("UPDATE meetings SET suggestion_state = CASE WHEN suggested_folder_id = ? THEN 'accepted' ELSE 'dismissed' END WHERE id = ? AND suggestion_state = 'pending'").run(folderId, meetingId)
+      this.db.prepare("UPDATE meetings SET suggestion_state = CASE WHEN suggested_folder_id = ? THEN 'accepted' ELSE 'dismissed' END WHERE id = ? AND (suggestion_state IS NULL OR suggestion_state = 'pending')").run(folderId, meetingId)
       this.db.exec('RELEASE file_meeting')
     } catch (e) { this.db.exec('ROLLBACK TO file_meeting; RELEASE file_meeting'); throw e }
   }
@@ -643,7 +643,7 @@ export class Store {
       .run(result.folderId, result.folderId ? 'pending' : null, result.confidence, attempt, id)
   }
   dismissFolderSuggestion(id: string) {
-    this.db.prepare("UPDATE meetings SET suggestion_state = 'dismissed' WHERE id = ? AND suggestion_state = 'pending'").run(id)
+    this.db.prepare("UPDATE meetings SET suggestion_state = 'dismissed' WHERE id = ? AND (suggestion_state IS NULL OR suggestion_state = 'pending')").run(id)
   }
   removeFromFolder(folderId: string, meetingId: string) { this.db.prepare('DELETE FROM folder_meetings WHERE folder_id = ? AND meeting_id = ?').run(folderId, meetingId) }
   /** the folders a meeting is in, by name */

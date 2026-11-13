@@ -27,7 +27,6 @@
   "Add a term and press Enter": "Nhập một thuật ngữ rồi nhấn Enter",
   "Add context": "Thêm ngữ cảnh",
   "Add to folder": "Thêm vào thư mục",
-  "Add to {name}?": "Thêm vào {name}?",
   "Added {count} meetings.": "Đã thêm {count} cuộc họp.",
   "Agenda": "Lịch trình",
   "All set": "Đã sẵn sàng",
@@ -618,5 +617,7 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Ghi chú chi tiết, chính xác hơn. Thay thế mô hình hiện tại nên không cần giữ cả hai.",
   "about {minutes} min left": "còn khoảng {minutes} phút",
   "AI upgrade skipped": "Đã bỏ qua nâng cấp AI",
-  "Get it in Settings": "Tải trong Cài đặt"
+  "Get it in Settings": "Tải trong Cài đặt",
+  "Suggested": "Được đề xuất",
+  "Dismiss suggestion": "Bỏ qua đề xuất"
 }

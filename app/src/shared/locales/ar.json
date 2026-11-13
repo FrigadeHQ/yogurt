@@ -27,7 +27,6 @@
   "Add a term and press Enter": "اكتب مصطلحًا واضغط Enter",
   "Add context": "إضافة سياق",
   "Add to folder": "إضافة إلى مجلد",
-  "Add to {name}?": "إضافة إلى {name}؟",
   "Added {count} meetings.": {
     "zero": "لم تتم إضافة أي اجتماع.",
     "one": "تمت إضافة اجتماع واحد.",
@@ -724,5 +723,7 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "ملاحظات أدق وأكثر تفصيلًا. يحل محل النموذج الحالي، فلا تحتفظ بكليهما.",
   "about {minutes} min left": "متبقٍ نحو {minutes} د",
   "AI upgrade skipped": "تم تخطي ترقية الذكاء الاصطناعي",
-  "Get it in Settings": "نزّلها من الإعدادات"
+  "Get it in Settings": "نزّلها من الإعدادات",
+  "Suggested": "مقترح",
+  "Dismiss suggestion": "تجاهل الاقتراح"
 }

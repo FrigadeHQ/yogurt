@@ -27,7 +27,6 @@
   "Add a term and press Enter": "Γράψτε έναν όρο και πατήστε Enter",
   "Add context": "Προσθήκη πλαισίου",
   "Add to folder": "Προσθήκη σε φάκελο",
-  "Add to {name}?": "Προσθήκη στο {name};",
   "Added {count} meetings.": {
     "one": "Προστέθηκε {count} σύσκεψη.",
     "other": "Προστέθηκαν {count} συσκέψεις."
@@ -666,5 +665,7 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Πιο αναλυτικές, ακριβείς σημειώσεις. Αντικαθιστά το τρέχον μοντέλο, ώστε να μη μένουν και τα δύο.",
   "about {minutes} min left": "απομένουν περίπου {minutes} λεπ.",
   "AI upgrade skipped": "Η αναβάθμιση AI παραλείφθηκε",
-  "Get it in Settings": "Λήψη στις Ρυθμίσεις"
+  "Get it in Settings": "Λήψη στις Ρυθμίσεις",
+  "Suggested": "Προτεινόμενο",
+  "Dismiss suggestion": "Απόρριψη πρότασης"
 }

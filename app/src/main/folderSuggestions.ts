@@ -4,13 +4,13 @@ import type { Store } from './store'
 import type { Queue } from './notes/queue'
 import type { NotesModel } from './notes/model'
 
-/** Once a meeting has its summary and is in no folder yet, files it in the folder the model is sure fits. The person can move
- * it; a meeting they filed themselves, took out, or that was tried before is left alone. */
+/** Suggest a folder after the summary is ready; filing waits for the person's choice. */
 export function createFolderSuggestions(o: { store: Store; queue: Queue; model: Pick<NotesModel, 'llm'>; changed: () => void }) {
   const { store } = o
   const queued = new Set<string>()
   // Appearance and sidebar order do not change a folder's meaning.
-  const fingerprint = () => createHash('sha256').update(JSON.stringify(store.folders().map(f => [f.id, f.name]).sort((a, b) => a[0].localeCompare(b[0])))).digest('hex')
+  // v2: answers in a code fence were read as no answer before, so meetings tried then get one more try
+  const fingerprint = () => createHash('sha256').update('v2' + JSON.stringify(store.folders().map(f => [f.id, f.name]).sort((a, b) => a[0].localeCompare(b[0])))).digest('hex')
   const eligible = (id: string, stamp: string) => {
     const m = store.meeting(id), previous = store.folderSuggestion(id)
     return !!m && shouldSuggestFolder({ hasFolders: store.folders().length > 0, filed: store.foldersOf(id).length > 0,
@@ -38,8 +38,6 @@ export function createFolderSuggestions(o: { store: Store; queue: Queue; model: 
       const result = parseFolderSuggestion(answer, folders)
       const fits = eligible(id, stamp)
       store.saveFolderSuggestion(id, fits ? result : { ...result, folderId: null }, stamp)
-      // filing marks the suggestion accepted, so it is never made again, even once the person takes it out
-      if (fits && result.folderId) store.addToFolder(result.folderId, id)
       o.changed()
     }, 'folder', id).catch(e => console.error('suggesting a folder failed', id, e)).finally(() => { queued.delete(id); if (fingerprint() !== requested) schedule(id) })
   }

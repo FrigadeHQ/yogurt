@@ -27,7 +27,6 @@
   "Add a term and press Enter": "Írj be egy kifejezést, és nyomd meg az Entert",
   "Add context": "Kontextus hozzáadása",
   "Add to folder": "Hozzáadás mappához",
-  "Add to {name}?": "Hozzáadás ehhez: {name}?",
   "Added {count} meetings.": {
     "one": "{count} megbeszélés hozzáadva.",
     "other": "{count} megbeszélés hozzáadva."
@@ -654,5 +653,7 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Részletesebb, pontosabb jegyzetek. Lecseréli a jelenlegi modellt, így nem marad meg mindkettő.",
   "about {minutes} min left": "még kb. {minutes} perc",
   "AI upgrade skipped": "AI-frissítés kihagyva",
-  "Get it in Settings": "Letöltés a Beállításokban"
+  "Get it in Settings": "Letöltés a Beállításokban",
+  "Suggested": "Javasolt",
+  "Dismiss suggestion": "Javaslat elvetése"
 }

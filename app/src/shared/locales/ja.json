@@ -27,7 +27,6 @@
   "Add a term and press Enter": "用語を入力してEnterキー",
   "Add context": "コンテキストを追加",
   "Add to folder": "フォルダに追加",
-  "Add to {name}?": "{name}に追加しますか？",
   "Added {count} meetings.": "{count}件のミーティングを追加しました。",
   "Agenda": "予定",
   "All set": "準備完了",
@@ -618,5 +617,7 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "より詳しく正確なノート。現在のモデルを置き換えるため、両方を保持する必要はありません。",
   "about {minutes} min left": "残り約{minutes}分",
   "AI upgrade skipped": "AIアップグレードをスキップ",
-  "Get it in Settings": "設定からダウンロード"
+  "Get it in Settings": "設定からダウンロード",
+  "Suggested": "おすすめ",
+  "Dismiss suggestion": "提案を非表示"
 }

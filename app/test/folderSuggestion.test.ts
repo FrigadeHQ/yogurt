@@ -13,6 +13,8 @@ describe('folder suggestion', () => {
   })
   it('requires an exact, unambiguous name and numeric confidence at least 0.8', () => {
     expect(parseFolderSuggestion('{"folder":"Customers","confidence":0.8}', folders)).toEqual({ folderId: 'a', confidence: 0.8 })
+    // what a local model actually writes: the JSON inside a code fence
+    expect(parseFolderSuggestion('```json\n{\n  "folder": "Customers",\n  "confidence": 0.9\n}\n```', folders)).toEqual({ folderId: 'a', confidence: 0.9 })
     for (const raw of ['junk', '```json\n{}\n```', '{"folder":"customers","confidence":1}', '{"folder":null,"confidence":1}', '{"folder":"Customers","confidence":0.79}', '{"folder":"Customers","confidence":"1"}', '{"folder":"Customers","confidence":2}', '{"folder":"Customers","confidence":1,"extra":true}']) expect(parseFolderSuggestion(raw, folders).folderId).toBeNull()
     expect(parseFolderSuggestion('{"folder":"Customers","confidence":1}', [...folders, { ...folders[0], id: 'b' }]).folderId).toBeNull()
   })

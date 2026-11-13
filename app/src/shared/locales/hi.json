@@ -27,7 +27,6 @@
   "Add a term and press Enter": "कोई शब्द लिखें और Enter दबाएँ",
   "Add context": "संदर्भ जोड़ें",
   "Add to folder": "फ़ोल्डर में जोड़ें",
-  "Add to {name}?": "{name} में जोड़ें?",
   "Added {count} meetings.": {
     "one": "{count} मीटिंग जोड़ी गई।",
     "other": "{count} मीटिंग्स जोड़ी गईं।"
@@ -654,5 +653,7 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "ज़्यादा विस्तृत, सटीक नोट्स। मौजूदा मॉडल की जगह लेता है, इसलिए दोनों नहीं रखने पड़ते।",
   "about {minutes} min left": "लगभग {minutes} मिनट बाकी",
   "AI upgrade skipped": "AI अपग्रेड छोड़ दिया",
-  "Get it in Settings": "सेटिंग्स से लें"
+  "Get it in Settings": "सेटिंग्स से लें",
+  "Suggested": "सुझाया गया",
+  "Dismiss suggestion": "सुझाव खारिज करें"
 }

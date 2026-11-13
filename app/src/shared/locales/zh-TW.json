@@ -27,7 +27,6 @@
   "Add a term and press Enter": "輸入詞語後按 Enter",
   "Add context": "加入脈絡",
   "Add to folder": "加入資料夾",
-  "Add to {name}?": "加入{name}？",
   "Added {count} meetings.": "已加入 {count} 場會議。",
   "Agenda": "議程",
   "All set": "一切就緒",
@@ -618,5 +617,7 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "筆記更詳細、更準確。取代目前的模型，無需同時保留兩個。",
   "about {minutes} min left": "還需約 {minutes} 分鐘",
   "AI upgrade skipped": "已略過 AI 升級",
-  "Get it in Settings": "前往設定下載"
+  "Get it in Settings": "前往設定下載",
+  "Suggested": "建議",
+  "Dismiss suggestion": "忽略建議"
 }

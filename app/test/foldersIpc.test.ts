@@ -20,6 +20,35 @@ beforeEach(() => {
 afterEach(() => { store.close(); rmSync(dir, { recursive: true, force: true }) })
 
 describe('folders IPC', () => {
+  it('never returns a pending suggestion for a meeting in any folder', async () => {
+    const suggested = store.createFolder('Customers'), other = store.createFolder('Planning')
+    const m = store.createMeeting({ title: 'Kickoff', startedAt: 1, endedAt: 2, eventId: null, app: null, attendees: [], state: 'done' })
+    store.saveFolderSuggestion(m.id, { folderId: suggested.id, confidence: 0.9 }, 'folders-v1')
+    // A legacy or imported pending record must still respect existing membership.
+    store.db.prepare('INSERT INTO folder_meetings (folder_id, meeting_id, added_at) VALUES (?, ?, ?)').run(other.id, m.id, 1)
+    expect(store.folderSuggestion(m.id).state).toBe('pending')
+    expect(await call('folders:suggestion', m.id)).toBeNull()
+  })
+  it('exposes pending suggestions without filing, and accepts or dismisses them permanently', async () => {
+    const f = store.createFolder('Customers')
+    for (const action of ['accept', 'dismiss']) {
+      const m = store.createMeeting({ title: 'Kickoff', startedAt: 1, endedAt: 2, eventId: null, app: null, attendees: [], state: 'done' })
+      store.saveFolderSuggestion(m.id, { folderId: f.id, confidence: 0.9 }, 'folders-v1')
+      expect(await call('folders:suggestion', m.id)).toMatchObject({ id: f.id })
+      expect(await call('folders:of', m.id)).toEqual([])
+      if (action === 'accept') {
+        await call('folders:add', f.id, m.id)
+        expect(store.folderSuggestion(m.id).state).toBe('accepted')
+        await call('folders:remove', f.id, m.id)
+      } else {
+        await call('folders:dismiss-suggestion', m.id)
+        expect(store.folderSuggestion(m.id).state).toBe('dismissed')
+      }
+      store.saveFolderSuggestion(m.id, { folderId: f.id, confidence: 1 }, 'folders-v2')
+      expect(await call('folders:suggestion', m.id)).toBeNull()
+      expect(await call('folders:of', m.id)).toEqual([])
+    }
+  })
   it('accepts only a complete valid reorder and broadcasts it once', async () => {
     const a = store.createFolder('Alpha'), b = store.createFolder('Beta')
     for (const value of [null, 'bad', [a.id], [a.id, a.id], [b.id, 123], [b.id, 'missing']]) {

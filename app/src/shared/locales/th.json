@@ -27,7 +27,6 @@
   "Add a term and press Enter": "พิมพ์คำแล้วกด Enter",
   "Add context": "เพิ่มบริบท",
   "Add to folder": "เพิ่มในโฟลเดอร์",
-  "Add to {name}?": "เพิ่มใน {name} หรือไม่?",
   "Added {count} meetings.": "เพิ่ม {count} การประชุมแล้ว",
   "Agenda": "วาระ",
   "All set": "พร้อมแล้ว",
@@ -618,5 +617,7 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "โน้ตละเอียดและแม่นยำขึ้น แทนที่โมเดลปัจจุบัน จึงไม่ต้องเก็บทั้งสองโมเดล",
   "about {minutes} min left": "เหลือประมาณ {minutes} นาที",
   "AI upgrade skipped": "ข้ามการอัปเกรด AI แล้ว",
-  "Get it in Settings": "ดาวน์โหลดในการตั้งค่า"
+  "Get it in Settings": "ดาวน์โหลดในการตั้งค่า",
+  "Suggested": "แนะนำ",
+  "Dismiss suggestion": "ปิดคำแนะนำ"
 }

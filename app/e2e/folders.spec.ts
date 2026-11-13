@@ -119,14 +119,25 @@ test('a note goes into folders from its menu and its chip, and a new folder from
   try {
     await withMeetings(app, page)
     await newFolder(page, 'Acme')
-    // a meeting with a summary and no folder yet goes where it clearly fits, with nothing to confirm; taking it out sticks
+    // A confident match stays unfiled until the person confirms it; taking it out sticks.
     await openNote(page, 'Customer call with Acme')
     await expect(page.getByTestId('note-folders-summary')).toHaveText('Acme')
+    await expect(page.getByTestId('folder-suggestion')).toHaveText('Acme')
+    await expect(folder(page, 'Acme').getByTestId('sidebar-folder-count')).toHaveText('0')
+    await page.getByTestId('note-folders').click()
+    const suggested = page.getByTestId('folder-chip-list').getByTestId('folder-option').first()
+    await expect(suggested).toHaveText('AcmeSuggested')
+    await expect(suggested).toHaveAttribute('aria-checked', 'false')
+    await page.keyboard.press('Escape')
+    await page.getByTestId('folder-suggestion-confirm').click()
     await expect(page.getByTestId('folder-suggestion')).toHaveCount(0)
+    await expect(folder(page, 'Acme').getByTestId('sidebar-folder-count')).toHaveText('1')
     await page.getByTestId('note-folders').click()
     await page.getByTestId('folder-chip-list').getByTestId('folder-option').filter({ hasText: 'Acme' }).click()
     await expect(page.getByTestId('note-folders-summary')).toHaveText('Add to folder')
     await page.keyboard.press('Escape')
+    await page.reload()
+    await expect(page.getByTestId('note-folders-summary')).toHaveText('Add to folder')
     // one that fits no folder stays out of them
     await openNote(page, 'Weekly sync')
     await expect(page.getByTestId('note-folders-summary')).toHaveText('Add to folder')
@@ -168,6 +179,149 @@ test('a note goes into folders from its menu and its chip, and a new folder from
     await expect(page.getByTestId('folder-page').getByTestId('past-note')).toHaveText([/Budget review/, /Weekly sync/])
     await page.getByTestId('folder-page').getByTestId('past-note').first().click()
     await expect(page.getByTestId('note-title')).toHaveText('Budget review')
+  } finally { await app.close() }
+})
+
+for (const theme of ['light', 'dark'] as const) for (const action of ['confirm', 'cancel'] as const) for (const input of ['pointer', 'keyboard'] as const) test(`a row can ${action} its suggested folder by ${input} without opening the note in ${theme}`, async () => {
+  const { app, page } = await launch()
+  try {
+    await page.evaluate(theme => window.yogurt.settings.setTheme(theme), theme)
+    await withMeetings(app, page)
+    await newFolder(page, 'Acme')
+    await page.getByTestId('nav-home').click()
+    const row = page.getByTestId('past-note').filter({ hasText: 'Customer call with Acme' })
+    const chip = row.getByTestId('folder-suggestion')
+    await expect(chip).toHaveText('Acme')
+    const name = 'Acme community research and planning with the customer success team'
+    const ids = await page.evaluate(async name => {
+      const f = (await window.yogurt.folders.list())[0]
+      await window.yogurt.folders.rename(f.id, name)
+      await window.yogurt.folders.appearance(f.id, { icon: 'rocket', color: 'violet' })
+      const meetings = await window.yogurt.meetings.cards({ limit: 4 })
+      const meeting = meetings.find(m => m.title === 'Customer call with Acme')!
+      await window.yogurt.folders.add(f.id, meetings.find(m => m.title === 'Weekly sync')!.id)
+      return { folder: f.id, meeting: meeting.id }
+    }, name)
+    await expect(chip).toHaveText(name)
+    await expect(chip.locator('.meeting-folder-dot')).toHaveAttribute('data-folder-color', 'violet')
+    await expect(chip.locator('[data-folder-icon]')).toHaveCount(0)
+    expect(await chip.locator('button').evaluateAll(buttons => buttons.map(button => button.dataset.testid)))
+      .toEqual(['note-folders', 'folder-suggestion-cancel', 'folder-suggestion-confirm'])
+    const filed = page.getByTestId('past-note').filter({ hasText: 'Weekly sync' }).getByTestId('past-note-folder')
+    await expect(filed).toBeVisible()
+    for (const property of ['height', 'border-radius', 'font-size', 'line-height']) {
+      await expect(chip).toHaveCSS(property, await filed.evaluate((el, property) => getComputedStyle(el).getPropertyValue(property), property))
+    }
+    await expect(chip).toHaveCSS('border-style', 'dashed')
+    await expect(chip).toHaveCSS('height', '22px')
+    await expect(chip.locator('.meeting-folder-dot')).toHaveCSS('width', '7px')
+    await expect(chip.locator('.note-folder-actions')).toHaveCSS('border-inline-start-width', '0px')
+    await page.getByTestId('nav-home').hover()
+    await expect(chip.locator('.note-folder-actions')).toHaveCSS('opacity', '1')
+    for (const control of ['cancel', 'confirm']) {
+      await expect(chip.getByTestId(`folder-suggestion-${control}`)).toBeVisible()
+      await expect(chip.getByTestId(`folder-suggestion-${control}`).locator('svg')).toHaveAttribute('width', '12')
+    }
+    expect(await chip.getByTestId('note-folders-summary').evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true)
+    if (input === 'keyboard') {
+      await chip.getByTestId('note-folders').focus()
+      await page.keyboard.press('Tab')
+      await expect(chip.getByTestId('folder-suggestion-cancel')).toBeFocused()
+      await page.keyboard.press('Tab')
+      await expect(chip.getByTestId('folder-suggestion-confirm')).toBeFocused()
+      if (action === 'cancel') await page.keyboard.press('Shift+Tab')
+      await page.keyboard.press(action === 'cancel' ? 'Space' : 'Enter')
+    } else await chip.getByTestId(`folder-suggestion-${action}`).click()
+    await expect(page.getByTestId('home')).toBeVisible()
+    await expect(chip).toHaveCount(0)
+    await expect(row.locator('.native-meeting-link')).toBeFocused()
+    expect(await page.evaluate(id => window.yogurt.folders.of(id), ids.meeting)).toHaveLength(action === 'confirm' ? 1 : 0)
+    if (action === 'confirm') {
+      await expect(row.getByTestId('past-note-folder')).toHaveText(name)
+      await page.evaluate(({ folder, meeting }) => window.yogurt.folders.remove(folder, meeting), ids)
+    }
+    await page.evaluate(() => window.yogurt.folders.create('Another folder'))
+    await page.reload()
+    await expect(row).toBeVisible()
+    await expect(chip).toHaveCount(0)
+    await row.locator('.native-meeting-link').click()
+    await expect(page.getByTestId('note-folders-summary')).toHaveText('Add to folder')
+    await expect(page.getByTestId('folder-suggestion')).toHaveCount(0)
+  } finally { await app.close() }
+})
+
+for (const input of ['pointer', 'keyboard'] as const) test(`the suggested row name opens its folder menu by ${input} and choosing any folder removes the proposal everywhere`, async () => {
+  const { app, page } = await launch()
+  try {
+    await withMeetings(app, page)
+    await newFolder(page, 'Acme')
+    await page.getByTestId('nav-home').click()
+    const row = page.getByTestId('past-note').filter({ hasText: 'Customer call with Acme' })
+    await expect(row.getByTestId('folder-suggestion')).toBeVisible()
+    await page.evaluate(() => window.yogurt.folders.create('Alpha'))
+    if (input === 'keyboard') {
+      await row.getByTestId('note-folders').focus()
+      await page.keyboard.press('Enter')
+    } else await row.getByTestId('note-folders').click()
+    await expect(page.getByTestId('home')).toBeVisible()
+    const picker = page.getByTestId('meeting-row-folders')
+    await expect(picker.getByTestId('folder-option').first()).toHaveText('AcmeSuggested')
+    await picker.getByRole('menuitemcheckbox', { name: 'Alpha', exact: true }).click()
+    await expect(row.getByTestId('past-note-folder')).toHaveText('Alpha')
+    await expect(row.getByTestId('folder-suggestion')).toHaveCount(0)
+    await page.keyboard.press('Escape')
+    await page.evaluate(() => window.yogurt.folders.create('Customer calls'))
+    await page.reload()
+    await expect(row.getByTestId('past-note-folder')).toHaveText('Alpha')
+    await expect(row.getByTestId('folder-suggestion')).toHaveCount(0)
+    await row.locator('.native-meeting-link').click()
+    await expect(page.getByTestId('note-folders-summary')).toHaveText('Alpha')
+    await expect(page.getByTestId('folder-suggestion')).toHaveCount(0)
+  } finally { await app.close() }
+})
+
+for (const colorScheme of ['light', 'dark'] as const) test(`the divided suggestion chip supports long names, its picker and dismissal in ${colorScheme}`, async () => {
+  const { app, page } = await launch()
+  try {
+    await page.emulateMedia({ colorScheme })
+    await withMeetings(app, page)
+    await newFolder(page, 'Acme')
+    await openNote(page, 'Customer call with Acme')
+    const proposal = page.getByTestId('folder-suggestion')
+    await expect(proposal).toBeVisible()
+    const name = 'Acme community research and planning with the customer success team'
+    await page.evaluate(async name => {
+      const f = (await window.yogurt.folders.list())[0]
+      await window.yogurt.folders.rename(f.id, name)
+      await window.yogurt.folders.appearance(f.id, { icon: 'rocket', color: 'violet' })
+      await window.yogurt.folders.create('Alpha')
+    }, name)
+    await expect(proposal).toHaveText(name)
+    await expect(proposal.locator('[data-folder-icon=rocket]')).toHaveAttribute('data-folder-color', 'violet')
+    expect(await proposal.locator('button').evaluateAll(buttons => buttons.map(button => button.dataset.testid)))
+      .toEqual(['note-folders', 'folder-suggestion-cancel', 'folder-suggestion-confirm'])
+    for (const action of ['cancel', 'confirm']) {
+      await expect(proposal.getByTestId(`folder-suggestion-${action}`).locator('svg')).toHaveAttribute('width', '15')
+    }
+    const label = page.getByTestId('note-folders-summary')
+    expect(await label.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true)
+    expect((await proposal.boundingBox())!.width).toBeLessThanOrEqual(256)
+    await page.getByTestId('note-folders').click()
+    const options = page.getByTestId('folder-chip-list').getByTestId('folder-option')
+    await expect(options.first()).toHaveText(`${name}Suggested`)
+    await expect(options.first()).toBeFocused()
+    await expect(options.first()).toHaveAttribute('aria-checked', 'false')
+    await page.keyboard.press('Escape')
+    await expect(page.getByTestId('note-folders')).toBeFocused()
+    await page.getByTestId('folder-suggestion-cancel').click()
+    await expect(proposal).toHaveCount(0)
+    await expect(label).toHaveText('Add to folder')
+    await expect(page.getByTestId('note-folders')).toBeFocused()
+    await page.evaluate(() => window.yogurt.folders.create('Another folder'))
+    await page.reload()
+    await expect(page.getByTestId('note-folders-summary')).toHaveText('Add to folder')
+    await expect(proposal).toHaveCount(0)
+    await expect(folder(page, name).getByTestId('sidebar-folder-count')).toHaveText('0')
   } finally { await app.close() }
 })
 

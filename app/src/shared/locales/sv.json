@@ -27,7 +27,6 @@
   "Add a term and press Enter": "Skriv en term och tryck på Retur",
   "Add context": "Lägg till kontext",
   "Add to folder": "Lägg till i mapp",
-  "Add to {name}?": "Lägga till i {name}?",
   "Added {count} meetings.": {
     "one": "{count} möte har lagts till.",
     "other": "{count} möten har lagts till."
@@ -666,5 +665,7 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Mer detaljerade, korrekta anteckningar. Ersätter den nuvarande modellen, så att du inte behåller båda.",
   "about {minutes} min left": "ungefär {minutes} min kvar",
   "AI upgrade skipped": "AI-uppgradering överhoppad",
-  "Get it in Settings": "Hämta i Inställningar"
+  "Get it in Settings": "Hämta i Inställningar",
+  "Suggested": "Föreslagen",
+  "Dismiss suggestion": "Avvisa förslag"
 }

@@ -23,7 +23,7 @@ async function selectFirst(page: Page) {
   await expect(menu.getByRole('menuitem').first()).toHaveText('Select')
   await expect(menu.getByRole('separator')).toHaveCount(1)
   await menu.getByTestId('meeting-select').click()
-  await expect(row.getByTestId('past-note')).toHaveAttribute('aria-pressed', 'true')
+  await expect(row.getByTestId('past-note').locator('.native-meeting-link')).toHaveAttribute('aria-pressed', 'true')
 }
 
 for (const theme of ['light', 'dark'] as const) test(`select from the menu, click to add, delete once and undo all in ${theme}`, async () => {
@@ -36,7 +36,7 @@ for (const theme of ['light', 'dark'] as const) test(`select from the menu, clic
     await expect(bar).toContainText('Click meetings to add more')
     await rows.nth(1).click()
     await expect(page.getByTestId('home')).toBeVisible()
-    await expect(rows.nth(1)).toHaveAttribute('aria-pressed', 'true')
+    await expect(rows.nth(1).locator('.native-meeting-link')).toHaveAttribute('aria-pressed', 'true')
     await expect(bar.getByRole('status')).toHaveText('2 selected')
     await expect(bar).not.toContainText('Click meetings to add more')
     await bar.getByRole('button', { name: 'Delete', exact: true }).click()

@@ -27,7 +27,6 @@
   "Add a term and press Enter": "Введите термин и нажмите Enter",
   "Add context": "Добавить контекст",
   "Add to folder": "Добавить в папку",
-  "Add to {name}?": "Добавить в {name}?",
   "Added {count} meetings.": {
     "one": "Добавлена {count} встреча.",
     "few": "Добавлены {count} встречи.",
@@ -693,5 +692,7 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Более подробные и точные заметки. Заменяет текущую модель, чтобы не хранить обе.",
   "about {minutes} min left": "осталось около {minutes} мин",
   "AI upgrade skipped": "Обновление ИИ пропущено",
-  "Get it in Settings": "Скачать в настройках"
+  "Get it in Settings": "Скачать в настройках",
+  "Suggested": "Предложено",
+  "Dismiss suggestion": "Отклонить предложение"
 }

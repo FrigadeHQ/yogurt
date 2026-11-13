@@ -34,7 +34,7 @@ test('meeting rows swap metadata for More without shifting content and share poi
   const { app, page } = await launch()
   try {
     await withMeetings(app, page)
-    const card = row(page, 'Budget review'), link = card.getByTestId('past-note'), more = card.getByTestId('past-note-more')
+    const card = row(page, 'Budget review'), link = card.locator('.native-meeting-link'), more = card.getByTestId('past-note-more')
     await page.mouse.move(0, 0)
     await expect(more).toHaveCSS('opacity', '0')
     const meta = card.locator('.meeting-meta')

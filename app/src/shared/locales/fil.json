@@ -27,7 +27,6 @@
   "Add a term and press Enter": "Mag-type ng termino at pindutin ang Enter",
   "Add context": "Magdagdag ng konteksto",
   "Add to folder": "Idagdag sa folder",
-  "Add to {name}?": "Idagdag sa {name}?",
   "Added {count} meetings.": {
     "one": "Naidagdag ang {count} meeting.",
     "other": "Naidagdag ang {count} na meeting."
@@ -663,5 +662,7 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Mas detalyado at tumpak na tala. Papalitan ang kasalukuyang modelo para hindi pareho ang nakaimbak.",
   "about {minutes} min left": "mga {minutes} min na lang",
   "AI upgrade skipped": "Nilaktawan ang AI upgrade",
-  "Get it in Settings": "Kunin sa Mga Setting"
+  "Get it in Settings": "Kunin sa Mga Setting",
+  "Suggested": "Iminungkahi",
+  "Dismiss suggestion": "Balewalain ang mungkahi"
 }

@@ -103,5 +103,7 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "More detailed, accurate notes. Replaces the current model, so you don't keep both.",
   "about {minutes} min left": "about {minutes} min left",
   "AI upgrade skipped": "AI upgrade skipped",
-  "Get it in Settings": "Get it in Settings"
+  "Get it in Settings": "Get it in Settings",
+  "Suggested": "Suggested",
+  "Dismiss suggestion": "Dismiss suggestion"
 }

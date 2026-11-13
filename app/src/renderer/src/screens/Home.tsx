@@ -1,7 +1,7 @@
 import { LoadingContent } from '../components/LoadingContent'
 import { StartRecording } from '../components/StartRecording'
 import { Mic } from '../components/Icons'
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react'
 import { Circle, FileText, Users } from 'lucide-react'
 import type { MeetingCard } from '../../../shared/types'
 import { useScrollMemory } from '../useScrollMemory'
@@ -11,6 +11,7 @@ import { dayLabel, timeOf, useDay } from '../dates'
 import { useLanguage } from '../i18n'
 import { moveMeetingsToTrash, toasts } from '../components/TrashToast'
 import { MeetingRow } from '../components/MeetingRow'
+import { FolderChip } from '../components/FolderPicker'
 import { Agenda } from '../components/Agenda'
 import { MEETING_DRAG } from '../folders'
 import { command } from '../keys'
@@ -169,7 +170,7 @@ export function PastNotes({ cards, day, more, sentinel, onOpen, openFolder, show
             e.preventDefault(); e.stopPropagation(); select({ type: e.shiftKey ? 'range' : 'toggle', id: meeting.id, visible })
           }
         }}>
-        <PastCard c={meeting} onOpen={onOpen} openFolder={openFolder} me={me} selected={selected.includes(meeting.id)} dragIds={meetingTargets(selected, meeting.id)} showFolders={showFolders} />
+        {(openFolders, more) => <PastCard more={more} c={meeting} onOpen={onOpen} openFolder={openFolder} openFolders={openFolders} me={me} selected={selected.includes(meeting.id)} dragIds={meetingTargets(selected, meeting.id)} showFolders={showFolders} />}
       </MeetingRow>)}</ul>
     </div>)}
     {more && <div data-testid="past-more" ref={sentinel} className="h-8" aria-hidden="true" />}
@@ -178,13 +179,18 @@ export function PastNotes({ cards, day, more, sentinel, onOpen, openFolder, show
 }
 
 /** when: in place of the time (the Trash shows the day); fixed: not dragged onto folders */
-export function PastCard({ c, onOpen, openFolder, when, fixed, me, selected, dragIds, showFolders = true, loading = false }: { selected?: boolean; dragIds?: string[]; loading?: boolean; c: MeetingCard; onOpen: (id: string) => void; openFolder?: (id: string) => void; when?: string; fixed?: boolean; me: string; showFolders?: boolean }) {
+export function PastCard({ c, onOpen, openFolder, openFolders, more, when, fixed, me, selected, dragIds, showFolders = true, loading = false }: { more?: ReactNode; selected?: boolean; dragIds?: string[]; loading?: boolean; c: MeetingCard; onOpen: (id: string) => void; openFolder?: (id: string) => void; openFolders?: (suggestedId: string) => void; when?: string; fixed?: boolean; me: string; showFolders?: boolean }) {
   const recording = c.state === 'recording'
   const minutes = (c.state === 'done' || c.state === 'stopped') && c.endedAt != null
     ? Math.max(1, Math.round((c.durationMs ?? (c.endedAt - c.startedAt)) / 60_000)) : null
   const initials = c.attendees[0]?.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => Array.from(part)[0]).join('').toLocaleUpperCase()
+  const filed = c.folders?.map(folder => <button className="meeting-folder-pill" data-testid={loading ? undefined : "past-note-folder"} data-folder-color={folder.color} data-opens={!!openFolder && !loading} title={folder.name} key={folder.id} disabled={loading}
+    onClick={e => { e.stopPropagation(); if (openFolder) openFolder(folder.id); else onOpen(c.id) }}>
+    <span className="meeting-folder-dot" aria-hidden="true" /><span className="meeting-folder-name">{loading ? <span className="loading-bar" style={{ width: 46 }} /> : folder.name}</span>
+  </button>)
   // dragged onto a folder in the sidebar, it goes into that folder
-  return <button data-testid={loading ? undefined : "past-note"} data-meeting-id={c.id} disabled={loading} draggable={!fixed && !loading} onDragStart={fixed ? undefined : (e) => {
+  return <div data-testid={loading ? undefined : "past-note"} className="native-meeting-card" draggable={!fixed && !loading} onDragStart={fixed ? undefined : (e) => {
+    if ((e.target as HTMLElement).closest('.meeting-folders')) { e.preventDefault(); return }
     e.dataTransfer.setData(MEETING_DRAG, dragIds && dragIds.length > 1 ? JSON.stringify(dragIds) : c.id)
     e.dataTransfer.effectAllowed = 'link'
     const preview = document.createElement('div')
@@ -196,22 +202,20 @@ export function PastCard({ c, onOpen, openFolder, when, fixed, me, selected, dra
     e.dataTransfer.setDragImage(preview, 24, 24)
     // The native drag keeps its snapshot after this frame; no duplicate row stays in the page.
     requestAnimationFrame(() => preview.remove())
-  }}
-    onClick={() => onOpen(c.id)} aria-pressed={selected} className="native-meeting-link">
+  }}>
+    <button data-meeting-id={c.id} disabled={loading} onClick={() => onOpen(c.id)} aria-pressed={selected} className="native-meeting-link">
     <span className="meeting-content">
     <span className={`meeting-identity ${recording ? 'recording' : ''}`} aria-hidden="true">{loading ? null : recording ? <Mic size={16} /> : c.attendees.length > 1 ? <Users size={16} /> : initials || <FileText size={16} />}</span>
     <span className="meeting-description"><strong>{loading ? <span className="loading-bar" style={{ width: c.title.length * 6, maxWidth: '85%' }} /> : c.title}</strong><span data-testid={loading ? undefined : "past-note-attendees"} title={c.attendees.map((p) => p.name).join(', ') || undefined}>{loading ? <span className="loading-bar" style={{ width: 110 }} /> : c.attendees.length ? peopleSummary(c.attendees, me) : t('Personal notes')}</span>
     </span>
-    {showFolders && !!c.folders?.length && <span className="meeting-folders" data-testid={loading ? undefined : "past-note-folders"}>
-      {c.folders.map(folder => <span className="meeting-folder-pill" data-testid={loading ? undefined : "past-note-folder"} data-folder-color={folder.color} data-opens={!!openFolder && !loading} title={folder.name} key={folder.id}
-        // a pill inside the row's button: mouse shortcut to the folder; keyboard reaches folders from the sidebar
-        onClick={openFolder && !loading ? (e) => { e.stopPropagation(); openFolder(folder.id) } : undefined}>
-        <span className="meeting-folder-dot" aria-hidden="true" /><span className="meeting-folder-name">{loading ? <span className="loading-bar" style={{ width: 46 }} /> : folder.name}</span>
-      </span>)}
-    </span>}
     </span>
     <span className="meeting-meta row-swap-meta">{recording ? <span className="meeting-live"><Circle size={6} fill="currentColor" />{c.paused ? t('Paused') : t('Recording')}</span> : <><time>{loading ? <span className="loading-bar" style={{ width: 45 }} /> : when ?? timeOf(c.startedAt)}</time>{minutes != null && <small data-testid="past-note-duration">{loading ? <span className="loading-bar" style={{ width: 26 }} /> : t('{count} min', { count: minutes })}</small>}</>}</span>
-  </button>
+    </button>
+    {more}
+    {showFolders && <div className="meeting-folders" data-testid={loading ? undefined : "past-note-folders"}>
+      {fixed || loading ? filed : <FolderChip meetingId={c.id} row rowFolders={c.folders ?? []} onChoose={openFolders ?? (() => onOpen(c.id))}>{filed}</FolderChip>}
+    </div>}
+  </div>
 }
 
 /** The real row and date-group layout, with representative line lengths rather than viewport-wide bars. */

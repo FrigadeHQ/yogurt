@@ -27,7 +27,6 @@
   "Add a term and press Enter": "Scrieți un termen și apăsați Enter",
   "Add context": "Adaugă context",
   "Add to folder": "Adăugați în dosar",
-  "Add to {name}?": "Adăugați în {name}?",
   "Added {count} meetings.": {
     "one": "A fost adăugată {count} întâlnire.",
     "few": "Au fost adăugate {count} întâlniri.",
@@ -681,5 +680,7 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Notițe mai detaliate și precise. Înlocuiește modelul actual, ca să nu le păstrați pe amândouă.",
   "about {minutes} min left": "mai sunt aproximativ {minutes} min",
   "AI upgrade skipped": "Actualizare AI omisă",
-  "Get it in Settings": "Descărcați din Setări"
+  "Get it in Settings": "Descărcați din Setări",
+  "Suggested": "Sugerat",
+  "Dismiss suggestion": "Respinge sugestia"
 }

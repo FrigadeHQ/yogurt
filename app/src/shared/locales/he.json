@@ -27,7 +27,6 @@
   "Add a term and press Enter": "להקליד מונח וללחוץ Enter",
   "Add context": "הוספת הקשר",
   "Add to folder": "הוספה לתיקייה",
-  "Add to {name}?": "להוסיף אל {name}?",
   "Added {count} meetings.": {
     "one": "נוספה פגישה אחת.",
     "two": "נוספו {count} פגישות.",
@@ -675,5 +674,7 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "הערות מפורטות ומדויקות יותר. מחליף את המודל הנוכחי, כך שלא יישמרו שניהם.",
   "about {minutes} min left": "נותרו כ־{minutes} דק׳",
   "AI upgrade skipped": "שדרוג ה־AI דולג",
-  "Get it in Settings": "הורדה בהגדרות"
+  "Get it in Settings": "הורדה בהגדרות",
+  "Suggested": "מוצע",
+  "Dismiss suggestion": "דחיית ההצעה"
 }

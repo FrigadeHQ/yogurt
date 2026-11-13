@@ -27,7 +27,6 @@
   "Add a term and press Enter": "Введіть термін і натисніть Enter",
   "Add context": "Додати контекст",
   "Add to folder": "Додати до папки",
-  "Add to {name}?": "Додати до {name}?",
   "Added {count} meetings.": {
     "one": "Додано {count} зустріч.",
     "few": "Додано {count} зустрічі.",
@@ -693,5 +692,7 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Докладніші й точніші нотатки. Замінює поточну модель, щоб не зберігати обидві.",
   "about {minutes} min left": "залишилося близько {minutes} хв",
   "AI upgrade skipped": "Оновлення ШІ пропущено",
-  "Get it in Settings": "Завантажити в налаштуваннях"
+  "Get it in Settings": "Завантажити в налаштуваннях",
+  "Suggested": "Запропоновано",
+  "Dismiss suggestion": "Відхилити пропозицію"
 }

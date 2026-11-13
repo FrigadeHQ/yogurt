@@ -27,7 +27,6 @@
   "Add a term and press Enter": "Taip istilah dan tekan Enter",
   "Add context": "Tambah konteks",
   "Add to folder": "Tambah pada folder",
-  "Add to {name}?": "Tambah pada {name}?",
   "Added {count} meetings.": "{count} mesyuarat ditambah.",
   "Agenda": "Agenda",
   "All set": "Semua sedia",
@@ -618,5 +617,7 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Nota lebih terperinci dan tepat. Menggantikan model semasa, jadi tidak perlu menyimpan kedua-duanya.",
   "about {minutes} min left": "kira-kira {minutes} min lagi",
   "AI upgrade skipped": "Naik taraf AI dilangkau",
-  "Get it in Settings": "Muat turun di Tetapan"
+  "Get it in Settings": "Muat turun di Tetapan",
+  "Suggested": "Dicadangkan",
+  "Dismiss suggestion": "Abaikan cadangan"
 }

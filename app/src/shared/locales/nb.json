@@ -27,7 +27,6 @@
   "Add a term and press Enter": "Skriv et begrep og trykk Enter",
   "Add context": "Legg til kontekst",
   "Add to folder": "Legg til i mappe",
-  "Add to {name}?": "Legg til i {name}?",
   "Added {count} meetings.": {
     "one": "La til {count} møte.",
     "other": "La til {count} møter."
@@ -663,5 +662,7 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Mer detaljerte, presise notater. Erstatter gjeldende modell, så du ikke beholder begge.",
   "about {minutes} min left": "omtrent {minutes} min igjen",
   "AI upgrade skipped": "AI-oppgradering hoppet over",
-  "Get it in Settings": "Hent i Innstillinger"
+  "Get it in Settings": "Hent i Innstillinger",
+  "Suggested": "Foreslått",
+  "Dismiss suggestion": "Avvis forslag"
 }

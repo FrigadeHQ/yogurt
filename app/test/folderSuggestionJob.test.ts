@@ -16,12 +16,15 @@ function setup() {
   const settled = () => vi.waitFor(() => expect(queue.busy()).toBe(false))
   return { store, m, f, chat, jobs, settled }
 }
-it('files the meeting in the folder it picked, once, and never again after the person takes it out', async () => {
+it('keeps the pick pending until confirmation, and never suggests again after the person takes it out', async () => {
   const { store, m, f, chat, jobs, settled } = setup()
   jobs.schedule(m.id); jobs.schedule(m.id); await settled()
-  expect(store.foldersOf(m.id).map(x => x.id)).toEqual([f.id])
-  expect(store.folderSuggestion(m.id)).toMatchObject({ state: 'accepted', folderId: f.id, confidence: 0.9 })
+  expect(store.foldersOf(m.id)).toEqual([])
+  expect(store.folderSuggestion(m.id)).toMatchObject({ state: 'pending', folderId: f.id, confidence: 0.9 })
   jobs.refresh(); await settled(); expect(chat).toHaveBeenCalledTimes(1)
+  store.addToFolder(f.id, m.id)
+  expect(store.foldersOf(m.id).map(x => x.id)).toEqual([f.id])
+  expect(store.folderSuggestion(m.id).state).toBe('accepted')
   store.removeFromFolder(f.id, m.id); store.createFolder('Other'); jobs.refresh(); await settled()
   expect(chat).toHaveBeenCalledTimes(1); expect(store.foldersOf(m.id)).toEqual([])
 })
@@ -31,12 +34,31 @@ it('leaves an unsure pick unfiled', async () => {
   jobs.schedule(m.id); await settled()
   expect(store.foldersOf(m.id)).toEqual([])
 })
-it('a proposal from an older version, once dismissed, stays dismissed and is not filed', async () => {
+it('a dismissed proposal stays dismissed after folders change', async () => {
   const { store, m, f, jobs, settled, chat } = setup()
-  store.saveFolderSuggestion(m.id, { folderId: f.id, confidence: 0.9 }, 'old'); store.dismissFolderSuggestion(m.id)
+  jobs.schedule(m.id); await settled()
+  store.dismissFolderSuggestion(m.id)
   store.saveFolderSuggestion(m.id, { folderId: f.id, confidence: 1 }, 'new')
   store.renameFolder(f.id, 'Clients'); jobs.refresh(); await settled()
-  expect(store.folderSuggestion(m.id).state).toBe('dismissed'); expect(chat).not.toHaveBeenCalled(); expect(store.foldersOf(m.id)).toEqual([])
+  expect(store.folderSuggestion(m.id).state).toBe('dismissed'); expect(chat).toHaveBeenCalledTimes(1); expect(store.foldersOf(m.id)).toEqual([])
+})
+it('never suggests for a meeting filed or dismissed before inference, even after removing its folder', async () => {
+  for (const action of ['file', 'dismiss']) {
+    const { store, m, f, chat, jobs, settled } = setup()
+    if (action === 'file') { store.addToFolder(f.id, m.id); store.removeFromFolder(f.id, m.id) }
+    else store.dismissFolderSuggestion(m.id)
+    store.renameFolder(f.id, 'Clients'); jobs.refresh(); await settled()
+    expect(chat).not.toHaveBeenCalled()
+    expect(store.folderSuggestion(m.id).state).toBe('dismissed')
+  }
+})
+it('waits for a summary before making a suggestion', async () => {
+  const { store, m, chat, jobs, settled } = setup()
+  store.setNotes(m.id, { enhanced: null })
+  jobs.schedule(m.id); await settled(); expect(chat).not.toHaveBeenCalled()
+  store.setNotes(m.id, { enhanced: 'The launch is ready.' })
+  jobs.schedule(m.id); await settled(); expect(chat).toHaveBeenCalledTimes(1)
+  expect(store.folderSuggestion(m.id).state).toBe('pending')
 })
 it('none is not retried on reopen, but a changed folder set permits one new attempt', async () => {
   const { store, m, f, chat, jobs, settled } = setup()
@@ -54,7 +76,7 @@ it('does not save a result if the person files or trashes the meeting during inf
       return JSON.stringify({ folder: f.name, confidence: 1 })
     })
     jobs.schedule(m.id); await settled()
-    expect(store.folderSuggestion(m.id).state).toBeNull()
+    expect(store.folderSuggestion(m.id).state).toBe(action === 'file' ? 'dismissed' : null)
   }
 })
 it('separate folder jobs wait during recording and yield to questions and read-ahead', async () => {

@@ -36,7 +36,7 @@ test('a folder starts recording immediately and only files the note after a succ
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
     const id = await meetingId(page)
     const proposal = page.getByTestId('folder-suggestion')
-    await expect(proposal).toContainText('Add to Therapy?')
+    await expect(proposal).toHaveText('Therapy')
     expect(await foldersOf(page, id)).toEqual([])
     // The recording reminder is a nonmodal toast, not a folder confirmation.
     await expect(page.locator('[role="dialog"]').filter({ hasNot: page.getByText("Let everyone know you're recording.", { exact: true }) })).toHaveCount(0)

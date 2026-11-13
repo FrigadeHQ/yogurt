@@ -27,7 +27,6 @@
   "Add a term and press Enter": "Digite um termo e pressione Enter",
   "Add context": "Adicionar contexto",
   "Add to folder": "Adicionar à pasta",
-  "Add to {name}?": "Adicionar a {name}?",
   "Added {count} meetings.": {
     "one": "{count} reunião adicionada.",
     "many": "{count} reuniões adicionadas.",
@@ -678,5 +677,7 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Notas mais detalhadas e precisas. Substitui o modelo atual, para você não manter os dois.",
   "about {minutes} min left": "faltam cerca de {minutes} min",
   "AI upgrade skipped": "Melhoria de IA ignorada",
-  "Get it in Settings": "Baixe nos Ajustes"
+  "Get it in Settings": "Baixe nos Ajustes",
+  "Suggested": "Sugerida",
+  "Dismiss suggestion": "Dispensar sugestão"
 }
