@@ -108,7 +108,7 @@ export function parseEvents(raw: unknown, hidden: string[] = []): CalEvent[] {
     const attendees = (Array.isArray(r.attendees) ? r.attendees : []).flatMap((a: Record<string, unknown>) => {
       const name = str(a?.name), email = str(a?.email)
       return name || email ? [{ name: name ?? email!, email }] : []
-    })
+    }).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }) || (a.email ?? '').localeCompare(b.email ?? ''))
     // Server IDs identify copies across calendars; recurring occurrences must keep their own times.
     const identity = str(r.externalId), calendarId = str(r.calendarId)
     const key = identity ? JSON.stringify([identity, start, end]) : id

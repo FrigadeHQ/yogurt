@@ -6,6 +6,14 @@ import { calendars, calendarStatus, meetingLink, parseEvents, refreshCalendarSta
 const fixture = JSON.parse(readFileSync(join(__dirname, 'fixtures/helper-events.json'), 'utf8'))
 
 describe('parseEvents', () => {
+  it('orders attendees consistently across helper reads, including duplicate names', () => {
+    const attendees = [{ name: 'Participant B', email: null }, { name: 'Participant A', email: 'b@example.com' },
+      { name: 'Participant A', email: 'a@example.com' }, { name: 'Participant A', email: null }]
+    const row = { id: 'event', start: '2026-11-03T18:00:00Z', end: '2026-11-03T19:00:00Z' }
+    const expected = [attendees[3], attendees[2], attendees[1], attendees[0]]
+    expect(parseEvents([{ ...row, attendees }])[0].attendees).toEqual(expected)
+    expect(parseEvents([{ ...row, attendees: [...attendees].reverse() }])[0].attendees).toEqual(expected)
+  })
   it('turns the helper JSON into events with times in ms, people and a meeting link', () => {
     const ev = parseEvents(fixture)
     expect(ev).toHaveLength(3)

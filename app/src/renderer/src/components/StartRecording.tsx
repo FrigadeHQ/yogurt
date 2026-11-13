@@ -4,16 +4,18 @@ import { Mic } from './Icons'
 import { toasts } from './TrashToast'
 import { t } from '../../../shared/i18n'
 
+let lastRecording: boolean | undefined
+
 /** A fresh recording from a library destination; main owns capture and opening the note. */
 export function StartRecording({ onStarted, testId = 'start-recording' }: { onStarted?: (id: string) => void; testId?: string }) {
   const [actions, setActions] = useState<HTMLElement | null>(null)
-  const [recording, setRecording] = useState<boolean>()
+  const [recording, setRecording] = useState(lastRecording)
   const [starting, setStarting] = useState(false)
   useLayoutEffect(() => {
     setActions(document.getElementById('workspace-actions'))
     let active = true, updated = false
-    const off = window.yogurt.widget.onState((view) => { updated = true; setRecording(view?.kind === 'recording') })
-    void window.yogurt.widget.state().then((view) => { if (active && !updated) setRecording(view?.kind === 'recording') })
+    const off = window.yogurt.widget.onState((view) => { updated = true; setRecording(lastRecording = view?.kind === 'recording') })
+    void window.yogurt.widget.state().then((view) => { if (active && !updated) setRecording(lastRecording = view?.kind === 'recording') })
     return () => { active = false; off() }
   }, [])
   const start = async () => {
@@ -27,8 +29,8 @@ export function StartRecording({ onStarted, testId = 'start-recording' }: { onSt
       toasts.add({ id: 'start-recording-message', data: { testId: 'start-recording-message' }, title: t("Yogurt couldn't start the notes. Try again in a moment.") })
     } finally { setStarting(false) }
   }
-  if (recording === true || !actions) return null
-  return createPortal(<button data-testid={testId} disabled={starting || recording === undefined} onClick={() => void start()} className="workspace-button primary no-drag">
+  if (recording !== false || !actions) return null
+  return createPortal(<button data-testid={testId} disabled={starting} onClick={() => void start()} className="workspace-button primary no-drag">
       <Mic size={14} aria-hidden="true" />{t('Start recording')}
     </button>, actions)
 }

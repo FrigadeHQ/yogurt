@@ -21,13 +21,15 @@ type Day = { at: number; status: CalendarStatus; events: AgendaEvent[] }
 
 type Inspection = { at: number; id: string }
 let lastView: { selected: number; week: number } | undefined
+let lastDay: Day | undefined
+let watchingCalendars = false
 
 export function Agenda({ revision, recording, onStart, onOpen }: Actions & { revision: number }) {
   const today = useDay()
   const me = useMyName()
   const [selected, setSelected] = useState(() => lastView?.selected ?? shiftDay(Date.now(), 0))
   const [weekAnchor, setWeekAnchor] = useState(() => lastView?.week ?? selected)
-  const [loaded, setLoaded] = useState<Day>()
+  const [loaded, setLoaded] = useState(() => lastDay?.at === selected ? lastDay : undefined)
   const [inspected, setInspected] = useState<Inspection>()
   const opener = useRef<HTMLButtonElement | null>(null)
   const closeDetails = useCallback((restoreFocus = true) => { setInspected(undefined); if (restoreFocus) opener.current?.focus() }, [])
@@ -60,11 +62,17 @@ export function Agenda({ revision, recording, onStart, onOpen }: Actions & { rev
     }
     const day = await read
     if (mine === seq.current) {
+      lastDay = day
       setLoaded(day)
       if (!day) void load()
     }
   }, [selected])
   useEffect(() => {
+    // Calendar selection can change while Home is unmounted; invalidate its session cache too.
+    if (!watchingCalendars) {
+      window.yogurt.calendar.onChange(() => { lastDay = undefined })
+      watchingCalendars = true
+    }
     // Keep a same-day refresh in place; never present an old day's actionable events under a new date.
     void load()
     const timer = setInterval(() => void load(), 60_000)
