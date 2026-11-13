@@ -43,8 +43,8 @@ const textOf = (words: Word[], spell: (t: string) => string) => spell(joinWords(
  * The whole ordered word stream of the rows being diarized, split at speaker changes. Whisper's line boundaries
  * are arbitrary and often straddle a speaker change, so words are placed per turn, not per line: a run keeps going
  * across rows while the voice stays the same. A row no word of which the diarizer heard stays as it is; a word no
- * turn claims joins the voice before it when it is alone there (timing scatter, not an utterance) and stays Them
- * when it comes in company.
+ * turn claims joins the voice before it when it is alone there and near it (timing scatter, not an utterance) and
+ * stays Them when it comes in company or long after.
  */
 export function splitPlan(rows: SplitRow[], turns: Turn[], spell: (t: string) => string): { keep: number[]; runs: SplitRun[] } {
   const keep = rows.filter(r => !r.words?.length).map(r => r.id)
@@ -53,8 +53,8 @@ export function splitPlan(rows: SplitRow[], turns: Turn[], spell: (t: string) =>
   let cur: { key: string | null; words: Word[]; claims: Map<string | null, number>; lineIds: number[] } | null = null
   const flush = () => {
     if (!cur?.words.length) { cur = null; return }
-    if (cur.key === null && cur.words.length === 1 && built.length) {
-      // one word the diarizer heard nothing for goes to the voice before it
+    // one word the diarizer heard nothing for goes to the voice before it, when that voice spoke near it
+    if (cur.key === null && cur.words.length === 1 && built.length && cur.words[0].startMs - built[built.length - 1].run.endMs <= NEAR_MS) {
       const prev = built[built.length - 1]
       const w = cur.words[0]
       prev.run.words.push(w)

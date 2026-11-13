@@ -44,6 +44,19 @@ describe('splitPlan', () => {
     const cross: Turn[] = [{ key: 'v1', startMs: 0, endMs: 3000 }]
     expect(splitPlan(mixed, cross, identity).runs.map(r => r.speaker)).toEqual(['Ann Lee'])
   })
+  it('a lone word no turn claims joins the voice before it when it is near', () => {
+    const mixed = [{ ...row(1, 'a b', 0, 2000, 'Ann Lee') }, { ...row(2, 'c d', 2000, 4000, 'Bo Park') }]
+    const cross: Turn[] = [{ key: 'v1', startMs: 0, endMs: 3000 }]
+    const { runs } = splitPlan(mixed, cross, identity)
+    expect(runs.map(r => [r.key, r.text, r.endMs])).toEqual([['v1', 'a b c d', 4000]])
+    expect(runs[0].speaker).toBe('Ann Lee')
+  })
+  it('a lone word no turn claims far past the last voice stays Them instead of stretching it', () => {
+    const stray: SplitRow = { id: 1, text: 'a b stray', startMs: 0, endMs: 6600, speaker: 'Ann Lee', words: [w('a', 0, 1000), w('b', 1000, 2000), w('stray', 6000, 6600)] }
+    const { keep, runs } = splitPlan([stray], [{ key: 'v1', startMs: 0, endMs: 3000 }], identity)
+    expect(keep).toEqual([])
+    expect(runs.map(r => [r.key, r.text, r.endMs])).toEqual([['v1', 'a b', 2000], [null, 'stray', 6600]])
+  })
   it('glues punctuation without a space, like the live view does', () => {
     const glued: SplitRow = { id: 1, text: 'Sure.', startMs: 0, endMs: 500, speaker: null, words: [w('Sure', 0, 400), w('.', 400, 500)] }
     expect(splitPlan([glued], [{ key: 'v1', startMs: 0, endMs: 500 }], identity).runs[0].text).toBe('Sure.')
