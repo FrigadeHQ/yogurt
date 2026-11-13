@@ -130,6 +130,13 @@ describe('diarization store', () => {
     expect(s.meeting(m.id)).toMatchObject({ diarizeError: 'nemo-speech failed' })
   })
 
+  it('createMeeting persists voicesAllowed and diarizeError, so re-reads agree with the object in hand', () => {
+    const s = fresh()
+    const m = s.createMeeting({ ...base, startedAt: 1, voicesAllowed: true, diarizeError: 'nemo-speech failed' })
+    expect(s.meeting(m.id)).toMatchObject({ voicesAllowed: true, diarizeError: 'nemo-speech failed' })
+    expect(s.meeting(m.id)!.diarizedAt).toBeUndefined()
+  })
+
   it('voice profiles: create, list without vectors, bump, update, delete, delete all', () => {
     const s = fresh()
     expect(s.voiceProfiles()).toEqual([])
