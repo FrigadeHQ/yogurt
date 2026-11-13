@@ -160,6 +160,10 @@ function createSetup(): SetupController {
   const modelsDir = join(userDataDir(), 'models')
   return new SetupController({
     modelsDir,
+    upgradePreference: {
+      load: () => loadSettings(join(userDataDir(), 'settings.json')).notesUpgradeSkipped === true,
+      save: (skipped) => { updateSettings(join(userDataDir(), 'settings.json'), { notesUpgradeSkipped: skipped }) },
+    },
     // Windows and Linux: the notes engine checks the graphics first (a Mac shares its memory with them, no check)
     getHardware: isFake() ? () => fakeHardware(platform) : async () => toHardware(await readSysInfo(userDataDir()), process.platform === 'darwin' ? undefined : await probeGpu()),
     // the one in this build: new models come with app updates
@@ -480,6 +484,8 @@ app.whenReady().then(() => {
   setup.onState((st) => win?.webContents.send('setup:state', st))
   ipcMain.handle('setup:state', () => setup.state)
   ipcMain.handle('setup:retry', () => setup.retry())
+  ipcMain.handle('setup:skip-upgrade', () => setup.skipUpgrade())
+  ipcMain.handle('setup:download-upgrade', () => setup.downloadUpgrade())
   const store = openStore(join(userDataDir(), 'yogurt.db'))
   storeRef = store
   store.markInterrupted()
@@ -551,11 +557,15 @@ app.whenReady().then(() => {
   }, (e) => { console.warn("couldn't check the graphics", e); return null })
   // fake mode: the fixed Mac (a bigger one) unless a test asks for a 16 GB one
   const smallMac = isFake() ? process.env.YOGURT_FAKE_SMALL_MAC === '1' : isSmallMac(os.totalmem())
-  const model = createNotesModel({ engine, modelPath: () => { const p = setup.installed(); return p?.recommendedLlm ?? p?.llm } })
+  const model = createNotesModel({ engine, modelPath: () => setup.notesPath(), onLoaded: path => setup.notesModelLoaded(path) })
   // first run: the notes model lands after recording already works; jobs wait in the queue for it
   // the embedding model (meaning search across meetings) runs in the same worker and is let go with the notes model
   const embedder = createEmbedder({ engine, modelPath: () => setup.installed()?.embed, id: bundledCatalog.embedding.id, dims: bundledCatalog.embedding.dims })
-  const queue = createQueue({ recording: () => !!activeMeeting(), smallMac, backlogMs: transcriptionBacklogMs, onIdle: () => { void model.unload(); void embedder.unload() }, modelReady: () => !!setup.installed()?.llm })
+  const queue = createQueue({ recording: () => !!activeMeeting(), smallMac, backlogMs: transcriptionBacklogMs, onIdle: () => { void model.unload().catch(e => console.error('letting the notes model go failed', e)); void embedder.unload() }, modelReady: () => !!setup.notesPath() })
+  ipcMain.handle('setup:remove-upgrade', () => setup.removeUpgrade(remove => queue.enqueue(async () => {
+    await model.unload()
+    remove()
+  }, 'enhance')))
   setup.onNotesModel(() => { queue.modelArrived(); conversations.refresh() })
   // chat across meetings: every finished meeting chunked and embedded in the background, last in the queue
   const library = new Library(store.db)
@@ -620,7 +630,7 @@ app.whenReady().then(() => {
       win?.webContents.send('conversations:changed', v)
       if (v.chips.length === 1 && v.chips[0].kind === 'meeting') win?.webContents.send('chat:changed', { ...v, meetingId: v.chips[0].id })
     }, sendList: (l) => win?.webContents.send('conversations:list', l),
-    waitsForMeeting: () => smallMac && !!activeMeeting(), waitsForModel: () => !setup.installed()?.llm,
+    waitsForMeeting: () => smallMac && !!activeMeeting(), waitsForModel: () => !setup.notesPath(),
     // a meeting read in ahead during a recording only where reading ahead is allowed (32 GB and up; the fake Mac is big)
     warmAllowed: () => !activeMeeting() || (isFake() ? !smallMac : readAheadAllowed(os.totalmem())),
   })

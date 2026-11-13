@@ -1,23 +1,25 @@
 import { useEffect, useState } from 'react'
 import { Popover } from '@base-ui/react/popover'
-import { ChevronDown } from 'lucide-react'
+import { DirectionProvider } from '@base-ui/react/direction-provider'
 import type { SetupState } from '../../../shared/types'
-import { t } from '../../../shared/i18n'
-import { notesDownloadText, notesPercent } from '../notesSetup'
+import { dirOf, language, t } from '../../../shared/i18n'
+import { notesDownloadText, notesDownloadVisible, notesPercent, notesUpgradeActive } from '../notesSetup'
+import { toasts } from './TrashToast'
 
-/** The first model's download lives beside the note's mic, language and save status. */
-export function NotesSetup() {
+/** One download status in the shared title bar, across workspace pages. */
+export function NotesSetup({ go }: { go: (route: string) => void }) {
   const [setup, setSetup] = useState<SetupState>()
   const [open, setOpen] = useState(false)
   const [pointer, setPointer] = useState(false)
   const [retrying, setRetrying] = useState(false)
   const [retryFailed, setRetryFailed] = useState(false)
+  const [skipFailed, setSkipFailed] = useState(false)
   useEffect(() => {
     let current: SetupState | undefined, active = true
     const update = (state: SetupState) => {
       current = state; setSetup(state)
-      if (!state.notesError) setRetryFailed(false)
-      if (!state.notesDownloading && !state.notesError) setOpen(false)
+      if (!state.notesError && !state.notesUpgradeError) setRetryFailed(false)
+      if (!notesDownloadVisible(state)) { setOpen(false); setSkipFailed(false) }
     }
     const off = window.yogurt.setup.onState(update)
     void window.yogurt.setup.state().then(state => { if (active && !current) update(state) })
@@ -28,31 +30,58 @@ export function NotesSetup() {
     try { await window.yogurt.setup.retry() } catch { setRetryFailed(true) }
     finally { setRetrying(false) }
   }
-  if (!setup || (!setup.notesDownloading && !setup.notesError)) return null
-  const failed = !!setup.notesError
-  const label = failed ? t("AI download stopped") : t('Downloading AI · {percent}', { percent: notesPercent(setup.notesFraction ?? 0) })
+  const skip = async () => {
+    setSkipFailed(false)
+    try {
+      await window.yogurt.setup.skipUpgrade()
+      const id = toasts.add({
+        title: t('AI upgrade skipped'), timeout: 8000,
+        data: { testId: 'notes-skipped-toast' },
+        actionProps: { children: t('Get it in Settings'), onClick: () => { toasts.close(id); go('/settings') } },
+      })
+    } catch { setSkipFailed(true) }
+  }
+  if (!setup || !notesDownloadVisible(setup)) return null
+  const upgrading = notesUpgradeActive(setup)
+  const failed = !!(upgrading ? setup.notesUpgradeError : setup.notesError)
+  const stopped = upgrading ? t('AI upgrade paused') : t('AI download stopped')
+  const label = failed ? stopped : setup.notesUpgradePending && upgrading ? t('Upgrading AI') : upgrading
+    ? t('Upgrading AI · {percent}', { percent: notesPercent(setup.notesUpgradeFraction ?? 0) })
+    : t('Downloading AI · {percent}', { percent: notesPercent(setup.notesFraction ?? 0) })
   const text = notesDownloadText(setup)
-  return <span className="notes-download-status flex min-w-0 items-center gap-1.5">
-    <span aria-hidden="true">·</span>
+  const fraction = upgrading ? setup.notesUpgradeFraction : setup.notesFraction
+  const percent = fraction !== undefined && Number.isFinite(fraction) ? Math.floor(Math.max(0, Math.min(1, fraction)) * 100) : undefined
+  return <DirectionProvider direction={dirOf(language())}><span className="notes-download-status">
     <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger data-testid="notes-setup-open" title={failed ? setup.notesError : text.title} onClick={e => setPointer(e.detail > 0)}
-        className="bar-btn flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-0.5 hover:text-ink aria-expanded:text-ink">
-        <span aria-hidden="true" data-failed={failed} className="notes-download-dot" />
-        <span className="truncate">{label}</span><ChevronDown size={11} aria-hidden="true" className="shrink-0" />
+      <Popover.Trigger data-testid="notes-setup-open" aria-label={label} title={label} onClick={e => setPointer(e.detail > 0)}
+        className="bar-btn notes-download-trigger no-drag">
+        <span aria-hidden="true" data-failed={failed} data-upgrade={upgrading} className="notes-download-dot" />
+        <span className="truncate">{label}</span>
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Positioner side="top" align="start" sideOffset={8} collisionPadding={12} positionMethod="fixed" className="notes-download-positioner">
-          <Popover.Popup data-testid="notes-setup" data-failed={failed} data-pointer={pointer} data-anchor="bottom-start" aria-label={failed ? t('AI download stopped') : t('Downloading AI')} className="menu-entry notes-download-menu">
-            {failed ? <>
-              <p role="status">{retryFailed ? t("Couldn't restart the download. Try again.") : setup.notesError}</p>
-              <button data-testid="notes-setup-retry" className="inline-error-action notes-download-retry" disabled={retrying} onClick={() => void retry()}>{retrying ? t('Retrying…') : t('Try again')}</button>
-            </> : <>
-              <p>{text.detail}</p>
-              <p className="text-muted">{t('You can record now. Yogurt writes your notes and answers questions once this finishes.')}</p>
-            </>}
+        <Popover.Positioner side="bottom" align="end" sideOffset={8} collisionPadding={12} positionMethod="fixed" className="notes-download-positioner">
+          <Popover.Popup data-testid="notes-setup" data-failed={failed} data-pointer={pointer} data-anchor="end" aria-label={failed ? stopped : upgrading ? t('Upgrading AI') : t('Downloading AI')} className="menu-entry notes-download-menu">
+            <div className="notes-download-readout">
+              <strong role={failed ? 'status' : undefined}>{failed ? upgrading ? t('Upgrade paused') : t('Download stopped') : text.progress || (upgrading ? t('Upgrading AI') : t('Downloading AI'))}</strong>
+              <span>{failed ? text.progress : upgrading ? percent !== undefined && notesPercent(fraction!) : text.eta}</span>
+            </div>
+            <div className="notes-download-progress" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
+              <span style={{ width: `${percent ?? 0}%` }} />
+            </div>
+            <div className="notes-download-footer">
+              <p className="notes-download-support">{failed
+                ? upgrading ? t('You can still use Yogurt without the upgrade.') : t('You can still record. Try again to turn on summaries and Ask.')
+                : upgrading ? t("Once this model is ready, we'll remove the old one.") : t('You can record meetings. AI summaries and Ask work when this finishes.')}</p>
+              {(failed || upgrading) && <div className="notes-download-actions">
+                {failed && <button data-testid="notes-setup-retry" className="notes-download-retry" disabled={retrying} onClick={() => void retry()}>{retrying ? t('Retrying…') : t('Try again')}</button>}
+                {upgrading && <button data-testid="notes-setup-skip" className="notes-download-skip" disabled={setup.notesUpgradeChanging} onClick={() => void skip()}>{t('Skip for now')}</button>}
+              </div>}
+            </div>
+            {retryFailed && <p role="alert">{t("Couldn't restart the download. Try again.")}</p>}
+            {skipFailed && <p role="alert">{t("Couldn't change the notes model. Try again.")}</p>}
           </Popover.Popup>
         </Popover.Positioner>
       </Popover.Portal>
     </Popover.Root>
-  </span>
+  </span></DirectionProvider>
 }

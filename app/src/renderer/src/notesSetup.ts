@@ -4,20 +4,33 @@ import { language, t } from '../../shared/i18n'
 export const notesPercent = (fraction: number) => new Intl.NumberFormat(language(), { style: 'percent', maximumFractionDigits: 0 })
   .format(Math.floor(Math.max(0, Math.min(1, fraction)) * 100) / 100)
 
+export const notesUpgradeActive = (setup: SetupState) => !setup.notesDownloading && !setup.notesError && !!(setup.notesUpgradePending || setup.notesUpgradeDownloading || setup.notesUpgradeError)
+
+export const notesUpgradeSize = (bytes: number) => new Intl.NumberFormat(language(), { maximumFractionDigits: 1 }).format(bytes / 1e9)
+
+export const notesDownloadVisible = (setup?: SetupState) => !!setup && !!(setup.notesDownloading || setup.notesError || notesUpgradeActive(setup))
+
 /** Missing estimates stay missing, including while a completed download is being verified. */
 export function notesDownloadText(setup: SetupState) {
-  const fallback = t("Downloading Yogurt's AI")
-  if (!setup.notesTotalBytes || !Number.isFinite(setup.notesTotalBytes) || setup.notesTotalBytes < 0 || setup.notesFraction === undefined || !Number.isFinite(setup.notesFraction)) return { title: fallback, detail: fallback }
+  const restoring = setup.notesRestoreFraction !== undefined
+  const upgrading = notesUpgradeActive(setup)
+  const bytes = restoring ? setup.notesRestoreTotalBytes : upgrading ? setup.notesUpgradeTotalBytes : setup.notesTotalBytes
+  const fraction = restoring ? setup.notesRestoreFraction : upgrading ? setup.notesUpgradeFraction : setup.notesFraction
+  const seconds = restoring ? setup.notesRestoreEtaSec : upgrading ? setup.notesUpgradeEtaSec : setup.notesEtaSec
+  const fallback = upgrading ? t('Upgrading AI') : t('Downloading AI')
+  if (!bytes || !Number.isFinite(bytes) || bytes < 0 || fraction === undefined || !Number.isFinite(fraction)) return { progress: '', eta: '', detail: fallback }
   const gb = new Intl.NumberFormat(language(), { minimumFractionDigits: 1, maximumFractionDigits: 1 })
   const progress = t('{done} of {total} GB', {
-    done: gb.format(setup.notesTotalBytes * Math.max(0, Math.min(1, setup.notesFraction)) / 1e9),
-    total: gb.format(setup.notesTotalBytes / 1e9),
+    done: gb.format(bytes * Math.max(0, Math.min(1, fraction)) / 1e9),
+    total: gb.format(bytes / 1e9),
   })
-  const seconds = setup.notesEtaSec
-  const detail = setup.notesFraction < 1 && seconds !== undefined && Number.isFinite(seconds) && seconds > 0
-    ? t('{progress} · about {minutes} min left', { progress, minutes: new Intl.NumberFormat(language()).format(Math.max(1, Math.round(seconds / 60))) })
-    : progress
-  return { title: t("Downloading Yogurt's AI: {progress}", { progress }), detail }
+  const minutes = !setup.notesError && !setup.notesUpgradeError && fraction < 1 && seconds !== undefined && Number.isFinite(seconds) && seconds > 0
+    ? new Intl.NumberFormat(language()).format(Math.max(1, Math.round(seconds / 60))) : undefined
+  return {
+    progress,
+    eta: minutes ? t('about {minutes} min left', { minutes }) : '',
+    detail: minutes ? t('{progress} · about {minutes} min left', { progress, minutes }) : progress,
+  }
 }
 
 /** Skip cached installs and flashes; announce only a download visible for at least a second. */

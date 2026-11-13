@@ -1,4 +1,5 @@
 import { LoadingContent } from '../components/LoadingContent'
+import { StartRecording } from '../components/StartRecording'
 import { Mic } from '../components/Icons'
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { Circle, FileText, Users } from 'lucide-react'
@@ -36,9 +37,7 @@ export function Home({ open, openFolder }: { open: (id: string) => void; openFol
   const noMeetings = past.cards?.length === 0
   const calendar = window.yogurt.capabilities.calendar
   return <div data-testid="home" className={calendar ? 'native-home' : 'native-home no-agenda'}>
-    <div className="home-toolbar-action no-drag">
-      {!recording && <button data-testid="new-note" onClick={() => start(null)} className="workspace-button primary"><Mic size={14} aria-hidden="true" />{t('Start recording')}</button>}
-    </div>
+    <StartRecording testId="new-note" />
     <div className="native-library" ref={past.setRoot} tabIndex={-1}>
       <h1>{t('Your meetings')}</h1>
       <LoadingContent pending={!past.cards} testId="meetings-loading" skeleton={<MeetingListLoading />} className="library-load">{noMeetings ? <section data-testid="past-empty" className="library-empty empty-state"><div className="empty-state-content">

@@ -12,7 +12,6 @@ import type { MeetingView, NoteSaveResult, NoteSide, NoteView, WidgetView } from
 import { t } from '../../../shared/i18n'
 import { osWords } from '../keys'
 import { Modal, ModalClose } from '../components/Modal'
-import { NotesSetup } from '../components/NotesSetup'
 import { NotesModelWait } from '../components/NotesModelWait'
 import { Editor } from '../components/Editor'
 import { mergeNoteView } from '../noteMerge'
@@ -440,7 +439,6 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource }: {
             </>}
             {minutes != null && <><span data-testid="note-duration">{t('{count} min', { count: minutes })}</span><span aria-hidden="true">·</span></>}
             {t('Yogurt can make mistakes.')}
-            <NotesSetup />
           </div>
           <Ask id={id} recording={recording} anchor={chatAnchor} onSource={onSource} />
           </div>

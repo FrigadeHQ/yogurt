@@ -31,6 +31,18 @@ it('a saved chat is still under Ask', () => {
   expect(heading('/chat/abc-1')).not.toContain('lucide-message-circle')
 })
 
+it('keeps the flexible breadcrumb draggable and only its buttons non-draggable', () => {
+  for (const route of ['', '/note/a', '/settings']) {
+    const html = heading(route)
+    expect(html).toContain('class="workspace-breadcrumb drag"')
+    const breadcrumb = html.match(/<div class="workspace-breadcrumb[^\"]*">([\s\S]*?)<\/div>/)![1]
+    const controls = [...breadcrumb.matchAll(/<button\b[^>]*>/g)]
+    expect(controls).toHaveLength(2)
+    for (const [button] of controls) expect(button).toMatch(/class="[^"]*\bno-drag\b/)
+    expect(breadcrumb.match(/no-drag/g)).toHaveLength(controls.length)
+  }
+})
+
 it('shows the current meeting title without leaking the previous meeting heading', () => {
   expect(heading('/note/a', { id: 'a', title: 'Launch & review' })).toContain('>Launch &amp; review</span>')
   const next = heading('/note/b', { id: 'a', title: 'Launch & review' })

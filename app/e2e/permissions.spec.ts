@@ -97,8 +97,8 @@ test('settings: granted permissions offer Manage, with open at login and theme c
     await expect(rows.nth(1).getByTestId('permission-open')).toHaveText('Manage')
     await rows.nth(1).getByTestId('permission-open').click()
     expect((await fake(app, 'main') as { systemSettings: string[] }).systemSettings).toEqual([expect.stringContaining('Privacy_ScreenCapture')])
-    // nothing technical: no model picker
-    await expect(page.getByTestId('settings')).not.toContainText(/model/i)
+    // nothing technical: no model picker, file names or model families (the "Better notes model" row is plain language)
+    await expect(page.getByTestId('settings')).not.toContainText(/gemma|qwen|gpt-oss|gguf|\bLLM\b|quantiz/i)
     await expect(page.getByRole('switch', { name: 'Finish recording when the call ends', exact: true })).toBeChecked()
     await expect(page.getByTestId('settings')).toContainText('Automatically end the recording a few seconds after you hang up.')
     await page.getByTestId('login-toggle').click()

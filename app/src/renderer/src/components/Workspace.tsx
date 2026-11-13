@@ -12,6 +12,7 @@ import { RecordingTime } from './RecordingTime'
 import { FileText, MessageCircle, Search, Settings, SidebarToggle } from './Icons'
 import { FoldersNav } from './FoldersNav'
 import { FinishSetup } from './FinishSetup'
+import { NotesSetup } from './NotesSetup'
 
 export function Workspace({ route, meeting, folders, go, back, forward, search, collapsed, sidebarMotion, toggleSidebar, children }: {
   meeting?: Pick<MeetingView, 'id' | 'title'>
@@ -96,10 +97,10 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
     </Sidebar.Container>
     <div className="workspace-content">
       <header className="workspace-toolbar" data-note={note} data-recording-return={returnToRecording}>
-        <div className="workspace-breadcrumb no-drag">
+        <div className="workspace-breadcrumb drag">
           <span className="workspace-history">
-            <button data-testid="nav-back" className="workspace-icon" disabled={!back && !note} onClick={back ?? (() => go(''))} aria-label={t('Back')} title={`${t('Back')} (${keys('⌘[')})`}><ChevronLeft size={14} strokeWidth={1.75} className="rtl:-scale-x-100" aria-hidden="true" /></button>
-            <button data-testid="nav-forward" className="workspace-icon" disabled={!forward} onClick={forward} aria-label={t('Forward')} title={`${t('Forward')} (${keys('⌘]')})`}><ChevronRight size={14} strokeWidth={1.75} className="rtl:-scale-x-100" aria-hidden="true" /></button>
+            <button data-testid="nav-back" className="workspace-icon no-drag" disabled={!back && !note} onClick={back ?? (() => go(''))} aria-label={t('Back')} title={`${t('Back')} (${keys('⌘[')})`}><ChevronLeft size={14} strokeWidth={1.75} className="rtl:-scale-x-100" aria-hidden="true" /></button>
+            <button data-testid="nav-forward" className="workspace-icon no-drag" disabled={!forward} onClick={forward} aria-label={t('Forward')} title={`${t('Forward')} (${keys('⌘]')})`}><ChevronRight size={14} strokeWidth={1.75} className="rtl:-scale-x-100" aria-hidden="true" /></button>
           </span>
           <span data-testid="workspace-heading" aria-current="page" title={label}>{label}</span>
         </div>
@@ -108,6 +109,7 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
         <LevelBars testId="recording-return-wave" height={16} paused={recording.paused} />
         <RecordingTime view={recording} testId="recording-return-time" className="recording-return-time" />
       </button>}
+      <NotesSetup go={go} />
       <div id="workspace-actions" className="workspace-toolbar-actions" />
       </header>
       {children}

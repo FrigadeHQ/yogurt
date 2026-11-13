@@ -68,6 +68,7 @@ export async function retryStalled(
   const stallMs = o.stallMs ?? STALL_MS
   const tries = o.tries ?? STALL_TRIES
   for (let attempt = 1; ; attempt++) {
+    o.signal?.throwIfAborted()
     const ac = new AbortController()
     let stalled = false
     let timer: ReturnType<typeof setTimeout> | undefined
@@ -129,6 +130,7 @@ export const realDeps: DownloadDeps = {
 }
 
 export async function ensureFile(opts: EnsureOpts, deps: DownloadDeps = realDeps): Promise<string> {
+  opts.signal?.throwIfAborted()
   const fileName = safeRelPath(opts.fileName ?? fileNameFor(opts.url))
   const path = join(opts.dir, fileName)
   if (isVerified(opts.dir, fileName, opts.sha256)) return path
@@ -138,8 +140,11 @@ export async function ensureFile(opts: EnsureOpts, deps: DownloadDeps = realDeps
   if (need > 0) throw new DiskSpaceError(Math.ceil(need))
 
   for (let attempt = 0; attempt < 2; attempt++) {
+    opts.signal?.throwIfAborted()
     await deps.download(opts.url, opts.dir, fileName, opts.onProgress ?? (() => {}), opts.signal)
+    opts.signal?.throwIfAborted()
     if ((await deps.hashFile(path)) === opts.sha256) {
+      opts.signal?.throwIfAborted()
       writeFileSync(marker(opts.dir, fileName), opts.sha256)
       return path
     }

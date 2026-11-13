@@ -5,7 +5,7 @@ import { toasts } from './TrashToast'
 import { t } from '../../../shared/i18n'
 
 /** A fresh recording from a library destination; main owns capture and opening the note. */
-export function StartRecording({ onStarted }: { onStarted?: (id: string) => void }) {
+export function StartRecording({ onStarted, testId = 'start-recording' }: { onStarted?: (id: string) => void; testId?: string }) {
   const [actions, setActions] = useState<HTMLElement | null>(null)
   const [recording, setRecording] = useState<boolean>()
   const [starting, setStarting] = useState(false)
@@ -28,7 +28,7 @@ export function StartRecording({ onStarted }: { onStarted?: (id: string) => void
     } finally { setStarting(false) }
   }
   if (recording === true || !actions) return null
-  return createPortal(<button data-testid="start-recording" disabled={starting || recording === undefined} onClick={() => void start()} className="workspace-button primary no-drag">
+  return createPortal(<button data-testid={testId} disabled={starting || recording === undefined} onClick={() => void start()} className="workspace-button primary no-drag">
       <Mic size={14} aria-hidden="true" />{t('Start recording')}
     </button>, actions)
 }

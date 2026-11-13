@@ -24,7 +24,7 @@ const before = (pairs: string[] = []): EngineMessage[] => pairs.map((content, i)
  * one sequence for its whole life, let go when the queue says so. It remembers what the sequence starts with, so a
  * read ahead only sends what is new.
  */
-export function createNotesModel(o: { engine: Engine; modelPath: () => string | undefined }) {
+export function createNotesModel(o: { engine: Engine; modelPath: () => string | undefined; onLoaded?: (path: string) => void }) {
   let loaded: { path: string; contextSize: number } | undefined
   let loading: Promise<{ path: string; contextSize: number }> | undefined
   /** the text the model's sequence starts with (the first message of what it last read): what a read ahead builds on */
@@ -36,9 +36,11 @@ export function createNotesModel(o: { engine: Engine; modelPath: () => string | 
     if (!path) throw new Error('No notes model yet')
     if (loaded?.path === path) return loaded
     held = ''
+    loaded = undefined
     const t0 = performance.now()
     loading ??= o.engine.load(path, CONTEXT, MIN_CONTEXT).then((r) => {
       console.info('TIMING', `load ${((performance.now() - t0) / 1000).toFixed(1)} s`)
+      o.onLoaded?.(path)
       return (loaded = { path, contextSize: r.contextSize })
     }).finally(() => { loading = undefined })
     return loading
@@ -78,11 +80,10 @@ export function createNotesModel(o: { engine: Engine; modelPath: () => string | 
       }
     },
     async unload() {
-      if (!loaded && !loading) return
       await loading?.catch(() => {})
+      await o.engine.unload()
       loaded = undefined
       held = ''
-      await o.engine.unload().catch((e) => console.error('letting the notes model go failed', e))
     },
     loaded: () => loaded?.path,
     /** the next llm() loads the model first (it isn't loaded, or a better one landed) */

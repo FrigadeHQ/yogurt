@@ -9,9 +9,8 @@
 .workspace-window-bar { width:208px;min-width:124px;position:absolute;left:0;top:0;height:52px;z-index:55;background:transparent;border-bottom:1px solid var(--line); }
 .workspace-drag-region { position:absolute;left:0;top:0;width:100vw;height:100%;pointer-events:none; }
 .sidebar-collapsed .workspace-window-bar { width:124px;border-bottom:1px solid var(--line); }
-.workspace-sidebar-toggle { position:absolute;left:88px;top:12px;-webkit-app-region:no-drag; }
+.workspace-sidebar-toggle { position:absolute;left:88px;top:13px;-webkit-app-region:no-drag; }
 .workspace:dir(rtl) .workspace-window-bar { width:124px; }
-.workspace:dir(rtl) .home-toolbar-action { left:132px;right:auto; }
 /* the note's More button sits in the title bar beside the window's own buttons, so on the left in RTL, clear of them */
 .workspace:dir(rtl) .note-topbar { left:132px;right:auto; }
 .workspace:dir(rtl).sidebar-collapsed .workspace-toolbar { left:0;right:0;padding-left:124px;padding-right:24px; }
@@ -116,12 +115,17 @@
 .workspace:dir(rtl) .workspace-toolbar[data-recording-return=true][data-note=true] { padding-left:185px; }
 .workspace:dir(rtl).sidebar-collapsed .workspace-toolbar[data-recording-return=true][data-note=true] { padding-left:185px; }
 .native-home { height:100%;padding-top:52px;display:grid;grid-template-columns:minmax(0,1fr) 270px;min-height:0; }
-.home-toolbar-action { position:absolute;inset-inline-end:17px;top:11px;z-index:51; }
 .workspace-toolbar-actions { flex:none; }
 .workspace-toolbar-actions:empty { display:none; }
 .workspace-toolbar:has(.workspace-toolbar-actions:not(:empty)) { gap:16px;padding-inline-end:17px; }
 .workspace-toolbar:has(.workspace-toolbar-actions:not(:empty)) .workspace-breadcrumb { flex:1;overflow:hidden; }
 .workspace:dir(rtl) .workspace-toolbar:has(.workspace-toolbar-actions:not(:empty)) { padding-inline-end:132px; }
+/* Reserve space for the status and More, truncating labels in a narrow window. */
+.workspace-toolbar:has(.notes-download-status) { gap:10px;padding-inline-end:17px; }
+.workspace-toolbar:has(.notes-download-status) .workspace-breadcrumb { flex:1;overflow:hidden; }
+.workspace-toolbar[data-note=true]:has(.notes-download-status) { padding-inline-end:62px; }
+.workspace:dir(rtl) .workspace-toolbar:has(.notes-download-status) { padding-inline-end:132px; }
+.workspace:dir(rtl) .workspace-toolbar[data-note=true]:has(.notes-download-status) { padding-inline-end:185px; }
 .native-library { padding:29px 26px 30px;min-width:0;overflow:auto; }
 .native-library>h1 { font-size:20px;line-height:26px;font-weight:600;letter-spacing:-.55px;margin-bottom:9px; }
 .native-meeting-day { margin-top:25px; }
@@ -567,12 +571,14 @@ body:has(.chat-panel[open]) .app-toast-viewport { inset-inline-end:460px; }
    so the toolbar stops short of them. No native glass there: the chrome is opaque. */
 :root[data-chrome=overlay] { --controls-start:env(titlebar-area-x,0px);--controls-end:calc(100vw - env(titlebar-area-x,0px) - env(titlebar-area-width,100vw)); }
 :root[data-chrome=overlay] .workspace { --chrome-glass:var(--chrome); }
-:root[data-chrome=overlay] .workspace-sidebar-toggle { left:calc(14px + var(--controls-start)); }
+:root[data-chrome=overlay] .workspace-sidebar-toggle { left:calc(14px + var(--controls-start));top:12px; }
 :root[data-chrome=overlay] .sidebar-collapsed .workspace-window-bar { width:56px; }
 :root[data-chrome=overlay] .workspace-toolbar { right:var(--controls-end); }
-:root[data-chrome=overlay] .home-toolbar-action { right:calc(17px + var(--controls-end)); }
-:root[data-chrome=overlay] .note-topbar { right:calc(16px + var(--controls-end)); }
+:root[data-chrome=overlay] .workspace:dir(ltr) .note-topbar { right:calc(16px + var(--controls-end)); }
 :root[data-chrome=overlay] .sidebar-collapsed .workspace-toolbar { padding-inline-start:24px; }
+/* In RTL the sidebar already occupies part of the native window-controls inset. */
+:root[data-chrome=overlay] .workspace:dir(rtl) .workspace-toolbar:has(.notes-download-status) { right:max(0px,calc(var(--controls-end) - 208px)); }
+:root[data-chrome=overlay] .workspace:dir(rtl).sidebar-collapsed .workspace-toolbar:has(.notes-download-status) { right:max(0px,calc(var(--controls-end) - 56px)); }
 
 /* The frame preserves the note's existing text inset and 22px heading offset in every state. */
 .note-reading-frame { position:relative;min-width:0;min-height:0;flex:1;margin:8px calc(max(0px,(100% - 860px)/2) + clamp(20px,calc(10cqw - 42px),48px) - 14px) 8px;padding:2px;border-radius:12px; }

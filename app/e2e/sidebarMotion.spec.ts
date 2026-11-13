@@ -89,7 +89,7 @@ test('native titlebar drag regions leave the sidebar and toolbar controls clicka
                 const style = getComputedStyle(el), kind = style.getPropertyValue('-webkit-app-region')
                 return kind !== 'none' && style.visibility === 'visible' ? [{ kind, bounds: el.getBoundingClientRect() }] : []
               })
-              return Array.from(document.querySelectorAll('.workspace-sidebar-toggle, .workspace-toolbar button, .home-toolbar-action button')).flatMap((el) => {
+              return Array.from(document.querySelectorAll('.workspace-sidebar-toggle, .workspace-toolbar button')).flatMap((el) => {
                 const bounds = el.getBoundingClientRect()
                 if (!bounds.width || !bounds.height) return []
                 const x = bounds.x + bounds.width / 2, y = bounds.y + bounds.height / 2
@@ -194,7 +194,7 @@ test('keyboard, reduced motion and narrow-window sidebar changes remain immediat
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     await page.evaluate(() => { document.documentElement.dir = 'rtl' })
     const rtlX = (await toggle.boundingBox())!.x
-    const start = (await page.locator('.home-toolbar-action').boundingBox())!
+    const start = (await page.getByTestId('new-note').boundingBox())!
     expect(start.x).toBeGreaterThan(rtlX + (await toggle.boundingBox())!.width)
     await toggle.click()
     expect((await toggle.boundingBox())!.x).toBe(rtlX)

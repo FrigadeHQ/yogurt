@@ -68,11 +68,8 @@
   "Waiting for Yogurt's AI to finish downloading ({percent}). Your answer comes as soon as it's ready.": "Waiting for Yogurt's AI to finish downloading ({percent}). Your answer comes as soon as it's ready.",
   "Yogurt's AI is ready. Summaries and Ask now work.": "Yogurt's AI is ready. Summaries and Ask now work.",
   "AI download stopped": "AI download stopped",
-  "Downloading Yogurt's AI": "Downloading Yogurt's AI",
-  "Downloading Yogurt's AI: {progress}": "Downloading Yogurt's AI: {progress}",
   "{done} of {total} GB": "{done} of {total} GB",
   "{progress} · about {minutes} min left": "{progress} · about {minutes} min left",
-  "You can record now. Yogurt writes your notes and answers questions once this finishes.": "You can record now. Yogurt writes your notes and answers questions once this finishes.",
   "{count} selected": {
     "one": "{count} selected",
     "other": "{count} selected"
@@ -88,5 +85,27 @@
   "{count} meetings moved to Trash": {
     "one": "{count} meeting moved to Trash",
     "other": "{count} meetings moved to Trash"
-  }
+  },
+  "Upgrading AI": "Upgrading AI",
+  "Upgrading AI · {percent}": "Upgrading AI · {percent}",
+  "AI upgrade paused": "AI upgrade paused",
+  "Skip for now": "Skip for now",
+  "Better notes model": "Better notes model",
+  "Download ({size} GB)": "Download ({size} GB)",
+  "Couldn't change the notes model. Try again.": "Couldn't change the notes model. Try again.",
+  "Notes use this model. Removing it brings back the smaller one.": "Notes use this model. Removing it brings back the smaller one.",
+  "Getting the smaller model · {progress}": "Getting the smaller model · {progress}",
+  "The larger model keeps running summaries and Ask until then, and is removed after.": "The larger model keeps running summaries and Ask until then, and is removed after.",
+  "Removing…": "Removing…",
+  "Open Settings": "Open Settings",
+  "Download stopped": "Download stopped",
+  "Upgrade paused": "Upgrade paused",
+  "You can record meetings. AI summaries and Ask work when this finishes.": "You can record meetings. AI summaries and Ask work when this finishes.",
+  "Once this model is ready, we'll remove the old one.": "Once this model is ready, we'll remove the old one.",
+  "You can still record. Try again to turn on summaries and Ask.": "You can still record. Try again to turn on summaries and Ask.",
+  "You can still use Yogurt without the upgrade.": "You can still use Yogurt without the upgrade.",
+  "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "More detailed, accurate notes. Replaces the current model, so you don't keep both.",
+  "about {minutes} min left": "about {minutes} min left",
+  "AI upgrade skipped": "AI upgrade skipped",
+  "Get it in Settings": "Get it in Settings"
 }

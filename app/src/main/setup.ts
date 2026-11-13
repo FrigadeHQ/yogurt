@@ -1,6 +1,7 @@
 import { asrCandidates, pick, pickAsr, pickBySpeed, speedKey, type Catalog, type CatalogAsr, type Choice, type Hardware } from '@yogurt/picker'
 import { rmSync } from 'node:fs'
 import { join } from 'node:path'
+import { setTimeout as delay } from 'node:timers/promises'
 import { ChecksumError, DiskSpaceError, ensureFile, fileNameFor, isVerified, partialDownloadGB, type DownloadDeps } from './downloader'
 import type { SetupState } from '../shared/types'
 import { t } from '../shared/i18n'
@@ -28,6 +29,7 @@ export type SetupDeps = {
   retryDelaysMs?: number[]
   /** the first notes model downloads after ready: the waits between tries when it fails (the last one repeats) */
   notesRetryMs?: number[]
+  upgradePreference?: { load(): boolean; save(skipped: boolean): void }
   /** Windows and Linux: the speed check picks the speech model (a Mac never has it: turbo, as always) */
   speed?: SpeedDeps
 }
@@ -62,6 +64,10 @@ export class SetupController {
   private busy = false
   private background: Promise<void> | undefined
   private backgroundItem: Item | undefined
+  private firstItem: Item | undefined
+  private upgradeAbort: AbortController | undefined
+  private upgradeDownload: Promise<void> | undefined
+  private upgradeChange: Promise<void> | undefined
   private backgroundFailed = false
   private retryNotes: (() => void) | undefined
   private paths: Installed | undefined
@@ -90,6 +96,80 @@ export class SetupController {
   /** Where the models are, once setup is ready. The notes models show up when their downloads finish. */
   installed(): Installed | undefined { return this.paths }
 
+  notesPath() { return this.paths?.recommendedLlm ?? this.paths?.llm }
+
+  /** The engine has disposed the old model and successfully loaded this one, inside the serial job queue. */
+  notesModelLoaded(path: string) {
+    const first = this.paths?.llm
+    if (!first || first === path || path !== this.paths?.recommendedLlm || this.upgradeChange) return
+    try {
+      this.removeFiles(first)
+      this.paths = { ...this.paths!, llm: undefined }
+    } catch (err) { console.warn('could not remove the first notes model', err) }
+  }
+
+  private removeFiles(path: string) {
+    for (const suffix of ['.ok', '.part', '']) rmSync(path + suffix, { force: true })
+  }
+
+  downloadUpgrade() {
+    if (!this.backgroundItem || this.upgradeChange || this.upgradeAbort || this.paths?.recommendedLlm) return
+    this.deps.upgradePreference?.save(false)
+    this.set({ ...this._state, notesUpgradeSkipped: false, notesUpgradePending: true, notesUpgradeError: undefined })
+    if (this.notesPath()) void this.startBackground(this.backgroundItem)
+  }
+
+  skipUpgrade(): Promise<void> {
+    if (this.upgradeChange) return this.upgradeChange
+    if (!this.backgroundItem || this.paths?.recommendedLlm) return Promise.resolve()
+    this.deps.upgradePreference?.save(true)
+    this.upgradeAbort?.abort()
+    this.set({ ...this._state, notesUpgradeSkipped: true, notesUpgradePending: undefined })
+    return this.changeUpgrade(async () => {
+      await this.upgradeDownload
+      this.removeFiles(join(this.backgroundItem!.dir, this.backgroundItem!.fileName))
+      this.backgroundFailed = false
+      this.set({ ...this._state, notesUpgradeDownloading: undefined, notesUpgradeFraction: undefined, notesUpgradeTotalBytes: undefined, notesUpgradeEtaSec: undefined, notesUpgradeError: undefined })
+    })
+  }
+
+  /** Restore the first model before scheduling removal between jobs, after a confirmed engine unload. */
+  removeUpgrade(retire: (remove: () => void) => Promise<void>): Promise<void> {
+    if (this.upgradeChange) return this.upgradeChange
+    const path = this.paths?.recommendedLlm
+    if (!path || !this.firstItem) return Promise.resolve()
+    return this.changeUpgrade(async () => {
+      const item = this.firstItem!
+      let shown = 0
+      if (!isVerified(item.dir, item.fileName, this.sha(item))) this.set({ ...this._state, notesRestoreFraction: 0, notesRestoreTotalBytes: item.bytes })
+      const first = await this.fetch(item, p => {
+        const pct = Math.floor(p.fraction * 100)
+        if (pct !== shown) {
+          shown = pct
+          this.set({ ...this._state, notesRestoreFraction: p.fraction, notesRestoreTotalBytes: item.bytes, notesRestoreEtaSec: p.etaSec > 0 && Number.isFinite(p.etaSec) ? p.etaSec : undefined })
+        }
+      }).finally(() => {
+        this.set({ ...this._state, notesRestoreFraction: undefined, notesRestoreTotalBytes: undefined, notesRestoreEtaSec: undefined })
+      })
+      this.paths = { ...this.paths!, llm: first }
+      await retire(() => {
+        this.deps.upgradePreference?.save(true)
+        this.removeFiles(path)
+        this.paths = { ...this.paths!, recommendedLlm: undefined }
+        this.set({ ...this._state, notesUpgradeInstalled: false, notesUpgradeSkipped: true })
+      })
+    })
+  }
+
+  private changeUpgrade(run: () => Promise<void>): Promise<void> {
+    this.set({ ...this._state, notesUpgradeChanging: true })
+    this.upgradeChange = Promise.resolve().then(run).finally(() => {
+      this.upgradeChange = undefined
+      this.set({ ...this._state, notesUpgradeChanging: undefined })
+    })
+    return this.upgradeChange
+  }
+
   /** called once the first notes model is on the Mac (at ready when it already was) */
   onNotesModel(cb: () => void) { this.notesListeners.add(cb); return () => this.notesListeners.delete(cb) }
 
@@ -99,6 +179,7 @@ export class SetupController {
   /** Resolves when the notes and embedding models have finished downloading (or the bigger one gave up). Ready never waits for them. */
   async idle(): Promise<void> {
     await this.background
+    await this.upgradeDownload
     await this.embedding
   }
 
@@ -112,7 +193,7 @@ export class SetupController {
   async retry() {
     if (this._state.phase === 'error') { this.recheck = true; return this.start() }
     if (this.retryNotes) { this.retryNotes(); return }
-    if (this._state.phase === 'ready' && this.backgroundFailed && this.backgroundItem) this.startBackground(this.backgroundItem)
+    if (this._state.phase === 'ready' && this.backgroundFailed) this.downloadUpgrade()
   }
 
   private async run() {
@@ -134,6 +215,11 @@ export class SetupController {
       const asrItem = (m: CatalogAsr): Item => ({ url: m.url, sha256: m.sha256, bytes: m.bytes, dir: dirs.asr, fileName: fileNameFor(m.url) })
       // whisper-server is built into the app (catalog.whisperServer.bundled), so only the speech model is downloaded for it.
       const starterItem = llmItem(dirs.llm, starter)
+      this.firstItem = starterItem
+      this.backgroundItem = later && llmItem(dirs.llm, later)
+      const bigger = this.backgroundItem
+      const hasUpgrade = !!bigger && isVerified(bigger.dir, bigger.fileName, this.sha(bigger))
+      const skipped = this.deps.upgradePreference?.load() ?? false
       const e = catalog.embedding
       const embedItem: Item = { url: e.url, sha256: e.sha256, bytes: e.bytes, dir: dirs.embed, fileName: fileNameFor(e.url) }
 
@@ -150,7 +236,7 @@ export class SetupController {
       const waitFor: Item[] = [asrItem(speed ? keep ?? candidates[0] : asr.model)]
       const total = waitFor.reduce((n, i) => n + i.bytes, 0)
       // room for the first notes model too, so it never runs out of disk after ready
-      await this.checkDisk([...waitFor, starterItem, embedItem])
+      await this.checkDisk([...waitFor, ...(hasUpgrade ? [] : [starterItem]), embedItem])
 
       let done = 0
       const report = (item: Item, fraction: number) => this.set({ phase: 'downloading', fraction: Math.min(1, (done + item.bytes * fraction) / total) })
@@ -180,8 +266,12 @@ export class SetupController {
         }
       }
       this.paths = { asr: asrPath }
-      this.set({ phase: 'ready', fraction: 1 })
-      this.startNotes(starterItem, embedItem, later && llmItem(dirs.llm, later))
+      if (hasUpgrade) {
+        this.paths.recommendedLlm = join(bigger!.dir, bigger!.fileName)
+        if (isVerified(starterItem.dir, starterItem.fileName, this.sha(starterItem))) this.paths.llm = join(starterItem.dir, starterItem.fileName)
+      }
+      this.set({ phase: 'ready', fraction: 1, notesUpgradeBytes: bigger?.bytes, notesUpgradeSkipped: skipped, notesUpgradeInstalled: hasUpgrade })
+      this.startNotes(starterItem, embedItem)
     } catch (err) {
       console.error('setup failed', err)
       this.set({ phase: 'error', fraction: this._state.fraction, message: friendly(err) })
@@ -215,7 +305,7 @@ export class SetupController {
    * The first notes model downloads while Yogurt already records: it is tried until it lands (meetings recorded
    * meanwhile get their notes then). The bigger one follows.
    */
-  private startNotes(first: Item, embed: Item, later: Item | undefined) {
+  private startNotes(first: Item, embed: Item) {
     this.background = (async () => {
       const waits = this.deps.notesRetryMs ?? NOTES_RETRY_MS
       // Waiting notes show whole percents; every 10% goes in the log.
@@ -226,15 +316,15 @@ export class SetupController {
         if (pct !== shown) { shown = pct; this.set({ ...this._state, notesFraction: p.fraction, notesEtaSec: p.etaSec > 0 && Number.isFinite(p.etaSec) ? p.etaSec : undefined }) }
       }
       const already = isVerified(first.dir, first.fileName, this.sha(first))
-      if (!already) console.info('NOTES', `downloading the notes model ${first.fileName}`)
-      for (let i = 0; ; i++) {
+      if (!already && !this.paths?.recommendedLlm) console.info('NOTES', `downloading the notes model ${first.fileName}`)
+      for (let i = 0; !this.paths?.recommendedLlm; i++) {
         shown = -1
         this.set({ ...this._state, notesError: undefined, ...(already ? {} : { notesDownloading: true, notesFraction: 0, notesTotalBytes: first.bytes, notesEtaSec: undefined }) })
         try {
           const path = await this.fetch(first, already ? undefined : progress)
           if (this.paths) this.paths = { ...this.paths, llm: path }
           if (!already) console.info('NOTES', 'the notes model is in')
-          if (this._state.notesFraction !== undefined || this._state.notesDownloading) this.set({ ...this._state, notesFraction: undefined, notesDownloading: undefined, notesTotalBytes: undefined, notesEtaSec: undefined })
+          this.set({ ...this._state, notesFraction: undefined, notesDownloading: undefined, notesTotalBytes: undefined, notesEtaSec: undefined, notesUpgradePending: !!this.backgroundItem && !this._state.notesUpgradeSkipped })
           break
         } catch (err) {
           console.warn('the notes model did not download yet, trying again', err)
@@ -242,14 +332,14 @@ export class SetupController {
             const wake = () => { clearTimeout(timer); this.retryNotes = undefined; resolve() }
             const timer = setTimeout(wake, waits[Math.min(i, waits.length - 1)])
             this.retryNotes = wake
-            this.set({ ...this._state, notesError: friendly(err), notesFraction: undefined, notesDownloading: undefined, notesTotalBytes: undefined, notesEtaSec: undefined })
+            this.set({ ...this._state, notesError: friendly(err), notesDownloading: undefined, notesEtaSec: undefined })
           })
         }
       }
       for (const l of this.notesListeners) { try { l() } catch (e) { console.error('notes model listener failed', e) } }
     })()
     this.background = this.background.then(() => this.startEmbedding(embed))
-    if (later) this.background = this.background.then(() => this.startBackground(later))
+    this.background = this.background.then(() => { if (this.backgroundItem) return this.startBackground(this.backgroundItem) })
   }
 
   /**
@@ -273,18 +363,35 @@ export class SetupController {
 
   /** The bigger notes model downloads while Yogurt is already usable. Failing here is not an error screen. */
   private startBackground(item: Item): Promise<void> {
-    this.backgroundItem = item
+    if (this._state.notesUpgradeSkipped || this.upgradeChange || this.paths?.recommendedLlm) return Promise.resolve()
+    if (this.upgradeAbort) return this.upgradeDownload!
+    const abort = new AbortController()
+    this.upgradeAbort = abort
     this.backgroundFailed = false
     const already = isVerified(item.dir, item.fileName, this.sha(item))
     if (!already) console.info('NOTES', `downloading the bigger notes model ${item.fileName} (${(item.bytes / 1e9).toFixed(1)} GB)`)
-    this.background = this.fetch(item).then((path) => {
+    let shown = -1
+    const progress = (p: { fraction: number; etaSec: number }) => {
+      if (abort.signal.aborted) return
+      const pct = Math.floor(p.fraction * 100)
+      if (pct !== shown) {
+        shown = pct
+        this.set({ ...this._state, notesUpgradeFraction: p.fraction, notesUpgradeEtaSec: p.etaSec > 0 && Number.isFinite(p.etaSec) ? p.etaSec : undefined })
+      }
+    }
+    if (!already) this.set({ ...this._state, notesUpgradePending: undefined, notesUpgradeDownloading: true, notesUpgradeFraction: 0, notesUpgradeTotalBytes: item.bytes, notesUpgradeEtaSec: undefined, notesUpgradeError: undefined })
+    this.upgradeDownload = this.fetch(item, already ? undefined : progress, abort.signal).then((path) => {
+      abort.signal.throwIfAborted()
       if (!already) console.info('NOTES', 'the bigger notes model is in')
       if (this.paths) this.paths = { ...this.paths, recommendedLlm: path }
+      this.set({ ...this._state, notesUpgradeInstalled: true, notesUpgradePending: undefined, notesUpgradeDownloading: undefined, notesUpgradeFraction: undefined, notesUpgradeTotalBytes: undefined, notesUpgradeEtaSec: undefined, notesUpgradeError: undefined })
     }).catch((err) => {
+      if (abort.signal.aborted) return
       this.backgroundFailed = true
       console.warn('the bigger notes model did not download', err)
-    })
-    return this.background
+      this.set({ ...this._state, notesUpgradeDownloading: undefined, notesUpgradeEtaSec: undefined, notesUpgradeError: friendly(err) })
+    }).finally(() => { this.upgradeAbort = undefined })
+    return this.upgradeDownload
   }
 
   private async checkDisk(items: Item[]) {
@@ -297,14 +404,16 @@ export class SetupController {
   private sha(i: Item) { return this.deps.sha256Override ?? i.sha256 }
 
   /** Download (or reuse) a verified file, retrying transient failures. */
-  private async fetch(i: Item, onProgress?: (p: { fraction: number; etaSec: number }) => void): Promise<string> {
+  private async fetch(i: Item, onProgress?: (p: { fraction: number; etaSec: number }) => void, signal?: AbortSignal): Promise<string> {
     const delays = this.deps.retryDelaysMs ?? [2000, 8000]
     for (let attempt = 0; ; attempt++) {
       try {
-        return await ensureFile({ url: i.url, sha256: this.sha(i), sizeGB: i.bytes / 1e9, dir: i.dir, fileName: i.fileName, onProgress }, this.deps.download)
+        signal?.throwIfAborted()
+        return await ensureFile({ url: i.url, sha256: this.sha(i), sizeGB: i.bytes / 1e9, dir: i.dir, fileName: i.fileName, onProgress, signal }, this.deps.download)
       } catch (err) {
+        signal?.throwIfAborted()
         if (err instanceof DiskSpaceError || err instanceof ChecksumError || attempt >= delays.length) throw err
-        await new Promise((r) => setTimeout(r, delays[attempt]))
+        await delay(delays[attempt], undefined, { signal })
       }
     }
   }

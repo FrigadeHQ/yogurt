@@ -1,6 +1,7 @@
 import { LoadingContent } from '../components/LoadingContent'
 import { MeetingListLoading } from './Home'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { RotateCcw, Trash2 } from 'lucide-react'
 import type { MeetingCard } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
@@ -23,15 +24,15 @@ export function Trash({ open }: { open: (id: string) => void }) {
   const scroll = useScrollMemory<HTMLDivElement>('trash', !!cards)
   const [deleting, setDeleting] = useState<MeetingCard>()
   const [emptying, setEmptying] = useState(false)
+  const [actions, setActions] = useState<HTMLElement | null>(null)
+  useLayoutEffect(() => { setActions(document.getElementById('workspace-actions')) }, [])
   const reload = useCallback(() => { void window.yogurt.meetings.trashed().then(setCards) }, [])
   useEffect(() => {
     reload()
     return window.yogurt.meetings.onChange(reload)
   }, [reload])
   return <div data-testid="trash-page" className="native-folder">
-    <div className="home-toolbar-action no-drag">
-      {!!cards?.length && <button data-testid="trash-empty" className="workspace-button" onClick={() => setEmptying(true)}>{t('Empty Trash')}</button>}
-    </div>
+    {actions && !!cards?.length && createPortal(<button data-testid="trash-empty" className="workspace-button no-drag" onClick={() => setEmptying(true)}>{t('Empty Trash')}</button>, actions)}
     <div className="native-library" ref={scroll}>
       <h1>{t('Trash')}</h1>
       <p className="trash-note">{t('Meetings in the Trash are deleted for good after {count} days, with their recordings.', { count: TRASH_DAYS })}</p>

@@ -32,6 +32,9 @@ export type YogurtApi = {
     /** called with each change; returns the way to stop listening */
     onState(cb: (s: SetupState) => void): () => void
     retry(): Promise<void>
+    skipUpgrade(): Promise<void>
+    downloadUpgrade(): Promise<void>
+    removeUpgrade(): Promise<void>
   }
   /** the "Take notes?" and "Stop recording?" card */
   prompt: {
@@ -301,13 +304,30 @@ export type SetupState = {
   message?: string
   /** Speech is ready, but the first notes-model download failed. Recording and transcription still work. */
   notesError?: string
-  /** The first notes model is still downloading after ready, this far (0 to 1), on every system. */
+  /** First notes-model progress (0 to 1), retained on failure until retry or completion. */
   notesFraction?: number
   /** Size of the first notes model; ETA is absent until the downloader has an estimate. */
   notesTotalBytes?: number
   notesEtaSec?: number
   /** The first notes model is still downloading after ready, on every system. */
   notesDownloading?: boolean
+  /** The better notes model downloads separately while the first one remains usable. */
+  notesUpgradeDownloading?: boolean
+  notesUpgradeFraction?: number
+  notesUpgradeTotalBytes?: number
+  notesUpgradeEtaSec?: number
+  notesUpgradeError?: string
+  /** Catalog size, present only on computers with a separate better model. */
+  notesUpgradeBytes?: number
+  /** The first model is ready; the embedding download is finishing before the upgrade starts. */
+  notesUpgradePending?: boolean
+  notesUpgradeSkipped?: boolean
+  notesUpgradeInstalled?: boolean
+  notesUpgradeChanging?: boolean
+  /** Restoring the smaller model before removal; the better model remains usable. */
+  notesRestoreFraction?: number
+  notesRestoreTotalBytes?: number
+  notesRestoreEtaSec?: number
 }
 
 export type { Meeting, Person, Segment, SnippetPart, Folder } from '../main/store'

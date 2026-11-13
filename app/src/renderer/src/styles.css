@@ -826,14 +826,38 @@ html:not(.widget) button:focus-visible, html:not(.widget) input:focus-visible { 
 .loading-mask .ask-field textarea::placeholder { color:transparent; }
 .loading-mask .ask-toolbar { visibility:hidden; }
 
-/* Match the footer's menus; keep the background download quieter than its controls. */
+/* Keep the background download quieter than the recording action. */
+.notes-download-status { display:flex;flex:0 1 auto;min-width:50px;max-width:45%; }
+.notes-download-trigger { display:flex;align-items:center;min-width:0;height:30px;padding:0 9px;gap:7px;border:1px solid transparent;border-radius:6px;font-size:11px;font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums; }
+.notes-download-trigger:is(:hover,[aria-expanded=true]) { color:var(--ink);background:var(--row-hover);border-color:var(--line); }
+.notes-download-trigger>svg { opacity:.65; }
+.notes-download-trigger[aria-expanded=true]>svg { transform:rotate(180deg); }
 .notes-download-dot { width:5px;height:5px;flex:none;border-radius:50%;background:var(--accent); }
 .notes-download-dot[data-failed=true] { background:var(--danger); }
+.notes-download-dot[data-failed=true][data-upgrade=true] { background:var(--muted); }
 .notes-download-positioner { z-index:60; }
-.notes-download-menu { width:max-content;max-width:min(360px,calc(100vw - 24px));border:1px solid var(--line);border-radius:9px;padding:9px 12px;background:var(--float);color:var(--ink);box-shadow:var(--shadow);font-size:12px;line-height:18px;outline:none; }
-.notes-download-menu p+p { margin-top:3px; }
-.notes-download-menu[data-failed=true] { display:flex;align-items:center;gap:12px;padding-block:10px;padding-inline-end:10px; }
-.notes-download-retry { padding:3px 8px;border:1px solid var(--line);background:var(--control);color:var(--ink);text-decoration:none; }
-.notes-download-retry:disabled { opacity:.5; }
+.notes-download-menu { width:408px;max-width:calc(100vw - 24px);border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--float);color:var(--ink);box-shadow:var(--shadow);font-size:12px;line-height:18px;outline:none; }
+.notes-download-menu p { text-wrap:pretty;overflow-wrap:anywhere; }
+.notes-download-readout { display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-variant-numeric:tabular-nums; }
+.notes-download-readout strong { font-weight:550; }
+.notes-download-readout>span { font-size:11px;color:var(--muted); }
+.notes-download-progress { height:3px;margin:9px 0 7px;border-radius:4px;background:var(--line);overflow:hidden; }
+.notes-download-progress>span { display:block;height:100%;border-radius:inherit;background:var(--muted); }
+.notes-download-footer { display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;flex-wrap:wrap; }
+.notes-download-support { font-size:11px; }
+.notes-download-menu[data-failed=true] .notes-download-support { flex-basis:100%; }
+.notes-download-actions { display:flex;align-items:center;gap:12px; }
+.notes-download-actions button { flex:none;border-radius:5px;padding:4px 10px;border:1px solid var(--line);background:var(--control);color:var(--ink);font-size:12px;line-height:18px;white-space:nowrap; }
+.notes-download-actions button:hover { background:var(--control-hover); }
+.notes-download-actions button:active { transform:scale(.98); }
+.notes-download-actions button:focus-visible { outline:2px solid var(--focus);outline-offset:3px; }
+.notes-download-actions button:disabled { opacity:.5; }
+.notes-download-actions .notes-download-skip { border:0;padding:4px 0;background:transparent;color:var(--muted);font-size:11px; }
+.notes-download-actions .notes-download-skip:hover { color:var(--ink);background:transparent; }
+.notes-download-actions .notes-download-skip:active { transform:none; }
+/* Upgrading: the line and Skip share one row; a long translation wraps inside the line, never pushes Skip below */
+.notes-download-menu:not([data-failed=true]) .notes-download-footer { flex-wrap:nowrap; }
+.notes-download-menu:not([data-failed=true]) .notes-download-support { flex:1 1 auto;min-width:0; }
+.notes-download-menu [role=alert] { margin-top:10px; }
 @media (prefers-reduced-motion:no-preference) { .notes-download-dot[data-failed=false] { animation:notes-download-pulse 2s ease-in-out infinite; } }
 @keyframes notes-download-pulse { 0%,100% { opacity:.45; } 50% { opacity:1; } }

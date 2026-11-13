@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
@@ -9,6 +9,11 @@ import { tooSlow } from '../src/main/localCheck'
 import { fakeDownloadDeps } from '../src/main/fake'
 import { DiskSpaceError, type DownloadDeps } from '../src/main/downloader'
 import type { SetupState } from '../src/shared/types'
+import { loadSettings, updateSettings } from '../src/main/settings'
+import { notesDownloadVisible, notesUpgradeActive } from '../src/renderer/src/notesSetup'
+import { createNotesModel } from '../src/main/notes/model'
+import { FakeEngine } from '../src/main/notes/fake'
+import { createQueue } from '../src/main/notes/queue'
 
 const catalog = bundled as unknown as Catalog
 const m1max: Hardware = { os: 'darwin', arch: 'arm64', cpuModel: 'Apple M1 Max', totalRamGB: 32, freeDiskGB: 500, gpu: { kind: 'unified', name: 'Apple M1 Max', vramGB: 24 } }
@@ -161,13 +166,61 @@ describe('SetupController', () => {
     } finally { info.mockRestore() }
   })
 
-  it('does not wait for a recommended model that fails: still ready', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'yogurt-setup-'))
+  it.each([240, 0, -1, NaN, Infinity])('reports separate upgrade progress and a valid ETA (%s), then clears it', async (etaSec) => {
     const inner = fakeDownloadDeps({ stepMs: 0 })
-    const download: DownloadDeps['download'] = async (u, ...rest) => { if (u === bigUrl) throw new Error('fetch failed'); return inner.download(u, ...rest) }
-    const c = new SetupController({ getHardware: async () => m1max, getCatalog: async () => catalog, modelsDir: root, download: { ...inner, download }, sha256Override: 'FAKE', retryDelaysMs: [0] })
+    const download: DownloadDeps['download'] = (url, dir, file, onProgress, signal) =>
+      inner.download(url, dir, file, p => onProgress({ ...p, etaSec }), signal)
+    const { c, states } = setup({ download: { ...inner, download } })
     await c.start(); await c.idle()
-    expect(c.state.phase).toBe('ready')
+    const upgrade = states.filter(s => s.notesUpgradeDownloading)
+    const bytes = catalog.models.flatMap(m => m.builds).find(b => b.url === bigUrl)!.sizeGB * 1e9
+    expect(upgrade.map(s => s.notesUpgradeFraction)).toEqual([0, .25, .5, .75, 1])
+    expect(upgrade[0]).toMatchObject({ notesUpgradeTotalBytes: bytes, notesUpgradeEtaSec: undefined })
+    expect(upgrade.find(s => s.notesUpgradeFraction === .5)).toMatchObject({ notesUpgradeTotalBytes: bytes, notesUpgradeEtaSec: etaSec > 0 && Number.isFinite(etaSec) ? etaSec : undefined })
+    expect(upgrade.every(s => s.phase === 'ready' && !s.notesDownloading && !s.notesError && s.notesFraction === undefined)).toBe(true)
+    expect(states.filter(s => s.notesDownloading).every(s => !s.notesUpgradeDownloading && s.notesUpgradeFraction === undefined)).toBe(true)
+    expect(c.installed()?.recommendedLlm).toBeTruthy()
+    expect(c.state).toMatchObject({ notesUpgradeDownloading: undefined, notesUpgradeFraction: undefined, notesUpgradeTotalBytes: undefined, notesUpgradeEtaSec: undefined, notesUpgradeError: undefined })
+  })
+
+  it('keeps the first model usable after an upgrade failure, then retries only the upgrade once', async () => {
+    const inner = fakeDownloadDeps({ stepMs: 0 })
+    let blocked = true, attempts = 0
+    let release!: () => void
+    const held = new Promise<void>(resolve => { release = resolve })
+    const asked: string[] = []
+    const download: DownloadDeps['download'] = async (url, dir, file, onProgress, signal) => {
+      asked.push(url)
+      if (url === bigUrl) {
+        attempts++
+        onProgress({ fraction: .42, etaSec: 240 })
+        if (blocked) throw new DiskSpaceError(4)
+        await held
+      }
+      return inner.download(url, dir, file, onProgress, signal)
+    }
+    const { c } = setup({ download: { ...inner, download }, retryDelaysMs: [] })
+    try {
+      await c.start(); await c.idle()
+      const first = c.installed()?.llm
+      expect(first).toBeTruthy()
+      expect(c.installed()?.recommendedLlm).toBeUndefined()
+      expect(c.state).toMatchObject({ phase: 'ready', notesUpgradeError: 'Not enough disk space. Free up 4 GB and try again.', notesUpgradeDownloading: undefined, notesUpgradeFraction: .42, notesUpgradeTotalBytes: expect.any(Number), notesUpgradeEtaSec: undefined })
+      expect(c.state.notesError).toBeUndefined()
+      blocked = false
+      await Promise.all(Array.from({ length: 10 }, () => c.retry()))
+      await vi.waitFor(() => expect(c.state.notesUpgradeFraction).toBe(.42))
+      expect(c.state).toMatchObject({ notesUpgradeDownloading: true, notesUpgradeEtaSec: 240, notesUpgradeError: undefined })
+      expect(c.state.notesUpgradeTotalBytes).toBeGreaterThan(0)
+      await Promise.all(Array.from({ length: 10 }, () => c.retry()))
+      expect(attempts).toBe(2)
+      expect(asked.filter(url => url === starterUrl)).toHaveLength(1)
+      expect(c.installed()?.llm).toBe(first)
+      release()
+      await c.idle()
+      expect(c.installed()?.recommendedLlm).toBeTruthy()
+      expect(c.state).toMatchObject({ phase: 'ready', notesUpgradeDownloading: undefined, notesUpgradeFraction: undefined, notesUpgradeTotalBytes: undefined, notesUpgradeEtaSec: undefined, notesUpgradeError: undefined })
+    } finally { release(); await c.idle() }
   })
 
   it('shows the first notes-model failure while recording stays ready, and retry wakes only the existing download loop', async () => {
@@ -197,7 +250,8 @@ describe('SetupController', () => {
       await c.start()
       await vi.advanceTimersByTimeAsync(0)
       expect(c.state).toMatchObject({ phase: 'ready', notesError: 'Not enough disk space. Free up 4 GB and try again.' })
-      expect(c.state.notesTotalBytes).toBeUndefined()
+      expect(c.state.notesTotalBytes).toBeGreaterThan(0)
+      expect(c.state.notesFraction).toBe(.42)
       expect(c.state.notesEtaSec).toBeUndefined()
       expect(c.installed()?.asr).toBeTruthy()
       expect(c.installed()?.llm).toBeUndefined()
@@ -230,13 +284,14 @@ describe('SetupController', () => {
   })
 
   it('an 8 GB Mac gets turbo speech and one notes model (the pick is smaller than the starter)', async () => {
-    const { c, rec } = setup({ getHardware: async () => mac8 })
+    const { c, rec, states } = setup({ getHardware: async () => mac8 })
     await c.start(); await c.idle()
     expect(rec.asked[0]).toBe(turboUrl)
     expect(rec.asked).not.toContain(starterUrl)
     // the one notes model, then the embedding model
     expect(rec.asked.slice(1)).toEqual([expect.stringContaining('E4B-it-Q3_K_S'), embedUrl])
     expect(c.state.phase).toBe('ready')
+    expect(states.some(s => s.notesUpgradeDownloading || s.notesUpgradeError)).toBe(false)
   })
 
   it('a Mac with under 8 GB gets the small speech model', async () => {
@@ -288,6 +343,7 @@ describe('SetupController', () => {
     await again.c.start(); await again.c.idle()
     expect(again.rec.asked).toEqual([])
     expect(again.c.state).toMatchObject({ phase: 'ready', fraction: 1 })
+    expect(again.states.some(s => s.notesUpgradeDownloading || s.notesUpgradeError)).toBe(false)
   })
 
   it('says so plainly when the disk is too full, and a retry works once there is room', async () => {
@@ -479,5 +535,243 @@ describe('the speed check (Windows and Linux): speech models timed on this compu
     expect(c.state.phase).toBe('error')
     expect(rec.asked).toEqual([])
     expect(s.timed).toEqual([])
+  })
+})
+
+const preference = (root: string): NonNullable<SetupDeps['upgradePreference']> => ({
+  load: () => loadSettings(join(root, 'settings.json')).notesUpgradeSkipped === true,
+  save: skipped => { updateSettings(join(root, 'settings.json'), { notesUpgradeSkipped: skipped }) },
+})
+
+describe('optional better notes model', () => {
+  it('keeps the chip visible across the embedding stage and into the upgrade', async () => {
+    const rec = recorder(u => u === embedUrl)
+    const { c, states } = setup({ download: rec.deps })
+    await c.start()
+    await vi.waitFor(() => expect(rec.asked).toContain(embedUrl))
+    expect(c.state.notesUpgradePending).toBe(true)
+    expect(notesUpgradeActive(c.state)).toBe(true)
+    expect(c.installed()?.llm).toBeTruthy()
+    rec.release(); await c.idle()
+    const first = states.findIndex(s => s.notesDownloading)
+    const end = states.findIndex(s => s.notesUpgradeInstalled)
+    expect(states.slice(first, end).every(notesDownloadVisible)).toBe(true)
+    expect(notesDownloadVisible(c.state)).toBe(false)
+  })
+
+  it('plans a second download only on hardware that has a bigger model', async () => {
+    const big = setup(), small = setup({ getHardware: async () => mac8 })
+    for (const { c } of [big, small]) { await c.start(); await c.idle() }
+    expect(big.states.find(s => s.notesDownloading)?.notesUpgradeBytes).toBeGreaterThan(14e9)
+    expect(small.states.every(s => s.notesUpgradeBytes === undefined)).toBe(true)
+    expect(small.rec.asked).not.toContain(bigUrl)
+  })
+
+  it('skips in the gap, persists across launches, and Settings can download it again once', async () => {
+    const rec = recorder(u => u === embedUrl)
+    const root = mkdtempSync(join(tmpdir(), 'yogurt-upgrade-'))
+    const prefs = preference(root)
+    const { c } = setup({ modelsDir: root, download: rec.deps, upgradePreference: prefs })
+    await c.start()
+    await vi.waitFor(() => expect(rec.asked).toContain(embedUrl))
+    await c.skipUpgrade()
+    rec.release(); await c.idle()
+    expect(rec.asked).not.toContain(bigUrl)
+    expect(prefs.load()).toBe(true)
+    const next = setup({ modelsDir: root, upgradePreference: preference(root) })
+    await next.c.start(); await next.c.idle()
+    expect(next.rec.asked).not.toContain(bigUrl)
+    expect(notesDownloadVisible(next.c.state)).toBe(false)
+    next.c.downloadUpgrade(); next.c.downloadUpgrade()
+    expect(notesDownloadVisible(next.c.state)).toBe(true)
+    await next.c.idle()
+    expect(next.rec.asked.filter(u => u === bigUrl)).toHaveLength(1)
+    expect(next.c.state.notesUpgradeInstalled).toBe(true)
+    expect(prefs.load()).toBe(false)
+  })
+
+  it('stops the active transfer before removing partial files and never retries it', async () => {
+    const inner = fakeDownloadDeps({ stepMs: 0 })
+    let attempts = 0, stopped = false
+    const { c, root } = setup({ download: { ...inner, download: async (url, dir, file, progress, signal) => {
+      if (url !== bigUrl) return inner.download(url, dir, file, progress, signal)
+      attempts++
+      writeFileSync(join(dir, file + '.part'), 'partial')
+      progress({ fraction: .2, etaSec: 30 })
+      await new Promise<void>((_, reject) => signal!.addEventListener('abort', () => {
+        expect(existsSync(join(dir, file + '.part'))).toBe(true)
+        stopped = true; reject(signal!.reason)
+      }, { once: true }))
+    } } })
+    await c.start()
+    await vi.waitFor(() => expect(c.state.notesUpgradeFraction).toBe(.2))
+    await c.skipUpgrade(); await c.idle()
+    expect(stopped).toBe(true)
+    expect(attempts).toBe(1)
+    for (const suffix of ['', '.ok', '.part']) expect(existsSync(join(root, 'llm', name(bigUrl) + suffix))).toBe(false)
+    expect(c.state).toMatchObject({ notesUpgradeSkipped: true, notesUpgradeError: undefined })
+    expect(notesDownloadVisible(c.state)).toBe(false)
+    expect(c.installed()?.llm).toBeTruthy()
+  })
+
+  it('handles Skip during verification without installing or leaving the completed file', async () => {
+    const inner = fakeDownloadDeps({ stepMs: 0 })
+    let release!: () => void
+    let verifying = false
+    const held = new Promise<void>(resolve => { release = resolve })
+    const { c, root } = setup({ download: { ...inner, hashFile: async path => {
+      if (path.endsWith(name(bigUrl))) { verifying = true; await held }
+      return 'FAKE'
+    } } })
+    await c.start()
+    await vi.waitFor(() => expect(verifying).toBe(true))
+    const skipped = c.skipUpgrade()
+    await vi.waitFor(() => expect(c.state.notesUpgradeSkipped).toBe(true))
+    expect(existsSync(join(root, 'llm', name(bigUrl)))).toBe(true)
+    release(); await skipped; await c.idle()
+    expect(c.installed()?.recommendedLlm).toBeUndefined()
+    expect(existsSync(join(root, 'llm', name(bigUrl)))).toBe(false)
+    expect(existsSync(join(root, 'llm', name(bigUrl) + '.ok'))).toBe(false)
+  })
+
+  it('keeps the small model through a failed bigger load and deletes it only after success', async () => {
+    const rec = recorder(u => u === bigUrl)
+    const { c, root } = setup({ download: rec.deps })
+    const engine = new FakeEngine()
+    const load = vi.spyOn(engine, 'load')
+    const model = createNotesModel({ engine, modelPath: () => c.notesPath(), onLoaded: path => c.notesModelLoaded(path) })
+    await c.start()
+    await vi.waitFor(() => expect(rec.asked).toContain(bigUrl))
+    const first = c.installed()!.llm!
+    await model.llm()
+    rec.release(); await c.idle()
+    expect(model.loaded()).toBe(first)
+    expect(existsSync(first)).toBe(true)
+    load.mockRejectedValueOnce(new Error('not enough memory'))
+    await expect(model.llm()).rejects.toThrow('not enough memory')
+    expect(existsSync(first)).toBe(true)
+    expect(existsSync(first + '.ok')).toBe(true)
+    await model.llm()
+    expect(model.loaded()).toBe(c.installed()?.recommendedLlm)
+    expect(existsSync(first)).toBe(false)
+    expect(existsSync(first + '.ok')).toBe(false)
+    expect(c.installed()?.llm).toBeUndefined()
+    const next = setup({ modelsDir: root })
+    await next.c.start(); await next.c.idle()
+    expect(next.rec.asked).not.toContain(starterUrl)
+    expect(next.c.notesPath()).toBe(c.notesPath())
+  })
+
+  it.each([false, true])('publishes separate restore progress and clears it when the download fails: %s', async fail => {
+    const inner = fakeDownloadDeps({ stepMs: 0 })
+    let restoring = false, finish!: () => void
+    const held = new Promise<void>(resolve => { finish = resolve })
+    const { c, states } = setup({ download: { ...inner, download: async (url, dir, file, progress, signal) => {
+      if (restoring && url === starterUrl) {
+        progress({ fraction: .42, etaSec: 240 })
+        await held
+        if (fail) throw new DiskSpaceError(5)
+      }
+      return inner.download(url, dir, file, progress, signal)
+    } } })
+    await c.start(); await c.idle()
+    const bigger = c.notesPath()!
+    c.notesModelLoaded(bigger)
+    restoring = true
+    states.length = 0
+    const retire = vi.fn(async (remove: () => void) => {
+      expect(c.state.notesRestoreFraction).toBeUndefined()
+      expect(c.state.notesRestoreTotalBytes).toBeUndefined()
+      expect(c.state.notesRestoreEtaSec).toBeUndefined()
+      remove()
+    })
+    const removed = c.removeUpgrade(retire)
+    await vi.waitFor(() => expect(c.state.notesRestoreFraction).toBe(.42))
+    const bytes = catalog.models.flatMap(m => m.builds).find(b => b.url === starterUrl)!.sizeGB * 1e9
+    const initial = states.find(s => s.notesRestoreFraction === 0)
+    expect(initial).toMatchObject({ notesRestoreTotalBytes: bytes })
+    expect(initial?.notesRestoreEtaSec).toBeUndefined()
+    expect(c.state).toMatchObject({ phase: 'ready', notesRestoreTotalBytes: bytes, notesRestoreEtaSec: 240, notesUpgradeChanging: true, notesUpgradeInstalled: true })
+    expect(states.every(s => !s.notesDownloading && s.notesFraction === undefined && !notesDownloadVisible(s))).toBe(true)
+    expect(c.notesPath()).toBe(bigger)
+    expect(retire).not.toHaveBeenCalled()
+    finish()
+    if (fail) await expect(removed).rejects.toThrow(DiskSpaceError)
+    else await removed
+    expect(c.state.notesRestoreFraction).toBeUndefined()
+    expect(c.state.notesRestoreTotalBytes).toBeUndefined()
+    expect(c.state.notesRestoreEtaSec).toBeUndefined()
+    expect(c.state.notesUpgradeChanging).toBeUndefined()
+    expect(retire).toHaveBeenCalledTimes(fail ? 0 : 1)
+    expect(existsSync(bigger)).toBe(fail)
+    if (fail) expect(c.notesPath()).toBe(bigger)
+  })
+
+  it('does not publish restore progress when the smaller model is still on disk', async () => {
+    const { c, states, rec } = setup()
+    await c.start(); await c.idle()
+    const first = c.installed()!.llm!
+    const downloads = rec.asked.length
+    states.length = 0
+    await c.removeUpgrade(async remove => { remove() })
+    expect(rec.asked).toHaveLength(downloads)
+    expect(states.every(s => s.notesRestoreFraction === undefined && s.notesRestoreTotalBytes === undefined && s.notesRestoreEtaSec === undefined)).toBe(true)
+    expect(c.notesPath()).toBe(first)
+  })
+
+  it('Settings removal restores the small model, waits for work and unload, then stays removed after restart', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'yogurt-upgrade-'))
+    const prefs = preference(root)
+    const { c } = setup({ modelsDir: root, upgradePreference: prefs })
+    const engine = new FakeEngine()
+    const model = createNotesModel({ engine, modelPath: () => c.notesPath(), onLoaded: path => c.notesModelLoaded(path) })
+    const queue = createQueue({ recording: () => false, smallMac: false, modelReady: () => !!c.notesPath() })
+    await c.start(); await c.idle(); await model.llm()
+    const bigger = c.notesPath()!
+    let release!: () => void
+    const working = queue.enqueue(() => new Promise<void>(resolve => { release = resolve }), 'enhance')
+    let releaseUnload!: () => void
+    vi.spyOn(engine, 'unload').mockImplementation(() => new Promise(resolve => { releaseUnload = resolve }))
+    const removed = c.removeUpgrade(remove => queue.enqueue(async () => { await model.unload(); remove() }, 'enhance'))
+    await vi.waitFor(() => expect(c.installed()?.llm).toBeTruthy())
+    // A concurrent successful load must not clean up the fallback being restored for removal.
+    c.notesModelLoaded(bigger)
+    expect(existsSync(c.installed()!.llm!)).toBe(true)
+    expect(existsSync(bigger)).toBe(true)
+    release(); await working
+    await vi.waitFor(() => expect(releaseUnload).toBeTypeOf('function'))
+    expect(existsSync(bigger)).toBe(true)
+    releaseUnload(); await removed
+    expect(existsSync(bigger)).toBe(false)
+    expect(c.notesPath()).toBe(c.installed()?.llm)
+    await model.llm()
+    expect(model.loaded()).toBe(c.installed()?.llm)
+    expect(c.state.notesUpgradeInstalled).toBe(false)
+    expect(prefs.load()).toBe(true)
+    const next = setup({ modelsDir: root, upgradePreference: prefs })
+    await next.c.start(); await next.c.idle()
+    expect(next.rec.asked).not.toContain(bigUrl)
+    expect(next.c.installed()?.llm).toBeTruthy()
+  })
+
+  it.each(['download', 'unload'])('keeps the bigger model if fallback %s fails', async failure => {
+    const inner = fakeDownloadDeps({ stepMs: 0 })
+    let block = false
+    const { c } = setup({ download: { ...inner, download: async (url, ...rest) => {
+      if (block && url === starterUrl) throw new DiskSpaceError(5)
+      return inner.download(url, ...rest)
+    } } })
+    await c.start(); await c.idle()
+    const engine = new FakeEngine()
+    const model = createNotesModel({ engine, modelPath: () => c.notesPath(), onLoaded: path => c.notesModelLoaded(path) })
+    await model.llm()
+    vi.spyOn(engine, 'unload').mockRejectedValue(new Error('unload failed'))
+    const bigger = c.notesPath()!
+    block = failure === 'download'
+    await expect(c.removeUpgrade(async remove => { await model.unload(); remove() })).rejects.toThrow()
+    expect(c.notesPath()).toBe(bigger)
+    expect(existsSync(bigger)).toBe(true)
+    expect(c.state.notesUpgradeInstalled).toBe(true)
+    expect(c.state.notesUpgradeChanging).toBeUndefined()
   })
 })

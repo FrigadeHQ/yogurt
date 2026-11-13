@@ -1,7 +1,8 @@
 import { LoadingContent } from '../components/LoadingContent'
 import { useCallback, useEffect, useState } from 'react'
 import { Check, ChevronDown, Copy, Download, ExternalLink, Globe, Lock, Upload } from 'lucide-react'
-import type { Access, McpStatus, PermissionKind, PermissionStatus, Theme, UpdateStatus } from '../../../shared/types'
+import type { Access, McpStatus, PermissionKind, PermissionStatus, SetupState, Theme, UpdateStatus } from '../../../shared/types'
+import { notesDownloadText, notesUpgradeSize } from '../notesSetup'
 import { permissionCopy } from '../permissionCopy'
 import { LOCALES, t } from '../../../shared/i18n'
 import { osWords } from '../keys'
@@ -119,6 +120,7 @@ export function Settings({ revision = 0 }: { revision?: number }) {
                 onClick={() => { if (!prefs) return; const on = !prefs.recordingReminder; setPrefs({ ...prefs, recordingReminder: on }); void window.yogurt.settings.setRecordingReminder(on) }}
                 className="settings-toggle"><span className="settings-toggle-knob" /></button>
             </div>
+            <NotesModel />
           </LoadingContent></div>
 
           <h2 className="settings-section-heading">{t('What Yogurt can use')}</h2>
@@ -152,6 +154,45 @@ export function Settings({ revision = 0 }: { revision?: number }) {
       </div>
     </div>
   )
+}
+
+function NotesModel() {
+  const [setup, setSetup] = useState<SetupState>()
+  const [busy, setBusy] = useState(false)
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    let current = false, active = true
+    const off = window.yogurt.setup.onState(state => { current = true; setSetup(state) })
+    void window.yogurt.setup.state().then(state => { if (active && !current) setSetup(state) })
+    return () => { active = false; off() }
+  }, [])
+  if (!setup?.notesUpgradeBytes) return null
+  const downloading = setup.notesUpgradePending || setup.notesUpgradeDownloading
+  const act = async () => {
+    setBusy(true); setFailed(false)
+    try {
+      if (setup.notesUpgradeInstalled) await window.yogurt.setup.removeUpgrade()
+      else if (downloading) await window.yogurt.setup.skipUpgrade()
+      else await window.yogurt.setup.downloadUpgrade()
+    } catch { setFailed(true) }
+    finally { setBusy(false) }
+  }
+  return <div className="settings-row" data-testid="settings-notes-model">
+    <div className="settings-row-copy">
+      <p className="settings-label">{t('Better notes model')}</p>
+      <p className="settings-description">{setup.notesRestoreFraction !== undefined
+        ? t('Getting the smaller model · {progress}', { progress: notesDownloadText(setup).detail })
+        : downloading ? notesDownloadText(setup).detail : setup.notesUpgradeInstalled
+        ? t('Notes use this model. Removing it brings back the smaller one.')
+        : t("More detailed, accurate notes. Replaces the current model, so you don't keep both.")}</p>
+      {setup.notesRestoreFraction !== undefined && <p className="settings-description">{t('The larger model keeps running summaries and Ask until then, and is removed after.')}</p>}
+      {setup.notesUpgradeError && <p className="settings-description">{setup.notesUpgradeError}</p>}
+      {failed && <p role="alert" className="settings-description">{t("Couldn't change the notes model. Try again.")}</p>}
+    </div>
+    <button data-testid="settings-notes-model-action" className="workspace-button settings-action" aria-busy={busy || setup.notesUpgradeChanging} disabled={busy || setup.notesUpgradeChanging} onClick={() => void act()}>
+      {setup.notesUpgradeInstalled ? (busy || setup.notesUpgradeChanging ? t('Removing…') : t('Remove')) : downloading ? t('Skip for now') : t('Download ({size} GB)', { size: notesUpgradeSize(setup.notesUpgradeBytes) })}
+    </button>
+  </div>
 }
 
 /** Settings → Language: the interface's language, the Mac's unless one is picked. It changes at once, in every window */
