@@ -13,6 +13,9 @@ export class GraphicsGaveUpError extends Error { name = 'GraphicsGaveUpError' }
 export const WATCH = { probeMs: 90_000, loadMs: 5 * 60_000, firstTokenMs: 5 * 60_000, cpuLoadMs: 15 * 60_000, cpuFirstTokenMs: 30 * 60_000 }
 type Limits = typeof WATCH
 
+/** Vulkan's "the graphics card was reset" (a driver hang): the process that saw it can never use the card again */
+export const deviceLost = (message: string): boolean => /ErrorDeviceLost|VK_ERROR_DEVICE_LOST/i.test(message)
+
 export type ChatRequest = { messages: EngineMessage[]; maxTokens?: number; thoughtBudget?: number; /** instead of the family's sampling temperature */ temperature?: number }
 
 export interface Engine {
@@ -51,7 +54,11 @@ export class UtilityEngine implements Engine {
 
   private limits: Limits
 
-  constructor(private workerPath: string, private opts: { gpuFallback?: boolean } & Partial<Limits> = {}) {
+  /**
+   * cpuCrashes (Linux): the engine dies on the processor alone (code 132: Electron's allocator refuses llama.cpp's
+   * single > 2 GiB weight buffer), so a lost graphics card starts the engine again on the card, not without it.
+   */
+  constructor(private workerPath: string, private opts: { gpuFallback?: boolean; cpuCrashes?: boolean } & Partial<Limits> = {}) {
     this.limits = { ...WATCH, ...opts }
   }
 
@@ -97,15 +104,26 @@ export class UtilityEngine implements Engine {
       clearTimeout(p.timer)
       if (e.type === 'result' && p.model) this.loaded = true
       if (e.type === 'result') p.resolve(e.data)
-      else p.reject(e.code === 'OOM' ? new InsufficientMemoryError(e.message) : new Error(e.message))
+      else if (this.opts.gpuFallback && deviceLost(e.message)) {
+        // the card was reset under it: a fresh engine (on the processor, where that works) is the only way on
+        if (!this.opts.cpuCrashes) this.cpuOnly = true
+        console.warn(`notes engine: the graphics card was lost (${e.message}); starting it again${this.cpuOnly ? ' without the graphics card' : ''}`)
+        this.pending.set(e.id, p)
+        this.drop(() => new GraphicsGaveUpError(`The graphics card was lost: ${e.message}`))
+      } else p.reject(e.code === 'OOM' ? new InsufficientMemoryError(e.message) : new Error(e.message))
     })
     proc.on('exit', (code: number) => {
       // stopped as stuck (drop): already dealt with
       if (this.proc !== proc) return
       this.proc = undefined
-      const starting = !!this.opts.gpuFallback && !this.cpuOnly && !this.loaded && [...this.pending.values()].some((p) => p.load)
+      const loading = !!this.opts.gpuFallback && !this.loaded && [...this.pending.values()].some((p) => p.load)
+      const starting = loading && !this.cpuOnly
+      // it died starting without the card too (Linux, code 132): staying off the card would only crash again, so the
+      // next try uses the card, with a fresh look at it (the first look sometimes finds no card at all)
+      const backToCard = loading && this.cpuOnly
       if (starting) this.cpuOnly = true
-      if (!this.disposed) console.error(`notes engine stopped (code ${code})${starting ? '; starting it again without the graphics card' : ''}`)
+      if (backToCard) this.cpuOnly = false
+      if (!this.disposed) console.error(`notes engine stopped (code ${code})${starting ? '; starting it again without the graphics card' : backToCard ? ' without the graphics card too; the next try uses the card again' : ''}`)
       for (const p of this.pending.values()) { clearTimeout(p.timer); p.reject(starting ? new GraphicsGaveUpError('The notes engine stopped while starting on the graphics card') : new Error('The notes engine stopped unexpectedly')) }
       this.pending.clear()
       if (!this.disposed) for (const cb of this.exitListeners) cb()

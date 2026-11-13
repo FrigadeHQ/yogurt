@@ -111,6 +111,11 @@ describe('permissions on Windows and Linux', () => {
     blocked = false
     expect((await p.status()).mic).toBe('granted')
   })
+  it("Windows: Manage for call audio opens Windows' Sound page (it did nothing), where the device a call plays on shows", async () => {
+    const { p, opened } = offMac('win32')
+    await p.openSettings('systemAudio')
+    expect(opened).toEqual(['ms-settings:sound'])
+  })
   it('Linux has no settings page to open', async () => {
     const { p, opened } = offMac('linux')
     await p.openSettings('mic')

@@ -35,7 +35,7 @@ export function parseStatus(raw: unknown, o: { axAsked?: boolean } = {}): Omit<P
 }
 
 /** Windows' own pages for these (Linux has none): a mic blocked under Privacy & security is turned on there */
-const WINDOWS_SETTINGS: Partial<Record<PermissionKind, string>> = { mic: 'ms-settings:privacy-microphone', notifications: 'ms-settings:notifications' }
+const WINDOWS_SETTINGS: Partial<Record<PermissionKind, string>> = { mic: 'ms-settings:privacy-microphone', systemAudio: 'ms-settings:sound', notifications: 'ms-settings:notifications' }
 
 const ASK: Record<Exclude<PermissionKind, 'notifications'>, string> = { mic: 'mic-auth', systemAudio: 'audio-auth', calendar: 'calendar-auth', accessibility: 'ax-auth' }
 

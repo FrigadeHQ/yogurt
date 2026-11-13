@@ -99,3 +99,61 @@ describe('the notes engine on a Mac', () => {
     expect(procs[0].killed).toBe(false)
   })
 })
+
+describe('the notes engine off a Mac: a graphics card that is lost, and a processor that crashes (#32, #36)', () => {
+  const fail = (p: Proc, type: string, message: string) => { const m = p.sent.find((x) => x.type === type); p.emit('message', { id: m.id, type: 'error', message }) }
+  const loaded = async (e: InstanceType<typeof UtilityEngine>, p = 0) => { const l = e.load('m.gguf', 32768, 8192); procs[p].answer('load', { contextSize: 32768 }); await l }
+
+  it('a lost graphics device stops the engine (that process can never use the card again) and the next try starts fresh', async () => {
+    const e = new UtilityEngine('engine.js', { gpuFallback: true, ...limits })
+    await loaded(e)
+    const exits: number[] = []
+    e.onExit(() => exits.push(1))
+    const c = e.chat(chat, () => {}).catch((x) => x)
+    fail(procs[0], 'chat', 'vk::Queue::submit: ErrorDeviceLost')
+    expect(await c).toBeInstanceOf(GraphicsGaveUpError)
+    expect(procs[0].killed).toBe(true)
+    expect(exits).toEqual([1])
+    void e.load('m.gguf', 32768, 8192).catch(() => {})
+    expect(procs).toHaveLength(2)
+  })
+
+  it('on Windows the next try runs on the processor; on Linux, where the processor crashes, on the card again', async () => {
+    const win = new UtilityEngine('engine.js', { gpuFallback: true, ...limits })
+    await loaded(win)
+    const c = win.chat(chat, () => {}).catch((x) => x)
+    fail(procs[0], 'chat', 'vk::Queue::submit: ErrorDeviceLost'); await c
+    void win.load('m.gguf', 32768, 8192).catch(() => {})
+    expect(procs[1].env?.YOGURT_ENGINE_GPU).toBe('off')
+
+    procs.length = 0
+    const linux = new UtilityEngine('engine.js', { gpuFallback: true, cpuCrashes: true, ...limits })
+    await loaded(linux)
+    const d = linux.chat(chat, () => {}).catch((x) => x)
+    fail(procs[0], 'chat', 'VK_ERROR_DEVICE_LOST'); await d
+    void linux.load('m.gguf', 32768, 8192).catch(() => {})
+    expect(procs[1].env?.YOGURT_ENGINE_GPU).toBeUndefined()
+  })
+
+  it('an ordinary error leaves the engine running', async () => {
+    const e = new UtilityEngine('engine.js', { gpuFallback: true, ...limits })
+    await loaded(e)
+    const c = e.chat(chat, () => {}).catch((x) => x)
+    fail(procs[0], 'chat', 'Last message must be from the user')
+    expect(await c).not.toBeInstanceOf(GraphicsGaveUpError)
+    expect(procs[0].killed).toBe(false)
+  })
+
+  it('the engine crashing as it loads without the card turns the card back on for the next try, not CPU for the whole session', async () => {
+    const e = new UtilityEngine('engine.js', { gpuFallback: true, ...limits })
+    const first = e.load('m.gguf', 32768, 8192).catch((x) => x)
+    procs[0].emit('exit', 132)
+    expect(await first).toBeInstanceOf(GraphicsGaveUpError)
+    const second = e.load('m.gguf', 32768, 8192).catch((x) => x)
+    expect(procs[1].env?.YOGURT_ENGINE_GPU).toBe('off')
+    procs[1].emit('exit', 132)
+    expect(await second).not.toBeInstanceOf(GraphicsGaveUpError)
+    void e.load('m.gguf', 32768, 8192).catch(() => {})
+    expect(procs[2].env?.YOGURT_ENGINE_GPU).toBeUndefined()
+  })
+})
