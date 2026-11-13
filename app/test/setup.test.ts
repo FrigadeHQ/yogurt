@@ -304,8 +304,8 @@ describe('SetupController', () => {
     await c.start(); await c.idle()
     expect(rec.asked[0]).toBe(turboUrl)
     expect(rec.asked).not.toContain(starterUrl)
-    // the one notes model, then the embedding model
-    expect(rec.asked.slice(1)).toEqual([expect.stringContaining('E4B-it-Q3_K_S'), embedUrl])
+    // the one notes model, then the embedding model, then the diarization model
+    expect(rec.asked.slice(1)).toEqual([expect.stringContaining('E4B-it-Q3_K_S'), embedUrl, catalog.diarization.url])
     expect(c.state.phase).toBe('ready')
     expect(states.some(s => s.notesUpgradeDownloading || s.notesUpgradeError)).toBe(false)
   })
@@ -867,5 +867,25 @@ describe('optional better notes model', () => {
     expect(existsSync(bigger)).toBe(true)
     expect(c.state.notesUpgradeInstalled).toBe(true)
     expect(c.state.notesUpgradeChanging).toBeUndefined()
+  })
+})
+
+describe('diarization models', () => {
+  it('downloads the diarization gguf in the background; ready never waits for it', async () => {
+    const { c, root, rec } = setup()
+    await c.start()
+    expect(c.state.phase).toBe('ready')
+    await c.idle()
+    expect(c.installed()?.diarization).toBe(join(root, 'diarization', name(catalog.diarization.url)))
+    expect(existsSync(join(root, 'diarization', name(catalog.diarization.url)))).toBe(true)
+    expect(rec.asked).toContain(catalog.diarization.url)
+  })
+  it('ensureSpeakerModel downloads the onnx only when asked', async () => {
+    const { c, root } = setup()
+    await c.start()
+    expect(c.installed()?.diarization).toBeUndefined()
+    const p = await c.ensureSpeakerModel()
+    expect(p).toBe(join(root, 'speaker', name(catalog.speaker.url)))
+    expect(existsSync(p)).toBe(true)
   })
 })
