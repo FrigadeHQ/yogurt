@@ -44,6 +44,12 @@ const Embedding = z.object({
   url: z.string().url(), sha256: Sha, bytes: z.number().int().positive(), dims: z.number().int().positive(),
 })
 
+/** one downloaded model file (no dims: the embedding length is the worker's business) */
+const ModelFile = z.object({
+  id: Id, name: z.string().min(1), license: z.string().min(1),
+  url: z.string().url(), sha256: Sha, bytes: z.number().int().positive(),
+})
+
 // a program Yogurt downloads has url, sha256 and bytes; one that is pending or bundled in the app has none
 const Binary = z.object({
   id: Id, tag: z.string().min(1),
@@ -58,6 +64,9 @@ export const CatalogSchema = z.object({
   asr: z.array(Asr).min(1),
   whisperServer: Binary,
   embedding: Embedding,
+  diarization: ModelFile,
+  speaker: ModelFile,
+  diarizationRuntime: Binary,
 })
 
 export function validateCatalog(raw: unknown, allowedLicenses: string[]): { ok: true; catalog: Catalog } | { ok: false; errors: string[] } {
@@ -72,6 +81,7 @@ export function validateCatalog(raw: unknown, allowedLicenses: string[]): { ok: 
   }
   for (const a of parsed.data.asr) if (!allowedLicenses.includes(a.license)) errors.push(`${a.id}: license ${a.license} not allowed`)
   if (!allowedLicenses.includes(parsed.data.embedding.license)) errors.push(`${parsed.data.embedding.id}: license ${parsed.data.embedding.license} not allowed`)
+  for (const key of ['diarization', 'speaker'] as const) if (!allowedLicenses.includes(parsed.data[key].license)) errors.push(`${parsed.data[key].id}: license ${parsed.data[key].license} not allowed`)
   if (!parsed.data.models.some((m) => m.starter)) errors.push('catalog needs at least one starter model')
   return errors.length ? { ok: false, errors } : { ok: true, catalog: parsed.data as Catalog }
 }

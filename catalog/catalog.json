@@ -245,5 +245,27 @@
     "sha256": "b5ce9d77a3fc4b3b39ccb5643c36777911cc4eb46a66962eadfa3f5f60490d63",
     "bytes": 333590944,
     "dims": 512
+  },
+  "diarizationRuntime": {
+    "id": "nemo-speech",
+    "tag": "nemo-speech",
+    "bundled": true,
+    "note": "Built by app/scripts/native.sh and scripts/nemo-build.mjs from NeMo-Speech.cpp at the pinned commit (native.sh), so setup downloads nothing for it"
+  },
+  "diarization": {
+    "id": "nemotron-3-diarization-q8_0",
+    "name": "Nemotron 3 Diarization",
+    "license": "OpenMDW-1.1",
+    "url": "https://huggingface.co/nvidia/Nemotron-3-Diarization/resolve/main/Nemotron-3-Diarization.q8_0.gguf",
+    "sha256": "08456d9e22cd9a323c0364d98375f3746d6e68507ebb705cd46438c534c7a3a1",
+    "bytes": 107012128
+  },
+  "speaker": {
+    "id": "3dspeaker-campplus-zh-en-16k",
+    "name": "CAM++ speaker embedding",
+    "license": "Apache-2.0",
+    "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx",
+    "sha256": "aa3cfc16963a10586a9393f5035d6d6b57e98d358b347f80c2a30bf4f00ceba2",
+    "bytes": 28281164
   }
 }
