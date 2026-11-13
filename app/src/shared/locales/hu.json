@@ -175,7 +175,6 @@
   "Heading": "Címsor",
   "Hear the whole call": "Halld az egész hívást",
   "Heart": "Szív",
-  "Hide": "Elrejtés",
   "Hide Others": "Többi elrejtése",
   "Hide Sidebar": "Oldalsáv elrejtése",
   "Hide transcript": "Átirat elrejtése",
@@ -574,11 +573,6 @@
   "Captures the other speakers.": "Rögzíti a többi beszélőt.",
   "Asks you to record when a call starts.": "Felvételt ajánl a hívás kezdetén.",
   "Names speakers in your transcript.": "Megnevezi a beszélőket az átiratban.",
-  "Show": "Megjelenítés",
-  "{count} echoed lines": {
-    "one": "{count} visszhangos sor",
-    "other": "{count} visszhangos sor"
-  },
   "Untitled meeting": "Névtelen megbeszélés",
   "Finish recording when the call ends": "Felvétel befejezése a hívás végén",
   "Join and record": "Csatlakozás és felvétel",

@@ -175,7 +175,6 @@
   "Heading": "Überschrift",
   "Hear the whole call": "Den ganzen Anruf hören",
   "Heart": "Herz",
-  "Hide": "Ausblenden",
   "Hide Others": "Andere ausblenden",
   "Hide Sidebar": "Seitenleiste ausblenden",
   "Hide transcript": "Transkript ausblenden",
@@ -574,11 +573,6 @@
   "Captures the other speakers.": "Nimmt die anderen auf.",
   "Asks you to record when a call starts.": "Bietet bei Anrufbeginn Aufnahme an.",
   "Names speakers in your transcript.": "Benennt Sprecher im Transkript.",
-  "Show": "Anzeigen",
-  "{count} echoed lines": {
-    "one": "{count} Echozeile",
-    "other": "{count} Echozeilen"
-  },
   "Untitled meeting": "Unbenanntes Meeting",
   "Finish recording when the call ends": "Aufnahme nach dem Anruf beenden",
   "Join and record": "Teilnehmen und aufnehmen",

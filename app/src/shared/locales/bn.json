@@ -175,7 +175,6 @@
   "Heading": "শিরোনাম",
   "Hear the whole call": "পুরো কল শুনুন",
   "Heart": "হৃদয়",
-  "Hide": "লুকান",
   "Hide Others": "অন্যগুলো লুকান",
   "Hide Sidebar": "সাইডবার লুকান",
   "Hide transcript": "ট্রান্সক্রিপ্ট লুকান",
@@ -574,11 +573,6 @@
   "Captures the other speakers.": "অন্যদের কথা রেকর্ড করে।",
   "Asks you to record when a call starts.": "কল শুরু হলে রেকর্ড করতে বলে।",
   "Names speakers in your transcript.": "প্রতিলিপিতে বক্তার নাম দেখায়।",
-  "Show": "দেখান",
-  "{count} echoed lines": {
-    "one": "{count}টি প্রতিধ্বনিত লাইন",
-    "other": "{count}টি প্রতিধ্বনিত লাইন"
-  },
   "Untitled meeting": "শিরোনামহীন মিটিং",
   "Finish recording when the call ends": "কল শেষ হলে রেকর্ডিং শেষ করুন",
   "Join and record": "যোগ দিন ও রেকর্ড করুন",

@@ -1,5 +1,5 @@
 import { afterEach, expect, it } from 'vitest'
-import { echoRuns, echoedLinesLabel, withLive } from '../src/shared/transcript'
+import { echoRuns, withLive } from '../src/shared/transcript'
 import { setLanguage } from '../src/shared/i18n'
 const line = (startMs: number, hidden = false, track: 'me' | 'them' = 'me') => ({ startMs, endMs: startMs + 100, track, hidden, speaker: null, text: 'Speech' })
 afterEach(() => setLanguage('en'))
@@ -23,14 +23,6 @@ it('appends live echoes to their run, and restoration splits it at the restored 
 it('does not group across an intervening live partial, even before it becomes a final line', () => {
   const timeline = withLive([line(0, true), line(200, true)], [{ track: 'them', startMs: 100, endMs: 150, text: 'Hi', words: [{ text: 'Hi', startMs: 100, endMs: 150 }] }])
   expect(echoRuns(timeline).map(r => r.echo)).toEqual([true, false, true])
-})
-
-it('labels one echoed line and plural echoed lines', () => {
-  expect(echoedLinesLabel(1)).toBe('1 echoed line')
-  expect(echoedLinesLabel(2)).toBe('2 echoed lines')
-  setLanguage('ru')
-  expect(echoedLinesLabel(2)).toBe('2 строки с эхом')
-  expect(echoedLinesLabel(5)).toBe('5 строк с эхом')
 })
 
 it('silently omits confident echoes but leaves uncertain lines reviewable and restored lines visible', () => {

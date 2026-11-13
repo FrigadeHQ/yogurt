@@ -9,7 +9,7 @@ import { AudioLines, ArrowDown, ChevronDown, Search as SearchIcon } from 'lucide
 import type { Segment, TranscriptPartial } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
 import { useLanguage } from '../i18n'
-import { bubbles, clock, echoRuns, echoedLinesLabel, filterLines, lineAt, stableKeys, turns, withLive, type LiveSaid } from '../../../shared/transcript'
+import { bubbles, clock, echoRuns, filterLines, lineAt, stableKeys, turns, withLive, type LiveSaid } from '../../../shared/transcript'
 import { markWords } from '../../../shared/highlight'
 import { Player, type PlayerHandle } from './Player'
 import { rememberedScroll, useScrollMemory } from '../useScrollMemory'
@@ -21,7 +21,6 @@ type Line = Omit<Segment, 'id'> & { id?: number }
 const key = (l: { track: string; startMs: number }) => `${l.track}:${l.startMs}`
 /** this close to the bottom still counts as reading the latest lines */
 const STICK_PX = 24
-const rememberedEchoes = new Map<string, Set<string>>()
 /** after their own scroll, playing waits this long before it moves the list, so it never takes over mid-gesture */
 const HANDS_OFF_MS = 400
 
@@ -117,14 +116,12 @@ type RowProps = {
   /** arrived while watching: fades in, or settles in place where live words stood for it */
   arrived: 'fade' | 'settle' | null
   onPlay: (l: Line, e: MouseEvent) => void; onFocusLine: (k: string) => void
-  /** an echo line hidden after the meeting, shown on request: dimmed, with a way back */
-  onRestore?: (l: Line) => void
 }
 /**
  * One line of the transcript, a stretch of text in its bubble (who said it heads the turn). Drawn again only when what
  * it shows changes (a long meeting has thousands).
  */
-const Row = memo(function Row({ line: l, focused, name, query, playing, playable, focusable, arrived, onPlay, onFocusLine, onRestore }: RowProps) {
+const Row = memo(function Row({ line: l, focused, name, query, playing, playable, focusable, arrived, onPlay, onFocusLine }: RowProps) {
   // memo skips it otherwise when the language changes
   useLanguage()
   if (window.yogurt.fake) (window as unknown as { __rowRenders?: number }).__rowRenders = ((window as unknown as { __rowRenders?: number }).__rowRenders ?? 0) + 1
@@ -140,7 +137,6 @@ const Row = memo(function Row({ line: l, focused, name, query, playing, playable
         {query ? markWords(l.text, query).map((p, i) => (p.hit ? <mark key={i} className="search-mark">{p.text}</mark> : <span key={i}>{p.text}</span>)) : l.text}
       </span>
       <time data-testid="transcript-time" className="sr-only">{time}</time>
-      {l.hidden && onRestore && <button data-testid="transcript-restore" onClick={(e) => { e.stopPropagation(); onRestore(l) }} className="transcript-restore">{t('Restore')}</button>}
     </span>
   )
 })
@@ -157,32 +153,11 @@ export function Transcript({ id, recording, inline = false, active = true, onClo
   const { lines: allLines, live, loaded } = useLines(id)
   const loadingPhase = useLoadingState(!loaded)
   const { live: liveSaid, previewed } = useLive(id, recording)
-  const [echoState, setEchoState] = useState(() => ({ id, keys: rememberedEchoes.get(id) ?? new Set<string>() }))
-  const expanded = useMemo(() => echoState.id === id ? echoState.keys : rememberedEchoes.get(id) ?? new Set<string>(), [id, echoState])
-  const timeline = useMemo(() => echoRuns(withLive(allLines, liveSaid)), [allLines, liveSaid])
-  const isExpanded = (run: typeof timeline[number]) => run.lines.some(l => expanded.has(key(l)))
-  const toggleEcho = (run: typeof timeline[number]) => {
-    const keys = new Set(expanded), open = isExpanded(run)
-    for (const line of run.lines) { if (open) keys.delete(key(line)); else keys.add(key(line)) }
-    rememberedEchoes.set(id, keys); setEchoState({ id, keys })
-  }
-  useEffect(() => {
-    const keys = new Set(expanded)
-    for (const run of timeline) if (run.echo && isExpanded(run)) for (const line of run.lines) keys.add(key(line))
-    if (keys.size !== expanded.size) { rememberedEchoes.set(id, keys); setEchoState({ id, keys }) }
-  }, [timeline, expanded, id])
-  const lines = useMemo(() => timeline.flatMap(run => run.echo && !isExpanded(run) ? [] : run.lines.filter((l): l is Line => !('live' in l))), [timeline, expanded])
-  const [restoreError, setRestoreError] = useState(false)
-  const restoreFocus = useRef<string | undefined>(undefined)
-  // Never fall through to restore-all for a live line whose stored ID has not arrived yet.
-  const restore = useCallback((l: Line) => {
-    if (l.id === undefined) return
-    setRestoreError(false)
-    if (document.activeElement?.closest('[data-key]')?.getAttribute('data-key') === key(l)) restoreFocus.current = key(l)
-    void window.yogurt.transcript.restore(id, [l.id]).catch(() => { restoreFocus.current = undefined; setRestoreError(true) })
-  }, [id])
+  // the mic's copy of the call (hidden as an echo) never shows
+  const timeline = useMemo(() => echoRuns(withLive(allLines, liveSaid)).filter(run => !run.echo), [allLines, liveSaid])
+  const lines = useMemo(() => timeline.flatMap(run => run.lines.filter((l): l is Line => !('live' in l))), [timeline])
   const [query, setQuery] = useState('')
-  useEffect(() => { setQuery(''); setRestoreError(false) }, [id])
+  useEffect(() => { setQuery('') }, [id])
 
   // the recording is only playable once it is finished
   const [tracks, setTracks] = useState<Array<'me' | 'them'>>([])
@@ -242,13 +217,6 @@ export function Transcript({ id, recording, inline = false, active = true, onClo
 
   // playing follows along: the line being played kept comfortably in view, until they scroll it out of sight
   const rowOf = (k?: string) => (k ? list.current?.querySelector<HTMLElement>(`[data-key="${CSS.escape(k)}"]`) ?? null : null)
-  useLayoutEffect(() => {
-    const k = restoreFocus.current
-    if (!k || !allLines.some(l => key(l) === k && !l.hidden)) return
-    const row = rowOf(k)
-    if (row) { if (!row.hasAttribute('tabindex')) row.tabIndex = -1; row.focus({ preventScroll: true }) }
-    restoreFocus.current = undefined
-  }, [allLines])
   const [audioOn, setAudioOn] = useState(false)
   const following = useRef(true)
   /** where the line being played went while they looked elsewhere, for Back to playing */
@@ -355,7 +323,7 @@ export function Transcript({ id, recording, inline = false, active = true, onClo
 
   const typed = query.trim()
   // what is being said joins the bubble it carries on; not while searching
-  const grouped = useMemo(() => timeline.map(run => ({ ...run, source: run, lines: typed ? run.lines.filter(l => !('live' in l) && filterLines([l], typed).length) : run.lines })).filter(run => run.lines.length), [timeline, typed])
+  const grouped = useMemo(() => timeline.map(run => ({ ...run, lines: typed ? run.lines.filter(l => !('live' in l) && filterLines([l], typed).length) : run.lines })).filter(run => run.lines.length), [timeline, typed])
   /** the line being played is on screen, not left out by the search */
   const playingShown = useMemo(() => !!shownKey && shownLines.some((l) => key(l) === shownKey), [shownKey, shownLines])
   const Surface = inline ? 'section' : 'aside'
@@ -374,18 +342,13 @@ export function Transcript({ id, recording, inline = false, active = true, onClo
     <Surface style={{ '--playback-inset': `${playbackInset}px` } as CSSProperties} data-testid="transcript-panel" aria-label={t('Transcript')} onKeyDown={(e) => { if (!inline && e.key === 'Escape') { e.stopPropagation(); onClose?.() } }}
       className={inline ? 'transcript-inline' : 'chat-in pointer-events-auto absolute inset-x-0 bottom-1 z-20 mx-auto flex h-[min(44vh,480px)] w-[min(720px,calc(100%-48px))] flex-col rounded-xl border border-line bg-float shadow-[var(--shadow)]'}>
       {active && (toolbar ? createPortal(tools, toolbar) : tools)}
-      {restoreError && <p role="alert" className="px-4 text-xs text-muted">{t("Couldn't save your changes")}</p>}
       <div className="transcript-scroll-wrap relative flex min-h-0 flex-1 flex-col">
         <ScrollFade enabled={active && loaded}><ol data-loaded={loaded} data-loading-phase={loadingPhase} data-testid="transcript" ref={list} onScroll={onScroll} onWheel={theirs} onTouchStart={theirs} onPointerDown={theirs} onKeyDownCapture={theirs} onKeyDown={onKeyDown} className="loading-content transcript-loading-content flex flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4 pt-2 text-sm leading-[1.55]">
           {loadingPhase !== 'ready' && <li className="loading-placeholder"><Loading layout="transcript" /></li>}
           {loaded && allLines.length === 0 && liveSaid.length === 0 && <li data-testid="transcript-empty" className="note-empty empty-state"><div className="empty-state-content"><div className="empty-tile"><AudioLines size={28} strokeWidth={1.5} aria-hidden="true" /></div>{t('Nothing heard yet.')}</div></li>}
           {allLines.length > 0 && grouped.length === 0 && <li data-testid="transcript-none" className="note-empty">{t('Nothing found for “{query}”.', { query: typed })}</li>}
           {grouped.map(run => <Fragment key={key(run.lines[0])}>
-            {run.echo && <li className="transcript-echo" data-testid="transcript-echo">
-              <span>{echoedLinesLabel(run.lines.length)}</span><span aria-hidden="true">·</span>
-              <button type="button" data-testid="transcript-echo-toggle" aria-label={`${echoedLinesLabel(run.lines.length)} · ${isExpanded(run.source) ? t('Hide') : t('Show')}`} aria-expanded={isExpanded(run.source)} onClick={() => toggleEcho(run.source)}>{isExpanded(run.source) ? t('Hide') : t('Show')}</button>
-            </li>}
-            {(!run.echo || isExpanded(run.source)) && turns(run.lines).map((turn) => {
+            {turns(run.lines).map((turn) => {
             const me = turn[0].track === 'me', first = turn[0]
             const color = me || !('speakerColor' in first) ? undefined : first.speakerColor
             // a name comes with the first final line; until then its place is kept, so nothing moves when it shows
@@ -398,14 +361,14 @@ export function Transcript({ id, recording, inline = false, active = true, onClo
                   <time className="turn-time tabular-nums text-muted">{clock(first.startMs)}</time>
                 </p>
                 {bubbles(turn).map((b) => (
-                  <p key={key(b[0])} data-testid="transcript-bubble" data-track={first.track} data-echo={run.echo || undefined} dir="auto" className={`bubble ${me ? 'bubble-me' : 'bubble-them'}`}>
+                  <p key={key(b[0])} data-testid="transcript-bubble" data-track={first.track} dir="auto" className={`bubble ${me ? 'bubble-me' : 'bubble-them'}`}>
                     {b.map((x, i) => {
                       if ('live' in x) return <Fragment key="live">{i > 0 && ' '}<LiveWords said={x.live} /></Fragment>
                       const k = key(x)
                       return (
                         <Fragment key={k}>{i > 0 && ' '}
                           <Row line={x} focused={k === focusedKey} name={who(x)} query={typed}
-                            playing={k === shownKey} playable={playable} focusable={k === tabKey} arrived={live.current.has(k) ? (previewed(x) ? 'settle' : 'fade') : null} onPlay={onPlay} onFocusLine={setFocusKey} onRestore={x.id === undefined ? undefined : restore} />
+                            playing={k === shownKey} playable={playable} focusable={k === tabKey} arrived={live.current.has(k) ? (previewed(x) ? 'settle' : 'fade') : null} onPlay={onPlay} onFocusLine={setFocusKey} />
                         </Fragment>
                       )
                     })}

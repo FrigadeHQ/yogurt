@@ -177,7 +177,6 @@
   "Heading": "Titlu",
   "Hear the whole call": "Auziți tot apelul",
   "Heart": "Inimă",
-  "Hide": "Ascundeți",
   "Hide Others": "Ascunde alte aplicații",
   "Hide Sidebar": "Ascundeți bara laterală",
   "Hide transcript": "Ascundeți transcrierea",
@@ -584,12 +583,6 @@
   "Captures the other speakers.": "Înregistrează ceilalți vorbitori.",
   "Asks you to record when a call starts.": "Propune înregistrarea la începutul apelului.",
   "Names speakers in your transcript.": "Numește vorbitorii în transcriere.",
-  "Show": "Arată",
-  "{count} echoed lines": {
-    "one": "{count} rând cu ecou",
-    "few": "{count} rânduri cu ecou",
-    "other": "{count} de rânduri cu ecou"
-  },
   "Untitled meeting": "Întâlnire fără titlu",
   "Finish recording when the call ends": "Finalizează înregistrarea la încheierea apelului",
   "Join and record": "Participă și înregistrează",

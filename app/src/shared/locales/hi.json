@@ -175,7 +175,6 @@
   "Heading": "शीर्षक",
   "Hear the whole call": "पूरी कॉल सुनें",
   "Heart": "दिल",
-  "Hide": "छिपाएँ",
   "Hide Others": "अन्य छिपाएँ",
   "Hide Sidebar": "साइडबार छिपाएँ",
   "Hide transcript": "ट्रांसक्रिप्ट छिपाएँ",
@@ -574,11 +573,6 @@
   "Captures the other speakers.": "दूसरों की आवाज़ रिकॉर्ड करता है।",
   "Asks you to record when a call starts.": "कॉल शुरू होने पर रिकॉर्ड करने को कहता है।",
   "Names speakers in your transcript.": "ट्रांसक्रिप्ट में वक्ताओं के नाम दिखाता है।",
-  "Show": "दिखाएँ",
-  "{count} echoed lines": {
-    "one": "{count} गूँज वाली पंक्ति",
-    "other": "{count} गूँज वाली पंक्तियाँ"
-  },
   "Untitled meeting": "बिना शीर्षक की मीटिंग",
   "Finish recording when the call ends": "कॉल खत्म होने पर रिकॉर्डिंग समाप्त करें",
   "Join and record": "जुड़ें और रिकॉर्ड करें",

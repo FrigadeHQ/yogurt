@@ -179,7 +179,6 @@
   "Heading": "Nagłówek",
   "Hear the whole call": "Słuchaj całej rozmowy",
   "Heart": "Serce",
-  "Hide": "Ukryj",
   "Hide Others": "Ukryj pozostałe",
   "Hide Sidebar": "Ukryj pasek boczny",
   "Hide transcript": "Ukryj transkrypcję",
@@ -594,13 +593,6 @@
   "Captures the other speakers.": "Nagrywa pozostałych rozmówców.",
   "Asks you to record when a call starts.": "Proponuje nagrywanie na start rozmowy.",
   "Names speakers in your transcript.": "Nadaje imiona mówcom w transkrypcji.",
-  "Show": "Pokaż",
-  "{count} echoed lines": {
-    "one": "{count} wiersz z echem",
-    "few": "{count} wiersze z echem",
-    "many": "{count} wierszy z echem",
-    "other": "{count} wiersza z echem"
-  },
   "Untitled meeting": "Spotkanie bez tytułu",
   "Finish recording when the call ends": "Zakończ nagrywanie po zakończeniu rozmowy",
   "Join and record": "Dołącz i nagrywaj",

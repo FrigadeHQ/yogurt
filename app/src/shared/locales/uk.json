@@ -179,7 +179,6 @@
   "Heading": "Заголовок",
   "Hear the whole call": "Чути весь дзвінок",
   "Heart": "Серце",
-  "Hide": "Сховати",
   "Hide Others": "Сховати інші",
   "Hide Sidebar": "Приховати бічну панель",
   "Hide transcript": "Сховати розшифровку",
@@ -594,13 +593,6 @@
   "Captures the other speakers.": "Записує інших учасників.",
   "Asks you to record when a call starts.": "Пропонує запис на початку дзвінка.",
   "Names speakers in your transcript.": "Указує імена в розшифровці.",
-  "Show": "Показати",
-  "{count} echoed lines": {
-    "one": "{count} рядок із відлунням",
-    "few": "{count} рядки із відлунням",
-    "many": "{count} рядків із відлунням",
-    "other": "{count} рядка із відлунням"
-  },
   "Untitled meeting": "Зустріч без назви",
   "Finish recording when the call ends": "Завершувати запис після закінчення дзвінка",
   "Join and record": "Приєднатися й записати",

@@ -177,7 +177,6 @@
   "Heading": "Titolo",
   "Hear the whole call": "Ascolta tutta la chiamata",
   "Heart": "Cuore",
-  "Hide": "Nascondi",
   "Hide Others": "Nascondi altre",
   "Hide Sidebar": "Nascondi barra laterale",
   "Hide transcript": "Nascondi trascrizione",
@@ -587,12 +586,6 @@
   "Captures the other speakers.": "Registra le altre voci.",
   "Asks you to record when a call starts.": "Propone di registrare a inizio chiamata.",
   "Names speakers in your transcript.": "Dà un nome a chi parla.",
-  "Show": "Mostra",
-  "{count} echoed lines": {
-    "one": "{count} riga con eco",
-    "many": "{count} righe con eco",
-    "other": "{count} righe con eco"
-  },
   "Untitled meeting": "Riunione senza titolo",
   "Finish recording when the call ends": "Termina la registrazione alla fine della chiamata",
   "Join and record": "Partecipa e registra",

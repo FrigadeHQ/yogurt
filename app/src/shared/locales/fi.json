@@ -175,7 +175,6 @@
   "Heading": "Otsikko",
   "Hear the whole call": "Kuule koko puhelu",
   "Heart": "Sydän",
-  "Hide": "Kätke",
   "Hide Others": "Kätke muut",
   "Hide Sidebar": "Piilota sivupalkki",
   "Hide transcript": "Piilota litterointi",
@@ -577,11 +576,6 @@
   "Captures the other speakers.": "Tallentaa muiden puheen.",
   "Asks you to record when a call starts.": "Ehdottaa tallennusta puhelun alussa.",
   "Names speakers in your transcript.": "Nimeää puhujat tekstissä.",
-  "Show": "Näytä",
-  "{count} echoed lines": {
-    "one": "{count} kaikurivi",
-    "other": "{count} kaikuriviä"
-  },
   "Untitled meeting": "Nimetön kokous",
   "Finish recording when the call ends": "Lopeta tallennus puhelun päättyessä",
   "Join and record": "Liity ja tallenna",

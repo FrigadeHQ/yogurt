@@ -175,7 +175,6 @@
   "Heading": "Overskrift",
   "Hear the whole call": "Hør hele opkaldet",
   "Heart": "Hjerte",
-  "Hide": "Skjul",
   "Hide Others": "Skjul andre",
   "Hide Sidebar": "Skjul indholdsoversigt",
   "Hide transcript": "Skjul transskription",
@@ -574,11 +573,6 @@
   "Captures the other speakers.": "Optager de andre deltagere.",
   "Asks you to record when a call starts.": "Tilbyder optagelse, når opkald starter.",
   "Names speakers in your transcript.": "Navngiver talere i udskriften.",
-  "Show": "Vis",
-  "{count} echoed lines": {
-    "one": "{count} ekkolinje",
-    "other": "{count} ekkolinjer"
-  },
   "Untitled meeting": "Møde uden titel",
   "Finish recording when the call ends": "Afslut optagelsen, når opkaldet slutter",
   "Join and record": "Deltag og optag",

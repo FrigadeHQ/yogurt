@@ -179,7 +179,6 @@
   "Heading": "Nadpis",
   "Hear the whole call": "Slyšte celý hovor",
   "Heart": "Srdce",
-  "Hide": "Skrýt",
   "Hide Others": "Skrýt ostatní",
   "Hide Sidebar": "Skrýt boční panel",
   "Hide transcript": "Skrýt přepis",
@@ -594,13 +593,6 @@
   "Captures the other speakers.": "Zaznamená ostatní mluvčí.",
   "Asks you to record when a call starts.": "Nabídne nahrávání při začátku hovoru.",
   "Names speakers in your transcript.": "Přiřadí jména v přepisu.",
-  "Show": "Zobrazit",
-  "{count} echoed lines": {
-    "one": "{count} řádek ozvěny",
-    "few": "{count} řádky ozvěny",
-    "many": "{count} řádků ozvěny",
-    "other": "{count} řádků ozvěny"
-  },
   "Untitled meeting": "Schůzka bez názvu",
   "Finish recording when the call ends": "Ukončit nahrávání po skončení hovoru",
   "Join and record": "Připojit se a nahrávat",

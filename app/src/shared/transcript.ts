@@ -15,7 +15,6 @@ export function echoRuns<L extends { track: string; hidden?: boolean; echoConfid
   return runs
 }
 
-export const echoedLinesLabel = (count: number): string => t('{count} echoed lines', { count })
 
 /** a pause this long starts a new turn, so the time shows again */
 const NEW_TURN_AFTER_MS = 30_000

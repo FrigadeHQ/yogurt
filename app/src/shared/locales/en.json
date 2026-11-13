@@ -51,10 +51,6 @@
     "one": "{count} left",
     "other": "{count} left"
   },
-  "{count} echoed lines": {
-    "one": "{count} echoed line",
-    "other": "{count} echoed lines"
-  },
   "Reading {count} meetings…": {
     "one": "Reading 1 meeting…",
     "other": "Reading {count} meetings…"

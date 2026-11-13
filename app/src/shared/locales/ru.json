@@ -179,7 +179,6 @@
   "Heading": "Заголовок",
   "Hear the whole call": "Слышать весь звонок",
   "Heart": "Сердце",
-  "Hide": "Скрыть",
   "Hide Others": "Скрыть остальные",
   "Hide Sidebar": "Скрыть боковую панель",
   "Hide transcript": "Скрыть расшифровку",
@@ -594,13 +593,6 @@
   "Captures the other speakers.": "Записывает остальных участников.",
   "Asks you to record when a call starts.": "Предлагает запись в начале звонка.",
   "Names speakers in your transcript.": "Указывает имена в расшифровке.",
-  "Show": "Показать",
-  "{count} echoed lines": {
-    "one": "{count} строка с эхом",
-    "few": "{count} строки с эхом",
-    "many": "{count} строк с эхом",
-    "other": "{count} строки с эхом"
-  },
   "Untitled meeting": "Встреча без названия",
   "Finish recording when the call ends": "Завершать запись после окончания звонка",
   "Join and record": "Присоединиться и записать",

@@ -177,7 +177,6 @@
   "Heading": "כותרת",
   "Hear the whole call": "לשמוע את כל השיחה",
   "Heart": "לב",
-  "Hide": "הסתרה",
   "Hide Others": "הסתר אחרים",
   "Hide Sidebar": "הסתרת סרגל הצד",
   "Hide transcript": "הסתרת התמלול",
@@ -584,12 +583,6 @@
   "Captures the other speakers.": "מקליט את שאר הדוברים.",
   "Asks you to record when a call starts.": "מציע להקליט בתחילת שיחה.",
   "Names speakers in your transcript.": "מוסיף שמות דוברים לתמלול.",
-  "Show": "הצגה",
-  "{count} echoed lines": {
-    "one": "{count} שורה עם הד",
-    "two": "{count} שורות עם הד",
-    "other": "{count} שורות עם הד"
-  },
   "Untitled meeting": "פגישה ללא כותרת",
   "Finish recording when the call ends": "סיום ההקלטה כשהשיחה מסתיימת",
   "Join and record": "הצטרפות והקלטה",

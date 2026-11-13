@@ -175,7 +175,6 @@
   "Heading": "Επικεφαλίδα",
   "Hear the whole call": "Ακούστε όλη την κλήση",
   "Heart": "Καρδιά",
-  "Hide": "Απόκρυψη",
   "Hide Others": "Απόκρυψη άλλων",
   "Hide Sidebar": "Απόκρυψη πλαϊνής στήλης",
   "Hide transcript": "Απόκρυψη απομαγνητοφώνησης",
@@ -574,11 +573,6 @@
   "Captures the other speakers.": "Καταγράφει τους άλλους ομιλητές.",
   "Asks you to record when a call starts.": "Προτείνει εγγραφή όταν καλείτε.",
   "Names speakers in your transcript.": "Ονομάζει ομιλητές στη μεταγραφή.",
-  "Show": "Εμφάνιση",
-  "{count} echoed lines": {
-    "one": "{count} γραμμή ηχούς",
-    "other": "{count} γραμμές ηχούς"
-  },
   "Untitled meeting": "Συνάντηση χωρίς τίτλο",
   "Finish recording when the call ends": "Ολοκλήρωση εγγραφής όταν τελειώνει η κλήση",
   "Join and record": "Συμμετοχή και εγγραφή",

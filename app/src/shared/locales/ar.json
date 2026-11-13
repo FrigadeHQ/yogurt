@@ -183,7 +183,6 @@
   "Heading": "عنوان",
   "Hear the whole call": "سماع المكالمة كلها",
   "Heart": "قلب",
-  "Hide": "إخفاء",
   "Hide Others": "إخفاء الآخرين",
   "Hide Sidebar": "إخفاء الشريط الجانبي",
   "Hide transcript": "إخفاء النص",
@@ -618,15 +617,6 @@
   "Captures the other speakers.": "يسجل أصوات الآخرين.",
   "Asks you to record when a call starts.": "يقترح التسجيل عند بدء المكالمة.",
   "Names speakers in your transcript.": "يحدد أسماء المتحدثين في النص.",
-  "Show": "إظهار",
-  "{count} echoed lines": {
-    "zero": "لا أسطر بصدى",
-    "one": "سطر واحد بصدى",
-    "two": "سطران بصدى",
-    "few": "{count} أسطر بصدى",
-    "many": "{count} سطرًا بصدى",
-    "other": "{count} سطر بصدى"
-  },
   "Untitled meeting": "اجتماع بلا عنوان",
   "Finish recording when the call ends": "إنهاء التسجيل عند انتهاء المكالمة",
   "Join and record": "الانضمام والتسجيل",

@@ -175,7 +175,6 @@
   "Heading": "Pamagat",
   "Hear the whole call": "Marinig ang buong tawag",
   "Heart": "Puso",
-  "Hide": "Itago",
   "Hide Others": "Itago ang Iba",
   "Hide Sidebar": "Itago ang sidebar",
   "Hide transcript": "Itago ang transcript",
@@ -574,11 +573,6 @@
   "Captures the other speakers.": "Nirerekord ang ibang nagsasalita.",
   "Asks you to record when a call starts.": "Alok na magrekord sa simula ng tawag.",
   "Names speakers in your transcript.": "Pangalan ng nagsasalita sa transcript.",
-  "Show": "Ipakita",
-  "{count} echoed lines": {
-    "one": "{count} linyang may echo",
-    "other": "{count} linyang may echo"
-  },
   "Untitled meeting": "Pulong na walang pamagat",
   "Finish recording when the call ends": "Tapusin ang recording kapag natapos ang tawag",
   "Join and record": "Sumali at mag-record",

@@ -175,7 +175,6 @@
   "Heading": "Rubrik",
   "Hear the whole call": "Hör hela samtalet",
   "Heart": "Hjärta",
-  "Hide": "Göm",
   "Hide Others": "Göm övriga",
   "Hide Sidebar": "Dölj sidofältet",
   "Hide transcript": "Dölj transkription",
@@ -574,11 +573,6 @@
   "Captures the other speakers.": "Spelar in de andra deltagarna.",
   "Asks you to record when a call starts.": "Erbjuder inspelning när samtal börjar.",
   "Names speakers in your transcript.": "Namnger talarna i utskriften.",
-  "Show": "Visa",
-  "{count} echoed lines": {
-    "one": "{count} ekorad",
-    "other": "{count} ekorader"
-  },
   "Untitled meeting": "Möte utan titel",
   "Finish recording when the call ends": "Avsluta inspelningen när samtalet slutar",
   "Join and record": "Anslut och spela in",

@@ -175,7 +175,6 @@
   "Heading": "Başlık",
   "Hear the whole call": "Aramanın tamamını duyun",
   "Heart": "Kalp",
-  "Hide": "Gizle",
   "Hide Others": "Diğerlerini Gizle",
   "Hide Sidebar": "Kenar çubuğunu gizle",
   "Hide transcript": "Transkripti gizle",
@@ -574,11 +573,6 @@
   "Captures the other speakers.": "Diğer konuşmacıları kaydeder.",
   "Asks you to record when a call starts.": "Arama başında kayıt önerir.",
   "Names speakers in your transcript.": "Dökümde konuşmacıları adlandırır.",
-  "Show": "Göster",
-  "{count} echoed lines": {
-    "one": "{count} yankılanan satır",
-    "other": "{count} yankılanan satır"
-  },
   "Untitled meeting": "Başlıksız toplantı",
   "Finish recording when the call ends": "Arama sona erdiğinde kaydı bitir",
   "Join and record": "Katıl ve kaydet",

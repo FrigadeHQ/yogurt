@@ -783,14 +783,6 @@ html:not(.widget) button:focus-visible, html:not(.widget) input:focus-visible { 
 .note-date-event small { margin-top:3px;font-size:11px;color:var(--muted); }
 .note-date-event>svg { flex:none;color:var(--accent); }
 
-/* Echoes stay where they occurred; the disclosure and restore controls have no decorative chrome. */
-.transcript-echo { display:flex;justify-content:flex-end;align-items:center;gap:6px;min-height:28px;padding-inline:4px;color:var(--muted);font-size:12.5px;line-height:20px; }
-.transcript-echo button { text-underline-offset:3px; }
-.transcript-echo button:hover { text-decoration:underline; }
-.bubble[data-echo] { color:var(--muted);background:color-mix(in srgb,var(--control) 50%,transparent); }
-.transcript-restore { margin-inline-start:4px;padding:2px 6px;border-radius:4px;font-size:12px;line-height:20px;color:var(--muted);opacity:0; }
-.line:hover>.transcript-restore,.line:focus-within>.transcript-restore { opacity:1; }
-.transcript-restore:hover { color:var(--ink);background:var(--control-hover); }
 
 /* Data changes opacity, never the geometry of its reading surface. */
 .loading-content { position:relative;min-width:0; }
