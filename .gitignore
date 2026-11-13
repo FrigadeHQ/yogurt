@@ -17,9 +17,14 @@ e2e/zz-*
 app/resources/bin/
 app/resources/vad/
 app/resources/dict/
+# nemo-speech's shared libraries (scripts/nemo-build.mjs)
+app/resources/lib/
 
 # whisper.cpp clone and build (scripts/native.sh)
 app/native/.whisper-build/
+
+# NeMo-Speech.cpp clone and build (scripts/native.sh, scripts/nemo-build.mjs)
+app/native/.nemo-build/
 
 # local builds and profiles
 app/out-*/

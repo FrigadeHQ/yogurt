@@ -102,6 +102,7 @@ jobs:
       - name: Test
         run: pnpm -r test
       - name: Build
+        # native (scripts/native.sh) builds the helpers, whisper-server and nemo-speech; the Vulkan SDK isn't needed on a Mac
         run: |
           pnpm -C app run native
           pnpm -C app exec electron-vite build

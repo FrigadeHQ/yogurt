@@ -1,7 +1,8 @@
 // Builds the helpers for this computer into resources/bin.
 // Mac: scripts/native.sh, unchanged.
 // Windows and Linux: the Rust helpers (recorder, system helper, AI apps relay) with cargo, then whisper-server and the
-// VAD model (scripts/whisper-build.mjs). YOGURT_NO_WHISPER=1 leaves whisper-server out (CI's fake-mode tests don't use it).
+// VAD model (scripts/whisper-build.mjs), then nemo-speech (scripts/nemo-build.mjs). YOGURT_NO_WHISPER=1 leaves
+// whisper-server out and YOGURT_NO_NEMO=1 leaves nemo-speech out (CI's fake-mode tests use neither).
 // Needs Rust (each crate's rust-toolchain.toml pins the version), CMake, and on Linux libpulse-dev and pkg-config.
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -47,6 +48,9 @@ const run = (cmd, args, opts) => {
 }
 
 mkdirSync(bin, { recursive: true })
+// nemo-speech's shared libraries land here on Linux (its binary looks in ../lib); present even when nemo is skipped,
+// so electron-builder always has the folder to pack
+mkdirSync(join(app, 'resources', 'lib'), { recursive: true })
 for (const [crate, name] of CRATES) {
   const dir = join(app, 'native', crate)
   const out = join(bin, exe(name))
@@ -95,3 +99,5 @@ if (!existsSync(words) || sha(words) !== WORDS_SHA256) {
 
 if (process.env.YOGURT_NO_WHISPER === '1') console.log('whisper-server left out (YOGURT_NO_WHISPER=1)')
 else run(process.execPath, [join(here, 'whisper-build.mjs'), ...process.argv.slice(2)])
+if (process.env.YOGURT_NO_NEMO === '1') console.log('nemo-speech left out (YOGURT_NO_NEMO=1)')
+else run(process.execPath, [join(here, 'nemo-build.mjs'), ...process.argv.slice(2)])

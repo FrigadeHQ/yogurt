@@ -42,6 +42,7 @@ jobs:
             platform: --linux
             unpacked: linux-unpacked
             files: app/dist/Yogurt-linux-*.AppImage
+            nemo: true
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
     # Azure trusts sign-in tokens from this repository's signing environment only (managed identity yogurt-github-signing)
@@ -107,6 +108,10 @@ jobs:
         run: pnpm -r typecheck
       # unit tests run in ci.yml; a slower runner here only trips their timing checks
       - name: Build (helpers, whisper-server, app)
+        env:
+          # nemo-speech builds next to whisper-server on Linux; on Windows it still needs SentencePiece through the
+          # vcpkg manifest NeMo-Speech.cpp ships (its scripts/windows/build.ps1 does this), so it waits
+          YOGURT_NO_NEMO: ${{ matrix.nemo != true && '1' || '' }}
         run: pnpm -C app build
       # a release signs in to Azure with GitHub's token for this run, so no password or key is stored anywhere
       - name: Sign in to Azure (Windows release)
