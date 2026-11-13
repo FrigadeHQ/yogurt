@@ -678,7 +678,6 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Notițe mai detaliate și precise. Înlocuiește modelul actual, ca să nu le păstrați pe amândouă.",
   "about {minutes} min left": "mai sunt aproximativ {minutes} min",
   "AI upgrade skipped": "Actualizare AI omisă",
-  "Get it in Settings": "Descărcați din Setări",
   "Suggested": "Sugerat",
   "Dismiss suggestion": "Respinge sugestia",
   "Delete recording": "Șterge înregistrarea",
@@ -688,6 +687,5 @@
   "Couldn't delete the recording. Try again.": "Înregistrarea nu a putut fi ștearsă. Încearcă din nou.",
   "Keep recordings after meetings": "Păstrează înregistrările după întâlniri",
   "Recording deleted": "Înregistrare ștearsă",
-  "Turn off in Settings": "Dezactivează din Setări",
   "When off, new meetings' audio is deleted once the summary is saved.": "Când e oprit, sunetul întâlnirilor noi se șterge după salvarea rezumatului."
 }

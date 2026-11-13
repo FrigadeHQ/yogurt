@@ -663,7 +663,6 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Πιο αναλυτικές, ακριβείς σημειώσεις. Αντικαθιστά το τρέχον μοντέλο, ώστε να μη μένουν και τα δύο.",
   "about {minutes} min left": "απομένουν περίπου {minutes} λεπ.",
   "AI upgrade skipped": "Η αναβάθμιση AI παραλείφθηκε",
-  "Get it in Settings": "Λήψη στις Ρυθμίσεις",
   "Suggested": "Προτεινόμενο",
   "Dismiss suggestion": "Απόρριψη πρότασης",
   "Delete recording": "Διαγραφή ηχογράφησης",
@@ -673,6 +672,5 @@
   "Couldn't delete the recording. Try again.": "Η διαγραφή απέτυχε. Δοκιμάστε ξανά.",
   "Keep recordings after meetings": "Διατήρηση ηχογραφήσεων μετά τις συναντήσεις",
   "Recording deleted": "Η ηχογράφηση διαγράφηκε",
-  "Turn off in Settings": "Απενεργοποίηση στις Ρυθμίσεις",
   "When off, new meetings' audio is deleted once the summary is saved.": "Αν κλείσει, ο ήχος νέων συναντήσεων διαγράφεται μόλις σωθεί η σύνοψη."
 }

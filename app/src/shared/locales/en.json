@@ -101,7 +101,6 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "More detailed, accurate notes. Replaces the current model, so you don't keep both.",
   "about {minutes} min left": "about {minutes} min left",
   "AI upgrade skipped": "AI upgrade skipped",
-  "Get it in Settings": "Get it in Settings",
   "Suggested": "Suggested",
   "Dismiss suggestion": "Dismiss suggestion",
   "Delete recording": "Delete recording",
@@ -111,6 +110,6 @@
   "Couldn't delete the recording. Try again.": "Couldn't delete the recording. Try again.",
   "Keep recordings after meetings": "Keep recordings after meetings",
   "Recording deleted": "Recording deleted",
-  "Turn off in Settings": "Turn off in Settings",
-  "When off, new meetings' audio is deleted once the summary is saved.": "When off, new meetings' audio is deleted once the summary is saved."
+  "When off, new meetings' audio is deleted once the summary is saved.": "When off, new meetings' audio is deleted once the summary is saved.",
+  "Settings": "Settings"
 }

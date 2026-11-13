@@ -615,7 +615,6 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "より詳しく正確なノート。現在のモデルを置き換えるため、両方を保持する必要はありません。",
   "about {minutes} min left": "残り約{minutes}分",
   "AI upgrade skipped": "AIアップグレードをスキップ",
-  "Get it in Settings": "設定からダウンロード",
   "Suggested": "おすすめ",
   "Dismiss suggestion": "提案を非表示",
   "Delete recording": "録音を削除",
@@ -625,6 +624,5 @@
   "Couldn't delete the recording. Try again.": "録音を削除できませんでした。もう一度お試しください。",
   "Keep recordings after meetings": "会議後も録音を保存",
   "Recording deleted": "録音を削除しました",
-  "Turn off in Settings": "設定でオフにする",
   "When off, new meetings' audio is deleted once the summary is saved.": "オフにすると、新しい会議の音声は要約の保存後に削除されます。"
 }

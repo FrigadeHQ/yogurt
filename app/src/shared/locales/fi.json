@@ -663,7 +663,6 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Tarkemmat ja kattavammat muistiinpanot. Korvaa nykyisen mallin, joten molemmat eivät jää talteen.",
   "about {minutes} min left": "noin {minutes} min jäljellä",
   "AI upgrade skipped": "Tekoälypäivitys ohitettu",
-  "Get it in Settings": "Lataa asetuksista",
   "Suggested": "Ehdotettu",
   "Dismiss suggestion": "Hylkää ehdotus",
   "Delete recording": "Poista tallenne",
@@ -673,6 +672,5 @@
   "Couldn't delete the recording. Try again.": "Tallennetta ei voitu poistaa. Yritä uudelleen.",
   "Keep recordings after meetings": "Säilytä tallenteet kokousten jälkeen",
   "Recording deleted": "Tallenne poistettu",
-  "Turn off in Settings": "Poista käytöstä asetuksissa",
   "When off, new meetings' audio is deleted once the summary is saved.": "Pois päältä uusien kokousten ääni poistetaan yhteenvedon tallennuttua."
 }

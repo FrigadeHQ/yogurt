@@ -615,7 +615,6 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "더 자세하고 정확한 노트. 현재 모델을 교체하므로 두 모델을 모두 보관하지 않아요.",
   "about {minutes} min left": "약 {minutes}분 남음",
   "AI upgrade skipped": "AI 업그레이드 건너뜀",
-  "Get it in Settings": "설정에서 다운로드",
   "Suggested": "추천",
   "Dismiss suggestion": "추천 닫기",
   "Delete recording": "녹음 삭제",
@@ -625,6 +624,5 @@
   "Couldn't delete the recording. Try again.": "녹음을 삭제하지 못했습니다. 다시 시도하세요.",
   "Keep recordings after meetings": "회의 후 녹음 보관",
   "Recording deleted": "녹음이 삭제되었습니다",
-  "Turn off in Settings": "설정에서 끄기",
   "When off, new meetings' audio is deleted once the summary is saved.": "끄면 새 회의의 오디오가 요약 저장 후 삭제됩니다."
 }

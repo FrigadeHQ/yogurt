@@ -721,7 +721,6 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "ملاحظات أدق وأكثر تفصيلًا. يحل محل النموذج الحالي، فلا تحتفظ بكليهما.",
   "about {minutes} min left": "متبقٍ نحو {minutes} د",
   "AI upgrade skipped": "تم تخطي ترقية الذكاء الاصطناعي",
-  "Get it in Settings": "نزّلها من الإعدادات",
   "Suggested": "مقترح",
   "Dismiss suggestion": "تجاهل الاقتراح",
   "Delete recording": "حذف التسجيل",
@@ -731,6 +730,5 @@
   "Couldn't delete the recording. Try again.": "تعذر حذف التسجيل. حاول مجددًا.",
   "Keep recordings after meetings": "الاحتفاظ بالتسجيلات بعد الاجتماعات",
   "Recording deleted": "تم حذف التسجيل",
-  "Turn off in Settings": "إيقافه في الإعدادات",
   "When off, new meetings' audio is deleted once the summary is saved.": "عند إيقافه، يُحذف صوت الاجتماعات الجديدة بعد حفظ الملخص."
 }

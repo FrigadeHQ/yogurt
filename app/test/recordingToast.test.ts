@@ -15,7 +15,7 @@ describe('recording deletion confirmation', () => {
     await recordingDeletedToast()
     const toast = s.add.mock.calls[0][0]
     expect(toast).toMatchObject({ title: 'Recording deleted', timeout: 8000, data: { testId: 'recording-deleted-toast', actionTestId: 'recording-settings' } })
-    expect(toast.actionProps?.children).toBe('Turn off in Settings')
+    expect(toast.actionProps?.children).toBe('Settings')
     expect(s.go).not.toHaveBeenCalled()
     toast.actionProps?.onClick?.({} as never)
     expect(s.go).toHaveBeenCalledWith('/settings/recordings')

@@ -672,7 +672,6 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "הערות מפורטות ומדויקות יותר. מחליף את המודל הנוכחי, כך שלא יישמרו שניהם.",
   "about {minutes} min left": "נותרו כ־{minutes} דק׳",
   "AI upgrade skipped": "שדרוג ה־AI דולג",
-  "Get it in Settings": "הורדה בהגדרות",
   "Suggested": "מוצע",
   "Dismiss suggestion": "דחיית ההצעה",
   "Delete recording": "מחיקת הקלטה",
@@ -682,6 +681,5 @@
   "Couldn't delete the recording. Try again.": "לא ניתן למחוק את ההקלטה. נסו שוב.",
   "Keep recordings after meetings": "שמירת הקלטות אחרי פגישות",
   "Recording deleted": "ההקלטה נמחקה",
-  "Turn off in Settings": "כיבוי בהגדרות",
   "When off, new meetings' audio is deleted once the summary is saved.": "כשכבוי, השמע של פגישות חדשות נמחק לאחר שמירת הסיכום."
 }

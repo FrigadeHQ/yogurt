@@ -615,7 +615,6 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Ghi chú chi tiết, chính xác hơn. Thay thế mô hình hiện tại nên không cần giữ cả hai.",
   "about {minutes} min left": "còn khoảng {minutes} phút",
   "AI upgrade skipped": "Đã bỏ qua nâng cấp AI",
-  "Get it in Settings": "Tải trong Cài đặt",
   "Suggested": "Được đề xuất",
   "Dismiss suggestion": "Bỏ qua đề xuất",
   "Delete recording": "Xóa bản ghi",
@@ -625,6 +624,5 @@
   "Couldn't delete the recording. Try again.": "Không thể xóa bản ghi. Hãy thử lại.",
   "Keep recordings after meetings": "Giữ bản ghi sau cuộc họp",
   "Recording deleted": "Đã xóa bản ghi",
-  "Turn off in Settings": "Tắt trong Cài đặt",
   "When off, new meetings' audio is deleted once the summary is saved.": "Khi tắt, âm thanh cuộc họp mới sẽ bị xóa sau khi lưu tóm tắt."
 }

@@ -615,7 +615,6 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "筆記更詳細、更準確。取代目前的模型，無需同時保留兩個。",
   "about {minutes} min left": "還需約 {minutes} 分鐘",
   "AI upgrade skipped": "已略過 AI 升級",
-  "Get it in Settings": "前往設定下載",
   "Suggested": "建議",
   "Dismiss suggestion": "忽略建議",
   "Delete recording": "刪除錄音",
@@ -625,6 +624,5 @@
   "Couldn't delete the recording. Try again.": "無法刪除錄音。請重試。",
   "Keep recordings after meetings": "會後保留錄音",
   "Recording deleted": "錄音已刪除",
-  "Turn off in Settings": "在設定中關閉",
   "When off, new meetings' audio is deleted once the summary is saved.": "關閉後，新會議的音訊將在摘要儲存後刪除。"
 }

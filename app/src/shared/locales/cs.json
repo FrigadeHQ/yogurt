@@ -694,7 +694,6 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Podrobnější a přesnější poznámky. Nahradí stávající model, nezůstanou vám oba.",
   "about {minutes} min left": "zbývá asi {minutes} min",
   "AI upgrade skipped": "Upgrade AI přeskočen",
-  "Get it in Settings": "Stáhnout v nastavení",
   "Suggested": "Doporučeno",
   "Dismiss suggestion": "Odmítnout návrh",
   "Delete recording": "Smazat nahrávku",
@@ -704,6 +703,5 @@
   "Couldn't delete the recording. Try again.": "Nahrávku se nepodařilo smazat. Zkuste to znovu.",
   "Keep recordings after meetings": "Ponechat nahrávky po schůzkách",
   "Recording deleted": "Nahrávka smazána",
-  "Turn off in Settings": "Vypnout v nastavení",
   "When off, new meetings' audio is deleted once the summary is saved.": "Při vypnutí se zvuk nových schůzek smaže po uložení shrnutí."
 }

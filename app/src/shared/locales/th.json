@@ -615,7 +615,6 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "โน้ตละเอียดและแม่นยำขึ้น แทนที่โมเดลปัจจุบัน จึงไม่ต้องเก็บทั้งสองโมเดล",
   "about {minutes} min left": "เหลือประมาณ {minutes} นาที",
   "AI upgrade skipped": "ข้ามการอัปเกรด AI แล้ว",
-  "Get it in Settings": "ดาวน์โหลดในการตั้งค่า",
   "Suggested": "แนะนำ",
   "Dismiss suggestion": "ปิดคำแนะนำ",
   "Delete recording": "ลบเสียงบันทึก",
@@ -625,6 +624,5 @@
   "Couldn't delete the recording. Try again.": "ลบเสียงบันทึกไม่ได้ ลองอีกครั้ง",
   "Keep recordings after meetings": "เก็บเสียงบันทึกหลังประชุม",
   "Recording deleted": "ลบเสียงบันทึกแล้ว",
-  "Turn off in Settings": "ปิดในการตั้งค่า",
   "When off, new meetings' audio is deleted once the summary is saved.": "เมื่อปิด เสียงของการประชุมใหม่จะถูกลบหลังบันทึกสรุปแล้ว"
 }

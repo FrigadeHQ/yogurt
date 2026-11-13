@@ -651,7 +651,6 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "ज़्यादा विस्तृत, सटीक नोट्स। मौजूदा मॉडल की जगह लेता है, इसलिए दोनों नहीं रखने पड़ते।",
   "about {minutes} min left": "लगभग {minutes} मिनट बाकी",
   "AI upgrade skipped": "AI अपग्रेड छोड़ दिया",
-  "Get it in Settings": "सेटिंग्स से लें",
   "Suggested": "सुझाया गया",
   "Dismiss suggestion": "सुझाव खारिज करें",
   "Delete recording": "रिकॉर्डिंग मिटाएँ",
@@ -661,6 +660,5 @@
   "Couldn't delete the recording. Try again.": "रिकॉर्डिंग नहीं मिट सकी। फिर कोशिश करें।",
   "Keep recordings after meetings": "मीटिंग के बाद रिकॉर्डिंग रखें",
   "Recording deleted": "रिकॉर्डिंग मिटा दी गई",
-  "Turn off in Settings": "सेटिंग्स में बंद करें",
   "When off, new meetings' audio is deleted once the summary is saved.": "बंद होने पर नई मीटिंग का ऑडियो सारांश सेव होने के बाद मिटेगा।"
 }

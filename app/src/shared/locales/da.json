@@ -660,7 +660,6 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Mere detaljerede, præcise noter. Erstatter den nuværende model, så du ikke har begge.",
   "about {minutes} min left": "cirka {minutes} min tilbage",
   "AI upgrade skipped": "AI-opgradering sprunget over",
-  "Get it in Settings": "Hent i Indstillinger",
   "Suggested": "Foreslået",
   "Dismiss suggestion": "Afvis forslag",
   "Delete recording": "Slet optagelse",
@@ -670,6 +669,5 @@
   "Couldn't delete the recording. Try again.": "Optagelsen kunne ikke slettes. Prøv igen.",
   "Keep recordings after meetings": "Behold optagelser efter møder",
   "Recording deleted": "Optagelse slettet",
-  "Turn off in Settings": "Slå fra i Indstillinger",
   "When off, new meetings' audio is deleted once the summary is saved.": "Når slået fra, slettes nye møders lyd, når resuméet er gemt."
 }

@@ -660,7 +660,6 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Mas detalyado at tumpak na tala. Papalitan ang kasalukuyang modelo para hindi pareho ang nakaimbak.",
   "about {minutes} min left": "mga {minutes} min na lang",
   "AI upgrade skipped": "Nilaktawan ang AI upgrade",
-  "Get it in Settings": "Kunin sa Mga Setting",
   "Suggested": "Iminungkahi",
   "Dismiss suggestion": "Balewalain ang mungkahi",
   "Delete recording": "Burahin ang recording",
@@ -670,6 +669,5 @@
   "Couldn't delete the recording. Try again.": "Hindi mabura ang recording. Subukan ulit.",
   "Keep recordings after meetings": "Itago ang recordings pagkatapos ng pulong",
   "Recording deleted": "Nabura ang recording",
-  "Turn off in Settings": "I-off sa Settings",
   "When off, new meetings' audio is deleted once the summary is saved.": "Kapag naka-off, buburahin ang audio ng bagong pulong pag na-save ang buod."
 }

@@ -74,11 +74,12 @@ it('explains the notes model benefit and removal in every locale', () => {
 it('translates the skipped-model toast and Settings action in every locale', () => {
   for (const { id } of LOCALES) {
     const table = load(id)
-    for (const key of ['AI upgrade skipped', 'Get it in Settings']) {
+    for (const key of ['AI upgrade skipped', 'Settings']) {
       expect(keys).toContain(key)
       expect(table[key]).toBeTypeOf('string')
       expect(table[key]).not.toBe('')
-      if (id !== 'en') expect(table[key]).not.toBe(key)
+      // Filipino keeps the word Settings as macOS does
+      if (id !== 'en' && !(id === 'fil' && key === 'Settings')) expect(table[key]).not.toBe(key)
     }
   }
 })
@@ -120,9 +121,9 @@ describe.each(LOCALES.filter((l) => l.id !== 'en'))('$english', ({ id }) => {
 
 it('translates recording deletion and retention in every locale', () => {
   for (const { id } of LOCALES) for (const old of ['Turn off to delete audio after the transcript and summary are saved.', 'Only applies to meetings that finish from now on.']) expect(load(id)[old]).toBeUndefined()
-  for (const { id } of LOCALES) for (const key of ["Recording deleted", "Turn off in Settings", "Delete recording", "Delete recording?", "The audio is deleted for good. Your transcript and notes stay.", "Keep the audio until the transcript is saved.", "Couldn't delete the recording. Try again.", "Keep recordings after meetings", "When off, new meetings' audio is deleted once the summary is saved."]) {
+  for (const { id } of LOCALES) for (const key of ["Recording deleted", "Settings", "Delete recording", "Delete recording?", "The audio is deleted for good. Your transcript and notes stay.", "Keep the audio until the transcript is saved.", "Couldn't delete the recording. Try again.", "Keep recordings after meetings", "When off, new meetings' audio is deleted once the summary is saved."]) {
     expect(keys).toContain(key)
     expect(load(id)[key]).toBeTypeOf('string')
-    if (id !== 'en') expect(load(id)[key]).not.toBe(key)
+    if (id !== 'en' && !(id === 'fil' && key === 'Settings')) expect(load(id)[key]).not.toBe(key)
   }
 })

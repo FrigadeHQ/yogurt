@@ -690,7 +690,6 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Более подробные и точные заметки. Заменяет текущую модель, чтобы не хранить обе.",
   "about {minutes} min left": "осталось около {minutes} мин",
   "AI upgrade skipped": "Обновление ИИ пропущено",
-  "Get it in Settings": "Скачать в настройках",
   "Suggested": "Предложено",
   "Dismiss suggestion": "Отклонить предложение",
   "Delete recording": "Удалить запись",
@@ -700,6 +699,5 @@
   "Couldn't delete the recording. Try again.": "Не удалось удалить запись. Попробуйте ещё раз.",
   "Keep recordings after meetings": "Хранить записи после встреч",
   "Recording deleted": "Запись удалена",
-  "Turn off in Settings": "Выключить в настройках",
   "When off, new meetings' audio is deleted once the summary is saved.": "Если выключено, аудио новых встреч удаляется после сохранения сводки."
 }

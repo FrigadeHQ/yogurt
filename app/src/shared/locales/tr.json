@@ -651,7 +651,6 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Daha ayrıntılı, doğru notlar. Mevcut modelin yerini alır, böylece ikisini birden tutmazsınız.",
   "about {minutes} min left": "yaklaşık {minutes} dk kaldı",
   "AI upgrade skipped": "AI yükseltmesi atlandı",
-  "Get it in Settings": "Ayarlardan indir",
   "Suggested": "Önerilen",
   "Dismiss suggestion": "Öneriyi reddet",
   "Delete recording": "Kaydı sil",
@@ -661,6 +660,5 @@
   "Couldn't delete the recording. Try again.": "Kayıt silinemedi. Yeniden deneyin.",
   "Keep recordings after meetings": "Toplantılardan sonra kayıtları sakla",
   "Recording deleted": "Kayıt silindi",
-  "Turn off in Settings": "Ayarlardan kapat",
   "When off, new meetings' audio is deleted once the summary is saved.": "Kapalıyken yeni toplantıların sesi özet kaydedilince silinir."
 }

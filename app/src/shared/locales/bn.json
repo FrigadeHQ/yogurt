@@ -651,7 +651,6 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "আরও বিস্তারিত, নির্ভুল নোট। বর্তমান মডেলের বদলে এটি থাকবে, দুটো রাখতে হবে না।",
   "about {minutes} min left": "প্রায় {minutes} মিনিট বাকি",
   "AI upgrade skipped": "AI আপগ্রেড বাদ দেওয়া হয়েছে",
-  "Get it in Settings": "সেটিংস থেকে নিন",
   "Suggested": "প্রস্তাবিত",
   "Dismiss suggestion": "প্রস্তাব বাতিল করুন",
   "Delete recording": "রেকর্ডিং মুছুন",
@@ -661,6 +660,5 @@
   "Couldn't delete the recording. Try again.": "রেকর্ডিং মোছা যায়নি। আবার চেষ্টা করুন।",
   "Keep recordings after meetings": "মিটিংয়ের পরে রেকর্ডিং রাখুন",
   "Recording deleted": "রেকর্ডিং মোছা হয়েছে",
-  "Turn off in Settings": "সেটিংসে বন্ধ করুন",
   "When off, new meetings' audio is deleted once the summary is saved.": "বন্ধ থাকলে সারাংশ সেভের পর নতুন মিটিংয়ের অডিও মুছবে।"
 }

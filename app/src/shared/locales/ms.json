@@ -615,7 +615,6 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Nota lebih terperinci dan tepat. Menggantikan model semasa, jadi tidak perlu menyimpan kedua-duanya.",
   "about {minutes} min left": "kira-kira {minutes} min lagi",
   "AI upgrade skipped": "Naik taraf AI dilangkau",
-  "Get it in Settings": "Muat turun di Tetapan",
   "Suggested": "Dicadangkan",
   "Dismiss suggestion": "Abaikan cadangan",
   "Delete recording": "Padam rakaman",
@@ -625,6 +624,5 @@
   "Couldn't delete the recording. Try again.": "Rakaman tidak dapat dipadam. Cuba lagi.",
   "Keep recordings after meetings": "Simpan rakaman selepas mesyuarat",
   "Recording deleted": "Rakaman dipadam",
-  "Turn off in Settings": "Matikan dalam Tetapan",
   "When off, new meetings' audio is deleted once the summary is saved.": "Jika dimatikan, audio mesyuarat baharu dipadam selepas ringkasan disimpan."
 }

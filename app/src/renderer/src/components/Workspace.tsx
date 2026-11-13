@@ -30,7 +30,7 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
   const sidebarTransition = { duration: sidebarMotion ? 0.2 : 0, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] }
   const note = route.startsWith('/note/')
   // a saved chat (/chat/<id>) is still under Chat
-  const section = route === '/settings/recordings' ? '/settings' : route.startsWith('/chat/') ? '/chat' : route
+  const section = route.startsWith('/settings/') ? '/settings' : route.startsWith('/chat/') ? '/chat' : route
   const returnToRecording = recording?.kind === 'recording' && route !== `/note/${recording.meetingId}`
   useEffect(() => {
     const ask = () => {

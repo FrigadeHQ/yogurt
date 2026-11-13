@@ -22,7 +22,8 @@ const loginLabel = () => osWords({ mac: t('Open Yogurt when your Mac starts'), w
 const trayLabel = () => osWords({ mac: t('Show Yogurt in the menu bar'), windows: t('Show Yogurt in the notification area'), linux: t('Show Yogurt in the tray') })
 
 /** Settings, kept small: what Yogurt may use, your name, open at login, stop when the call ends, light or dark, a backup and updates. Nothing technical. */
-export function Settings({ revision = 0, focusRecording = false }: { revision?: number; focusRecording?: boolean }) {
+/** focus: the setting a toast's Settings button opens, recordings or notes-model */
+export function Settings({ revision = 0, focus }: { revision?: number; focus?: string }) {
   const [perms, setPerms] = useState<PermissionStatus>()
   const [prefs, setPrefs] = useState<{ theme: Theme; openAtLogin: boolean; showInMenuBar: boolean; myName: string; macName: string; stopWhenCallEnds: boolean; recordingReminder: boolean; keepRecordings: boolean }>()
   const [name, setName] = useState('')
@@ -121,11 +122,11 @@ export function Settings({ revision = 0, focusRecording = false }: { revision?: 
                 onClick={() => { if (!prefs) return; const on = !prefs.recordingReminder; setPrefs({ ...prefs, recordingReminder: on }); void window.yogurt.settings.setRecordingReminder(on) }}
                 className="settings-toggle"><span className="settings-toggle-knob" /></button>
             </div>
-            <RecordingSetting reveal={focusRecording && generalReady && !!perms} on={prefs?.keepRecordings ?? true} disabled={!prefs} onChange={async on => {
+            <RecordingSetting reveal={focus === 'recordings' && generalReady && !!perms} on={prefs?.keepRecordings ?? true} disabled={!prefs} onChange={async on => {
               await window.yogurt.settings.setKeepRecordings(on)
               setPrefs(p => p && { ...p, keepRecordings: on })
             }} />
-            <NotesModel />
+            <NotesModel reveal={focus === 'notes-model'} />
           </LoadingContent></div>
 
           <h2 className="settings-section-heading">{t('What Yogurt can use')}</h2>
@@ -161,8 +162,10 @@ export function Settings({ revision = 0, focusRecording = false }: { revision?: 
   )
 }
 
-function NotesModel() {
+function NotesModel({ reveal = false }: { reveal?: boolean }) {
   const [setup, setSetup] = useState<SetupState>()
+  const row = useRef<HTMLDivElement>(null)
+  useEffect(() => { if (reveal && setup?.notesUpgradeBytes) row.current?.scrollIntoView({ block: 'center', behavior: 'instant' }) }, [reveal, setup?.notesUpgradeBytes])
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
   useEffect(() => {
@@ -182,7 +185,7 @@ function NotesModel() {
     } catch { setFailed(true) }
     finally { setBusy(false) }
   }
-  return <div className="settings-row" data-testid="settings-notes-model">
+  return <div ref={row} className="settings-row" data-testid="settings-notes-model">
     <div className="settings-row-copy">
       <p className="settings-label">{t('Better notes model')}</p>
       <p className="settings-description">{setup.notesRestoreFraction !== undefined

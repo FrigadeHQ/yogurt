@@ -675,7 +675,6 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Notas mais detalhadas e precisas. Substitui o modelo atual, para você não manter os dois.",
   "about {minutes} min left": "faltam cerca de {minutes} min",
   "AI upgrade skipped": "Melhoria de IA ignorada",
-  "Get it in Settings": "Baixe nos Ajustes",
   "Suggested": "Sugerida",
   "Dismiss suggestion": "Dispensar sugestão",
   "Delete recording": "Excluir gravação",
@@ -685,6 +684,5 @@
   "Couldn't delete the recording. Try again.": "Não foi possível excluir a gravação. Tente novamente.",
   "Keep recordings after meetings": "Manter gravações após as reuniões",
   "Recording deleted": "Gravação excluída",
-  "Turn off in Settings": "Desativar nos Ajustes",
   "When off, new meetings' audio is deleted once the summary is saved.": "Se desativado, o áudio de novas reuniões é excluído após salvar o resumo."
 }

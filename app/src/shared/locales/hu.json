@@ -651,7 +651,6 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Részletesebb, pontosabb jegyzetek. Lecseréli a jelenlegi modellt, így nem marad meg mindkettő.",
   "about {minutes} min left": "még kb. {minutes} perc",
   "AI upgrade skipped": "AI-frissítés kihagyva",
-  "Get it in Settings": "Letöltés a Beállításokban",
   "Suggested": "Javasolt",
   "Dismiss suggestion": "Javaslat elvetése",
   "Delete recording": "Felvétel törlése",
@@ -661,6 +660,5 @@
   "Couldn't delete the recording. Try again.": "A felvételt nem sikerült törölni. Próbálja újra.",
   "Keep recordings after meetings": "Felvételek megőrzése a megbeszélések után",
   "Recording deleted": "Felvétel törölve",
-  "Turn off in Settings": "Kikapcsolás a beállításokban",
   "When off, new meetings' audio is deleted once the summary is saved.": "Kikapcsolva az új megbeszélések hangja az összefoglaló mentése után törlődik."
 }

@@ -660,7 +660,6 @@
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Uitgebreidere, nauwkeurigere notities. Vervangt het huidige model, zodat je niet beide bewaart.",
   "about {minutes} min left": "nog ongeveer {minutes} min",
   "AI upgrade skipped": "AI-upgrade overgeslagen",
-  "Get it in Settings": "Download in Instellingen",
   "Suggested": "Voorgesteld",
   "Dismiss suggestion": "Suggestie afwijzen",
   "Delete recording": "Opname verwijderen",
@@ -670,6 +669,5 @@
   "Couldn't delete the recording. Try again.": "Opname kon niet worden verwijderd. Probeer opnieuw.",
   "Keep recordings after meetings": "Opnamen na vergaderingen bewaren",
   "Recording deleted": "Opname verwijderd",
-  "Turn off in Settings": "Uitzetten in Instellingen",
   "When off, new meetings' audio is deleted once the summary is saved.": "Indien uit, wordt audio van nieuwe vergaderingen gewist zodra de samenvatting is opgeslagen."
 }

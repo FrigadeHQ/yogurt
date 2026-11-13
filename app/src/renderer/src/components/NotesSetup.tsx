@@ -37,7 +37,7 @@ export function NotesSetup({ go }: { go: (route: string) => void }) {
       const id = toasts.add({
         title: t('AI upgrade skipped'), timeout: 8000,
         data: { testId: 'notes-skipped-toast' },
-        actionProps: { children: t('Get it in Settings'), onClick: () => { toasts.close(id); go('/settings') } },
+        actionProps: { children: t('Settings'), onClick: () => { toasts.close(id); go('/settings/notes-model') } },
       })
     } catch { setSkipFailed(true) }
   }

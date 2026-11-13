@@ -283,7 +283,7 @@ test('skipping from the popover confirms only success, opens Settings, and dismi
       await expect(page.getByTestId('notes-setup-open')).toHaveCount(0)
       await expect(page.getByTestId('notes-setup')).toHaveCount(0)
       await expect(toast).toContainText('AI upgrade skipped')
-      await expect(toast.getByRole('button', { name: 'Get it in Settings' })).toBeVisible()
+      await expect(toast.getByRole('button', { name: 'Settings', exact: true })).toBeVisible()
       expect(await toast.evaluate(el => {
         const title = el.querySelector('.app-toast-title')!, action = el.querySelector('.app-toast-action')!
         return [title, action].every(line => {
@@ -294,9 +294,9 @@ test('skipping from the popover confirms only success, opens Settings, and dismi
           - action.getBoundingClientRect().y - action.getBoundingClientRect().height / 2) < 1
       })).toBe(true)
       if (dismiss === 'settings') {
-        await toast.getByRole('button', { name: 'Get it in Settings' }).click()
+        await toast.getByRole('button', { name: 'Settings', exact: true }).click()
         await expect(page.getByTestId('settings')).toBeVisible()
-        await expect.poll(() => page.evaluate(() => window.yogurt.nav.current())).toBe('/settings')
+        await expect.poll(() => page.evaluate(() => window.yogurt.nav.current())).toBe('/settings/notes-model')
       } else if (dismiss === 'close') {
         await toast.locator('.app-toast-close').click()
       } else {
@@ -389,7 +389,7 @@ test('Settings download, Skip, restart and Remove use the real setup controller'
     await page.getByTestId('notes-setup-open').click()
     await page.getByTestId('notes-setup-skip').click()
     await expect(page.getByTestId('notes-setup-open')).toHaveCount(0)
-    await page.getByTestId('notes-skipped-toast').getByRole('button', { name: 'Get it in Settings' }).click()
+    await page.getByTestId('notes-skipped-toast').getByRole('button', { name: 'Settings', exact: true }).click()
     await expect(page.getByTestId('settings')).toBeVisible()
     await expect(action).toHaveText(/^Download \([\d.]+ GB\)$/)
     await app.close()
