@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  Private AI meeting notes. Free and open source.
+  Private AI meeting notes. A free, open-source alternative to Granola.
 </p>
 
 <p align="center">
