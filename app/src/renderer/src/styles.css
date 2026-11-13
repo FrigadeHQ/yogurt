@@ -154,7 +154,7 @@ body {
 }
 /* Native thin overlay scrollbars, shared by every main-window scroll surface. */
 .main-window * { scrollbar-width:thin;scrollbar-color:transparent transparent;scrollbar-gutter:auto; }
-.main-window :is(*:hover,*:focus-visible,[data-scrolling]) { scrollbar-color:color-mix(in srgb,var(--muted) 45%,transparent) transparent; }
+.main-window :is(*:hover,*:focus-visible,[data-scrolling]) { scrollbar-color:color-mix(in srgb,var(--muted) 25%,transparent) transparent; }
 @layer base { @media (prefers-reduced-motion:no-preference) { :where(.main-window :is(.overflow-auto,.overflow-y-auto,.workspace-sidebar-body,.native-library,.agenda-scroll,.agenda-inspector-scroll,.note-notes-pane,.note-layout,.chat-thread,.chat-history,.settings-scroll,.shortcuts-list,.citation-excerpt,.note-date-events,.finish-setup,.ob-side)) { transition:scrollbar-color 200ms; } } }
 @media (prefers-contrast:more),(forced-colors:active) {
   .main-window :is(*,*:hover,*:focus-visible,[data-scrolling]) { scrollbar-width:auto;scrollbar-color:auto; }
