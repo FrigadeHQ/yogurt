@@ -3,7 +3,7 @@ import type { Track } from '../capture'
 import type { Chunk } from './chunker'
 import { languageName } from './appleSpeech'
 import { tokens } from './echo'
-import { isPromptEcho, isSilenceGuess } from './hallucination'
+import { isPromptEcho, isSilenceGuess, withoutPromptLabel } from './hallucination'
 
 /** What a chunk turns into: lines on meeting time. The meeting and the speaker are added where they are saved. */
 export type Line = Omit<Segment, 'id' | 'meetingId' | 'speaker'> & {
@@ -104,12 +104,16 @@ export function createTranscriber(o: Opts): Transcribe {
     const body = (await res.json()) as Verbose
     const lines: Line[] = []
     for (const s of body.segments ?? []) {
-      const text = s.text.replace(/\s+/g, ' ').trim()
+      const said = s.text.replace(/\s+/g, ' ').trim()
+      // names from the prompt read back as a speaker label ("Eric and Sam Lee: so..."): the speech after it stays
+      const text = withoutPromptLabel(said, prompt)
       if (!text || NOISE.test(text)) continue
       if ((s.no_speech_prob ?? 0) > 0.6 && (s.avg_logprob ?? 0) < -1) continue
       // read back from the prompt, or a stock line over a faint sound: whisper had nothing to read
       if (isPromptEcho(text, prompt) || (faint && isSilenceGuess(text))) continue
-      const words = s.words?.map((w) => ({ text: w.word, startMs: Math.round(c.startMs + w.start * 1000), endMs: Math.round(c.startMs + w.end * 1000) }))
+      // the label's words (through the one carrying its colon) go with it
+      const kept = text === said ? s.words : s.words?.slice((s.words.findIndex((w) => w.word.includes(':')) + 1) || 0)
+      const words = kept?.map((w) => ({ text: w.word, startMs: Math.round(c.startMs + w.start * 1000), endMs: Math.round(c.startMs + w.end * 1000) }))
       lines.push({ track: c.track, startMs: Math.round(c.startMs + s.start * 1000), endMs: Math.round(c.startMs + s.end * 1000), text, ...(words?.length ? { words } : {}) })
     }
     return { lines, text: lines.map((l) => l.text).join(' '), language: body.detected_language ?? body.language ?? 'auto', prob: body.detected_language_probability ?? 0 }

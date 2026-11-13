@@ -37,3 +37,16 @@ const GUESSES = new Set([
 
 /** One of whisper's stock lines for silence. Only dropped where the audio was not clearly speech: people do say thank you. */
 export const isSilenceGuess = (text: string): boolean => GUESSES.has(tokens(text).join(' '))
+
+/**
+ * Whisper sometimes reads names from its prompt back as a speaker label before real speech ("Eric and Sam Lee: so let
+ * me just get"). The label goes when it is the prompt word for word; a colon after words of its own stays.
+ */
+export function withoutPromptLabel(text: string, prompt: string): string {
+  const m = /^([^:\n]{1,120}):\s+(\S[\s\S]*)$/.exec(text)
+  if (!m) return text
+  const label = tokens(m[1]), p = tokens(prompt)
+  if (!label.length || !p.length) return text
+  const inPrompt = p.some((_, i) => label.every((w, k) => p[i + k] === w))
+  return inPrompt ? m[2] : text
+}

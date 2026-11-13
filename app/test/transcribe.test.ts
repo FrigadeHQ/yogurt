@@ -79,6 +79,15 @@ describe('transcribe', () => {
     const tr = createTranscriber({ url: async () => s.url, prompt: () => 'With Alex Morgan of Zentrik.' })
     expect((await tr(chunk('them', 0))).map((l) => l.text)).toEqual(['Shall we start with the roadmap?'])
   })
+  it('takes off prompt names read back as a speaker label, with their words, and keeps the speech', async () => {
+    const s = await stub([{ segments: [{ start: 0, end: 2, text: ' Alex Morgan: Shall we start?', words: [
+      { word: ' Alex', start: 0, end: 0.2 }, { word: ' Morgan:', start: 0.2, end: 0.4 }, { word: ' Shall', start: 0.5, end: 0.8 }, { word: ' we', start: 0.8, end: 1 }, { word: ' start?', start: 1, end: 1.4 },
+    ] }] }])
+    const tr = createTranscriber({ url: async () => s.url, prompt: () => 'With Alex Morgan of Zentrik.' })
+    const [line] = await tr(chunk('them', 0))
+    expect(line.text).toBe('Shall we start?')
+    expect(line.words?.map((w) => w.text.trim())).toEqual(['Shall', 'we', 'start?'])
+  })
   it('drops a stock silence line from a chunk that was not clearly speech, but keeps a real one', async () => {
     const s = await stub([say('Thank you.')])
     const tr = createTranscriber({ url: async () => s.url })
