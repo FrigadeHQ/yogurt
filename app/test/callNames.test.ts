@@ -171,6 +171,58 @@ describe('hookCallNames', () => {
     expect(s.logs.filter((l) => l.includes('not-trusted'))).toHaveLength(1)
   })
 
+  /** what yogurt-system call-watch prints for Teams for Linux with its D-Bus control on and no call window read */
+  const t4lLine = (t: number, people: string[], talking: string[] = []): WatchLine => ({
+    t, app: 'com.github.IsmaelMartinez.teams_for_linux', reported: { speaking: talking, participants: people },
+  })
+
+  it('Teams for Linux: who it reports talking names the lines of a group call, and its people join the attendees', async () => {
+    const s = setup({ app: 'Teams' })
+    s.start()
+    s.audio(0, 1_000_100)
+    s.store.addSegments([
+      { meetingId: s.m.id, track: 'them', startMs: 1000, endMs: 3000, text: 'first', speaker: null },
+      { meetingId: s.m.id, track: 'them', startMs: 6000, endMs: 8000, text: 'second', speaker: null },
+    ])
+    for (let t = 1_000_000; t < 1_010_000; t += 400) s.emit(t4lLine(t, ['Dana Smith', 'Ann Lee'], [t < 1_005_000 ? 'Dana Smith' : 'Ann Lee']))
+    expect(s.hook.nameFor(s.m.id, 1000, 3000)).toBe('Dana Smith')
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id).map((x) => x.speaker)).toEqual(['Dana Smith', 'Ann Lee'])
+    expect(s.store.meeting(s.m.id)!.attendees.map((a) => a.name)).toEqual(['Dana Smith', 'Ann Lee'])
+    expect(s.logs.some((l) => l.includes('with who talks as it reports'))).toBe(true)
+  })
+
+  it('Teams for Linux: the report adds who talks to the People panel read through the tree', () => {
+    const s = setup({ app: 'Teams' })
+    s.start()
+    s.audio(0, 1_000_100)
+    const roster: AxNode = { r: 'frame', k: [{ r: 'tree', t: 'Attendees', k: [
+      { r: 'tree item', t: 'Alex Morgan (You), Organizer, Unmuted' },
+      { r: 'tree item', t: 'Dana Smith, Unmuted' },
+      { r: 'tree item', t: 'Ann Lee, Unmuted' },
+    ] }] }
+    const line = (t: number, talking: string[]): WatchLine => ({ t, app: 'teams-for-linux', windows: [{ tree: roster }], reported: { speaking: talking, participants: ['Ann Lee', 'Dana Smith'] } })
+    for (let t = 1_000_000; t < 1_006_000; t += 400) s.emit(line(t, ['Ann Lee']))
+    expect(s.hook.nameFor(s.m.id, 1000, 3000)).toBe('Ann Lee')
+    // the same tree with no report: nobody is marked in a group call, so Them, as before
+    const p = setup({ app: 'Teams' })
+    p.start()
+    p.audio(0, 1_000_100)
+    for (let t = 1_000_000; t < 1_006_000; t += 400) p.emit({ t, app: 'teams-for-linux', windows: [{ tree: roster }] })
+    expect(p.hook.nameFor(p.m.id, 1000, 3000)).toBeNull()
+  })
+
+  it('a report of the wrong shape with no window counts as nothing read', () => {
+    const s = setup({ app: 'Teams' })
+    s.start()
+    s.audio(0, 1_000_100)
+    for (let t = 1_000_000; t < 1_006_000; t += 400) {
+      s.emit({ t, app: 'com.github.IsmaelMartinez.teams_for_linux', reported: { speaking: 'Dana Smith', participants: [7] } as never })
+    }
+    expect(s.hook.nameFor(s.m.id, 1000, 3000)).toBeNull()
+  })
+
   it('a meeting in an app it can\'t read starts no watch', async () => {
     const s = setup({ app: 'FaceTime' })
     s.start()

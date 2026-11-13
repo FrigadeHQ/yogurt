@@ -4,7 +4,8 @@
 //!   mic-apps               [{"bundleId","name","pid"}] for each app recording from a microphone now
 //!   running-apps ID...     the IDs that have a running process
 //!   browser-title ID       {"title": the app's front window title, or null}
-//!   call-watch MS ID...    Linux: one JSON line every MS with the call app's windows (yogurt-mac's call-watch)
+//!   call-watch MS ID...    Linux: one JSON line every MS with the call app's windows (yogurt-mac's call-watch),
+//!                          and for Teams for Linux what it reports over D-Bus ("reported": {speaking, participants})
 //!
 //! IDs are the program's file name: "zoom.exe" (lowercased) on Windows, "zoom" or a Flatpak app id on Linux.
 
@@ -18,6 +19,8 @@ mod atspi;
 mod calls;
 #[cfg(target_os = "linux")]
 mod linux;
+#[cfg(target_os = "linux")]
+mod t4l;
 #[cfg(windows)]
 mod win;
 

@@ -8,6 +8,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use serde_json::{json, Value};
 
 use crate::atspi::{window_role, A11y, App};
+use crate::t4l::T4l;
 
 /// what kind of window a call app has, from its id (detect.ts's names carry the app)
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -39,6 +40,8 @@ pub fn watch(every_ms: u64, ids: &[String]) -> ! {
     // the bus is found and connected once: a reading every 400 ms must not pay for a handshake each time
     let mut a11y: Option<A11y> = None;
     let mut complained = false;
+    // Teams for Linux may also say who talks, over the session bus (t4l.rs); only asked when it is watched
+    let t4l = T4l::connect(ids);
     loop {
         let started = Instant::now();
         if a11y.is_none() {
@@ -68,6 +71,10 @@ pub fn watch(every_ms: u64, ids: &[String]) -> ! {
                 }
             },
             None => json!({ "t": now_ms(), "error": "no-accessibility" }),
+        };
+        let line = match &t4l {
+            Some(t) => t.enrich(line),
+            None => line,
         };
         crate::out(line);
         // a slow app (a big page) is read less often, so the reading never takes much of the computer

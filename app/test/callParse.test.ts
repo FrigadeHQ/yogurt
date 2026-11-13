@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { readCall, summarize, zoomLinuxTile, zoomTile, type AxNode, type AxWindow } from '../src/main/callNames/parse'
+import { asReported, readCall, summarize, withReported, zoomLinuxTile, zoomTile, type AxNode, type AxWindow } from '../src/main/callNames/parse'
 
 const node = (r: string, o: Partial<AxNode> = {}, ...k: AxNode[]): AxNode => ({ r, ...o, ...(k.length ? { k } : {}) })
 const win = (tree: AxNode, title?: string): AxWindow => ({ title, tree })
@@ -181,6 +181,36 @@ describe('Microsoft Teams', () => {
         node('tree item', { t: 'Dana Smith (You), Organizer, Unmuted' }),
         node('tree item', { t: 'Alex Morgan, Presenter, Unmuted' })))
     expect(readCall('teams', [win(tree)])).toEqual({ speaking: [], participants: ['Dana Smith', 'Alex Morgan'], me: 'Dana Smith' })
+  })
+})
+
+describe('what Teams for Linux reports over D-Bus, added to the window', () => {
+  it('who talks comes from the report; the people stay the roster\'s when the window has one', () => {
+    const roster = readCall('teams', [win(node('frame', {},
+      node('tree', { t: 'Attendees' },
+        node('tree item', { t: 'Alex Morgan (You), Organizer, Unmuted' }),
+        node('tree item', { t: 'Dana Smith, Unmuted' }),
+        node('tree item', { t: 'Ann Lee, Muted' }))))])
+    expect(withReported(roster, { speaking: ['Ann Lee'], participants: ['Ann Lee', 'Dana Smith'] }))
+      .toEqual({ speaking: ['Ann Lee'], participants: ['Alex Morgan', 'Dana Smith', 'Ann Lee'], me: 'Alex Morgan' })
+  })
+
+  it('with no roster read, the people are the report\'s', () => {
+    const empty = { speaking: [], participants: [], me: null }
+    expect(withReported(empty, { speaking: ['Dana Smith'], participants: ['Dana Smith', 'Ann Lee'] }))
+      .toEqual({ speaking: ['Dana Smith'], participants: ['Dana Smith', 'Ann Lee'], me: null })
+  })
+
+  it('no report: the window\'s reading exactly', () => {
+    const r = { speaking: ['Dana Smith'], participants: ['Dana Smith'], me: null }
+    expect(withReported(r, null)).toBe(r)
+  })
+
+  it('a report of the wrong shape is no report', () => {
+    expect(asReported({ speaking: 'Dana Smith', participants: [] })).toBeNull()
+    expect(asReported({ speaking: [] })).toBeNull()
+    expect(asReported(null)).toBeNull()
+    expect(asReported({ speaking: [' Dana Smith ', 7], participants: ['Dana Smith', ''] })).toEqual({ speaking: ['Dana Smith'], participants: ['Dana Smith'] })
   })
 })
 
