@@ -1,8 +1,12 @@
 import { useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react'
-import { Pause, Play } from 'lucide-react'
+import { Menu } from '@base-ui/react/menu'
+import { Modal, ModalClose } from './Modal'
+import { InlineError } from './InlineError'
+import { Ellipsis, Pause, Play, Trash2 } from 'lucide-react'
 import { language, t } from '../../../shared/i18n'
 import { clock } from '../../../shared/transcript'
 import { Swap } from './Swap'
+import { recordingDeletedToast } from './TrashToast'
 
 type Track = 'me' | 'them'
 export type PlayerHandle = { playFrom: (ms: number) => void }
@@ -20,8 +24,11 @@ const DRIFT_S = 0.08
  * with `seek` for an explicit move, and null once the meeting or panel changes; `onPlaying` whether any side is playing.
  */
 type PlayerProps = { id: string; tracks: Track[]; ref?: Ref<PlayerHandle>; onTime?: (ms: number | null, seek?: boolean) => void; onPlaying?: (on: boolean) => void }
-export function Player(props: PlayerProps) { return <MeetingPlayer key={props.id} {...props} /> }
+export function Player(props: PlayerProps) { return props.tracks.length ? <MeetingPlayer key={props.id} {...props} /> : null }
 function MeetingPlayer({ id, tracks, ref, onTime, onPlaying }: PlayerProps) {
+  const [confirm, setConfirm] = useState(false)
+  const [deleted, setDeleted] = useState(false)
+  const menuButton = useRef<HTMLButtonElement>(null)
   const els = useRef<Partial<Record<Track, HTMLAudioElement>>>({})
   const owned = useRef(new Set<HTMLAudioElement>())
   /** tracks that could not be read: dropped, and the other plays on */
@@ -104,6 +111,7 @@ function MeetingPlayer({ id, tracks, ref, onTime, onPlaying }: PlayerProps) {
   const rateText = t('{rate}×', { rate: new Intl.NumberFormat(language()).format(rate) })
   const fill = duration ? (time / duration) * 100 : 0
   const note = broken.length === 0 ? null : shown.length === 0 ? t("This recording can't be played.") : t("Part of this recording can't be played.")
+  if (deleted) return null
   return (
     <div data-testid="player" className="mx-4 mb-4 rounded-xl border border-line bg-float p-2 text-xs text-muted shadow-[var(--shadow-soft)]">
       {shown.map((tr) => (
@@ -116,8 +124,8 @@ function MeetingPlayer({ id, tracks, ref, onTime, onPlaying }: PlayerProps) {
           onError={(e) => { failed(tr, e.currentTarget); changed() }} />
       ))}
       {note && <p data-testid="player-note" role="status" className={shown.length ? 'px-1.5 pb-1.5' : 'px-1.5 py-1'}>{note}</p>}
-      {shown.length > 0 && (
-        <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2.5">
+        {shown.length > 0 && <>
           <button data-testid="player-toggle" aria-label={playing ? t('Pause') : t('Play')} onClick={() => (playing ? pause() : play())}
             className="player-btn flex size-7 shrink-0 items-center justify-center rounded-md bg-accent text-accent-ink">
             <Swap show={playing ? 'pause' : 'play'} options={{ play: <Play size={13} fill="currentColor" strokeWidth={0} className="ms-0.5" />, pause: <Pause size={13} fill="currentColor" strokeWidth={0} /> }} />
@@ -131,8 +139,48 @@ function MeetingPlayer({ id, tracks, ref, onTime, onPlaying }: PlayerProps) {
             className="ghost-btn h-7 w-10 shrink-0 justify-center !px-0 tabular-nums">
             {rateText}
           </button>
-        </div>
-      )}
+        </>}
+          <Menu.Root modal={false}>
+            <Menu.Trigger ref={menuButton} data-testid="recording-menu" aria-label={t('More')} title={t('More')}
+              className="bar-btn ms-auto grid size-7 shrink-0 place-items-center rounded-md text-muted"><Ellipsis size={17} aria-hidden="true" /></Menu.Trigger>
+            <Menu.Portal>
+              <Menu.Positioner side="top" align="end" sideOffset={6} className="ask-menu-positioner">
+                <Menu.Popup className="menu-entry ask-actions-menu" aria-label={t('More')} finalFocus={confirm ? false : menuButton} onKeyDown={e => { if (e.key === 'Escape') e.stopPropagation() }}>
+                  <Menu.Item data-testid="recording-delete" className="text-danger" onClick={() => { pause(); menuButton.current?.focus(); setConfirm(true) }}>
+                    <Trash2 size={14} aria-hidden="true" />{t('Delete recording')}
+                  </Menu.Item>
+                </Menu.Popup>
+              </Menu.Positioner>
+            </Menu.Portal>
+          </Menu.Root>
+      </div>
+      {confirm && <DeleteRecording id={id} onCancel={() => { setConfirm(false); menuButton.current?.focus() }} onDeleted={() => {
+        for (const a of owned.current) { a.pause(); a.removeAttribute('src'); a.load() }
+        setConfirm(false); setDeleted(true); setPlaying(false); onTimeRef.current?.(null); onPlayingRef.current?.(false)
+      }} />}
     </div>
   )
+}
+
+export function DeleteRecording({ id, onCancel, onDeleted }: { id: string; onCancel: () => void; onDeleted: () => void }) {
+  const [busy, setBusy] = useState(false)
+  const [failed, setFailed] = useState<'not-transcribed' | 'recording' | 'failed'>()
+  const yes = async () => {
+    if (busy) return
+    setBusy(true); setFailed(undefined)
+    const result = await window.yogurt.audio.delete(id).catch(() => 'failed' as const)
+    setBusy(false)
+    if (result === 'deleted') void recordingDeletedToast()
+    if (result === 'deleted' || result === 'missing') onDeleted()
+    else setFailed(result === 'not-transcribed' || result === 'recording' ? result : 'failed')
+  }
+  return <Modal testId="recording-delete-confirm" role="alertdialog" title={t('Delete recording?')}
+    description={t('The audio is deleted for good. Your transcript and notes stay.')} busy={busy} onCancel={onCancel}>
+    {failed && <InlineError testId="recording-delete-failed" className="inline-error-in-dialog"><span>{failed === 'not-transcribed' ? t('Keep the audio until the transcript is saved.')
+      : failed === 'recording' ? t('Stop the recording first, then try again.') : t("Couldn't delete the recording. Try again.")}</span></InlineError>}
+    <div className="modal-actions">
+      <button data-testid="recording-delete-yes" className="modal-button danger" disabled={busy} onClick={() => void yes()}>{t('Delete recording')}</button>
+      <ModalClose data-testid="recording-delete-cancel" data-dialog-cancel className="modal-button" disabled={busy}>{t('Cancel')}</ModalClose>
+    </div>
+  </Modal>
 }

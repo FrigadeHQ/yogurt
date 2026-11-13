@@ -1,5 +1,5 @@
 import { LoadingContent } from '../components/LoadingContent'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Check, ChevronDown, Copy, Download, ExternalLink, Globe, Lock, Upload } from 'lucide-react'
 import type { Access, McpStatus, PermissionKind, PermissionStatus, SetupState, Theme, UpdateStatus } from '../../../shared/types'
 import { notesDownloadText, notesUpgradeSize } from '../notesSetup'
@@ -22,10 +22,11 @@ const loginLabel = () => osWords({ mac: t('Open Yogurt when your Mac starts'), w
 const trayLabel = () => osWords({ mac: t('Show Yogurt in the menu bar'), windows: t('Show Yogurt in the notification area'), linux: t('Show Yogurt in the tray') })
 
 /** Settings, kept small: what Yogurt may use, your name, open at login, stop when the call ends, light or dark, a backup and updates. Nothing technical. */
-export function Settings({ revision = 0 }: { revision?: number }) {
+export function Settings({ revision = 0, focusRecording = false }: { revision?: number; focusRecording?: boolean }) {
   const [perms, setPerms] = useState<PermissionStatus>()
-  const [prefs, setPrefs] = useState<{ theme: Theme; openAtLogin: boolean; showInMenuBar: boolean; myName: string; macName: string; stopWhenCallEnds: boolean; recordingReminder: boolean }>()
+  const [prefs, setPrefs] = useState<{ theme: Theme; openAtLogin: boolean; showInMenuBar: boolean; myName: string; macName: string; stopWhenCallEnds: boolean; recordingReminder: boolean; keepRecordings: boolean }>()
   const [name, setName] = useState('')
+  const [generalReady, setGeneralReady] = useState(false)
   const scroll = useScrollMemory<HTMLDivElement>('settings', !!prefs && !!perms)
   useEffect(() => { void window.yogurt.settings.get().then(setPrefs) }, [revision])
   const reload = useCallback(() => { void window.yogurt.permissions.status().then(setPerms) }, [])
@@ -65,7 +66,7 @@ export function Settings({ revision = 0 }: { revision?: number }) {
           <p className="settings-intro">{osWords({ mac: t('Make Yogurt feel at home on your Mac.'), other: t('Make Yogurt feel at home on your computer.') })}</p>
 
           <h2 className="settings-section-heading">{t('General')}</h2>
-          <div className="settings-group"><LoadingContent pending={!prefs} testId="settings-loading">
+          <div className="settings-group"><LoadingContent pending={!prefs} testId="settings-loading" onReady={() => setGeneralReady(true)}>
             <div className="settings-row">
               <label htmlFor="settings-theme" className="settings-label settings-row-copy">{t('Appearance')}</label>
               <span className="settings-select-wrap">
@@ -120,6 +121,10 @@ export function Settings({ revision = 0 }: { revision?: number }) {
                 onClick={() => { if (!prefs) return; const on = !prefs.recordingReminder; setPrefs({ ...prefs, recordingReminder: on }); void window.yogurt.settings.setRecordingReminder(on) }}
                 className="settings-toggle"><span className="settings-toggle-knob" /></button>
             </div>
+            <RecordingSetting reveal={focusRecording && generalReady && !!perms} on={prefs?.keepRecordings ?? true} disabled={!prefs} onChange={async on => {
+              await window.yogurt.settings.setKeepRecordings(on)
+              setPrefs(p => p && { ...p, keepRecordings: on })
+            }} />
             <NotesModel />
           </LoadingContent></div>
 
@@ -409,4 +414,28 @@ function Updates() {
       </div></LoadingContent>
     </>
   )
+}
+
+/** The recording preference uses the same switch row as the other meeting settings. */
+export function RecordingSetting({ on, disabled, onChange, reveal = false }: { on: boolean; disabled?: boolean; onChange: (on: boolean) => Promise<void>; reveal?: boolean }) {
+  const [busy, setBusy] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const row = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!reveal || disabled) return
+    row.current?.scrollIntoView({ block: 'center', behavior: 'instant' })
+    row.current?.querySelector<HTMLButtonElement>('[role="switch"]')?.focus({ preventScroll: true })
+  }, [reveal, disabled])
+  return <div ref={row} data-testid="recording-setting" className="settings-row">
+    <div className="settings-row-copy">
+      <p className="settings-label">{t('Keep recordings after meetings')}</p>
+      <p className="settings-description">{t("When off, new meetings' audio is deleted once the summary is saved.")}</p>
+      {failed && <p role="alert" className="text-danger text-xs">{t("Couldn't save your changes")}</p>}
+    </div>
+    <button data-testid="keep-recordings-toggle" role="switch" aria-checked={on} aria-label={t('Keep recordings after meetings')}
+      disabled={disabled || busy} onClick={async () => {
+        setBusy(true); setFailed(false)
+        try { await onChange(!on) } catch { setFailed(true) } finally { setBusy(false) }
+      }} className="settings-toggle"><span className="settings-toggle-knob" /></button>
+  </div>
 }

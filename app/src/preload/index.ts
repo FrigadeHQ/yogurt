@@ -130,6 +130,12 @@ const api: YogurtApi = {
     save: (id, side) => ipcRenderer.invoke('share:save', id, side),
   },
   audio: {
+    delete: (id) => ipcRenderer.invoke('audio:delete', id),
+    onDeleted: (cb) => {
+      const on = (_e: Electron.IpcRendererEvent, id: string) => cb(id)
+      ipcRenderer.on('audio:deleted', on)
+      return () => { ipcRenderer.removeListener('audio:deleted', on) }
+    },
     tracks: (id) => ipcRenderer.invoke('audio:tracks', id),
     mics: () => ipcRenderer.invoke('audio:mics'),
     setMic: (id) => ipcRenderer.invoke('audio:set-mic', id),
@@ -223,6 +229,7 @@ const api: YogurtApi = {
     setName: (name) => ipcRenderer.invoke('settings:name', name),
     setStopWhenCallEnds: (on) => ipcRenderer.invoke('settings:auto-stop', on),
     setRecordingReminder: (on) => ipcRenderer.invoke('settings:recording-reminder', on),
+    setKeepRecordings: (on) => ipcRenderer.invoke('settings:keep-recordings', on),
     setJargon: (terms) => ipcRenderer.invoke('settings:jargon', terms),
     setLanguage: (id) => ipcRenderer.invoke('settings:language', id),
     onLanguage: (cb) => { const f = (_e: unknown, locale: string) => cb(locale); ipcRenderer.on('settings:language', f); return () => { ipcRenderer.off('settings:language', f) } },

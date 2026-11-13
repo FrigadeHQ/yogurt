@@ -617,5 +617,14 @@
   "AI upgrade skipped": "ข้ามการอัปเกรด AI แล้ว",
   "Get it in Settings": "ดาวน์โหลดในการตั้งค่า",
   "Suggested": "แนะนำ",
-  "Dismiss suggestion": "ปิดคำแนะนำ"
+  "Dismiss suggestion": "ปิดคำแนะนำ",
+  "Delete recording": "ลบเสียงบันทึก",
+  "Delete recording?": "ลบเสียงบันทึกไหม",
+  "The audio is deleted for good. Your transcript and notes stay.": "เสียงจะถูกลบถาวร ข้อความถอดเสียงและโน้ตจะยังอยู่",
+  "Keep the audio until the transcript is saved.": "เก็บเสียงไว้จนกว่าจะบันทึกข้อความถอดเสียงแล้ว",
+  "Couldn't delete the recording. Try again.": "ลบเสียงบันทึกไม่ได้ ลองอีกครั้ง",
+  "Keep recordings after meetings": "เก็บเสียงบันทึกหลังประชุม",
+  "Recording deleted": "ลบเสียงบันทึกแล้ว",
+  "Turn off in Settings": "ปิดในการตั้งค่า",
+  "When off, new meetings' audio is deleted once the summary is saved.": "เมื่อปิด เสียงของการประชุมใหม่จะถูกลบหลังบันทึกสรุปแล้ว"
 }

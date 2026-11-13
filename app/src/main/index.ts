@@ -17,7 +17,7 @@ import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { isFake, userDataDir } from './paths'
 import { logToFile } from './log'
-import { loadSettings, localeOf, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings } from './settings'
+import { loadSettings, localeOf, keepsRecording, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings } from './settings'
 import { CALL_GONE_MS, useCallApps } from './detect'
 import { systemLocale } from './locale'
 import { language as uiLanguage, onLanguage, setLanguage, t } from '../shared/i18n'
@@ -72,6 +72,7 @@ import { hookBackup } from './backupIpc'
 import { hookFolders } from './foldersIpc'
 import { hookMcp } from './mcp'
 import { startedHidden } from './mcp/paths'
+import { deleteRecording } from './deleteRecording'
 import { AUDIO_SCHEME, audioExts, createAudioHandler, trackFile, type AudioExt } from './audio'
 import { finishQuit, hookUpdates, isPreviewBuild, updateOfferChanged, updatesOn } from './updates'
 import type { NoteSaveResult, StartResult } from '../shared/types'
@@ -580,8 +581,16 @@ app.whenReady().then(() => {
     transcribed: async (id) => { await recordingFinished(id); await transcriptFinished(id) }, onStart: onMeetingStart, onStop: onMeetingStop,
   })
   const folderSuggestions = createFolderSuggestions({ store, queue, model, changed: () => win?.webContents.send('folders:changed') })
+  let resumingId: string | null = null
+  const removeRecording = (id: string, automatic = false) => deleteRecording(id, {
+    store, dirOf: id => join(userDataDir(), 'meetings', id),
+    busy: id => resumingId === id || stopSavePending(id),
+    settle: async id => { await rejoined; await recordingFinished(id); await transcriptFinished(id) },
+    removed: id => { for (const w of BrowserWindow.getAllWindows()) w.webContents.send('audio:deleted', id) },
+    ...(automatic ? { keep: endedAt => keepsRecording(loadSettings(settingsFile), endedAt) } : {}),
+  })
   const notes = hookNotes({
-    summarized: id => folderSuggestions.schedule(id),
+    summarized: id => { folderSuggestions.schedule(id); void removeRecording(id, true) },
     // Windows and Linux: a note waiting while the model loads says so (a Mac shows what it always did)
     showLoading: platform !== 'darwin',
     store, queue, model, language: meetingLanguage, onStop: onMeetingStopSaved, named: (id) => callNames.finished(id), earlier: (id) => readAhead.parts(id), me,
@@ -590,7 +599,6 @@ app.whenReady().then(() => {
     // the notes are written: the meeting goes into the library for chat across meetings
     changed: () => { win?.webContents.send('meetings:changed'); void indexer.schedule() },
   })
-  let resumingId: string | null = null
   ipcMain.handle('meetings:resume', async (_e, id: unknown): Promise<StartResult> => {
     if (!isId(id)) return { error: 'gone' }
     const current = activeMeeting()
@@ -610,6 +618,8 @@ app.whenReady().then(() => {
       await rejoined
       if (finishing || !store.meeting(id)) return { error: 'failed' }
       const append = await prepareAppend(join(userDataDir(), 'meetings', id))
+      // Deleted audio must not restart a retained transcript at zero.
+      if (!append.startMs) append.startMs = store.segments(id, { hidden: true }).reduce((end, s) => Math.max(end, s.endMs), Math.max(append.startMs, store.meeting(id)?.durationMs ?? 0))
       // Another explicit start may have happened while the old files were settling.
       if (finishing || activeMeeting()) return { error: 'failed' }
       const m = resumeMeeting(id, append)
@@ -677,6 +687,7 @@ app.whenReady().then(() => {
   const meetingDir = (id: string) => join(userDataDir(), 'meetings', id)
   const finishedMeeting = (id: string) => { const m = store.meeting(id); return !!m && m.state !== 'recording' }
   protocol.handle(AUDIO_SCHEME, createAudioHandler({ dirOf: meetingDir, known: finishedMeeting, ready: async (id) => { await rejoined; await recordingSettled(id); if (isFake()) await waitForFakeAudioMetadata() }, exts: audioKinds }))
+  ipcMain.handle('audio:delete', (_e, id: unknown) => isId(id) ? removeRecording(id) : 'missing')
   ipcMain.handle('audio:tracks', async (_e, id: unknown) => {
     if (!isId(id) || !finishedMeeting(id)) return []
     // a join (after the meeting, or left over from a crash and redone at launch) rewrites the files: wait for it, 30 s at most

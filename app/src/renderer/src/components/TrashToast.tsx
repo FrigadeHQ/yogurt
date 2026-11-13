@@ -16,6 +16,19 @@ type Shown = { ids: string[]; bulk?: boolean; error?: string; /** the note it wa
 let show: ((s: Shown) => void) | undefined
 export const toasts = Toast.createToastManager<{ testId?: string; actionTestId?: string }>()
 
+/** Confirm manual audio deletion without changing the retention preference. */
+export async function recordingDeletedToast() {
+  const prefs = await window.yogurt.settings.get().catch(() => undefined)
+  const id = toasts.add({ title: t('Recording deleted'), timeout: 8000,
+    data: { testId: 'recording-deleted-toast', actionTestId: 'recording-settings' },
+    actionProps: prefs?.keepRecordings ? { children: t('Turn off in Settings'), onClick: () => {
+      window.yogurt.nav.go('/settings/recordings')
+      toasts.close(id)
+    } } : undefined,
+  })
+  return id
+}
+
 /**
  * Delete in a list or a note: the meeting goes to the Trash at once, no question asked, and a toast
  * says so with Undo. from: the route it was deleted on, when that was its own note (main has already gone home).
@@ -123,7 +136,7 @@ export function TrashToast({ go }: { go: (route: string) => void }) {
 function ToastList() {
   const { toasts: shown } = Toast.useToastManager<{ testId?: string; actionTestId?: string }>()
   return shown.map(item => <Toast.Root key={item.id} toast={item} className="app-toast" swipeDirection={['down', 'right']}
-    data-testid={item.transitionStatus === 'ending' ? undefined : item.data?.testId ?? 'app-toast'}>
+    data-kind={item.data?.testId} data-testid={item.transitionStatus === 'ending' ? undefined : item.data?.testId ?? 'app-toast'}>
     <Toast.Content className="app-toast-content">
       <Toast.Title className="app-toast-title" />
       {item.actionProps && <Toast.Action className="app-toast-action" data-testid={item.data?.actionTestId} />}

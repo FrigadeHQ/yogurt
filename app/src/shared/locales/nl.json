@@ -662,5 +662,14 @@
   "AI upgrade skipped": "AI-upgrade overgeslagen",
   "Get it in Settings": "Download in Instellingen",
   "Suggested": "Voorgesteld",
-  "Dismiss suggestion": "Suggestie afwijzen"
+  "Dismiss suggestion": "Suggestie afwijzen",
+  "Delete recording": "Opname verwijderen",
+  "Delete recording?": "Opname verwijderen?",
+  "The audio is deleted for good. Your transcript and notes stay.": "De audio wordt voorgoed verwijderd. Transcript en notities blijven.",
+  "Keep the audio until the transcript is saved.": "Bewaar de audio totdat het transcript is opgeslagen.",
+  "Couldn't delete the recording. Try again.": "Opname kon niet worden verwijderd. Probeer opnieuw.",
+  "Keep recordings after meetings": "Opnamen na vergaderingen bewaren",
+  "Recording deleted": "Opname verwijderd",
+  "Turn off in Settings": "Uitzetten in Instellingen",
+  "When off, new meetings' audio is deleted once the summary is saved.": "Indien uit, wordt audio van nieuwe vergaderingen gewist zodra de samenvatting is opgeslagen."
 }

@@ -165,8 +165,16 @@ export function Transcript({ id, recording, inline = false, active = true, onClo
     setTracks([])
     if (recording) return
     let on = true
-    void window.yogurt.audio.tracks(id).then((t) => { if (on) setTracks(t) })
-    return () => { on = false }
+    let deleted = false
+    const off = window.yogurt.audio.onDeleted(changed => {
+      if (changed !== id) return
+      if (document.activeElement?.closest('[data-testid="player"], [data-testid="recording-delete-confirm"]')) {
+        list.current?.setAttribute('tabindex', '-1'); list.current?.focus({ preventScroll: true })
+      }
+      deleted = true; setTracks([]); setAudioOn(false); onTime(null)
+    })
+    void window.yogurt.audio.tracks(id).then((t) => { if (on && !deleted) setTracks(t) })
+    return () => { on = false; off() }
   }, [id, recording])
   const player = useRef<PlayerHandle>(null)
   const playable = tracks.length > 0

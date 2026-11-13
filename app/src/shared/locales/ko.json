@@ -617,5 +617,14 @@
   "AI upgrade skipped": "AI 업그레이드 건너뜀",
   "Get it in Settings": "설정에서 다운로드",
   "Suggested": "추천",
-  "Dismiss suggestion": "추천 닫기"
+  "Dismiss suggestion": "추천 닫기",
+  "Delete recording": "녹음 삭제",
+  "Delete recording?": "녹음을 삭제할까요?",
+  "The audio is deleted for good. Your transcript and notes stay.": "오디오가 영구 삭제됩니다. 대화록과 메모는 유지됩니다.",
+  "Keep the audio until the transcript is saved.": "대화록이 저장될 때까지 오디오를 보관하세요.",
+  "Couldn't delete the recording. Try again.": "녹음을 삭제하지 못했습니다. 다시 시도하세요.",
+  "Keep recordings after meetings": "회의 후 녹음 보관",
+  "Recording deleted": "녹음이 삭제되었습니다",
+  "Turn off in Settings": "설정에서 끄기",
+  "When off, new meetings' audio is deleted once the summary is saved.": "끄면 새 회의의 오디오가 요약 저장 후 삭제됩니다."
 }

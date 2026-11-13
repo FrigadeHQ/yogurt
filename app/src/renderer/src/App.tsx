@@ -172,7 +172,7 @@ export function App() {
   // still starting, or checking what is on disk: the launch screen, so a finished install never flashes the first-run screen
   if (!setup || !plan || holding) return <div data-testid="app-shell" className="h-full bg-bg"><TitleBar /><BootScreen /></div>
   const noteId = route.startsWith('/note/') ? route.slice(6) : null
-  const settings = route === '/settings'
+  const settings = route === '/settings' || route === '/settings/recordings'
   const trash = route === '/trash'
   const chatId = route === '/chat' ? null : route.startsWith('/chat/') ? route.slice(6) : undefined
   const folderId = route.startsWith('/folder/') ? route.slice('/folder/'.length) : null
@@ -180,7 +180,7 @@ export function App() {
   const suggestedFolder = noteId ? folders?.find((s) => s.id === suggestedFolders[noteId]) : undefined
   // a folder's page waits for the list; a folder that is gone shows Meetings
   const folderScreen = folderId && (folder ? <Folder key={folder.id} folder={folder} open={open} onStarted={(id) => setSuggestedFolders((current) => ({ ...current, [id]: folder.id }))} /> : !folders ? <div className="native-folder"><StartRecording /><div className="native-library"><LoadingContent pending testId="meetings-loading" skeleton={<><div className="folder-page-heading"><h1><span className="loading-bar" style={{ width: 140 }} /></h1></div><MeetingListLoading showFolders={false} /></>} /></div></div> : null)
-  const screen = settings ? <Settings revision={settingsRevision} /> : noteId ? <Note key={noteId} id={noteId} onSource={openSource} onTitleChange={setMeeting} at={jump?.id === noteId ? jump : undefined}
+  const screen = settings ? <Settings revision={settingsRevision} focusRecording={route === '/settings/recordings'} /> : noteId ? <Note key={noteId} id={noteId} onSource={openSource} onTitleChange={setMeeting} at={jump?.id === noteId ? jump : undefined}
     folderSuggestion={suggestedFolder ? { folder: suggestedFolder, dismiss: () => dismissFolderSuggestion(noteId) } : undefined} />
     : chatId !== undefined ? <ChatPage id={chatId} go={go} openSource={openSource} />
     : trash ? <Trash open={open} /> : folderScreen || <Home open={open} openFolder={(id) => go(`/folder/${id}`)} />

@@ -674,5 +674,14 @@
   "AI upgrade skipped": "שדרוג ה־AI דולג",
   "Get it in Settings": "הורדה בהגדרות",
   "Suggested": "מוצע",
-  "Dismiss suggestion": "דחיית ההצעה"
+  "Dismiss suggestion": "דחיית ההצעה",
+  "Delete recording": "מחיקת הקלטה",
+  "Delete recording?": "למחוק את ההקלטה?",
+  "The audio is deleted for good. Your transcript and notes stay.": "השמע יימחק לצמיתות. התמליל וההערות יישארו.",
+  "Keep the audio until the transcript is saved.": "יש לשמור את השמע עד לשמירת התמליל.",
+  "Couldn't delete the recording. Try again.": "לא ניתן למחוק את ההקלטה. נסו שוב.",
+  "Keep recordings after meetings": "שמירת הקלטות אחרי פגישות",
+  "Recording deleted": "ההקלטה נמחקה",
+  "Turn off in Settings": "כיבוי בהגדרות",
+  "When off, new meetings' audio is deleted once the summary is saved.": "כשכבוי, השמע של פגישות חדשות נמחק לאחר שמירת הסיכום."
 }

@@ -28,6 +28,8 @@ export type Meeting = {
   titleSource: TitleSource
   /** Recorded duration when pauses or resumed sessions make wall duration inaccurate. */
   durationMs?: number
+  /** Some recorded audio still needs a saved transcript, including earlier sessions. */
+  transcriptionPending?: boolean
   /** when it was moved to the Trash; there it is out of every list, search and chat until restored */
   trashedAt?: number
 }
@@ -42,6 +44,7 @@ export type Segment = { id: number; meetingId: string; track: 'me' | 'them'; sta
 export type Notes = { mine: string; enhanced: string | null; edited: boolean }
 
 const toMeeting = (r: Row): Meeting => ({
+  ...(r.transcription_pending ? { transcriptionPending: true } : {}),
   id: String(r.id), title: String(r.title), startedAt: Number(r.started_at), endedAt: r.ended_at == null ? null : Number(r.ended_at),
   eventId: r.event_id == null ? null : String(r.event_id), app: r.app == null ? null : String(r.app),
   attendees: JSON.parse(String(r.attendees)), state: r.state as Meeting['state'], language: r.language == null ? null : String(r.language),
@@ -193,6 +196,7 @@ export class Store {
     if (!meetingCols.includes('speaker_order')) this.db.exec("ALTER TABLE meetings ADD COLUMN speaker_order TEXT NOT NULL DEFAULT '[]'")
     for (const name of ['source', 'source_id']) if (!meetingCols.includes(name)) this.db.exec(`ALTER TABLE meetings ADD COLUMN ${name} TEXT`)
     if (!meetingCols.includes('event_started_at')) this.db.exec('ALTER TABLE meetings ADD COLUMN event_started_at INTEGER')
+    if (!meetingCols.includes('transcription_pending')) this.db.exec('ALTER TABLE meetings ADD COLUMN transcription_pending INTEGER NOT NULL DEFAULT 0')
     if (!meetingCols.includes('duration_ms')) this.db.exec('ALTER TABLE meetings ADD COLUMN duration_ms INTEGER')
     if (!meetingCols.includes('language')) this.db.exec('ALTER TABLE meetings ADD COLUMN language TEXT')
     if (!meetingCols.includes('trashed_at')) this.db.exec('ALTER TABLE meetings ADD COLUMN trashed_at INTEGER')
@@ -274,10 +278,10 @@ export class Store {
   }
   updateMeeting(id: string, patch: Partial<Omit<Meeting, 'id'>>) {
     if (patch.attendees) rememberPeople(this.db, patch.attendees)
-    const col: Record<string, string> = { title: 'title', startedAt: 'started_at', endedAt: 'ended_at', eventId: 'event_id', eventStartedAt: 'event_started_at', app: 'app', attendees: 'attendees', state: 'state', language: 'language', titleSource: 'title_source', durationMs: 'duration_ms' }
+    const col: Record<string, string> = { title: 'title', startedAt: 'started_at', endedAt: 'ended_at', eventId: 'event_id', eventStartedAt: 'event_started_at', app: 'app', attendees: 'attendees', state: 'state', language: 'language', titleSource: 'title_source', durationMs: 'duration_ms', transcriptionPending: 'transcription_pending' }
     const keys = Object.keys(patch).filter((k) => k in col && (patch as Row)[k] !== undefined)
     if (!keys.length) return
-    const vals = keys.map((k) => (k === 'attendees' ? JSON.stringify(patch.attendees) : (patch as Row)[k]) as string | number | null)
+    const vals = keys.map((k) => (k === 'attendees' ? JSON.stringify(patch.attendees) : k === 'transcriptionPending' ? Number(patch.transcriptionPending) : (patch as Row)[k]) as string | number | null)
     this.db.prepare(`UPDATE meetings SET ${keys.map((k) => `${col[k]} = ?`).join(', ')} WHERE id = ?`).run(...vals, id)
   }
   /** Gone for good: its lines, notes and chat go with it (ON DELETE CASCADE; the search tables follow by trigger) */

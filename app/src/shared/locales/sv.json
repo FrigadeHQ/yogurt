@@ -665,5 +665,14 @@
   "AI upgrade skipped": "AI-uppgradering överhoppad",
   "Get it in Settings": "Hämta i Inställningar",
   "Suggested": "Föreslagen",
-  "Dismiss suggestion": "Avvisa förslag"
+  "Dismiss suggestion": "Avvisa förslag",
+  "Delete recording": "Radera inspelning",
+  "Delete recording?": "Radera inspelningen?",
+  "The audio is deleted for good. Your transcript and notes stay.": "Ljudet raderas permanent. Transkriptionen och anteckningarna finns kvar.",
+  "Keep the audio until the transcript is saved.": "Behåll ljudet tills transkriptionen har sparats.",
+  "Couldn't delete the recording. Try again.": "Kunde inte radera inspelningen. Försök igen.",
+  "Keep recordings after meetings": "Behåll inspelningar efter möten",
+  "Recording deleted": "Inspelning raderad",
+  "Turn off in Settings": "Stäng av i Inställningar",
+  "When off, new meetings' audio is deleted once the summary is saved.": "När avstängt raderas nya mötens ljud när sammanfattningen har sparats."
 }

@@ -653,5 +653,14 @@
   "AI upgrade skipped": "AI yükseltmesi atlandı",
   "Get it in Settings": "Ayarlardan indir",
   "Suggested": "Önerilen",
-  "Dismiss suggestion": "Öneriyi reddet"
+  "Dismiss suggestion": "Öneriyi reddet",
+  "Delete recording": "Kaydı sil",
+  "Delete recording?": "Kayıt silinsin mi?",
+  "The audio is deleted for good. Your transcript and notes stay.": "Ses kalıcı olarak silinir. Döküm ve notlar kalır.",
+  "Keep the audio until the transcript is saved.": "Döküm kaydedilene kadar sesi saklayın.",
+  "Couldn't delete the recording. Try again.": "Kayıt silinemedi. Yeniden deneyin.",
+  "Keep recordings after meetings": "Toplantılardan sonra kayıtları sakla",
+  "Recording deleted": "Kayıt silindi",
+  "Turn off in Settings": "Ayarlardan kapat",
+  "When off, new meetings' audio is deleted once the summary is saved.": "Kapalıyken yeni toplantıların sesi özet kaydedilince silinir."
 }

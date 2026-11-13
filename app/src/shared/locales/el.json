@@ -665,5 +665,14 @@
   "AI upgrade skipped": "Η αναβάθμιση AI παραλείφθηκε",
   "Get it in Settings": "Λήψη στις Ρυθμίσεις",
   "Suggested": "Προτεινόμενο",
-  "Dismiss suggestion": "Απόρριψη πρότασης"
+  "Dismiss suggestion": "Απόρριψη πρότασης",
+  "Delete recording": "Διαγραφή ηχογράφησης",
+  "Delete recording?": "Διαγραφή ηχογράφησης;",
+  "The audio is deleted for good. Your transcript and notes stay.": "Ο ήχος διαγράφεται οριστικά. Η απομαγνητοφώνηση και οι σημειώσεις μένουν.",
+  "Keep the audio until the transcript is saved.": "Κρατήστε τον ήχο μέχρι να αποθηκευτεί η απομαγνητοφώνηση.",
+  "Couldn't delete the recording. Try again.": "Η διαγραφή απέτυχε. Δοκιμάστε ξανά.",
+  "Keep recordings after meetings": "Διατήρηση ηχογραφήσεων μετά τις συναντήσεις",
+  "Recording deleted": "Η ηχογράφηση διαγράφηκε",
+  "Turn off in Settings": "Απενεργοποίηση στις Ρυθμίσεις",
+  "When off, new meetings' audio is deleted once the summary is saved.": "Αν κλείσει, ο ήχος νέων συναντήσεων διαγράφεται μόλις σωθεί η σύνοψη."
 }

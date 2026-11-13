@@ -665,5 +665,14 @@
   "AI upgrade skipped": "Tekoälypäivitys ohitettu",
   "Get it in Settings": "Lataa asetuksista",
   "Suggested": "Ehdotettu",
-  "Dismiss suggestion": "Hylkää ehdotus"
+  "Dismiss suggestion": "Hylkää ehdotus",
+  "Delete recording": "Poista tallenne",
+  "Delete recording?": "Poistetaanko tallenne?",
+  "The audio is deleted for good. Your transcript and notes stay.": "Ääni poistetaan pysyvästi. Litterointi ja muistiinpanot säilyvät.",
+  "Keep the audio until the transcript is saved.": "Säilytä ääni, kunnes litterointi on tallennettu.",
+  "Couldn't delete the recording. Try again.": "Tallennetta ei voitu poistaa. Yritä uudelleen.",
+  "Keep recordings after meetings": "Säilytä tallenteet kokousten jälkeen",
+  "Recording deleted": "Tallenne poistettu",
+  "Turn off in Settings": "Poista käytöstä asetuksissa",
+  "When off, new meetings' audio is deleted once the summary is saved.": "Pois päältä uusien kokousten ääni poistetaan yhteenvedon tallennuttua."
 }

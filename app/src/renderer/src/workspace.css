@@ -649,3 +649,7 @@ body:has(.chat-panel[open]) .app-toast-viewport { inset-inline-end:460px; }
 .meeting-selection-menu { position:absolute;width:240px;max-width:calc(100vw - 16px);max-height:min(320px,60vh);overflow:auto;border:1px solid var(--line); }
 .meeting-selection-bar button:focus-visible { outline:2px solid var(--focus);outline-offset:2px; }
 .meeting-drag-count { border-radius:5px;padding:2px 6px;background:var(--primary);color:#FFFFFF;font-size:11px; }
+
+/* This confirmation and its Settings shortcut stay on one line. */
+.app-toast[data-kind=recording-deleted-toast] { inset-inline-start:auto;width:max-content;max-width:calc(100vw - 40px); }
+.app-toast[data-kind=recording-deleted-toast] :is(.app-toast-title,.app-toast-action) { white-space:nowrap; }

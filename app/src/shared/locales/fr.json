@@ -677,5 +677,14 @@
   "AI upgrade skipped": "Amélioration IA ignorée",
   "Get it in Settings": "Obtenir dans Réglages",
   "Suggested": "Suggéré",
-  "Dismiss suggestion": "Ignorer la suggestion"
+  "Dismiss suggestion": "Ignorer la suggestion",
+  "Delete recording": "Supprimer l’enregistrement",
+  "Delete recording?": "Supprimer l’enregistrement ?",
+  "The audio is deleted for good. Your transcript and notes stay.": "L’audio est supprimé définitivement. La transcription et les notes restent.",
+  "Keep the audio until the transcript is saved.": "Gardez l’audio jusqu’à l’enregistrement de la transcription.",
+  "Couldn't delete the recording. Try again.": "Impossible de supprimer l’enregistrement. Réessayez.",
+  "Keep recordings after meetings": "Garder les enregistrements après les réunions",
+  "Recording deleted": "Enregistrement supprimé",
+  "Turn off in Settings": "Désactiver dans Réglages",
+  "When off, new meetings' audio is deleted once the summary is saved.": "Si désactivé, l’audio des nouvelles réunions est supprimé après sauvegarde du résumé."
 }

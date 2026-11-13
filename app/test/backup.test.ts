@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { cp, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
@@ -15,7 +15,7 @@ vi.mock('../src/main/zip', async (original) => {
 })
 vi.mock('node:fs/promises', async (original) => {
   const actual = await original<typeof import('node:fs/promises')>()
-  return { ...actual, mkdtemp: vi.fn(actual.mkdtemp), rm: vi.fn(actual.rm) }
+  return { ...actual, cp: vi.fn(actual.cp), mkdtemp: vi.fn(actual.mkdtemp), rm: vi.fn(actual.rm) }
 })
 
 const dirs: string[] = []
@@ -355,4 +355,41 @@ describe('backup file', { timeout: 20_000 }, () => {
     expect(existsSync(join(bDir, 'm2'))).toBe(cleanupFails)
     expect(b.meeting('m2')).toBeUndefined()
   })
+})
+
+
+it('backs up and restores meetings without audio, retaining text, folders and pending transcription', async () => {
+  const from = fresh(), into = fresh(), root = tmp(), meetingsDir = join(root, 'meetings')
+  const absent = fill(from, 'No audio folder', 'launch'), empty = fill(from, 'Deleted audio', 'design')
+  mkdirSync(join(meetingsDir, empty.id), { recursive: true })
+  const folder = from.createFolder('Work'); from.addToFolder(folder.id, absent.id)
+  from.updateMeeting(absent.id, { transcriptionPending: true })
+  const zip = join(root, 'backup.zip'), restored = join(tmp(), 'meetings')
+  await exportBackup({ db: from.db, meetingsDir, out: zip, appVersion: 'test' })
+  expect(await importBackup({ db: into.db, meetingsDir: restored, zip })).toEqual({ ok: true, added: 2, skipped: 0 })
+  for (const m of [absent, empty]) {
+    expect(into.notes(m.id)).toEqual(from.notes(m.id))
+    expect(into.segments(m.id).map(s => s.text)).toEqual(from.segments(m.id).map(s => s.text))
+    expect(into.chatTurns(m.id)[0].question).toBe(from.chatTurns(m.id)[0].question)
+    expect(existsSync(join(restored, m.id, 'me.m4a'))).toBe(false)
+    expect(into.trashMeeting(m.id)).toBe(true)
+    into.restoreMeeting(m.id)
+    expect(into.notes(m.id)).toEqual(from.notes(m.id))
+  }
+  expect(into.folders()[0].count).toBe(1)
+  expect(into.meeting(absent.id)?.transcriptionPending).toBe(true)
+  expect(into.search('launch plan', 10).map(h => h.meetingId)).toContain(absent.id)
+})
+
+
+it('still exports saved text if recording deletion races with copying its files', async () => {
+  const from = fresh(), into = fresh(), root = tmp(), meetingsDir = join(root, 'meetings')
+  const m = fill(from, 'Deleted during export', 'roadmap')
+  mkdirSync(join(meetingsDir, m.id), { recursive: true })
+  vi.mocked(cp).mockRejectedValueOnce(Object.assign(new Error('recording removed'), { code: 'ENOENT' }))
+  const zip = join(root, 'backup.zip')
+  await exportBackup({ db: from.db, meetingsDir, out: zip, appVersion: 'test' })
+  expect(await importBackup({ db: into.db, meetingsDir: join(tmp(), 'meetings'), zip })).toEqual({ ok: true, added: 1, skipped: 0 })
+  expect(into.notes(m.id)).toEqual(from.notes(m.id))
+  expect(into.segments(m.id).map(s => s.text)).toEqual(from.segments(m.id).map(s => s.text))
 })

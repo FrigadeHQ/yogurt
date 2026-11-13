@@ -662,5 +662,14 @@
   "AI upgrade skipped": "Nilaktawan ang AI upgrade",
   "Get it in Settings": "Kunin sa Mga Setting",
   "Suggested": "Iminungkahi",
-  "Dismiss suggestion": "Balewalain ang mungkahi"
+  "Dismiss suggestion": "Balewalain ang mungkahi",
+  "Delete recording": "Burahin ang recording",
+  "Delete recording?": "Burahin ang recording?",
+  "The audio is deleted for good. Your transcript and notes stay.": "Permanenteng mabubura ang audio. Mananatili ang transcript at mga tala.",
+  "Keep the audio until the transcript is saved.": "Itago ang audio hanggang ma-save ang transcript.",
+  "Couldn't delete the recording. Try again.": "Hindi mabura ang recording. Subukan ulit.",
+  "Keep recordings after meetings": "Itago ang recordings pagkatapos ng pulong",
+  "Recording deleted": "Nabura ang recording",
+  "Turn off in Settings": "I-off sa Settings",
+  "When off, new meetings' audio is deleted once the summary is saved.": "Kapag naka-off, buburahin ang audio ng bagong pulong pag na-save ang buod."
 }

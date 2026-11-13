@@ -653,5 +653,14 @@
   "AI upgrade skipped": "AI আপগ্রেড বাদ দেওয়া হয়েছে",
   "Get it in Settings": "সেটিংস থেকে নিন",
   "Suggested": "প্রস্তাবিত",
-  "Dismiss suggestion": "প্রস্তাব বাতিল করুন"
+  "Dismiss suggestion": "প্রস্তাব বাতিল করুন",
+  "Delete recording": "রেকর্ডিং মুছুন",
+  "Delete recording?": "রেকর্ডিং মুছবেন?",
+  "The audio is deleted for good. Your transcript and notes stay.": "অডিও স্থায়ীভাবে মুছে যাবে। প্রতিলিপি ও নোট থাকবে।",
+  "Keep the audio until the transcript is saved.": "প্রতিলিপি সংরক্ষণ না হওয়া পর্যন্ত অডিও রাখুন।",
+  "Couldn't delete the recording. Try again.": "রেকর্ডিং মোছা যায়নি। আবার চেষ্টা করুন।",
+  "Keep recordings after meetings": "মিটিংয়ের পরে রেকর্ডিং রাখুন",
+  "Recording deleted": "রেকর্ডিং মোছা হয়েছে",
+  "Turn off in Settings": "সেটিংসে বন্ধ করুন",
+  "When off, new meetings' audio is deleted once the summary is saved.": "বন্ধ থাকলে সারাংশ সেভের পর নতুন মিটিংয়ের অডিও মুছবে।"
 }

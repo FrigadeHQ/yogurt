@@ -617,5 +617,14 @@
   "AI upgrade skipped": "Naik taraf AI dilangkau",
   "Get it in Settings": "Muat turun di Tetapan",
   "Suggested": "Dicadangkan",
-  "Dismiss suggestion": "Abaikan cadangan"
+  "Dismiss suggestion": "Abaikan cadangan",
+  "Delete recording": "Padam rakaman",
+  "Delete recording?": "Padam rakaman?",
+  "The audio is deleted for good. Your transcript and notes stay.": "Audio dipadam secara kekal. Transkrip dan nota dikekalkan.",
+  "Keep the audio until the transcript is saved.": "Simpan audio sehingga transkrip disimpan.",
+  "Couldn't delete the recording. Try again.": "Rakaman tidak dapat dipadam. Cuba lagi.",
+  "Keep recordings after meetings": "Simpan rakaman selepas mesyuarat",
+  "Recording deleted": "Rakaman dipadam",
+  "Turn off in Settings": "Matikan dalam Tetapan",
+  "When off, new meetings' audio is deleted once the summary is saved.": "Jika dimatikan, audio mesyuarat baharu dipadam selepas ringkasan disimpan."
 }

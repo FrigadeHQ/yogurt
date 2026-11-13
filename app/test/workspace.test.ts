@@ -4,8 +4,8 @@ import { shiftDay, weekDates, eventPhase } from '../src/renderer/src/agenda'
 
 describe('workspace routes', () => {
   it('accepts only local destinations and meeting IDs', () => {
-    for (const route of ['', '/meetings', '/chat', '/trash', '/settings', '/note/a-123', '/chat/c-123', '/folder/b-456']) expect(isAppRoute(route)).toBe(true)
-    for (const route of [null, 1, '/note/', '/note/../secrets', '/note/a?x=1', '/folder/', '/folder/../x', '/folders', 'https://example.com', '/other']) expect(isAppRoute(route)).toBe(false)
+    for (const route of ['', '/meetings', '/chat', '/trash', '/settings', '/settings/recordings', '/note/a-123', '/chat/c-123', '/folder/b-456']) expect(isAppRoute(route)).toBe(true)
+    for (const route of [null, 1, '/note/', '/note/../secrets', '/note/a?x=1', '/folder/', '/folder/../x', '/folders', '/settings/unknown', 'https://example.com', '/other']) expect(isAppRoute(route)).toBe(false)
   })
 })
 describe('agenda dates', () => {

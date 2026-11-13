@@ -30,7 +30,7 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
   const sidebarTransition = { duration: sidebarMotion ? 0.2 : 0, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] }
   const note = route.startsWith('/note/')
   // a saved chat (/chat/<id>) is still under Chat
-  const section = route.startsWith('/chat/') ? '/chat' : route
+  const section = route === '/settings/recordings' ? '/settings' : route.startsWith('/chat/') ? '/chat' : route
   const returnToRecording = recording?.kind === 'recording' && route !== `/note/${recording.meetingId}`
   useEffect(() => {
     const ask = () => {
@@ -61,7 +61,7 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
   ]
   const folder = route.startsWith('/folder/') ? folders?.find((s) => route === `/folder/${s.id}`) : undefined
   const current = links.find((link) => link.route === section) ?? (route.startsWith('/folder/') ? { label: folder?.name ?? t('Folder') } : undefined)
-  const label = note ? (meeting && route === `/note/${meeting.id}` ? meeting.title : t('Meeting')) : route === '/settings' ? t('Settings') : current?.label ?? t('Meetings')
+  const label = note ? (meeting && route === `/note/${meeting.id}` ? meeting.title : t('Meeting')) : route.startsWith('/settings') ? t('Settings') : current?.label ?? t('Meetings')
   const nav = (link: typeof links[number]) => <button key={link.route} data-testid={link.route === '' ? 'nav-home' : link.route === '/chat' ? 'nav-chat' : link.route === '/settings' ? 'settings-open' : 'nav-trash'}
     data-sidebar="menu-button" aria-label={link.label} title={collapsed ? link.label : undefined} className={`workspace-nav${link.route === '/trash' ? ' workspace-trash' : ''}`} aria-current={section === link.route || link.route === '' && route === '/meetings' ? 'page' : undefined} onClick={() => go(link.route)}>
     <link.Icon size={16} strokeWidth={1.75} aria-hidden="true" /><span>{link.label}</span>

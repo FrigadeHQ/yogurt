@@ -17,7 +17,7 @@ import type { Chunk } from './chunker'
  * echo check) that saves lines to the store and tells the window. A meeting's session is found by its id, whichever of
  * "meeting started" and "capture started" comes first, so the order the hooks were registered in does not matter.
  */
-type Session = { pipeline: Pipeline | null; priorLines: Set<number>; done?: Promise<void>; store?: SessionStore; refresh?: (id: string) => void
+type Session = { complete?: () => boolean; pipeline: Pipeline | null; priorLines: Set<number>; done?: Promise<void>; store?: SessionStore; refresh?: (id: string) => void
   /** Apple's speech listens in this locale for the meeting (null: whisper only); off once whisper hears another language */
   speech?: string | null }
 
@@ -168,6 +168,10 @@ export function hookTranscription(p: {
   const open = (id: string): Session => {
     const have = sessions.get(id)
     if (have) return have
+    // A later live session cannot finish audio awaiting deferred transcription.
+    const pendingBefore = p.store.meeting?.(id)?.transcriptionPending
+    p.store.updateMeeting(id, { transcriptionPending: true })
+    let saveFailed = false
     const warned = new Set<TranscribeWarn>()
     const warnOnce = (k: TranscribeWarn) => { if (!warned.has(k)) { warned.add(k); p.warn(k) } }
     let transcribe: Transcribe | undefined
@@ -197,9 +201,10 @@ export function hookTranscription(p: {
       }
     }
     const s: Session = {
+      complete: () => !!transcribe && !pendingBefore && !saveFailed && !warned.has('transcribe-failed'),
       store: p.store, refresh: p.refresh, speech: speechLocaleFor(id), priorLines: new Set(p.store.segments?.(id).map((s) => s.id) ?? []),
       pipeline: transcribe ? createPipeline({ meetingId: id, transcribe, save: (segs) => {
-        p.store.addSegments(segs)
+        try { p.store.addSegments(segs) } catch (e) { saveFailed = true; throw e }
         if (segs.some(s => s.hidden)) p.refresh?.(id)
       }, emit: p.send, emitPartial: p.sendPartial, holdMs: p.holdMs, extraWaitMs: p.extraWaitMs, onWarn: warnOnce,
         nameOf: p.nameOf && ((a, b) => p.nameOf!(id, a, b)),
@@ -268,7 +273,10 @@ function sweepEcho(id: string, s: Session) {
 /** After the recorder is done (no more audio coming), the pipeline finishes what it has, then echoes are swept */
 function finishSession(id: string, s: Session, audioDone: () => Promise<void> = () => Promise.resolve(), store?: SessionStore): Promise<void> {
   s.store ??= store
-  s.done ??= audioDone().then(() => s.pipeline?.finish()).then(() => sweepEcho(id, s)).catch((e) => console.error('finishing the transcript failed', e)).finally(() => {
+  s.done ??= audioDone().then(() => s.pipeline?.finish()).then(() => {
+    sweepEcho(id, s)
+    if (s.complete?.()) s.store?.updateMeeting(id, { transcriptionPending: false })
+  }).catch((e) => console.error('finishing the transcript failed', e)).finally(() => {
     // the meeting's main language is kept with it, for notes written later (after a restart too)
     const lang = meetingLanguage(id)
     if (lang) { try { s.store?.updateMeeting(id, { language: lang }) } catch (e) { console.error('saving the language failed', e) } }

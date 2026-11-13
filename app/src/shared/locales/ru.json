@@ -692,5 +692,14 @@
   "AI upgrade skipped": "Обновление ИИ пропущено",
   "Get it in Settings": "Скачать в настройках",
   "Suggested": "Предложено",
-  "Dismiss suggestion": "Отклонить предложение"
+  "Dismiss suggestion": "Отклонить предложение",
+  "Delete recording": "Удалить запись",
+  "Delete recording?": "Удалить запись?",
+  "The audio is deleted for good. Your transcript and notes stay.": "Аудио удалится навсегда. Расшифровка и заметки останутся.",
+  "Keep the audio until the transcript is saved.": "Сохраните аудио до сохранения расшифровки.",
+  "Couldn't delete the recording. Try again.": "Не удалось удалить запись. Попробуйте ещё раз.",
+  "Keep recordings after meetings": "Хранить записи после встреч",
+  "Recording deleted": "Запись удалена",
+  "Turn off in Settings": "Выключить в настройках",
+  "When off, new meetings' audio is deleted once the summary is saved.": "Если выключено, аудио новых встреч удаляется после сохранения сводки."
 }

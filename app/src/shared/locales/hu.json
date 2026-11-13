@@ -653,5 +653,14 @@
   "AI upgrade skipped": "AI-frissítés kihagyva",
   "Get it in Settings": "Letöltés a Beállításokban",
   "Suggested": "Javasolt",
-  "Dismiss suggestion": "Javaslat elvetése"
+  "Dismiss suggestion": "Javaslat elvetése",
+  "Delete recording": "Felvétel törlése",
+  "Delete recording?": "Törli a felvételt?",
+  "The audio is deleted for good. Your transcript and notes stay.": "A hang végleg törlődik. Az átirat és a jegyzetek megmaradnak.",
+  "Keep the audio until the transcript is saved.": "Tartsa meg a hangot az átirat mentéséig.",
+  "Couldn't delete the recording. Try again.": "A felvételt nem sikerült törölni. Próbálja újra.",
+  "Keep recordings after meetings": "Felvételek megőrzése a megbeszélések után",
+  "Recording deleted": "Felvétel törölve",
+  "Turn off in Settings": "Kikapcsolás a beállításokban",
+  "When off, new meetings' audio is deleted once the summary is saved.": "Kikapcsolva az új megbeszélések hangja az összefoglaló mentése után törlődik."
 }

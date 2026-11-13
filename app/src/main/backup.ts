@@ -153,7 +153,12 @@ export async function exportBackup(o: { db: DatabaseSync; meetingsDir: string; o
       const src = join(o.meetingsDir, id)
       if (!existsSync(src)) continue
       // a clone on the Mac's disk: instant, and no extra space until one side changes
-      await cp(src, join(work, 'meetings', id), { recursive: true, mode: constants.COPYFILE_FICLONE, filter: (s) => !scratch(s) })
+      try {
+        await cp(src, join(work, 'meetings', id), { recursive: true, mode: constants.COPYFILE_FICLONE, filter: (s) => !scratch(s) })
+      } catch (e) {
+        // Recordings can be deleted during export; the saved text still makes a complete backup.
+        if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e
+      }
     }
     const manifest: Manifest = { format: BACKUP_FORMAT, app: o.appVersion, createdAt: o.now ?? Date.now(), meetings: ids.length }
     await writeFile(join(work, 'manifest.json'), JSON.stringify(manifest, null, 2))

@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Capture, encodeFrame, hookCapture, recordingFinished, type CaptureProc } from '../src/main/capture'
 import { hookTranscription, settleTranscription, speechLocaleFor, spokenChanged, stopTranscriptionServer, transcribing } from '../src/main/asr'
 import type { Spoken } from '../src/shared/spoken'
@@ -68,6 +68,28 @@ function rig(order: 'capture-first' | 'transcription-first', t: { transcriber?: 
 }
 
 describe('live transcription of a meeting', () => {
+  it('only clears pending audio after transcription saves, and retains older unfinished sessions', async () => {
+    const r = rig('transcription-first'), m = meeting()
+    r.begin(m)
+    expect(store.meeting(m.id)?.transcriptionPending).toBe(true)
+    r.procs[0].say('them', 500)
+    await r.stop(m)
+    expect(store.segments(m.id).length).toBeGreaterThan(0)
+    expect(store.meeting(m.id)?.transcriptionPending).not.toBe(true)
+    store.updateMeeting(m.id, { transcriptionPending: true })
+    r.begin(m); r.procs[1].say('them', 500)
+    await r.stop(m)
+    expect(store.meeting(m.id)?.transcriptionPending).toBe(true)
+  })
+  it('keeps audio pending when a transcript write fails', async () => {
+    const r = rig('transcription-first'), m = meeting()
+    r.begin(m)
+    const save = vi.spyOn(store, 'addSegments').mockImplementation(() => { throw new Error('disk full') })
+    r.procs[0].say('them', 500)
+    await r.stop(m)
+    save.mockRestore()
+    expect(store.meeting(m.id)?.transcriptionPending).toBe(true)
+  })
   it('a resumed recording spells new words from the current invite without rewriting retained transcript', async () => {
     const r = rig('transcription-first', { transcriber: (c) => [{ track: c.track, startMs: c.startMs, endMs: c.startMs + 1000, text: 'Zentric ships Tuesday.' }] })
     const m = meeting()
@@ -179,6 +201,7 @@ describe('live transcription of a meeting', () => {
     await tick()
     await r.stop(a)
     expect(r.warns).toEqual(['transcribe-failed'])
+    expect(store.meeting(a.id)?.transcriptionPending).toBe(true)
     const b = meeting()
     r.begin(b)
     r.procs[1].say('them', 500)
@@ -197,6 +220,7 @@ describe('live transcription of a meeting', () => {
     expect(r.warns).toEqual(['no-speech-model'])
     await r.stop(m)
     expect(store.segments(m.id)).toEqual([])
+    expect(store.meeting(m.id)?.transcriptionPending).toBe(true)
   })
 })
 

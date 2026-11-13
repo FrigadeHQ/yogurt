@@ -28,6 +28,10 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   stopWhenCallEnds?: boolean
   /** a quiet reminder to ask everyone before recording; on unless turned off */
   recordingReminder?: boolean
+  /** keep audio after its transcript and summary are saved; on unless turned off */
+  keepRecordings?: boolean
+  /** Only meetings ending after this opt-out may lose their audio automatically. */
+  recordingsOffAt?: number
   /** the mic to record with (its Core Audio UID); Auto, the Mac's own input, when left out or not plugged in */
   mic?: string
   /** Calendars excluded from Yogurt's agenda and meeting detection. Others stay visible. */
@@ -45,6 +49,10 @@ export const spokenSetting = (s: Settings): Spoken => spokenOf(s.spoken)
 /** "Finish recording when the call ends": on by default */
 export const stopsWhenCallEnds = (s: Settings): boolean => s.stopWhenCallEnds !== false
 export const recordingReminderOn = (s: Settings): boolean => s.recordingReminder !== false
+/** Old recordings stay, even if their summaries are saved or rewritten after opting out. */
+export const keepsRecording = (s: Settings, endedAt: number | null): boolean =>
+  s.keepRecordings !== false || typeof s.recordingsOffAt !== 'number' || !Number.isFinite(s.recordingsOffAt) || endedAt == null || endedAt <= s.recordingsOffAt
+
 export const autoUpdateOn = (s: Settings): boolean => s.autoUpdate !== false
 
 export function loadSettings(path: string): Settings {

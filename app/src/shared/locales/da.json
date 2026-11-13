@@ -662,5 +662,14 @@
   "AI upgrade skipped": "AI-opgradering sprunget over",
   "Get it in Settings": "Hent i Indstillinger",
   "Suggested": "Foreslået",
-  "Dismiss suggestion": "Afvis forslag"
+  "Dismiss suggestion": "Afvis forslag",
+  "Delete recording": "Slet optagelse",
+  "Delete recording?": "Slet optagelse?",
+  "The audio is deleted for good. Your transcript and notes stay.": "Lyden slettes permanent. Transskription og noter bevares.",
+  "Keep the audio until the transcript is saved.": "Behold lyden, indtil transskriptionen er gemt.",
+  "Couldn't delete the recording. Try again.": "Optagelsen kunne ikke slettes. Prøv igen.",
+  "Keep recordings after meetings": "Behold optagelser efter møder",
+  "Recording deleted": "Optagelse slettet",
+  "Turn off in Settings": "Slå fra i Indstillinger",
+  "When off, new meetings' audio is deleted once the summary is saved.": "Når slået fra, slettes nye møders lyd, når resuméet er gemt."
 }
