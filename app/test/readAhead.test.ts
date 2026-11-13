@@ -32,9 +32,12 @@ describe('stableTurns: what of the transcript will not change any more', () => {
 
 describe('readAheadAllowed', () => {
   it('only on Macs with 32 GB or more: 24 GB keeps the model out of the way while recording', () => {
-    expect(readAheadAllowed(24 * 2 ** 30)).toBe(false)
-    expect(readAheadAllowed(32 * 2 ** 30)).toBe(true)
-    expect(readAheadAllowed(64 * 2 ** 30)).toBe(true)
+    expect(readAheadAllowed(24 * 2 ** 30, 'darwin')).toBe(false)
+    expect(readAheadAllowed(32 * 2 ** 30, 'darwin')).toBe(true)
+    expect(readAheadAllowed(64 * 2 ** 30, 'darwin')).toBe(true)
+  })
+  it('never on Windows or Linux, however much memory: there the model and whisper share a graphics card of its own (#37)', () => {
+    for (const platform of ['win32', 'linux']) expect(readAheadAllowed(64 * 2 ** 30, platform)).toBe(false)
   })
 })
 

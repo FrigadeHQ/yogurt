@@ -16,8 +16,12 @@ import { cutTurn, languageName, partBudget, reusable, summaryHead, summaryPrompt
  * a prompt that differs from what was read only reads more.
  */
 
-/** The model and whisper together during a meeting: only with room to spare (24 GB keeps the old way) */
-export const readAheadAllowed = (totalBytes: number): boolean => totalBytes >= 32 * 2 ** 30
+/**
+ * The model and whisper together during a meeting: only on a Mac with room to spare (24 GB keeps the old way). Off a
+ * Mac they would share the graphics card's own memory, which the notes model mostly fills: a long call then ran the
+ * card flat out and could freeze the computer (#37).
+ */
+export const readAheadAllowed = (totalBytes: number, platform: string = process.platform): boolean => platform === 'darwin' && totalBytes >= 32 * 2 ** 30
 
 /** read in once this much more transcript has settled */
 export const READ_EVERY_MS = 3 * 60_000
