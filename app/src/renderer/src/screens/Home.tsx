@@ -290,7 +290,7 @@ export function PastCard({ c, onOpen, openFolder, openFolders, more, when, fixed
 export function MeetingListLoading({ grouped = true, showFolders = true }: { grouped?: boolean; showFolders?: boolean }) {
   const cards: MeetingCard[] = Array.from({ length: 5 }, (_, n) => ({
     id: `loading-${n}`, title: ['Weekly planning', 'Design and audio review', 'Team standup'][n % 3],
-    state: 'done', preview: '', eventId: null, app: null, language: null, titleSource: 'user', startedAt: new Date(2026, 0, n < 3 ? 2 : 1).getTime(), endedAt: 1, durationMs: 120000,
+    state: 'done', preview: '', eventId: null, app: null, language: null, titleSource: 'user', startedAt: new Date(2026, 0, n < 3 ? 2 : 1).getTime(), endedAt: 1, durationMs: 120000, diarizeError: null, voicesAllowed: false,
     attendees: [], folders: n % 2 ? [{ id: 'loading-folder', name: '', color: 'violet', icon: 'folder', count: 0 }] : [],
   }))
   return grouped ? <PastNotes cards={cards} day="" more={false} sentinel={() => {}} onOpen={() => {}} showFolders={showFolders} loading />

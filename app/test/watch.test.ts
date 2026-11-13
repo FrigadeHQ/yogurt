@@ -23,7 +23,7 @@ const autoWatcher = () => new Watcher({
 })
 
 const ev = (o: Partial<CalEvent> = {}): CalEvent => ({ id: 'e1', title: 'Review', start: clock, end: clock + 30 * MIN, attendees: [], url: null, ...o })
-const meeting = (o: Partial<Meeting> = {}): Meeting => ({ id: 'm1', title: 'Review', startedAt: clock, endedAt: null, eventId: null, app: 'Zoom', attendees: [], state: 'recording', language: null, titleSource: 'generic', ...o })
+const meeting = (o: Partial<Meeting> = {}): Meeting => ({ id: 'm1', title: 'Review', startedAt: clock, endedAt: null, eventId: null, app: 'Zoom', attendees: [], state: 'recording', language: null, titleSource: 'generic', diarizeError: null, voicesAllowed: false, ...o })
 
 beforeEach(() => {
   clock = 1_000_000_000_000; reading = { micApps: [], events: [] }; active = null; log = []; silent = 0
