@@ -1,6 +1,6 @@
 import { Loading } from './Loading'
 import { LoadingContent } from './LoadingContent'
-import { useEffect, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type RefObject } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type RefObject } from 'react'
 import { ArrowDown, ArrowUp, Ellipsis, Palette, Pencil, Plus, Trash2 } from 'lucide-react'
 import { Reorder, useDragControls } from 'motion/react'
 import { useReducedMotion, usePopoverPresence } from '../motion'
@@ -77,6 +77,9 @@ function FolderItem({ folder, collapsed, current, go, onRename, onDelete, onAppe
 }) {
   const controls = useDragControls()
   const reduced = useReducedMotion()
+  const previousCollapsed = useRef(collapsed)
+  const sidebarChanged = previousCollapsed.current !== collapsed
+  useLayoutEffect(() => { previousCollapsed.current = collapsed }, [collapsed])
   const dragged = useRef(false)
   const [moving, setMoving] = useState(false)
   const [drop, setDrop] = useState(false)
@@ -109,9 +112,10 @@ function FolderItem({ folder, collapsed, current, go, onRename, onDelete, onAppe
   }
   const run = (fn: () => void) => { setMenu(undefined); (collapsed ? open : more).current?.focus(); fn() }
   const carries = (e: DragEvent) => e.dataTransfer.types.includes(MEETING_DRAG)
-  return <Reorder.Item as="div" ref={row} value={folder.id} className="workspace-folder-item" data-testid="sidebar-folder" data-folder={folder.id} data-moving={moving}
+  return <Reorder.Item as="div" ref={row} value={folder.id} layout="position" className="workspace-folder-item" data-testid="sidebar-folder" data-folder={folder.id} data-moving={moving}
     dragListener={false} dragControls={controls} dragConstraints={constraints} dragElastic={0} dragMomentum={false}
-    transition={reduced ? { duration: 0 } : { type: 'spring', stiffness: 520, damping: 42 }}
+    // Sidebar resizing is not a reorder: projecting its old row box stretches/slides icons under the clip.
+    transition={reduced || sidebarChanged ? { duration: 0 } : { type: 'spring', stiffness: 520, damping: 42 }}
     onDragStart={() => { dragged.current = true; setMoving(true); setMenu(undefined); onDragStart() }}
     onDragEnd={() => { setMoving(false); onDragEnd() }}>
     <button ref={open} className="workspace-nav" data-sidebar="menu-button" aria-label={folder.name} title={collapsed ? folder.name : undefined} data-testid="sidebar-folder-open" data-drop={drop} aria-current={current ? 'page' : undefined}

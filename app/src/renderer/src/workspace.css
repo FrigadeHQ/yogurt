@@ -17,13 +17,14 @@
 .workspace:dir(rtl).sidebar-collapsed .workspace-toolbar[data-note=true] { padding-left:185px; }
 .workspace [hidden] { display:none!important; }
 .workspace-sidebar { z-index:2;position:absolute;inset-block:0;inset-inline-start:0;display:flex;flex-direction:column;background:transparent;border-inline-end:1px solid transparent; }
-.workspace-sidebar::after { content:"";position:absolute;inset-block:52px 0;inset-inline-end:-1px;width:1px;background:var(--line);pointer-events:none; }
+/* The divider belongs to the page boundary, not the outgoing transparent sidebar. */
+.workspace-sidebar-gap::after { content:"";position:absolute;inset-block:52px 0;inset-inline-end:0;width:1px;background:var(--line);pointer-events:none; }
 /* Local widths avoid invalidating inherited styles across a long transcript. */
 .workspace-sidebar,.workspace-sidebar-gap { width:208px; }
 .sidebar-collapsed :is(.workspace-sidebar,.workspace-sidebar-gap) { width:56px; }
-.workspace-sidebar-gap { flex:none; }
-.workspace-sidebar-inner { display:flex;flex-direction:column;height:100%;min-height:0; }
-/* The page adopts its final width immediately; collapsed controls must not trail across it. */
+.workspace-sidebar-gap { position:relative;flex:none; }
+/* Controls adopt the final width in both directions; only labels fade, never the icon rail's geometry. */
+.workspace-sidebar-inner { display:flex;flex-direction:column;width:207px;height:100%;min-height:0; }
 .sidebar-collapsed .workspace-sidebar-inner { width:55px; }
 .workspace-sidebar .workspace-search>svg { flex:none; }
 .workspace-sidebar .workspace-nav>span:not(.folder-glyph),.workspace-sidebar .workspace-nav>small,.workspace-search>span,.workspace-search>kbd,.workspace-folder-label { transition:opacity var(--dur-surface) var(--ease-out); }
@@ -38,7 +39,6 @@
 .workspace[data-sidebar-motion=true] .workspace-wordmark { transition:width var(--dur-surface) var(--ease-out); }
 .workspace[data-sidebar-motion=true] .workspace-brand { transition:padding-inline var(--dur-surface) var(--ease-out); }
 .workspace-folder-label { height:16px;white-space:nowrap;overflow:hidden; }
-.workspace[data-sidebar-motion=true] .workspace-folder-label { transition:height var(--dur-surface) var(--ease-out),margin var(--dur-surface) var(--ease-out),opacity var(--dur-surface) var(--ease-out); }
 .sidebar-collapsed .workspace-folder-label { height:0;margin-block:18px; }
 .workspace-brand { gap:0; }
 .workspace:is([data-sidebar-motion=false],.sidebar-collapsed) :is(.workspace-nav>span,.workspace-nav>small,.workspace-search>span,.workspace-search>kbd,.workspace-folder-label,.workspace-wordmark,.workspace-brand) { transition:none; }
@@ -504,8 +504,8 @@ body:has(.chat-panel[open]) .app-toast-viewport:dir(rtl) { --toast-x:440px; }
   /* deep enough for a white arrow on the matching send button, light enough to read on the dark surface */
   .ask-box,.note-reading-frame { --ask-ring-color:color-mix(in srgb,var(--primary) 35%,var(--accent));--ask-ring-highlight:color-mix(in srgb,var(--focus) 18%,var(--ink)); }
   .ask-box::before,.note-reading-frame::before { content:"";position:absolute;inset:-2px;border-radius:inherit;pointer-events:none;opacity:var(--ask-ring-opacity);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 9%,transparent),0 0 12px 2px color-mix(in srgb,var(--accent) 16%,transparent);transition:opacity 200ms ease-out; }
-  /* The summary ring sits on the frame's edge, so its halo starts there; at Ask's -2px it left a dark gap and read as a grey second box. */
-  .note-reading-frame::before { inset:0; }
+  /* The summary halo follows the inset rim, not the scroll viewport's edge. */
+  .note-reading-frame::before { inset:8px 0; }
 }
 @keyframes ask-border-drift { from { transform:translate(-50%,-50%) rotate(0deg); } to { transform:translate(-50%,-50%) rotate(360deg); } }
 @media (prefers-reduced-motion:reduce) { .ask-border::before { animation:none;display:none; } .ask-box::before,.note-reading-frame::before { display:none; } .orb-material::before,.orb-material::after { animation:none; } .ask-send { transition:none;transform:none!important; } }
@@ -632,21 +632,21 @@ body:has(.chat-panel[open]) .app-toast-viewport:dir(rtl) { --toast-x:440px; }
 :root[data-chrome=overlay] .workspace:dir(rtl) .workspace-toolbar:has(.notes-download-status) { right:max(0px,calc(var(--controls-end) - 208px)); }
 :root[data-chrome=overlay] .workspace:dir(rtl).sidebar-collapsed .workspace-toolbar:has(.notes-download-status) { right:max(0px,calc(var(--controls-end) - 56px)); }
 
-/* The frame preserves the note's existing text inset and 22px heading offset in every state. */
-.note-reading-frame { position:relative;min-width:0;min-height:0;flex:1;margin:8px calc(max(0px,(100% - 860px)/2) + clamp(20px,calc(10cqw - 42px),48px) - 14px) 8px;padding:2px;border-radius:12px; }
+/* The scroll viewport meets the tab/footer borders; spacing belongs inside the scrolled content. */
+.note-reading-frame { position:relative;min-width:0;min-height:0;flex:1;margin:0 calc(max(0px,(100% - 860px)/2) + clamp(20px,calc(10cqw - 42px),48px) - 14px);padding:0 2px;border-radius:12px; }
 .note-reading-frame[hidden] { display:none; }
 .note-reading-frame[data-generating=true] { --ask-ring-opacity:1; }
 .note-reading-frame[data-active=true] { --ask-ring-play:running; }
 .note-reading-clip { height:100%;overflow:hidden;border-radius:10px; }
 .main-window .note-reading-clip>.note-notes-pane { height:100%;scrollbar-width:auto;scrollbar-gutter:stable; }
 /* The reserved 4px thumb completes the end padding without narrowing or shifting the text column. */
-.note-reading-frame .note-notes-body { max-width:none;padding-block:12px 30px;padding-inline:12px 8px; }
+.note-reading-frame .note-notes-body { max-width:none;padding-block:22px 40px;padding-inline:12px 8px; }
 .note-reading-clip>.note-notes-pane::-webkit-scrollbar { width:4px; }
 .note-reading-clip>.note-notes-pane::-webkit-scrollbar-track,.note-reading-clip>.note-notes-pane::-webkit-scrollbar-thumb { background:transparent; }
 .note-reading-clip>.note-notes-pane[data-scrolling]::-webkit-scrollbar-thumb { background:color-mix(in srgb,var(--muted) 45%,transparent);border-radius:3px; }
-.note-summary-rim { inset:0;z-index:2; }
-.note-summary-status { position:absolute;inset-inline-start:14px;bottom:10px;z-index:1;background:var(--bg);color:var(--muted);font-size:11px;line-height:16px;pointer-events:none; }
-.note-latest { position:absolute;bottom:10px;left:50%;transform:translateX(-50%);z-index:3;display:flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:6px;padding:4px 12px;background:var(--float);color:var(--ink);font-size:12px;line-height:16px;box-shadow:var(--shadow); }
+.note-summary-rim { inset:8px 0;z-index:2; }
+.note-summary-status { position:absolute;inset-inline-start:14px;bottom:18px;z-index:1;background:var(--bg);color:var(--muted);font-size:11px;line-height:16px;pointer-events:none; }
+.note-latest { position:absolute;bottom:18px;left:50%;transform:translateX(-50%);z-index:3;display:flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:6px;padding:4px 12px;background:var(--float);color:var(--ink);font-size:12px;line-height:16px;box-shadow:var(--shadow); }
 
 .native-library { --meeting-selection-tint:6%; }
 @media (prefers-color-scheme:dark) { .native-library { --meeting-selection-tint:9%; } }

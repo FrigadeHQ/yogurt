@@ -118,8 +118,8 @@ for (const reducedTransparency of ['no-preference', 'reduce']) test(`titlebar ch
     await page.getByTestId('past-note').click()
     await expect(page.getByTestId('note')).toBeVisible()
     const cdp = await page.context().newCDPSession(page)
-    const divider = await page.locator('.workspace-sidebar').evaluate(el => ({ border: getComputedStyle(el).borderInlineEndColor, start: getComputedStyle(el, '::after').top }))
-    expect(divider).toEqual({ border: 'rgba(0, 0, 0, 0)', start: '52px' })
+    await expect(page.locator('.workspace-sidebar')).toHaveCSS('border-inline-end-color', 'rgba(0, 0, 0, 0)')
+    expect(await page.locator('.workspace-sidebar-gap').evaluate(el => getComputedStyle(el, '::after').top)).toBe('52px')
     for (const colorScheme of ['light', 'dark'] as const) {
       await cdp.send('Emulation.setEmulatedMedia', { features: [
         { name: 'prefers-color-scheme', value: colorScheme },

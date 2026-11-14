@@ -31,6 +31,10 @@ for (const theme of ['light', 'dark'] as const) for (const width of [420, 860]) 
       await expect(rim).toHaveCSS('opacity', '1')
       await expect(page.getByTestId('note-enhanced-waiting')).toBeVisible()
       expect(await pane.evaluate(el => el.scrollTop)).toBe(0)
+      const tabs = (await page.locator('.note-primary-tabs').boundingBox())!, reading = (await page.locator('.note-reading-area').boundingBox())!
+      const viewport = (await pane.boundingBox())!
+      expect(viewport.y).toBeCloseTo(tabs.y + tabs.height, 0)
+      expect(viewport.y + viewport.height).toBeCloseTo(reading.y + reading.height, 0)
       const text = (n: number) => Array.from({ length: n }, (_, i) => `## Section ${i + 1}\nThe team agreed to review the launch notes and confirm the next step before publishing.\n`).join('\n')
       await push('writing', text(18))
       await expect(page.getByTestId('note-enhanced-editor')).toContainText('Section 18')

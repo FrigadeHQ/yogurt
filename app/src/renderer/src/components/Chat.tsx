@@ -36,13 +36,14 @@ export function Ask({ id, recording, anchor, onSource }: { id: string; recording
     void window.yogurt.conversations.current([{ kind: 'meeting', id }]).then(cid => { if (active) setConversationId(cid) }).catch(() => { if (active) setError(true) })
     return () => { active = false }
   }, [open, id, conversationId])
-  // Ask grows out of its button and folds back into it. Only the surface stretches; the chat stays at its final size,
+  // Ask grows out of its button and folds back into it. Only the empty surface resizes; the chat stays at its final size,
   // cropped to the surface so none of it shows outside, and the button and the surface trade places where they meet.
   const morph = (expand: boolean, animate = true) => {
     const shell = surface.current, body = contents.current, dialog = panel.current, button = trigger.current
     if (!shell || !body || !dialog || !button) return
     const running = animations.current.some(animation => animation.playState === 'running')
-    const was = { transform: getComputedStyle(shell).transform, radius: getComputedStyle(shell).borderRadius, shell: getComputedStyle(shell).opacity,
+    const style = getComputedStyle(shell)
+    const was = { left: style.left, top: style.top, width: style.width, height: style.height, borderRadius: style.borderRadius, shell: style.opacity,
       dialog: getComputedStyle(dialog).opacity, body: getComputedStyle(body).opacity, clip: getComputedStyle(body).clipPath, button: getComputedStyle(button).opacity }
     animations.current.forEach(animation => animation.cancel()); animations.current = []
     if (!animate) return
@@ -53,18 +54,18 @@ export function Ask({ id, recording, anchor, onSource }: { id: string; recording
       return fade
     }
     const from = button.getBoundingClientRect(), to = dialog.getBoundingClientRect(), box = body.getBoundingClientRect()
-    const scaleX = from.width / to.width, scaleY = from.height / to.height
-    const collapsed = `translate(${from.x - to.x}px, ${from.y - to.y}px) scale(${scaleX}, ${scaleY})`
     const buttonRadius = parseFloat(getComputedStyle(button).borderRadius)
-    const collapsedRadius = `${buttonRadius / scaleX}px / ${buttonRadius / scaleY}px`
-    const cropped = `inset(${from.top - box.top}px ${box.right - from.right}px ${box.bottom - from.bottom}px ${from.left - box.left}px round ${buttonRadius}px)`
-    // The anchored shape settles without overshoot; text stays at its final size.
+    const collapsed = { left: `${from.x - to.x - 1}px`, top: `${from.y - to.y - 1}px`, width: `${from.width}px`, height: `${from.height}px`, borderRadius: `${buttonRadius}px` }
+    const expanded = { left: '-1px', top: '-1px', width: 'calc(100% + 2px)', height: 'calc(100% + 2px)', borderRadius: '12px' }
+    const cropped = `inset(${from.top + 1 - box.top}px ${box.right - from.right + 1}px ${box.bottom - from.bottom + 1}px ${from.left + 1 - box.left}px round ${Math.max(0, buttonRadius - 1)}px)`
+    const uncropped = 'inset(0px round 11px)'
+    // Equal bounds/radius interpolation keeps the clip one border pixel inside the surface at every frame.
     const duration = expand ? timing.base : timing.askExit, easing = timing.ease, handoff = timing.micro
     const shape = shell.animate([
-      { transform: running ? was.transform : expand ? collapsed : 'none', borderRadius: running ? was.radius : expand ? collapsedRadius : '12px' },
-      { transform: expand ? 'none' : collapsed, borderRadius: expand ? '12px' : collapsedRadius },
+      running ? { left: was.left, top: was.top, width: was.width, height: was.height, borderRadius: was.borderRadius } : expand ? collapsed : expanded,
+      expand ? expanded : collapsed,
     ], { duration, easing, fill: 'both' })
-    const crop = body.animate([{ clipPath: running && was.clip !== 'none' ? was.clip : expand ? cropped : 'inset(0px round 12px)' }, { clipPath: expand ? 'inset(0px round 12px)' : cropped }],
+    const crop = body.animate([{ clipPath: running && was.clip !== 'none' ? was.clip : expand ? cropped : uncropped }, { clipPath: expand ? uncropped : cropped }],
       { duration, easing, fill: expand ? 'backwards' : 'forwards' })
     const content = body.animate([{ opacity: running ? was.body : expand ? 0 : 1 }, { opacity: expand ? 1 : 0 }],
       { duration: timing.micro, easing, fill: 'both' })

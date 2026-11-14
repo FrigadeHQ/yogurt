@@ -115,14 +115,25 @@ it('keeps the anchored panel curve monotonic with a shorter close', () => {
     expect(progress).toBeLessThanOrEqual(1)
     previous = progress
   }
+  const styles = readFileSync(new URL('../src/renderer/src/styles.css', import.meta.url), 'utf8')
+  const surface = styles.match(/\.chat-morph-surface \{([^}]+)\}/)![1]
+  // Animated left/top and width/height must not be overconstrained by right/bottom in RTL.
+  expect(surface).toContain('inset:-1px auto auto -1px')
+  expect(surface).toContain('width:calc(100% + 2px);height:calc(100% + 2px)')
+  expect(surface).not.toContain('transform')
 })
 
-it('collapses sidebar controls immediately and expands children on the sidebar duration and curve', () => {
+it('keeps the divider at the page boundary and the icon rail at its final geometry in both directions', () => {
   const css = readFileSync(new URL('../src/renderer/src/workspace.css', import.meta.url), 'utf8')
   const source = readFileSync(new URL('../src/renderer/src/components/Workspace.tsx', import.meta.url), 'utf8')
   expect(source).toContain('duration: sidebarMotion ? motion.surface / 1000 : 0, ease: motion.out')
-  // The page snaps to its final layout: the search field must not keep the outgoing sidebar width.
+  // The page snaps to its final layout, so neither its divider nor its controls can track the outgoing width.
+  expect(css).not.toContain('.workspace-sidebar::after')
+  expect(css).toContain('.workspace-sidebar-gap { position:relative;flex:none; }')
+  expect(css).toContain('.workspace-sidebar-gap::after { content:"";position:absolute;inset-block:52px 0;inset-inline-end:0;width:1px;background:var(--line);pointer-events:none; }')
+  expect(css).toContain('.workspace-sidebar-inner { display:flex;flex-direction:column;width:207px;height:100%;min-height:0; }')
   expect(css).toContain('.sidebar-collapsed .workspace-sidebar-inner { width:55px; }')
+  expect(css).not.toMatch(/\.workspace-folder-label \{[^}]*transition:height/)
   expect(css).toContain('.workspace:is([data-sidebar-motion=false],.sidebar-collapsed) :is(.workspace-nav>span,.workspace-nav>small,.workspace-search>span,.workspace-search>kbd,.workspace-folder-label,.workspace-wordmark,.workspace-brand) { transition:none; }')
   const children = css.slice(css.indexOf('.workspace-sidebar .workspace-nav>span'), css.indexOf('.sidebar-titlebar'))
   for (const transition of children.matchAll(/transition:([^;]+);/g)) {
