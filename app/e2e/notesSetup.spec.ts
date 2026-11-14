@@ -44,7 +44,9 @@ async function expectClear(page: Page) {
     const others = document.querySelectorAll('.workspace-sidebar-toggle, [data-testid="recording-return"], [data-testid="note-menu-button"], #workspace-actions button')
     return box.width >= 44 && box.x >= 0 && box.right <= innerWidth && [...others].every(other => {
       const rect = other.getBoundingClientRect()
-      return box.right <= rect.x || box.x >= rect.right
+      return rect.width > 0 && rect.x >= 0 && rect.right <= innerWidth
+        && (box.right <= rect.x || box.x >= rect.right)
+        && other.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2))
     }) && el.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2))
   })).toBe(true)
 }
@@ -154,6 +156,12 @@ test('AI status stays on every workspace page and clears recording and More in n
   const { app, page } = await launch()
   try {
     await app.evaluate(() => (globalThis as unknown as { __fake__: { manyMeetings(o: { n: number; clean: boolean }): void } }).__fake__.manyMeetings({ n: 2, clean: true }))
+    await app.evaluate(() => {
+      const now = Date.now()
+      ;(globalThis as unknown as { __fake__: { calendarEvents(events: unknown[]): void } }).__fake__.calendarEvents([
+        { id: 'live', title: 'Planning the next release and reviewing open questions '.repeat(4), start: new Date(now - 60_000).toISOString(), end: new Date(now + 30 * 60_000).toISOString(), attendees: [] },
+      ])
+    })
     await page.reload()
     await expect(page.getByTestId('home')).toBeVisible()
     const [other, trashed] = (await page.evaluate(() => window.yogurt.meetings.cards({ limit: 10 }))).map(card => card.id)
@@ -180,7 +188,8 @@ test('AI status stays on every workspace page and clears recording and More in n
         if (await toggle.getAttribute('aria-expanded') !== String(!collapsed)) await toggle.click()
         for (const route of ['', `/folder/${folder!.id}`]) {
           await go(page, route)
-          await expect(page.locator('#workspace-actions button')).toBeVisible()
+          await expect(page.getByTestId(route ? 'start-recording' : 'new-note')).toBeVisible()
+          await expect(page.getByTestId('recording-choices')).toBeVisible()
           await expectClear(page)
         }
       }

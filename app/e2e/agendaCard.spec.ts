@@ -14,8 +14,7 @@ test('a bottom event opens above its row, tracks scrolling, flips without chatte
     await page.clock.setFixedTime(noon)
     await app.evaluate((_electron, noon) => {
       const events = Array.from({ length: 24 }, (_, i) => ({
-        // Keep noon's live CTA in the day, but use a regular event as the scrolling anchor.
-        // A live row is taller, so even near the list top it can correctly retain its top placement.
+        // Keep a live meeting in the day, but use a regular event as the scrolling anchor.
         id: `day-${i}`, title: i === 13 ? 'Sprint planning' : `Meeting ${i + 1}`,
         start: new Date(noon + (i - 12) * 30 * 60_000).toISOString(),
         end: new Date(noon + (i - 12) * 30 * 60_000 + 25 * 60_000).toISOString(),
@@ -32,8 +31,7 @@ test('a bottom event opens above its row, tracks scrolling, flips without chatte
     const card = page.getByTestId('event-details-content')
     const placeRow = async (edge: 'top' | 'bottom') => row.evaluate((el, edge) => {
       const list = el.closest<HTMLElement>('.agenda-scroll')!, r = el.getBoundingClientRect(), bounds = list.getBoundingClientRect()
-      // Align the row itself with the list top. A 20px inset leaves only 15px more room
-      // below in the CI window, correctly short of the production 24px flip threshold.
+      // Align the row itself with the list top, independent of its content height.
       list.scrollTop += edge === 'bottom' ? r.bottom - bounds.bottom + 12 : r.top - bounds.top
     }, edge)
     const geometry = () => card.evaluate(el => {
@@ -42,6 +40,7 @@ test('a bottom event opens above its row, tracks scrolling, flips without chatte
       return {
         left: card.left - column.left, right: column.right - card.right,
         top: card.top, bottom: card.bottom, rowTop: row.top, rowBottom: row.bottom, height: innerHeight,
+        columnTop: Math.max(0, column.top), columnBottom: Math.min(innerHeight, column.bottom),
         roomAbove: Math.max(0, row.top - Math.max(0, column.top) - 20),
         roomBelow: Math.max(0, Math.min(innerHeight, column.bottom) - row.bottom - 20),
       }
@@ -97,15 +96,17 @@ test('a bottom event opens above its row, tracks scrolling, flips without chatte
       await expect.poll(async () => Math.abs((await geometry()).bottom - initial.bottom + 32)).toBeLessThan(1)
       expect(await card.evaluate(el => el.getAnimations().length)).toBe(0)
       await placeRow('top')
-      // In a short window the calendar header can leave more room above every visible row.
-      const topSide = height > 650 ? 'bottom' : 'top'
       const atTop = await geometry()
-      // Assert the fixture's actual room, rather than treating the outer BrowserWindow height
-      // as proof of a flip. The bottom side must beat the existing side by more than 24px.
-      if (topSide === 'bottom') expect(atTop.roomBelow - atTop.roomAbove).toBeGreaterThan(24)
-      else expect(atTop.roomBelow - atTop.roomAbove).toBeLessThanOrEqual(24)
+      // Compact rows can flip even in the short window; use measured room, not window height.
+      const topSide = atTop.roomBelow - atTop.roomAbove > 24 ? 'bottom' : 'top'
+      if (height > 650) expect(topSide).toBe('bottom')
       await expect(card).toHaveAttribute('data-side', topSide)
-      if (topSide === 'bottom') await expect.poll(async () => (await geometry()).top - (await geometry()).rowBottom).toBeGreaterThanOrEqual(7)
+      if (topSide === 'bottom' && atTop.roomBelow >= initial.bottom - initial.top) {
+        await expect.poll(async () => (await geometry()).top - (await geometry()).rowBottom).toBeGreaterThanOrEqual(7)
+      }
+      // When neither side fits the full card, collision handling keeps it inside the column.
+      await expect.poll(async () => (await geometry()).top).toBeGreaterThanOrEqual(atTop.columnTop + 8)
+      await expect.poll(async () => (await geometry()).bottom).toBeLessThanOrEqual(atTop.columnBottom - 8)
       // Small scroll reversals around this placement must not restart the side-change motion.
       for (const delta of [3, -5, 4, -2]) {
         await list.evaluate((el, delta) => { el.scrollTop += delta }, delta)

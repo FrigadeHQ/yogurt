@@ -158,6 +158,8 @@ test('localized recording actions leave room for a long folder title at the smal
         { id: 'long-title', title, start: new Date(now - 60_000).toISOString(), end: new Date(now + 30 * 60_000).toISOString(), attendees: [] },
       ])
     }, title)
+    // The fake calendar hook refreshes main's consumers; reload to read it in the renderer.
+    await page.reload()
     await expect(page.getByTestId('start-recording')).toHaveAttribute('title', `Take notes · ${title}`)
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(w => !w.webContents.getURL().includes('#'))!.setSize(720, 520))
     await expect.poll(() => page.evaluate(() => innerWidth)).toBe(720)
