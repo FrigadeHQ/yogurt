@@ -21,8 +21,8 @@ import { resumesNote } from '../shared/agendaNote'
 import { relaunchOptions, stripAppImageEnv } from './relaunch'
 import { capabilities, micListHelper, platformOf, supportedKinds } from '../shared/platform'
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, Notification, powerMonitor, protocol, safeStorage, screen, shell } from 'electron'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import os from 'node:os'
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import os, { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { isFake, modelsFolder, userDataDir } from './paths'
@@ -76,6 +76,10 @@ import { FakeEngine } from './notes/fake'
 import { hookNotes } from './notes'
 import { hookReadAhead, readAheadAllowed } from './notes/readAhead'
 import { createQueue, isSmallMac, notesMemory } from './notes/queue'
+import { createDiarizer } from './diarize'
+import { createEmbedClient } from './diarize/embed-client'
+import { nemoSpeechPath } from './diarize/paths'
+import { diarizeTimeoutMs } from './diarize/run'
 import type { ContextChip } from '../shared/askContext'
 import { Library } from './library/store'
 import { createEmbedder } from './library/embedder'
@@ -712,6 +716,33 @@ app.whenReady().then(() => {
     sendWidgetTranscript('transcript:speakers', id)
     notes.refresh(id)
   })
+  // a speaker's name by hand: rename one voice, or fold two voices of the same person into one
+  const speakersChanged = (id: string) => {
+    win?.webContents.send('transcript:speakers', id)
+    sendWidgetTranscript('transcript:speakers', id)
+    win?.webContents.send('meetings:changed')
+    notes.refresh(id)
+  }
+  ipcMain.handle('transcript:rename-speaker', (_e, id: unknown, key: unknown, name: unknown) => {
+    if (!isId(id) || typeof key !== 'string' || typeof name !== 'string') return false
+    const ok = store.renameSpeaker(id, key, name)
+    if (ok) speakersChanged(id)
+    return ok
+  })
+  ipcMain.handle('transcript:merge-speaker', (_e, id: unknown, fromKey: unknown, intoKey: unknown) => {
+    if (!isId(id) || typeof fromKey !== 'string' || typeof intoKey !== 'string') return false
+    const ok = store.mergeSpeakers(id, fromKey, intoKey)
+    if (ok) speakersChanged(id)
+    return ok
+  })
+  ipcMain.handle('voices:list', () => store.voiceProfiles())
+  ipcMain.handle('voices:delete', (_e, id: unknown) => { if (typeof id !== 'string' || !id) return; store.deleteVoiceProfile(id); win?.webContents.send('voices:changed') })
+  ipcMain.handle('voices:delete-all', () => { store.deleteAllVoiceProfiles(); win?.webContents.send('voices:changed') })
+  // off is the default, so only on is written down
+  ipcMain.handle('settings:set-speaker-profiles', (_e, on: unknown) => {
+    if (typeof on !== 'boolean') return
+    updateSettings(settingsFile, { speakerProfiles: on ? true : undefined })
+  })
   // each meeting's audio lives in its own folder; a crash keeps what was recorded up to the last 5 s flush
   hookCapture({ dirOf: (id) => join(userDataDir(), 'meetings', id), onStart: onMeetingStart, onStop: onMeetingStop, speech: (id) => speechLocaleFor(id),
     mic: () => loadSettings(settingsFile).mic ?? null,
@@ -770,12 +801,47 @@ app.whenReady().then(() => {
     removed: id => { for (const w of BrowserWindow.getAllWindows()) w.webContents.send('audio:deleted', id) },
     ...(automatic ? { keep: endedAt => keepsRecording(loadSettings(settingsFile), endedAt) } : {}),
   })
+  // voice profiles: opt-in, local; the worker stays down until a meeting needs it (fake mode uses its own vectors)
+  const speakerProfiles = () => !!loadSettings(settingsFile).speakerProfiles
+  // the meeting's two tracks, once recording has finished them (fake mode writes wav stand-ins)
+  const audioKinds: AudioExt[] = isFake() && process.env.YOGURT_FAKE_AUDIO_M4A === '1' ? ['m4a'] : audioExts(process.platform, isFake())
+  // the embed worker needs the downloaded speaker model's path without triggering a download; ensureSpeakerModel fills it
+  let speakerModelPath: string | undefined
+  const embedClient = isFake() ? undefined : createEmbedClient({
+    workerPath: join(__dirname, 'diarizeWorker.js'),
+    modelPath: () => speakerModelPath,
+  })
+  const diarizer = createDiarizer({
+    store,
+    queue,
+    audioHelper: () => audioHelperPath(),
+    nemoPath: () => nemoSpeechPath(),
+    modelPath: () => setup.installed()?.diarization,
+    ensureSpeakerModel: async () => { speakerModelPath = await setup.ensureSpeakerModel(); return speakerModelPath },
+    embed: embedClient,
+    dirOf: (id) => join(userDataDir(), 'meetings', id),
+    exts: () => audioKinds,
+    allowed: speakerProfiles,
+    fake: isFake(),
+    timeoutMs: diarizeTimeoutMs,
+    changed: (id) => { win?.webContents.send('transcript:speakers', id); sendWidgetTranscript('transcript:speakers', id); win?.webContents.send('meetings:changed') },
+    notesRefresh: (id) => notes.refresh(id),
+  })
+  // voice recognition opt-in is snapshotted per meeting: enabling it mid-call never captures the call in progress
+  onMeetingStart((m) => { try { store.setVoicesAllowed(m.id, speakerProfiles()) } catch (e) { console.warn('voices_allowed snapshot failed', e) } })
+  // diarize once the recording, transcript and call names have settled; its queue entry lands ahead of the notes job
+  onMeetingStopSaved((m) => {
+    void (async () => {
+      await recordingFinished(m.id); await transcriptFinished(m.id); await callNames.finished(m.id)
+      diarizer.schedule(m.id)
+    })().catch((e) => console.warn('diarize scheduling failed', e))
+  })
   const notes = hookNotes({
     summarized: id => { folderSuggestions.schedule(id); void removeRecording(id, true) },
     // Windows and Linux: a note waiting while the model loads says so (a Mac shows what it always did)
     showLoading: platform !== 'darwin',
     summaryLanguage: () => summaryLanguageSetting(loadSettings(settingsFile)),
-    store, queue, model, language: meetingLanguage, onStop: onMeetingStopSaved, named: (id) => callNames.finished(id), earlier: (id) => readAhead.parts(id), me,
+    store, queue, model, language: meetingLanguage, onStop: onMeetingStopSaved, named: async (id) => { await Promise.all([callNames.finished(id), diarizer.finished(id)]) }, earlier: (id) => readAhead.parts(id), me,
     transcribed: async (id) => { await recordingFinished(id); await transcriptFinished(id) },
     send: (v) => win?.webContents.send('notes:changed', v),
     // the notes are written: the meeting goes into the library for chat across meetings
@@ -833,7 +899,7 @@ app.whenReady().then(() => {
     let started = false, timer: NodeJS.Timeout | undefined
     try {
       await Promise.race([
-        Promise.all([recordingFinished(id), transcriptFinished(id), callNames.finished(id), analysis.settled]),
+        Promise.all([recordingFinished(id), transcriptFinished(id), callNames.finished(id), diarizer.finished(id), analysis.settled]),
         new Promise<never>((_resolve, reject) => { timer = setTimeout(() => reject(new Error('Previous recording is still finishing')), 30_000) }),
       ])
       clearTimeout(timer)
@@ -916,8 +982,6 @@ app.whenReady().then(() => {
   ipcMain.on('conversations:warm', (_e, id: unknown) => { if (isId(id)) conversations.warm(id) })
   ipcMain.handle('conversations:rename', (_e, id: unknown, title: unknown) => { if (isId(id) && typeof title === 'string') conversations.rename(id, title) })
   ipcMain.handle('conversations:delete', (_e, id: unknown) => { if (isId(id)) conversations.remove(id) })
-  // a meeting's two tracks, once recording has finished them (fake mode writes wav stand-ins)
-  const audioKinds: AudioExt[] = isFake() && process.env.YOGURT_FAKE_AUDIO_M4A === '1' ? ['m4a'] : audioExts(process.platform, isFake())
   const meetingDir = (id: string) => join(userDataDir(), 'meetings', id)
   const finishedMeeting = (id: string) => { const m = store.meeting(id); return !!m && m.state !== 'recording' }
   protocol.handle(AUDIO_SCHEME, createAudioHandler({ dirOf: meetingDir, known: finishedMeeting, ready: async (id) => { await rejoined; await recordingSettled(id); if (isFake()) await waitForFakeAudioMetadata() }, exts: audioKinds }))
@@ -1006,6 +1070,12 @@ app.whenReady().then(() => {
     if (!meeting || meeting.trashedAt != null || activeMeeting() || resumingId) return
     await joinParts(dir)
   })
+  // a crash mid-diarization left a temp wav: sweep it (tmpdir has no meeting data anyone else reads)
+  try {
+    for (const d of readdirSync(tmpdir()).filter((n) => n.startsWith('yogurt-diarize-'))) {
+      rmSync(join(tmpdir(), d), { recursive: true, force: true })
+    }
+  } catch { /* tmpdir unreadable: nothing to sweep */ }
   // meetings whose notes a quit or crash cut short: caught up once the models are ready, one at a time
   let caughtUp = false
   // and meetings not in the library yet (or changed since) are indexed, once nothing else is waiting

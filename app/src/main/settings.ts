@@ -60,6 +60,8 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   spoken?: Spoken
   /** the default for newly written summaries; the meeting's language when left out */
   summaryLanguage?: string
+  /** voice recognition in meetings: named voices are matched and enrolled on this computer; off unless turned on */
+  speakerProfiles?: boolean
   /** new versions download by themselves; on unless turned off */
   autoUpdate?: boolean
   /** when the updater last fetched latest*.yml (ms): checks happen about once a day (updates.ts) */
