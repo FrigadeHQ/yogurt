@@ -50,8 +50,9 @@ test('live, each turn says who: You on the mic, and the name the call app shows 
     await page.getByTestId('note-transcript-toggle').click()
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', /^(stopped|done)$/)
     await expect(whoOf(page, 'Can we go over the launch plan')).toHaveText('You', { timeout: 15_000 })
-    await expect(whoOf(page, 'The site goes live on Tuesday')).toHaveText('Ann Lee')
-    await expect(whoOf(page, 'She will send a draft')).toHaveText('Bo Park')
+    await expect(whoOf(page, 'The site goes live on Tuesday')).toHaveText('Ann Lee', { timeout: 15_000 })
+    // Bo Park's 1.5 s claim is under the 2 s bar: that voice stays Speaker 1 rather than take a name it barely held
+    await expect(whoOf(page, 'She will send a draft')).toHaveText('Speaker 1', { timeout: 15_000 })
     // everyone seen in the call is at the meeting now, the person using Yogurt left out
     const id = (await page.evaluate(() => window.yogurt.nav.current())).slice('/note/'.length)
     await expect.poll(async () => (await page.evaluate((i) => window.yogurt.meetings.get(i), id))?.attendees.map((a) => a.name)).toEqual(['Ann Lee', 'Bo Park', 'Cy Dao'])
@@ -166,7 +167,7 @@ test('transcription trouble shows in the widget in plain words', async () => {
   } finally { await app.close() }
 })
 
-test('without Accessibility the other side is Them, live and after; nothing is guessed', async () => {
+test('without Accessibility the other side is Them live; after, its voices are numbered, never guessed', async () => {
   const { app, page } = await launch({ YOGURT_FAKE_AX: 'denied' })
   try {
     await fake(app, 'signals', { micApps: [zoom], events: [] })
@@ -180,9 +181,10 @@ test('without Accessibility the other side is Them, live and after; nothing is g
     await expect(page.getByTestId('note-summary-tab')).toHaveAttribute('aria-selected', 'true')
     await page.getByTestId('note-transcript-toggle').click()
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', /^(stopped|done)$/)
-    // both lines of the other side are one Them turn
-    await expect(whoOf(page, 'The site goes live on Tuesday')).toHaveText('Them')
-    await expect(page.getByTestId('transcript')).not.toContainText(/Ann Lee|Bo Park|Speaker/)
+    // the two voices heard are numbered by diarization; no one is named
+    await expect(whoOf(page, 'The site goes live on Tuesday')).toHaveText('Speaker 1', { timeout: 15_000 })
+    await expect(whoOf(page, 'She will send a draft')).toHaveText('Speaker 2', { timeout: 15_000 })
+    await expect(page.getByTestId('transcript')).not.toContainText(/Ann Lee|Bo Park/)
   } finally { await app.close() }
 })
 

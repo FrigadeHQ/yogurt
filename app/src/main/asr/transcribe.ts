@@ -7,7 +7,7 @@ import { isPromptEcho, isSilenceGuess, isSubtitleCredit, withoutPromptLabel } fr
 
 /** What a chunk turns into: lines on meeting time. The meeting and the speaker are added where they are saved. */
 export type Line = Omit<Segment, 'id' | 'meetingId' | 'speaker'> & {
-  /** whisper's words with their times (live view only, never saved) */
+  /** whisper's words with their times (saved on the other side's lines, so diarization can re-split them) */
   words?: Array<{ text: string; startMs: number; endMs: number }>
 }
 /** partial: a quick greedy reading of a chunk still being spoken (shown, never saved); the default is the careful beam search */

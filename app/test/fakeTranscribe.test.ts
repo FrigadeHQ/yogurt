@@ -10,19 +10,28 @@ describe('fake transcription', () => {
       ['me', 10500, 13100, 'Great. Who is writing the release notes?'],
       ['them', 5200, 10300, 'Sure. The site goes live on Tuesday, and the email goes out on Wednesday morning.'],
       ['them', 13300, 16400, 'She will send a draft by Friday.'],
-    ] as const) expect(await fakeTranscribe({ track, startMs, samples: new Float32Array((endMs - startMs) * 16) })).toEqual([{ track, startMs, endMs, text }])
+    ] as const) expect(await fakeTranscribe({ track, startMs, samples: new Float32Array((endMs - startMs) * 16) })).toMatchObject([{ track, startMs, endMs, text }])
+  })
+
+  it('gives the other side word times within the phrase, so a finished meeting can be split by voice', async () => {
+    const [line] = await fakeTranscribe({ track: 'them', startMs: 5200, samples: new Float32Array(5100 * 16) })
+    expect(line.words!.map((w) => w.text).join(' ')).toBe(line.text)
+    expect(line.words![0].startMs).toBeGreaterThanOrEqual(5200)
+    expect(line.words!.at(-1)!.endMs).toBeLessThanOrEqual(8700)
+    for (const w of line.words!) expect(w.endMs).toBeGreaterThan(w.startMs)
   })
 
   it('does not invent the rest of a phrase in a short pre-pause chunk', async () => {
-    expect(await fakeTranscribe({ track: 'me', startMs: 500, samples: new Float32Array(800 * 16) })).toEqual([
+    expect(await fakeTranscribe({ track: 'me', startMs: 500, samples: new Float32Array(800 * 16) })).toMatchObject([
       { track: 'me', startMs: 500, endMs: 1300, text: 'Hi, thanks for' },
     ])
   })
 
   it('keeps resumed fixture recordings transcribing at arbitrary later meeting offsets', async () => {
-    expect(await fakeTranscribe({ track: 'me', startMs: 60000, samples: new Float32Array(1500 * 16) })).toEqual([
-      { track: 'me', startMs: 60000, endMs: 61500, text: 'Great. Who is writing the release notes?' },
-    ])
+    const [line] = await fakeTranscribe({ track: 'me', startMs: 60000, samples: new Float32Array(1500 * 16) })
+    expect(line).toMatchObject({ track: 'me', startMs: 60000, endMs: 61500, text: 'Great. Who is writing the release notes?' })
+    // a stand-in beyond the script has no real times to give, so it stays wordless
+    expect(line.words).toBeUndefined()
   })
 
   it('a final from before the pause never duplicates later live words', async () => {

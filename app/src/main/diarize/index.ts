@@ -243,6 +243,8 @@ export function createDiarizer(p: Deps) {
           const pid = `vp_${id.slice(0, 8)}_${key}`
           const v = normalize(vec)
           p.store.createVoiceProfile({ id: pid, name, model: 'campplus', dims, centroid: Buffer.from(v.buffer, v.byteOffset, v.byteLength) })
+          // it was heard in this meeting: the count starts at one, as a match's bump would
+          p.store.bumpVoiceProfile(pid)
           patch.profileId = pid
         }
       } else if (match.id && name === profiles.find(pr => pr.id === match.id)!.name) {

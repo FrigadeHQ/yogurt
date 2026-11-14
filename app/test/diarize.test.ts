@@ -119,8 +119,9 @@ describe('diarizer', () => {
     const d = createDiarizer({ ...deps, embedVectors: async (_w, ranges) => ranges.map(() => new Float32Array([0, 1, 0])) })
     d.schedule(id)
     await d.finished(id)
-    // v1 is named Ann Lee and matched nothing: enrolled
+    // v1 is named Ann Lee and matched nothing: enrolled, heard in this meeting
     expect(store.voiceProfiles().map(p => p.name)).toEqual(['Ann Lee'])
+    expect(store.voiceProfiles()[0].meetings).toBe(1)
     expect(store.meetingSpeakers(id).find(x => x.key === 'v1')!.profileId).toBe(store.voiceProfiles()[0].id)
   })
 
