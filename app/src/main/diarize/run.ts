@@ -4,7 +4,8 @@ import { readFileSync } from 'node:fs'
 /**
  * Runs the two local tools of a diarization job: the recorder helper's decode (m4a on a Mac, Ogg Opus on
  * Windows and Linux) and nemo-speech's diarize. Backends: metal on a Mac, vulkan elsewhere, cpu everywhere;
- * an accelerator that fails to start falls back to cpu once. Only backend names land in the log.
+ * an accelerator that fails to start falls back to cpu once. Only backend names land in the log; the
+ * failure's detail travels in the rejection, never in the log.
  */
 export type Backend = 'cpu' | 'vulkan' | 'metal'
 
@@ -40,8 +41,8 @@ export async function runDiarize(nemo: string, wav: string, model: string, rttmP
     await once(backend)
     console.info(`DIARIZE backend: ${backend}`)
     return 'gpu'
-  } catch (err) {
-    console.warn(`DIARIZE ${backend} failed, trying the cpu:`, err instanceof Error ? err.message : err)
+  } catch {
+    console.warn(`DIARIZE ${backend} failed, trying the cpu`)
     await once('cpu')
     console.info('DIARIZE backend: cpu')
     return 'cpu'

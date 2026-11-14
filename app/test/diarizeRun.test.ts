@@ -84,6 +84,25 @@ describe('runDiarize', () => {
     await expect(runDiarize(fakeNemo(dir, { failFirst: true }), join(dir, 'them.wav'), 'm.gguf', join(dir, 'r.rttm'), 'cpu', 200)).rejects.toThrow()
     expect(readFileSync(join(dir, 'devices.txt'), 'utf8')).toBe('cpu\n')
   })
+  it.skipIf(process.platform === 'win32')('keeps the fallback log to backend names only', async () => {
+    const dir = tmp()
+    const logs: string[] = []
+    const { info, warn } = console
+    console.info = (...a: unknown[]) => logs.push(a.join(' '))
+    console.warn = (...a: unknown[]) => logs.push(a.join(' '))
+    try {
+      const where = await runDiarize(fakeNemo(dir, { failFirst: true }), join(dir, 'them.wav'), 'm.gguf', join(dir, 'r.rttm'), 'vulkan')
+      expect(where).toBe('cpu')
+    } finally {
+      console.info = info
+      console.warn = warn
+    }
+    const text = logs.join('\n')
+    expect(text).toContain('DIARIZE vulkan failed, trying the cpu')
+    expect(text).toContain('DIARIZE backend: cpu')
+    expect(text).not.toContain(dir) // no temp paths
+    expect(text).not.toMatch(/failed \(/) // no exit-code detail
+  })
   it.skipIf(process.platform === 'win32')('times out a stuck child', async () => {
     const dir = tmp()
     const f = join(dir, 'stuck.mjs')
