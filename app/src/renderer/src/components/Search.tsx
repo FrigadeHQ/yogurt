@@ -1,7 +1,6 @@
 import { Dialog } from '@animate-ui/react/primitives/base-ui/dialog'
-import { useReducedMotion } from 'motion/react'
 import { MotionPopup } from './MotionPopup'
-import { surfaceMotion } from '../motion'
+import { motion } from '../motion'
 import { FolderGlyph } from './FolderAppearance'
 import { Swap } from './Swap'
 import { Fragment, useEffect, useRef, useState } from 'react'
@@ -32,14 +31,13 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
   sidebarCollapsed: boolean; onToggleSidebar: () => void
 }) {
   const [open, setOpen] = useState(true)
-  const reduce = useReducedMotion()
   const close = useRef(onClose)
   close.current = onClose
   useEffect(() => {
     if (open) return
-    const timer = setTimeout(() => close.current(), reduce ? 0 : surfaceMotion.exitHoldMs)
+    const timer = setTimeout(() => close.current(), motion.micro)
     return () => clearTimeout(timer)
-  }, [open, reduce])
+  }, [open])
   const [q, setQ] = useState('')
   const [scope, setScope] = useState(folder)
   const [people, setPeople] = useState<Person[]>([])
@@ -196,8 +194,8 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
     <Dialog.Portal keepMounted>
-      <Dialog.Backdrop className="search-backdrop no-drag fixed inset-0 z-[100]" transition={{ duration: reduce ? 0 : .2 }} exitTransition={{ duration: reduce ? 0 : surfaceMotion.exitMs / 1000 }} />
-      <MotionPopup open={open} reduced={!!reduce} initialFocus={input} finalFocus={() => before} data-testid="search" role="dialog" aria-modal="true" aria-label={t('Search and commands')} onKeyDown={onKeyDown}
+      <Dialog.Backdrop className="search-backdrop no-drag fixed inset-0 z-[100]" transition={{ ease: motion.out, duration: motion.micro / 1000 }} exitTransition={{ ease: motion.out, duration: motion.micro / 1000 }} />
+      <MotionPopup initialFocus={input} finalFocus={() => before} data-testid="search" role="dialog" aria-modal="true" aria-label={t('Search and commands')} onKeyDown={onKeyDown}
         // a click anywhere in the panel keeps typing, arrows and Esc in the search box
         onMouseDown={(e) => { if (e.target !== input.current) { e.preventDefault(); input.current?.focus() } }}
         className="search-panel flex max-h-[74vh] w-full max-w-[640px] flex-col overflow-hidden rounded-2xl border border-line bg-float">

@@ -1,3 +1,4 @@
+import { usePopoverPresence } from '../motion'
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { ChevronRight, Ellipsis, FolderIcon, Pencil, Trash2 } from 'lucide-react'
 import { t } from '../../../shared/i18n'
@@ -8,18 +9,19 @@ import { t } from '../../../shared/i18n'
  */
 export function NoteMenu({ recording, savePending, onRename, onDelete, folders, trashed }: { recording: boolean; savePending?: boolean; onRename: () => void; onDelete: () => void; folders?: (close: () => void) => ReactNode; /** in the Trash already: Delete is for good */ trashed?: boolean }) {
   const [open, setOpen] = useState<false | 'pointer' | 'keyboard'>(false)
+  const presence = usePopoverPresence(open, open === 'pointer')
   const [inFolders, setInFolders] = useState(false)
   const root = useRef<HTMLDivElement>(null)
   const button = useRef<HTMLButtonElement>(null)
   const first = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
-    if (!open) { setInFolders(false); return }
+    if (!open) { if (!presence.value) setInFolders(false); return }
     first.current?.focus()
     const away = (e: MouseEvent) => { if (!root.current?.contains(e.target as Node)) setOpen(false) }
     document.addEventListener('mousedown', away)
     return () => document.removeEventListener('mousedown', away)
-  }, [open])
+  }, [open, presence.value])
   const onKey = (e: KeyboardEvent) => {
     const list = Array.from(root.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled), [role="menuitemcheckbox"]') ?? [])
     const at = list.indexOf(document.activeElement as HTMLButtonElement)
@@ -35,8 +37,8 @@ export function NoteMenu({ recording, savePending, onRename, onDelete, folders, 
     <div ref={root} className="relative">
       <button ref={button} data-testid="note-menu-button" aria-haspopup="menu" aria-expanded={!!open} aria-label={t('More')} title={t('More')}
         onClick={(e) => setOpen((o) => o ? false : e.detail > 0 ? 'pointer' : 'keyboard')} className="bar-btn grid size-7 place-items-center rounded-md text-muted"><Ellipsis size={17} strokeWidth={1.75} aria-hidden="true" /></button>
-      {open && (
-        <div data-testid="note-menu" data-pointer={open === 'pointer'} role="menu" aria-label={t('More')} onKeyDown={onKey}
+      {presence.value && (
+        <div data-testid="note-menu" {...presence.props} role="menu" aria-label={t('More')} onKeyDown={onKey}
           className="menu-entry absolute end-0 top-full z-30 mt-2 w-60 rounded-xl border border-line bg-float p-1.5 shadow-[var(--shadow)]">
           {inFolders && folders ? folders(() => { setOpen(false); button.current?.focus() }) : <>
           <button ref={first} role="menuitem" data-testid="note-rename" onClick={() => run(onRename)} className={row}>

@@ -34,7 +34,7 @@ const openNote = async (page: Page, title: string) => {
   await expect(page.getByTestId('note-title')).toHaveText(title)
 }
 
-test('folder icons stay still and Trash animates once on hover in either sidebar size and respect reduced motion', async () => {
+test('folder and Trash icons stay still on hover in either sidebar size and respect reduced motion', async () => {
   const { app, page } = await launch()
   try {
     await page.emulateMedia({ reducedMotion: 'no-preference' })
@@ -46,7 +46,7 @@ test('folder icons stay still and Trash animates once on hover in either sidebar
         const svg = row.locator('svg').first()
         await expect(svg).toHaveCSS('animation-name', 'none')
         await row.hover()
-        await expect(svg).toHaveCSS('animation-name', await row.getAttribute('data-testid') === 'nav-trash' ? 'icon-lift' : 'none')
+        await expect(svg).toHaveCSS('animation-name', 'none')
         await expect(svg).toHaveCSS('animation-iteration-count', '1')
         await page.emulateMedia({ reducedMotion: 'reduce' })
         await expect(svg).toHaveCSS('animation-name', 'none')

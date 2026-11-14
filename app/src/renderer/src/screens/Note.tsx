@@ -4,7 +4,7 @@ import type { LibrarySource } from '../../../shared/types'
 import { flushSync } from 'react-dom'
 import { Loading } from '../components/Loading'
 import { LoadingContent } from '../components/LoadingContent'
-import { useReducedMotion } from '../motion'
+import { motion, useReducedMotion } from '../motion'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useScrollMemory } from '../useScrollMemory'
 import { AudioLines, Lock, RotateCcw, Trash2, TextAlignStart, TriangleAlert } from 'lucide-react'
@@ -187,7 +187,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource }: {
       summaryButton.current?.focus({ preventScroll: true })
     }
     if (reducedMotion) { enter(); return }
-    const timer = setTimeout(enter, 120)
+    const timer = setTimeout(enter, motion.micro)
     return () => clearTimeout(timer)
   }, [id, finishRequested, hasEnhanced, reducedMotion])
   const mineSave = useAutosave(id, 'mine', notes?.mine ?? '', notes?.saves?.mine)
@@ -237,7 +237,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource }: {
       if (side) pick(side)
     }
     const root = panels.current
-    if ((next === primary && (!side || side === shown)) || !root?.startViewTransition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if ((next === primary && (!side || side === shown)) || !root?.startViewTransition) {
       update()
       return
     }

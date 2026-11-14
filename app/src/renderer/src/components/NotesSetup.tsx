@@ -53,8 +53,8 @@ export function NotesSetup({ go }: { go: (route: string) => void }) {
   const fraction = upgrading ? setup.notesUpgradeFraction : setup.notesFraction
   const percent = fraction !== undefined && Number.isFinite(fraction) ? Math.floor(Math.max(0, Math.min(1, fraction)) * 100) : undefined
   return <DirectionProvider direction={dirOf(language())}><span className="notes-download-status">
-    <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger data-testid="notes-setup-open" aria-label={label} title={label} onClick={e => setPointer(e.detail > 0)}
+    <Popover.Root open={open} onOpenChange={(next, details) => { if (next) setPointer(details.event instanceof MouseEvent && details.event.detail > 0); setOpen(next) }}>
+      <Popover.Trigger data-testid="notes-setup-open" aria-label={label} title={label}
         className="bar-btn notes-download-trigger no-drag">
         <span aria-hidden="true" data-failed={failed} data-upgrade={upgrading} className="notes-download-dot" />
         <span className="truncate">{label}</span>

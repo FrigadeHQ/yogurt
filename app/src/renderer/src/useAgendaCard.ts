@@ -1,7 +1,7 @@
 import { arrow, autoUpdate, computePosition, flip, offset, shift } from '@floating-ui/dom'
 import { useLayoutEffect, type RefObject } from 'react'
 import { agendaCardGap, agendaCardInset, agendaCardSide, agendaCardSpace, type AgendaCardSide } from '../../shared/agendaCard'
-import { surfaceMotion, useReducedMotion } from './motion'
+import { motion, useReducedMotion } from './motion'
 
 /** Only a side change animates. Ordinary scrolling stays attached to the row. */
 export function useAgendaCard(panel: RefObject<HTMLDialogElement | null>, opener: HTMLButtonElement | null, onClose: (restoreFocus?: boolean) => void) {
@@ -64,7 +64,7 @@ export function positionAgendaCard(el: HTMLElement, row: HTMLElement, list: HTML
       animation?.cancel()
       const distance = oldTop - el.getBoundingClientRect().top
       if (!reduced) animation = el.animate([{ transform: `translateY(${distance}px)` }, { transform: 'none' }], {
-        duration: surfaceMotion.settleMs, easing: surfaceMotion.settleEase,
+        duration: motion.surface, easing: motion.move,
       })
     }
     side = nextSide

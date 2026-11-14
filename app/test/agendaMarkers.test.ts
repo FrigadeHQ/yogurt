@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it, vi } from 'vitest'
 import { Event } from '../src/renderer/src/components/Agenda'
 import type { AgendaEvent, MeetingCard } from '../src/shared/types'
-import { surfaceMotion } from '../src/renderer/src/motion'
+import { motion } from '../src/renderer/src/motion'
 
 vi.mock('react', async importOriginal => {
   const react = await importOriginal<typeof import('react')>()
@@ -143,13 +143,13 @@ it('resizes from the previous height, retargets interrupted growth and snaps wit
     expect(animate).not.toHaveBeenCalled()
     height = 78
     resize()
-    expect(surfaceMotion.resizeMs).toBe(180)
-    expect(animate).toHaveBeenLastCalledWith([{ height: '33px' }, { height: '78px' }], { duration: 180, easing: surfaceMotion.settleEase })
+    expect(motion.base).toBe(180)
+    expect(animate).toHaveBeenLastCalledWith([{ height: '33px' }, { height: '78px' }], { duration: 180, easing: motion.ease })
     measure.mockReturnValueOnce({ height: 50 })
     height = 52
     resize()
     expect(animation.cancel).toHaveBeenCalledOnce()
-    expect(animate).toHaveBeenLastCalledWith([{ height: '50px' }, { height: '52px' }], { duration: 180, easing: surfaceMotion.settleEase })
+    expect(animate).toHaveBeenLastCalledWith([{ height: '50px' }, { height: '52px' }], { duration: 180, easing: motion.ease })
     reduced = true
     height = 33
     resize()

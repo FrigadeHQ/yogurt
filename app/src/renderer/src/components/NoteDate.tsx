@@ -1,3 +1,4 @@
+import { usePopoverPresence } from '../motion'
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import { ScrollFade } from './ScrollFade'
 import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Clock, ExternalLink, Link2, Link2Off, X } from 'lucide-react'
@@ -10,6 +11,7 @@ import { peopleSummary, useMyName } from './People'
 
 export function NoteDate({ m }: { m: Meeting }) {
   const [open, setOpen] = useState<false | 'pointer' | 'keyboard'>(false)
+  const presence = usePopoverPresence(open, open === 'pointer')
   const chip = useRef<HTMLButtonElement>(null)
   const close = useCallback((restore = true) => { setOpen(false); if (restore) chip.current?.focus({ preventScroll: true }) }, [])
   return <div className="relative">
@@ -17,11 +19,11 @@ export function NoteDate({ m }: { m: Meeting }) {
       className="note-chip flex items-center gap-1.5 rounded-md border border-line px-2.5 text-[13px] text-muted">
       <CalendarDays size={14} strokeWidth={1.75} aria-hidden="true" />{noteDateLabel(m.startedAt)}
     </button>
-    {open && <DateCard key={`${m.id}/${m.eventId}`} m={m} chip={chip} pointer={open === 'pointer'} onClose={close} />}
+    {presence.value && <DateCard key={`${m.id}/${m.eventId}`} m={m} chip={chip} motionProps={presence.props} onClose={close} />}
   </div>
 }
 
-function DateCard({ m, chip, pointer, onClose }: { m: Meeting; chip: RefObject<HTMLButtonElement | null>; pointer: boolean; onClose: (restore?: boolean) => void }) {
+function DateCard({ m, chip, motionProps, onClose }: { m: Meeting; chip: RefObject<HTMLButtonElement | null>; motionProps: ReturnType<typeof usePopoverPresence>['props']; onClose: (restore?: boolean) => void }) {
   const card = useRef<HTMLDivElement>(null)
   // no calendar on this computer (Windows, Linux): the date and length only, as for a note with no event
   const calendar = window.yogurt.capabilities.calendar
@@ -30,7 +32,7 @@ function DateCard({ m, chip, pointer, onClose }: { m: Meeting; chip: RefObject<H
   const [revision, setRevision] = useState(0)
   const [picking, setPicking] = useState(false)
   const toggle = useRef<HTMLButtonElement>(null)
-  useNotePopover(card, chip, onClose)
+  useNotePopover(card, chip, onClose, !motionProps.inert)
   useEffect(() => {
     if (!linked) return
     let active = true
@@ -43,7 +45,7 @@ function DateCard({ m, chip, pointer, onClose }: { m: Meeting; chip: RefObject<H
   const at = event?.start ?? m.startedAt
   const minutes = Math.max(0, Math.round((m.durationMs ?? (m.endedAt ? m.endedAt - m.startedAt : m.state === 'recording' ? Date.now() - m.startedAt : 0)) / 60_000))
   const url = event?.url?.trim()
-  return <div ref={card} data-testid="note-date-card" data-pointer={pointer} data-anchor="start" role="dialog" aria-label={t('Date')}
+  return <div ref={card} data-testid="note-date-card" {...motionProps} data-anchor="start" role="dialog" aria-label={t('Date')}
     className="people-card menu-entry note-date-card absolute start-0 top-full z-30 mt-2 w-[min(340px,calc(100vw-48px))] rounded-lg border border-line bg-float text-ink shadow-[var(--shadow)]"
     onKeyDown={e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onClose() } }}>
     <div className="agenda-inspector-content">

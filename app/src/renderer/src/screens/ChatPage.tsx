@@ -19,6 +19,7 @@ export function ChatPage({ id, go, openSource }: { id: string | null; go: (route
   const [prepared, setPrepared] = useState<ConversationView>()
   const [error, setError] = useState(false)
   const [recent, setRecent] = useState(false)
+  const [recentPointer, setRecentPointer] = useState(false)
   const recentButton = useRef<HTMLButtonElement>(null)
   const [editing, setEditing] = useState<{ id: string; title: string; kind: 'rename' | 'delete' }>()
   const [showAll, setShowAll] = useState(false)
@@ -28,7 +29,7 @@ export function ChatPage({ id, go, openSource }: { id: string | null; go: (route
   const navigation = useRef(0)
   const change = (update: () => void) => {
     transition.current?.skipTransition()
-    if (!page.current?.startViewTransition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { update(); return }
+    if (!page.current?.startViewTransition) { update(); return }
     transition.current = page.current.startViewTransition(() => flushSync(update))
     void transition.current.ready.catch(() => {})
   }
@@ -75,11 +76,11 @@ export function ChatPage({ id, go, openSource }: { id: string | null; go: (route
     {!id && <StartRecording />}
     <div className="ask-page-toolbar">
       {id && <button className="ask-back" onClick={back}><ArrowLeft size={14} aria-hidden="true" />{t('Ask')}</button>}
-      <Popover.Root open={recent} onOpenChange={next => { setRecent(next); if (!next) setShowAll(false) }}>
+      <Popover.Root open={recent} onOpenChange={(next, details) => { if (next) setRecentPointer(details.event instanceof MouseEvent && details.event.detail > 0); setRecent(next); if (!next) setShowAll(false) }}>
         <Popover.Trigger ref={recentButton} data-testid="chat-recent" className="ask-recent-button"><Clock size={14} aria-hidden="true" />{t('Recent')}</Popover.Trigger>
         <Popover.Portal>
           <Popover.Positioner side="bottom" align="end" sideOffset={8} collisionPadding={16} className="ask-recent-positioner">
-            <Popover.Popup data-testid="chat-recent-list" className="ask-history" aria-label={t('Conversations')}>
+            <Popover.Popup data-testid="chat-recent-list" className="menu-entry ask-history" data-pointer={recentPointer} aria-label={t('Conversations')}>
               <ScrollFade><div className="ask-history-scroll">
               <LoadingContent pending={!list} skeleton={<Loading layout="history" />}>
               {list && !history.groups.some(g => g.length) && <p className="ask-history-empty">{t('Your conversations will show up here.')}</p>}

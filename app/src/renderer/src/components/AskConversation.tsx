@@ -27,11 +27,12 @@ const starters = (chips: ContextTarget[], recording: boolean) => chips.length ==
     : [t('What are my next steps this week?'), t('What did we decide last week?'), t('Catch me up on yesterday')]
 
 /** One composer and thread for both the page and the note panel. Draft writes never wait for the model. */
-export function AskConversation({ id, initial, home = false, panel = false, recording = false, onSelect, onSource, onDeleted, onClose, onExpand }: {
-  id: string; initial?: ConversationView; home?: boolean; panel?: boolean; recording?: boolean; onDeleted: () => void; onClose?: () => void; onExpand?: () => void; onSelect: (id: string) => void; onSource: (source: LibrarySource, match?: string) => void
+export function AskConversation({ id, pendingDraftKey, initial, home = false, panel = false, recording = false, onSelect, onSource, onDeleted, onClose, onExpand }: {
+  id: string; pendingDraftKey?: string; initial?: ConversationView; home?: boolean; panel?: boolean; recording?: boolean; onDeleted: () => void; onClose?: () => void; onExpand?: () => void; onSelect: (id: string) => void; onSource: (source: LibrarySource, match?: string) => void
 }) {
   const [chat, setChat] = useState(initial)
-  const [text, setText] = useState(drafts.get(id) ?? initial?.draft ?? '')
+  const [text, setText] = useState((pendingDraftKey ? drafts.get(pendingDraftKey) : undefined) ?? drafts.get(id) ?? initial?.draft ?? '')
+  const edited = useRef(false)
   const [error, setError] = useState(false)
   const [sending, setSending] = useState(false)
   const [changing, setChanging] = useState(false)
@@ -49,7 +50,16 @@ export function AskConversation({ id, initial, home = false, panel = false, reco
   useEffect(() => {
     if (!id) return
     let active = true, revision = 0
-    setError(false); setMention(undefined)
+    setError(false)
+    const pending = pendingDraftKey ? drafts.get(pendingDraftKey) : undefined
+    if (pending !== undefined) {
+      edited.current = true
+      drafts.set(id, pending)
+      drafts.delete(pendingDraftKey!)
+      void window.yogurt.conversations.draft(id, pending).then(() => {
+        if (drafts.get(id) === pending) drafts.delete(id)
+      }).catch(() => { if (active) setError(true) })
+    }
     const off = window.yogurt.conversations.onChange(v => { if (v.id === id) { revision++; setChat(v) } })
     const load = (first = false) => {
       const request = ++revision
@@ -58,7 +68,7 @@ export function AskConversation({ id, initial, home = false, panel = false, reco
         if (!v) throw new Error('Conversation not found')
         if (request === revision) setChat(v)
         if (first) {
-          if (!initial) setText(drafts.get(id) ?? v.draft)
+          if (!initial && !edited.current) setText(drafts.get(id) ?? v.draft)
         }
       }).catch(() => { if (active && request === revision) setError(true) })
     }
@@ -93,7 +103,10 @@ export function AskConversation({ id, initial, home = false, panel = false, reco
   const landing = home || (!panel && unsent)
   const chips = chat ? attachContext(chat.chips, chat.draftChips) : []
   const saveText = (value: string) => {
-    setText(value); drafts.set(id, value)
+    edited.current = true
+    setText(value)
+    if (id || pendingDraftKey) drafts.set(id || pendingDraftKey!, value)
+    if (!id) return
     void window.yogurt.conversations.draft(id, value).then(() => { if (drafts.get(id) === value) drafts.delete(id) }).catch(() => setError(true))
   }
   const detectMention = (value: string, caret: number) => {
@@ -172,12 +185,12 @@ export function AskConversation({ id, initial, home = false, panel = false, reco
     </div>
     <div className={`ask-composer${panel ? ' chat-composer' : ''}`}>
       {error && <p data-testid={panel ? "chat-send-error" : "chat-page-error"} role="alert" className="chat-error">{t("Couldn't save your changes")}</p>}
-      <LoadingContent pending={!chat && !error} onReady={() => { if (chat) input.current?.focus({ preventScroll: true }) }} testId={landing ? "chat-loading" : undefined}><form className="ask-box" data-busy={busy || undefined} data-testid={`${prefix}-box`} onSubmit={e => { e.preventDefault(); send(text) }} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setMention(undefined) }}>
+      <LoadingContent pending={!panel && !chat && !error} onReady={() => { if (chat) input.current?.focus({ preventScroll: true }) }} testId={landing ? "chat-loading" : undefined}><form className="ask-box" data-busy={busy || undefined} data-testid={`${prefix}-box`} onSubmit={e => { e.preventDefault(); send(text) }} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setMention(undefined) }}>
         <span className="ask-border" aria-hidden="true" />
         <AskContext chips={chips} disabled={busy} onRemove={remove} />
         <div className="ask-field">
-        <textarea ref={input} id={panel ? 'meeting-question' : 'library-question'} data-testid={`${prefix}-input`} rows={1} maxLength={4000}
-          placeholder={panel ? t('Ask anything') : t('Ask about your meetings')} aria-label={panel ? t('Ask anything') : t('Ask about your meetings')} value={text} disabled={!chat} readOnly={sending || changing}
+        <textarea autoFocus={panel} ref={input} id={panel ? 'meeting-question' : 'library-question'} data-testid={`${prefix}-input`} rows={1} maxLength={4000}
+          placeholder={panel ? t('Ask anything') : t('Ask about your meetings')} aria-label={panel ? t('Ask anything') : t('Ask about your meetings')} value={text} disabled={!panel && !chat} readOnly={sending || changing}
           role="combobox" aria-autocomplete="list" aria-expanded={!!mention} aria-controls={mention ? `${prefix}-contexts` : undefined}
           aria-activedescendant={mention && targets[selected] ? `${prefix}-context-${selected}` : undefined}
           onChange={e => { saveText(e.target.value); detectMention(e.target.value, e.target.selectionStart) }}

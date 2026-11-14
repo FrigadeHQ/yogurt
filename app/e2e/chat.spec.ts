@@ -324,7 +324,7 @@ test('an unacknowledged question cannot be sent twice, and a rejected request ke
 })
 
 
-test('Ask grows out of its button without stretching its content, preserves its draft, and respects reduced motion', async () => {
+test('Ask grows from its button identically for either trigger and keeps typing available', async () => {
   const { app, page } = await launch()
   try {
     const id = await fake<string>(app, 'bigMeeting', 10)
@@ -332,10 +332,15 @@ test('Ask grows out of its button without stretching its content, preserves its 
     await page.emulateMedia({ reducedMotion: 'no-preference' })
     const trigger = page.getByTestId('chat-open')
     await trigger.click()
-    // only the surface stretches out of the button; the chat inside keeps its size
-    const shell = page.locator('.chat-morph-surface')
-    const frames = await shell.evaluate((el) => el.getAnimations().map(a => (a.effect as KeyframeEffect).getKeyframes()).find(k => k.some(f => f.transform)))
-    expect(frames?.at(-1)?.transform).toBe('none')
+    const panel = page.getByTestId('chat-panel')
+    const surface = page.locator('.chat-morph-surface')
+    const motion = await surface.evaluate(el => el.getAnimations().map(a => ({ duration: a.effect!.getTiming().duration, easing: a.effect!.getTiming().easing, frames: (a.effect as KeyframeEffect).getKeyframes() })).filter(a => a.frames.some(f => f.transform)))
+    expect(motion).toHaveLength(1)
+    expect(motion[0].duration).toBe(180)
+    expect(motion[0].easing).toBe('cubic-bezier(0.23, 1, 0.32, 1)')
+    expect(motion[0].frames[0].transform).toContain('translate(')
+    expect(motion[0].frames.at(-1)!.transform).toBe('none')
+    await expect(page.getByTestId('chat-input')).toBeFocused()
     await expect(page.locator('.chat-panel-contents')).toHaveCSS('transform', 'none')
     await expect(page.locator('.chat-panel-contents')).toHaveCSS('filter', 'none')
     await page.getByTestId('chat-input').fill('Keep this thought')
@@ -344,14 +349,14 @@ test('Ask grows out of its button without stretching its content, preserves its 
     await expect(trigger).toBeFocused()
     await page.keyboard.press('Meta+j')
     await expect(page.getByTestId('chat-input')).toBeFocused()
-    // ⌘J grows it out of the button too
-    expect(await shell.evaluate(el => el.getAnimations().length)).toBeGreaterThan(0)
+    expect(await surface.evaluate(el => el.getAnimations().map(a => a.effect!.getTiming().duration))).toEqual([180, 120])
     await page.keyboard.press('Escape')
     await expect(trigger).toBeFocused()
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.keyboard.press('Meta+j')
     await expect(page.getByTestId('chat-input')).toHaveValue('Keep this thought')
-    expect(await shell.evaluate((el) => el.getAnimations().length)).toBe(0)
+    await expect(panel).toHaveCSS('transform', 'none')
+    expect(await panel.evaluate(el => el.getAnimations().map(a => a.effect!.getTiming().duration))).toEqual([120])
     await page.keyboard.press('Escape')
     await expect(trigger).toBeFocused()
   } finally { await app.close() }

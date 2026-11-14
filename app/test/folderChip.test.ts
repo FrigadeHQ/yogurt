@@ -8,7 +8,7 @@ import { FolderChip, FolderPicker } from '../src/renderer/src/components/FolderP
 const state = vi.hoisted(() => ({ all: [] as Folder[], mine: [] as Folder[] }))
 vi.mock('../src/renderer/src/folders', () => ({ useFolders: (id?: string) => id ? state.mine : state.all, setMeetingsInFolder: vi.fn() }))
 vi.mock('../src/renderer/src/i18n', () => ({ useLanguage: () => 'en' }))
-vi.mock('../src/renderer/src/motion', () => ({ useReducedMotion: () => false }))
+vi.mock('../src/renderer/src/motion', async original => ({ ...await original<typeof import('../src/renderer/src/motion')>(), useReducedMotion: () => false }))
 vi.mock('../src/renderer/src/components/TrashToast', () => ({ toasts: { add: vi.fn(), close: vi.fn() } }))
 const suggested: Folder = { id: 'suggested', name: 'Customer research and planning', icon: 'rocket', color: 'violet', count: 0, createdAt: 1 }
 const alpha: Folder = { ...suggested, id: 'alpha', name: 'Alpha' }

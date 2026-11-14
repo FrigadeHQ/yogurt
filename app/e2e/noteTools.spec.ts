@@ -30,7 +30,7 @@ test('meeting tools expose all copy choices, an anchored search, and a multiline
     await search.click()
     expect((await field.boundingBox())!.width).toBe(224)
     await expect(field).toHaveCSS('transition-property', 'background-color, border-color')
-    await expect(field).toHaveCSS('transition-duration', '0.1s, 0.1s')
+    await expect(field).toHaveCSS('transition-duration', '0.12s, 0.12s')
     await expect(field).toHaveCSS('box-shadow', 'none')
     await expect(search).toHaveCSS('text-align', 'start')
     await page.getByTestId('note-transcript-toggle').click()

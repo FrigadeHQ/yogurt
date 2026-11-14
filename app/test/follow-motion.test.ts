@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { followGlide, surfaceMotion } from '../src/renderer/src/motion'
+import { followGlide, motion } from '../src/renderer/src/motion'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -29,7 +29,7 @@ describe('playhead scroll frames', () => {
     expect(el.scrollTop).toBeGreaterThan(first)
     expect(el.scrollTop).toBeLessThan(1000)
     expect(clock.pending.size).toBe(1)
-    clock.at(116 + surfaceMotion.settleMs)
+    clock.at(116 + motion.surface)
     expect(el.scrollTop).toBe(1500)
     expect(clock.pending.size).toBe(0)
     expect(done).toHaveBeenCalledOnce()

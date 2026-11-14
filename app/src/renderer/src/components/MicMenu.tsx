@@ -1,3 +1,4 @@
+import { usePopoverPresence } from '../motion'
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Check, ChevronDown, Info, Mic } from 'lucide-react'
 import { Pause } from './Icons'
@@ -22,6 +23,7 @@ const FELL_BACK_MS = 8000
 export function MicMenu({ recording, paused }: { recording: boolean; paused?: boolean }) {
   const [view, setView] = useState<MicsView>()
   const [open, setOpen] = useState<false | 'pointer' | 'keyboard'>(false)
+  const presence = usePopoverPresence(open, open === 'pointer')
   /** the mic that went away, for the note saying Auto took over */
   const [lost, setLost] = useState<string | null>(null)
   const root = useRef<HTMLDivElement>(null)
@@ -93,8 +95,8 @@ export function MicMenu({ recording, paused }: { recording: boolean; paused?: bo
           {lost ? t("{name} isn't available anymore. Recording continues with Auto.", { name: lost }) : t("Your mic isn't available anymore. Recording continues with Auto.")}
         </span>
       )}
-      {open && view && (
-        <div data-testid="mic-menu" data-pointer={open === 'pointer'} data-anchor="bottom-start" role="menu" aria-label={t('Microphone')} onKeyDown={onKey}
+      {presence.value && view && (
+        <div data-testid="mic-menu" {...presence.props} data-anchor="bottom-start" role="menu" aria-label={t('Microphone')} onKeyDown={onKey}
           className="menu-entry absolute bottom-full start-0 z-30 mb-2 w-72 rounded-xl border border-line bg-float p-1.5 text-ink shadow-[var(--shadow)]">
           <button role="menuitemradio" aria-checked={view.choice === null} data-testid="mic-auto" onClick={() => void choose(null)} className={row}>
             <span className="flex min-w-0 flex-col">

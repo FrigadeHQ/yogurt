@@ -1,3 +1,4 @@
+import { usePopoverPresence } from '../motion'
 import { attendeePrivacy, emailName } from '../../../shared/people'
 import { toasts } from './TrashToast'
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
@@ -49,6 +50,7 @@ export function useMyName() {
 /** Attendee membership and inline person editing, separate from the calendar details. */
 export function People({ m }: { m: Meeting }) {
   const [open, setOpen] = useState<false | 'pointer' | 'keyboard'>(false)
+  const presence = usePopoverPresence(open, open === 'pointer')
   const me = useMyName()
   const chip = useRef<HTMLButtonElement>(null)
   const close = useCallback((restore = true) => { setOpen(false); if (restore) chip.current?.focus({ preventScroll: true }) }, [])
@@ -60,18 +62,18 @@ export function People({ m }: { m: Meeting }) {
         className="note-chip flex items-center gap-1.5 rounded-md border border-line px-2.5 text-[13px] text-muted">
         <span data-testid="note-attendees-summary" className="flex items-center gap-1.5"><Users size={14} strokeWidth={1.75} aria-hidden="true" />{peopleChipSummary(m.attendees, me)}</span>
       </button>
-      {open && <Card m={m} me={me} pointer={open === 'pointer'} chip={chip} onClose={close} />}
+      {presence.value && <Card m={m} me={me} motionProps={presence.props} chip={chip} onClose={close} />}
     </div>
   )
 }
 
-function Card({ m, me, pointer, chip, onClose }: { m: Meeting; me: string; pointer: boolean; chip: RefObject<HTMLButtonElement | null>; onClose: (restore?: boolean) => void }) {
+function Card({ m, me, motionProps, chip, onClose }: { m: Meeting; me: string; motionProps: ReturnType<typeof usePopoverPresence>['props']; chip: RefObject<HTMLButtonElement | null>; onClose: (restore?: boolean) => void }) {
   const [text, setText] = useState('')
   const [adding, setAdding] = useState(() => !m.attendees.some(p => !same(p.name, me)))
   const [focused, setFocused] = useState(false)
   const input = useRef<HTMLInputElement>(null)
   const card = useRef<HTMLDivElement>(null)
-  useNotePopover(card, chip, onClose)
+  useNotePopover(card, chip, onClose, !motionProps.inert)
   useEffect(() => { if (adding) input.current?.focus({ preventScroll: true }) }, [adding])
   const save = async (people: Person[]) => {
     try { await window.yogurt.meetings.setAttendees(m.id, people); return true }
@@ -91,7 +93,7 @@ function Card({ m, me, pointer, chip, onClose }: { m: Meeting; me: string; point
   const others = m.attendees.map((p, i) => ({ p, i })).filter(({ p }) => !same(p.name, me))
 
   return (
-    <div ref={card} data-testid="people-card" data-pointer={pointer} data-anchor="start" role="dialog" aria-label={t('People')} onKeyDown={key}
+    <div ref={card} data-testid="people-card" {...motionProps} data-anchor="start" role="dialog" aria-label={t('People')} onKeyDown={key}
       className="people-card menu-entry absolute start-0 top-full z-30 mt-2 w-[min(340px,calc(100vw-48px))] rounded-lg border border-line bg-float text-ink shadow-[var(--shadow)]">
       <ul data-testid="people-list" className="people-list max-h-64 overflow-y-auto p-1.5">
         <Row name={me || t('Me')} email={m.attendees.find(p => same(p.name, me))?.email} mine />

@@ -1,3 +1,4 @@
+import { usePopoverPresence } from '../motion'
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { Ellipsis, RotateCcw } from 'lucide-react'
 import { t } from '../../../shared/i18n'
@@ -14,6 +15,7 @@ export function SummaryActions({ hasSummary, canWriteAgain, onWriteAgain, menuBu
 }) {
   const action = hasSummary ? t('Regenerate summary') : t('Generate summary')
   const [open, setOpen] = useState<false | 'pointer' | 'keyboard'>(false)
+  const presence = usePopoverPresence(open, open === 'pointer')
   const root = useRef<HTMLDivElement>(null)
   const item = useRef<HTMLButtonElement>(null)
   useEffect(() => {
@@ -29,8 +31,8 @@ export function SummaryActions({ hasSummary, canWriteAgain, onWriteAgain, menuBu
         onClick={(e) => setOpen((o) => o ? false : e.detail > 0 ? 'pointer' : 'keyboard')} className="note-view-menu">
         <Ellipsis size={15} strokeWidth={1.75} aria-hidden="true" />
       </button>
-      {open && (
-        <div role="menu" data-testid="note-view-menu-list" data-pointer={open === 'pointer'} data-anchor="end" aria-label={t('Summary')}
+      {presence.value && (
+        <div role="menu" data-testid="note-view-menu-list" {...presence.props} data-anchor="end" aria-label={t('Summary')}
           onKeyDown={(e) => { if (e.key === 'Escape' || e.key === 'Tab') { e.preventDefault(); setOpen(false); menuButton.current?.focus() } }}
           className="menu-entry absolute end-0 top-full z-30 mt-2 w-52 rounded-xl border border-line bg-float p-1.5 text-ink shadow-[var(--shadow)]">
           <button ref={item} role="menuitem" data-testid="note-write-again" disabled={!canWriteAgain} onClick={() => { setOpen(false); onWriteAgain() }}

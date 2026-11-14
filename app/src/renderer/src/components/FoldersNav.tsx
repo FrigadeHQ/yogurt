@@ -2,7 +2,8 @@ import { Loading } from './Loading'
 import { LoadingContent } from './LoadingContent'
 import { useEffect, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type RefObject } from 'react'
 import { ArrowDown, ArrowUp, Ellipsis, Palette, Pencil, Plus, Trash2 } from 'lucide-react'
-import { Reorder, useDragControls, useReducedMotion } from 'motion/react'
+import { Reorder, useDragControls } from 'motion/react'
+import { useReducedMotion, usePopoverPresence } from '../motion'
 import type { Folder } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
 import { FolderGlyph } from './FolderAppearance'
@@ -80,6 +81,7 @@ function FolderItem({ folder, collapsed, current, go, onRename, onDelete, onAppe
   const [moving, setMoving] = useState(false)
   const [drop, setDrop] = useState(false)
   const [menu, setMenu] = useState<{ style: CSSProperties; pointer: boolean }>()
+  const presence = usePopoverPresence(menu, !!menu?.pointer)
   const row = useRef<HTMLDivElement>(null)
   const more = useRef<HTMLButtonElement>(null)
   const open = useRef<HTMLButtonElement>(null)
@@ -136,7 +138,7 @@ function FolderItem({ folder, collapsed, current, go, onRename, onDelete, onAppe
       aria-label={t('More for “{name}”', { name: folder.name })} title={t('More')} onClick={(e) => (menu ? setMenu(undefined) : openMenu(e.detail > 0))}>
       <Ellipsis size={15} aria-hidden="true" />
     </button>
-    {menu && <div ref={list} data-testid="sidebar-folder-menu" role="menu" aria-label={folder.name} data-pointer={menu.pointer} data-anchor="start" onKeyDown={key} style={menu.style}
+    {presence.value && <div ref={list} data-testid="sidebar-folder-menu" role="menu" aria-label={folder.name} {...presence.props} data-anchor="start" onKeyDown={key} style={presence.value.style}
       className="menu-entry z-[70] rounded-xl border border-line bg-float p-1.5 shadow-[var(--shadow)]">
       <button role="menuitem" data-testid="sidebar-folder-appearance" onClick={() => run(onAppearance)} className="flex w-full items-center gap-2.5 text-start">
         <Palette size={15} aria-hidden="true" className="text-muted" />{t('Change icon')}

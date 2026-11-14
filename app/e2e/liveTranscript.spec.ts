@@ -110,14 +110,14 @@ test('the live transcript reads like a conversation: your bubbles at the end, th
   } finally { await app.close() }
 })
 
-test('with reduced motion, live words show at once and the dots hold still', async () => {
+test('with reduced motion, live words fade briefly and the dots hold still', async () => {
   const { app, page } = await launch({ YOGURT_FAKE_SPEECH: '1' })
   try {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await start(app, page)
     const live = page.getByTestId('transcript-partial').first()
     await expect(live).toBeVisible({ timeout: 15_000 })
-    expect(await live.evaluate((el) => [getComputedStyle(el.querySelector('.live-word')!).animationName, getComputedStyle(el.querySelector('.live-dots i')!).animationName])).toEqual(['none', 'none'])
+    expect(await live.evaluate((el) => [getComputedStyle(el.querySelector('.live-word')!).animationName, getComputedStyle(el.querySelector('.live-dots i')!).animationName])).toEqual(['motion-fade', 'none'])
   } finally { await app.close() }
 })
 

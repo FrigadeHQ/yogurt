@@ -26,7 +26,7 @@ async function launch() {
 
 const motion = (surface: Locator) => surface.evaluate((el) => {
   const style = getComputedStyle(el), origin = style.transformOrigin.split(' ').map(parseFloat)
-  return { animation: style.animationName, x: origin[0], y: origin[1], width: (el as HTMLElement).offsetWidth }
+  return { transition: style.transitionProperty, duration: style.transitionDuration, x: origin[0], y: origin[1], width: (el as HTMLElement).offsetWidth }
 })
 
 test('keyboard menus open without animation, focus immediately and dismiss back to their triggers', async () => {
@@ -38,7 +38,7 @@ test('keyboard menus open without animation, focus immediately and dismiss back 
       await trigger.focus()
       await page.keyboard.press(key)
       await expect(surface).toBeVisible()
-      expect((await motion(surface)).animation).toBe('none')
+      expect((await motion(surface)).duration).toBe('0s')
       await expect(page.getByTestId(menu.first)).toBeFocused()
       await page.keyboard.press('Escape')
       await expect(surface).toHaveCount(0)
@@ -47,7 +47,7 @@ test('keyboard menus open without animation, focus immediately and dismiss back 
   } finally { await app.close() }
 })
 
-test('pointer menus share anchored entry in LTR and RTL; reduced motion removes it without delaying focus', async () => {
+test('pointer menus share anchored entry in LTR and RTL; reduced motion keeps only the short fade without delaying focus', async () => {
   const { app, page } = await launch()
   try {
     await page.emulateMedia({ reducedMotion: 'no-preference' })
@@ -58,7 +58,8 @@ test('pointer menus share anchored entry in LTR and RTL; reduced motion removes 
         await page.getByTestId(menu.trigger).click()
         await expect(surface).toBeVisible()
         const actual = await motion(surface)
-        expect(actual.animation).not.toBe('none')
+        expect(actual.transition).toBe('opacity, transform')
+        expect(actual.duration).toBe('0.18s, 0.18s')
         expect(actual.y).toBe(0)
         const left = menu.logical && (menu.end ? dir === 'rtl' : dir === 'ltr')
         expect(actual.x).toBeCloseTo(left ? 0 : actual.width, 1)
@@ -72,7 +73,8 @@ test('pointer menus share anchored entry in LTR and RTL; reduced motion removes 
       const surface = page.getByTestId(menu.surface)
       await page.getByTestId(menu.trigger).click()
       await expect(surface).toBeVisible()
-      expect((await motion(surface)).animation).toBe('none')
+      expect((await motion(surface)).transition).toBe('opacity')
+      expect((await motion(surface)).duration).toBe('0.12s')
       await expect(page.getByTestId(menu.first)).toBeFocused()
       await page.keyboard.press('Escape')
       await expect(surface).toHaveCount(0)

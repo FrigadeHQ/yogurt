@@ -1,3 +1,4 @@
+import { usePopoverPresence } from '../motion'
 import { Copy } from './Icons'
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Check, CircleAlert, FileDown, ChevronDown } from 'lucide-react'
@@ -11,6 +12,7 @@ type Feedback = { text: string; kind: 'copied' | 'saved' | 'notice' | 'error' }
 /** Copy choices stay beside the meeting controls. Saving before use protects the latest edits. */
 export function ShareMenu({ id, shown, status, hasEnhanced, beforeUse }: { id: string; shown: 'mine' | 'enhanced'; status: NoteStatus; hasEnhanced: boolean; beforeUse: () => Promise<boolean> }) {
   const [open, setOpen] = useState<false | 'pointer' | 'keyboard'>(false)
+  const presence = usePopoverPresence(open, open === 'pointer')
   const [said, setSaid] = useState<Feedback>()
   const root = useRef<HTMLDivElement>(null)
   const button = useRef<HTMLButtonElement>(null)
@@ -91,8 +93,8 @@ export function ShareMenu({ id, shown, status, hasEnhanced, beforeUse }: { id: s
         <Copy size={13} strokeWidth={1.75} aria-hidden="true" />{t('Copy')}
         <ChevronDown size={12} strokeWidth={1.75} aria-hidden="true" />
       </button>
-      {open && (
-        <div data-testid="share-menu" data-pointer={open === 'pointer'} role="menu" aria-label={t('Copy and export')} onKeyDown={onMenuKey}
+      {presence.value && (
+        <div data-testid="share-menu" {...presence.props} role="menu" aria-label={t('Copy and export')} onKeyDown={onMenuKey}
           className="menu-entry absolute end-0 top-full z-30 mt-2 w-60 rounded-xl border border-line bg-float p-1.5 text-ink shadow-[var(--shadow)]">
           <button ref={(el) => { items.current[0] = el }} role="menuitem" data-testid="share-copy-notes" onClick={() => run(() => void copy('notes', 'mine'))} className={row}>
             <Copy size={15} strokeWidth={1.75} aria-hidden="true" className="text-muted" /><span className="flex-1">{t('Copy my notes')}</span>

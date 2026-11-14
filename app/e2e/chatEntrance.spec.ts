@@ -53,7 +53,7 @@ test('Ask starters hide without moving the landing layout', async ({}, info) => 
       const title = page.locator('.ask-home-title'), titleBox = await title.boundingBox()
       await page.getByTestId('chat-page-input').fill('@')
       await expect(page.getByTestId('chat-starter').first()).toBeHidden()
-      await expect(page.getByTestId('chat-starters')).toHaveCSS('transition-duration', '0s')
+      await expect(page.getByTestId('chat-starters')).toHaveCSS('transition-duration', '0.12s, 0s')
       expect(await title.boundingBox()).toEqual(titleBox)
     }
   } finally { await app.close() }

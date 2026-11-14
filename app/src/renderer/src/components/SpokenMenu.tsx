@@ -1,3 +1,4 @@
+import { usePopoverPresence } from '../motion'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Check, ChevronDown, Info, Languages } from 'lucide-react'
 import { WHISPER_LANGUAGES, type Spoken } from '../../../shared/spoken'
@@ -13,6 +14,7 @@ export const spokenName = (s: Spoken): string => (s === 'en' ? t('English') : t(
 export function SpokenMenu() {
   const [spoken, setSpoken] = useState<Spoken>()
   const [open, setOpen] = useState<false | 'pointer' | 'keyboard'>(false)
+  const presence = usePopoverPresence(open, open === 'pointer')
   const root = useRef<HTMLDivElement>(null)
   const button = useRef<HTMLButtonElement>(null)
 
@@ -65,8 +67,8 @@ export function SpokenMenu() {
         <span data-testid="spoken-name" className="truncate">{spokenName(spoken)}</span>
         <ChevronDown size={11} aria-hidden="true" className="shrink-0" />
       </button>
-      {open && (
-        <div data-testid="spoken-menu" data-pointer={open === 'pointer'} data-anchor="bottom-start" role="menu" aria-label={t('Spoken language')} onKeyDown={onKey}
+      {presence.value && (
+        <div data-testid="spoken-menu" {...presence.props} data-anchor="bottom-start" role="menu" aria-label={t('Spoken language')} onKeyDown={onKey}
           className="menu-entry absolute bottom-full start-0 z-30 mb-2 w-64 rounded-xl border border-line bg-float p-1.5 text-ink shadow-[var(--shadow)]">
           <button role="menuitemradio" aria-checked={spoken === 'en'} data-testid="spoken-en" onClick={() => choose('en')} className={row}>
             <span className="flex min-w-0 flex-col">

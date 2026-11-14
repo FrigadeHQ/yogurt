@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import { useReducedMotion } from './motion'
+import { motion, useReducedMotion } from './motion'
 
 /** Fast local reads stay invisible; a skeleton that has appeared gets time to be read. */
 export function useLoadingState(pending: boolean) {
@@ -16,11 +16,10 @@ export function useLoadingState(pending: boolean) {
       }
     } else if (phase === 'waiting') setPhase('ready')
     else if (phase === 'skeleton') {
-      if (reduced) setPhase('ready')
+      if (reduced) setPhase('revealing')
       else timer = setTimeout(() => setPhase('revealing'), Math.max(0, 200 - (performance.now() - shownAt.current!)))
     } else if (phase === 'revealing') {
-      if (reduced) setPhase('ready')
-      else timer = setTimeout(() => setPhase('ready'), 120)
+      timer = setTimeout(() => setPhase('ready'), motion.micro)
     }
     return () => clearTimeout(timer)
   }, [pending, phase, reduced])

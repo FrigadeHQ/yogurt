@@ -6,7 +6,7 @@ import { t } from '../../../shared/i18n'
 import { setMeetingsInFolder, useFolders } from '../folders'
 import { folderCheck, nextFolderCheck, reconcileFolderChecks, type FolderMemberships, type PendingFolderChecks } from '../folderSelection'
 import { toasts } from './TrashToast'
-import { useReducedMotion } from '../motion'
+import { motion, useReducedMotion, usePopoverPresence } from '../motion'
 
 export type FolderSuggestion = { folder: Folder; dismiss: () => void }
 
@@ -81,6 +81,7 @@ export function FolderChip({ meetingId, onNew, suggestion: manualSuggestion, row
   const [transition, setTransition] = useState<{ folder: Folder; phase: 'saving' | 'accepted' | 'dismissed' | 'settled' } | null>(null)
   const [adding, setAdding] = useState(false)
   const [open, setOpen] = useState<false | 'pointer' | 'keyboard'>(false)
+  const presence = usePopoverPresence(open, open === 'pointer')
   const root = useRef<HTMLDivElement>(null)
   const chip = useRef<HTMLButtonElement>(null)
   useEffect(() => {
@@ -143,8 +144,7 @@ export function FolderChip({ meetingId, onNew, suggestion: manualSuggestion, row
       setTransition(transition.phase === 'accepted' ? { ...transition, phase: 'settled' } : null)
       requestAnimationFrame(() => { if (document.activeElement === document.body) (row ? focus : chip.current)?.focus({ preventScroll: true }) })
     }
-    if (reduced) { finish(); return }
-    const timer = setTimeout(finish, 180)
+    const timer = setTimeout(finish, reduced ? motion.micro : motion.base)
     return () => clearTimeout(timer)
   }, [transition, reduced])
   const appearance = proposed ?? (folders?.length === 1 ? folders[0] : undefined)
@@ -163,7 +163,7 @@ export function FolderChip({ meetingId, onNew, suggestion: manualSuggestion, row
           <button data-testid="folder-suggestion-confirm" className="workspace-icon" disabled={adding || !!held} onClick={() => void confirmSuggestion()} aria-label={t('Add to folder')} title={t('Add to folder')}><Check size={row ? 12 : 15} aria-hidden="true" /></button>
         </div>
       </div> : trigger}
-      {open && <div data-testid="folder-menu" data-pointer={open === 'pointer'} data-anchor="start" role="menu" aria-label={t('Add to folder')} onKeyDown={key}
+      {presence.value && <div data-testid="folder-menu" {...presence.props} data-anchor="start" role="menu" aria-label={t('Add to folder')} onKeyDown={key}
         className="menu-entry absolute start-0 top-full z-30 mt-2 max-h-80 w-60 overflow-y-auto rounded-xl border border-line bg-float p-1.5 shadow-[var(--shadow)]">
         <FolderPicker autoFocus testId="folder-chip-list" meetingId={meetingId} suggestedId={proposed?.id} onNew={() => { setOpen(false); onNew?.() }} />
       </div>}

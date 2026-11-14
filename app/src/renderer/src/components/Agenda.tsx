@@ -11,7 +11,7 @@ import { pickNext } from '../../../shared/comingUp'
 import { daysAgo, timeOf, useDay } from '../dates'
 import { eventPhase, shiftDay, weekDates } from '../agenda'
 import { useAgendaCard } from '../useAgendaCard'
-import { scrollBehavior, surfaceMotion } from '../motion'
+import { motion, scrollBehavior, usePopoverPresence } from '../motion'
 import { peopleSummary, personName, useMyName } from './People'
 
 type Actions = {
@@ -21,7 +21,7 @@ type Actions = {
 }
 type Day = { at: number; status: CalendarStatus; events: AgendaEvent[] }
 
-type Inspection = { at: number; id: string }
+type Inspection = { at: number; id: string; pointer: boolean }
 let lastView: { selected: number; week: number } | undefined
 let lastDay: Day | undefined
 let watchingCalendars = false
@@ -95,6 +95,8 @@ export function Agenda({ revision, recording, onStart, onOpen }: Actions & { rev
   const primary = pickNext(events, now)
   const defaultEvent = relativeDay === 0 ? events.find(e => e.id === primary) ?? events.find(e => e.start > now) ?? events.at(-1) : events[0]
   const detail = inspected?.at === selected ? events.find(e => e.id === inspected.id) : undefined
+  const presence = usePopoverPresence(detail, !!inspected?.pointer)
+  const shownDetail = presence.value
   useLayoutEffect(() => {
     if (!defaultEvent || !scroll.current) return
     const key = `${selected}/${jump}`
@@ -136,15 +138,15 @@ export function Agenda({ revision, recording, onStart, onOpen }: Actions & { rev
       </section>
       : <div data-testid="coming-up" className="agenda-events">
         {calendar.events.length === 0 ? <div className="agenda-status"><CalendarDays size={18} strokeWidth={1.75} aria-hidden="true" /><h3>{t('No meetings')}</h3><p>{t('Your calendar is clear.')}</p></div>
-          : calendar.events.map((event) => <Event key={event.id} event={event} me={me} now={now} near={event.id === primary} initial={event.id === defaultEvent?.id} selected={event.id === detail?.id} onInspect={button => { opener.current = button; setInspected({ at: selected, id: event.id }) }} recording={recording} />)}
+          : calendar.events.map((event) => <Event key={event.id} event={event} me={me} now={now} near={event.id === primary} initial={event.id === defaultEvent?.id} selected={event.id === detail?.id} onInspect={(button, pointer) => { opener.current = button; setInspected({ at: selected, id: event.id, pointer }) }} recording={recording} />)}
       </div>)}
     </LoadingContent></div></ScrollFade>
-    {calendar?.status === 'granted' && detail && <EventDetails key={detail.id} event={detail} recording={recording} onStart={onStart} now={now} onOpen={onOpen} onClose={closeDetails} opener={opener.current} />}
+    {calendar?.status === 'granted' && shownDetail && <EventDetails motionProps={presence.props} key={shownDetail.id} event={shownDetail} recording={recording} onStart={onStart} now={now} onOpen={onOpen} onClose={closeDetails} opener={opener.current} />}
   </aside>
 }
 
 export function Event({ event, me, now, near, initial, selected, onInspect, recording, loading = false }: Pick<Actions, 'recording'> & {
-  loading?: boolean; event: AgendaEvent; me: string; now: number; near: boolean; initial: boolean; selected: boolean; onInspect: (button: HTMLButtonElement) => void
+  loading?: boolean; event: AgendaEvent; me: string; now: number; near: boolean; initial: boolean; selected: boolean; onInspect: (button: HTMLButtonElement, pointer: boolean) => void
 }) {
   const phase = eventPhase(event, now)
   const mine = recording?.eventId === event.id
@@ -158,7 +160,7 @@ export function Event({ event, me, now, near, initial, selected, onInspect, reco
     const to = el.getBoundingClientRect().height
     height.current = to
     if (!loading && from !== undefined && from !== to && scrollBehavior() !== 'auto') {
-      animation.current = el.animate([{ height: `${from}px` }, { height: `${to}px` }], { duration: surfaceMotion.resizeMs, easing: surfaceMotion.settleEase })
+      animation.current = el.animate([{ height: `${from}px` }, { height: `${to}px` }], { duration: motion.base, easing: motion.ease })
     }
   })
   useEffect(() => () => animation.current?.cancel(), [])
@@ -167,7 +169,7 @@ export function Event({ event, me, now, near, initial, selected, onInspect, reco
     <div className="agenda-time">{loading ? <span className="loading-bar" style={{ width: 45 }} /> : timeOf(event.start)}</div>
     <div className="agenda-event-body">
       <div className="agenda-heading">
-        <h3><button disabled={loading} data-testid={loading ? undefined : "event-details"} className="agenda-title" aria-expanded={selected} aria-controls={selected ? "agenda-event-details" : undefined} onClick={e => onInspect(e.currentTarget)}>{loading ? <span className="loading-bar" style={{ width: '85%' }} /> : event.title || t('Meeting')}</button></h3>
+        <h3><button disabled={loading} data-testid={loading ? undefined : "event-details"} className="agenda-title" aria-expanded={selected} aria-controls={selected ? "agenda-event-details" : undefined} onClick={e => onInspect(e.currentTarget, e.detail > 0)}>{loading ? <span className="loading-bar" style={{ width: '85%' }} /> : event.title || t('Meeting')}</button></h3>
         {!loading && marker && <span className="agenda-marker" role="img" aria-label={marker}>
           {mine ? <LevelBars height={14} className="agenda-levels" testId="agenda-recording-levels" paused={recording.paused} stillBars /> : <FileText size={13} strokeWidth={1.75} aria-hidden="true" />}
         </span>}
@@ -178,7 +180,7 @@ export function Event({ event, me, now, near, initial, selected, onInspect, reco
   </article>
 }
 
-function EventDetails({ event, recording, onOpen, onStart, now, onClose, opener }: { event: AgendaEvent; now: number; onClose: (restoreFocus?: boolean) => void; opener: HTMLButtonElement | null } & Pick<Actions, 'recording' | 'onOpen' | 'onStart'>) {
+function EventDetails({ motionProps, event, recording, onOpen, onStart, now, onClose, opener }: { motionProps: ReturnType<typeof usePopoverPresence>['props']; event: AgendaEvent; now: number; onClose: (restoreFocus?: boolean) => void; opener: HTMLButtonElement | null } & Pick<Actions, 'recording' | 'onOpen' | 'onStart'>) {
   const panel = useRef<HTMLDialogElement>(null)
   const scroll = useRef<HTMLDivElement>(null)
   const [expanded, setExpanded] = useState(false)
@@ -200,6 +202,7 @@ function EventDetails({ event, recording, onOpen, onStart, now, onClose, opener 
   }
   useAgendaCard(panel, opener, onClose)
   useEffect(() => {
+    if (motionProps.inert) return
     const el = panel.current!
     const outside = (e: PointerEvent) => { if (!el.contains(e.target as Node) && !opener?.contains(e.target as Node)) onClose(false) }
     const escape = (e: KeyboardEvent) => {
@@ -209,9 +212,9 @@ function EventDetails({ event, recording, onOpen, onStart, now, onClose, opener 
     document.addEventListener('pointerdown', outside)
     document.addEventListener('keydown', escape, true)
     return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', escape, true) }
-  }, [onClose, opener])
+  }, [onClose, opener, motionProps.inert])
   const url = event.url?.trim()
-  return <dialog ref={panel} id="agenda-event-details" data-testid="event-details-content" className="agenda-inspector" aria-labelledby="agenda-detail-title" onCancel={e => { e.preventDefault(); onClose() }}>
+  return <dialog {...motionProps} ref={panel} id="agenda-event-details" data-testid="event-details-content" className="agenda-inspector menu-entry" aria-labelledby="agenda-detail-title" onCancel={e => { e.preventDefault(); onClose() }}>
     <i className="agenda-inspector-arrow" aria-hidden="true" />
     <div className="agenda-inspector-content">
     <div className="agenda-inspector-heading"><h3 id="agenda-detail-title" tabIndex={-1}>{event.title || t('Meeting')}</h3>

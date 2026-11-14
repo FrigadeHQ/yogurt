@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { motion } from '../motion'
 import { WidgetIntent, widgetContains, widgetExpanded, type WidgetLayout } from '../../../shared/widgetMorph'
 
 /** The same surface and details travel between the two shapes. */
@@ -48,18 +49,18 @@ export function useWidgetMorph(card: React.RefObject<HTMLDivElement | null>, war
       freeze()
       const opened = intent.open, box = opened ? expanded : layout.pill
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      const duration = opened ? 350 : 250, easing = opened ? 'cubic-bezier(.34,1.25,.64,1)' : 'cubic-bezier(.22,1,.36,1)'
-      const animate = (node: HTMLElement, to: Record<string, string>, ms = duration, ease = easing, delay = 0) => {
+      const duration = opened ? motion.surface : motion.base, easing = opened ? motion.soft : motion.ease
+      const animate = (node: HTMLElement, to: Record<string, string>, ms: number = duration, ease = easing, delay = 0) => {
         const computed = getComputedStyle(node), from = Object.fromEntries(Object.keys(to).map(k => [k, computed[k as keyof CSSStyleDeclaration]]))
         Object.assign(node.style, to)
-        if (!immediate && !reduced) animations.current.push(node.animate([from, to] as Keyframe[], { duration: ms, easing: ease, delay, fill: 'both' }))
+        if (!immediate && (!reduced || 'opacity' in to)) animations.current.push(node.animate([from, to] as Keyframe[], { duration: reduced ? motion.micro : ms, easing: ease, delay: reduced ? 0 : delay, fill: 'both' }))
       }
       animate(el, { left: `${box.x}px`, top: `${box.y}px`, width: `${box.width}px`, height: `${box.height}px`, borderRadius: opened ? '16px' : '10px' })
       const positions = opened ? [[16, 17], [box.width - timerWidth - 55, 18], [box.width - timerWidth - 16, 18.5]] : [[12, 11], [42, 12], [81, 12.5]]
       items.forEach((item, i) => animate(item, { transform: `translate(${positions[i][0]}px,${positions[i][1]}px)` }))
       body.style.width = `${expanded.width - 2}px`; body.style.height = `${expanded.height - 54}px`
-      animate(body, { transform: opened ? 'translateX(0) scale(1)' : 'translateX(40px) scale(.97)', filter: opened ? 'blur(0px)' : 'blur(2px)' }, duration, 'cubic-bezier(.22,1,.36,1)')
-      animate(body, { opacity: opened ? '1' : '0' }, opened ? 200 : 120, 'ease-out', opened ? 50 : 0)
+      animate(body, { transform: opened ? 'translateX(0) scale(1)' : 'translateX(40px) scale(.97)', filter: opened ? 'blur(0px)' : 'blur(2px)' }, duration, motion.ease)
+      animate(body, { opacity: opened ? '1' : '0' }, opened ? motion.base : motion.micro, motion.ease, opened ? 40 : 0)
       el.style.visibility = 'visible'
     }
     const before = previous.current

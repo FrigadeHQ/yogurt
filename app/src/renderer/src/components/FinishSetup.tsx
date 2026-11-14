@@ -22,6 +22,7 @@ export function FinishSetup({ collapsed = false }: { collapsed?: boolean }) {
   const [percent, setPercent] = useState(0)
   const trigger = useRef<HTMLButtonElement>(null)
   const panel = useRef<HTMLDialogElement>(null)
+  const [pointer, setPointer] = useState(false)
   const menu = useRef<HTMLDivElement>(null)
   const [items, setItems] = useState<MissingPermission[]>([])
   // Replies from before Hide or Undo must not bring back the old checklist state.
@@ -115,11 +116,11 @@ export function FinishSetup({ collapsed = false }: { collapsed?: boolean }) {
       <div className="finish-setup-header">
         <h2>{t('Finish setup')}</h2>
         <div className="finish-setup-controls">
-          <Menu.Root modal={false}>
+          <Menu.Root modal={false} onOpenChange={(open, details) => { if (open) setPointer(details.event instanceof MouseEvent && details.event.detail > 0) }}>
             <Menu.Trigger data-testid="finish-setup-more" aria-label={t('More')} title={t('More')} className="finish-setup-close no-drag"><Ellipsis size={14} aria-hidden="true" /></Menu.Trigger>
             <Menu.Portal>
               <Menu.Positioner side="bottom" align="end" sideOffset={6} className="ask-menu-positioner">
-                <Menu.Popup ref={menu} className="menu-entry ask-actions-menu" aria-label={t('More')} onKeyDown={e => { if (e.key === 'Escape') e.stopPropagation() }}>
+                <Menu.Popup data-pointer={pointer} ref={menu} className="menu-entry ask-actions-menu" aria-label={t('More')} onKeyDown={e => { if (e.key === 'Escape') e.stopPropagation() }}>
                   <Menu.Item data-testid="finish-setup-hide" onClick={() => void hide()}>{t('Hide checklist')}</Menu.Item>
                 </Menu.Popup>
               </Menu.Positioner>

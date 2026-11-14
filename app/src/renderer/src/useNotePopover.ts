@@ -1,10 +1,10 @@
 import { useLayoutEffect, type RefObject } from 'react'
 
 /** The two metadata popovers share bounds, outside dismissal and immediate keyboard focus. */
-export function useNotePopover(card: RefObject<HTMLDivElement | null>, chip: RefObject<HTMLButtonElement | null>, onClose: (restore?: boolean) => void) {
+export function useNotePopover(card: RefObject<HTMLDivElement | null>, chip: RefObject<HTMLButtonElement | null>, onClose: (restore?: boolean) => void, active = true) {
   useLayoutEffect(() => {
     const el = card.current, anchor = chip.current
-    if (!el || !anchor) return
+    if (!el || !anchor || !active) return
     const note = anchor.closest('[data-testid="note"]')
     const measure = () => {
       const rect = anchor.parentElement!.getBoundingClientRect(), width = el.getBoundingClientRect().width
@@ -23,5 +23,5 @@ export function useNotePopover(card: RefObject<HTMLDivElement | null>, chip: Ref
     window.addEventListener('resize', measure); window.addEventListener('scroll', measure, true)
     document.addEventListener('pointerdown', away)
     return () => { observer.disconnect(); window.removeEventListener('resize', measure); window.removeEventListener('scroll', measure, true); document.removeEventListener('pointerdown', away) }
-  }, [card, chip, onClose])
+  }, [card, chip, onClose, active])
 }

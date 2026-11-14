@@ -3,6 +3,7 @@ import { Toast } from '@animate-ui/react/primitives/base-ui/toast'
 import { X } from 'lucide-react'
 import { t } from '../../../shared/i18n'
 import type { SetupState, UpdateStatus } from '../../../shared/types'
+import { motion, useReducedMotion } from '../motion'
 import { notesReadyNotice } from '../notesSetup'
 import { trashMeetings, restoreMeetings } from '../trashMeetings'
 
@@ -134,10 +135,11 @@ export function TrashToast({ go }: { go: (route: string) => void }) {
 }
 
 function ToastList() {
+  const reduced = useReducedMotion()
   const { toasts: shown } = Toast.useToastManager<{ testId?: string; actionTestId?: string }>()
-  return shown.map(item => <Toast.Root key={item.id} toast={item} className="app-toast" swipeDirection={['down', 'right']}
+  return shown.map(item => <Toast.Root key={item.id} toast={item} className="app-toast" transition={{ duration: (reduced ? motion.micro : motion.surface) / 1000, ease: motion.softCurve }} exitTransition={{ duration: (reduced ? motion.micro : motion.base) / 1000, ease: motion.out }} swipeDirection={['down', 'right']}
     data-kind={item.data?.testId} data-testid={item.transitionStatus === 'ending' ? undefined : item.data?.testId ?? 'app-toast'}>
-    <Toast.Content className="app-toast-content">
+    <Toast.Content className="app-toast-content" transition={{ duration: motion.micro / 1000, ease: motion.out }}>
       <Toast.Title className="app-toast-title" />
       {item.actionProps && <Toast.Action className="app-toast-action" data-testid={item.data?.actionTestId} />}
       <Toast.Close className="app-toast-close" aria-label={t('Close')}><X size={14} aria-hidden="true" /></Toast.Close>
