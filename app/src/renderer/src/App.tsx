@@ -41,23 +41,27 @@ export function App() {
   const [setup, setSetup] = useState<SetupState>()
   // where the app was told to go, e.g. /note/<id>
   const [route, setRouteNow] = useState('')
+  const [agendaJump, setAgendaJump] = useState<{ at: number }>()
   const [meeting, setMeeting] = useState<Pick<MeetingView, 'id' | 'title'>>()
   /** Back and forward keep the same note routes; a new destination starts a new branch. */
   const history = useRef<string[]>([])
   const future = useRef<string[]>([])
   const echoes = useRef<string[]>([])
   const routeRef = useRef('')
-  const setRoute = (r: string) => {
+  const setRoute = (r: string, agendaDate?: number) => {
+    // A fresh request lets the same date reset a day changed with the arrows.
+    setAgendaJump(agendaDate === undefined ? undefined : { at: agendaDate })
     rememberScrollPositions()
     if (r !== routeRef.current) { history.current = [...history.current, routeRef.current].slice(-50); future.current = [] }
     routeRef.current = r
     setRouteNow(r)
   }
   const rememberRoute = (r: string) => { echoes.current.push(r); window.yogurt.nav.go(r) }
-  const go = (r: string) => { setRoute(r); rememberRoute(r) }
+  const go = (r: string, agendaDate?: number) => { setRoute(r, agendaDate); rememberRoute(r) }
   const back = () => {
     const prev = history.current.pop()
     if (prev === undefined) return
+    setAgendaJump(undefined)
     rememberScrollPositions()
     future.current.push(routeRef.current)
     routeRef.current = prev; setRouteNow(prev); rememberRoute(prev)
@@ -65,6 +69,7 @@ export function App() {
   const forward = () => {
     const next = future.current.pop()
     if (next === undefined) return
+    setAgendaJump(undefined)
     rememberScrollPositions()
     history.current.push(routeRef.current)
     routeRef.current = next; setRouteNow(next); rememberRoute(next)
@@ -183,7 +188,7 @@ export function App() {
   const screen = settings ? <Settings revision={settingsRevision} focus={route.startsWith('/settings/') ? route.slice('/settings/'.length) : undefined} /> : noteId ? <Note key={noteId} id={noteId} onSource={openSource} onTitleChange={setMeeting} at={jump?.id === noteId ? jump : undefined}
     folderSuggestion={suggestedFolder ? { folder: suggestedFolder, dismiss: () => dismissFolderSuggestion(noteId) } : undefined} />
     : chatId !== undefined ? <ChatPage id={chatId} go={go} openSource={openSource} />
-    : trash ? <Trash open={open} /> : folderScreen || <Home open={open} openFolder={(id) => go(`/folder/${id}`)} />
+    : trash ? <Trash open={open} /> : folderScreen || <Home open={open} openFolder={(id) => go(`/folder/${id}`)} agendaJump={agendaJump} />
   return (
     <div data-testid="app-shell" className={`h-full text-ink ${ready ? 'bg-transparent' : 'bg-bg'}`}>
       {ready ? <Workspace route={route} meeting={meeting} folders={folders} go={go} back={history.current.length ? back : undefined} forward={future.current.length ? forward : undefined} search={() => setSearching(true)} collapsed={sidebarCollapsed} sidebarMotion={sidebarMotion} toggleSidebar={toggleSidebar}>{screen}</Workspace>

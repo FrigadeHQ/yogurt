@@ -6,13 +6,15 @@ import { AskConversation } from '../src/renderer/src/components/AskConversation'
 import type { ConversationView } from '../src/shared/types'
 import { Workspace } from '../src/renderer/src/components/Workspace'
 import { FoldersNav } from '../src/renderer/src/components/FoldersNav'
+import { Agenda } from '../src/renderer/src/components/Agenda'
 
 vi.mock('react', async original => ({
   ...await original<typeof import('react')>(), useState: vi.fn(), useRef: vi.fn(), useEffect: vi.fn(), useLayoutEffect: vi.fn(),
+  useCallback: (callback: unknown) => callback,
 }))
 vi.mock('motion/react', async original => ({ ...await original<typeof import('motion/react')>(), useDragControls: () => ({ start: vi.fn() }) }))
 vi.mock('react-dom', async original => ({ ...await original<typeof import('react-dom')>(), createPortal: (children: ReactNode) => children }))
-afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks() })
+afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); vi.useRealTimers() })
 
 // Exercise the component's handlers and state without starting Electron or a browser.
 function renderer(component: () => ReactNode) {
@@ -57,7 +59,7 @@ function find(node: ReactNode, testId: string): ReactElement<any> {
     if (Array.isArray(value)) return value.map(visit).find(Boolean)
     if (!value || typeof value !== 'object' || !('props' in value)) return
     const element = value as ReactElement<any>
-    if (element.props['data-testid'] === testId || element.props.id === testId) return element
+    if (element.props['data-testid'] === testId || element.props.id === testId || element.props['aria-label'] === testId || element.props.className === testId) return element
     return visit(element.props.children)
   }
   const result = visit(node)
@@ -65,11 +67,80 @@ function find(node: ReactNode, testId: string): ReactElement<any> {
   return result
 }
 
+it.each([true, false])('offers and runs the date command only with an agenda (calendar: %s)', async calendar => {
+  vi.useFakeTimers()
+  vi.stubGlobal('document', { activeElement: null })
+  vi.stubGlobal('HTMLButtonElement', class {})
+  vi.stubGlobal('window', { yogurt: { capabilities: { calendar }, search: { query: vi.fn().mockResolvedValue([]) } } })
+  const onNavigate = vi.fn()
+  const render = renderer(() => Search({ onOpen() {}, onNavigate, onSettingsChange() {}, onShortcuts() {}, onClose() {}, sidebarCollapsed: false, onToggleSidebar() {} }))
+  find(render(), 'search-input').props.onChange({ target: { value: 'November 11, 2028' } })
+  render()
+  vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.length === 6)![0]()
+  await vi.runAllTimersAsync()
+  const tree = render()
+  expect(find(tree, 'search-date').props.children[1].props.title).toContain('2028')
+  if (!calendar) { expect(() => find(tree, 'command-agenda-date')).toThrow('Missing'); return }
+  const row = find(tree, 'command-agenda-date')
+  expect(row.props['aria-selected']).toBe(true)
+  expect(row.props.children[0].type.displayName).toBe('CalendarDays')
+  expect(row.props.children[1].props.children[0]).toBe('Go to Nov 11, 2028')
+  find(tree, 'search').props.onKeyDown({ key: 'Enter', nativeEvent: {}, preventDefault() {} })
+  expect(onNavigate).toHaveBeenCalledExactlyOnceWith('', new Date(2028, 10, 11).getTime())
+})
+
+it('jumps a mounted agenda to the day and week, closes details, and keeps arrows and repeated jumps working', async () => {
+  vi.useFakeTimers()
+  vi.setSystemTime(new Date(2026, 10, 14, 12))
+  const day = vi.fn(async (at: number) => ({ status: 'granted', events: [{ id: 'example', title: 'Example event', start: at, end: at + 60_000, attendees: [], url: null }] }))
+  vi.stubGlobal('window', { addEventListener() {}, removeEventListener() {}, yogurt: {
+    calendar: { day, onChange: () => () => {} }, meetings: { onChange: () => () => {} },
+  } })
+  let jumpTo: { at: number } | undefined
+  const render = renderer(() => Agenda({ revision: 0, onStart: async () => {}, onOpen() {}, jumpTo })) as () => ReturnType<typeof Agenda>
+  const applyJump = () => vi.mocked(useLayoutEffect).mock.calls.find(([, deps]) => deps?.length === 1 && deps[0] === jumpTo)![0]()
+  render()
+  jumpTo = { at: new Date(2028, 10, 11).getTime() }
+  render(); applyJump()
+  let tree = render()
+  expect(find(tree, 'agenda-month').props.children).toBe('November 2028')
+  expect(find(tree, 'Saturday, November 11').props['aria-pressed']).toBe(true)
+  expect(find(tree, 'Choose agenda date').props.children.map((button: ReactElement<any>) => button.props['aria-label'])).toEqual([
+    'Sunday, November 5', 'Monday, November 6', 'Tuesday, November 7', 'Wednesday, November 8',
+    'Thursday, November 9', 'Friday, November 10', 'Saturday, November 11',
+  ])
+  const cleanup = vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.length === 3 && typeof deps[0] === 'function')![0]()
+  await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); await Promise.resolve()
+  tree = render()
+  expect(day).toHaveBeenLastCalledWith(new Date(2028, 10, 11, 12).getTime())
+  find(tree, 'coming-up').props.children[0].props.onInspect({ focus() {} }, false)
+  expect(render().props.children.at(-1)).toBeTruthy()
+  // A fresh request for the same day must close its event card too.
+  jumpTo = { ...jumpTo }; render(); applyJump()
+  tree = render()
+  expect(tree.props.children.at(-1)).toBeFalsy()
+  find(tree, 'Next day').props.onClick()
+  tree = render()
+  expect(find(tree, 'Sunday, November 12').props['aria-pressed']).toBe(true)
+  expect(find(tree, 'Choose agenda date').props.children[0].props['aria-label']).toBe('Sunday, November 12')
+  jumpTo = { ...jumpTo }; render(); applyJump()
+  tree = render()
+  expect(find(tree, 'Saturday, November 11').props['aria-pressed']).toBe(true)
+  find(tree, 'Previous day').props.onClick()
+  expect(find(render(), 'Friday, November 10').props['aria-pressed']).toBe(true)
+  vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.length === 2 && deps.every(value => typeof value === 'number'))![0]()
+  const remount = renderer(() => Agenda({ revision: 0, onStart: async () => {}, onOpen() {} }))
+  expect(find(remount(), 'Friday, November 10').props['aria-pressed']).toBe(true)
+  const arrival = renderer(() => Agenda({ revision: 0, onStart: async () => {}, onOpen() {}, jumpTo: { at: new Date(2030, 0, 1).getTime() } }))
+  expect(find(arrival(), 'Tuesday, January 1').props['aria-pressed']).toBe(true)
+  cleanup?.()
+})
+
 it('keeps initial search results still, ignores stationary hover, and scrolls only for keyboard selection', async () => {
   const meetings = [{ meetingId: 'm1', title: 'Recent meeting', startedAt: 1000, parts: [] }]
   vi.stubGlobal('document', { activeElement: null })
   vi.stubGlobal('HTMLButtonElement', class {})
-  vi.stubGlobal('window', { yogurt: { search: { query: vi.fn().mockResolvedValue(meetings) } } })
+  vi.stubGlobal('window', { yogurt: { capabilities: { calendar: true }, search: { query: vi.fn().mockResolvedValue(meetings) } } })
   const render = renderer(() => Search({ onOpen() {}, onNavigate() {}, onSettingsChange() {}, onShortcuts() {}, onClose() {}, sidebarCollapsed: false, onToggleSidebar() {} }))
   const scrollIntoView = vi.fn()
   const scroll = () => { vi.mocked(useEffect).mock.lastCall![0]() }

@@ -26,16 +26,21 @@ let lastView: { selected: number; week: number } | undefined
 let lastDay: Day | undefined
 let watchingCalendars = false
 
-export function Agenda({ revision, recording, onStart, onOpen }: Actions & { revision: number }) {
+export function Agenda({ revision, recording, onStart, onOpen, jumpTo }: Actions & { revision: number; jumpTo?: { at: number } }) {
   const today = useDay()
   const me = useMyName()
-  const [selected, setSelected] = useState(() => lastView?.selected ?? shiftDay(Date.now(), 0))
-  const [weekAnchor, setWeekAnchor] = useState(() => lastView?.week ?? selected)
+  const [selected, setSelected] = useState(() => jumpTo ? shiftDay(jumpTo.at, 0) : lastView?.selected ?? shiftDay(Date.now(), 0))
+  const [weekAnchor, setWeekAnchor] = useState(() => jumpTo ? selected : lastView?.week ?? selected)
   const [loaded, setLoaded] = useState(() => lastDay?.at === selected ? lastDay : undefined)
   const [inspected, setInspected] = useState<Inspection>()
   const opener = useRef<HTMLButtonElement | null>(null)
   const closeDetails = useCallback((restoreFocus = true) => { setInspected(undefined); if (restoreFocus) opener.current?.focus() }, [])
   const [jump, setJump] = useState(0)
+  useLayoutEffect(() => {
+    if (!jumpTo) return
+    const at = shiftDay(jumpTo.at, 0)
+    setSelected(at); setWeekAnchor(at); setInspected(undefined); setJump(n => n + 1)
+  }, [jumpTo])
   const initialized = useRef<string | undefined>(undefined)
   const lastJump = useRef(jump)
   const [now, setNow] = useState(Date.now)

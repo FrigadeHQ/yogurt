@@ -23,7 +23,7 @@ const PAGE = 40
 const loadedCounts = new Map<string, number>()
 
 /** The workspace, backed by the existing meeting and calendar bridge. */
-export function Home({ open, openFolder }: { open: (id: string) => void; openFolder?: (id: string) => void }) {
+export function Home({ open, openFolder, agendaJump }: { open: (id: string) => void; openFolder?: (id: string) => void; agendaJump?: { at: number } }) {
   const past = usePastNotes()
   const day = useDay()
   const recording = past.cards?.find((c) => c.state === 'recording')
@@ -46,7 +46,7 @@ export function Home({ open, openFolder }: { open: (id: string) => void; openFol
         <p>{t('Start recording, add a few notes, and Yogurt writes the rest when you stop.')}</p>
       </div></section> : <PastNotes cards={past.cards ?? []} day={day} more={past.more} sentinel={past.setSentinel} onOpen={open} openFolder={openFolder} />}</LoadingContent>
     </div>
-    {calendar && <Agenda revision={calendarRevision} recording={recording} onStart={start} onOpen={open} />}
+    {calendar && <Agenda revision={calendarRevision} recording={recording} onStart={start} onOpen={open} jumpTo={agendaJump} />}
   </div>
 }
 

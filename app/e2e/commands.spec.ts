@@ -12,6 +12,44 @@ async function launch(env: Record<string, string> = {}) {
   return { app, page }
 }
 
+test('a future date command opens Meetings on that agenda day and its week', async () => {
+  const { app, page } = await launch()
+  try {
+    await page.clock.install({ time: new Date(2026, 10, 14, 12) })
+    await app.evaluate(({ ipcMain }) => {
+      ipcMain.removeHandler('calendar:day')
+      ipcMain.handle('calendar:day', (_event, at: number) => ({ status: 'granted', events: [
+        { id: 'example', title: 'Example event', start: at, end: at + 60_000, attendees: [], url: null },
+      ] }))
+    })
+    await page.getByTestId('nav-trash').click()
+    const jump = async () => {
+      await page.keyboard.press('Meta+k')
+      await page.getByTestId('search-input').fill('November 11, 2028')
+      await expect(page.getByTestId('search-date')).toContainText('2028')
+      const row = page.getByTestId('command-agenda-date')
+      await expect(row).toContainText('Go to Nov 11, 2028')
+      await expect(row).toHaveAttribute('aria-selected', 'true')
+      await page.keyboard.press('Enter')
+      await expect(page.getByTestId('search')).toHaveCount(0)
+    }
+    await jump()
+    await expect(page.getByTestId('home')).toBeVisible()
+    const agenda = page.getByRole('complementary', { name: 'Agenda' })
+    await expect(agenda.locator('.agenda-month')).toHaveText('November 2028')
+    await expect(agenda.getByRole('button', { name: 'Saturday, November 11', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await expect(agenda.locator('.agenda-week button').first()).toHaveAttribute('aria-label', 'Sunday, November 5')
+    await agenda.getByTestId('event-details').click()
+    await expect(agenda.getByTestId('event-details-content')).toBeVisible()
+    await jump()
+    await expect(agenda.getByTestId('event-details-content')).toHaveCount(0)
+    await agenda.getByRole('button', { name: 'Next day', exact: true }).click()
+    await expect(agenda.getByRole('button', { name: 'Sunday, November 12', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await jump()
+    await expect(agenda.getByRole('button', { name: 'Saturday, November 11', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  } finally { await app.close() }
+})
+
 test('the sidebar shortcut, native View menu, command palette and shortcut reference stay in sync', async () => {
   const { app, page } = await launch()
   try {

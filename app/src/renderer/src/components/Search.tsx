@@ -12,7 +12,7 @@ import { dayLabel, timeOf } from '../dates'
 import { parseSearchQuery } from '../../../shared/searchQuery'
 import { completeSearchPerson, matchSearchPeople, removeSearchSpan, searchPersonKey, uniqueSearchPeople, type SearchPersonMatch } from '../../../shared/searchPeople'
 import { searchPalette, searchSelectionKey } from '../searchRanking'
-import { searchDateLabel, searchFilterEmptyMessage, searchFilterHighlights } from '../searchFilters'
+import { searchDateCommand, searchDateLabel, searchFilterEmptyMessage, searchFilterHighlights } from '../searchFilters'
 
 /** typing settles this long before the search runs */
 const DEBOUNCE_MS = 120
@@ -26,7 +26,7 @@ function Marked({ parts }: { parts: SnippetPart[] }) {
  * ⌘K searches meetings and the app's destinations and actions. A folder scopes meeting results and new questions.
  */
 export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, onShortcuts, onClose, sidebarCollapsed, onToggleSidebar }: {
-  folder?: Folder; folders?: Folder[]; onOpen: (id: string) => void; onNavigate: (route: string) => void; onSettingsChange: () => void; onShortcuts: () => void; onClose: () => void
+  folder?: Folder; folders?: Folder[]; onOpen: (id: string) => void; onNavigate: (route: string, agendaDate?: number) => void; onSettingsChange: () => void; onShortcuts: () => void; onClose: () => void
   sidebarCollapsed: boolean; onToggleSidebar: () => void
 }) {
   const [open, setOpen] = useState(true)
@@ -96,7 +96,9 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
   const items = results?.list ?? []
   const navigate = (route: string) => { onNavigate(route) }
   const settingsAction = async (run: () => Promise<void>) => { await run(); onSettingsChange() }
+  const dateCommand = window.yogurt.capabilities.calendar ? searchDateCommand(parsed.date, q) : undefined
   const allCommands = [
+    ...(dateCommand ? [{ ...dateCommand, Icon: CalendarDays, run: () => onNavigate('', dateCommand.at) }] : []),
     { id: 'meetings', label: t('Meetings'), group: t('Go to'), Icon: FileText, run: () => navigate(''), shortcut: keys('⌘1') },
     { id: 'chat', synonyms: ['chat'], label: t('Ask'), group: t('Go to'), Icon: MessageCircle, run: () => navigate('/chat'), shortcut: keys('⌘2') },
     { id: 'trash', label: t('Trash'), group: t('Go to'), Icon: Trash2, run: () => navigate('/trash'), shortcut: keys('⌘3') },
