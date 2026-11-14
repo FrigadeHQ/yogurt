@@ -46,6 +46,9 @@ export class FakeEngine implements Engine {
     // who was there, as the prompt says: shown, so a note written again for new people can be told apart
     const invited = /People invited: (.*)\. "You"/.exec(prompt)?.[1]
     const own = /<notes>\n([\s\S]*?)\n<\/notes>/.exec(prompt)?.[1].split('\n')[0].replace(/^\s*[-*]\s+/, '').trim()
+    // The speaker the transcript gives that line: a call name when its claim held, else its Speaker N label.
+    // "Them" (no diarization) reads as plain words; a failed claim is never guessed back to the call app's name.
+    const owner = /(?:^|\n)([^\n:]+): [^\n]*She will send a draft/.exec(prompt)?.[1].trim()
     const md = [
       '## Launch plan',
       ...(own ? [`- <mine>${own}</mine>`] : []),
@@ -55,8 +58,7 @@ export class FakeEngine implements Engine {
       '## Release notes',
       '- A draft is due by Friday.',
       '## Next steps',
-      // the name from the call when the transcript has it, plain words when it is Them
-      `- **${prompt.includes('Bo Park: She will send a draft') ? 'Bo Park' : 'The others'}:** Send the release notes draft by Friday.`,
+      `- **${owner && owner !== 'You' && owner !== 'Them' ? owner : 'The others'}:** Send the release notes draft by Friday.`,
       '- **You:** Share the launch plan with the team.',
     ].join('\n')
     return this.stream(md, onToken, signal)

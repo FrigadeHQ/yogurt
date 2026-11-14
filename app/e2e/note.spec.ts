@@ -201,20 +201,21 @@ test('stopping writes the enhanced notes, streamed in, with their own line marke
   } finally { await app.close() }
 })
 
-test('the notes are written with the names from the call', async () => {
+test('the notes name the voice the transcript kept, never a call name whose claim was too short', async () => {
   const { app, page } = await launch()
   try {
     const id = await record(app, page)
-    // the fixture's second line of the other side, at 13.3 s, is Bo Park's
+    // the fixture's second line of the other side, at 13.3 s, is marked Bo Park's in the call
     await expect.poll(async () => (await page.evaluate((id) => window.yogurt.transcript.get(id), id)).some((l) => l.text.startsWith('She will send')), { timeout: 40_000 }).toBe(true)
     await stop(page)
     const enhanced = page.getByTestId('note-enhanced')
     await expect(enhanced).toHaveAttribute('data-status', 'done', { timeout: 60_000 })
     const editor = page.getByTestId('note-enhanced-editor')
-    // the fake model names the owner it finds in the transcript ("Bo Park: She will send a draft")
-    await expect(editor).toContainText('Bo Park: Send the release notes draft by Friday.')
-    await expect(editor).not.toContainText('Speaker')
-    expect((await notesOf(page, id)).enhanced).toContain('**Bo Park:**')
+    // his 1.5 s claim is under the 2 s bar, so diarization leaves that voice Speaker 1: the notes use the label the
+    // transcript kept instead of guessing the name the call app showed for it
+    await expect(editor).toContainText('Speaker 1: Send the release notes draft by Friday.')
+    await expect(editor).not.toContainText('Bo Park:')
+    expect((await notesOf(page, id)).enhanced).toContain('**Speaker 1:**')
   } finally { await app.close() }
 })
 
