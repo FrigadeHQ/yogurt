@@ -44,11 +44,20 @@ const unit = (v: Float32Array): Float32Array => {
 }
 export const fakeVector = (key: string): Float32Array => unit(hash(key))
 
-/** similarity knob: blends the voice's vector toward a decoy (1: itself; ~0.62: ambiguous band; ~0.1: no match) */
+/** similarity knob: the result's cosine against the voice's own vector is exactly the sim (1: itself;
+ * 0.62: ambiguous band (0.6..0.72); 0.1: no match). A plain unit(sim*v + (1-sim)*decoy) blend renormalizes
+ * upward (0.62 measured 0.80 — the norm shrinks when the decoy isn't collinear), so the decoy is first
+ * orthogonalized against v and scaled by sqrt(1-sim²): cos = sim·1 + k·0, ‖out‖ = sim²+k² = 1. */
 const SIM: Record<string, number | undefined> = { none: 0.1, ambiguous: 0.62 }
 export function fakeVectorFor(key: string): Float32Array {
   const sim = SIM[process.env.YOGURT_FAKE_VOICE_SIM ?? ''] ?? 1
-  const v = fakeVector(key), decoy = fakeVector('decoy'), out = new Float32Array(v.length)
-  for (let i = 0; i < v.length; i++) out[i] = sim * v[i] + (1 - sim) * decoy[i]
-  return unit(out)
+  const v = fakeVector(key)
+  if (sim >= 1) return v
+  const decoy = fakeVector('decoy'), k = Math.sqrt(1 - sim * sim), out = new Float32Array(v.length)
+  let dot = 0, wsum = 0
+  for (let i = 0; i < v.length; i++) dot += decoy[i] * v[i]
+  for (let i = 0; i < v.length; i++) { out[i] = decoy[i] - dot * v[i]; wsum += out[i] * out[i] }
+  const n = Math.sqrt(wsum)
+  for (let i = 0; i < v.length; i++) out[i] = sim * v[i] + (n > 0 ? (k * out[i]) / n : 0)
+  return out
 }
