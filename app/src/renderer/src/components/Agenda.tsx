@@ -9,7 +9,7 @@ import { language, t } from '../../../shared/i18n'
 import { agendaNoteAction } from '../../../shared/agendaNote'
 import { pickNext } from '../../../shared/comingUp'
 import { daysAgo, timeOf, useDay } from '../dates'
-import { eventPhase, shiftDay, weekDates } from '../agenda'
+import { eventPhase, shiftDay, stepAgendaDay, weekDates } from '../agenda'
 import { useAgendaCard } from '../useAgendaCard'
 import { motion, scrollBehavior, usePopoverPresence } from '../motion'
 import { peopleSummary, personName, useMyName } from './People'
@@ -109,6 +109,10 @@ export function Agenda({ revision, recording, onStart, onOpen }: Actions & { rev
     const row = scroll.current.querySelector<HTMLElement>('[data-agenda-default="true"]')
     if (row) scroll.current.scrollTop += row.getBoundingClientRect().top - scroll.current.getBoundingClientRect().top - 16
   }, [calendar, defaultEvent, selected, jump, scrollKey, scroll])
+  const step = (offset: -1 | 1) => {
+    const next = stepAgendaDay(selected, weekAnchor, offset)
+    setSelected(next.selected); setWeekAnchor(next.weekAnchor); setInspected(undefined)
+  }
   return <aside className="native-agenda" aria-label={t('Agenda')}>
     <div className="agenda-header">
       <h2>{t('Agenda')}</h2>
@@ -116,8 +120,8 @@ export function Agenda({ revision, recording, onStart, onOpen }: Actions & { rev
     </div>
     <div className="agenda-navigation">
       <span className="agenda-month">{new Date(weekAnchor).toLocaleDateString(language(), { month: 'long', year: 'numeric' })}</span>
-      <button className="workspace-icon" aria-label={t('Previous week')} onClick={() => setWeekAnchor((at) => shiftDay(at, -7))}><ChevronLeft size={15} className="rtl:-scale-x-100" /></button>
-      <button className="workspace-icon" aria-label={t('Next week')} onClick={() => setWeekAnchor((at) => shiftDay(at, 7))}><ChevronRight size={15} className="rtl:-scale-x-100" /></button>
+      <button className="workspace-icon" aria-label={t('Previous day')} onClick={() => step(-1)}><ChevronLeft size={15} className="rtl:-scale-x-100" /></button>
+      <button className="workspace-icon" aria-label={t('Next day')} onClick={() => step(1)}><ChevronRight size={15} className="rtl:-scale-x-100" /></button>
     </div>
     <div className="agenda-week" aria-label={t('Choose agenda date')}>
       {weekDates(weekAnchor).map((at) => {

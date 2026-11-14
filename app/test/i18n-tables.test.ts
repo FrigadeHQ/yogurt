@@ -11,6 +11,22 @@ const load = (id: string): Record<string, Entry> => JSON.parse(readFileSync(join
 const blanks = (s: string) => [...new Set(s.match(/\{\w+\}/g) ?? [])].sort()
 const forms = (e: Entry) => (typeof e === 'string' ? [e] : Object.values(e))
 
+it('translates day arrows and removes unused week arrows in every locale', () => {
+  for (const { id } of LOCALES) {
+    const table = load(id)
+    for (const key of ['Previous day', 'Next day']) {
+      expect(keys).toContain(key)
+      expect(table[key]).toBeTypeOf('string')
+      expect(table[key]).not.toBe('')
+      if (id !== 'en') expect(table[key]).not.toBe(key)
+    }
+    for (const key of ['Previous week', 'Next week']) {
+      expect(keys).not.toContain(key)
+      expect(table).not.toHaveProperty(key)
+    }
+  }
+})
+
 it('translates agenda marker labels in every locale', () => {
   for (const { id } of LOCALES) {
     const table = load(id)

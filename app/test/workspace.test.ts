@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { isAppRoute } from '../src/shared/routes'
-import { shiftDay, weekDates, eventPhase } from '../src/renderer/src/agenda'
+import { shiftDay, stepAgendaDay, weekDates, eventPhase } from '../src/renderer/src/agenda'
 
 describe('workspace routes', () => {
   it('accepts only local destinations and meeting IDs', () => {
@@ -9,6 +9,35 @@ describe('workspace routes', () => {
   })
 })
 describe('agenda dates', () => {
+  it.each([
+    ['forward inside the week', [2026, 10, 18], 1, [2026, 10, 19], false],
+    ['backward inside the week', [2026, 10, 18], -1, [2026, 10, 17], false],
+    ['off the first day', [2026, 10, 15], -1, [2026, 10, 14], true],
+    ['off the last day', [2026, 10, 21], 1, [2026, 10, 22], true],
+    ['across a month', [2026, 10, 30], 1, [2026, 11, 1], false],
+    ['across a year', [2026, 11, 31], 1, [2027, 0, 1], false],
+    ['across a year and week', [2022, 11, 31], 1, [2023, 0, 1], true],
+  ] as const)('steps %s', (_name, from, offset, to, movesWeek) => {
+    const selected = new Date(from[0], from[1], from[2], 12).getTime()
+    const weekAnchor = weekDates(selected)[0]
+    const next = new Date(to[0], to[1], to[2], 12).getTime()
+    expect(stepAgendaDay(selected, weekAnchor, offset)).toEqual({ selected: next, weekAnchor: movesWeek ? next : weekAnchor })
+  })
+  it('steps through both daylight-saving changes at local noon', () => {
+    const saved = process.env.TZ
+    try {
+      process.env.TZ = 'America/Los_Angeles'
+      for (const [month, day] of [[2, 7], [9, 31]]) {
+        const selected = new Date(2026, month, day, 12).getTime()
+        const next = new Date(2026, month, day + 1, 12).getTime()
+        expect(stepAgendaDay(selected, selected, 1)).toEqual({ selected: next, weekAnchor: next })
+        expect(stepAgendaDay(next, next, -1)).toEqual({ selected, weekAnchor: selected })
+      }
+    } finally {
+      if (saved === undefined) delete process.env.TZ
+      else process.env.TZ = saved
+    }
+  })
   it('keeps local dates and noon across the daylight-saving boundary', () => {
     const start = new Date(2026, 9, 31, 12).getTime()
     const next = new Date(shiftDay(start, 1))

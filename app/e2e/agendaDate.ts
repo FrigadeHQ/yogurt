@@ -9,8 +9,10 @@ export async function selectUpcomingAgendaDay(page: Page, offset: 1 | 2) {
   const agenda = page.getByRole('complementary', { name: 'Agenda' })
   const day = agenda.getByRole('button', { name: label, exact: true })
   if (!await day.count()) {
-    const direction = await agenda.locator('[aria-current=date]').count() ? 'Next week' : 'Previous week'
-    await agenda.getByRole('button', { name: direction, exact: true }).click()
+    const direction = await agenda.locator('[aria-current=date]').count() ? 'Next day' : 'Previous day'
+    for (let step = 0; step < 7 && !await day.count(); step++) {
+      await agenda.getByRole('button', { name: direction, exact: true }).click()
+    }
   }
   await day.click()
 }
