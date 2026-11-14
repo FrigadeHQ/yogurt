@@ -23,3 +23,15 @@ export function readWavSamples(path: string): { sampleRate: number; samples: Flo
   for (let i = 0; i < n; i++) samples[i] = b.readInt16LE(start + i * 2) / 32768
   return { sampleRate, samples }
 }
+
+/** the speaker model needs this much clean speech for one embedding */
+export const MIN_EMBED_MS = 800
+
+/** the sample slice of a decoded wav a speech range covers, or null when it is too short for the speaker model */
+export function embedRange(r: { startMs: number; endMs: number }, length: number, sampleRate = 16000): { from: number; to: number } | null {
+  if (r.endMs - r.startMs < MIN_EMBED_MS) return null
+  const from = Math.max(0, Math.floor(r.startMs / 1000 * sampleRate))
+  const to = Math.min(length, Math.ceil(r.endMs / 1000 * sampleRate))
+  if (to - from < MIN_EMBED_MS / 1000 * sampleRate) return null
+  return { from, to }
+}

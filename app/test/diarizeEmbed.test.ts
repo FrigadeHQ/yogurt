@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { createEmbedClient, type Fork } from '../src/main/diarize/embed-client'
-import { readWavSamples, writeWav } from '../src/main/diarize/wav'
+import { readWavSamples, writeWav, embedRange } from '../src/main/diarize/wav'
 
 const dirs: string[] = []
 afterEach(() => dirs.splice(0).forEach((d) => rmSync(d, { recursive: true, force: true })))
@@ -94,5 +94,14 @@ describe('wav helpers', () => {
     const { sampleRate, samples } = readWavSamples(f)
     expect(sampleRate).toBe(16000)
     expect([...samples].map(v => Math.round(v * 1000))).toEqual([0, 500, -500, 1000])
+  })
+
+  it('embedRange gives the 16 kHz sample slice, and a hole below 800 ms', () => {
+    const length = 16 * 20_000 // 20 s
+    expect(embedRange({ startMs: 1000, endMs: 2600 }, length)).toEqual({ from: 16_000, to: 41_600 })
+    expect(embedRange({ startMs: 1000, endMs: 1700 }, length)).toBeNull()
+    // a range that runs past the recording is clamped, and one that leaves too little of itself is a hole
+    expect(embedRange({ startMs: 19_000, endMs: 25_000 }, length)).toEqual({ from: 304_000, to: 320_000 })
+    expect(embedRange({ startMs: 19_700, endMs: 25_000 }, length)).toBeNull()
   })
 })
