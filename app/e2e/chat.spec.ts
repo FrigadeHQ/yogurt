@@ -54,9 +54,13 @@ test('Ask opens one contained panel, keeps the note usable, and restores focus w
     await expect(trigger).toBeFocused()
     await trigger.click()
     await expect(input).toHaveValue('A question to come back to')
-    // Command-J resumes/focuses this conversation; Escape closes it.
+    // Command-J toggles this conversation without losing its draft.
+    await page.keyboard.press('Meta+j')
+    await expect(panel).toHaveCount(0)
+    await expect(trigger).toBeFocused()
     await page.keyboard.press('Meta+j')
     await expect(input).toBeFocused()
+    await expect(input).toHaveValue('A question to come back to')
     await expect(panel).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(trigger).toBeFocused()
@@ -362,7 +366,7 @@ test('Ask grows from its button identically for either trigger and keeps typing 
   } finally { await app.close() }
 })
 
-for (const width of [1100, 720]) test(`Command-J focuses Ask from any focus at ${width}px and still opens Chat elsewhere`, async () => {
+for (const width of [1100, 720]) test(`Command-J toggles Ask from any focus at ${width}px and still opens Chat elsewhere`, async () => {
   const { app, page } = await launch()
   try {
     await app.evaluate(({ BrowserWindow }, width) => BrowserWindow.getAllWindows()[0].setSize(width, 760), width)
@@ -374,17 +378,19 @@ for (const width of [1100, 720]) test(`Command-J focuses Ask from any focus at $
     await expect(input).toBeFocused()
     await input.fill('Keep my draft')
     await page.keyboard.press('Meta+j')
-    await expect(panel).toBeVisible()
-    await expect(input).toBeFocused()
-    await page.keyboard.press('Escape')
+    await expect(panel).toHaveCount(0)
     await expect(trigger).toBeFocused()
     await page.keyboard.press('Meta+j')
     await expect(input).toHaveValue('Keep my draft')
     await page.getByTestId('chat-menu').focus()
     await page.keyboard.press('Meta+j')
+    await expect(panel).toHaveCount(0)
+    await page.keyboard.press('Meta+j')
     await expect(input).toBeFocused()
     if (width === 1100) {
       await page.getByTestId('note-title').click()
+      await page.keyboard.press('Meta+j')
+      await expect(panel).toHaveCount(0)
       await page.keyboard.press('Meta+j')
       await expect(input).toBeFocused()
     }

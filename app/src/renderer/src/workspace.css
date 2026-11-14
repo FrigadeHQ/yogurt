@@ -23,8 +23,10 @@
 .sidebar-collapsed :is(.workspace-sidebar,.workspace-sidebar-gap) { width:56px; }
 .workspace-sidebar-gap { flex:none; }
 .workspace-sidebar-inner { display:flex;flex-direction:column;height:100%;min-height:0; }
+/* The page adopts its final width immediately; collapsed controls must not trail across it. */
+.sidebar-collapsed .workspace-sidebar-inner { width:55px; }
 .workspace-sidebar .workspace-search>svg { flex:none; }
-.workspace-sidebar .workspace-nav>span:not(.folder-glyph),.workspace-sidebar .workspace-nav>small,.workspace-search>span,.workspace-search>kbd,.workspace-folder-label { transition:opacity var(--dur-micro) var(--ease-out); }
+.workspace-sidebar .workspace-nav>span:not(.folder-glyph),.workspace-sidebar .workspace-nav>small,.workspace-search>span,.workspace-search>kbd,.workspace-folder-label { transition:opacity var(--dur-surface) var(--ease-out); }
 .sidebar-collapsed .workspace-nav>span:not(.folder-glyph),.sidebar-collapsed .workspace-nav>small,.sidebar-collapsed .workspace-search>span,.sidebar-collapsed .workspace-search>kbd,.sidebar-collapsed .workspace-folder-label { opacity:0;pointer-events:none; }
 .sidebar-collapsed .workspace-nav { padding-inline:10px;gap:0; }
 .sidebar-collapsed .workspace-nav>span:not(.folder-glyph),.sidebar-collapsed .workspace-search>span,.sidebar-collapsed .workspace-search>kbd { width:0;flex:none; }
@@ -36,10 +38,10 @@
 .workspace[data-sidebar-motion=true] .workspace-wordmark { transition:width var(--dur-surface) var(--ease-out); }
 .workspace[data-sidebar-motion=true] .workspace-brand { transition:padding-inline var(--dur-surface) var(--ease-out); }
 .workspace-folder-label { height:16px;white-space:nowrap;overflow:hidden; }
-.workspace[data-sidebar-motion=true] .workspace-folder-label { transition:height var(--dur-surface) var(--ease-out),margin var(--dur-surface) var(--ease-out),opacity var(--dur-micro) var(--ease-out); }
+.workspace[data-sidebar-motion=true] .workspace-folder-label { transition:height var(--dur-surface) var(--ease-out),margin var(--dur-surface) var(--ease-out),opacity var(--dur-surface) var(--ease-out); }
 .sidebar-collapsed .workspace-folder-label { height:0;margin-block:18px; }
 .workspace-brand { gap:0; }
-.workspace[data-sidebar-motion=false] :is(.workspace-nav>span,.workspace-nav>small,.workspace-search>span,.workspace-search>kbd,.workspace-folder-label,.workspace-wordmark,.workspace-brand) { transition:none; }
+.workspace:is([data-sidebar-motion=false],.sidebar-collapsed) :is(.workspace-nav>span,.workspace-nav>small,.workspace-search>span,.workspace-search>kbd,.workspace-folder-label,.workspace-wordmark,.workspace-brand) { transition:none; }
 @media (prefers-reduced-motion:reduce) {
   .workspace-sidebar :is(span,small,kbd),.workspace-folder-label,.workspace-toolbar,.workspace-brand { transition:none!important;filter:none!important; }
 }

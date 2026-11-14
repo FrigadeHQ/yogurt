@@ -116,3 +116,20 @@ it('keeps the anchored panel curve monotonic with a shorter close', () => {
     previous = progress
   }
 })
+
+it('collapses sidebar controls immediately and expands children on the sidebar duration and curve', () => {
+  const css = readFileSync(new URL('../src/renderer/src/workspace.css', import.meta.url), 'utf8')
+  const source = readFileSync(new URL('../src/renderer/src/components/Workspace.tsx', import.meta.url), 'utf8')
+  expect(source).toContain('duration: sidebarMotion ? motion.surface / 1000 : 0, ease: motion.out')
+  // The page snaps to its final layout: the search field must not keep the outgoing sidebar width.
+  expect(css).toContain('.sidebar-collapsed .workspace-sidebar-inner { width:55px; }')
+  expect(css).toContain('.workspace:is([data-sidebar-motion=false],.sidebar-collapsed) :is(.workspace-nav>span,.workspace-nav>small,.workspace-search>span,.workspace-search>kbd,.workspace-folder-label,.workspace-wordmark,.workspace-brand) { transition:none; }')
+  const children = css.slice(css.indexOf('.workspace-sidebar .workspace-nav>span'), css.indexOf('.sidebar-titlebar'))
+  for (const transition of children.matchAll(/transition:([^;]+);/g)) {
+    if (transition[1] === 'none' || transition[1] === 'none!important') continue
+    expect(transition[1]).not.toContain('--dur-micro')
+    for (const property of transition[1].split(',')) expect(property).toMatch(/var\(--dur-surface\) var\(--ease-out\)$/)
+  }
+  expect(children).toContain('@media (prefers-reduced-motion:reduce)')
+  expect(children).toContain('transition:none!important')
+})

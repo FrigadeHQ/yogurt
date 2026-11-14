@@ -417,9 +417,6 @@ html.widget { --pill:#232326;--pill-ink:#F7F7FA;--accent:#B780FF;--pill-accent:v
 .search-panel { position:fixed;top:12vh;left:50%;translate:-50% 0;z-index:101;width:min(640px,calc(100vw - 32px));outline:none;height:min(560px,74vh);box-shadow:var(--shadow);border-radius:12px; }
 .search-header { flex:none;border-bottom:1px solid var(--line); }
 .search-input-row { display:flex;align-items:center;gap:14px;padding-inline:22px; }
-.swap.search-intent { width:24px;height:24px; }
-.swap.search-intent>* { filter:none;transform:none;transition:opacity var(--dur-micro) var(--ease-out); }
-@media (prefers-reduced-motion:reduce) { .swap.search-intent>* { transition:opacity var(--dur-micro) var(--ease-out); } }
 .search-field { position:relative;min-width:0;flex:1;font-size:22px;font-weight:500;line-height:30px;letter-spacing:-.02em; }
 .search-field input { position:relative;display:block;width:100%;min-width:0;height:76px;padding:23px 0;border:0;background:transparent;color:var(--ink);caret-color:var(--accent);font:inherit;letter-spacing:inherit;outline:none; }
 .search-field input::placeholder { color:var(--muted);font-weight:400; }

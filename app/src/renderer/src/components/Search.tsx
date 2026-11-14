@@ -2,7 +2,6 @@ import { Dialog } from '@animate-ui/react/primitives/base-ui/dialog'
 import { MotionPopup } from './MotionPopup'
 import { motion } from '../motion'
 import { FolderGlyph } from './FolderAppearance'
-import { Swap } from './Swap'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { AudioLines, CalendarDays, FileText, FolderIcon, Keyboard, LogIn, MessageCircle, Monitor, Moon, PanelLeft, Search as SearchIcon, Settings, Sun, Trash2, UserRound, X } from 'lucide-react'
 import type { SearchResult, SnippetPart, Folder, Person } from '../../../shared/types'
@@ -63,6 +62,13 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
   }, [])
   const seq = useRef(0)
   const list = useRef<HTMLUListElement>(null)
+  const scrollSelection = useRef(false)
+  const hover = (e: React.MouseEvent, index: number) => {
+    // Chromium can send a stationary mousemove when the popup or its rows move under the pointer.
+    if (!e.movementX && !e.movementY) return
+    scrollSelection.current = false
+    setActive(index)
+  }
 
   useEffect(() => {
     const mine = ++seq.current
@@ -116,7 +122,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
   useEffect(() => {
     defaultSelection.current = q.trim() && rows[palette.active] ? searchSelectionKey(rows[palette.active]) : undefined
   })
-  const intent = selected?.kind === 'command' ? `command:${selected.command.id}` : selected?.kind === 'ask' ? 'ask' : selected?.kind === 'person' ? 'person' : 'search'
+  const intent = !q.trim() && active === null ? 'search' : selected?.kind === 'command' ? `command:${selected.command.id}` : selected?.kind === 'ask' ? 'ask' : selected?.kind === 'person' ? 'person' : 'search'
   const dateLabel = parsed.date && searchDateLabel(parsed.date)
   const clearDate = () => { if (parsed.dateSpan) setQ(removeSearchSpan(q, parsed.dateSpan)); setActive(null); input.current?.focus() }
   const clearPerson = (person: Person) => {
@@ -133,6 +139,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
     setQ(completeSearchPerson(q, match)); setActive(null); input.current?.focus()
   }
   useEffect(() => {
+    if (!scrollSelection.current) return
     list.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' })
   }, [activeIndex, results])
   const runCommand = async (command: typeof allCommands[number]) => {
@@ -156,8 +163,8 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.nativeEvent.isComposing) return
     if ((e.key === 'Enter' || e.key === ' ') && e.target instanceof HTMLButtonElement) return
-    if (e.key === 'ArrowDown') { e.preventDefault(); setActive(Math.min(Math.max(0, count - 1), activeIndex + 1)) }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(Math.max(0, activeIndex - 1)) }
+    if (e.key === 'ArrowDown') { e.preventDefault(); scrollSelection.current = true; setActive(Math.min(Math.max(0, count - 1), activeIndex + 1)) }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); scrollSelection.current = true; setActive(Math.max(0, activeIndex - 1)) }
     else if (e.key === 'Backspace' && (parsed.date || selectedPeople.length) && e.target === input.current && input.current?.selectionStart === 0 && input.current.selectionEnd === 0) { e.preventDefault(); if (parsed.date) clearDate(); else clearPerson(selectedPeople[selectedPeople.length - 1]) }
     else if (e.key === 'Enter') { e.preventDefault(); if (command(e)) { if (q.trim()) void ask(q.trim()) } else enter() }
     else if (e.key === 'Escape') { e.preventDefault(); setOpen(false) }
@@ -201,14 +208,14 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
         className="search-panel flex max-h-[74vh] w-full max-w-[640px] flex-col overflow-hidden rounded-2xl border border-line bg-float">
         <div className="search-header">
           <div className="search-input-row">
-            <span data-testid="search-intent-icon" data-icon={intent} className="flex shrink-0" aria-hidden="true">
-              <Swap show={intent} className="search-intent text-muted" options={{
+            <span data-testid="search-intent-icon" data-icon={intent} className="flex shrink-0 text-muted" aria-hidden="true">
+              {{
                 search: <SearchIcon size={24} strokeWidth={1.6} />,
                 ask: <MessageCircle size={24} strokeWidth={1.6} />,
                 person: <UserRound size={24} strokeWidth={1.6} />,
                 ...Object.fromEntries(allCommands.map(c => [`command:${c.id}`, 'folder' in c
                   ? <FolderGlyph appearance={c.folder} size={24} /> : <c.Icon size={24} strokeWidth={1.6} />])),
-              }} />
+              }[intent]}
             </span>
             <div className="search-field">
               <div ref={highlight} className="search-input-highlight" aria-hidden="true">
@@ -216,7 +223,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
                   ? <mark key={i} data-testid={`search-${part.kind}-highlight`}>{part.text}</mark> : <Fragment key={i}>{part.text}</Fragment>)}</span>
               </div>
               <input
-                data-testid="search-input" ref={input} autoFocus value={q} onChange={(e) => { setQ(e.target.value); setActive(null); setError(false) }} onScroll={syncHighlight}
+                data-testid="search-input" ref={input} autoFocus value={q} onChange={(e) => { scrollSelection.current = true; setQ(e.target.value); setActive(null); setError(false) }} onScroll={syncHighlight}
                 placeholder={t('Search meetings or run a command…')} aria-label={t('Search')} spellCheck={false}
                 role="combobox" aria-expanded="true" aria-controls="search-results" aria-activedescendant={selected?.kind === 'meeting' ? `search-${selected.meeting.meetingId}` : selected?.kind === 'command' ? `command-${selected.command.id}` : selected?.kind === 'person' ? `search-person-${encodeURIComponent(searchPersonKey(selected.person))}` : selected ? 'search-ask' : undefined}
               />
@@ -237,13 +244,13 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
             </span>}
           </div>}
         </div>
-        <ul ref={list} id="search-results" role="listbox" aria-label={t('Results')} aria-busy={running || !settled} className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-3">
+        <ul ref={list} id="search-results" role="listbox" aria-label={t('Results')} aria-busy={running || !settled} className="min-h-0 flex-1 overflow-y-auto [overflow-anchor:none] px-2.5 pb-3">
           {rows.map((row, i) => {
             const previous = rows[i - 1]
             if (row.kind === 'ask') return <Fragment key="ask">
               <li role="presentation" className="command-section">{t('Ask')}</li>
               <li id="search-ask" data-testid="search-ask" role="option" aria-selected={activeIndex === i} aria-disabled={running}
-                onMouseMove={() => setActive(i)} onClick={() => void ask(row.query)} className="search-row command-row">
+                onMouseMove={(e) => hover(e, i)} onClick={() => void ask(row.query)} className="search-row command-row">
                 <MessageCircle size={16} strokeWidth={1.75} aria-hidden="true" />
                 <span className="shrink-0 text-accent">{t('Ask Yogurt')}</span><span className="command-label truncate">{row.query}</span>
                 <kbd className="search-key search-return" aria-hidden="true">↵</kbd>
@@ -252,7 +259,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
             if (row.kind === 'person') return <Fragment key={searchPersonKey(row.person)}>
               {previous?.kind !== 'person' && <li role="presentation" className="command-section">{t('People')}</li>}
               <li id={`search-person-${encodeURIComponent(searchPersonKey(row.person))}`} data-testid="search-person" role="option" aria-selected={activeIndex === i}
-                onMouseMove={() => setActive(i)} onClick={() => pickPerson(row)} className="search-row command-row">
+                onMouseMove={(e) => hover(e, i)} onClick={() => pickPerson(row)} className="search-row command-row">
                 <UserRound size={16} strokeWidth={1.75} aria-hidden="true" />
                 <span className="command-label">{t('Meetings with {name}', { name: row.person.name || row.person.email || '' })}</span>
                 {row.person.email && <span className="search-metadata truncate">{row.person.email}</span>}
@@ -265,7 +272,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
                 {previous?.kind !== 'meeting' && <li role="presentation" className="command-section">{typed || filtered ? t('Meetings') : t('Recent meetings')}</li>}
                 <li
                   id={`search-${r.meetingId}`} data-testid="search-result" role="option" aria-selected={i === activeIndex}
-                  onMouseMove={() => setActive(i)} onClick={() => onOpen(r.meetingId)}
+                  onMouseMove={(e) => hover(e, i)} onClick={() => onOpen(r.meetingId)}
                   className="search-row search-meeting"
                 >
                   <span className="search-result-icon"><FileText size={17} strokeWidth={1.6} aria-hidden="true" /></span>
@@ -283,7 +290,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
             return <li key={c.id} role="presentation">
               {(previous?.kind !== 'command' || previous.command.group !== c.group) && <p className="command-section">{c.group}</p>}
               <div id={`command-${c.id}`} data-testid={`command-${c.id}`} role="option" aria-selected={activeIndex === i} aria-current={current || undefined} aria-disabled={running}
-                onMouseMove={() => setActive(i)} onClick={() => void runCommand(c)} className="search-row command-row">
+                onMouseMove={(e) => hover(e, i)} onClick={() => void runCommand(c)} className="search-row command-row">
                 {'folder' in c ? <FolderGlyph appearance={c.folder} /> : <c.Icon size={16} strokeWidth={1.75} aria-hidden="true" />}
                 <span className="command-label">{c.label}{current && <span aria-hidden="true"> ✓</span>}</span>{'shortcut' in c && <kbd className="search-key search-shortcut">{c.shortcut}</kbd>}
                 <kbd className="search-key search-return" aria-hidden="true">↵</kbd>

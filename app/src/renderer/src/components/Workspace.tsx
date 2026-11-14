@@ -46,7 +46,7 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
     const key = (e: KeyboardEvent) => {
       if (!command(e) || (onMac() && e.ctrlKey) || e.altKey || e.shiftKey || e.code !== 'KeyJ' || e.defaultPrevented) return
       e.preventDefault()
-      ask()
+      if (!e.repeat && !e.isComposing) ask()
     }
     const fromMenu = () => { void window.yogurt.nav.takeAsk().then(pending => { if (pending) ask() }) }
     const off = window.yogurt.nav.onAsk(fromMenu)

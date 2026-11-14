@@ -127,6 +127,7 @@ export function Ask({ id, recording, anchor, onSource }: { id: string; recording
   return <>
     <button id="meeting-ask" ref={trigger} data-testid="chat-open" className="chat-trigger" type="button" aria-expanded={open} aria-controls="meeting-chat"
       title={onMac() ? t('Ask Yogurt (⌘J)') : `${t('Ask Yogurt')} (${keys('⌘J')})`} onClick={() => {
+        if (open && !closing.current) { close(); return }
         // Programmatic and pointer opens share the same anchored motion.
         if (closing.current) { closing.current = false; morph(true) }
         animateOpen.current = true; setError(false); setOpen(true)
