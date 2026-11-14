@@ -144,6 +144,8 @@ test('a bottom event opens above its row, tracks scrolling, flips without chatte
     await expect(row).toHaveCSS('transition-duration', '0s')
     await row.click({ position: { x: 20, y: 8 } })
     await expect(card).toHaveAttribute('data-side', 'top')
+    // Reduced motion keeps the opening opacity fade; settle it before testing the flip.
+    await card.evaluate(el => Promise.allSettled(el.getAnimations().map(a => a.finished)))
     await placeRow('top')
     const reducedTop = await geometry()
     expect(reducedTop.roomBelow - reducedTop.roomAbove).toBeGreaterThan(24)
