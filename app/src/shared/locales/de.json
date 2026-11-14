@@ -667,7 +667,7 @@
   "The audio is deleted for good. Your transcript and notes stay.": "Die Audiodatei wird endgültig gelöscht. Transkript und Notizen bleiben.",
   "Keep the audio until the transcript is saved.": "Audio behalten, bis das Transkript gespeichert ist.",
   "Couldn't delete the recording. Try again.": "Aufnahme konnte nicht gelöscht werden. Erneut versuchen.",
-  "Keep recordings after meetings": "Aufnahmen nach Meetings behalten",
+  "Keep audio recordings after meetings": "Audioaufnahmen nach Meetings behalten",
   "Recording deleted": "Aufnahme gelöscht",
   "When off, new meetings' audio is deleted once the summary is saved.": "Wenn aus, wird Audio neuer Meetings nach Speichern der Zusammenfassung gelöscht."
 }

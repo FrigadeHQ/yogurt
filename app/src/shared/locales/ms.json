@@ -622,7 +622,7 @@
   "The audio is deleted for good. Your transcript and notes stay.": "Audio dipadam secara kekal. Transkrip dan nota dikekalkan.",
   "Keep the audio until the transcript is saved.": "Simpan audio sehingga transkrip disimpan.",
   "Couldn't delete the recording. Try again.": "Rakaman tidak dapat dipadam. Cuba lagi.",
-  "Keep recordings after meetings": "Simpan rakaman selepas mesyuarat",
+  "Keep audio recordings after meetings": "Simpan rakaman audio selepas mesyuarat",
   "Recording deleted": "Rakaman dipadam",
   "When off, new meetings' audio is deleted once the summary is saved.": "Jika dimatikan, audio mesyuarat baharu dipadam selepas ringkasan disimpan."
 }

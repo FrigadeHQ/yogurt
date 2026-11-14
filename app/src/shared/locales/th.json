@@ -622,7 +622,7 @@
   "The audio is deleted for good. Your transcript and notes stay.": "เสียงจะถูกลบถาวร ข้อความถอดเสียงและโน้ตจะยังอยู่",
   "Keep the audio until the transcript is saved.": "เก็บเสียงไว้จนกว่าจะบันทึกข้อความถอดเสียงแล้ว",
   "Couldn't delete the recording. Try again.": "ลบเสียงบันทึกไม่ได้ ลองอีกครั้ง",
-  "Keep recordings after meetings": "เก็บเสียงบันทึกหลังประชุม",
+  "Keep audio recordings after meetings": "เก็บเสียงบันทึกหลังประชุม",
   "Recording deleted": "ลบเสียงบันทึกแล้ว",
   "When off, new meetings' audio is deleted once the summary is saved.": "เมื่อปิด เสียงของการประชุมใหม่จะถูกลบหลังบันทึกสรุปแล้ว"
 }

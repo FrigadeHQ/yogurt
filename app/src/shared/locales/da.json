@@ -667,7 +667,7 @@
   "The audio is deleted for good. Your transcript and notes stay.": "Lyden slettes permanent. Transskription og noter bevares.",
   "Keep the audio until the transcript is saved.": "Behold lyden, indtil transskriptionen er gemt.",
   "Couldn't delete the recording. Try again.": "Optagelsen kunne ikke slettes. Prøv igen.",
-  "Keep recordings after meetings": "Behold optagelser efter møder",
+  "Keep audio recordings after meetings": "Behold lydoptagelser efter møder",
   "Recording deleted": "Optagelse slettet",
   "When off, new meetings' audio is deleted once the summary is saved.": "Når slået fra, slettes nye møders lyd, når resuméet er gemt."
 }

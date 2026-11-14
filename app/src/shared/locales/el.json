@@ -670,7 +670,7 @@
   "The audio is deleted for good. Your transcript and notes stay.": "Ο ήχος διαγράφεται οριστικά. Η απομαγνητοφώνηση και οι σημειώσεις μένουν.",
   "Keep the audio until the transcript is saved.": "Κρατήστε τον ήχο μέχρι να αποθηκευτεί η απομαγνητοφώνηση.",
   "Couldn't delete the recording. Try again.": "Η διαγραφή απέτυχε. Δοκιμάστε ξανά.",
-  "Keep recordings after meetings": "Διατήρηση ηχογραφήσεων μετά τις συναντήσεις",
+  "Keep audio recordings after meetings": "Διατήρηση ηχογραφήσεων μετά τις συναντήσεις",
   "Recording deleted": "Η ηχογράφηση διαγράφηκε",
   "When off, new meetings' audio is deleted once the summary is saved.": "Αν κλείσει, ο ήχος νέων συναντήσεων διαγράφεται μόλις σωθεί η σύνοψη."
 }

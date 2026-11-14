@@ -728,7 +728,7 @@
   "The audio is deleted for good. Your transcript and notes stay.": "يُحذف الصوت نهائيًا. يبقى النص والملاحظات.",
   "Keep the audio until the transcript is saved.": "احتفظ بالصوت حتى يُحفظ النص.",
   "Couldn't delete the recording. Try again.": "تعذر حذف التسجيل. حاول مجددًا.",
-  "Keep recordings after meetings": "الاحتفاظ بالتسجيلات بعد الاجتماعات",
+  "Keep audio recordings after meetings": "الاحتفاظ بالتسجيلات الصوتية بعد الاجتماعات",
   "Recording deleted": "تم حذف التسجيل",
   "When off, new meetings' audio is deleted once the summary is saved.": "عند إيقافه، يُحذف صوت الاجتماعات الجديدة بعد حفظ الملخص."
 }

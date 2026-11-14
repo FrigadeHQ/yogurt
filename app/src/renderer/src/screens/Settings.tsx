@@ -185,7 +185,7 @@ function NotesModel({ reveal = false }: { reveal?: boolean }) {
     } catch { setFailed(true) }
     finally { setBusy(false) }
   }
-  return <div ref={row} className="settings-row" data-testid="settings-notes-model">
+  return <div ref={row} className={`settings-row${reveal ? ' settings-reveal' : ''}`} data-testid="settings-notes-model">
     <div className="settings-row-copy">
       <p className="settings-label">{t('Better notes model')}</p>
       <p className="settings-description">{setup.notesRestoreFraction !== undefined
@@ -429,13 +429,13 @@ export function RecordingSetting({ on, disabled, onChange, reveal = false }: { o
     row.current?.scrollIntoView({ block: 'center', behavior: 'instant' })
     row.current?.querySelector<HTMLButtonElement>('[role="switch"]')?.focus({ preventScroll: true })
   }, [reveal, disabled])
-  return <div ref={row} data-testid="recording-setting" className="settings-row">
+  return <div ref={row} data-testid="recording-setting" className={`settings-row${reveal && !disabled ? ' settings-reveal' : ''}`}>
     <div className="settings-row-copy">
-      <p className="settings-label">{t('Keep recordings after meetings')}</p>
+      <p className="settings-label">{t('Keep audio recordings after meetings')}</p>
       <p className="settings-description">{t("When off, new meetings' audio is deleted once the summary is saved.")}</p>
       {failed && <p role="alert" className="text-danger text-xs">{t("Couldn't save your changes")}</p>}
     </div>
-    <button data-testid="keep-recordings-toggle" role="switch" aria-checked={on} aria-label={t('Keep recordings after meetings')}
+    <button data-testid="keep-recordings-toggle" role="switch" aria-checked={on} aria-label={t('Keep audio recordings after meetings')}
       disabled={disabled || busy} onClick={async () => {
         setBusy(true); setFailed(false)
         try { await onChange(!on) } catch { setFailed(true) } finally { setBusy(false) }

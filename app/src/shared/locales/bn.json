@@ -658,7 +658,7 @@
   "The audio is deleted for good. Your transcript and notes stay.": "অডিও স্থায়ীভাবে মুছে যাবে। প্রতিলিপি ও নোট থাকবে।",
   "Keep the audio until the transcript is saved.": "প্রতিলিপি সংরক্ষণ না হওয়া পর্যন্ত অডিও রাখুন।",
   "Couldn't delete the recording. Try again.": "রেকর্ডিং মোছা যায়নি। আবার চেষ্টা করুন।",
-  "Keep recordings after meetings": "মিটিংয়ের পরে রেকর্ডিং রাখুন",
+  "Keep audio recordings after meetings": "মিটিংয়ের পরে অডিও রেকর্ডিং রাখুন",
   "Recording deleted": "রেকর্ডিং মোছা হয়েছে",
   "When off, new meetings' audio is deleted once the summary is saved.": "বন্ধ থাকলে সারাংশ সেভের পর নতুন মিটিংয়ের অডিও মুছবে।"
 }

@@ -622,7 +622,7 @@
   "The audio is deleted for good. Your transcript and notes stay.": "Âm thanh sẽ bị xóa vĩnh viễn. Bản chép lời và ghi chú vẫn còn.",
   "Keep the audio until the transcript is saved.": "Giữ âm thanh cho đến khi lưu bản chép lời.",
   "Couldn't delete the recording. Try again.": "Không thể xóa bản ghi. Hãy thử lại.",
-  "Keep recordings after meetings": "Giữ bản ghi sau cuộc họp",
+  "Keep audio recordings after meetings": "Giữ bản ghi âm sau cuộc họp",
   "Recording deleted": "Đã xóa bản ghi",
   "When off, new meetings' audio is deleted once the summary is saved.": "Khi tắt, âm thanh cuộc họp mới sẽ bị xóa sau khi lưu tóm tắt."
 }

@@ -701,7 +701,7 @@
   "The audio is deleted for good. Your transcript and notes stay.": "Zvuk se trvale smaže. Přepis a poznámky zůstanou.",
   "Keep the audio until the transcript is saved.": "Zvuk ponechte, dokud se neuloží přepis.",
   "Couldn't delete the recording. Try again.": "Nahrávku se nepodařilo smazat. Zkuste to znovu.",
-  "Keep recordings after meetings": "Ponechat nahrávky po schůzkách",
+  "Keep audio recordings after meetings": "Ponechat zvukové nahrávky po schůzkách",
   "Recording deleted": "Nahrávka smazána",
   "When off, new meetings' audio is deleted once the summary is saved.": "Při vypnutí se zvuk nových schůzek smaže po uložení shrnutí."
 }

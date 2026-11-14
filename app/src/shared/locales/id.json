@@ -622,7 +622,7 @@
   "The audio is deleted for good. Your transcript and notes stay.": "Audio dihapus permanen. Transkrip dan catatan tetap ada.",
   "Keep the audio until the transcript is saved.": "Simpan audio hingga transkrip tersimpan.",
   "Couldn't delete the recording. Try again.": "Rekaman gagal dihapus. Coba lagi.",
-  "Keep recordings after meetings": "Simpan rekaman setelah rapat",
+  "Keep audio recordings after meetings": "Simpan rekaman audio setelah rapat",
   "Recording deleted": "Rekaman dihapus",
   "When off, new meetings' audio is deleted once the summary is saved.": "Jika dimatikan, audio rapat baru dihapus setelah ringkasan tersimpan."
 }

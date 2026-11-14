@@ -622,7 +622,7 @@
   "The audio is deleted for good. Your transcript and notes stay.": "音訊將永久刪除。逐字稿和筆記會保留。",
   "Keep the audio until the transcript is saved.": "請保留音訊，直到逐字稿儲存完成。",
   "Couldn't delete the recording. Try again.": "無法刪除錄音。請重試。",
-  "Keep recordings after meetings": "會後保留錄音",
+  "Keep audio recordings after meetings": "會後保留錄音",
   "Recording deleted": "錄音已刪除",
   "When off, new meetings' audio is deleted once the summary is saved.": "關閉後，新會議的音訊將在摘要儲存後刪除。"
 }

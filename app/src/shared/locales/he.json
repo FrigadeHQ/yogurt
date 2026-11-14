@@ -679,7 +679,7 @@
   "The audio is deleted for good. Your transcript and notes stay.": "השמע יימחק לצמיתות. התמליל וההערות יישארו.",
   "Keep the audio until the transcript is saved.": "יש לשמור את השמע עד לשמירת התמליל.",
   "Couldn't delete the recording. Try again.": "לא ניתן למחוק את ההקלטה. נסו שוב.",
-  "Keep recordings after meetings": "שמירת הקלטות אחרי פגישות",
+  "Keep audio recordings after meetings": "שמירת הקלטות שמע אחרי פגישות",
   "Recording deleted": "ההקלטה נמחקה",
   "When off, new meetings' audio is deleted once the summary is saved.": "כשכבוי, השמע של פגישות חדשות נמחק לאחר שמירת הסיכום."
 }

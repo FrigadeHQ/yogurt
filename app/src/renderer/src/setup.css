@@ -9,6 +9,9 @@
 .settings-section-heading { margin:32px 0 12px;font-size:14px;line-height:20px;font-weight:600;color:var(--ink); }
 .settings-group { border:1px solid var(--line);border-radius:12px;background:var(--float);box-shadow:0 1px 2px #00000006,inset 0 1px 0 #ffffff05; }
 .settings-row { display:flex;align-items:center;gap:18px;min-height:76px;padding:18px 20px; }
+.settings-reveal { border-radius:12px;animation:settings-reveal 1.5s ease-out; }
+@keyframes settings-reveal { from { background-color:var(--accent-soft); } to { background-color:transparent; } }
+@media (prefers-reduced-motion:reduce) { .settings-reveal { animation-duration:1s;animation-timing-function:steps(1,end); } }
 .settings-row+.settings-row,.settings-calendar-list>.settings-row:first-child { position:relative; }
 .settings-row+.settings-row::before,.settings-calendar-list>.settings-row:first-child::before { content:"";position:absolute;inset-block-start:0;inset-inline:20px;height:1px;background:var(--line); }
 .settings-row-copy { flex:1;min-width:0; }

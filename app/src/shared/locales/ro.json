@@ -685,7 +685,7 @@
   "The audio is deleted for good. Your transcript and notes stay.": "Sunetul se șterge definitiv. Transcrierea și notițele rămân.",
   "Keep the audio until the transcript is saved.": "Păstrează sunetul până la salvarea transcrierii.",
   "Couldn't delete the recording. Try again.": "Înregistrarea nu a putut fi ștearsă. Încearcă din nou.",
-  "Keep recordings after meetings": "Păstrează înregistrările după întâlniri",
+  "Keep audio recordings after meetings": "Păstrează înregistrările audio după întâlniri",
   "Recording deleted": "Înregistrare ștearsă",
   "When off, new meetings' audio is deleted once the summary is saved.": "Când e oprit, sunetul întâlnirilor noi se șterge după salvarea rezumatului."
 }

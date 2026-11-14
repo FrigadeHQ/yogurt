@@ -697,7 +697,7 @@
   "The audio is deleted for good. Your transcript and notes stay.": "Аудио удалится навсегда. Расшифровка и заметки останутся.",
   "Keep the audio until the transcript is saved.": "Сохраните аудио до сохранения расшифровки.",
   "Couldn't delete the recording. Try again.": "Не удалось удалить запись. Попробуйте ещё раз.",
-  "Keep recordings after meetings": "Хранить записи после встреч",
+  "Keep audio recordings after meetings": "Хранить аудиозаписи после встреч",
   "Recording deleted": "Запись удалена",
   "When off, new meetings' audio is deleted once the summary is saved.": "Если выключено, аудио новых встреч удаляется после сохранения сводки."
 }

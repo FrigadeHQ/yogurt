@@ -658,7 +658,7 @@
   "The audio is deleted for good. Your transcript and notes stay.": "Ses kalıcı olarak silinir. Döküm ve notlar kalır.",
   "Keep the audio until the transcript is saved.": "Döküm kaydedilene kadar sesi saklayın.",
   "Couldn't delete the recording. Try again.": "Kayıt silinemedi. Yeniden deneyin.",
-  "Keep recordings after meetings": "Toplantılardan sonra kayıtları sakla",
+  "Keep audio recordings after meetings": "Toplantılardan sonra ses kayıtlarını sakla",
   "Recording deleted": "Kayıt silindi",
   "When off, new meetings' audio is deleted once the summary is saved.": "Kapalıyken yeni toplantıların sesi özet kaydedilince silinir."
 }

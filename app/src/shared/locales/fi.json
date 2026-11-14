@@ -670,7 +670,7 @@
   "The audio is deleted for good. Your transcript and notes stay.": "Ääni poistetaan pysyvästi. Litterointi ja muistiinpanot säilyvät.",
   "Keep the audio until the transcript is saved.": "Säilytä ääni, kunnes litterointi on tallennettu.",
   "Couldn't delete the recording. Try again.": "Tallennetta ei voitu poistaa. Yritä uudelleen.",
-  "Keep recordings after meetings": "Säilytä tallenteet kokousten jälkeen",
+  "Keep audio recordings after meetings": "Säilytä äänitallenteet kokousten jälkeen",
   "Recording deleted": "Tallenne poistettu",
   "When off, new meetings' audio is deleted once the summary is saved.": "Pois päältä uusien kokousten ääni poistetaan yhteenvedon tallennuttua."
 }

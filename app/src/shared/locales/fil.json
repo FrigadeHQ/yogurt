@@ -667,7 +667,7 @@
   "The audio is deleted for good. Your transcript and notes stay.": "Permanenteng mabubura ang audio. Mananatili ang transcript at mga tala.",
   "Keep the audio until the transcript is saved.": "Itago ang audio hanggang ma-save ang transcript.",
   "Couldn't delete the recording. Try again.": "Hindi mabura ang recording. Subukan ulit.",
-  "Keep recordings after meetings": "Itago ang recordings pagkatapos ng pulong",
+  "Keep audio recordings after meetings": "Itago ang mga audio recording pagkatapos ng pulong",
   "Recording deleted": "Nabura ang recording",
   "When off, new meetings' audio is deleted once the summary is saved.": "Kapag naka-off, buburahin ang audio ng bagong pulong pag na-save ang buod."
 }

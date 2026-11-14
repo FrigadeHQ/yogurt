@@ -108,7 +108,7 @@
   "The audio is deleted for good. Your transcript and notes stay.": "The audio is deleted for good. Your transcript and notes stay.",
   "Keep the audio until the transcript is saved.": "Keep the audio until the transcript is saved.",
   "Couldn't delete the recording. Try again.": "Couldn't delete the recording. Try again.",
-  "Keep recordings after meetings": "Keep recordings after meetings",
+  "Keep audio recordings after meetings": "Keep audio recordings after meetings",
   "Recording deleted": "Recording deleted",
   "When off, new meetings' audio is deleted once the summary is saved.": "When off, new meetings' audio is deleted once the summary is saved.",
   "Settings": "Settings"
