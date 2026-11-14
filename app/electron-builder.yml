@@ -55,6 +55,11 @@ asarUnpack:
   # the notes model's engine loads native binaries; they can't run from inside the asar archive
   - "**/node_modules/node-llama-cpp/**"
   - "**/node_modules/@node-llama-cpp/**"
+  # the diarization worker's entry (src/main/diarize/embed-worker.ts), forked as a utility process
+  - "out/main/diarizeWorker.js"
+  # sherpa-onnx-node's prebuilt N-API binding and the onnxruntime libraries
+  - "**/node_modules/sherpa-onnx-node/**"
+  - "**/node_modules/sherpa-onnx-*/**"
 mac:
   # a platform's files list replaces the one above, so it repeats it
   files:
