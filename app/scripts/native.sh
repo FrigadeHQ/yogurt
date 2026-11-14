@@ -22,10 +22,12 @@ done
 # The clone and build live in native/.whisper-build (gitignored); only the finished program is copied out.
 # native/whisper-server.patch is applied on top: with VAD on, a chunk with no speech in it crashed the server.
 # It also makes whisper pick a discrete graphics card over an integrated one (Windows and Linux; a Mac has one).
+# YOGURT_NO_WHISPER=1 leaves it (and the VAD model only it uses) out, as native.mjs does.
+if [ -n "$YOGURT_NO_WHISPER" ]; then echo "whisper-server left out (YOGURT_NO_WHISPER=1)"; fi
 WHISPER_TAG=v1.9.5
 WHISPER_COMMIT=d1be6fde11ac6e0407606b4e42fe72d34add8037
 out=resources/bin/whisper-server
-if [ ! -f "$out" ] || [ "$0" -nt "$out" ] || [ native/whisper-server.patch -nt "$out" ]; then
+if [ -z "$YOGURT_NO_WHISPER" ] && { [ ! -f "$out" ] || [ "$0" -nt "$out" ] || [ native/whisper-server.patch -nt "$out" ]; }; then
   CMAKE=/opt/homebrew/bin/cmake
   [ -x "$CMAKE" ] || CMAKE=$(command -v cmake) || { echo "cmake is needed to build whisper-server (brew install cmake)" >&2; exit 1; }
   dir=native/.whisper-build
@@ -48,7 +50,7 @@ fi
 VAD_URL=https://huggingface.co/ggml-org/whisper-vad/resolve/9ffd54a1e1ee413ddf265af9913beaf518d1639b/ggml-silero-v6.2.0.bin
 VAD_SHA256=2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987
 vad=resources/vad/ggml-silero-v6.2.0.bin
-if [ ! -f "$vad" ] || [ "$(shasum -a 256 "$vad" | cut -d' ' -f1)" != "$VAD_SHA256" ]; then
+if [ -z "$YOGURT_NO_WHISPER" ] && { [ ! -f "$vad" ] || [ "$(shasum -a 256 "$vad" | cut -d' ' -f1)" != "$VAD_SHA256" ]; }; then
   mkdir -p resources/vad
   curl -sSfL --retry 8 --retry-delay 15 --retry-all-errors -o "$vad.part" "$VAD_URL"
   [ "$(shasum -a 256 "$vad.part" | cut -d' ' -f1)" = "$VAD_SHA256" ] || { rm -f "$vad.part"; echo "the VAD model's checksum is wrong" >&2; exit 1; }
