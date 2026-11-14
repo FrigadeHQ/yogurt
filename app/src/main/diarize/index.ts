@@ -175,6 +175,9 @@ export function createDiarizer(p: Deps) {
         for (const item of items) await matchAndEnroll(id, item.key, fakeVectorFor(item.key), finalName(item.key), spanOf(clusters.get(item.key)!), patches)
         return
       }
+      // the lazy speaker-model download, once, on the first opt-in meeting that asks for vectors (fake mode
+      // never gets here: no onnx); a failed download lands in the catch and skips profiles for this run
+      await p.ensureSpeakerModel()
       const embed = p.embedVectors ?? ((w, ranges) => p.embed!.embed(w, ranges))
       const all = items.flatMap(i => i.ranges)
       const vectors = await embed(wav, all)

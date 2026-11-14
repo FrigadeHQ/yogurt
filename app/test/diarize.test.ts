@@ -41,7 +41,7 @@ function setup(over: Partial<Deps> = {}) {
   const deps: Deps = {
     store, queue: { enqueue: async (job) => { await job(new AbortController().signal) } },
     audioHelper: () => 'helper', nemoPath: () => 'nemo', modelPath: () => 'm.gguf',
-    ensureSpeakerModel: async () => 'speaker.onnx', embed: undefined,
+    ensureSpeakerModel: vi.fn(async () => 'speaker.onnx'), embed: undefined,
     dirOf: () => runDir, exts: () => ['wav'], allowed: () => false, fake: false,
     changed: vi.fn(), notesRefresh: vi.fn(), run, ...over,
   }
@@ -189,5 +189,48 @@ describe('diarizer', () => {
     // it consumed no Speaker number either: v2 is still Speaker 1
     expect(them(store, id).map(x => [x.speakerKey, x.speaker])).toEqual([['v1', 'Ann Lee'], ['v2', 'Speaker 1']])
     expect(store.meeting(id)).toMatchObject({ diarizeError: null })
+  })
+
+  it('the speaker model downloads lazily, on the first real meeting that asks for vectors — never before, never in fake mode', async () => {
+    // real mode, voices on: downloaded when vectors are requested
+    {
+      const { store, deps } = setup({ allowed: () => true })
+      const id = seed(store, ['Ann Lee', null], true)
+      const d = createDiarizer({ ...deps, embedVectors: async (_w, ranges) => ranges.map(() => new Float32Array([0, 1, 0])) })
+      d.schedule(id)
+      await d.finished(id)
+      expect(deps.ensureSpeakerModel).toHaveBeenCalled()
+      expect(store.voiceProfiles().map(p => p.name)).toEqual(['Ann Lee'])
+    }
+    // a meeting that predates voice recognition: no download (the allowed() gate shares the same early return)
+    {
+      const { store, deps } = setup({ allowed: () => true, embedVectors: vi.fn(async () => { throw new Error('must not run') }) })
+      const id = seed(store) // voicesAllowed false
+      const d = createDiarizer(deps)
+      d.schedule(id)
+      await d.finished(id)
+      expect(deps.ensureSpeakerModel).not.toHaveBeenCalled()
+      expect(deps.embedVectors).not.toHaveBeenCalled()
+    }
+    // voices off in settings: no download either
+    {
+      const { store, deps } = setup({ allowed: () => false, embedVectors: vi.fn(async () => { throw new Error('must not run') }) })
+      const id = seed(store, ['Ann Lee', null], true)
+      const d = createDiarizer(deps)
+      d.schedule(id)
+      await d.finished(id)
+      expect(deps.ensureSpeakerModel).not.toHaveBeenCalled()
+      expect(deps.embedVectors).not.toHaveBeenCalled()
+    }
+    // fake mode: no download (no onnx there), though the profiles step itself runs
+    {
+      const { store, deps } = setup({ allowed: () => true, fake: true })
+      const id = seed(store, ['Ann Lee', null], true)
+      const d = createDiarizer(deps)
+      d.schedule(id)
+      await d.finished(id)
+      expect(deps.ensureSpeakerModel).not.toHaveBeenCalled()
+      expect(store.meeting(id)).toMatchObject({ diarizeError: null })
+    }
   })
 })
