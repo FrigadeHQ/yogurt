@@ -491,7 +491,7 @@ body:has(.chat-panel[open]) .app-toast-viewport:dir(rtl) { --toast-x:440px; }
 .ask-question { width:fit-content;max-width:80%;margin:0;margin-inline-start:auto;white-space:pre-wrap;overflow-wrap:anywhere;border-radius:12px;background:var(--control);padding:8px 12px;font-size:14px;line-height:20px; }
 .ask-composer { flex:none;min-width:0;container-type:inline-size; }
 .ask-box { position:relative;min-width:0;border:1px solid var(--line);border-radius:12px;background:var(--float);box-shadow:var(--shadow-soft); }
-.ask-box,.note-reading-frame { --ask-ring-opacity:0;--ask-ring-play:paused;--ask-ring-color:color-mix(in srgb,var(--accent) 72%,var(--float));--ask-ring-highlight:color-mix(in srgb,var(--focus) 32%,var(--float)); }
+.ask-box,.note-reading-frame { --ask-ring-opacity:0;--ask-ring-play:paused;--ask-ring-color:var(--primary);--ask-ring-highlight:color-mix(in srgb,var(--focus) 32%,var(--float)); }
 /* A stationary 2px mask clips one rotating highlight; sending pauses it and fades the ring away. */
 .ask-border { position:absolute;inset:-1px;border-radius:inherit;padding:2px;overflow:hidden;pointer-events:none;opacity:var(--ask-ring-opacity);background:var(--ask-ring-color);mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);mask-composite:exclude;transition:opacity 200ms ease-out; }
 .ask-border::before { content:"";position:absolute;left:50%;top:50%;width:200%;aspect-ratio:1;background:conic-gradient(transparent 0 54%,var(--ask-ring-highlight) 76%,var(--ask-ring-highlight) 81%,transparent 100%);animation:ask-border-drift 12s linear infinite;animation-play-state:var(--ask-ring-play); }
@@ -500,8 +500,8 @@ body:has(.chat-panel[open]) .app-toast-viewport:dir(rtl) { --toast-x:440px; }
 }
 .ask-box:not([data-busy=true]):has(textarea:focus) { --ask-ring-opacity:1;--ask-ring-play:running; }
 @media (prefers-color-scheme:dark) {
-  /* deep enough for a white arrow on the matching send button, light enough to read on the dark surface */
-  .ask-box,.note-reading-frame { --ask-ring-color:color-mix(in srgb,var(--primary) 35%,var(--accent));--ask-ring-highlight:color-mix(in srgb,var(--focus) 18%,var(--ink)); }
+  /* the brand purple, so the ring matches the tabs and buttons; only the moving highlight is lighter */
+  .ask-box,.note-reading-frame { --ask-ring-color:var(--primary);--ask-ring-highlight:color-mix(in srgb,var(--focus) 18%,var(--ink)); }
   .ask-box::before,.note-reading-frame::before { content:"";position:absolute;inset:-2px;border-radius:inherit;pointer-events:none;opacity:var(--ask-ring-opacity);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 9%,transparent),0 0 12px 2px color-mix(in srgb,var(--accent) 16%,transparent);transition:opacity 200ms ease-out; }
   /* The summary halo follows the inset rim, not the scroll viewport's edge. */
   .note-reading-frame::before { inset:8px 0; }
