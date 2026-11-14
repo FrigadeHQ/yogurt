@@ -456,10 +456,12 @@ html.widget { --pill:#232326;--pill-ink:#F7F7FA;--accent:#B780FF;--pill-accent:v
 .app-modal-backdrop { pointer-events:auto!important;position:fixed;inset:0;z-index:100;background:var(--scrim); }
 .dialog-motion { display:flex;flex-direction:column;transform-origin:center;transition:opacity var(--dur-surface) var(--ease-out),transform var(--dur-surface) var(--ease-soft); }
 .dialog-motion[data-starting-style] { opacity:0;transform:scale(.97); }
+@starting-style { .dialog-motion { opacity:0;transform:scale(.97); } }
 .dialog-motion[data-ending-style] { opacity:0;transform:scale(.98);transition-duration:var(--dur-base);transition-timing-function:var(--ease-out); }
 @media (prefers-reduced-motion:reduce) {
   .dialog-motion,.dialog-motion[data-ending-style] { transition:opacity var(--dur-micro) var(--ease-out); }
   .dialog-motion[data-starting-style],.dialog-motion[data-ending-style] { transform:none; }
+  @starting-style { .dialog-motion { transform:none; } }
 }
 .app-modal[data-testid=delete-confirm] { width:min(294px,calc(100vw - 40px));border-radius:17px; }
 .app-modal[data-testid=delete-confirm] .modal-copy { padding:21px 19px 20px; }
@@ -824,7 +826,9 @@ html:not(.widget) button:focus-visible, html:not(.widget) input:focus-visible { 
 
 .search-panel.dialog-motion,.search-panel.dialog-motion[data-ending-style] { transition:opacity var(--dur-micro) var(--ease-out),transform var(--dur-micro) var(--ease-out); }
 .search-panel.dialog-motion[data-starting-style],.search-panel.dialog-motion[data-ending-style] { transform:scale(.99); }
+@starting-style { .search-panel.dialog-motion { transform:scale(.99); } }
 @media (prefers-reduced-motion:reduce) {
   .search-panel.dialog-motion,.search-panel.dialog-motion[data-ending-style] { transition:opacity var(--dur-micro) var(--ease-out); }
   .search-panel.dialog-motion[data-starting-style],.search-panel.dialog-motion[data-ending-style] { transform:none; }
+  @starting-style { .search-panel.dialog-motion { transform:none; } }
 }
