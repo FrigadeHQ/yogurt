@@ -660,8 +660,6 @@
   "Upgrade paused": "Uppgradering pausad",
   "You can record meetings. AI summaries and Ask work when this finishes.": "Du kan spela in möten. AI-sammanfattningar och Fråga fungerar när detta är klart.",
   "Once this model is ready, we'll remove the old one.": "Vi tar bort den gamla modellen när den här är klar.",
-  "You can still record. Try again to turn on summaries and Ask.": "Du kan fortsätta spela in. Försök igen för sammanfattningar och Fråga.",
-  "You can still use Yogurt without the upgrade.": "Du kan fortsätta använda Yogurt utan uppgraderingen.",
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Mer detaljerade, korrekta anteckningar. Ersätter den nuvarande modellen, så att du inte behåller båda.",
   "about {minutes} min left": "ungefär {minutes} min kvar",
   "AI upgrade skipped": "AI-uppgradering överhoppad",

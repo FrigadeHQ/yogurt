@@ -657,8 +657,6 @@
   "Upgrade paused": "Upgrade pausiert",
   "You can record meetings. AI summaries and Ask work when this finishes.": "Du kannst Meetings aufnehmen. KI-Zusammenfassungen und Fragen sind danach bereit.",
   "Once this model is ready, we'll remove the old one.": "Sobald dieses Modell bereit ist, entfernen wir das alte.",
-  "You can still record. Try again to turn on summaries and Ask.": "Aufnehmen geht weiter. Erneut versuchen für Zusammenfassungen und Fragen.",
-  "You can still use Yogurt without the upgrade.": "Du kannst Yogurt auch ohne Upgrade nutzen.",
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Ausführlichere, präzisere Notizen. Ersetzt das aktuelle Modell, sodass du nicht beide behältst.",
   "about {minutes} min left": "noch etwa {minutes} Min.",
   "AI upgrade skipped": "KI-Upgrade übersprungen",

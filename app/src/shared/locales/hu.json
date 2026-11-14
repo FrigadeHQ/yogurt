@@ -648,8 +648,6 @@
   "Upgrade paused": "A frissítés szünetel",
   "You can record meetings. AI summaries and Ask work when this finishes.": "Rögzíthetsz megbeszéléseket. Az AI-összegzés és a Kérdezz utána lesz elérhető.",
   "Once this model is ready, we'll remove the old one.": "Ha ez a modell kész, eltávolítjuk a régit.",
-  "You can still record. Try again to turn on summaries and Ask.": "Továbbra is rögzíthetsz. Próbáld újra az összegzéshez és a Kérdezz funkcióhoz.",
-  "You can still use Yogurt without the upgrade.": "Frissítés nélkül is használhatod a Yogurtot.",
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Részletesebb, pontosabb jegyzetek. Lecseréli a jelenlegi modellt, így nem marad meg mindkettő.",
   "about {minutes} min left": "még kb. {minutes} perc",
   "AI upgrade skipped": "AI-frissítés kihagyva",

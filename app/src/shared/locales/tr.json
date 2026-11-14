@@ -648,8 +648,6 @@
   "Upgrade paused": "Yükseltme duraklatıldı",
   "You can record meetings. AI summaries and Ask work when this finishes.": "Toplantıları kaydedebilirsiniz. AI özetleri ve Sor, indirme bitince çalışır.",
   "Once this model is ready, we'll remove the old one.": "Bu model hazır olduğunda eskisini kaldıracağız.",
-  "You can still record. Try again to turn on summaries and Ask.": "Kayda devam edebilirsiniz. Özetler ve Sor için tekrar deneyin.",
-  "You can still use Yogurt without the upgrade.": "Yogurt’u yükseltme olmadan kullanabilirsiniz.",
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Daha ayrıntılı, doğru notlar. Mevcut modelin yerini alır, böylece ikisini birden tutmazsınız.",
   "about {minutes} min left": "yaklaşık {minutes} dk kaldı",
   "AI upgrade skipped": "AI yükseltmesi atlandı",

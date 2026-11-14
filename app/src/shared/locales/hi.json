@@ -648,8 +648,6 @@
   "Upgrade paused": "अपग्रेड रुका है",
   "You can record meetings. AI summaries and Ask work when this finishes.": "मीटिंग रिकॉर्ड कर सकते हैं। पूरा होने पर AI सारांश और पूछें काम करेंगे।",
   "Once this model is ready, we'll remove the old one.": "यह मॉडल तैयार होने पर पुराना हटा देंगे।",
-  "You can still record. Try again to turn on summaries and Ask.": "रिकॉर्ड कर सकते हैं। सारांश और पूछें चालू करने के लिए फिर कोशिश करें।",
-  "You can still use Yogurt without the upgrade.": "अपग्रेड के बिना भी Yogurt इस्तेमाल कर सकते हैं।",
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "ज़्यादा विस्तृत, सटीक नोट्स। मौजूदा मॉडल की जगह लेता है, इसलिए दोनों नहीं रखने पड़ते।",
   "about {minutes} min left": "लगभग {minutes} मिनट बाकी",
   "AI upgrade skipped": "AI अपग्रेड छोड़ दिया",

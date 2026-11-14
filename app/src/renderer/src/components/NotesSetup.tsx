@@ -43,7 +43,8 @@ export function NotesSetup({ go }: { go: (route: string) => void }) {
   }
   if (!setup || !notesDownloadVisible(setup)) return null
   const upgrading = notesUpgradeActive(setup)
-  const failed = !!(upgrading ? setup.notesUpgradeError : setup.notesError)
+  const error = upgrading ? setup.notesUpgradeError : setup.notesError
+  const failed = !!error
   const stopped = upgrading ? t('AI upgrade paused') : t('AI download stopped')
   const label = failed ? stopped : setup.notesUpgradePending && upgrading ? t('Upgrading AI') : upgrading
     ? t('Upgrading AI · {percent}', { percent: notesPercent(setup.notesUpgradeFraction ?? 0) })
@@ -70,7 +71,7 @@ export function NotesSetup({ go }: { go: (route: string) => void }) {
             </div>
             <div className="notes-download-footer">
               <p className="notes-download-support">{failed
-                ? upgrading ? t('You can still use Yogurt without the upgrade.') : t('You can still record. Try again to turn on summaries and Ask.')
+                ? error
                 : upgrading ? t("Once this model is ready, we'll remove the old one.") : t('You can record meetings. AI summaries and Ask work when this finishes.')}</p>
               {(failed || upgrading) && <div className="notes-download-actions">
                 {failed && <button data-testid="notes-setup-retry" className="notes-download-retry" disabled={retrying} onClick={() => void retry()}>{retrying ? t('Retrying…') : t('Try again')}</button>}

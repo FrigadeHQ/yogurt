@@ -691,8 +691,6 @@
   "Upgrade paused": "Upgrade pozastaven",
   "You can record meetings. AI summaries and Ask work when this finishes.": "Schůzky lze nahrávat. AI souhrny a Zeptat se budou dostupné po stažení.",
   "Once this model is ready, we'll remove the old one.": "Až bude tento model připraven, starý odstraníme.",
-  "You can still record. Try again to turn on summaries and Ask.": "Nahrávat lze dál. Zkuste to znovu pro souhrny a Zeptat se.",
-  "You can still use Yogurt without the upgrade.": "Yogurt můžete dál používat bez upgradu.",
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Podrobnější a přesnější poznámky. Nahradí stávající model, nezůstanou vám oba.",
   "about {minutes} min left": "zbývá asi {minutes} min",
   "AI upgrade skipped": "Upgrade AI přeskočen",

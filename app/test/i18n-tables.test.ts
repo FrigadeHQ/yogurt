@@ -36,8 +36,6 @@ it('translates the popover readout and support in every locale', () => {
       'Download stopped', 'Upgrade paused', 'about {minutes} min left',
       'You can record meetings. AI summaries and Ask work when this finishes.',
       "Once this model is ready, we'll remove the old one.",
-      'You can still record. Try again to turn on summaries and Ask.',
-      'You can still use Yogurt without the upgrade.',
     ]) {
       expect(keys).toContain(key)
       expect(table[key]).toBeTypeOf('string')

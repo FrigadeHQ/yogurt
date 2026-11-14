@@ -648,8 +648,6 @@
   "Upgrade paused": "আপগ্রেড স্থগিত",
   "You can record meetings. AI summaries and Ask work when this finishes.": "মিটিং রেকর্ড করতে পারেন। শেষ হলে AI সারাংশ ও জিজ্ঞেস করুন চালু হবে।",
   "Once this model is ready, we'll remove the old one.": "এই মডেল প্রস্তুত হলে পুরোনোটি সরিয়ে দেব।",
-  "You can still record. Try again to turn on summaries and Ask.": "রেকর্ড করতে পারেন। সারাংশ ও জিজ্ঞেস করুন চালু করতে আবার চেষ্টা করুন।",
-  "You can still use Yogurt without the upgrade.": "আপগ্রেড ছাড়াও Yogurt ব্যবহার করতে পারেন।",
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "আরও বিস্তারিত, নির্ভুল নোট। বর্তমান মডেলের বদলে এটি থাকবে, দুটো রাখতে হবে না।",
   "about {minutes} min left": "প্রায় {minutes} মিনিট বাকি",
   "AI upgrade skipped": "AI আপগ্রেড বাদ দেওয়া হয়েছে",

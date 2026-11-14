@@ -124,7 +124,7 @@ test('both AI stages live beside recording, open below, retry failures and disap
       await setSetup(app, upgrading ? { ...state, notesUpgradeDownloading: undefined, notesUpgradeError: 'Offline' } : { ...state, notesDownloading: undefined, notesError: 'Offline' })
       await expect(trigger).toHaveAccessibleName(upgrading ? 'AI upgrade paused' : 'AI download stopped')
       await expect(popup.locator('.notes-download-readout')).toHaveText(upgrading ? 'Upgrade paused3.8 of 14.0 GB' : 'Download stopped1.4 of 5.0 GB')
-      await expect(popup).toContainText(upgrading ? 'You can still use Yogurt without the upgrade.' : 'You can still record. Try again to turn on summaries and Ask.')
+      await expect(popup.locator('.notes-download-support')).toHaveText('Offline')
       await expect(popup.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '27')
       await expect(popup).not.toContainText('min left')
       await expect(popup.getByTestId('notes-setup-retry')).toHaveText('Try again')

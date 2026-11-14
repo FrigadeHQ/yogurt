@@ -612,8 +612,6 @@
   "Upgrade paused": "พักการอัปเกรดแล้ว",
   "You can record meetings. AI summaries and Ask work when this finishes.": "บันทึกการประชุมได้ สรุป AI และถามจะใช้ได้เมื่อดาวน์โหลดเสร็จ",
   "Once this model is ready, we'll remove the old one.": "เมื่อโมเดลนี้พร้อม เราจะลบโมเดลเก่าออก",
-  "You can still record. Try again to turn on summaries and Ask.": "ยังบันทึกได้ ลองอีกครั้งเพื่อเปิดใช้สรุปและถาม",
-  "You can still use Yogurt without the upgrade.": "ยังใช้ Yogurt ได้โดยไม่ต้องอัปเกรด",
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "โน้ตละเอียดและแม่นยำขึ้น แทนที่โมเดลปัจจุบัน จึงไม่ต้องเก็บทั้งสองโมเดล",
   "about {minutes} min left": "เหลือประมาณ {minutes} นาที",
   "AI upgrade skipped": "ข้ามการอัปเกรด AI แล้ว",

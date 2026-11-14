@@ -660,8 +660,6 @@
   "Upgrade paused": "Η αναβάθμιση σε παύση",
   "You can record meetings. AI summaries and Ask work when this finishes.": "Μπορείτε να ηχογραφείτε. Περιλήψεις AI και Ρωτήστε λειτουργούν μετά τη λήψη.",
   "Once this model is ready, we'll remove the old one.": "Όταν ετοιμαστεί αυτό το μοντέλο, θα αφαιρέσουμε το παλιό.",
-  "You can still record. Try again to turn on summaries and Ask.": "Η ηχογράφηση λειτουργεί. Δοκιμάστε ξανά για περιλήψεις και Ρωτήστε.",
-  "You can still use Yogurt without the upgrade.": "Μπορείτε να χρησιμοποιείτε το Yogurt χωρίς αναβάθμιση.",
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Πιο αναλυτικές, ακριβείς σημειώσεις. Αντικαθιστά το τρέχον μοντέλο, ώστε να μη μένουν και τα δύο.",
   "about {minutes} min left": "απομένουν περίπου {minutes} λεπ.",
   "AI upgrade skipped": "Η αναβάθμιση AI παραλείφθηκε",

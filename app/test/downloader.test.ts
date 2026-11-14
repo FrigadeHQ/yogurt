@@ -62,6 +62,27 @@ describe('ensureFile', () => {
     await expect(ensureFile({ url: URL, sha256: 'good', sizeGB: 20, dir: d }, deps({ freeDiskGB: async () => 25 })))
       .rejects.toMatchObject({ name: 'DiskSpaceError', needGB: 5 })
   })
+  it.each([
+    [Object.assign(new Error('write failed'), { code: 'ENOSPC' }), 0, 12],
+    [new Error('No space left on device'), 0, 12],
+    [Object.assign(new Error('write failed'), { code: 'ENOSPC' }), 500, 1],
+  ])('rechecks space after a full disk and keeps the partial download (%s, %s GB free)', async (error, free, needGB) => {
+    const d = dir()
+    const part = join(d, 'model-Q4.gguf.part')
+    writeFileSync(part, 'partial')
+    const bytes = Buffer.alloc(64 * 1024)
+    const dp = deps({
+      freeDiskGB: vi.fn().mockResolvedValueOnce(500).mockResolvedValue(free),
+      download: vi.fn(async () => { writeFileSync(part, bytes); throw error }),
+    })
+    await expect(ensureFile({ url: URL, sha256: 'good', sizeGB: 2.00001, dir: d }, dp))
+      .rejects.toMatchObject({ name: 'DiskSpaceError', needGB })
+    expect(dp.freeDiskGB).toHaveBeenCalledTimes(2)
+    expect(dp.download).toHaveBeenCalledTimes(1)
+    expect(dp.hashFile).not.toHaveBeenCalled()
+    expect(readFileSync(part)).toEqual(bytes)
+    expect(isVerified(d, 'model-Q4.gguf')).toBe(false)
+  })
   it('retries once on checksum mismatch, then fails and deletes the file', async () => {
     const d = dir()
     const dp = deps({ hashFile: vi.fn(async () => 'bad') })

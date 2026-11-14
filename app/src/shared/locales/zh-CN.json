@@ -612,8 +612,6 @@
   "Upgrade paused": "升级已暂停",
   "You can record meetings. AI summaries and Ask work when this finishes.": "你可以录制会议。下载完成后即可使用 AI 摘要和提问。",
   "Once this model is ready, we'll remove the old one.": "此模型准备好后，我们会移除旧模型。",
-  "You can still record. Try again to turn on summaries and Ask.": "你仍可录制。请重试以启用摘要和提问。",
-  "You can still use Yogurt without the upgrade.": "无需升级，你也可以继续使用 Yogurt。",
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "笔记更详细、更准确。替换当前模型，无需同时保留两个。",
   "about {minutes} min left": "还需约 {minutes} 分钟",
   "AI upgrade skipped": "已跳过 AI 升级",

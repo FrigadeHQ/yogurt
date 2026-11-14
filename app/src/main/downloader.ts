@@ -141,7 +141,14 @@ export async function ensureFile(opts: EnsureOpts, deps: DownloadDeps = realDeps
 
   for (let attempt = 0; attempt < 2; attempt++) {
     opts.signal?.throwIfAborted()
-    await deps.download(opts.url, opts.dir, fileName, opts.onProgress ?? (() => {}), opts.signal)
+    try {
+      await deps.download(opts.url, opts.dir, fileName, opts.onProgress ?? (() => {}), opts.signal)
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException | null)?.code !== 'ENOSPC' && !/no space left/i.test(err instanceof Error ? err.message : String(err))) throw err
+      const free = await deps.freeDiskGB(opts.dir)
+      const need = Math.max(0, opts.sizeGB - partialDownloadGB(opts.dir, fileName)) + DISK_HEADROOM_GB - free
+      throw new DiskSpaceError(Math.max(1, Math.ceil(need)))
+    }
     opts.signal?.throwIfAborted()
     if ((await deps.hashFile(path)) === opts.sha256) {
       opts.signal?.throwIfAborted()

@@ -660,8 +660,6 @@
   "Upgrade paused": "Päivitys keskeytetty",
   "You can record meetings. AI summaries and Ask work when this finishes.": "Voit tallentaa kokouksia. Tekoälytiivistelmät ja Kysy toimivat latauksen valmistuttua.",
   "Once this model is ready, we'll remove the old one.": "Poistamme vanhan mallin, kun tämä on valmis.",
-  "You can still record. Try again to turn on summaries and Ask.": "Voit yhä tallentaa. Yritä uudelleen, niin saat tiivistelmät ja Kysy-toiminnon.",
-  "You can still use Yogurt without the upgrade.": "Voit käyttää Yogurtia ilman päivitystä.",
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Tarkemmat ja kattavammat muistiinpanot. Korvaa nykyisen mallin, joten molemmat eivät jää talteen.",
   "about {minutes} min left": "noin {minutes} min jäljellä",
   "AI upgrade skipped": "Tekoälypäivitys ohitettu",

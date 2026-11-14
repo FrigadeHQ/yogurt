@@ -687,8 +687,6 @@
   "Upgrade paused": "Обновление приостановлено",
   "You can record meetings. AI summaries and Ask work when this finishes.": "Можно записывать встречи. ИИ-сводки и «Спросить» заработают после загрузки.",
   "Once this model is ready, we'll remove the old one.": "Когда эта модель будет готова, мы удалим старую.",
-  "You can still record. Try again to turn on summaries and Ask.": "Запись доступна. Повторите попытку для сводок и «Спросить».",
-  "You can still use Yogurt without the upgrade.": "Можно пользоваться Yogurt без обновления.",
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Более подробные и точные заметки. Заменяет текущую модель, чтобы не хранить обе.",
   "about {minutes} min left": "осталось около {minutes} мин",
   "AI upgrade skipped": "Обновление ИИ пропущено",

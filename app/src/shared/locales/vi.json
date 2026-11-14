@@ -612,8 +612,6 @@
   "Upgrade paused": "Đã tạm dừng nâng cấp",
   "You can record meetings. AI summaries and Ask work when this finishes.": "Bạn có thể ghi âm họp. Tóm tắt AI và Hỏi sẽ dùng được khi tải xong.",
   "Once this model is ready, we'll remove the old one.": "Khi mô hình này sẵn sàng, chúng tôi sẽ xóa mô hình cũ.",
-  "You can still record. Try again to turn on summaries and Ask.": "Bạn vẫn ghi âm được. Thử lại để bật tóm tắt và Hỏi.",
-  "You can still use Yogurt without the upgrade.": "Bạn vẫn dùng được Yogurt mà không cần nâng cấp.",
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Ghi chú chi tiết, chính xác hơn. Thay thế mô hình hiện tại nên không cần giữ cả hai.",
   "about {minutes} min left": "còn khoảng {minutes} phút",
   "AI upgrade skipped": "Đã bỏ qua nâng cấp AI",

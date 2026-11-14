@@ -612,8 +612,6 @@
   "Upgrade paused": "アップグレード一時停止",
   "You can record meetings. AI summaries and Ask work when this finishes.": "会議は録音できます。完了後にAI要約と質問が使えます。",
   "Once this model is ready, we'll remove the old one.": "このモデルの準備ができたら、古いモデルを削除します。",
-  "You can still record. Try again to turn on summaries and Ask.": "録音は引き続き可能です。再試行すると要約と質問が使えるようになります。",
-  "You can still use Yogurt without the upgrade.": "アップグレードなしでもYogurtは使えます。",
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "より詳しく正確なノート。現在のモデルを置き換えるため、両方を保持する必要はありません。",
   "about {minutes} min left": "残り約{minutes}分",
   "AI upgrade skipped": "AIアップグレードをスキップ",

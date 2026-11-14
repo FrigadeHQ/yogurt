@@ -98,8 +98,6 @@
   "Upgrade paused": "Upgrade paused",
   "You can record meetings. AI summaries and Ask work when this finishes.": "You can record meetings. AI summaries and Ask work when this finishes.",
   "Once this model is ready, we'll remove the old one.": "Once this model is ready, we'll remove the old one.",
-  "You can still record. Try again to turn on summaries and Ask.": "You can still record. Try again to turn on summaries and Ask.",
-  "You can still use Yogurt without the upgrade.": "You can still use Yogurt without the upgrade.",
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "More detailed, accurate notes. Replaces the current model, so you don't keep both.",
   "about {minutes} min left": "about {minutes} min left",
   "AI upgrade skipped": "AI upgrade skipped",

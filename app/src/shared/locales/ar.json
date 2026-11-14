@@ -718,8 +718,6 @@
   "Upgrade paused": "الترقية متوقفة",
   "You can record meetings. AI summaries and Ask work when this finishes.": "يمكنك تسجيل الاجتماعات. تتاح ملخصات الذكاء الاصطناعي و«اسأل» عند الاكتمال.",
   "Once this model is ready, we'll remove the old one.": "سنزيل النموذج القديم حين يصبح هذا النموذج جاهزًا.",
-  "You can still record. Try again to turn on summaries and Ask.": "يمكنك التسجيل. أعد المحاولة لتفعيل الملخصات و«اسأل».",
-  "You can still use Yogurt without the upgrade.": "يمكنك استخدام Yogurt دون الترقية.",
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "ملاحظات أدق وأكثر تفصيلًا. يحل محل النموذج الحالي، فلا تحتفظ بكليهما.",
   "about {minutes} min left": "متبقٍ نحو {minutes} د",
   "AI upgrade skipped": "تم تخطي ترقية الذكاء الاصطناعي",

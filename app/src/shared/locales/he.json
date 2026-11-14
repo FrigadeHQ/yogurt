@@ -669,8 +669,6 @@
   "Upgrade paused": "השדרוג מושהה",
   "You can record meetings. AI summaries and Ask work when this finishes.": "אפשר להקליט פגישות. סיכומי AI ולשאול יפעלו בסיום ההורדה.",
   "Once this model is ready, we'll remove the old one.": "כשהמודל הזה יהיה מוכן, נסיר את הישן.",
-  "You can still record. Try again to turn on summaries and Ask.": "אפשר להמשיך להקליט. נסו שוב כדי להפעיל סיכומים ולשאול.",
-  "You can still use Yogurt without the upgrade.": "אפשר להמשיך להשתמש ב־Yogurt ללא השדרוג.",
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "הערות מפורטות ומדויקות יותר. מחליף את המודל הנוכחי, כך שלא יישמרו שניהם.",
   "about {minutes} min left": "נותרו כ־{minutes} דק׳",
   "AI upgrade skipped": "שדרוג ה־AI דולג",

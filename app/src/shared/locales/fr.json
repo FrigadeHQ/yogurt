@@ -672,8 +672,6 @@
   "Upgrade paused": "Amélioration en pause",
   "You can record meetings. AI summaries and Ask work when this finishes.": "Vous pouvez enregistrer. Résumés IA et Demander seront prêts à la fin.",
   "Once this model is ready, we'll remove the old one.": "Une fois ce modèle prêt, nous supprimerons l’ancien.",
-  "You can still record. Try again to turn on summaries and Ask.": "Vous pouvez enregistrer. Réessayez pour activer les résumés et Demander.",
-  "You can still use Yogurt without the upgrade.": "Vous pouvez utiliser Yogurt sans cette amélioration.",
   "More detailed, accurate notes. Replaces the current model, so you don't keep both.": "Des notes plus détaillées et précises. Remplace le modèle actuel pour ne pas garder les deux.",
   "about {minutes} min left": "reste environ {minutes} min",
   "AI upgrade skipped": "Amélioration IA ignorée",
