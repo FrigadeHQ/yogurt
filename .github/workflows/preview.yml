@@ -38,6 +38,7 @@ jobs:
             platform: --win
             unpacked: win-unpacked
             files: app/dist/Yogurt-windows-*.exe
+            nemo: true
           - os: ubuntu-22.04
             platform: --linux
             unpacked: linux-unpacked
@@ -109,8 +110,8 @@ jobs:
       # unit tests run in ci.yml; a slower runner here only trips their timing checks
       - name: Build (helpers, whisper-server, app)
         env:
-          # nemo-speech builds next to whisper-server on Linux; on Windows it still needs SentencePiece through the
-          # vcpkg manifest NeMo-Speech.cpp ships (its scripts/windows/build.ps1 does this), so it waits
+          # nemo-speech builds next to whisper-server on Windows and Linux; on Windows SentencePiece comes from the
+          # vcpkg manifest NeMo-Speech.cpp ships, through the runner's VCPKG_INSTALLATION_ROOT (as its build.ps1 does)
           YOGURT_NO_NEMO: ${{ matrix.nemo != true && '1' || '' }}
         run: pnpm -C app build
       # a release signs in to Azure with GitHub's token for this run, so no password or key is stored anywhere
