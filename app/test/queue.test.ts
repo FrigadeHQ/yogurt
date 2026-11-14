@@ -339,4 +339,19 @@ describe('notes queue', () => {
       expect(ran).toHaveBeenCalledOnce()
     })
   })
+  it('diarization is not notes work: it runs on a bigger Mac with no notes model yet, and waits out a recording on a 16 GB Mac', async () => {
+    const big = createQueue({ recording: () => false, smallMac: false, modelReady: () => false })
+    const ran = vi.fn(async () => {})
+    await big.enqueue(ran, 'diarize')
+    expect(ran).toHaveBeenCalledOnce()
+    let recording = true
+    const small = createQueue({ recording: () => recording, smallMac: true, modelReady: () => false })
+    const done = small.enqueue(ran, 'diarize')
+    await tick(); await tick()
+    expect(ran).toHaveBeenCalledOnce()
+    recording = false
+    small.recordingChanged()
+    await done
+    expect(ran).toHaveBeenCalledTimes(2)
+  })
 })
