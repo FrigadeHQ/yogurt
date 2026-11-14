@@ -243,6 +243,8 @@
 .agenda-open-note { height:28px;padding-inline:8px;font-size:11px; }
 .agenda-inspector-footer { flex:none;display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--line);padding-top:16px; }
 .agenda-inspector-actions { display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;container-type:inline-size; }
+.agenda-inspector .agenda-inspector-footer { gap:16px; }
+.agenda-inspector .agenda-inspector-actions:has(>:only-child) { justify-content:flex-start; }
 .agenda-inspector-actions>.workspace-button { min-width:0;max-width:100%; }
 .agenda-inspector-actions:has(>:nth-child(2))>.workspace-button { max-width:calc((100% - 8px)/2); }
 .agenda-inspector-actions>.workspace-button>span { min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:inherit;font-size:inherit; }

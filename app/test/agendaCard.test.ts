@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { agendaCardSide, agendaCardSpace } from '../src/shared/agendaCard'
 
@@ -5,6 +6,15 @@ const column = { top: 50, bottom: 750, left: 800, right: 1100 }
 const list = { top: 270, bottom: 720, left: 820, right: 1080 }
 const viewport = { width: 1100, height: 760 }
 const row = (top: number, bottom: number) => ({ top, bottom, left: 820, right: 1080 })
+
+it('left-aligns a single agenda-card action with the icon column and keeps the 16px divider rhythm', () => {
+  const css = readFileSync(new URL('../src/renderer/src/workspace.css', import.meta.url), 'utf8')
+  expect(css).toMatch(/\.agenda-inspector \.agenda-inspector-actions:has\(>:only-child\) \{ justify-content:flex-start; \}/)
+  // Rows with two or more actions retain the shared right alignment.
+  expect(css).toMatch(/\.agenda-inspector-actions \{[^}]*justify-content:flex-end;/)
+  expect(css).toMatch(/\.agenda-inspector \.agenda-inspector-footer \{ gap:16px; \}/)
+  expect(css).toMatch(/\.agenda-inspector-footer \{[^}]*padding-top:16px;/)
+})
 
 describe('agenda card placement', () => {
   it('opens above a bottom row, below a top row, with 8px insets and 12px row clearance', () => {
