@@ -13,6 +13,7 @@ const fresh = () => { const d = mkdtempSync(join(tmpdir(), 'yogurt-diarize-')); 
 // 'stopped': recorded and closed, not yet analyzed — the diarizer skips a meeting that is still recording
 const base = { title: 'Sync', endedAt: null, eventId: null, app: null, attendees: [], state: 'stopped' as const }
 const word = (text: string, startMs: number, endMs: number) => ({ text, startMs, endMs })
+const RTTM = 'SPEAKER them 1 0.000 2.100 <NA> <NA> 0 <NA> <NA>\nSPEAKER them 1 2.300 2.200 <NA> <NA> 1 <NA> <NA>\n'
 
 /** two voices; the call names on the rows decide the claims (pass [null, null] for a Them-only meeting) */
 const seed = (s: Store, speakers: [string | null, string | null] = ['Ann Lee', null], voices = false) => {
@@ -32,7 +33,7 @@ function setup(over: Partial<Deps> = {}) {
   const runDir = mkdtempSync(join(tmpdir(), 'yogurt-diarize-run-'))
   // the recording the job looks for: trackFile checks the file exists before decode runs
   writeWav(join(runDir, 'them.wav'), new Float32Array(16))
-  const rttm = 'SPEAKER them 1 0.000 2.100 <NA> <NA> 0 <NA> <NA>\nSPEAKER them 1 2.300 2.200 <NA> <NA> 1 <NA> <NA>\n'
+  const rttm = RTTM
   const run = {
     decode: async (_helper: string, _input: string, out: string) => writeWav(out, new Float32Array(16 * 5000)),
     diarize: async (_nemo: string, _wav: string, _model: string, rttmPath: string) => { writeFileSync(rttmPath, rttm); return 'gpu' as const },
@@ -157,5 +158,36 @@ describe('diarizer', () => {
     d.schedule(id)
     await d.finished(id)
     expect(String(store.meeting(id)!.diarizeError)).toMatch(/no them recording/)
+  })
+
+  it('all-hole vectors: the meeting still diarizes, with no profile links and nothing enrolled', async () => {
+    const { store, deps } = setup({ allowed: () => true })
+    const id = seed(store, ['Ann Lee', null], true)
+    const embedVectors = vi.fn(async (_w: string, ranges: Array<{ startMs: number; endMs: number }>) => ranges.map(() => undefined))
+    const d = createDiarizer({ ...deps, embedVectors })
+    d.schedule(id)
+    await d.finished(id)
+    // the embedding step ran and came back empty, yet the transcript itself is fully diarized
+    expect(embedVectors).toHaveBeenCalled()
+    expect(them(store, id).map(x => [x.speakerKey, x.speaker])).toEqual([['v1', 'Ann Lee'], ['v2', 'Speaker 1']])
+    expect(store.meetingSpeakers(id).every(x => x.profileId === null)).toBe(true)
+    expect(store.voiceProfiles()).toEqual([])
+    expect(store.meeting(id)).toMatchObject({ diarizeError: null })
+    expect(store.meeting(id)!.diarizedAt).toBeGreaterThan(0)
+  })
+
+  it('a nemo turn with no transcript words: no ghost cluster row, and it consumes no Speaker N number', async () => {
+    const { store, deps } = setup()
+    const id = seed(store)
+    const d = createDiarizer({ ...deps, run: { ...deps.run!, diarize: async (_nemo: string, _wav: string, _model: string, rttmPath: string) => {
+      writeFileSync(rttmPath, `${RTTM}SPEAKER them 1 60.000 2.000 <NA> <NA> 2 <NA> <NA>\n`); return 'gpu' as const
+    } } })
+    d.schedule(id)
+    await d.finished(id)
+    // the turn's cluster got no runs at all: no meeting_speakers row, and only the two voiced ones remain
+    expect(store.meetingSpeakers(id).map(x => [x.key, x.startMs, x.endMs])).toEqual([['v1', 0, 2000], ['v2', 2400, 4400]])
+    // it consumed no Speaker number either: v2 is still Speaker 1
+    expect(them(store, id).map(x => [x.speakerKey, x.speaker])).toEqual([['v1', 'Ann Lee'], ['v2', 'Speaker 1']])
+    expect(store.meeting(id)).toMatchObject({ diarizeError: null })
   })
 })

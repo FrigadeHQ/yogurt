@@ -116,11 +116,15 @@ export function createDiarizer(p: Deps) {
       c.spans.push({ startMs: r.startMs, endMs: r.endMs })
       c.claims.set(r.speaker, (c.claims.get(r.speaker) ?? 0) + ms)
     }
-    // names: reused clusters keep the name already shown; new clusters resolve (claims, dedupe, Speaker N)
+    // names: reused clusters keep the name already shown; new clusters resolve (claims, dedupe, Speaker N).
+    // A turn that overlaid no transcript row (asr dropped the speech) leaves its cluster without runs: it takes
+    // no part in naming (consumes no number) and gets no meeting_speakers row; a reused cluster like that keeps
+    // its existing row untouched.
+    const voiced = (c: Cluster) => c.spans.length > 0
     const reusedNames = existing.filter(e => reusedKeys.has(e.key)).map(e => nameOfKey(id, e.key)).filter((n): n is string => !!n)
     const live = new Set(p.store.segments(id, { hidden: true }).filter(s => s.track === 'them' && s.speaker).map(s => s.speaker!))
     const resolved = resolveNames(
-      [...clusters.values()].filter(c => !c.reused).map(c => ({ key: c.key, claims: [...c.claims].map(([name, ms]) => ({ name, ms })), total: c.total })),
+      [...clusters.values()].filter(c => !c.reused && voiced(c)).map(c => ({ key: c.key, claims: [...c.claims].map(([name, ms]) => ({ name, ms })), total: c.total })),
       { taken: [...new Set(reusedNames)], startNumber: nextSpeakerNumber([...live]) })
     const nameOf = new Map(resolved.map(r => [r.key, r.speaker]))
     const finalName = (key: string): string | null => nameOf.get(key) ?? nameOfKey(id, key)
@@ -135,7 +139,7 @@ export function createDiarizer(p: Deps) {
       meetingId: id, track: 'them' as const, startMs: r.startMs, endMs: r.endMs, text: r.text,
       speaker: r.key ? finalName(r.key) : r.speaker, speakerKey: r.key, ...(r.words?.length ? { words: r.words } : {}),
     }))
-    const speakers = [...clusters.values()].map(c => {
+    const speakers = [...clusters.values()].filter(voiced).map(c => {
       const span = spanOf(c)
       const old = existing.find(e => e.key === c.key)
       return {
@@ -187,9 +191,11 @@ export function createDiarizer(p: Deps) {
       const claimed = new Set<string>()
       const byStrength = [...scored].sort((a, b) => (b.match?.id ? b.match.score : -1) - (a.match?.id ? a.match.score : -1))
       for (const s of byStrength) {
+        const vec = s.vec
+        if (!vec) continue // every range came back a hole: no trustworthy vector, so no link and no enrollment
         const won = !!s.match?.id && !claimed.has(s.match.id)
         if (won) claimed.add(s.match!.id!)
-        await matchAndEnroll(id, s.item.key, normalize(s.vec!), finalName(s.item.key), spanOf(clusters.get(s.item.key)!), patches, won ? s.match : s.match && { id: null, score: s.match.score })
+        await matchAndEnroll(id, s.item.key, normalize(vec), finalName(s.item.key), spanOf(clusters.get(s.item.key)!), patches, won ? s.match : s.match && { id: null, score: s.match.score })
       }
     } catch (e) {
       console.warn('voice profiles skipped:', e instanceof Error ? e.message : e)
