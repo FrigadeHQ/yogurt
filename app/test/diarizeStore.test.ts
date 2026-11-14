@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { DatabaseSync } from 'node:sqlite'
 import { openStore, type Store } from '../src/main/store'
 
 const dirs: string[] = []
@@ -169,5 +170,34 @@ describe('diarization store', () => {
     expect(s.meetingSpeakers(m2.id)[0].profileId).toBeNull()
     s.deleteAllVoiceProfiles()
     expect(s.voiceProfiles()).toEqual([])
+  })
+
+  it('opens a database from before diarization: old lines render as saved, and the new columns and tables arrive', () => {
+    const d = mkdtempSync(join(tmpdir(), 'yogurt-diarize-store-'))
+    dirs.push(d)
+    const file = join(d, 'yogurt.db')
+    const before = openStore(file)
+    const m = before.createMeeting({ ...base, startedAt: 1 })
+    before.addSegments([{ meetingId: m.id, track: 'them', startMs: 0, endMs: 1000, text: 'old line', speaker: 'Ann' }])
+    before.close()
+    // put the file back how the last build before diarization left it
+    const raw = new DatabaseSync(file)
+    raw.exec(`
+      DROP TABLE meeting_speakers;
+      DROP TABLE voice_profiles;
+      ALTER TABLE segments DROP COLUMN speaker_key;
+      ALTER TABLE segments DROP COLUMN words;
+      ALTER TABLE meetings DROP COLUMN diarized_at;
+      ALTER TABLE meetings DROP COLUMN diarize_error;
+      ALTER TABLE meetings DROP COLUMN voices_allowed;
+    `)
+    raw.close()
+    const s = openStore(file)
+    stores.push(s)
+    expect(s.meeting(m.id)).toMatchObject({ diarizeError: null, voicesAllowed: false })
+    expect(s.meeting(m.id)!.diarizedAt).toBeUndefined()
+    expect(s.segments(m.id).map(x => [x.text, x.speaker, x.speakerKey, x.words])).toEqual([['old line', 'Ann', null, undefined]])
+    expect(s.voiceProfiles()).toEqual([])
+    expect(s.meetingSpeakers(m.id)).toEqual([])
   })
 })
