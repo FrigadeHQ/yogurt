@@ -673,5 +673,6 @@
   "Couldn't delete the recording. Try again.": "Aufnahme konnte nicht gelöscht werden. Erneut versuchen.",
   "Keep audio recordings after meetings": "Audioaufnahmen nach Meetings behalten",
   "Recording deleted": "Aufnahme gelöscht",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Wenn aus, wird Audio neuer Meetings nach Speichern der Zusammenfassung gelöscht."
+  "When off, new meetings' audio is deleted once the summary is saved.": "Wenn aus, wird Audio neuer Meetings nach Speichern der Zusammenfassung gelöscht.",
+  "New recording": "Neue Aufnahme"
 }

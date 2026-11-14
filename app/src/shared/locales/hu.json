@@ -664,5 +664,6 @@
   "Couldn't delete the recording. Try again.": "A felvételt nem sikerült törölni. Próbálja újra.",
   "Keep audio recordings after meetings": "Hangfelvételek megőrzése a megbeszélések után",
   "Recording deleted": "Felvétel törölve",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Kikapcsolva az új megbeszélések hangja az összefoglaló mentése után törlődik."
+  "When off, new meetings' audio is deleted once the summary is saved.": "Kikapcsolva az új megbeszélések hangja az összefoglaló mentése után törlődik.",
+  "New recording": "Új felvétel"
 }

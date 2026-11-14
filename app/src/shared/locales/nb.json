@@ -673,5 +673,6 @@
   "Couldn't delete the recording. Try again.": "Kunne ikke slette opptaket. Prøv igjen.",
   "Keep audio recordings after meetings": "Behold lydopptak etter møter",
   "Recording deleted": "Opptak slettet",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Når avslått, slettes lyd fra nye møter etter at sammendraget er lagret."
+  "When off, new meetings' audio is deleted once the summary is saved.": "Når avslått, slettes lyd fra nye møter etter at sammendraget er lagret.",
+  "New recording": "Nytt opptak"
 }

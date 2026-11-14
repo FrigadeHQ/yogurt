@@ -126,5 +126,6 @@
   "Keep audio recordings after meetings": "Keep audio recordings after meetings",
   "Recording deleted": "Recording deleted",
   "When off, new meetings' audio is deleted once the summary is saved.": "When off, new meetings' audio is deleted once the summary is saved.",
-  "Settings": "Settings"
+  "Settings": "Settings",
+  "New recording": "New recording"
 }

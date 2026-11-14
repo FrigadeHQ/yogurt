@@ -691,5 +691,6 @@
   "Couldn't delete the recording. Try again.": "Înregistrarea nu a putut fi ștearsă. Încearcă din nou.",
   "Keep audio recordings after meetings": "Păstrează înregistrările audio după întâlniri",
   "Recording deleted": "Înregistrare ștearsă",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Când e oprit, sunetul întâlnirilor noi se șterge după salvarea rezumatului."
+  "When off, new meetings' audio is deleted once the summary is saved.": "Când e oprit, sunetul întâlnirilor noi se șterge după salvarea rezumatului.",
+  "New recording": "Înregistrare nouă"
 }

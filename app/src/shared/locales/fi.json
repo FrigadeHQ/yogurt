@@ -676,5 +676,6 @@
   "Couldn't delete the recording. Try again.": "Tallennetta ei voitu poistaa. Yritä uudelleen.",
   "Keep audio recordings after meetings": "Säilytä äänitallenteet kokousten jälkeen",
   "Recording deleted": "Tallenne poistettu",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Pois päältä uusien kokousten ääni poistetaan yhteenvedon tallennuttua."
+  "When off, new meetings' audio is deleted once the summary is saved.": "Pois päältä uusien kokousten ääni poistetaan yhteenvedon tallennuttua.",
+  "New recording": "Uusi tallennus"
 }

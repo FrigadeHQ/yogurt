@@ -628,5 +628,6 @@
   "Couldn't delete the recording. Try again.": "ลบเสียงบันทึกไม่ได้ ลองอีกครั้ง",
   "Keep audio recordings after meetings": "เก็บเสียงบันทึกหลังประชุม",
   "Recording deleted": "ลบเสียงบันทึกแล้ว",
-  "When off, new meetings' audio is deleted once the summary is saved.": "เมื่อปิด เสียงของการประชุมใหม่จะถูกลบหลังบันทึกสรุปแล้ว"
+  "When off, new meetings' audio is deleted once the summary is saved.": "เมื่อปิด เสียงของการประชุมใหม่จะถูกลบหลังบันทึกสรุปแล้ว",
+  "New recording": "การบันทึกใหม่"
 }

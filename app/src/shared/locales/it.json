@@ -691,5 +691,6 @@
   "Couldn't delete the recording. Try again.": "Impossibile eliminare la registrazione. Riprova.",
   "Keep audio recordings after meetings": "Conserva le registrazioni audio dopo le riunioni",
   "Recording deleted": "Registrazione eliminata",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Se disattivato, l’audio delle nuove riunioni si elimina dopo aver salvato il riepilogo."
+  "When off, new meetings' audio is deleted once the summary is saved.": "Se disattivato, l’audio delle nuove riunioni si elimina dopo aver salvato il riepilogo.",
+  "New recording": "Nuova registrazione"
 }

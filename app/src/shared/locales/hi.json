@@ -664,5 +664,6 @@
   "Couldn't delete the recording. Try again.": "रिकॉर्डिंग नहीं मिट सकी। फिर कोशिश करें।",
   "Keep audio recordings after meetings": "मीटिंग के बाद ऑडियो रिकॉर्डिंग रखें",
   "Recording deleted": "रिकॉर्डिंग मिटा दी गई",
-  "When off, new meetings' audio is deleted once the summary is saved.": "बंद होने पर नई मीटिंग का ऑडियो सारांश सेव होने के बाद मिटेगा।"
+  "When off, new meetings' audio is deleted once the summary is saved.": "बंद होने पर नई मीटिंग का ऑडियो सारांश सेव होने के बाद मिटेगा।",
+  "New recording": "नई रिकॉर्डिंग"
 }

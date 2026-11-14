@@ -707,5 +707,6 @@
   "Couldn't delete the recording. Try again.": "Nahrávku se nepodařilo smazat. Zkuste to znovu.",
   "Keep audio recordings after meetings": "Ponechat zvukové nahrávky po schůzkách",
   "Recording deleted": "Nahrávka smazána",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Při vypnutí se zvuk nových schůzek smaže po uložení shrnutí."
+  "When off, new meetings' audio is deleted once the summary is saved.": "Při vypnutí se zvuk nových schůzek smaže po uložení shrnutí.",
+  "New recording": "Nová nahrávka"
 }

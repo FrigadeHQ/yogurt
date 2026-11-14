@@ -685,5 +685,6 @@
   "Couldn't delete the recording. Try again.": "לא ניתן למחוק את ההקלטה. נסו שוב.",
   "Keep audio recordings after meetings": "שמירת הקלטות שמע אחרי פגישות",
   "Recording deleted": "ההקלטה נמחקה",
-  "When off, new meetings' audio is deleted once the summary is saved.": "כשכבוי, השמע של פגישות חדשות נמחק לאחר שמירת הסיכום."
+  "When off, new meetings' audio is deleted once the summary is saved.": "כשכבוי, השמע של פגישות חדשות נמחק לאחר שמירת הסיכום.",
+  "New recording": "הקלטה חדשה"
 }

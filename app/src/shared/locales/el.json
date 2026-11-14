@@ -676,5 +676,6 @@
   "Couldn't delete the recording. Try again.": "Η διαγραφή απέτυχε. Δοκιμάστε ξανά.",
   "Keep audio recordings after meetings": "Διατήρηση ηχογραφήσεων μετά τις συναντήσεις",
   "Recording deleted": "Η ηχογράφηση διαγράφηκε",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Αν κλείσει, ο ήχος νέων συναντήσεων διαγράφεται μόλις σωθεί η σύνοψη."
+  "When off, new meetings' audio is deleted once the summary is saved.": "Αν κλείσει, ο ήχος νέων συναντήσεων διαγράφεται μόλις σωθεί η σύνοψη.",
+  "New recording": "Νέα ηχογράφηση"
 }

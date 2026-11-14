@@ -688,5 +688,6 @@
   "Couldn't delete the recording. Try again.": "Não foi possível excluir a gravação. Tente novamente.",
   "Keep audio recordings after meetings": "Manter gravações de áudio após as reuniões",
   "Recording deleted": "Gravação excluída",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Se desativado, o áudio de novas reuniões é excluído após salvar o resumo."
+  "When off, new meetings' audio is deleted once the summary is saved.": "Se desativado, o áudio de novas reuniões é excluído após salvar o resumo.",
+  "New recording": "Nova gravação"
 }

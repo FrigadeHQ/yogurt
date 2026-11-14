@@ -628,5 +628,6 @@
   "Couldn't delete the recording. Try again.": "Rekaman gagal dihapus. Coba lagi.",
   "Keep audio recordings after meetings": "Simpan rekaman audio setelah rapat",
   "Recording deleted": "Rekaman dihapus",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Jika dimatikan, audio rapat baru dihapus setelah ringkasan tersimpan."
+  "When off, new meetings' audio is deleted once the summary is saved.": "Jika dimatikan, audio rapat baru dihapus setelah ringkasan tersimpan.",
+  "New recording": "Rekaman baru"
 }

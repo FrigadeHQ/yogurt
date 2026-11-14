@@ -673,5 +673,6 @@
   "Couldn't delete the recording. Try again.": "Opname kon niet worden verwijderd. Probeer opnieuw.",
   "Keep audio recordings after meetings": "Audio-opnamen na vergaderingen bewaren",
   "Recording deleted": "Opname verwijderd",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Indien uit, wordt audio van nieuwe vergaderingen gewist zodra de samenvatting is opgeslagen."
+  "When off, new meetings' audio is deleted once the summary is saved.": "Indien uit, wordt audio van nieuwe vergaderingen gewist zodra de samenvatting is opgeslagen.",
+  "New recording": "Nieuwe opname"
 }

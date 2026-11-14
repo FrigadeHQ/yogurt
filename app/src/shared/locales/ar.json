@@ -734,5 +734,6 @@
   "Couldn't delete the recording. Try again.": "تعذر حذف التسجيل. حاول مجددًا.",
   "Keep audio recordings after meetings": "الاحتفاظ بالتسجيلات الصوتية بعد الاجتماعات",
   "Recording deleted": "تم حذف التسجيل",
-  "When off, new meetings' audio is deleted once the summary is saved.": "عند إيقافه، يُحذف صوت الاجتماعات الجديدة بعد حفظ الملخص."
+  "When off, new meetings' audio is deleted once the summary is saved.": "عند إيقافه، يُحذف صوت الاجتماعات الجديدة بعد حفظ الملخص.",
+  "New recording": "تسجيل جديد"
 }

@@ -628,5 +628,6 @@
   "Couldn't delete the recording. Try again.": "無法刪除錄音。請重試。",
   "Keep audio recordings after meetings": "會後保留錄音",
   "Recording deleted": "錄音已刪除",
-  "When off, new meetings' audio is deleted once the summary is saved.": "關閉後，新會議的音訊將在摘要儲存後刪除。"
+  "When off, new meetings' audio is deleted once the summary is saved.": "關閉後，新會議的音訊將在摘要儲存後刪除。",
+  "New recording": "新增錄音"
 }

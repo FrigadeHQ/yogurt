@@ -664,5 +664,6 @@
   "Couldn't delete the recording. Try again.": "Kayıt silinemedi. Yeniden deneyin.",
   "Keep audio recordings after meetings": "Toplantılardan sonra ses kayıtlarını sakla",
   "Recording deleted": "Kayıt silindi",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Kapalıyken yeni toplantıların sesi özet kaydedilince silinir."
+  "When off, new meetings' audio is deleted once the summary is saved.": "Kapalıyken yeni toplantıların sesi özet kaydedilince silinir.",
+  "New recording": "Yeni kayıt"
 }

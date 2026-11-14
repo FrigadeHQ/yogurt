@@ -673,5 +673,6 @@
   "Couldn't delete the recording. Try again.": "Hindi mabura ang recording. Subukan ulit.",
   "Keep audio recordings after meetings": "Itago ang mga audio recording pagkatapos ng pulong",
   "Recording deleted": "Nabura ang recording",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Kapag naka-off, buburahin ang audio ng bagong pulong pag na-save ang buod."
+  "When off, new meetings' audio is deleted once the summary is saved.": "Kapag naka-off, buburahin ang audio ng bagong pulong pag na-save ang buod.",
+  "New recording": "Bagong recording"
 }

@@ -703,5 +703,6 @@
   "Couldn't delete the recording. Try again.": "Не удалось удалить запись. Попробуйте ещё раз.",
   "Keep audio recordings after meetings": "Хранить аудиозаписи после встреч",
   "Recording deleted": "Запись удалена",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Если выключено, аудио новых встреч удаляется после сохранения сводки."
+  "When off, new meetings' audio is deleted once the summary is saved.": "Если выключено, аудио новых встреч удаляется после сохранения сводки.",
+  "New recording": "Новая запись"
 }

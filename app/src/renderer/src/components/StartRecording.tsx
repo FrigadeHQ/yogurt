@@ -100,7 +100,7 @@ export function StartRecording({ onStarted, onGone, testId = 'start-recording' }
             </Menu.Item>
           })}
           <Menu.Separator className="recording-menu-separator" />
-          <Menu.Item data-testid="recording-unattached" disabled={starting} onClick={() => void start(null)}><Mic size={14} aria-hidden="true" />{t('Start recording')}</Menu.Item>
+          <Menu.Item data-testid="recording-unattached" disabled={starting} onClick={() => void start(null)}><Mic size={14} aria-hidden="true" />{t('New recording')}</Menu.Item>
         </Menu.Popup>
       </Menu.Positioner>
     </Menu.Portal>}

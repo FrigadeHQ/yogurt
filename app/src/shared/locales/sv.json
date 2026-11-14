@@ -676,5 +676,6 @@
   "Couldn't delete the recording. Try again.": "Kunde inte radera inspelningen. Försök igen.",
   "Keep audio recordings after meetings": "Behåll ljudinspelningar efter möten",
   "Recording deleted": "Inspelning raderad",
-  "When off, new meetings' audio is deleted once the summary is saved.": "När avstängt raderas nya mötens ljud när sammanfattningen har sparats."
+  "When off, new meetings' audio is deleted once the summary is saved.": "När avstängt raderas nya mötens ljud när sammanfattningen har sparats.",
+  "New recording": "Ny inspelning"
 }

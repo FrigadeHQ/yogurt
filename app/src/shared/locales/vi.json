@@ -628,5 +628,6 @@
   "Couldn't delete the recording. Try again.": "Không thể xóa bản ghi. Hãy thử lại.",
   "Keep audio recordings after meetings": "Giữ bản ghi âm sau cuộc họp",
   "Recording deleted": "Đã xóa bản ghi",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Khi tắt, âm thanh cuộc họp mới sẽ bị xóa sau khi lưu tóm tắt."
+  "When off, new meetings' audio is deleted once the summary is saved.": "Khi tắt, âm thanh cuộc họp mới sẽ bị xóa sau khi lưu tóm tắt.",
+  "New recording": "Bản ghi mới"
 }

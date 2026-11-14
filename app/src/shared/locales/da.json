@@ -673,5 +673,6 @@
   "Couldn't delete the recording. Try again.": "Optagelsen kunne ikke slettes. Prøv igen.",
   "Keep audio recordings after meetings": "Behold lydoptagelser efter møder",
   "Recording deleted": "Optagelse slettet",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Når slået fra, slettes nye møders lyd, når resuméet er gemt."
+  "When off, new meetings' audio is deleted once the summary is saved.": "Når slået fra, slettes nye møders lyd, når resuméet er gemt.",
+  "New recording": "Ny optagelse"
 }

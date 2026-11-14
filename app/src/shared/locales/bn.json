@@ -664,5 +664,6 @@
   "Couldn't delete the recording. Try again.": "রেকর্ডিং মোছা যায়নি। আবার চেষ্টা করুন।",
   "Keep audio recordings after meetings": "মিটিংয়ের পরে অডিও রেকর্ডিং রাখুন",
   "Recording deleted": "রেকর্ডিং মোছা হয়েছে",
-  "When off, new meetings' audio is deleted once the summary is saved.": "বন্ধ থাকলে সারাংশ সেভের পর নতুন মিটিংয়ের অডিও মুছবে।"
+  "When off, new meetings' audio is deleted once the summary is saved.": "বন্ধ থাকলে সারাংশ সেভের পর নতুন মিটিংয়ের অডিও মুছবে।",
+  "New recording": "নতুন রেকর্ডিং"
 }
