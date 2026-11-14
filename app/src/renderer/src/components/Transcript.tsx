@@ -197,7 +197,11 @@ function WhoName({ meetingId, line, voices }: { meetingId: string; line: Line; v
   const commit = () => {
     const name = draft.replace(/\s+/g, ' ').trim().slice(0, 80)
     setEditing(false)
-    if (name && name !== named) void window.yogurt.transcript.renameSpeaker(meetingId, voiceKey, name)
+    if (!name || name === named) return
+    // a name another voice already has is that person: ask before folding this voice into it
+    const into = voices.find((v) => v.key !== voiceKey && v.name === name)
+    if (into) { setConfirming(into); setMenu(true); return }
+    void window.yogurt.transcript.renameSpeaker(meetingId, voiceKey, name)
   }
   const merge = () => {
     if (!confirming) return

@@ -43,7 +43,7 @@ test('a recorded meeting splits into two speakers with distinct colours', async 
   } finally { await app.close() }
 })
 
-test('inline rename updates every turn of the voice, keeps its colour, and survives a reload', async () => {
+test('inline rename updates every turn of the voice, keeps its colour, and survives a reload; a taken name asks to merge', async () => {
   const { app, page } = await launch({ YOGURT_FAKE_AX: 'denied' })
   try {
     await record(page)
@@ -58,11 +58,18 @@ test('inline rename updates every turn of the voice, keeps its colour, and survi
     // the other voice is untouched, and the renamed voice keeps its colour slot
     await expect(whoOf(page, 'She will send a draft')).toHaveText('Speaker 2')
     expect(await whoOf(page, 'The site goes live on Tuesday').getAttribute('data-color')).toBe(firstColor)
-    // a reload keeps the name
+    // naming the second voice the first one's name asks to merge them, like the menu does
+    await whoOf(page, 'She will send a draft').click()
+    await page.getByTestId('speaker-name-input').fill('Ana Silva')
+    await page.getByTestId('speaker-name-input').press('Enter')
+    await expect(page.getByTestId('speaker-merge-confirm')).toContainText('Ana Silva')
+    await page.getByTestId('speaker-merge-confirm').click()
+    await expect(whoOf(page, 'She will send a draft')).toHaveText('Ana Silva')
+    // a reload keeps the name on both voices
     await page.reload()
     await page.getByTestId('note-transcript-toggle').click()
     await expect(whoOf(page, 'The site goes live on Tuesday')).toHaveText('Ana Silva')
-    await expect(whoOf(page, 'She will send a draft')).toHaveText('Speaker 2')
+    await expect(whoOf(page, 'She will send a draft')).toHaveText('Ana Silva')
   } finally { await app.close() }
 })
 
