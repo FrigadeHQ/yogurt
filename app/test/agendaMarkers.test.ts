@@ -20,7 +20,7 @@ const render = (props: Partial<Parameters<typeof Event>[0]> = {}) => renderToSta
 const css = readFileSync(new URL('../src/renderer/src/workspace.css', import.meta.url), 'utf8')
 
 it('colors the rail only for live or recording rows, independent of saved notes', () => {
-  const accentRules = css.split('\n').filter(line => line.includes('.agenda-event') && line.includes('border-inline-start-color:var(--accent)'))
+  const accentRules = css.split(/\r?\n/).filter(line => line.includes('.agenda-event') && line.includes('border-inline-start-color:var(--accent)'))
   expect(accentRules).toEqual(['.agenda-event:is(.live,[data-recording=true]) .agenda-event-body { border-inline-start-color:var(--accent); }'])
   for (const row of [event, saved]) for (const [now, phase] of [[99, 'upcoming'], [100, 'live'], [199, 'live'], [200, 'past']] as const) {
     for (const active of [undefined, recording, { ...recording, eventId: 'another-event' }]) {
@@ -100,7 +100,7 @@ it('fades only ended, non-recording events, leaving row focus outlines at full s
     }
   }
   expect(render({ now: 201, loading: true })).toContain('data-faded="false"')
-  expect(css.split('\n').filter(line => line.includes('[data-faded=true]'))).toEqual([
+  expect(css.split(/\r?\n/).filter(line => line.includes('[data-faded=true]'))).toEqual([
     '.agenda-event[data-faded=true] :is(.agenda-time,.agenda-title,.agenda-marker) { color:var(--ink);opacity:.65; }',
   ])
   expect(css).toContain(':is(.native-meeting-row,.ask-history-row,.agenda-event):is(:focus-visible,:has(:focus-visible)) { outline:2px solid var(--focus);outline-offset:-2px; }')
