@@ -91,6 +91,20 @@ it('keeps past and upcoming rows compact, even when selected or saved', () => {
   }
 })
 
+it('fades only ended, non-recording events, leaving row focus outlines at full strength', () => {
+  for (const row of [event, saved]) for (const now of [99, 100, 199, 200, 201]) {
+    for (const active of [undefined, recording, { ...recording, paused: true as const }, { ...recording, eventId: 'another-event' }]) {
+      const html = render({ event: row, now, recording: active, selected: true })
+      expect(html).toContain(`data-faded="${now >= event.end && active?.eventId !== event.id}"`)
+    }
+  }
+  expect(render({ now: 201, loading: true })).toContain('data-faded="false"')
+  expect(css.split('\n').filter(line => line.includes('[data-faded=true]'))).toEqual([
+    '.agenda-event[data-faded=true] :is(.agenda-time,.agenda-title,.agenda-marker) { color:var(--ink);opacity:.65; }',
+  ])
+  expect(css).toContain(':is(.native-meeting-row,.ask-history-row,.agenda-event):is(:focus-visible,:has(:focus-visible)) { outline:2px solid var(--focus);outline-offset:-2px; }')
+})
+
 it('shows people on live and recording rows and keeps the quiet action test id', () => {
   for (const row of [event, { ...event, note: { id: 'note', state: 'prepared' as const } }]) {
     const html = render({ event: row })

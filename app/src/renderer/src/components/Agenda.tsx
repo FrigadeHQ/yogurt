@@ -165,7 +165,7 @@ export function Event({ event, me, now, near, initial, selected, onInspect, reco
   useEffect(() => () => animation.current?.cancel(), [])
   const marker = mine ? recording.paused ? t('Paused') : t('Recording') : event.note ? t('Has notes') : undefined
   const takeNotes = () => { setPending(true); void onStart(event.id).finally(() => setPending(false)) }
-  return <article ref={row} className={`agenda-event ${phase}`} data-testid={loading ? "agenda-skeleton" : "event"} data-selected={selected} data-agenda-default={initial} data-has-note={!loading && !!event.note} data-recording={!loading && mine}>
+  return <article ref={row} className={`agenda-event ${phase}`} data-testid={loading ? "agenda-skeleton" : "event"} data-selected={selected} data-agenda-default={initial} data-has-note={!loading && !!event.note} data-recording={!loading && mine} data-faded={!loading && phase === 'past' && !mine}>
     <div className="agenda-time">{loading ? <span className="loading-bar" style={{ width: 45 }} /> : timeOf(event.start)}</div>
     <div className="agenda-event-body">
       <div className="agenda-heading">

@@ -255,7 +255,7 @@
   .agenda-week { padding-block:10px 12px;margin-bottom:12px; }
   .agenda-day { margin-bottom:6px; }
 }
-.agenda-event.past h3 { color:var(--muted); }
+.agenda-event[data-faded=true] :is(.agenda-time,.agenda-title,.agenda-marker) { color:var(--ink);opacity:.65; }
 .agenda-status { font-size:12px;line-height:1.65;color:var(--muted);padding:10px 0; }
 .agenda-status svg { margin-bottom:14px; }
 .agenda-status h3 { font-size:13px;color:var(--written);font-weight:500; }
