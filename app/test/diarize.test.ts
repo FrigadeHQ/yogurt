@@ -103,6 +103,33 @@ describe('diarizer', () => {
     expect(them(store, id).map(x => x.speaker)).toEqual(['Ann Lee', 'Speaker 1'])
   })
 
+  it('profiles on: a confident match auto-names a Speaker N voice in the transcript, once per meeting', async () => {
+    const { store, deps } = setup({ allowed: () => true })
+    const id = seed(store, [null, null], true) // no call names: both voices start as Speaker N
+    store.createVoiceProfile({ id: 'p1', name: 'Ann Lee', model: 'campplus', dims: 3, centroid: Buffer.from(new Float32Array([1, 0, 0]).buffer) })
+    const d = createDiarizer({ ...deps, embedVectors: async (_w, ranges) => ranges.map(() => new Float32Array([1, 0, 0])) })
+    d.schedule(id)
+    await d.finished(id)
+    // both voices match p1 perfectly; only the first may take the name, so the transcript never shows it twice
+    expect(them(store, id).map(x => x.speaker)).toEqual(['Ann Lee', 'Speaker 2'])
+    expect(store.meetingSpeakers(id).map(x => [x.key, x.profileId])).toEqual([['v1', 'p1'], ['v2', null]])
+    // the one that took the name is the one that counts as heard
+    expect(store.voiceProfiles().find(p => p.id === 'p1')!.meetings).toBe(1)
+  })
+
+  it('auto-naming never doubles a name the call app already shows', async () => {
+    const { store, deps } = setup({ allowed: () => true })
+    const id = seed(store, ['Ann Lee', null], true) // the call app's Ann Lee is voice 1, but voice 2 sounds like her
+    store.createVoiceProfile({ id: 'p1', name: 'Ann Lee', model: 'campplus', dims: 3, centroid: Buffer.from(new Float32Array([1, 0, 0]).buffer) })
+    const d = createDiarizer({ ...deps, embedVectors: async (_w, ranges) => ranges.map((_r, i) => new Float32Array(i === 0 ? [0, 1, 0] : [1, 0, 0])) })
+    d.schedule(id)
+    await d.finished(id)
+    // call-app evidence wins: voice 2 keeps its number and links to the profile without taking its name
+    expect(them(store, id).map(x => x.speaker)).toEqual(['Ann Lee', 'Speaker 1'])
+    expect(store.meetingSpeakers(id).find(x => x.key === 'v2')).toMatchObject({ profileId: 'p1' })
+    expect(store.voiceProfiles().find(p => p.id === 'p1')!.meetings).toBe(0)
+  })
+
   it('never enrolls a Speaker N voice', async () => {
     const { store, deps } = setup({ allowed: () => true })
     const id = seed(store, [null, null], true) // no call names anywhere: both voices stay Speaker N

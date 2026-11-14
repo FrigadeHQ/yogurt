@@ -130,7 +130,7 @@ export function createDiarizer(p: Deps) {
     const finalName = (key: string): string | null => nameOf.get(key) ?? nameOfKey(id, key)
     // voice profiles, only where the meeting allowed them; their cluster-row patches land after the transaction below
     const patches = new Map<string, Patch>()
-    await profiles(id, wav, clusters, finalName, keyedRuns, patches)
+    await profiles(id, wav, clusters, finalName, keyedRuns, patches, nameOf, live)
     // one transaction: delete re-split rows, insert runs (reused keys keep their name), leftover remainders, cluster rows
     const deleted = new Set<number>()
     for (const r of [...keyedRuns, ...leftovers]) for (const line of r.lineIds) deleted.add(line)
@@ -155,11 +155,14 @@ export function createDiarizer(p: Deps) {
   }
 
   /** embeddings per new cluster, match against profiles, auto-name the sure ones, enroll the named ones */
-  const profiles = async (id: string, wav: string, clusters: Map<string, Cluster>, finalName: (key: string) => string | null, keyedRuns: SplitRun[], patches: Map<string, Patch>) => {
+  const profiles = async (id: string, wav: string, clusters: Map<string, Cluster>, finalName: (key: string) => string | null, keyedRuns: SplitRun[], patches: Map<string, Patch>, nameOf: Map<string, string | null>, live: Set<string>) => {
     try {
       const meetingAllows = !!p.store.meeting(id)?.voicesAllowed
       if (!meetingAllows || !p.allowed()) return
       if (!keyedRuns.length) return
+      // every name this meeting already shows; an auto-name never doubles one (one person, one voice)
+      const taken = new Set<string>(live)
+      for (const c of clusters.values()) { const n = finalName(c.key); if (n) taken.add(n) }
       const items: Array<{ key: string; ranges: Array<{ startMs: number; endMs: number }>; total: number }> = []
       for (const c of clusters.values()) {
         if (c.reused) continue // existing clusters keep their names across a resume; no embeddings for them
@@ -172,7 +175,7 @@ export function createDiarizer(p: Deps) {
       if (!items.length) return
       // fake mode never starts the worker: one deterministic vector per cluster
       if (p.fake) {
-        for (const item of items) await matchAndEnroll(id, item.key, fakeVectorFor(item.key), finalName(item.key), spanOf(clusters.get(item.key)!), patches)
+        for (const item of items) await matchAndEnroll(id, item.key, fakeVectorFor(item.key), finalName(item.key), spanOf(clusters.get(item.key)!), patches, nameOf, taken)
         return
       }
       // the lazy speaker-model download, once, on the first opt-in meeting that asks for vectors (fake mode
@@ -198,7 +201,7 @@ export function createDiarizer(p: Deps) {
         if (!vec) continue // every range came back a hole: no trustworthy vector, so no link and no enrollment
         const won = !!s.match?.id && !claimed.has(s.match.id)
         if (won) claimed.add(s.match!.id!)
-        await matchAndEnroll(id, s.item.key, normalize(vec), finalName(s.item.key), spanOf(clusters.get(s.item.key)!), patches, won ? s.match : s.match && { id: null, score: s.match.score })
+        await matchAndEnroll(id, s.item.key, normalize(vec), finalName(s.item.key), spanOf(clusters.get(s.item.key)!), patches, nameOf, taken, won ? s.match : s.match && { id: null, score: s.match.score })
       }
     } catch (e) {
       console.warn('voice profiles skipped:', e instanceof Error ? e.message : e)
@@ -217,15 +220,20 @@ export function createDiarizer(p: Deps) {
     return normalize(out)
   }
 
-  const matchAndEnroll = async (id: string, key: string, vec: Float32Array, name: string | null, span: { startMs: number; endMs: number }, patches: Map<string, Patch>, matched?: { id: string; score: number } | { id: null; score: number } | null) => {
+  const matchAndEnroll = async (id: string, key: string, vec: Float32Array, name: string | null, span: { startMs: number; endMs: number }, patches: Map<string, Patch>, nameOf: Map<string, string | null>, taken: Set<string>, matched?: { id: string; score: number } | { id: null; score: number } | null) => {
     const dims = vec.length
     const profiles: ProfileVec[] = p.store.voiceCentroids().filter(pr => pr.dims === dims).map(pr => ({ id: pr.id, name: pr.name, centroid: normalize(pr.centroid), meetings: pr.meetings }))
     const match = matched === undefined ? bestMatch(normalize(vec), profiles) : matched
     const patch: Patch = {}
     if (match?.id) {
       const profile = profiles.find(pr => pr.id === match.id)!
-      // auto-name only fills clusters that are still Speaker N; the profile keeps its own name
-      if (!name || SPEAKER_N.test(name)) name = profile.name
+      // auto-name only fills clusters that are still Speaker N, and only with a name this meeting does not
+      // already show; the profile keeps its own name
+      if ((!name || SPEAKER_N.test(name)) && !taken.has(profile.name)) {
+        name = profile.name
+        nameOf.set(key, name)
+        taken.add(name)
+      }
       patch.profileId = profile.id
       patch.score = match.score
       if (name === profile.name) {
@@ -238,8 +246,8 @@ export function createDiarizer(p: Deps) {
     if (name && !SPEAKER_N.test(name)) {
       if (match === null) {
         // no high-confidence match at all: a new profile, as long as the name is free
-        const taken = new Set(p.store.voiceProfiles().map(pr => pr.name))
-        if (!taken.has(name)) {
+        const profileNames = new Set(p.store.voiceProfiles().map(pr => pr.name))
+        if (!profileNames.has(name)) {
           const pid = `vp_${id.slice(0, 8)}_${key}`
           const v = normalize(vec)
           p.store.createVoiceProfile({ id: pid, name, model: 'campplus', dims, centroid: Buffer.from(v.buffer, v.byteOffset, v.byteLength) })

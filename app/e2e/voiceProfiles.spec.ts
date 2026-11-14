@@ -33,8 +33,8 @@ async function recordOnce(page: Page) {
   await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'done', { timeout: 60_000 })
 }
 
-test('opt-in: the first meeting enrolls the named voice, the next matches it; an ambiguous match stays Speaker N', async () => {
-  test.setTimeout(240_000) // three fake meetings, each real-time to the fixtures' second them line
+test('opt-in: the first meeting enrolls the named voice, the next auto-names it; an ambiguous match stays Speaker N', async () => {
+  test.setTimeout(300_000) // three fake meetings, each real-time to the fixtures' second them line
   const { app, page, dir } = await launch()
   try {
     await settings(page)
@@ -49,25 +49,29 @@ test('opt-in: the first meeting enrolls the named voice, the next matches it; an
     await settings(page)
     await expect(page.getByTestId('voice-profile')).toHaveCount(1)
     await expect(page.getByTestId('voice-profile')).toContainText('Ann Lee')
-    // meeting 2: the first voice is named again and its profile now counts two meetings
-    await recordOnce(page)
-    await page.getByTestId('note-transcript-toggle').click()
-    await expect(whoOf(page, 'The site goes live on Tuesday')).toHaveText('Ann Lee', { timeout: 30_000 })
-    await expect(whoOf(page, 'She will send a draft')).toHaveText('Speaker 1', { timeout: 30_000 })
-    await expect.poll(() => profilesOf(page)).toEqual([expect.objectContaining({ name: 'Ann Lee', meetings: 2 })])
-    await settings(page)
-    await expect(page.getByTestId('voice-profile')).toContainText('2 meetings')
-    // meeting 3, a fresh app on the same data: the voice only matches ambiguously (0.62, under the 0.72 naming
-    // bar) and no call name marks it, so it stays Speaker N and the profile is left alone
+    // meeting 2: a fresh app on the same data, with no call-app names (AX denied), so only the remembered
+    // voice can name it: the first voice is auto-named and its profile now counts two meetings
     await app.close()
-    const { app: app2, page: page2 } = await launch({ YOGURT_FAKE_AX: 'denied', YOGURT_FAKE_VOICE_SIM: 'ambiguous' }, dir)
+    const { app: app2, page: page2 } = await launch({ YOGURT_FAKE_AX: 'denied' }, dir)
     try {
       await recordOnce(page2)
       await page2.getByTestId('note-transcript-toggle').click()
-      await expect(whoOf(page2, 'The site goes live on Tuesday')).toHaveText('Speaker 1', { timeout: 30_000 })
+      await expect(whoOf(page2, 'The site goes live on Tuesday')).toHaveText('Ann Lee', { timeout: 30_000 })
       await expect(whoOf(page2, 'She will send a draft')).toHaveText('Speaker 2', { timeout: 30_000 })
       await expect.poll(() => profilesOf(page2)).toEqual([expect.objectContaining({ name: 'Ann Lee', meetings: 2 })])
+      await settings(page2)
+      await expect(page2.getByTestId('voice-profile')).toContainText('2 meetings')
     } finally { await app2.close() }
+    // meeting 3: the voice only matches ambiguously (0.62, under the 0.72 naming bar) and no call name marks
+    // it, so it stays Speaker N and the profile is left alone
+    const { app: app3, page: page3 } = await launch({ YOGURT_FAKE_AX: 'denied', YOGURT_FAKE_VOICE_SIM: 'ambiguous' }, dir)
+    try {
+      await recordOnce(page3)
+      await page3.getByTestId('note-transcript-toggle').click()
+      await expect(whoOf(page3, 'The site goes live on Tuesday')).toHaveText('Speaker 1', { timeout: 30_000 })
+      await expect(whoOf(page3, 'She will send a draft')).toHaveText('Speaker 2', { timeout: 30_000 })
+      await expect.poll(() => profilesOf(page3)).toEqual([expect.objectContaining({ name: 'Ann Lee', meetings: 2 })])
+    } finally { await app3.close() }
   } finally { await app.close().catch(() => {}) }
 })
 
