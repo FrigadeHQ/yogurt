@@ -183,7 +183,7 @@ test('long agenda titles stay on one line and forty attendees expand without mov
     await expect(page.getByTestId('home')).toBeVisible()
     await expect(page.getByTestId('event')).toHaveCount(1)
     const trigger = page.getByTestId('event-details')
-    await expect(page.locator('.agenda-people')).toHaveText('Guest1, Guest2, Guest3 + 37')
+    await expect(page.locator('.agenda-people')).toHaveCount(0)
     const card = page.getByTestId('event-details-content')
     for (const [width, height, colorScheme] of [[1100, 760, 'light'], [720, 520, 'dark']] as const) {
       await app.evaluate(({ BrowserWindow }, [width, height]) => BrowserWindow.getAllWindows().find(w => !w.webContents.getURL().includes('#'))!.setSize(width, height), [width, height])

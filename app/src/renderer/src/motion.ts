@@ -7,6 +7,7 @@ const SETTLE = [.16, .8, .25, 1] as const
 
 /** One stretch and settle on opening surfaces. Reading content never scales or blurs. */
 export const surfaceMotion = {
+  resizeMs: 180,
   pullMs: 260,
   settleMs: 280,
   exitMs: 160,

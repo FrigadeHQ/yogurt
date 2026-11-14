@@ -11,6 +11,7 @@ import { pickNext } from '../../../shared/comingUp'
 import { daysAgo, timeOf, useDay } from '../dates'
 import { eventPhase, shiftDay, weekDates } from '../agenda'
 import { useAgendaCard } from '../useAgendaCard'
+import { scrollBehavior, surfaceMotion } from '../motion'
 import { peopleSummary, personName, useMyName } from './People'
 
 type Actions = {
@@ -148,9 +149,23 @@ export function Event({ event, me, now, near, initial, selected, onInspect, reco
   const [pending, setPending] = useState(false)
   const phase = eventPhase(event, now)
   const mine = recording?.eventId === event.id
+  const row = useRef<HTMLElement>(null)
+  const height = useRef<number | undefined>(undefined)
+  const animation = useRef<Animation | undefined>(undefined)
+  useLayoutEffect(() => {
+    const el = row.current!
+    const from = animation.current?.playState === 'running' ? el.getBoundingClientRect().height : height.current
+    animation.current?.cancel()
+    const to = el.getBoundingClientRect().height
+    height.current = to
+    if (!loading && from !== undefined && from !== to && scrollBehavior() !== 'auto') {
+      animation.current = el.animate([{ height: `${from}px` }, { height: `${to}px` }], { duration: surfaceMotion.resizeMs, easing: surfaceMotion.settleEase })
+    }
+  })
+  useEffect(() => () => animation.current?.cancel(), [])
   const marker = mine ? recording.paused ? t('Paused') : t('Recording') : event.note ? t('Has notes') : undefined
   const takeNotes = () => { setPending(true); void onStart(event.id).finally(() => setPending(false)) }
-  return <article className={`agenda-event ${phase}`} data-testid={loading ? "agenda-skeleton" : "event"} data-selected={selected} data-agenda-default={initial} data-has-note={!loading && !!event.note} data-recording={!loading && mine}>
+  return <article ref={row} className={`agenda-event ${phase}`} data-testid={loading ? "agenda-skeleton" : "event"} data-selected={selected} data-agenda-default={initial} data-has-note={!loading && !!event.note} data-recording={!loading && mine}>
     <div className="agenda-time">{loading ? <span className="loading-bar" style={{ width: 45 }} /> : timeOf(event.start)}</div>
     <div className="agenda-event-body">
       <div className="agenda-heading">
@@ -159,10 +174,10 @@ export function Event({ event, me, now, near, initial, selected, onInspect, reco
           {mine ? <LevelBars height={14} className="agenda-levels" testId="agenda-recording-levels" paused={recording.paused} stillBars /> : <FileText size={13} strokeWidth={1.75} aria-hidden="true" />}
         </span>}
       </div>
-      {(loading || event.attendees.length > 0) && <p className="agenda-people" title={event.attendees.map((p) => p.name).join(', ')}>{loading ? <span className="loading-bar" style={{ width: '60%' }} /> : peopleSummary(event.attendees, me)}</p>}
+      {(loading || (phase === 'live' || mine) && event.attendees.length > 0) && <p className="agenda-people" title={event.attendees.map((p) => p.name).join(', ')}>{loading ? <span className="loading-bar" style={{ width: '60%' }} /> : peopleSummary(event.attendees, me)}</p>}
       {!mine && phase === 'upcoming' && near && <span className="agenda-live">{t('Starts in {count} min', { count: Math.ceil((event.start - now) / 60_000) })}</span>}
       {!loading && phase === 'live' && !recording && (!event.note || event.note.state === 'prepared') && <div className="agenda-actions">
-        <button data-testid="event-start" disabled={pending} className="workspace-button primary agenda-action" onClick={takeNotes}><Mic size={12} aria-hidden="true" />{t('Take notes')}</button>
+        <button data-testid="event-start" disabled={pending} className="workspace-button agenda-action" onClick={takeNotes}><Mic size={12} aria-hidden="true" />{t('Take notes')}</button>
       </div>}
     </div>
   </article>
