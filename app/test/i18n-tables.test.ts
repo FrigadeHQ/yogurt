@@ -11,6 +11,21 @@ const load = (id: string): Record<string, Entry> => JSON.parse(readFileSync(join
 const blanks = (s: string) => [...new Set(s.match(/\{\w+\}/g) ?? [])].sort()
 const forms = (e: Entry) => (typeof e === 'string' ? [e] : Object.values(e))
 
+it('translates agenda marker labels in every locale', () => {
+  for (const { id } of LOCALES) {
+    const table = load(id)
+    for (const key of ['Recording', 'Paused', 'Has notes']) {
+      expect(keys).toContain(key)
+      if (id !== 'en') {
+        expect(table[key]).toBeTypeOf('string')
+        expect(table[key]).not.toBe('')
+        expect(table[key]).not.toBe(key)
+      }
+    }
+    expect(table).not.toHaveProperty('In progress')
+  }
+})
+
 it('uses Ask and conversations throughout the interface', () => {
   // The rebuild explicitly calls its fresh-conversation action New chat; the page remains Ask.
   expect(keys.filter(key => /\bchats?\b/i.test(key))).toEqual(['New chat'])

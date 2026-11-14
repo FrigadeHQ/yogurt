@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ScrollFade } from './ScrollFade'
 import { LoadingContent } from './LoadingContent'
+import { LevelBars } from './LevelBars'
 import { CalendarDays, ChevronLeft, ChevronRight, Clock, ExternalLink, FileText, Mic, UsersRound, X } from 'lucide-react'
 import type { AgendaEvent, CalendarStatus, MeetingCard } from '../../../shared/types'
 import { rememberedScroll, useScrollMemory } from '../useScrollMemory'
@@ -141,21 +142,24 @@ export function Agenda({ revision, recording, onStart, onOpen }: Actions & { rev
   </aside>
 }
 
-function Event({ event, me, now, near, initial, selected, onInspect, recording, onStart, loading = false }: Pick<Actions, 'recording' | 'onStart'> & {
+export function Event({ event, me, now, near, initial, selected, onInspect, recording, onStart, loading = false }: Pick<Actions, 'recording' | 'onStart'> & {
   loading?: boolean; event: AgendaEvent; me: string; now: number; near: boolean; initial: boolean; selected: boolean; onInspect: (button: HTMLButtonElement) => void
 }) {
   const [pending, setPending] = useState(false)
   const phase = eventPhase(event, now)
   const mine = recording?.eventId === event.id
+  const marker = mine ? recording.paused ? t('Paused') : t('Recording') : event.note ? t('Has notes') : undefined
   const takeNotes = () => { setPending(true); void onStart(event.id).finally(() => setPending(false)) }
-  return <article className={`agenda-event ${phase}`} data-testid={loading ? "agenda-skeleton" : "event"} data-selected={selected} data-agenda-default={initial} data-has-note={!loading && !!event.note}>
+  return <article className={`agenda-event ${phase}`} data-testid={loading ? "agenda-skeleton" : "event"} data-selected={selected} data-agenda-default={initial} data-has-note={!loading && !!event.note} data-recording={!loading && mine}>
     <div className="agenda-time">{loading ? <span className="loading-bar" style={{ width: 45 }} /> : timeOf(event.start)}</div>
     <div className="agenda-event-body">
       <div className="agenda-heading">
         <h3><button disabled={loading} data-testid={loading ? undefined : "event-details"} className="agenda-title" aria-expanded={selected} aria-controls={selected ? "agenda-event-details" : undefined} onClick={e => onInspect(e.currentTarget)}>{loading ? <span className="loading-bar" style={{ width: '85%' }} /> : event.title || t('Meeting')}</button></h3>
+        {!loading && marker && <span className="agenda-marker" role="img" aria-label={marker} title={marker}>
+          {mine ? <LevelBars height={14} className="agenda-levels" testId="agenda-recording-levels" paused={recording.paused} stillBars /> : <FileText size={13} strokeWidth={1.75} aria-hidden="true" />}
+        </span>}
       </div>
       {(loading || event.attendees.length > 0) && <p className="agenda-people" title={event.attendees.map((p) => p.name).join(', ')}>{loading ? <span className="loading-bar" style={{ width: '60%' }} /> : peopleSummary(event.attendees, me)}</p>}
-      {!loading && (mine || phase === 'live') && <span className="agenda-live">{mine ? recording.paused ? t('Paused') : t('Recording') : t('In progress')}</span>}
       {!mine && phase === 'upcoming' && near && <span className="agenda-live">{t('Starts in {count} min', { count: Math.ceil((event.start - now) / 60_000) })}</span>}
       {!loading && phase === 'live' && !recording && (!event.note || event.note.state === 'prepared') && <div className="agenda-actions">
         <button data-testid="event-start" disabled={pending} className="workspace-button primary agenda-action" onClick={takeNotes}><Mic size={12} aria-hidden="true" />{t('Take notes')}</button>

@@ -24,11 +24,13 @@ export class Wave {
   }
 }
 
-/** Five-bar silhouette; pause and reduced motion are three still dots. */
-export function barPlan(p: { reduced: boolean; paused: boolean; level: number; bars?: 3 | 5 }): { heights: number[]; alpha: number[] } {
-  if (p.paused || p.reduced) return { heights: [0, 0, 0], alpha: [0.5, 0.5, 0.5] }
+/** Five-bar silhouette; pause and reduced motion default to three still dots. */
+export function barPlan(p: { reduced: boolean; paused: boolean; level: number; bars?: 3 | 5; stillBars?: boolean }): { heights: number[]; alpha: number[] } {
+  const still = p.paused || p.reduced
+  if (still && !p.stillBars) return { heights: [0, 0, 0], alpha: [0.5, 0.5, 0.5] }
   const weights = p.bars === 3 ? [.75, 1, .75] : [.5, .75, 1, .75, .5]
-  return { heights: weights.map(v => v * p.level), alpha: weights.map(() => .45 + .55 * p.level) }
+  const level = still ? .7 : p.level
+  return { heights: weights.map(v => v * level), alpha: weights.map(() => .45 + .55 * level) }
 }
 
 /** What a frame puts on screen, in whole pixels of growth and 1% steps of alpha: the same key draws the same pixels. */

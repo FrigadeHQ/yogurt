@@ -41,6 +41,20 @@ describe('microphone meter', () => {
       expect(barPlan({ level: 1, reduced, paused })).toEqual(rest)
     }
   })
+  it('can retain still bars during pause or reduced motion without reacting to input levels', () => {
+    for (const reduced of [false, true]) for (const paused of [false, true]) {
+      if (!reduced && !paused) continue
+      const rest = barPlan({ level: 0, reduced, paused, stillBars: true })
+      expect(rest.heights).toHaveLength(5)
+      expect(rest.heights.every(h => h > 0)).toBe(true)
+      expect(rest.heights[2]).toBeGreaterThan(rest.heights[0])
+      expect(barPlan({ level: 1, reduced, paused, stillBars: true })).toEqual(rest)
+    }
+    for (const level of [0, .5, 1]) {
+      expect(barPlan({ level, reduced: false, paused: false, stillBars: true }))
+        .toEqual(barPlan({ level, reduced: false, paused: false }))
+    }
+  })
   it('a frame that would draw the same pixels is the same frame, so it is not drawn again', () => {
     const at = (level: number) => frameKey(barPlan({ level, reduced: false, paused: false }), 16)
     expect(at(.5)).toBe(at(.5001))

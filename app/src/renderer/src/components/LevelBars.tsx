@@ -6,7 +6,7 @@ const BAR_W = 3, GAP = 3
 const reducedQuery = () => window.matchMedia('(prefers-reduced-motion: reduce)')
 
 /** Shared live microphone meter, drawn without React renders; no simulated movement. */
-export function LevelBars({ height, className, testId, paused = false, bars = 5 }: { height: number; bars?: 3 | 5; className?: string; testId: string; paused?: boolean }) {
+export function LevelBars({ height, className, testId, paused = false, bars = 5, stillBars = false }: { height: number; bars?: 3 | 5; className?: string; testId: string; paused?: boolean; stillBars?: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const width = bars * BAR_W + (bars - 1) * GAP
   useEffect(() => {
@@ -23,7 +23,7 @@ export function LevelBars({ height, className, testId, paused = false, bars = 5 
     const draw = (force = false) => {
       const ctx = c.getContext('2d')
       if (!ctx) return
-      const plan = barPlan({ reduced, paused, level: wave.level, bars })
+      const plan = barPlan({ reduced, paused, level: wave.level, bars, stillBars })
       // the same pixels as the last frame: nothing new for the compositor
       const key = frameKey(plan, height - BAR_W)
       if (!force && key === drawn) return
@@ -77,6 +77,6 @@ export function LevelBars({ height, className, testId, paused = false, bars = 5 
     document.addEventListener('visibilitychange', onVisible)
     sync()
     return () => { off(); cancelAnimationFrame(raf); mq.removeEventListener('change', onReduced); scheme.removeEventListener('change', onScheme); document.removeEventListener('visibilitychange', onVisible) }
-  }, [height, width, paused, bars])
+  }, [height, width, paused, bars, stillBars])
   return <canvas ref={canvas} data-testid={testId} aria-hidden="true" className={className} style={{ width, height }} />
 }

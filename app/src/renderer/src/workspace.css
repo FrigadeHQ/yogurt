@@ -204,19 +204,20 @@
 .agenda-event { position:relative;display:grid;grid-template-columns:48px minmax(0,1fr);gap:12px;padding:8px 6px;border-radius:8px;cursor:pointer; }
 .agenda-event:hover:not(:has(:focus-visible)) { background:var(--row-hover); }
 .agenda-event-body { min-width:0;border-inline-start:2px solid var(--line);padding-inline-start:12px; }
-/* an event that has notes in Yogurt */
-.agenda-event[data-has-note=true] .agenda-event-body { border-inline-start-color:var(--accent); }
+.agenda-event:is(.live,[data-recording=true]) .agenda-event-body { border-inline-start-color:var(--accent); }
 .agenda-event.live .agenda-title { font-weight:600; }
 .agenda-event[data-selected=true] .agenda-title { color:var(--ink);font-weight:600; }
-.agenda-time { font-size:10px;line-height:20px;color:var(--muted);padding-top:4px;font-variant-numeric:tabular-nums;text-align:end;white-space:nowrap; }
-.agenda-heading { display:flex;align-items:center;gap:8px;min-height:28px; }
+.agenda-time { font-size:10px;line-height:20px;color:var(--muted);padding-top:0;font-variant-numeric:tabular-nums;text-align:end;white-space:nowrap; }
+.agenda-heading { display:flex;align-items:center;gap:8px;min-height:20px; }
+.agenda-marker { flex:none;display:inline-flex;width:23px;height:20px;justify-content:center;align-items:center;position:relative;z-index:1;color:var(--muted); }
+.agenda-event[data-recording=true] .agenda-marker { color:var(--accent); }
+.agenda-levels { flex:none;transform:scale(.85); }
 .agenda-event h3 { flex:1;min-width:0;font-size:13px;line-height:19px;font-weight:550;letter-spacing:-.1px; }
 .agenda-title { display:block;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:start;border-radius:3px;color:var(--ink);cursor:pointer; }
 .agenda-title::after { content:"";position:absolute;inset:0;border-radius:8px; }
 .agenda-event p { font-size:11px;line-height:17px;color:var(--muted);margin-top:4px; }
 .agenda-people { overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
 .agenda-live { display:inline-flex;align-items:center;white-space:nowrap;color:var(--muted);font-size:10px;font-weight:500;line-height:16px;padding:1px 0; }
-.agenda-event.live .agenda-live::before { content:"";width:4px;height:4px;border-radius:50%;background:currentColor;margin-inline-end:5px; }
 .agenda-actions { display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px; }
 .agenda-action { position:relative;height:28px;font-size:11px;padding:0 9px; }
 .agenda-inspector { position:absolute;inset:0 auto auto 0;visibility:hidden;z-index:5;max-width:none;overflow:visible;margin:0;padding:0;border:1px solid var(--line);border-radius:12px;background:var(--float);color:var(--ink);box-shadow:var(--shadow);font-size:12px;line-height:18px;overflow-wrap:anywhere; }
