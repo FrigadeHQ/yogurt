@@ -128,6 +128,8 @@ describe('diarizer', () => {
     expect(them(store, id).map(x => x.speaker)).toEqual(['Ann Lee', 'Speaker 1'])
     expect(store.meetingSpeakers(id).find(x => x.key === 'v2')).toMatchObject({ profileId: 'p1' })
     expect(store.voiceProfiles().find(p => p.id === 'p1')!.meetings).toBe(0)
+    // the call name itself enrolls nothing: its voice did not match, and the profile already has that name
+    expect(store.voiceProfiles().map(p => p.name)).toEqual(['Ann Lee'])
   })
 
   it('never enrolls a Speaker N voice', async () => {
