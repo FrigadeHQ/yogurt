@@ -1,4 +1,4 @@
-import type { Person } from './types'
+import type { CalEvent, Person } from './types'
 import { personEmail } from './people'
 import { parseSearchQuery, searchWords, type SearchOptions } from './searchQuery'
 
@@ -59,4 +59,17 @@ export function matchSearchPeople(query: string, people: Person[], chosen: Perso
     if (best) suggestions.push(best)
   }
   return { text, matches, suggestions }
+}
+
+/** This event's invitees lead, then recently met people, then other invitees that day. */
+export function attendeeSuggestions(query: string, known: Person[], attendees: Person[], me: string, events: CalEvent[] = [], eventId?: string | null): Person[] {
+  const event = events.find(e => e.id === eventId || e.aliases?.includes(eventId!))
+  const people = [...(event?.attendees ?? []), ...known, ...events.filter(e => e !== event).flatMap(e => e.attendees)]
+  const namedEmails = new Set(people.filter(p => p.email?.trim()).map(p => nameKey(p.name)))
+  const excluded = [...attendees, { name: me, email: null }, ...people.filter(p => nameKey(p.name) === nameKey(me))]
+  const candidates = uniqueSearchPeople(people).filter(p => (p.email?.trim() || !namedEmails.has(nameKey(p.name))) && !excluded.some(a =>
+    a.email?.trim() && p.email?.trim() ? personEmail(a.email) === personEmail(p.email) : nameKey(a.name) === nameKey(p.name)))
+  const { matches, suggestions } = matchSearchPeople(query, candidates)
+  const keys = new Set([...matches, ...suggestions].filter(m => !removeSearchSpan(query, m)).map(m => searchPersonKey(m.person)))
+  return candidates.filter(p => keys.has(searchPersonKey(p))).slice(0, 5)
 }

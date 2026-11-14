@@ -1,10 +1,11 @@
+import { attendeeSuggestions, searchPersonKey } from '../../../shared/searchPeople'
 import { usePopoverPresence } from '../motion'
 import { attendeePrivacy, emailName } from '../../../shared/people'
 import { toasts } from './TrashToast'
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
 import { useNotePopover } from '../useNotePopover'
 import { Lock, Pencil, Plus, Users, X } from 'lucide-react'
-import type { Meeting, Person } from '../../../shared/types'
+import type { CalEvent, Meeting, Person } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
 
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase()
@@ -71,20 +72,38 @@ function Card({ m, me, motionProps, chip, onClose }: { m: Meeting; me: string; m
   const [text, setText] = useState('')
   const [adding, setAdding] = useState(() => !m.attendees.some(p => !same(p.name, me)))
   const [focused, setFocused] = useState(false)
+  const [known, setKnown] = useState<Person[]>([]), [events, setEvents] = useState<CalEvent[]>([])
+  const [active, setActive] = useState<string | null>(null)
+  const listId = useId()
+  const suggestions = attendeeSuggestions(text, known, m.attendees, me, events, m.eventId)
+  const activeIndex = suggestions.findIndex(p => searchPersonKey(p) === active)
+  useEffect(() => {
+    let sequence = 0
+    const load = () => {
+      const current = ++sequence
+      void window.yogurt.search.people().then(p => { if (current === sequence) setKnown(p) }, () => {})
+      void window.yogurt.calendar.day(m.eventStartedAt ?? m.startedAt).then(day => {
+        if (current === sequence) setEvents(day.status === 'granted' ? day.events : [])
+      }, () => { if (current === sequence) setEvents([]) })
+    }
+    load()
+    const offPeople = window.yogurt.meetings.onChange(load), offCalendar = window.yogurt.calendar.onChange(load)
+    return () => { sequence++; offPeople(); offCalendar() }
+  }, [m.id, m.startedAt, m.eventStartedAt, m.eventId])
   const input = useRef<HTMLInputElement>(null)
   const card = useRef<HTMLDivElement>(null)
   useNotePopover(card, chip, onClose, !motionProps.inert)
+  useEffect(() => { card.current?.querySelector('[role="option"][aria-selected="true"]')?.scrollIntoView({ block: 'nearest' }) }, [active])
   useEffect(() => { if (adding) input.current?.focus({ preventScroll: true }) }, [adding])
   const save = async (people: Person[]) => {
     try { await window.yogurt.meetings.setAttendees(m.id, people); return true }
     catch { toasts.add({ title: t("Yogurt couldn't make that change. Try again.") }); return false }
   }
-  const add = async () => {
-    const p = parsePerson(text)
+  const add = async (p = parsePerson(text)) => {
     if (!p) return
     // already there: nothing to add
-    if (m.attendees.some((a) => same(a.name, p.name) || (p.email && a.email && same(a.email, p.email)))) return
-    if (await save([...m.attendees, p])) setText('')
+    if (m.attendees.some((a) => p.email?.trim() && a.email?.trim() ? same(a.email, p.email) : same(a.name, p.name))) return
+    if (await save([...m.attendees, p])) { setText(''); setActive(null); input.current?.focus() }
   }
   const key = (e: KeyboardEvent) => {
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onClose() }
@@ -104,11 +123,30 @@ function Card({ m, me, motionProps, chip, onClose }: { m: Meeting; me: string; m
       <div className={`border-t border-line ${adding ? 'p-3' : ''}`}>
         <button data-testid="people-add-open" onClick={() => { setAdding(true); input.current?.focus() }} className={`flex w-full items-center gap-2 text-start text-[13px] text-muted ${adding ? 'mb-2' : 'h-11 px-4 hover:bg-card'}`}><Plus size={14} aria-hidden="true" />{t('Add an attendee')}</button>
         {adding && <div className="people-add-field flex h-9 items-center rounded-md border border-line bg-card px-2.5">
-          <input ref={input} data-testid="people-add" value={text} onChange={(e) => setText(e.target.value)} maxLength={200}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void add() } }}
+          <input ref={input} data-testid="people-add" value={text} onChange={(e) => { setText(e.target.value); setActive(null) }} maxLength={200}
+            role="combobox" aria-autocomplete="list" aria-expanded={focused && suggestions.length > 0} aria-controls={focused && suggestions.length > 0 ? listId : undefined}
+            aria-activedescendant={focused && activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined}
+            onKeyDown={(e) => {
+              if (e.nativeEvent.isComposing) return
+              if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && suggestions.length) {
+                e.preventDefault()
+                const next = activeIndex < 0 ? (e.key === 'ArrowDown' ? 0 : suggestions.length - 1)
+                  : (activeIndex + (e.key === 'ArrowDown' ? 1 : -1) + suggestions.length) % suggestions.length
+                setActive(searchPersonKey(suggestions[next]))
+              } else if (e.key === 'Enter') { e.preventDefault(); void add(suggestions[activeIndex] ?? parsePerson(text)) }
+            }}
             placeholder={t('Name or email')} aria-label={t('Add an attendee')} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
             className="h-full min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted" />
         </div>}
+        {adding && focused && suggestions.length > 0 && <ul id={listId} role="listbox" aria-label={t('People')} className="mt-1">
+          {suggestions.map((p, i) => <li key={searchPersonKey(p)} id={`${listId}-${i}`} role="option" aria-selected={i === activeIndex}
+            onMouseDown={e => e.preventDefault()} onMouseMove={() => setActive(searchPersonKey(p))} onClick={() => void add(p)}
+            className={`person-row flex cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-[13px] hover:bg-[var(--line)] ${i === activeIndex ? 'bg-[var(--line)]' : ''}`}>
+            <Users size={14} aria-hidden="true" className="shrink-0 text-muted" />
+            <span className="min-w-0"><span className="block truncate">{personName(p.name)}</span>
+              {p.email && <span className="block truncate text-xs text-muted">{p.email}</span>}</span>
+          </li>)}
+        </ul>}
       {attendeePrivacy(focused, text) && <p data-testid="people-private" className="mt-2 flex items-start gap-2 text-xs leading-relaxed text-muted">
         <Lock size={12} strokeWidth={1.75} aria-hidden="true" className="mt-0.5 shrink-0" />
         <span>{t('Nothing is sent. This is only for your notes.')}</span>

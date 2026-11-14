@@ -2,7 +2,7 @@ import { attendeeMembership as stamp } from '../../shared/people'
 import type { Meeting, Store } from '../store'
 import type { NotesModel } from './model'
 import type { NoteSaveResult, NoteSide, NoteStatus, NoteView } from '../../shared/types'
-import { enhance, type Llm, type PartSummary } from './enhance'
+import { cleanTitle, enhance, languageName, titlePrompt, type Llm, type PartSummary } from './enhance'
 import { meetingWords } from '../vocab'
 import type { Queue } from './queue'
 
@@ -148,12 +148,13 @@ export function hookNotes(p: {
       if (quiet) {
         // stopped for a recording: the queue runs it again. Edited (or written again by hand) meanwhile: theirs stands
         const now = currentNotes(id)
-        if (signal.aborted || now.edited || now.enhanced !== was.enhanced || live.has(id)) return
+        if (signal.aborted || live.has(id)) return
+        if (now.edited || now.enhanced !== was.enhanced) { queueTitle(id); return }
         stampBefore.set(id, p.store.writtenWith(id))
         p.store.setNotes(id, { enhanced: md, edited: false })
         p.store.setWrittenWith(id, used.stamp)
         p.send({ ...view(id), rewrittenFrom: was.enhanced ?? '' })
-        queueTitle(id, askTitle)
+        queueTitle(id, askTitle, m.attendees)
         p.summarized?.(id)
         return
       }
@@ -162,7 +163,7 @@ export function hookNotes(p: {
       p.store.setNotes(id, { enhanced: md, edited: false })
       p.store.setWrittenWith(id, used.stamp)
       finish(m, 'done')
-      queueTitle(id, askTitle)
+      queueTitle(id, askTitle, m.attendees)
       p.summarized?.(id)
     } catch (e) {
       if (timer) clearTimeout(timer)
@@ -179,13 +180,24 @@ export function hookNotes(p: {
    * A title from the notes just saved, for a meeting whose title is generic (or was made from earlier notes): a job of
    * its own, so one stopped for a recording asks again later and never writes the notes again.
    */
-  const queueTitle = (id: string, ask?: (llm: Llm) => Promise<string>) => {
-    if (!ask) return
+  const queueTitle = (id: string, ask?: (llm: Llm) => Promise<string>, people = p.store.meeting(id)?.attendees) => {
+    const current = () => {
+      const m = p.store.meeting(id)
+      return m && !resuming.has(id) && m.state !== 'recording' && (m.titleSource === 'auto' || (ask && m.titleSource === 'generic'))
+        && JSON.stringify(m.attendees) === JSON.stringify(people) ? m : undefined
+    }
     void p.queue.enqueue(async (signal) => {
-      const t = await ask(await p.model.llm(signal))
-      // renamed while it was asked for: theirs stands
-      const now = p.store.meeting(id)
-      if (!t || signal.aborted || !(now?.titleSource === 'generic' || now?.titleSource === 'auto')) return
+      if (!current()) return
+      const llm = await p.model.llm(signal), m = current()
+      if (!m || signal.aborted) return
+      const me = p.me?.() ?? ''
+      const n = currentNotes(id)
+      // shortcut: title-only refreshes read the first 6000 characters; expand if long notes need later context.
+      const context = (n.enhanced ?? n.mine).slice(0, 6000)
+      const t = cleanTitle(await (ask ? ask(llm) : llm.chat(`${titlePrompt(languageName(m.language ?? p.language(id)), me, m.attendees)}\n\nNotes:\n${context}`,
+        () => {}, { maxTokens: 40, temperature: 0.3 })), me)
+      // renamed or people changed while it was asked for: discard the obsolete answer.
+      if (!t || signal.aborted || !current()) return
       p.store.updateMeeting(id, { title: t, titleSource: 'auto' })
       p.changed(id)
     }, 'enhance', id).catch(() => {})
@@ -250,23 +262,26 @@ export function hookNotes(p: {
     renamed(id: string, before: Meeting['attendees'], after: Meeting['attendees']) {
       const used = writingPeople.get(id)
       if (used?.stamp === stamp(before)) used.stamp = stamp(after)
+      notes.applyPeople(id)
     },
     written: (id: string): Promise<void> | undefined => afterStop.get(id),
     /**
      * People added or removed after the notes were written (by hand, or seen in the call): unedited notes are written
      * again on their own, once the changes settle, out of sight. Edited notes keep the "People changed" hint instead.
      */
-    applyPeople(id: string) {
+    applyPeople(id: string, retitle = true) {
+      const refreshTitle = retitle || rewriteTimers.has(id)
       clearTimeout(rewriteTimers.get(id)); rewriteTimers.delete(id)
       const due = () => { const n = currentNotes(id); return !resuming.has(id) && p.store.meeting(id)?.state !== 'recording' && n.enhanced != null && !n.edited && !live.has(id) && !rewriting.has(id) && peopleChanged(id, true) }
-      if (!due()) { p.send(view(id)); return }
+      const titleDue = () => refreshTitle && !resuming.has(id) && p.store.meeting(id)?.state !== 'recording' && p.store.meeting(id)?.titleSource === 'auto'
+      if (!due() && !titleDue()) { p.send(view(id)); return }
       rewriteTimers.set(id, setTimeout(() => {
         rewriteTimers.delete(id)
         // edited meanwhile: the hint shows instead
-        if (!due()) { p.send(view(id)); return }
+        if (!due()) { if (titleDue()) queueTitle(id); p.send(view(id)); return }
         rewriting.add(id)
         // people that changed while it was written get one more go
-        p.queue.enqueue((signal) => write(id, signal, true), 'enhance', id).catch(() => {}).finally(() => { rewriting.delete(id); notes.applyPeople(id) })
+        p.queue.enqueue((signal) => write(id, signal, true), 'enhance', id).catch(() => {}).finally(() => { rewriting.delete(id); notes.applyPeople(id, false) })
       }, p.peopleRewriteMs ?? PEOPLE_REWRITE_MS))
       p.send(view(id))
     },

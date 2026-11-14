@@ -299,15 +299,18 @@ export type EnhanceInput = {
 export const TITLE_CHARS = 80
 
 /** asked after the notes, following on from them: the model has read the meeting already, so this costs a few words */
-export const titlePrompt = (language: string) =>
-  `Now give this meeting a title, in ${language || 'the same language as the notes'}: short and specific, saying what it was about, and with whom when a name is known, like "Q3 hiring plan with Maya" or "Fixing the checkout bug". Under 70 characters, no quotes, no period at the end. Answer with the title only.`
+export const titlePrompt = (language: string, me = '', attendees?: Person[]) =>
+  `Now give this meeting a title, in ${language || 'the same language as the notes'}: short and specific, saying what it was about, and with whom when a name is known, like "Q3 hiring plan with a colleague" or "Fixing the checkout bug". Under 70 characters, no quotes, no period at the end. Answer with the title only. Never name the person these notes are for ("me" or "You")${me.trim() ? `: ${JSON.stringify(me.trim())}, including their first name` : ''}.${attendees ? ` The current attendees other than the owner are: ${JSON.stringify(attendees.filter(p => p.name.trim().toLowerCase() !== me.trim().toLowerCase()).map(p => p.name))}. Use only these names, even if the old notes or title mention others; if none, title only the topic.` : ''}`
 
 /** the title as the model wrote it, without quotes, a "Title:" label, heading or bold marks, or a closing period */
-export function cleanTitle(raw: string): string {
+export function cleanTitle(raw: string, me = ''): string {
   let s = raw.replace(/\r/g, '').split('\n').map((l) => l.trim()).find(Boolean) ?? ''
   s = s.replace(/^#+\s*/, '').replace(/^(?:\*\*)?title(?:\*\*)?\s*:\s*/i, '').replace(/\*\*|__/g, '').trim()
   s = s.replace(/^["'“”‘’«»「」『』]+|["'“”‘’«»「」『』]+$/g, '').trim().replace(/[.。]+$/, '').trim()
   if (/^none$/i.test(s)) return ''
+  // Reject owner names even when the model ignores the prompt, before shortening can hide a match.
+  const owner = me.trim().normalize('NFKC').split(/\s+/).filter(Boolean)
+  if (owner.some(name => new RegExp(`(?<![\\p{L}\\p{N}])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`, 'iu').test(s.normalize('NFKC')))) return ''
   if (s.length > TITLE_CHARS) s = s.slice(0, TITLE_CHARS + 1).replace(/\s+\S*$/, '').replace(/[,;:\s-]+$/, '')
   return s
 }
@@ -402,7 +405,7 @@ export async function enhance(input: EnhanceInput, llm: Llm, onToken: (text: str
     if (OWNER.test(more)) md = `${md}\n${more}`
   }
   // a title is nice to have: one that fails or comes out empty leaves the meeting's as it is
-  if (written) input.titleLater?.((model) => model.chat(titlePrompt(language), () => {}, { maxTokens: 40, before: [prompt, written], temperature: 0.3 })
-    .then((raw) => cleanTitle(raw), (e) => { console.error('a title from the notes failed', e); return '' }))
+  if (written) input.titleLater?.((model) => model.chat(titlePrompt(language, input.me, input.meeting.attendees), () => {}, { maxTokens: 40, before: [prompt, written], temperature: 0.3 })
+    .then((raw) => cleanTitle(raw, input.me), (e) => { console.error('a title from the notes failed', e); return '' }))
   return markMine(withoutCopies(md, input.mine), input.mine)
 }

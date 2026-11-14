@@ -507,7 +507,7 @@ export class Store {
     const rows = this.db.prepare('SELECT attendees FROM meetings WHERE trashed_at IS NULL ORDER BY started_at DESC, id DESC').all()
     const attendees = uniqueSearchPeople(rows.flatMap(r => JSON.parse(String(r.attendees)) as Person[]))
     return resolvePeople(this.db, attendees)
-      .filter(p => p.name.trim() || p.email?.trim()).sort((a, b) => a.name.localeCompare(b.name))
+      .filter(p => p.name.trim() || p.email?.trim())
   }
 
   /** Each word can match a different field; dates and folder scope always filter the meeting itself. */

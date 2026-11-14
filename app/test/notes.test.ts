@@ -16,7 +16,7 @@ afterEach(() => {
 })
 const wait = (ms = 5) => new Promise((r) => setTimeout(r, ms))
 
-function setup(o: { named?: () => Promise<void>; namesWaitMs?: number; reply?: string | ((prompt: string) => string); during?: () => void; load?: Promise<void>; title?: string; recording?: () => boolean; smallMac?: boolean; showLoading?: boolean } = {}) {
+function setup(o: { me?: string; named?: () => Promise<void>; namesWaitMs?: number; reply?: string | ((prompt: string) => string); during?: () => void; load?: Promise<void>; title?: string; recording?: () => boolean; smallMac?: boolean; showLoading?: boolean } = {}) {
   const d = mkdtempSync(join(tmpdir(), 'yogurt-notes-'))
   dirs.push(d)
   const store = openStore(join(d, 'yogurt.db'))
@@ -38,7 +38,7 @@ function setup(o: { named?: () => Promise<void>; namesWaitMs?: number; reply?: s
   const notes = hookNotes({
     store, queue, model: { llm: async () => { await o.load; return llm }, needsLoad: () => true }, showLoading: o.showLoading,
     transcribed: () => transcript, named: o.named, namesWaitMs: o.namesWaitMs, language: () => 'spanish',
-    onStop: (fn) => stops.push(fn), send: (v) => sent.push(v), changed: (id) => changed.push(id), peopleRewriteMs: 30,
+    onStop: (fn) => stops.push(fn), send: (v) => sent.push(v), changed: (id) => changed.push(id), peopleRewriteMs: 30, me: () => o.me ?? '',
   })
   return { store, m, notes, sent, prompts, changed, queue, stop: () => stops.forEach((f) => f(m)), transcribed }
 }
@@ -375,4 +375,103 @@ it('inline renaming never rewrites a Summary, even while it is being generated',
     expect(s.notes.view(s.m.id).peopleChanged).toBe(false)
     expect(s.prompts).toHaveLength(1)
   }
+})
+
+
+describe('titles after attendee edits', () => {
+  const isTitle = (prompt: string) => prompt.startsWith('Now give this meeting a title')
+  const reply = (prompt: string) => isTitle(prompt) ? 'Planning with Guest' : '## Plan\n- **You:** Send the plan.'
+  it.each(['auto', 'user', 'calendar', 'imported', 'generic'] as const)('debounces edits and refreshes only an auto title: %s', async titleSource => {
+    const s = setup({ reply, me: 'Owner Example' })
+    s.store.updateMeeting(s.m.id, { titleSource, state: 'done' })
+    s.notes.setEnhanced(s.m.id, 'Keep my exact summary.')
+    for (const name of ['Colleague', 'Guest']) {
+      s.store.updateMeeting(s.m.id, { attendees: [{ name, email: null }] })
+      s.notes.applyPeople(s.m.id)
+      await wait(10)
+    }
+    expect(s.prompts).toEqual([])
+    await wait(90)
+    expect(s.prompts).toHaveLength(titleSource === 'auto' ? 1 : 0)
+    expect(s.store.notes(s.m.id).enhanced).toBe('Keep my exact summary.')
+    if (titleSource === 'auto') {
+      expect(s.prompts[0]).toContain('["Guest"]')
+      expect(s.prompts[0]).toContain('Owner Example')
+      expect(s.store.meeting(s.m.id)!.title).toBe('Planning with Guest')
+    } else expect(s.store.meeting(s.m.id)!.title).toBe(s.m.title)
+  })
+  it('an unedited summary refresh asks for only one title', async () => {
+    const s = setup({ reply })
+    s.store.updateMeeting(s.m.id, { titleSource: 'auto', state: 'done' })
+    s.store.setNotes(s.m.id, { enhanced: 'Old summary', edited: false })
+    s.store.setWrittenWith(s.m.id, 'members:[]')
+    s.store.updateMeeting(s.m.id, { attendees: [{ name: 'Guest', email: null }] })
+    s.notes.applyPeople(s.m.id)
+    await wait(120)
+    expect(s.prompts.filter(isTitle)).toHaveLength(1)
+    expect(s.prompts.filter(p => !isTitle(p))).toHaveLength(1)
+    expect(s.store.meeting(s.m.id)!.title).toBe('Planning with Guest')
+  })
+  it('an inline rename refreshes the auto title without rewriting the summary', async () => {
+    const s = setup({ reply })
+    const before = [{ name: 'Colleague', email: null }], after = [{ name: 'Guest', email: null }]
+    s.store.updateMeeting(s.m.id, { titleSource: 'auto', state: 'done', attendees: before })
+    s.store.setNotes(s.m.id, { enhanced: 'Keep this summary' })
+    s.store.renameAttendee(s.m.id, 0, 'Guest')
+    s.notes.renamed(s.m.id, before, after)
+    await wait(100)
+    expect(s.prompts).toHaveLength(1)
+    expect(s.store.notes(s.m.id).enhanced).toBe('Keep this summary')
+  })
+  it('does not overwrite a title renamed while the model answers', async () => {
+    const s = setup({ reply, during: () => s.store.updateMeeting(s.m.id, { title: 'My heading', titleSource: 'user' }) })
+    s.store.updateMeeting(s.m.id, { titleSource: 'auto' })
+    s.notes.setEnhanced(s.m.id, 'Keep the summary')
+    s.notes.applyPeople(s.m.id)
+    await wait(100)
+    expect(s.store.meeting(s.m.id)!.title).toBe('My heading')
+  })
+  it('discards a stale attendee answer and asks with the latest people', async () => {
+    let changed = false
+    const s = setup({ reply, during: () => {
+      if (changed) return
+      changed = true
+      s.store.updateMeeting(s.m.id, { attendees: [{ name: 'Guest', email: null }] })
+      s.notes.applyPeople(s.m.id)
+    } })
+    s.store.updateMeeting(s.m.id, { titleSource: 'auto' })
+    s.notes.setEnhanced(s.m.id, 'Keep the summary')
+    s.notes.applyPeople(s.m.id)
+    await wait(160)
+    expect(s.prompts).toHaveLength(2)
+    expect(s.changed).toHaveLength(1)
+    expect(s.prompts[1]).toContain('["Guest"]')
+  })
+  it('rejects an owner name from the title-only path', async () => {
+    const s = setup({ me: 'Owner Example', reply: 'Planning with Owner' })
+    s.store.updateMeeting(s.m.id, { titleSource: 'auto' })
+    s.notes.setEnhanced(s.m.id, 'Keep the summary')
+    s.notes.applyPeople(s.m.id)
+    await wait(100)
+    expect(s.store.meeting(s.m.id)!.title).toBe(s.m.title)
+  })
+})
+
+
+it('still refreshes the auto title when an editor keeps changes over an attendee summary rewrite', async () => {
+  let edited = false
+  const s = setup({ reply: p => p.startsWith('Now give this meeting a title') ? 'Planning with Guest' : '## Plan\n- **You:** Send it.', during: () => {
+    if (edited) return
+    edited = true
+    s.notes.setEnhanced(s.m.id, 'My retained edit')
+  } })
+  s.store.updateMeeting(s.m.id, { titleSource: 'auto', state: 'done' })
+  s.store.setNotes(s.m.id, { enhanced: 'Old summary', edited: false })
+  s.store.setWrittenWith(s.m.id, 'members:[]')
+  s.store.updateMeeting(s.m.id, { attendees: [{ name: 'Guest', email: null }] })
+  s.notes.applyPeople(s.m.id)
+  await wait(120)
+  expect(s.store.notes(s.m.id).enhanced).toBe('My retained edit')
+  expect(s.store.meeting(s.m.id)!.title).toBe('Planning with Guest')
+  expect(s.prompts.filter(p => p.startsWith('Now give this meeting a title'))).toHaveLength(1)
 })

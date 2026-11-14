@@ -369,3 +369,20 @@ describe('fix round 1', () => {
     expect(guessLanguage('ok', 'French')).toBe('French')
   })
 })
+
+
+it('excludes the owner in the shared title prompt and rejects names despite model instructions', async () => {
+  const me = 'Owner Example'
+  expect(titlePrompt('English', me, [{ name: me, email: null }, { name: 'Guest', email: null }])).toContain('["Guest"]')
+  for (const raw of ['Plan with Owner Example', 'Plan with OWNER', "Example’s plan", 'Plan with Owner Example ' + 'word '.repeat(40)]) {
+    expect(cleanTitle(raw, me)).toBe('')
+  }
+  expect(cleanTitle('Plan with Guest', me)).toBe('Plan with Guest')
+  expect(cleanTitle('Ownerrama plan', me)).toBe('Ownerrama plan')
+  let ask!: (model: Llm) => Promise<string>
+  const llm: Llm = { contextSize: 32000, count: async xs => xs.map(x => x.length), chat: async p =>
+    p.startsWith('Now give this meeting a title') ? 'Plan with Owner Example' : '## Plan\n- **You:** Send the plan.' }
+  await enhance({ meeting: { title: 'Call', attendees: [{ name: me, email: null }] }, me, mine: '',
+    segments: [seg('me', 0, 'Plan the release')], language: 'en', titleLater: a => { ask = a } }, llm, () => {})
+  expect(await ask(llm)).toBe('')
+})
