@@ -56,6 +56,35 @@ describe('embed client', () => {
     await expect(c.embed(join(tmp(), 'a.wav'), [{ startMs: 0, endMs: 1000 }])).rejects.toThrow(/timed out/)
     c.dispose()
   })
+  it('settles a call in flight when disposed', async () => {
+    const { fork } = fakeFork(() => new Promise(() => {}))
+    const c = createEmbedClient({ workerPath: 'unused.js', modelPath: () => 'm.onnx', fork, timeoutMs: 10_000 })
+    const flight = c.embed(join(tmp(), 'a.wav'), [{ startMs: 0, endMs: 1000 }])
+    await new Promise(r => setTimeout(r, 0))
+    c.dispose()
+    await expect(flight).rejects.toThrow(/disposed/)
+  })
+  it('a concurrent call is refused as busy and never kills the worker serving the first', async () => {
+    let killCount = 0
+    let respond: ((v: { vectors: Float32Array[] }) => void) | undefined
+    const fork = (_p: string): Fork => {
+      const bus = new EventEmitter() as unknown as Fork
+      bus.postMessage = (m: unknown) => {
+        const req = m as { id: number }
+        respond = (v) => queueMicrotask(() => (bus as unknown as EventEmitter).emit('message', { ...v, id: req.id }))
+      }
+      bus.kill = () => { killCount++ }
+      return bus
+    }
+    const c = createEmbedClient({ workerPath: 'unused.js', modelPath: () => 'm.onnx', fork, timeoutMs: 5_000 })
+    const first = c.embed(join(tmp(), 'a.wav'), [{ startMs: 0, endMs: 1000 }])
+    await new Promise(r => setTimeout(r, 0))
+    await expect(c.embed(join(tmp(), 'a.wav'), [{ startMs: 0, endMs: 1000 }])).rejects.toThrow(/busy/)
+    expect(killCount).toBe(0)
+    respond!({ vectors: [new Float32Array([1, 0])] })
+    await expect(first).resolves.toHaveLength(1)
+    c.dispose()
+  })
 })
 
 describe('wav helpers', () => {

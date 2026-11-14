@@ -15,6 +15,11 @@ export type EmbedClient = {
 
 const IDLE_MS = 5 * 60_000
 
+/** rejections the client itself makes (busy, disposed): never a worker failure, so never a restart */
+class SelfError extends Error {
+  constructor(message: string, readonly code: 'busy' | 'disposed') { super(message) }
+}
+
 /** unit length, whatever the worker returned — the contract is normalized vectors, one per range */
 const normalize = (v: Float32Array): Float32Array => {
   let sum = 0
@@ -51,7 +56,7 @@ export function createEmbedClient(p: { workerPath: string; modelPath: () => stri
   }
 
   const ask = (req: EmbedRequest): Promise<Array<Float32Array | null>> => new Promise((resolve, reject) => {
-    if (inflight) { reject(new Error('embedding worker is busy')); return }
+    if (inflight) { reject(new SelfError('embedding worker is busy', 'busy')); return }
     const timer = setTimeout(() => {
       const f = inflight; inflight = undefined
       close()
@@ -71,13 +76,18 @@ export function createEmbedClient(p: { workerPath: string; modelPath: () => stri
       let vectors: Array<Float32Array | null>
       try { vectors = await ask({ id, wav, model, ranges }) }
       catch (e) {
-        if (restarted) throw e
+        if (e instanceof SelfError || restarted) throw e
         restarted = true; close()
         vectors = await ask({ id: nextId++, wav, model, ranges })
       }
       armIdle()
       return ranges.map((_, i) => { const v = vectors[i]; return v ? normalize(v) : undefined })
     },
-    dispose() { clearTimeout(idleTimer); inflight && clearTimeout(inflight.timer); inflight = undefined; close() },
+    dispose() {
+      clearTimeout(idleTimer)
+      const f = inflight; inflight = undefined
+      if (f) { clearTimeout(f.timer); f.reject(new SelfError('embedding worker disposed', 'disposed')) }
+      close()
+    },
   }
 }
