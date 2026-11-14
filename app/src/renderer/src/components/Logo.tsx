@@ -13,7 +13,7 @@ export function Logo({ size = 28, className = 'text-accent' }: { size?: number; 
 export function Wordmark({ height = 32 }: { height?: number }) {
   return (
     <svg data-testid="wordmark" role="img" aria-label="Yogurt" height={height} width={(height * 286) / 80} viewBox="0 0 286 80" className="shrink-0">
-      <path className="text-accent" fill="currentColor" transform="translate(0 5) scale(.65)" d={MARK} />
+      <path style={{ fill: 'color-mix(in srgb, var(--primary), var(--accent))' }} transform="translate(0 5) scale(.65)" d={MARK} />
       <path className="text-ink" fill="currentColor" transform="translate(82 55) scale(.068 -.068)" d={WORD} />
     </svg>
   )
