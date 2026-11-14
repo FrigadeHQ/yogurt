@@ -14,7 +14,7 @@ export function ConversationActions({ id, title, onNew, onDeleted, onEdit, class
   const container = useRef<HTMLElement | null>(null)
   const mountButton = useCallback((node: HTMLButtonElement | null) => { button.current = node; container.current = node?.closest('dialog') ?? null }, [])
   const [dialog, setDialog] = useState<Edit>()
-  const edit = (kind: Edit) => { button.current?.focus(); if (onEdit) onEdit(kind); else setDialog(kind) }
+  const edit = (kind: Edit) => { button.current?.focus(); setDialog(kind); onEdit?.(kind) }
   const cancel = () => { setDialog(undefined); button.current?.focus({ preventScroll: true }) }
   return <>
     <Menu.Root modal={false}>
@@ -29,7 +29,7 @@ export function ConversationActions({ id, title, onNew, onDeleted, onEdit, class
         </Menu.Positioner>
       </Menu.Portal>
     </Menu.Root>
-    {dialog && <ConversationDialog id={id} title={title} kind={dialog} container={container.current ?? undefined} onClose={cancel} onDeleted={onDeleted} />}
+    {dialog && !onEdit && <ConversationDialog id={id} title={title} kind={dialog} container={container.current ?? undefined} onClose={cancel} onDeleted={onDeleted} />}
   </>
 }
 
