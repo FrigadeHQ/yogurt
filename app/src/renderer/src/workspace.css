@@ -129,6 +129,8 @@
 .workspace:dir(rtl).sidebar-collapsed .workspace-toolbar[data-recording-return=true][data-note=true] { padding-left:185px; }
 .native-home { height:100%;padding-top:52px;display:grid;grid-template-columns:minmax(0,1fr) 270px;min-height:0; }
 .workspace-toolbar-actions { flex:none; }
+.workspace-toolbar-actions:has(.recording-split) { flex:0 1 auto;min-width:0;max-width:276px; }
+.workspace-toolbar:has(.recording-split) .workspace-breadcrumb { min-width:100px; }
 .workspace-toolbar-actions:empty { display:none; }
 .workspace-toolbar:has(.workspace-toolbar-actions:not(:empty)) { gap:16px;padding-inline-end:17px; }
 .workspace-toolbar:has(.workspace-toolbar-actions:not(:empty)) .workspace-breadcrumb { flex:1;overflow:hidden; }
