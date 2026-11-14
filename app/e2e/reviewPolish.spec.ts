@@ -93,7 +93,7 @@ test('Ask shows progress through the first-token gap, then an attached copy acti
     const id = await fake(app, 'bigMeeting', 10) as string
     await fake(app, 'go', `/note/${id}`)
     await page.getByTestId('chat-open').click()
-    await expect(page.getByTestId('chat-input')).toBeEnabled()
+    await expect(page.getByTestId('chat-suggestion').first()).toBeEnabled()
     const view = await page.evaluate(async id => window.yogurt.conversations.get(await window.yogurt.conversations.current([{ kind: 'meeting', id }])), id)
     const send = (answer: string, status: string) => app.evaluate(({ BrowserWindow }, v) => {
       for (const w of BrowserWindow.getAllWindows()) w.webContents.send('conversations:changed', v)

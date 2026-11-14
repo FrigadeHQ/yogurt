@@ -1,3 +1,4 @@
+import { motion } from '../src/renderer/src/motion'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -56,11 +57,11 @@ for (const theme of ['light', 'dark'] as const) test(`note panels fade in alone 
           return [old.display, old.animationName]
         })).toEqual(['none', 'none'])
         for (const a of animation) {
-          expect(a.duration).toBe(120)
+          expect(a.duration).toBe(motion.micro)
           expect(a.frames.every(f => !f.transform && !f.scale && !f.translate && !f.filter)).toBe(true)
         }
       }
-      for (const ms of [0, 30, 60, 90, 120]) {
+      for (const ms of [0, .25, .5, .75, 1].map(fraction => fraction * motion.micro)) {
         if (!before) await page.locator('.note-panels').evaluate((root, ms) => {
           root.getAnimations({ subtree: true }).filter(a => a instanceof CSSAnimation && a.animationName.startsWith('note-panel-')).forEach(a => { a.currentTime = ms })
         }, ms)

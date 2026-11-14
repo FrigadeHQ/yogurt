@@ -1,3 +1,4 @@
+import { motion } from '../src/renderer/src/motion'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -26,13 +27,10 @@ test('delete is centered over the whole workspace, traps focus safely and restor
       await page.getByTestId('trash-row').first().hover()
       await opener.click()
       await expect(modal).toBeVisible()
-      // Only the shell stretches; text and focus remain at their final geometry.
+      await modal.evaluate(el => Promise.allSettled(el.getAnimations().map(a => a.finished)))
       await expect(modal).toHaveCSS('transform', 'none')
-      await expect(modal.locator('.dialog-motion-content')).toHaveCSS('transform', 'none')
-      await expect(modal.locator('.dialog-motion-content')).toHaveCSS('filter', 'none')
-      const frames = await modal.locator('.dialog-motion-surface').evaluate(el => (el.getAnimations()[0]?.effect as KeyframeEffect)?.getKeyframes())
-      expect(frames?.[1].transform).toMatch(/scale\(1\.008,\s*1\.018\)/)
-      expect(frames?.[1].offset).toBe(0.72)
+      await expect(modal).toHaveCSS('filter', 'none')
+      await expect(modal).toHaveCSS('transition-duration', `${motion.surface / 1000}s, ${motion.surface / 1000}s`)
       const viewport = await page.evaluate(() => ({ width: innerWidth, height: innerHeight }))
       await expect.poll(async () => {
         const box = (await modal.boundingBox())!
@@ -85,20 +83,22 @@ test('delete is centered over the whole workspace, traps focus safely and restor
     await cancel.click()
     await expect(opener).toBeFocused()
 
-    // Search shares the same shell motion and keeps its input ready immediately.
+    // Search uses the shared popup and keeps its input ready immediately.
     await page.keyboard.press('Meta+k')
     const search = page.getByTestId('search')
     await expect(page.getByTestId('search-input')).toBeFocused()
+    await search.evaluate(el => Promise.allSettled(el.getAnimations().map(a => a.finished)))
     await expect(search).toHaveCSS('transform', 'none')
-    await expect(search.locator('.dialog-motion-content')).toHaveCSS('transform', 'none')
-    expect(await search.locator('.dialog-motion-surface').evaluate(el => el.getAnimations().length)).toBe(1)
+    await expect(search).toHaveCSS('filter', 'none')
+    await expect(search).toHaveCSS('transition-duration', `${motion.micro / 1000}s, ${motion.micro / 1000}s`)
     await page.keyboard.press('Escape')
     await expect(search).toHaveCount(0)
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.getByTestId('trash-row').first().hover()
     await opener.click()
     await expect(cancel).toBeFocused()
-    expect(await modal.locator('.dialog-motion-surface').evaluate(el => el.getAnimations().length)).toBe(0)
+    await expect(modal).toHaveCSS('transform', 'none')
+    await expect(modal).toHaveCSS('transition-property', 'opacity')
     await page.keyboard.press('Escape')
     await expect(opener).toBeFocused()
   } finally { await app.close() }

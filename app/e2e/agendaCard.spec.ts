@@ -75,6 +75,7 @@ test('a bottom event opens above its row, tracks scrolling, flips without chatte
       await page.keyboard.press('Tab')
       await expect(close).toBeFocused()
       expect(await close.evaluate(el => el.matches(':focus-visible'))).toBe(true)
+      await card.evaluate(el => Promise.allSettled(el.getAnimations().map(a => a.finished)))
       const spacing = await card.evaluate(el => {
         const content = el.querySelector('.agenda-inspector-content')!, heading = el.querySelector('h3')!
         const time = el.querySelector('.agenda-inspector-time')!, people = el.querySelector('.agenda-inspector-scroll')!

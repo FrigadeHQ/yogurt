@@ -94,7 +94,7 @@ test('toast yields to Ask Yogurt and returns without replacing its Undo action',
       return !!a && !!b && a.x + a.width + 10 <= b.x
     }).toBe(true)
     await toast.hover()
-    await page.getByTestId('chat-panel').evaluate(el => Promise.allSettled(el.getAnimations({ subtree: true }).map(a => a.finished)))
+    await page.getByTestId('chat-panel').evaluate(el => Promise.allSettled([el, ...el.querySelectorAll('.chat-morph-surface,.chat-panel-contents')].flatMap(node => node.getAnimations()).map(a => a.finished)))
     await page.emulateMedia({ colorScheme: 'dark' })
     await page.screenshot({ path: testInfo.outputPath('toast-beside-chat.png') })
     await page.getByTestId('chat-close').click()
@@ -106,7 +106,7 @@ test('toast yields to Ask Yogurt and returns without replacing its Undo action',
       const a = await toast.boundingBox(), b = await page.getByTestId('chat-panel').boundingBox()
       return !!a && !!b && b.y + b.height + 8 <= a.y
     }).toBe(true)
-    await page.getByTestId('chat-panel').evaluate(el => Promise.allSettled(el.getAnimations({ subtree: true }).map(a => a.finished)))
+    await page.getByTestId('chat-panel').evaluate(el => Promise.allSettled([el, ...el.querySelectorAll('.chat-morph-surface,.chat-panel-contents')].flatMap(node => node.getAnimations()).map(a => a.finished)))
     await page.screenshot({ path: testInfo.outputPath('toast-narrow-chat.png') })
     await page.getByTestId('trash-undo').click()
     await expect(toast).toHaveCount(0)

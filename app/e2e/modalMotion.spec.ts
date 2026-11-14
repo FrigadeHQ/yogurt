@@ -1,3 +1,4 @@
+import { motion as timing } from '../src/renderer/src/motion'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -12,7 +13,7 @@ test('shared dialogs use one soft surface, keep focus safe, and dismiss without 
     await expect(page.getByTestId('home')).toBeVisible()
     await page.emulateMedia({ reducedMotion: 'no-preference' })
     const trigger = page.getByTestId('folder-create')
-    const capture = page.evaluate(async () => {
+    const capture = page.evaluate(async duration => {
       let el: HTMLElement | null = null, animations: Animation[] = []
       for (let frame = 0; frame < 120; frame++) {
         await new Promise(requestAnimationFrame)
@@ -24,7 +25,7 @@ test('shared dialogs use one soft surface, keep focus safe, and dismiss without 
       animations.forEach(a => a.pause())
       const durations = animations.map(a => a.effect!.getTiming().duration)
       const samples = []
-      for (const time of [0, 144, 240]) {
+      for (const time of [0, duration * .6, duration]) {
         animations.forEach(a => { a.currentTime = time })
         await new Promise(requestAnimationFrame)
         const style = getComputedStyle(el), matrix = new DOMMatrix(style.transform)
@@ -32,12 +33,12 @@ test('shared dialogs use one soft surface, keep focus safe, and dismiss without 
       }
       animations.forEach(a => a.finish())
       return { durations, samples }
-    })
+    }, timing.surface)
     await trigger.click()
     const modal = page.getByTestId('folder-name')
     await expect(modal).toBeVisible()
     const motion = await capture
-    expect(motion.durations.every(duration => duration === 240)).toBe(true)
+    expect(motion.durations.every(duration => duration === timing.surface)).toBe(true)
     expect(motion.samples[0].scaleX).toBeCloseTo(.97, 3)
     expect(motion.samples[0].opacity).toBe(0)
     for (const sample of motion.samples) {
@@ -60,7 +61,7 @@ test('shared dialogs use one soft surface, keep focus safe, and dismiss without 
     await expect(modal).toHaveCSS('transform', 'none')
     await expect(modal).toHaveCSS('filter', 'none')
     await expect(modal).toHaveCSS('transition-property', 'opacity')
-    await expect(modal).toHaveCSS('transition-duration', '0.12s')
+    await expect(modal).toHaveCSS('transition-duration', `${timing.micro / 1000}s`)
     await page.getByTestId('folder-name-cancel').click()
     await expect(modal).toHaveCount(0)
     await expect(trigger).toBeFocused()

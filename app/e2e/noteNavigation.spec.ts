@@ -1,3 +1,4 @@
+import { motion } from '../src/renderer/src/motion'
 import { selectNoteVersion } from './noteVersion'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
@@ -125,8 +126,8 @@ test('the underline slides on pointer tab changes without moving the reading pan
           const old = getComputedStyle(el, '::view-transition-old(root)')
           const incoming = getComputedStyle(el, '::view-transition-new(root)')
           return [old.display, old.animationName, incoming.animationDuration, incoming.animationTimingFunction]
-        })).toEqual(['none', 'none', '0.12s', 'ease-out'])
-        await expect(bar).toHaveCSS('transition-duration', '0.18s, 0.18s')
+        })).toEqual(['none', 'none', `${motion.micro / 1000}s`, motion.ease.replaceAll(',', ', ')])
+        await expect(bar).toHaveCSS('transition-duration', `${motion.base / 1000}s, ${motion.base / 1000}s`)
         await expect.poll(async () => Math.abs((await bar.boundingBox())!.x - (await tab.boundingBox())!.x)).toBeLessThan(1)
         expect(Math.abs((await bar.boundingBox())!.width - (await tab.boundingBox())!.width)).toBeLessThan(1)
       }
