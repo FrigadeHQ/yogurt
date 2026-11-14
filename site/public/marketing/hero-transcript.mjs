@@ -1,7 +1,7 @@
 import {onVoiceFrame} from './clock.mjs';
 const demo=document.querySelector('#product-demo'),reduce=matchMedia('(prefers-reduced-motion: reduce)'),desktop=matchMedia('(min-width:761px)');
 let cycleDuration=Infinity;
-let frame,ready=false,visible=false,started=false,startPhase,lastSent=-1,last={phase:0,bands:[0,0,0]},override;
+let frame,ready=false,visible=false,started=false,startPhase,lastSent=-1,last={phase:0,bands:[0,0,0]},override=new URLSearchParams(location.search).get('static')==='1'?8:undefined;
 const eligible=()=>desktop.matches&&!reduce.matches;
 const send=data=>frame?.contentWindow?.postMessage(data,location.origin);
 function render(value){
@@ -39,6 +39,6 @@ function mode(){
 }
 reduce.addEventListener('change',mode);desktop.addEventListener('change',mode);
 document.addEventListener('visibilitychange',()=>render(last));
-// Deterministic browser export drives the same fixture, without a production query switch.
+// Deterministic browser export can seek the same fixture independently of the static preview.
 window.addEventListener('hero-capture',event=>{if(Number.isFinite(event.detail)){override=event.detail;render(last)}});
 onVoiceFrame(render);load();

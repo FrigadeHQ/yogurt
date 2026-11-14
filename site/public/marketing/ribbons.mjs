@@ -8,21 +8,21 @@ function animate(element,frames,name){
   animation.id='ribbon-life-'+name;animation.pause();animations.push(animation);
 }
 function start(){
-  const palettes=[
-    ['#ribbon-purple stop:nth-child(1)','color-mix(in srgb,var(--ribbon-warm) 75%,white)','color-mix(in srgb,var(--ribbon-cool) 75%,white)'],
-    ['#ribbon-purple stop:nth-child(2)','var(--ribbon-warm)','var(--ribbon-cool)'],
-    ['#ribbon-purple stop:nth-child(3)','color-mix(in srgb,var(--brand-soft) 72%,var(--ribbon-warm))','color-mix(in srgb,var(--brand-soft) 72%,var(--ribbon-cool))'],
-    ['#ribbon-surface stop:last-child','color-mix(in srgb,var(--brand-deep) 80%,var(--ribbon-warm))','color-mix(in srgb,var(--brand-deep) 80%,var(--ribbon-cool))'],
-    ['#ribbon-glint stop:nth-child(2)','color-mix(in srgb,var(--brand-tint) 92%,var(--ribbon-warm))','color-mix(in srgb,var(--brand-tint) 92%,var(--ribbon-cool))'],
+  const base='var(--ai-base)',highlight='var(--ai-highlight)';
+  const sweeps=[
+    [base,base,highlight,base,base],
+    [base,highlight,base,highlight,base],
+    [highlight,base,base,base,highlight],
   ];
-  palettes.forEach(([selector,warm,cool],index)=>{
-    const stop=svg.querySelector(selector),base=getComputedStyle(stop).stopColor;
-    animate(stop,[base,warm,base,cool,base].map(stopColor=>({stopColor})),'color-'+index);
-  });
+  sweeps.forEach((colors,index)=>animate(svg.querySelector(`#ribbon-purple stop:nth-child(${index+1})`),colors.map(stopColor=>({stopColor})),'color-'+index));
+  const drift=[0,50,100,50,0].map(position=>({backgroundPosition:`${position}% 50%`}));
+  const headline=document.querySelector('.headline-word');
+  if(headline&&CSS.supports('background-clip','text'))animate(headline,drift,'headline');
+  document.querySelectorAll('.hero-actions .button.primary').forEach((button,index)=>animate(button,drift,'download-'+index));
   animate(svg.parentElement,['0px','var(--ribbon-sway)','0px','calc(-1 * var(--ribbon-sway))','0px'].map(y=>({transform:`translateY(${y})`})),'sway');
 }
 function sync(){
-  if(document.documentElement.dataset.heroEntry!=='complete')return;
+  if(document.documentElement.dataset.heroEntry!=='complete'||document.documentElement.dataset.heroStatic==='true')return;
   if(!animations.length&&!reduce.matches)start();
   const running=visible&&!document.hidden&&!reduce.matches;
   svg.dataset.running=String(running);

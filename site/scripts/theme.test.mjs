@@ -7,7 +7,7 @@ const bootstrap=html.match(/<script>\s*(\(function\(\)[\s\S]*?)<\/script>/)[1];
 const script=readFileSync(new URL('../public/marketing/theme.mjs',import.meta.url),'utf8').replace('export function','function');
 assert.ok(html.indexOf(bootstrap)<html.indexOf('href="/marketing/site.css"'));
 
-function page(saved,{blocked=false}={}){
+function page(saved,{blocked=false,search=''}={}){
   const classes=new Set();
   const root={dataset:{theme:'light'},classList:{add:v=>classes.add(v),remove:v=>classes.delete(v)}};
   const toggle={hidden:true,setAttribute(k,v){this[k]=v},addEventListener(k,fn){this[k]=fn}};
@@ -15,6 +15,7 @@ function page(saved,{blocked=false}={}){
   const frames=[false,true].map(hero=>({classList:{contains:()=>hero},contentDocument:{documentElement:{dataset:{},style:{}}}}));
   const storage=new Map(saved===undefined?[]:[['yogurt-theme',saved]]);
   const context=vm.createContext({
+    URLSearchParams,location:{search},
     document:{documentElement:root,querySelector:s=>s==='.theme-toggle'?toggle:meta,
       getElementById:id=>id==='theme-icon'?icon:fallback,querySelectorAll:()=>frames},
     localStorage:{getItem(k){if(blocked)throw Error('denied');return storage.get(k)},setItem(k,v){if(blocked)throw Error('denied');storage.set(k,v)}},
@@ -58,12 +59,21 @@ assert.doesNotThrow(()=>blocked.toggle.click());
 assert.equal(blocked.root.dataset.theme,'dark');
 assert.equal(blocked.toggle['aria-pressed'],'true');
 
+for(const saved of ['light','dark']){
+  const p=page(saved,{search:'?edge=light&static=1'});
+  assert.equal(p.root.dataset.heroEdge,undefined,'the hero edge has no URL switch');
+}
+
 function luminance(hex){
   const channels=hex.match(/[\da-f]{2}/gi).map(v=>parseInt(v,16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);
   return channels.reduce((sum,v,i)=>sum+v*[.2126,.7152,.0722][i],0);
 }
 const contrast=(a,b)=>{const x=luminance(a),y=luminance(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
 const css=readFileSync(new URL('../public/marketing/site.css',import.meta.url),'utf8');
+assert(!/data-hero-edge/.test(css),'no hero edge comparison rules remain');
+assert(css.includes(':root[data-theme=light] .product-stage>.product-window.demo-window{border:1px solid #5A5A5E}'),'light mode gives the demo window a mid-grey border');
+assert(css.includes(':root[data-theme=dark] .product-stage>.product-window.demo-window::after{'),'dark inner highlight remains the default');
+assert(css.includes(':root[data-theme=dark] .step-outline{fill:var(--float);stroke:var(--line)}'),'step outlines use the quiet neutral border');
 assert.ok(css.includes('.site-header nav>a:nth-of-type(2)'), 'The new button must not change which mobile nav link is hidden');
 const dark=css.match(/:root\[data-theme=dark\]\{color-scheme:dark;([^}]+)\}/)[1];
 const tokens=Object.fromEntries([...dark.matchAll(/--([\w-]+):(#[\da-f]+)/gi)].map(([,key,value])=>[key,value]));

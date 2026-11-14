@@ -1,0 +1,34 @@
+/* Saturated purple in both themes; the action sweep preserves white text contrast. */
+:root{
+  --ai-base:#6F00FF;
+  --ai-highlight:#8B5CF6;
+  --ai-action-highlight:color-mix(in srgb,var(--ai-base) 20%,var(--ai-highlight));
+  --ai-text-base:var(--ai-base);
+  --download-gradient-strength:1;
+}
+:root[data-theme=dark]{
+  --ai-text-base:color-mix(in srgb,var(--ai-base) 40%,var(--ai-highlight));
+}
+:root[data-theme] .hero h1 .headline-word{color:var(--ai-text-base)}
+@supports (background-clip:text){
+  :root[data-theme] .hero h1 .headline-word{
+    /* Paint glyph overhang without changing the headline's spacing. */
+    padding-inline:.1em;margin-inline:-.1em;
+    background-image:linear-gradient(110deg in srgb,var(--ai-text-base),var(--ai-action-highlight) 50%,var(--ai-text-base));
+    background-size:200% 100%;background-position:0% 50%;background-repeat:no-repeat;
+    background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  }
+}
+.hero-actions .button.primary{
+  /* 0 is flat brand purple; 1 is the full contrast-safe sweep. */
+  --download-highlight:color-mix(in srgb,var(--ai-base) calc(100% - 80% * var(--download-gradient-strength)),var(--ai-highlight));
+  background-color:var(--ai-base);
+  background-image:linear-gradient(110deg in srgb,var(--ai-base),var(--download-highlight) 50%,var(--ai-base));
+  background-size:200% 100%;background-position:0% 50%;background-repeat:no-repeat;
+}
+@media(hover:hover) and (pointer:fine){
+  .hero-actions .button.primary:hover{background:var(--purple-dark)}
+}
+@media(forced-colors:active){
+  :root[data-theme] .hero h1 .headline-word{background:none;-webkit-text-fill-color:currentColor;color:CanvasText!important}
+}
