@@ -399,6 +399,30 @@ describe('backup file', { timeout: 60_000 }, () => {
     expect(existsSync(join(bDir, 'm2'))).toBe(cleanupFails)
     expect(b.meeting('m2')).toBeUndefined()
   })
+
+  it('leaves voice profiles out of the export and untouched by an import', async () => {
+    const s = fresh()
+    s.createVoiceProfile({ id: 'p1', name: 'Ada', model: 'campplus', dims: 8, centroid: Buffer.alloc(32) })
+    const m = s.createMeeting({ ...base, title: 'Voiced', startedAt: 1, state: 'done' })
+    s.applyDiarization(m.id, { deleteIds: [], insert: [], speakers: [{ key: 'v1', speaker: 'Ada', profileId: 'p1', score: 0.9, startMs: 0, endMs: 100 }] })
+    const out = join(tmp(), 'backup.zip')
+    expect(await exportBackup({ db: s.db, meetingsDir: tmp(), out, appVersion: '0.0.0' })).toEqual({ meetings: 1 })
+    // read the snapshot back out of the zip
+    const look = tmp()
+    await unpack(out, look)
+    const snap = new DatabaseSync(join(look, 'yogurt.db'))
+    expect(snap.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'voice_profiles'").get()).toBeUndefined()
+    expect((snap.prepare('SELECT profile_id FROM meeting_speakers').all() as Array<{ profile_id: unknown }>).every((r) => r.profile_id === null)).toBe(true)
+    snap.close()
+    // importing adds the meeting but neither creates nor removes profiles here
+    const into = fresh()
+    into.createVoiceProfile({ id: 'p2', name: 'Bo', model: 'campplus', dims: 8, centroid: Buffer.alloc(32) })
+    expect(await importBackup({ db: into.db, meetingsDir: tmp(), zip: out })).toEqual({ ok: true, added: 1, skipped: 0 })
+    expect(into.meeting(m.id)?.title).toBe('Voiced')
+    expect(into.voiceProfiles().map((p) => p.id)).toEqual(['p2'])
+    // the cluster row came along without its profile link
+    expect(into.meetingSpeakers(m.id).map((x) => [x.key, x.profileId, x.score])).toEqual([['v1', null, 0.9]])
+  })
 })
 
 
