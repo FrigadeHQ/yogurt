@@ -1,3 +1,4 @@
+import { eventIds, type CalEvent } from './calendar'
 import { matchSearchPeople, searchPersonKey, uniqueSearchPeople } from '../shared/searchPeople'
 import { oneEdit, parseSearchQuery, type SearchOptions } from '../shared/searchQuery'
 import { echoConfidence } from './asr/echo'
@@ -19,6 +20,11 @@ export type Meeting = {
   id: string; title: string; startedAt: number; endedAt: number | null; eventId: string | null
   /** Calendar lookup date can differ from the recording date after manual linking. */
   eventStartedAt?: number | null
+  /** Last successfully read calendar details remain available without calendar access. */
+  eventEndedAt?: number | null
+  eventTitle?: string | null
+  eventCalendarName?: string | null
+  eventCalendarSource?: string | null
   source?: string
   sourceId?: string
   app: string | null; attendees: Person[]; state: 'prepared' | 'recording' | 'stopped' | 'done'
@@ -52,6 +58,10 @@ const toMeeting = (r: Row): Meeting => ({
   ...(r.source == null ? {} : { source: String(r.source) }),
   ...(r.source_id == null ? {} : { sourceId: String(r.source_id) }),
   ...(r.event_started_at == null ? {} : { eventStartedAt: Number(r.event_started_at) }),
+  ...(r.event_ended_at == null ? {} : { eventEndedAt: Number(r.event_ended_at) }),
+  ...(r.event_title == null ? {} : { eventTitle: String(r.event_title) }),
+  ...(r.event_calendar_name == null ? {} : { eventCalendarName: String(r.event_calendar_name) }),
+  ...(r.event_calendar_source == null ? {} : { eventCalendarSource: String(r.event_calendar_source) }),
   ...(r.duration_ms == null ? {} : { durationMs: Number(r.duration_ms) }),
   ...(r.trashed_at == null ? {} : { trashedAt: Number(r.trashed_at) }),
 })
@@ -146,6 +156,7 @@ export class Store {
         id TEXT PRIMARY KEY, title TEXT NOT NULL, started_at INTEGER NOT NULL, ended_at INTEGER, event_id TEXT, app TEXT,
         attendees TEXT NOT NULL DEFAULT '[]', state TEXT NOT NULL, language TEXT);
       CREATE INDEX IF NOT EXISTS meetings_started ON meetings(started_at);
+      CREATE INDEX IF NOT EXISTS meetings_event ON meetings(event_id);
       CREATE TABLE IF NOT EXISTS segments (
         id INTEGER PRIMARY KEY AUTOINCREMENT, meeting_id TEXT NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
         track TEXT NOT NULL, start_ms INTEGER NOT NULL, end_ms INTEGER NOT NULL, text TEXT NOT NULL, speaker TEXT);
@@ -195,6 +206,9 @@ export class Store {
     if (!meetingCols.includes('last_opened_at')) this.db.exec('ALTER TABLE meetings ADD COLUMN last_opened_at INTEGER')
     if (!meetingCols.includes('speaker_order')) this.db.exec("ALTER TABLE meetings ADD COLUMN speaker_order TEXT NOT NULL DEFAULT '[]'")
     for (const name of ['source', 'source_id']) if (!meetingCols.includes(name)) this.db.exec(`ALTER TABLE meetings ADD COLUMN ${name} TEXT`)
+    for (const [name, type] of [['event_ended_at', 'INTEGER'], ['event_title', 'TEXT'], ['event_calendar_name', 'TEXT'], ['event_calendar_source', 'TEXT']]) {
+      if (!meetingCols.includes(name)) this.db.exec(`ALTER TABLE meetings ADD COLUMN ${name} ${type}`)
+    }
     if (!meetingCols.includes('event_started_at')) this.db.exec('ALTER TABLE meetings ADD COLUMN event_started_at INTEGER')
     if (!meetingCols.includes('transcription_pending')) this.db.exec('ALTER TABLE meetings ADD COLUMN transcription_pending INTEGER NOT NULL DEFAULT 0')
     if (!meetingCols.includes('duration_ms')) this.db.exec('ALTER TABLE meetings ADD COLUMN duration_ms INTEGER')
@@ -271,18 +285,28 @@ export class Store {
     const id = randomUUID()
     const language = m.language ?? null
     const titleSource = m.titleSource ?? sourceOf(m.title, m.eventId)
-    this.db.prepare('INSERT INTO meetings (id, title, started_at, ended_at, event_id, app, attendees, state, language, title_source, duration_ms, event_started_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      .run(id, m.title, m.startedAt, m.endedAt, m.eventId, m.app, JSON.stringify(m.attendees), m.state, language, titleSource, m.durationMs ?? null, m.eventStartedAt ?? null)
+    this.db.prepare('INSERT INTO meetings (id, title, started_at, ended_at, event_id, app, attendees, state, language, title_source, duration_ms, event_started_at, event_ended_at, event_title, event_calendar_name, event_calendar_source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(id, m.title, m.startedAt, m.endedAt, m.eventId, m.app, JSON.stringify(m.attendees), m.state, language, titleSource, m.durationMs ?? null, m.eventStartedAt ?? null, m.eventEndedAt ?? null, m.eventTitle ?? null, m.eventCalendarName ?? null, m.eventCalendarSource ?? null)
     rememberPeople(this.db, m.attendees)
     return { ...m, id, language, titleSource, attendees: resolvePeople(this.db, m.attendees) }
   }
   updateMeeting(id: string, patch: Partial<Omit<Meeting, 'id'>>) {
     if (patch.attendees) rememberPeople(this.db, patch.attendees)
-    const col: Record<string, string> = { title: 'title', startedAt: 'started_at', endedAt: 'ended_at', eventId: 'event_id', eventStartedAt: 'event_started_at', app: 'app', attendees: 'attendees', state: 'state', language: 'language', titleSource: 'title_source', durationMs: 'duration_ms', transcriptionPending: 'transcription_pending' }
+    const col: Record<string, string> = { title: 'title', startedAt: 'started_at', endedAt: 'ended_at', eventId: 'event_id', eventStartedAt: 'event_started_at', eventEndedAt: 'event_ended_at', eventTitle: 'event_title', eventCalendarName: 'event_calendar_name', eventCalendarSource: 'event_calendar_source', app: 'app', attendees: 'attendees', state: 'state', language: 'language', titleSource: 'title_source', durationMs: 'duration_ms', transcriptionPending: 'transcription_pending' }
     const keys = Object.keys(patch).filter((k) => k in col && (patch as Row)[k] !== undefined)
     if (!keys.length) return
     const vals = keys.map((k) => (k === 'attendees' ? JSON.stringify(patch.attendees) : k === 'transcriptionPending' ? Number(patch.transcriptionPending) : (patch as Row)[k]) as string | number | null)
     this.db.prepare(`UPDATE meetings SET ${keys.map((k) => `${col[k]} = ?`).join(', ')} WHERE id = ?`).run(...vals, id)
+  }
+  /** Refresh every note still linked to this occurrence, including alternate calendar IDs. */
+  rememberEvent(event: CalEvent): Meeting[] {
+    const ids = eventIds(event)
+    const values = [event.start, event.end, event.title, event.calendar?.name ?? null, event.calendar?.source ?? null]
+    const columns = ['event_started_at', 'event_ended_at', 'event_title', 'event_calendar_name', 'event_calendar_source']
+    const rows = this.db.prepare(`UPDATE meetings SET ${columns.map(c => `${c} = ?`).join(', ')}
+      WHERE event_id IN (${ids.map(() => '?').join(', ')}) AND (${columns.map(c => `${c} IS NOT ?`).join(' OR ')}) RETURNING *`)
+      .all(...values, ...ids, ...values) as Row[]
+    return rows.map(r => this.readMeeting(r))
   }
   /** Gone for good: its lines, notes and chat go with it (ON DELETE CASCADE; the search tables follow by trigger) */
   markPrepared(id: string, end: number) { this.db.prepare('UPDATE meetings SET prepared_event_end = ?, last_opened_at = ? WHERE id = ?').run(end, Date.now(), id) }

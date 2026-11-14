@@ -1,4 +1,6 @@
 {
+  "Link event": "Связать событие",
+  "No events": "Нет событий",
   "Go to {date}": "Перейти к {date}",
   "Resume notes · {title}": "Продолжить заметки · {title}",
   "Take notes · {title}": "Вести заметки · {title}",
@@ -18,7 +20,6 @@
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt не смог обновить связь с календарём. Попробуйте снова.",
   "Keep the title, attendees and notes.": "Оставить название, участников и заметки.",
   "Unlink calendar event": "Отвязать событие календаря",
-  "No calendar events on this day.": "В этот день нет событий.",
   "Select calendar event": "Выбрать событие календаря",
   "(me)": "(я)",
   "A folder keeps related meetings together. A meeting can be in more than one.": "Папка собирает связанные встречи вместе. Встреча может быть в нескольких папках.",

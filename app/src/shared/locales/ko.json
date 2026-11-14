@@ -1,4 +1,6 @@
 {
+  "Link event": "일정 연결",
+  "No events": "일정 없음",
   "Go to {date}": "{date}로 이동",
   "Resume notes · {title}": "메모 재개 · {title}",
   "Take notes · {title}": "노트 기록 · {title}",
@@ -18,7 +20,6 @@
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt가 캘린더 연결을 업데이트하지 못했어요. 다시 시도하세요.",
   "Keep the title, attendees and notes.": "제목, 참석자, 노트를 유지해요.",
   "Unlink calendar event": "캘린더 일정 연결 해제",
-  "No calendar events on this day.": "이날은 캘린더 일정이 없어요.",
   "Select calendar event": "캘린더 일정 선택",
   "(me)": "(나)",
   "A folder keeps related meetings together. A meeting can be in more than one.": "폴더는 관련 있는 회의를 한곳에 모아 둬요. 한 회의를 여러 폴더에 넣을 수도 있어요.",

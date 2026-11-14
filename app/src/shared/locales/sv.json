@@ -1,4 +1,6 @@
 {
+  "Link event": "Länka händelse",
+  "No events": "Inga händelser",
   "Go to {date}": "Gå till {date}",
   "Resume notes · {title}": "Fortsätt anteckna · {title}",
   "Take notes · {title}": "Anteckna · {title}",
@@ -18,7 +20,6 @@
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt kunde inte uppdatera kopplingen till kalendern. Försök igen.",
   "Keep the title, attendees and notes.": "Behåll titel, deltagare och anteckningar.",
   "Unlink calendar event": "Koppla bort kalenderhändelse",
-  "No calendar events on this day.": "Inga kalenderhändelser den här dagen.",
   "Select calendar event": "Välj kalenderhändelse",
   "(me)": "(jag)",
   "A folder keeps related meetings together. A meeting can be in more than one.": "En mapp håller ihop möten som hör ihop. Ett möte kan ligga i flera mappar.",

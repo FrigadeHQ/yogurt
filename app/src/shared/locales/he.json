@@ -1,4 +1,6 @@
 {
+  "Link event": "קישור אירוע",
+  "No events": "אין אירועים",
   "Go to {date}": "מעבר אל {date}",
   "Resume notes · {title}": "המשך כתיבת הערות · {title}",
   "Take notes · {title}": "רישום הערות · {title}",
@@ -18,7 +20,6 @@
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt לא הצליח לעדכן את הקישור ליומן. כדאי לנסות שוב.",
   "Keep the title, attendees and notes.": "לשמור את הכותרת, המשתתפים וההערות.",
   "Unlink calendar event": "ניתוק אירוע היומן",
-  "No calendar events on this day.": "אין אירועים ביום הזה.",
   "Select calendar event": "בחירת אירוע ביומן",
   "(me)": "(אני)",
   "A folder keeps related meetings together. A meeting can be in more than one.": "תיקייה מרכזת פגישות קשורות. פגישה יכולה להיות ביותר מתיקייה אחת.",

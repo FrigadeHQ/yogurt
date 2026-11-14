@@ -1,4 +1,6 @@
 {
+  "Link event": "Liitä tapahtuma",
+  "No events": "Ei tapahtumia",
   "Go to {date}": "Siirry päivään {date}",
   "Resume notes · {title}": "Jatka muistiinpanoja · {title}",
   "Take notes · {title}": "Tee muistiinpanoja · {title}",
@@ -18,7 +20,6 @@
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt ei voinut päivittää kalenterilinkkiä. Yritä uudelleen.",
   "Keep the title, attendees and notes.": "Säilytä otsikko, osallistujat ja muistiinpanot.",
   "Unlink calendar event": "Irrota kalenteritapahtuma",
-  "No calendar events on this day.": "Tälle päivälle ei ole tapahtumia.",
   "Select calendar event": "Valitse kalenteritapahtuma",
   "(me)": "(minä)",
   "A folder keeps related meetings together. A meeting can be in more than one.": "Kansio pitää toisiinsa liittyvät kokoukset yhdessä. Kokous voi olla useammassa kansiossa.",

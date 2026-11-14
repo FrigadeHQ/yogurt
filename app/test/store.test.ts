@@ -442,3 +442,55 @@ it('backfills only strong word matches among already hidden historical echoes', 
   expect(reopened.segments(m.id, { hidden: true }).filter(line => line.hidden).map(line => !!line.echoConfident)).toEqual([true, false])
   reopened.close()
 })
+
+it('stores, updates and clears nullable calendar snapshots', () => {
+  const s = fresh()
+  const snapshot = { eventStartedAt: 100, eventEndedAt: 200, eventTitle: 'Calendar title', eventCalendarName: 'Work', eventCalendarSource: 'Calendar' }
+  const m = s.createMeeting({ ...base, startedAt: 150, eventId: 'event', ...snapshot })
+  expect(s.meeting(m.id)).toMatchObject(snapshot)
+  s.updateMeeting(m.id, { eventEndedAt: 300, eventCalendarName: 'Team' })
+  expect(s.meeting(m.id)).toMatchObject({ ...snapshot, eventEndedAt: 300, eventCalendarName: 'Team' })
+  s.updateMeeting(m.id, { eventId: null, eventStartedAt: null, eventEndedAt: null, eventTitle: null, eventCalendarName: null, eventCalendarSource: null })
+  for (const key of Object.keys(snapshot)) expect(s.meeting(m.id)).not.toHaveProperty(key)
+})
+it('refreshes all linked copies and aliases once, without reviving unlinked notes or replacing user data', () => {
+  const s = fresh()
+  const a = s.createMeeting({ ...base, startedAt: 1, eventId: 'event' })
+  const b = s.createMeeting({ ...base, startedAt: 2, eventId: 'alias' })
+  const c = s.createMeeting({ ...base, startedAt: 3, eventId: 'event' })
+  s.updateMeeting(c.id, { eventId: null })
+  s.setNotes(a.id, { mine: 'Keep this' })
+  const event = { id: 'event', aliases: ['alias'], title: 'Updated event', start: 100, end: 200, attendees: [], url: null, calendar: { id: 'work', name: 'Work', source: 'Calendar' } }
+  expect(s.rememberEvent(event).map(m => m.id).sort()).toEqual([a.id, b.id].sort())
+  for (const id of [a.id, b.id]) expect(s.meeting(id)).toMatchObject({ title: base.title, eventTitle: 'Updated event', eventStartedAt: 100, eventEndedAt: 200, eventCalendarName: 'Work', eventCalendarSource: 'Calendar' })
+  expect(s.meeting(b.id)?.eventId).toBe('alias')
+  expect(s.notes(a.id).mine).toBe('Keep this')
+  expect(s.meeting(c.id)).not.toHaveProperty('eventEndedAt')
+  expect(s.rememberEvent(event)).toEqual([])
+})
+it('migrates old meetings with nullable snapshot columns and preserves them across reopening', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'yogurt-snapshot-migration-')); dirs.push(dir)
+  const file = join(dir, 'yogurt.db')
+  const old = new DatabaseSync(file)
+  old.exec(`CREATE TABLE meetings (id TEXT PRIMARY KEY, title TEXT NOT NULL, started_at INTEGER NOT NULL, ended_at INTEGER, event_id TEXT, event_started_at INTEGER, app TEXT, attendees TEXT NOT NULL DEFAULT '[]', state TEXT NOT NULL, language TEXT);
+    INSERT INTO meetings (id, title, started_at, event_id, event_started_at, state) VALUES ('old', 'My old note', 50, 'event', 100, 'done');
+    CREATE TABLE notes (id INTEGER PRIMARY KEY AUTOINCREMENT, meeting_id TEXT NOT NULL UNIQUE, mine TEXT NOT NULL DEFAULT '', enhanced TEXT);
+    INSERT INTO notes (meeting_id, mine) VALUES ('old', 'My existing notes');`)
+  old.close()
+  const migrated = openStore(file)
+  try {
+    const columns = ['event_ended_at', 'event_title', 'event_calendar_name', 'event_calendar_source']
+    const schema = migrated.db.prepare('PRAGMA table_info(meetings)').all()
+    const row = migrated.db.prepare('SELECT * FROM meetings WHERE id = ?').get('old')!
+    for (const name of columns) {
+      expect(schema.find(c => c.name === name)).toMatchObject({ notnull: 0, dflt_value: null })
+      expect(row[name]).toBeNull()
+    }
+    expect(migrated.meeting('old')).toMatchObject({ title: 'My old note', startedAt: 50, eventId: 'event', eventStartedAt: 100 })
+    expect(migrated.meeting('old')).not.toHaveProperty('eventEndedAt')
+    migrated.rememberEvent({ id: 'event', title: 'Event', start: 100, end: 200, attendees: [], url: null, calendar: { id: 'work', name: 'Work', source: 'Calendar' } })
+  } finally { migrated.close() }
+  const reopened = openStore(file); stores.push(reopened)
+  expect(reopened.meeting('old')).toMatchObject({ title: 'My old note', startedAt: 50, eventEndedAt: 200, eventTitle: 'Event', eventCalendarName: 'Work', eventCalendarSource: 'Calendar' })
+  expect(reopened.notes('old').mine).toBe('My existing notes')
+})

@@ -3,7 +3,7 @@ import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
 import { Capture, activeCapture, hookCapture, recordingFinished, type CaptureProc } from '../src/main/capture'
 import { openStore, type Store } from '../src/main/store'
-import { activeMeeting, bindMeetingApp, getMeeting, initMeetings, onMeetingChange, onMeetingStart, onMeetingStop, onMeetingStopSaved, prepareMeeting, startPreparedMeeting, resumeMeeting, pauseMeetingClock, renameMeeting, retryStopSave, setAttendees, linkEvent, unlinkEvent, startMeeting, stopMeeting, withStopState } from '../src/main/meeting'
+import { activeMeeting, bindMeetingApp, getMeeting, initMeetings, onMeetingChange, onMeetingStart, onMeetingStop, onMeetingStopSaved, prepareMeeting, startPreparedMeeting, resumeMeeting, pauseMeetingClock, renameMeeting, retryStopSave, setAttendees, refreshEventSnapshots, linkEvent, unlinkEvent, startMeeting, stopMeeting, withStopState } from '../src/main/meeting'
 
 let store: Store
 beforeEach(() => { store = openStore(':memory:'); initMeetings(store) })
@@ -171,7 +171,7 @@ describe('meeting lifecycle', () => {
     renameMeeting(m.id, 'My edited title')
     setAttendees(m.id, [{ name: 'Bo', email: 'bo@example.com' }])
     store.setNotes(m.id, { mine: 'Keep these notes.' })
-    const before = getMeeting(m.id)!
+    const { eventStartedAt, eventEndedAt, eventTitle, eventCalendarName, eventCalendarSource, ...before } = getMeeting(m.id)!
     expect(unlinkEvent(m.id)).toEqual({ ...before, eventId: null })
     expect(activeMeeting()).toEqual({ ...before, eventId: null })
     expect(store.notes(m.id).mine).toBe('Keep these notes.')
@@ -325,4 +325,40 @@ describe('meeting lifecycle', () => {
     expect(renameMeeting(m.id, 'x'.repeat(500))!.title).toHaveLength(200)
     expect(renameMeeting('nope', 'Hello')).toBeUndefined()
   })
+})
+
+it('captures event details on prepare, recording and relink, and clears them on unlink', () => {
+  const scheduled = { ...event, calendar: { id: 'work', name: 'Work', source: 'Calendar' } }
+  const snapshot = { eventStartedAt: event.start, eventEndedAt: event.end, eventTitle: event.title, eventCalendarName: 'Work', eventCalendarSource: 'Calendar' }
+  const prepared = prepareMeeting(scheduled)
+  expect(store.meeting(prepared.id)).toMatchObject(snapshot)
+  const recording = startMeeting({ title: 'A note', event: { ...scheduled, id: 'other' }, app: null })
+  expect(store.meeting(recording.id)).toMatchObject(snapshot)
+  linkEvent(recording.id, { ...event, title: 'New event', end: 4000 })
+  expect(store.meeting(recording.id)).toMatchObject({ eventEndedAt: 4000, eventTitle: 'New event' })
+  expect(store.meeting(recording.id)?.eventCalendarName).toBeUndefined()
+  expect(store.meeting(recording.id)?.eventCalendarSource).toBeUndefined()
+  unlinkEvent(recording.id)
+  for (const key of Object.keys(snapshot)) expect(store.meeting(recording.id)).not.toHaveProperty(key)
+})
+it('calendar reads refresh active snapshots without changing manual edits or notifying on identical reads', () => {
+  const m = startMeeting({ title: 'My title', event, app: null })
+  setAttendees(m.id, [{ name: 'My person', email: null }])
+  store.setNotes(m.id, { mine: 'Keep my notes' })
+  const heard = vi.fn(), off = onMeetingChange(heard)
+  try {
+    const changed = { ...event, title: 'Renamed event', start: 1500, end: 5000, calendar: { id: 'work', name: 'Work', source: 'Calendar' } }
+    refreshEventSnapshots([changed])
+    expect(activeMeeting()).toMatchObject({ title: 'My title', eventTitle: 'Renamed event', eventStartedAt: 1500, eventEndedAt: 5000, eventCalendarName: 'Work', attendees: [{ name: 'My person', email: null }] })
+    expect(store.notes(m.id).mine).toBe('Keep my notes')
+    expect(heard).toHaveBeenCalledTimes(1)
+    refreshEventSnapshots([changed])
+    expect(heard).toHaveBeenCalledTimes(1)
+    refreshEventSnapshots([])
+    expect(store.meeting(m.id)?.eventEndedAt).toBe(5000)
+    const fail = vi.spyOn(store, 'rememberEvent').mockImplementation(() => { throw new Error('disk full') })
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try { expect(() => refreshEventSnapshots([event])).not.toThrow(); expect(warn).toHaveBeenCalled() }
+    finally { fail.mockRestore(); warn.mockRestore() }
+  } finally { off() }
 })

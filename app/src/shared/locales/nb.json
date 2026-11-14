@@ -1,4 +1,6 @@
 {
+  "Link event": "Koble til hendelse",
+  "No events": "Ingen hendelser",
   "Go to {date}": "Gå til {date}",
   "Resume notes · {title}": "Fortsett notater · {title}",
   "Take notes · {title}": "Ta notater · {title}",
@@ -18,7 +20,6 @@
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt kunne ikke oppdatere koblingen til kalenderen. Prøv igjen.",
   "Keep the title, attendees and notes.": "Behold tittel, deltakere og notater.",
   "Unlink calendar event": "Koble fra kalenderhendelse",
-  "No calendar events on this day.": "Ingen kalenderhendelser denne dagen.",
   "Select calendar event": "Velg kalenderhendelse",
   "(me)": "(meg)",
   "A folder keeps related meetings together. A meeting can be in more than one.": "En mappe holder møter som hører sammen, samlet. Et møte kan ligge i flere mapper.",

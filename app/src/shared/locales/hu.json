@@ -1,4 +1,6 @@
 {
+  "Link event": "Esemény csatolása",
+  "No events": "Nincs esemény",
   "Go to {date}": "Ugrás erre a napra: {date}",
   "Resume notes · {title}": "Jegyzetelés folytatása · {title}",
   "Take notes · {title}": "Jegyzetelés · {title}",
@@ -18,7 +20,6 @@
   "Yogurt couldn't update the calendar link. Try again.": "A Yogurt nem tudta frissíteni a naptárkapcsolatot. Próbáld újra.",
   "Keep the title, attendees and notes.": "A cím, a résztvevők és a jegyzetek megtartása.",
   "Unlink calendar event": "Naptáresemény leválasztása",
-  "No calendar events on this day.": "Ezen a napon nincs esemény.",
   "Select calendar event": "Naptáresemény kiválasztása",
   "(me)": "(én)",
   "A folder keeps related meetings together. A meeting can be in more than one.": "A mappa egyben tartja az összetartozó megbeszéléseket. Egy megbeszélés több mappában is lehet.",

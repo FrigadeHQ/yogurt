@@ -1,4 +1,6 @@
 {
+  "Link event": "I-link ang event",
+  "No events": "Walang event",
   "Go to {date}": "Pumunta sa {date}",
   "Resume notes · {title}": "Ipagpatuloy ang mga tala · {title}",
   "Take notes · {title}": "Mag-note · {title}",
@@ -18,7 +20,6 @@
   "Yogurt couldn't update the calendar link. Try again.": "Hindi ma-update ng Yogurt ang link sa calendar. Subukan ulit.",
   "Keep the title, attendees and notes.": "Panatilihin ang pamagat, mga kalahok at mga note.",
   "Unlink calendar event": "Alisin ang link sa event ng calendar",
-  "No calendar events on this day.": "Walang event sa araw na ito.",
   "Select calendar event": "Pumili ng event sa calendar",
   "(me)": "(ako)",
   "A folder keeps related meetings together. A meeting can be in more than one.": "Pinagsasama-sama ng folder ang magkakaugnay na meeting. Puwedeng nasa higit sa isang folder ang isang meeting.",

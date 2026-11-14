@@ -1,4 +1,6 @@
 {
+  "Link event": "Połącz wydarzenie",
+  "No events": "Brak wydarzeń",
   "Go to {date}": "Przejdź do {date}",
   "Resume notes · {title}": "Wznów notowanie · {title}",
   "Take notes · {title}": "Rób notatki · {title}",
@@ -18,7 +20,6 @@
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt nie mógł zaktualizować połączenia z kalendarzem. Spróbuj ponownie.",
   "Keep the title, attendees and notes.": "Zachowaj tytuł, uczestników i notatki.",
   "Unlink calendar event": "Odłącz wydarzenie z kalendarza",
-  "No calendar events on this day.": "Brak wydarzeń tego dnia.",
   "Select calendar event": "Wybierz wydarzenie z kalendarza",
   "(me)": "(ja)",
   "A folder keeps related meetings together. A meeting can be in more than one.": "Folder trzyma razem powiązane spotkania. Spotkanie może być w kilku folderach.",

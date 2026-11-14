@@ -1,4 +1,6 @@
 {
+  "Link event": "連結活動",
+  "No events": "沒有活動",
   "Go to {date}": "前往{date}",
   "Resume notes · {title}": "繼續記筆記 · {title}",
   "Take notes · {title}": "做筆記 · {title}",
@@ -18,7 +20,6 @@
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt 無法更新行事曆連結。請再試一次。",
   "Keep the title, attendees and notes.": "保留標題、與會者和筆記。",
   "Unlink calendar event": "取消連結行事曆活動",
-  "No calendar events on this day.": "這一天沒有行事曆活動。",
   "Select calendar event": "選擇行事曆活動",
   "(me)": "（我）",
   "A folder keeps related meetings together. A meeting can be in more than one.": "資料夾能把相關的會議放在一起。一個會議可以放進多個資料夾。",

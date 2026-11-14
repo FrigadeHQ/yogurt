@@ -730,21 +730,39 @@ html:not(.widget) button:focus-visible, html:not(.widget) input:focus-visible { 
 :is(.line-who,.widget-preview-speaker)[data-folder-color] { color:var(--folder-ink); }
 
 /* Calendar linking lives in the date popover; attendee editing stays in People. */
+.note-date-card { --note-date-ms:var(--dur-base);--note-date-ease:var(--ease-out); }
+.note-date-swap { position:relative;overflow:hidden; }
+.note-date-retiring { position:absolute;inset:0 0 auto;pointer-events:none; }
+.note-date-retiring,.note-date-retiring * { animation:none!important;transition:none!important; }
+@media (prefers-reduced-motion:reduce) { .note-date-card { --note-date-ms:0ms; } }
+.note-date-card .agenda-inspector-heading h3 { flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.note-date-linked { display:flex;flex-direction:column; }
+.note-date-picker-space { padding-top:8px; }
+.note-date-motion,.note-date-motion[data-open=true] { transition:grid-template-rows var(--note-date-ms) var(--note-date-ease),margin-top var(--note-date-ms) var(--note-date-ease); }
+.note-date-motion>* { filter:none;transition:opacity var(--note-date-ms) var(--note-date-ease),visibility 0s var(--note-date-ms); }
+.note-date-motion[data-open=true]>* { filter:none;transition:opacity var(--note-date-ms) var(--note-date-ease),visibility 0s; }
+/* Cancel the parent's row gap as the compact switcher replaces the details. */
+.note-date-details-motion[data-open=false] { margin-top:-16px; }
+.note-date-linked .note-date-picker { border:1px solid var(--line);border-radius:6px;padding:4px;background:var(--card); }
+.note-date-details { display:flex;flex-direction:column;gap:16px; }
+.note-date-empty-row { display:flex;align-items:center;justify-content:space-between;gap:8px;white-space:nowrap; }
+.note-date-empty-row>p { min-width:0;overflow:hidden;text-overflow:ellipsis; }
+.note-date-event-toggle[aria-expanded=true]>svg { transform:rotate(180deg); }
 .note-date-event-toggle { display:flex;align-items:center;gap:8px;width:100%;text-align:start;border-radius:4px; }
-.note-date-event-toggle>span { flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis; }
-.note-date-event-toggle>svg { flex:none;color:var(--muted); }
+.note-date-event-toggle>span { white-space:nowrap;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis; }
+.note-date-event-toggle>svg { flex:none;color:var(--muted);transition:transform var(--note-date-ms) var(--note-date-ease); }
+@media (prefers-reduced-motion:reduce) { .note-date-motion,.note-date-motion[data-open=true],.note-date-motion>*,.note-date-motion[data-open=true]>*,.note-date-event-toggle>svg { transition:none; } }
 .note-date-link { display:flex;align-items:center;gap:8px;width:100%;padding:8px;border-radius:6px;text-align:start;font-size:12px;color:var(--muted); }
 .note-date-link:hover,.note-date-event:hover { background:var(--card);color:var(--ink); }
+.note-date-card .note-date-picker button:focus-visible { outline-offset:-2px; }
 .note-date-link small { display:block;margin-top:3px;font-size:11px; }
-.note-date-days { display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;font-size:12px; }
 .note-date-events { max-height:240px;overflow-y:auto;overscroll-behavior:contain; }
-.note-date-events>p,.note-date-calendar-error { padding:12px 8px;font-size:12px;color:var(--muted); }
+.note-date-events>p { padding:12px 8px;font-size:12px;color:var(--muted); }
 .note-date-event { display:flex;align-items:center;gap:8px;width:100%;padding:8px;border-radius:6px;text-align:start; }
 .note-date-event>span { flex:1;min-width:0; }
 .note-date-event strong,.note-date-event small { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
 .note-date-event strong { font-size:13px;font-weight:500; }
 .note-date-event small { margin-top:3px;font-size:11px;color:var(--muted); }
-.note-date-event>svg { flex:none;color:var(--accent); }
 
 
 /* Data changes opacity, never the geometry of its reading surface. */

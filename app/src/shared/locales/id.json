@@ -1,4 +1,6 @@
 {
+  "Link event": "Tautkan acara",
+  "No events": "Tidak ada acara",
   "Go to {date}": "Buka tanggal {date}",
   "Resume notes · {title}": "Lanjutkan catatan · {title}",
   "Take notes · {title}": "Catat · {title}",
@@ -18,7 +20,6 @@
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt tidak bisa memperbarui tautan kalender. Coba lagi.",
   "Keep the title, attendees and notes.": "Pertahankan judul, peserta, dan catatan.",
   "Unlink calendar event": "Lepaskan tautan acara kalender",
-  "No calendar events on this day.": "Tidak ada acara kalender pada hari ini.",
   "Select calendar event": "Pilih acara kalender",
   "(me)": "(saya)",
   "A folder keeps related meetings together. A meeting can be in more than one.": "Folder menyatukan rapat yang saling terkait. Satu rapat bisa ada di lebih dari satu folder.",

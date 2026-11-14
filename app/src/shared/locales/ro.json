@@ -1,4 +1,6 @@
 {
+  "Link event": "Leagă eveniment",
+  "No events": "Niciun eveniment",
   "Go to {date}": "Mergi la {date}",
   "Resume notes · {title}": "Reia notițele · {title}",
   "Take notes · {title}": "Luați notițe · {title}",
@@ -18,7 +20,6 @@
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt nu a putut actualiza legătura cu calendarul. Încercați din nou.",
   "Keep the title, attendees and notes.": "Păstrați titlul, participanții și notițele.",
   "Unlink calendar event": "Dezlegați evenimentul din calendar",
-  "No calendar events on this day.": "Niciun eveniment în această zi.",
   "Select calendar event": "Alegeți un eveniment din calendar",
   "(me)": "(eu)",
   "A folder keeps related meetings together. A meeting can be in more than one.": "Un dosar ține împreună întâlnirile legate între ele. O întâlnire poate fi în mai multe dosare.",

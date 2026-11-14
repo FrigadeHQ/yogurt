@@ -60,7 +60,7 @@ describe('backup merge', () => {
     const from = fresh(), into = fresh()
     const shared = fill(from, 'Weekly sync', 'budget')
     const fresh1 = fill(from, 'Pricing', 'pricing')
-    from.updateMeeting(fresh1.id, { eventId: 'next-day-event', eventStartedAt: 86_401_000 })
+    from.updateMeeting(fresh1.id, { eventId: 'next-day-event', eventStartedAt: 86_401_000, eventEndedAt: 88_201_000, eventTitle: 'Pricing meeting', eventCalendarName: 'Work', eventCalendarSource: 'Calendar' })
     const colours = from.speakerOrder(fresh1.id)
     // the same meeting is already here, with notes the person changed since: never overwritten
     into.db.prepare('INSERT INTO meetings (id, title, started_at, attendees, state) VALUES (?, ?, ?, ?, ?)').run(shared.id, 'My own title', 1, '[]', 'done')
@@ -71,7 +71,7 @@ describe('backup merge', () => {
     expect(r).toEqual({ added: [fresh1.id], skipped: 1 })
     expect(into.meeting(shared.id)?.title).toBe('My own title')
     expect(into.notes(shared.id).mine).toBe('kept as it is')
-    expect(into.meeting(fresh1.id)).toMatchObject({ eventId: 'next-day-event', eventStartedAt: 86_401_000, title: 'Pricing', attendees: [{ name: 'Ann Lee', email: null }], state: 'done' })
+    expect(into.meeting(fresh1.id)).toMatchObject({ eventId: 'next-day-event', eventStartedAt: 86_401_000, eventEndedAt: 88_201_000, eventTitle: 'Pricing meeting', eventCalendarName: 'Work', eventCalendarSource: 'Calendar', title: 'Pricing', attendees: [{ name: 'Ann Lee', email: null }], state: 'done' })
     expect(into.segments(fresh1.id).map((s) => s.text)).toEqual(['We talked about the pricing plan'])
     expect(into.segments(fresh1.id, { hidden: true })).toHaveLength(2)
     expect(into.segments(fresh1.id).map((s) => s.speaker)).toEqual(['Bo Park'])

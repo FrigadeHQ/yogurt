@@ -1,4 +1,6 @@
 {
+  "Link event": "关联活动",
+  "No events": "没有活动",
   "Go to {date}": "转到{date}",
   "Resume notes · {title}": "继续记笔记 · {title}",
   "Take notes · {title}": "记笔记 · {title}",
@@ -18,7 +20,6 @@
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt 无法更新日历链接。请重试。",
   "Keep the title, attendees and notes.": "保留标题、参会人和笔记。",
   "Unlink calendar event": "取消关联日历事件",
-  "No calendar events on this day.": "这一天没有日历事件。",
   "Select calendar event": "选择日历事件",
   "(me)": "（我）",
   "A folder keeps related meetings together. A meeting can be in more than one.": "文件夹把相关的会议放在一起。一个会议可以放进多个文件夹。",

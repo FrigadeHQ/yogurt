@@ -1,4 +1,6 @@
 {
+  "Link event": "Σύνδεση συμβάντος",
+  "No events": "Κανένα συμβάν",
   "Go to {date}": "Μετάβαση στις {date}",
   "Resume notes · {title}": "Συνέχιση σημειώσεων · {title}",
   "Take notes · {title}": "Κράτηση σημειώσεων · {title}",
@@ -18,7 +20,6 @@
   "Yogurt couldn't update the calendar link. Try again.": "Το Yogurt δεν μπόρεσε να ενημερώσει τη σύνδεση με το ημερολόγιο. Δοκιμάστε ξανά.",
   "Keep the title, attendees and notes.": "Διατήρηση τίτλου, συμμετεχόντων και σημειώσεων.",
   "Unlink calendar event": "Αποσύνδεση συμβάντος ημερολογίου",
-  "No calendar events on this day.": "Κανένα συμβάν αυτή την ημέρα.",
   "Select calendar event": "Επιλογή συμβάντος ημερολογίου",
   "(me)": "(εγώ)",
   "A folder keeps related meetings together. A meeting can be in more than one.": "Ένας φάκελος κρατά μαζί σχετικές συσκέψεις. Μια σύσκεψη μπορεί να είναι σε περισσότερους από έναν.",

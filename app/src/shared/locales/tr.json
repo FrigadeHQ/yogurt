@@ -1,4 +1,6 @@
 {
+  "Link event": "Etkinlik bağla",
+  "No events": "Etkinlik yok",
   "Go to {date}": "Şu tarihe git: {date}",
   "Resume notes · {title}": "Not almaya devam et · {title}",
   "Take notes · {title}": "Not al · {title}",
@@ -18,7 +20,6 @@
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt takvim bağlantısını güncelleyemedi. Yeniden deneyin.",
   "Keep the title, attendees and notes.": "Başlığı, katılımcıları ve notları koru.",
   "Unlink calendar event": "Takvim etkinliği bağlantısını kaldır",
-  "No calendar events on this day.": "Bu günde takvim etkinliği yok.",
   "Select calendar event": "Takvim etkinliği seç",
   "(me)": "(ben)",
   "A folder keeps related meetings together. A meeting can be in more than one.": "Klasör, birbiriyle ilgili toplantıları bir arada tutar. Bir toplantı birden fazla klasörde olabilir.",

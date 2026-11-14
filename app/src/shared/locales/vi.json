@@ -1,4 +1,6 @@
 {
+  "Link event": "Liên kết sự kiện",
+  "No events": "Không có sự kiện",
   "Go to {date}": "Đi đến {date}",
   "Resume notes · {title}": "Tiếp tục ghi chú · {title}",
   "Take notes · {title}": "Ghi chú · {title}",
@@ -18,7 +20,6 @@
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt không cập nhật được liên kết lịch. Hãy thử lại.",
   "Keep the title, attendees and notes.": "Giữ tiêu đề, người tham dự và ghi chú.",
   "Unlink calendar event": "Bỏ liên kết sự kiện lịch",
-  "No calendar events on this day.": "Không có sự kiện nào trong ngày này.",
   "Select calendar event": "Chọn sự kiện lịch",
   "(me)": "(tôi)",
   "A folder keeps related meetings together. A meeting can be in more than one.": "Thư mục gom các cuộc họp liên quan lại với nhau. Một cuộc họp có thể nằm trong nhiều thư mục.",

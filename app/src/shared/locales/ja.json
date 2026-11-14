@@ -1,4 +1,6 @@
 {
+  "Link event": "予定にリンク",
+  "No events": "予定はありません",
   "Go to {date}": "{date}に移動",
   "Resume notes · {title}": "メモを再開 · {title}",
   "Take notes · {title}": "メモを取る · {title}",
@@ -18,7 +20,6 @@
   "Yogurt couldn't update the calendar link. Try again.": "Yogurtはカレンダーとのリンクを更新できませんでした。もう一度お試しください。",
   "Keep the title, attendees and notes.": "タイトル、参加者、メモは残します。",
   "Unlink calendar event": "カレンダーの予定とのリンクを解除",
-  "No calendar events on this day.": "この日の予定はありません。",
   "Select calendar event": "カレンダーの予定を選択",
   "(me)": "（自分）",
   "A folder keeps related meetings together. A meeting can be in more than one.": "フォルダで関連するミーティングをまとめられます。1つのミーティングを複数のフォルダに入れることもできます。",

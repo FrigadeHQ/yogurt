@@ -1,4 +1,6 @@
 {
+  "Link event": "Tilknyt begivenhed",
+  "No events": "Ingen begivenheder",
   "Go to {date}": "Gå til {date}",
   "Resume notes · {title}": "Fortsæt noter · {title}",
   "Take notes · {title}": "Tag noter · {title}",
@@ -18,7 +20,6 @@
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt kunne ikke opdatere koblingen til kalenderen. Prøv igen.",
   "Keep the title, attendees and notes.": "Behold titel, deltagere og noter.",
   "Unlink calendar event": "Fjern kobling til kalenderbegivenhed",
-  "No calendar events on this day.": "Ingen kalenderbegivenheder denne dag.",
   "Select calendar event": "Vælg kalenderbegivenhed",
   "(me)": "(mig)",
   "A folder keeps related meetings together. A meeting can be in more than one.": "En mappe holder møder, der hører sammen, samlet. Et møde kan ligge i flere mapper.",

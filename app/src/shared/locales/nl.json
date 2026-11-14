@@ -1,4 +1,6 @@
 {
+  "Link event": "Afspraak koppelen",
+  "No events": "Geen afspraken",
   "Go to {date}": "Ga naar {date}",
   "Resume notes · {title}": "Notities hervatten · {title}",
   "Take notes · {title}": "Notities maken · {title}",
@@ -18,7 +20,6 @@
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt kon de koppeling met de agenda niet bijwerken. Probeer het opnieuw.",
   "Keep the title, attendees and notes.": "Titel, deelnemers en notities behouden.",
   "Unlink calendar event": "Agenda-item ontkoppelen",
-  "No calendar events on this day.": "Geen agenda-items op deze dag.",
   "Select calendar event": "Agenda-item kiezen",
   "(me)": "(ik)",
   "A folder keeps related meetings together. A meeting can be in more than one.": "Een map houdt verwante meetings bij elkaar. Een meeting kan in meer dan één map staan.",

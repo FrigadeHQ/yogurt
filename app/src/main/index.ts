@@ -42,7 +42,7 @@ import { calendars, eventIds, matchesEvent, setCalendarSelection, calendarStatus
 import { createSignals } from './detectSignals'
 import { Watcher } from './watch'
 import { createPrompts } from './prompts'
-import { activeMeeting, bindMeetingApp, getMeeting, initMeetings, onMeetingChange, onMeetingStart, onMeetingStop, onMeetingStopSaved, linkEvent, unlinkEvent, prepareMeeting, startPreparedMeeting, resumeMeeting, pauseMeetingClock, renameMeeting, retryStopSave, setAttendees, startMeeting, stopMeeting, stopSavePending, withStopState } from './meeting'
+import { activeMeeting, bindMeetingApp, getMeeting, initMeetings, onMeetingChange, onMeetingStart, onMeetingStop, onMeetingStopSaved, refreshEventSnapshots, linkEvent, unlinkEvent, prepareMeeting, startPreparedMeeting, resumeMeeting, pauseMeetingClock, renameMeeting, retryStopSave, setAttendees, startMeeting, stopMeeting, stopSavePending, withStopState } from './meeting'
 import { deleteMeeting } from './deleteMeeting'
 import { emptyTrash, moveToTrash, purgeTrash } from './trash'
 import { isId, text } from './ipcArgs'
@@ -246,18 +246,24 @@ let relaunched = 0
 /** fake mode: how many times Yogurt would have restarted to install a new version */
 let updateRestarts = 0
 
+async function readCalendar(from: number, to: number): Promise<CalEvent[]> {
+  const events = await upcoming(from, to)
+  refreshEventSnapshots(events)
+  return events
+}
+
 /** What is still to come today and tomorrow (meetings on now included), soonest first */
 async function comingUp(): Promise<CalEvent[]> {
   const now = isFake() ? fakeNow() : Date.now()
   const end = new Date(now); end.setDate(end.getDate() + 2); end.setHours(0, 0, 0, 0)
-  return (await upcoming(now, end.getTime())).filter((e) => e.end > now && e.start < end.getTime()).sort((a, b) => a.start - b.start)
+  return (await readCalendar(now, end.getTime())).filter((e) => e.end > now && e.start < end.getTime()).sort((a, b) => a.start - b.start)
 }
 
 /** The events on the day of this time, earliest first */
 async function eventsOn(at: number): Promise<CalEvent[]> {
   const from = new Date(at); from.setHours(0, 0, 0, 0)
   const to = new Date(from); to.setDate(to.getDate() + 1)
-  return (await upcoming(from.getTime(), to.getTime())).sort((a, b) => a.start - b.start)
+  return (await readCalendar(from.getTime(), to.getTime())).sort((a, b) => a.start - b.start)
 }
 
 /** the Mac's full name: who "You" is unless Settings says otherwise (fake mode: a fixed one) */
@@ -276,7 +282,7 @@ let indexerRef: { schedule(): Promise<unknown> } | undefined
 /** Notice calls, offer to take notes, stop when the call ends (or ask, with that setting off). Starts nothing without a click. */
 function startDetection() {
   if (isFake()) setHelper(fakeHelper)
-  const signals = createSignals({ helper: runHelper, events: upcoming })
+  const signals = createSignals({ helper: runHelper, events: readCalendar })
   refreshCalendarConsumers = () => signals.invalidateCalendar()
   const now = isFake() ? fakeNow : Date.now
   const watcher: Watcher = new Watcher({

@@ -1,4 +1,6 @@
 {
+  "Link event": "Propojit událost",
+  "No events": "Žádné události",
   "Go to {date}": "Přejít na {date}",
   "Resume notes · {title}": "Pokračovat v poznámkách · {title}",
   "Take notes · {title}": "Dělat poznámky · {title}",
@@ -18,7 +20,6 @@
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt nemohl aktualizovat propojení s kalendářem. Zkuste to znovu.",
   "Keep the title, attendees and notes.": "Zachovat název, účastníky a poznámky.",
   "Unlink calendar event": "Odpojit událost z kalendáře",
-  "No calendar events on this day.": "V tento den nejsou žádné události.",
   "Select calendar event": "Vybrat událost z kalendáře",
   "(me)": "(já)",
   "A folder keeps related meetings together. A meeting can be in more than one.": "Složka drží související schůzky pohromadě. Schůzka může být ve více složkách.",

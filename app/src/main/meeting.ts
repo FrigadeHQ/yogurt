@@ -56,12 +56,15 @@ export function startMeeting(p: { title: string; event: CalEvent | null; app: st
   if (!store) throw new Error('Meetings are not ready yet')
   if (active) return active
   const existing = p.event && eventIds(p.event).map((id) => store!.meetingForEvent(id)).find(Boolean)
+  if (existing) refreshEventSnapshots([p.event!])
   if (existing?.state === 'prepared') return startPreparedMeeting(existing.id, p.app)!
   // Finished notes open their guarded Resume action before capture can append to them.
-  if (existing) return withStopState(existing)
+  if (existing) return withStopState(store.meeting(existing.id)!)
   const title = p.title || t('Meeting')
   const m = store.createMeeting({
     title, titleSource: sourceOf(title, p.event?.id ?? null), startedAt: Date.now(), endedAt: null, eventId: p.event?.id ?? null,
+    ...(p.event ? { eventStartedAt: p.event.start, eventEndedAt: p.event.end, eventTitle: p.event.title,
+      ...(p.event.calendar ? { eventCalendarName: p.event.calendar.name, eventCalendarSource: p.event.calendar.source } : {}) } : {}),
     app: p.app, attendees: p.event?.attendees ?? [], state: 'recording',
   })
   active = m
@@ -80,10 +83,11 @@ export function bindMeetingApp(id: string, app: string): Meeting | undefined {
 export function prepareMeeting(event: CalEvent): Meeting {
   if (!store) throw new Error('Meetings are not ready yet')
   const existing = eventIds(event).map((id) => store!.meetingForEvent(id)).find(Boolean)
-  if (existing) return existing
+  if (existing) { refreshEventSnapshots([event]); return store.meeting(existing.id)! }
   const m = store.createMeeting({
     title: event.title || t('Meeting'), titleSource: 'calendar', startedAt: event.start, endedAt: null,
-    eventId: event.id, app: null, attendees: event.attendees, state: 'prepared',
+    eventId: event.id, eventStartedAt: event.start, eventEndedAt: event.end, eventTitle: event.title,
+    ...(event.calendar ? { eventCalendarName: event.calendar.name, eventCalendarSource: event.calendar.source } : {}), app: null, attendees: event.attendees, state: 'prepared',
   })
   store.markPrepared(m.id, event.end)
   run(changes, m)
@@ -196,13 +200,26 @@ export function linkEvent(id: string, event: CalEvent): Meeting | undefined {
   const meeting = store?.meeting(id)
   if (!store || !meeting) return undefined
   if (meeting.state === 'prepared') store.markPrepared(id, event.end)
-  return update(id, { eventId: event.id, eventStartedAt: event.start, title: event.title || meeting.title, ...(event.title ? { titleSource: 'calendar' as const } : {}), attendees: event.attendees })
+  return update(id, { eventId: event.id, eventStartedAt: event.start, eventEndedAt: event.end, eventTitle: event.title, eventCalendarName: event.calendar?.name ?? null, eventCalendarSource: event.calendar?.source ?? null, title: event.title || meeting.title, ...(event.title ? { titleSource: 'calendar' as const } : {}), attendees: event.attendees })
+}
+
+/** Reading a calendar updates its snapshot, never the person's title, attendees or notes. */
+export function refreshEventSnapshots(events: CalEvent[]) {
+  if (!store) return
+  for (const event of events) {
+    try {
+      for (const m of store.rememberEvent(event)) {
+        if (active?.id === m.id) active = m
+        run(changes, m)
+      }
+    } catch (e) { console.warn('could not save calendar snapshot', e) }
+  }
 }
 
 /** Remove only the calendar association; the title, people and notes belong to the person now. */
 export function unlinkEvent(id: string): Meeting | undefined {
   if (!store || !store.meeting(id)) return undefined
-  return update(id, { eventId: null, eventStartedAt: null })
+  return update(id, { eventId: null, eventStartedAt: null, eventEndedAt: null, eventTitle: null, eventCalendarName: null, eventCalendarSource: null })
 }
 
 function update(id: string, patch: Partial<Omit<Meeting, 'id'>>): Meeting {

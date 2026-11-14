@@ -1,4 +1,6 @@
 {
+  "Link event": "ইভেন্ট লিঙ্ক করুন",
+  "No events": "কোনো ইভেন্ট নেই",
   "Go to {date}": "{date} তারিখে যান",
   "Resume notes · {title}": "নোট নেওয়া চালিয়ে যান · {title}",
   "Take notes · {title}": "নোট নিন · {title}",
@@ -18,7 +20,6 @@
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt ক্যালেন্ডারের লিংক আপডেট করতে পারেনি। আবার চেষ্টা করুন।",
   "Keep the title, attendees and notes.": "শিরোনাম, অংশগ্রহণকারী ও নোট রাখুন।",
   "Unlink calendar event": "ক্যালেন্ডার ইভেন্টের সংযোগ সরান",
-  "No calendar events on this day.": "এই দিনে কোনো ক্যালেন্ডার ইভেন্ট নেই।",
   "Select calendar event": "ক্যালেন্ডার ইভেন্ট বেছে নিন",
   "(me)": "(আমি)",
   "A folder keeps related meetings together. A meeting can be in more than one.": "ফোল্ডার সম্পর্কিত মিটিংগুলো একসাথে রাখে। একটি মিটিং একাধিক ফোল্ডারে থাকতে পারে।",
