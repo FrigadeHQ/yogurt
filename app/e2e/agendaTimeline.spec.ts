@@ -92,11 +92,47 @@ test('granting calendar access initializes the timeline after events arrive, inc
     await page.getByTestId('event').last().getByTestId('event-details').click()
     const details = page.getByTestId('event-details-content')
     await expect(details.getByRole('heading')).toHaveText('Earlier 17')
-    await expect(details.getByTestId('event-open')).toHaveCount(0)
+    await expect(details.getByTestId('event-open')).toHaveText('Prepare note')
     await expect(page.getByTestId('event-start')).toHaveCount(0)
     expect(await page.evaluate(() => window.yogurt.meetings.cards({ limit: 10 }))).toEqual([])
     await page.keyboard.press('Escape')
     await expect(details).toHaveCount(0)
     await expect(page.getByTestId('event').last().getByTestId('event-details')).toBeFocused()
+  } finally { await app.close() }
+})
+
+test('a solo timed block can be prepared and then recorded from its agenda details', async () => {
+  const app = await electron.launch({ args: [join(import.meta.dirname, '../out/main/index.js')], env: {
+    ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: mkdtempSync(join(tmpdir(), 'agenda-solo-')),
+  } })
+  try {
+    const page = await app.firstWindow()
+    await expect(page.getByTestId('home')).toBeVisible()
+    const now = new Date(); now.setHours(12, 0, 0, 0)
+    const start = +now + 60_000
+    await page.clock.setFixedTime(now)
+    await app.evaluate(async (_e, now) => {
+      await (globalThis as any).__fake__.advance(now - Date.now())
+      ;(globalThis as any).__fake__.calendarEvents([{ id: 'solo', title: 'Focus block', start: new Date(now + 60_000).toISOString(), end: new Date(now + 1_800_000).toISOString(), attendees: [], url: null }])
+    }, +now)
+    await page.reload()
+    await page.getByTestId('event-details').click()
+    const action = page.getByTestId('event-details-content').getByTestId('event-open')
+    await expect(action).toHaveText('Prepare note')
+    await action.click()
+    await expect(page.getByTestId('note')).toBeVisible()
+    const [prepared] = await page.evaluate(() => window.yogurt.meetings.cards({ limit: 10 }))
+    expect(prepared.state).toBe('prepared')
+    await page.getByTestId('nav-home').click()
+    await page.clock.setFixedTime(start)
+    await app.evaluate(async () => { await (globalThis as any).__fake__.advance(60_000) })
+    await page.reload()
+    await page.getByTestId('event-details').click()
+    await expect(action).toHaveText('Take notes')
+    await action.click()
+    await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
+    const notes = await page.evaluate(() => window.yogurt.meetings.cards({ limit: 10 }))
+    expect(notes).toHaveLength(1)
+    expect(notes[0].id).toBe(prepared.id)
   } finally { await app.close() }
 })

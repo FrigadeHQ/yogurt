@@ -9,13 +9,14 @@ it('resumes only stopped or completed notes', () => {
     expect(resumesNote({ id: 'note', state })).toBe(state === 'stopped' || state === 'done')
   }
 })
-it('offers one note action and leaves solo blocks alone', () => {
+it('offers one note action, solo blocks included', () => {
   expect(agendaNoteAction(event, undefined, 50)).toBe('prepare')
   expect(agendaNoteAction(event, undefined, 150)).toBe('start')
   expect(agendaNoteAction({ ...event, note: { id: 'note', state: 'done' } }, undefined, 150)).toBe('open')
   expect(agendaNoteAction({ ...event, note: { id: 'note', state: 'prepared' } }, undefined, 150)).toBe('start')
-  expect(agendaNoteAction({ ...event, attendees: [] }, undefined, 150)).toBeNull()
-  expect(agendaNoteAction({ ...event, attendees: [], url: 'https://meet.google.com/abc' }, undefined, 50)).toBe('prepare')
+  expect(agendaNoteAction({ ...event, attendees: [] }, undefined, 50)).toBe('prepare')
+  expect(agendaNoteAction({ ...event, attendees: [] }, undefined, 150)).toBe('start')
+  expect(agendaNoteAction({ ...event, attendees: [], url: 'https://example.com/meeting' }, undefined, 50)).toBe('prepare')
 })
 describe('unused prepared notes', () => {
   const empty = { state: 'prepared', eventEnd: 0, openedAt: 0, mine: '', enhanced: null, segments: 0, userEdited: false }

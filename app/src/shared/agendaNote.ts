@@ -4,10 +4,8 @@ export const resumesNote = (note: AgendaEvent['note']): boolean => note?.state =
 
 export function agendaNoteAction(event: AgendaEvent, recording: MeetingCard | undefined, now: number): 'start' | 'open' | 'prepare' | null {
   const note = recording?.eventId === event.id ? recording : event.note
-  const meeting = event.attendees.length > 0 || !!event.url?.trim() // EventKit already excludes the owner.
-  if (meeting && !recording && (!note || note.state === 'prepared') && event.start <= now && event.end > now) return 'start'
-  if (note) return 'open'
-  return meeting ? 'prepare' : null
+  if (!recording && (!note || note.state === 'prepared') && event.start <= now && event.end > now) return 'start'
+  return note ? 'open' : 'prepare'
 }
 
 export const DAY_MS = 86_400_000

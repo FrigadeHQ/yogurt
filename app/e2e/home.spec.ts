@@ -145,7 +145,8 @@ test('agenda opens details on demand and the title bar records the current event
     await event('Earlier meeting').getByTestId('event-details').click()
     await expect(page.getByTestId('home')).toBeVisible()
     await expect(details.getByRole('heading')).toHaveText('Earlier meeting')
-    await expect(details.getByTestId('event-open')).toHaveCount(0)
+    await expect(details.getByTestId('event-open')).toHaveText('Prepare note')
+    await expect(details.getByTestId('event-open')).toBeVisible()
     expect(await page.evaluate(() => window.yogurt.meetings.cards({ limit: 50 }))).toEqual([])
     await details.getByRole('button', { name: 'Close', exact: true }).click()
 
@@ -491,6 +492,7 @@ test('agenda detail cards support keyboard entry, dismissal and return focus wit
   const { app, page } = await launch()
   try {
     const at = new Date(); at.setHours(12, 0, 0, 0)
+    await page.clock.setFixedTime(at.getTime() - 60_000)
     const base = { start: at.toISOString(), end: new Date(at.getTime() + 30 * 60_000).toISOString() }
     await fake(app, 'calendarEvents', [
       { ...base, id: 'no-details', title: 'Focus time', attendees: [], url: '   ' },
@@ -504,7 +506,8 @@ test('agenda detail cards support keyboard entry, dismissal and return focus wit
     await expect(details.getByRole('heading')).toHaveText('Focus time')
     await expect(details).toContainText('12:00 PM – 12:30 PM')
     await expect(details.getByRole('link')).toHaveCount(0)
-    await expect(details.getByTestId('event-open')).toHaveCount(0)
+    await expect(details.getByTestId('event-open')).toHaveText('Prepare note')
+    await expect(details.getByTestId('event-open')).toBeVisible()
     expect(await details.evaluate(el => el.matches(':modal'))).toBe(false)
     await expect(details.getByRole('heading')).toBeFocused()
     await expect(details.getByRole('button', { name: 'Close', exact: true })).not.toBeFocused()
