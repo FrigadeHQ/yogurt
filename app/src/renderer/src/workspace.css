@@ -222,7 +222,7 @@
 .agenda-event[data-selected=true] .agenda-title { color:var(--ink); }
 .agenda-time { font-size:10px;line-height:17px;color:var(--muted);padding-top:0;font-variant-numeric:tabular-nums;text-align:end;white-space:nowrap; }
 .agenda-heading { display:flex;align-items:center;gap:8px;min-height:17px; }
-.agenda-marker { flex:none;display:inline-flex;width:23px;height:17px;justify-content:center;align-items:center;position:relative;z-index:1;color:var(--muted); }
+.agenda-marker { flex:none;display:inline-flex;width:23px;height:17px;justify-content:center;align-items:center;position:relative;pointer-events:none;color:var(--muted); }
 .agenda-event[data-recording=true] .agenda-marker { color:var(--accent); }
 .agenda-levels { flex:none;transform:scale(.85); }
 .agenda-event h3 { flex:1;min-width:0;font-size:11px;line-height:17px;font-weight:400; }

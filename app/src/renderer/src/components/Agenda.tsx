@@ -168,7 +168,7 @@ export function Event({ event, me, now, near, initial, selected, onInspect, reco
     <div className="agenda-event-body">
       <div className="agenda-heading">
         <h3><button disabled={loading} data-testid={loading ? undefined : "event-details"} className="agenda-title" aria-expanded={selected} aria-controls={selected ? "agenda-event-details" : undefined} onClick={e => onInspect(e.currentTarget)}>{loading ? <span className="loading-bar" style={{ width: '85%' }} /> : event.title || t('Meeting')}</button></h3>
-        {!loading && marker && <span className="agenda-marker" role="img" aria-label={marker} title={marker}>
+        {!loading && marker && <span className="agenda-marker" role="img" aria-label={marker}>
           {mine ? <LevelBars height={14} className="agenda-levels" testId="agenda-recording-levels" paused={recording.paused} stillBars /> : <FileText size={13} strokeWidth={1.75} aria-hidden="true" />}
         </span>}
       </div>

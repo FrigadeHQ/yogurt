@@ -34,12 +34,13 @@ it('colors the rail only for live or recording rows, independent of saved notes'
 it('uses a muted note icon in the title slot only when notes exist', () => {
   expect(render()).not.toContain('agenda-marker')
   const html = render({ event: saved, now: 200 })
-  expect(html).toContain('aria-label="Has notes" title="Has notes"')
+  expect(html).toContain('aria-label="Has notes"')
   expect(html).toContain('lucide-file-text')
   expect(html).toContain('width="13" height="13"')
   expect(html.indexOf('aria-label="Has notes"')).toBeGreaterThan(html.indexOf('</h3>'))
   expect(html).not.toContain('agenda-recording-levels')
   expect(css).toMatch(/\.agenda-marker \{[^}]*color:var\(--muted\)/)
+  expect(css).toMatch(/\.agenda-marker \{[^}]*pointer-events:none/)
 })
 
 it('replaces the icon with the real meter when recording starts or resumes, including after the event ends', () => {
@@ -47,7 +48,7 @@ it('replaces the icon with the real meter when recording starts or resumes, incl
     for (const active of [recording, undefined, recording]) {
       const html = render({ event: row, now, recording: active })
       if (active) {
-        expect(html).toContain('aria-label="Recording" title="Recording"')
+        expect(html).toContain('aria-label="Recording"')
         expect(html).toContain('<canvas data-testid="agenda-recording-levels"')
         expect(html).not.toContain('lucide-file-text')
         expect(html).not.toContain('Has notes')
@@ -64,7 +65,7 @@ it('replaces the icon with the real meter when recording starts or resumes, incl
 
 it('labels paused bars and keeps markers out of loading rows', () => {
   const html = render({ event: saved, recording: { ...recording, paused: true } })
-  expect(html).toContain('aria-label="Paused" title="Paused"')
+  expect(html).toContain('aria-label="Paused"')
   expect(html).toContain('agenda-recording-levels')
   expect(html).not.toContain('lucide-file-text')
   expect(html).not.toContain('>Paused<')
