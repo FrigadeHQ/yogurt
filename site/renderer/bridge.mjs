@@ -49,7 +49,7 @@ window.yogurt = {
     stop:async()=>{},
   },
   settings: { get: read({ theme: 'dark', locale: 'en', systemLocale: 'en', language: '', spoken: 'en', myName: 'You', macName: 'You', recordingReminder: false }), onLanguage: off },
-  audio: { tracks: read([]), mics: read({ devices: [], choice: null, using: 'Mac microphone', defaultName: 'Mac microphone' }), onMics: off },
+  audio: { tracks: read([]), onDeleted: off, mics: read({ devices: [], choice: null, using: 'Mac microphone', defaultName: 'Mac microphone' }), onMics: off },
   folders: { suggestion:read(null), of: read([folders[0]]), list: read(folders), onChange: off },
   onboarding: { nudge: read([]) }, nav: { go: noop, takeAsk: read(false), onAsk: off }, share: { copy: read('failed'), save: read('cancelled') },
 }

@@ -24,8 +24,6 @@ html[data-playing=false] *,html[data-playing=false] *::before,html[data-playing=
 .cursor-ring{fill:none;stroke:white;stroke-width:1.5px;opacity:0;transform-origin:4px 3px;transform:scale(.6);transition:transform 240ms ease-out,opacity 180ms ease-out}
 .marketing-cursor[data-clicking=true] .cursor-ring{opacity:.3;transform:scale(1)}
 
-/* Fixture replay hides future lines without exposing the app's duplicate-recovery controls. */
-[data-testid=transcript-hidden-toggle],.transcript-echo{display:none}
 html[data-typing=true] [data-testid=note-mine] li:last-child p::after{content:'';display:inline-block;height:1em;border-right:1.5px solid currentColor;vertical-align:-.1em;animation:demo-caret 900ms step-end infinite}
 /* Tiptap's empty paragraph ends in a break; keep its preview caret on that line. */
 html[data-typing=true] [data-testid=note-mine] li:last-child p:has(>br:only-child){position:relative}

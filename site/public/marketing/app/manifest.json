@@ -1,6 +1,10 @@
 {
-  "appCommit": "f07515bb86d8169e5be57f8ab7ccf9c79ccacf4e",
-  "generatedAt": "2026-11-13T22:24:52.250Z",
+  "appCommit": "86854aa0f96371978d42eae435b5681c0638787d",
+  "sourceOverrides": {
+    "app/src/renderer/src/components/Logo.tsx": "bd3d73de6e1c5ffba88d83042c2cf7510b8c47b4",
+    "app/src/renderer/src/workspace.css": "1e1c0d07eec486691d71844446c3f73700ac5ef4"
+  },
+  "generatedAt": "2026-11-14T16:33:43.337Z",
   "source": "app/src/renderer",
   "fixture": "site/renderer/bridge.mjs",
   "nativeCode": false,
@@ -54,10 +58,12 @@
     "app/src/renderer/src/components/ViewPill.tsx",
     "app/src/renderer/src/components/Workspace.tsx",
     "app/src/renderer/src/dates.ts",
+    "app/src/renderer/src/folderSelection.ts",
     "app/src/renderer/src/folders.ts",
     "app/src/renderer/src/followLatest.ts",
     "app/src/renderer/src/i18n.tsx",
     "app/src/renderer/src/keys.ts",
+    "app/src/renderer/src/meetingSelection.ts",
     "app/src/renderer/src/motion.ts",
     "app/src/renderer/src/noteAutosave.ts",
     "app/src/renderer/src/noteMerge.ts",
@@ -65,6 +71,7 @@
     "app/src/renderer/src/screens/Note.tsx",
     "app/src/renderer/src/streamingInk.ts",
     "app/src/renderer/src/styles.css",
+    "app/src/renderer/src/trashMeetings.ts",
     "app/src/renderer/src/useFollowLatest.ts",
     "app/src/renderer/src/useLoadingState.ts",
     "app/src/renderer/src/useNotePopover.ts",
@@ -108,15 +115,15 @@
       "sha256": "45e4eb19dcb4fc8ce3825d6cfeeb1d8f8d7a16e09ee4583a005518c880f028e4"
     },
     "renderer.css": {
-      "bytes": 245067,
-      "gzipBytes": 83219,
-      "sha256": "524a6eeb71c14d096c5f2a64d22695c18d7587b8eeb5f93eb30da866ff2a0d1a"
+      "bytes": 255346,
+      "gzipBytes": 84416,
+      "sha256": "76f09d60ce9d5a1511ae8014e11b20c221f93588002741dc8e6bdcb245463ed7"
     },
     "renderer.js": {
-      "bytes": 1244198,
-      "gzipBytes": 394210,
-      "sha256": "95425bf2df3e921d8d738786123debfefb47614d5f8dfdd48a54312b94e710cf"
+      "bytes": 1249458,
+      "gzipBytes": 396189,
+      "sha256": "cdb40b1141c8cdafc906bc5382279bab584a6522cd5396d2ac233cfa204d69d6"
     }
   },
-  "totalGzipBytes": 477793
+  "totalGzipBytes": 480969
 }

@@ -98,7 +98,7 @@ try {
     }
   }
   const manifest=JSON.parse(await fs.readFile(path.join(site,'public/marketing/app/manifest.json'),'utf8'))
-  await fs.writeFile(path.join(site,'public/marketing/stills/manifest.json'),JSON.stringify({appCommit:manifest.appCommit,bundleSha256:manifest.files['renderer.js'].sha256,generatedAt:new Date().toISOString(),images},null,2)+'\n')
+  await fs.writeFile(path.join(site,'public/marketing/stills/manifest.json'),JSON.stringify({appCommit:manifest.appCommit,bundleSha256:manifest.files['renderer.js'].sha256,bundleCssSha256:manifest.files['renderer.css'].sha256,generatedAt:new Date().toISOString(),images},null,2)+'\n')
 
 } finally {
   socket?.close(); chrome.kill()

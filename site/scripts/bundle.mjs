@@ -16,11 +16,20 @@ const { default: tailwind } = await import(pathToFileURL(require.resolve('@tailw
 const postcss = createRequire(fs.realpathSync(path.join(site, 'node_modules/next/package.json')))('postcss')
 const outDir = path.join(site, 'public/marketing/app')
 // Build the renderer from this repository at a reproducible commit.
-const appCommit = execFileSync('git', ['rev-parse', process.env.YOGURT_APP_REF || 'HEAD'], { cwd: repo, encoding: 'utf8' }).trim()
+const appCommit = execFileSync('git', ['rev-parse', process.env.YOGURT_APP_REF || 'origin/main'], { cwd: repo, encoding: 'utf8' }).trim()
 const source = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'yogurt-marketing-source-')))
 process.on('exit', () => fs.rmSync(source, { recursive: true, force: true }))
 const archive = execFileSync('git', ['archive', appCommit, 'app/src/renderer', 'app/src/shared'], { cwd: repo, maxBuffer: 32*1024*1024 })
 execFileSync('tar', ['-xf', '-', '-C', source], { input: archive })
+// Apply approved UI changes without replacing newer source on main.
+const sourceOverrides = {
+  'app/src/renderer/src/components/Logo.tsx': 'bd3d73de6e1c5ffba88d83042c2cf7510b8c47b4',
+  'app/src/renderer/src/workspace.css': '1e1c0d07eec486691d71844446c3f73700ac5ef4',
+}
+for (const [file, commit] of Object.entries(sourceOverrides)) {
+  const patch = execFileSync('git', ['diff', `${commit}^`, commit, '--', file], { cwd: repo })
+  execFileSync('git', ['apply', '-'], { cwd: source, input: patch })
+}
 const sourceFiles = new Set()
 await build({
   configFile: false, root: path.join(site, 'renderer'), publicDir: false, base: '/marketing/app/',
@@ -78,6 +87,6 @@ const files = Object.fromEntries(fs.readdirSync(outDir).map(name => {
   const bytes = fs.readFileSync(path.join(outDir, name))
   return [name, { bytes: bytes.length, gzipBytes: gzipSync(bytes, { level: 9 }).length, sha256: createHash('sha256').update(bytes).digest('hex') }]
 }))
-const manifest = { appCommit, generatedAt: new Date().toISOString(), source: 'app/src/renderer', fixture: 'site/renderer/bridge.mjs', nativeCode: false, stripped: ['Player', 'FinishSetup', 'RecordingHint', 'non-English locale tables'], sourceFiles: [...sourceFiles].sort(), files, totalGzipBytes: Object.entries(files).reduce((sum, [name, f]) => sum + (name.endsWith('.txt') ? 0 : f.gzipBytes), 0) }
+const manifest = { appCommit, sourceOverrides, generatedAt: new Date().toISOString(), source: 'app/src/renderer', fixture: 'site/renderer/bridge.mjs', nativeCode: false, stripped: ['Player', 'FinishSetup', 'RecordingHint', 'non-English locale tables'], sourceFiles: [...sourceFiles].sort(), files, totalGzipBytes: Object.entries(files).reduce((sum, [name, f]) => sum + (name.endsWith('.txt') ? 0 : f.gzipBytes), 0) }
 fs.writeFileSync(path.join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n')
 console.log(`Renderer: ${(manifest.totalGzipBytes / 1024).toFixed(1)} KiB gzip. Stills must be regenerated with pnpm site:stills.`)
