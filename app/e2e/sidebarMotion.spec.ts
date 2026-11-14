@@ -40,26 +40,22 @@ test('sidebar reveal keeps its toggle anchored and can reverse before it finishe
     const toggle = page.locator('.workspace-sidebar-toggle')
     const content = page.locator('.workspace-content')
     const gap = page.locator('.workspace-sidebar-gap')
-    const sidebar = page.locator('.workspace-sidebar')
     const before = await toggle.boundingBox()
     // Establish the initial style, then hold a long transition so CI cannot miss its first frame.
-    const motionStyle = await page.addStyleTag({ content: '.workspace-sidebar { transition-duration:60s!important; }' })
-    await sidebar.evaluate(async () => {
+    const motionStyle = await page.addStyleTag({ content: '.workspace-sidebar-gap { transition-duration:60s!important; }' })
+    await gap.evaluate(async () => {
       await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
     })
     await toggle.click()
     await expect(toggle).toHaveAttribute('aria-expanded', 'false')
     expect((await toggle.boundingBox())!.x).toBe(before!.x)
-    await expect.poll(() => sidebar.evaluate((el) => {
+    await expect.poll(() => gap.evaluate((el) => {
       const animation = el.getAnimations().find(a => a instanceof CSSTransition && a.transitionProperty === 'width')
       if (!animation) return false
       animation.pause(); animation.currentTime = 18_000
       return true
     })).toBe(true)
-    const midway = await sidebar.evaluate(el => el.getBoundingClientRect().width)
-    expect(await gap.evaluate(el => el.getBoundingClientRect().width)).toBe(56)
-    expect(await gap.evaluate(el => el.getAnimations().length)).toBe(0)
-    expect((await content.boundingBox())!.x).toBe(56)
+    const midway = await gap.evaluate(el => el.getBoundingClientRect().width)
     expect(midway).toBeGreaterThan(56)
     expect(midway).toBeLessThan(208)
     await motionStyle.evaluate(el => { el.parentNode?.removeChild(el) })
@@ -118,8 +114,8 @@ for (const reducedTransparency of ['no-preference', 'reduce']) test(`titlebar ch
     await page.getByTestId('past-note').click()
     await expect(page.getByTestId('note')).toBeVisible()
     const cdp = await page.context().newCDPSession(page)
-    await expect(page.locator('.workspace-sidebar')).toHaveCSS('border-inline-end-color', 'rgba(0, 0, 0, 0)')
-    expect(await page.locator('.workspace-sidebar-gap').evaluate(el => getComputedStyle(el, '::after').top)).toBe('52px')
+    const divider = await page.locator('.workspace-sidebar').evaluate(el => ({ border: getComputedStyle(el).borderInlineEndColor, start: getComputedStyle(el, '::after').top }))
+    expect(divider).toEqual({ border: 'rgba(0, 0, 0, 0)', start: '52px' })
     for (const colorScheme of ['light', 'dark'] as const) {
       await cdp.send('Emulation.setEmulatedMedia', { features: [
         { name: 'prefers-color-scheme', value: colorScheme },
@@ -208,7 +204,7 @@ test('keyboard, reduced motion and narrow-window sidebar changes remain immediat
   } finally { await app.close() }
 })
 
-test('a note adopts its final layout once and stays still throughout both sidebar directions', async () => {
+test('a note keeps its title, transcript and controls in place at the start of both sidebar directions', async () => {
   const { app, page } = await launch()
   try {
     await app.evaluate(() => (globalThis as unknown as { __fake__: { manyMeetings(o: { n: number; clean: boolean }): void } }).__fake__.manyMeetings({ n: 1, clean: true }))
@@ -230,25 +226,18 @@ test('a note adopts its final layout once and stays still throughout both sideba
       await expect.poll(() => page.evaluate(() => innerWidth)).toBe(width)
       if (width < 900) await expect(page.locator('.workspace-sidebar-toggle')).toHaveAttribute('aria-expanded', 'false')
       for (let direction = 0; direction < 2; direction++) {
+        const before = await boxes()
         await page.locator('.workspace-sidebar-toggle').click()
         await page.locator('.workspace').evaluate((el) => {
           for (const animation of el.getAnimations({ subtree: true })) { animation.pause(); animation.currentTime = 0 }
         })
         const start = await boxes()
-        await page.locator('.workspace').evaluate((el) => {
-          for (const animation of el.getAnimations({ subtree: true })) { animation.currentTime = 120 }
-        })
-        const middle = await boxes()
         for (let i = 0; i < start.length; i++) for (const key of ['x', 'y', 'width', 'height'] as const) {
-          expect(Math.abs(start[i][key] - middle[i][key]), `${selectors[i]} ${key}, window ${width}`).toBeLessThan(1)
+          expect(Math.abs(start[i][key] - before[i][key]), `${selectors[i]} ${key}, window ${width}`).toBeLessThan(1)
         }
         expect(await page.locator('.workspace-sidebar-toggle svg').innerHTML()).toBe(icon)
         expect(await page.locator('.workspace-sidebar-toggle .sidebar-toggle-pane').evaluate((el) => getComputedStyle(el).opacity)).toBe('1')
         await page.locator('.workspace').evaluate((el) => { for (const animation of el.getAnimations({ subtree: true })) if (animation.effect?.getComputedTiming().endTime !== Infinity) animation.finish() })
-        const end = await boxes()
-        for (let i = 0; i < start.length; i++) for (const key of ['x', 'y', 'width', 'height'] as const) {
-          expect(Math.abs(start[i][key] - end[i][key]), `${selectors[i]} ${key}, window ${width}`).toBeLessThan(1)
-        }
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
       }
     }

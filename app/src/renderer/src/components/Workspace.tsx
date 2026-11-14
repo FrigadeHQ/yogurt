@@ -13,7 +13,6 @@ import { FileText, MessageCircle, Search, Settings, SidebarToggle } from './Icon
 import { FoldersNav } from './FoldersNav'
 import { FinishSetup } from './FinishSetup'
 import { NotesSetup } from './NotesSetup'
-import { motion } from '../motion'
 
 export function Workspace({ route, meeting, folders, go, back, forward, search, collapsed, sidebarMotion, toggleSidebar, children }: {
   meeting?: Pick<MeetingView, 'id' | 'title'>
@@ -28,7 +27,7 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
     void window.yogurt.widget.state().then((view) => { if (active && !updated) setRecording(view) })
     return () => { active = false; off() }
   }, [])
-  const sidebarTransition = { duration: sidebarMotion ? motion.surface / 1000 : 0, ease: motion.out }
+  const sidebarTransition = { duration: sidebarMotion ? 0.2 : 0, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] }
   const note = route.startsWith('/note/')
   // a saved chat (/chat/<id>) is still under Chat
   const section = route.startsWith('/settings/') ? '/settings' : route.startsWith('/chat/') ? '/chat' : route
@@ -78,8 +77,7 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
         <SidebarToggle className="sidebar-toggle-glyph rtl:-scale-x-100" size={16} strokeWidth={1.75} aria-hidden="true" />
       </button>
     </div>
-    {/* Reserve the final width once; only the absolute sidebar animates. */}
-    <div className="workspace-sidebar-gap" aria-hidden="true" />
+    <Sidebar.Gap className="workspace-sidebar-gap" transition={sidebarTransition} />
     <Sidebar.Container id="workspace-sidebar" className="workspace-sidebar" role="complementary" aria-label={t('Main navigation')} transition={sidebarTransition}>
       <div className="workspace-sidebar-inner">
       <div className="sidebar-titlebar" />

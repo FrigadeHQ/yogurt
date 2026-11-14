@@ -29,7 +29,7 @@ function renderer(component: () => ReactNode) {
   }
 }
 
-it.each(['/meetings', '/note/m1'])('keeps folder icons unscaled and settles sidebar geometry immediately on %s', route => {
+it.each(['/meetings', '/note/m1'])('keeps the original folder reorder animation across sidebar toggles on %s', route => {
   vi.stubGlobal('window', { matchMedia: () => ({ matches: false }) })
   const folders = [{ id: 'f1', name: 'Planning', icon: 'calendar' as const, color: 'violet' as const, count: 2, createdAt: 1 }]
   let collapsed = false
@@ -39,9 +39,7 @@ it.each(['/meetings', '/note/m1'])('keeps folder icons unscaled and settles side
   const render = () => {
     item = find(nav(), 'folder-reorder-list').props.children[0]
     const element = find(row(), 'sidebar-folder')
-    // Commit the previous sidebar state, as React does after the row's layout is measured.
-    vi.mocked(useLayoutEffect).mock.calls.find(([, deps]) => deps?.length === 1 && deps[0] === collapsed)![0]()
-    expect(element.props.layout).toBe('position')
+    expect(element.props.layout).toBeUndefined()
     expect(element.props.dragControls).toBeDefined()
     expect(element.props.onDragStart).toBeTypeOf('function')
     return element
@@ -49,9 +47,7 @@ it.each(['/meetings', '/note/m1'])('keeps folder icons unscaled and settles side
   expect(render().props.transition).toMatchObject({ type: 'spring' })
   for (const next of [true, false, true, false]) {
     collapsed = next
-    expect(render().props.transition).toEqual({ duration: 0 })
-    // Ordinary reorders keep their spring after either sidebar direction settles.
-    expect(render().props.transition).toMatchObject({ type: 'spring' })
+    expect(render().props.transition).toEqual({ type: 'spring', stiffness: 520, damping: 42 })
   }
 })
 function find(node: ReactNode, testId: string): ReactElement<any> {

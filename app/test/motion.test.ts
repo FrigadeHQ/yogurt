@@ -123,24 +123,19 @@ it('keeps the anchored panel curve monotonic with a shorter close', () => {
   expect(surface).not.toContain('transform')
 })
 
-it('keeps the divider at the page boundary and the icon rail at its final geometry in both directions', () => {
+it('moves the sidebar and page together with the original timing and child layout', () => {
   const css = readFileSync(new URL('../src/renderer/src/workspace.css', import.meta.url), 'utf8')
   const source = readFileSync(new URL('../src/renderer/src/components/Workspace.tsx', import.meta.url), 'utf8')
-  expect(source).toContain('duration: sidebarMotion ? motion.surface / 1000 : 0, ease: motion.out')
-  // The page snaps to its final layout, so neither its divider nor its controls can track the outgoing width.
-  expect(css).not.toContain('.workspace-sidebar::after')
-  expect(css).toContain('.workspace-sidebar-gap { position:relative;flex:none; }')
-  expect(css).toContain('.workspace-sidebar-gap::after { content:"";position:absolute;inset-block:52px 0;inset-inline-end:0;width:1px;background:var(--line);pointer-events:none; }')
-  expect(css).toContain('.workspace-sidebar-inner { display:flex;flex-direction:column;width:207px;height:100%;min-height:0; }')
-  expect(css).toContain('.sidebar-collapsed .workspace-sidebar-inner { width:55px; }')
-  expect(css).not.toMatch(/\.workspace-folder-label \{[^}]*transition:height/)
-  expect(css).toContain('.workspace:is([data-sidebar-motion=false],.sidebar-collapsed) :is(.workspace-nav>span,.workspace-nav>small,.workspace-search>span,.workspace-search>kbd,.workspace-folder-label,.workspace-wordmark,.workspace-brand) { transition:none; }')
-  const children = css.slice(css.indexOf('.workspace-sidebar .workspace-nav>span'), css.indexOf('.sidebar-titlebar'))
-  for (const transition of children.matchAll(/transition:([^;]+);/g)) {
-    if (transition[1] === 'none' || transition[1] === 'none!important') continue
-    expect(transition[1]).not.toContain('--dur-micro')
-    for (const property of transition[1].split(',')) expect(property).toMatch(/var\(--dur-surface\) var\(--ease-out\)$/)
+  expect(source).toContain('duration: sidebarMotion ? 0.2 : 0, ease: [0.22, 1, 0.36, 1]')
+  for (const component of ['Gap', 'Container']) {
+    expect(source).toMatch(new RegExp(`<Sidebar\\.${component}[^>]+transition=\\{sidebarTransition\\}`))
   }
-  expect(children).toContain('@media (prefers-reduced-motion:reduce)')
-  expect(children).toContain('transition:none!important')
+  expect(css).toContain('.workspace-sidebar::after { content:"";position:absolute;inset-block:52px 0;inset-inline-end:-1px;')
+  expect(css).not.toContain('.workspace-sidebar-gap::after')
+  expect(css).toContain('.workspace-sidebar-inner { display:flex;flex-direction:column;height:100%;min-height:0; }')
+  expect(css).not.toContain('.sidebar-collapsed .workspace-sidebar-inner')
+  expect(css).toContain('.workspace[data-sidebar-motion=true] .workspace-toolbar { transition:padding-inline-start 200ms cubic-bezier(.22,1,.36,1); }')
+  expect(css).toContain('.workspace[data-sidebar-motion=true] .workspace-folder-label { transition:height 200ms cubic-bezier(.22,1,.36,1),margin 200ms cubic-bezier(.22,1,.36,1),opacity 120ms ease; }')
+  const styles = readFileSync(new URL('../src/renderer/src/styles.css', import.meta.url), 'utf8')
+  for (const animation of ['icon-lift', 'icon-write', 'icon-turn']) expect(css + styles).not.toContain(animation)
 })
