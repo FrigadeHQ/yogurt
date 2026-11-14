@@ -790,5 +790,15 @@
   "Unmute my mic in Yogurt": "Yogurt’ta mikrofonumu aç",
   "Mic will stay off on resume": "Kayıt devam ettiğinde mikrofon kapalı kalacak",
   "Mic mute couldn’t be confirmed.": "Mikrofonun sessize alındığı doğrulanamadı.",
-  "Mic off. Yogurt can’t hear call audio.": "Mikrofon kapalı. Yogurt aramanın sesini alamıyor."
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofon kapalı. Yogurt aramanın sesini alamıyor.",  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone’un bu bilgisayarı göremiyor. Güvenlik duvarında özel ağlar için Yogurt’a izin ver.",  "Merge into {name}": "{name} ile birleştir",
+  "Merge {a} into {b}?": "{a}, {b} ile birleştirilsin mi?",
+  "Name this voice": "Bu sese ad ver",
+  "Voice recognition": "Ses tanıma",
+  "Remember voices across meetings": "Sesleri toplantılar arasında hatırla",
+  "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "Sesi bir sonraki duyuluşunda konuşmacıya ad verir. Ses izi bu bilgisayarda kalır.",
+  "No voices remembered yet.": "Henüz hatırlanan ses yok.",
+  "Voice profiles stay on this computer, unused, until you turn this on again.": "Ses profilleri, bunu yeniden açana kadar, kullanılmadan bu bilgisayarda kalır.",
+  "Delete all voice profiles": "Tüm ses profillerini sil",
+  "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "Ses izi biyometrik bir veridir. Bu bilgisayarda kalır ve dilediğiniz an silebilirsiniz.",
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "Bu işlem bu bilgisayardaki tüm ses izlerini kaldırır. Toplantılarınızda zaten var olan adlar kalır."
 }

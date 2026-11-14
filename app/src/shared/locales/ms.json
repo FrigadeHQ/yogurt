@@ -760,5 +760,15 @@
   "Unmute my mic in Yogurt": "Aktifkan mikrofon saya dalam Yogurt",
   "Mic will stay off on resume": "Mikrofon akan kekal senyap apabila rakaman disambung",
   "Mic mute couldn’t be confirmed.": "Mikrofon tidak dapat disahkan telah disenyapkan.",
-  "Mic off. Yogurt can’t hear call audio.": "Mikrofon disenyapkan. Yogurt tidak dapat mendengar audio panggilan."
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofon disenyapkan. Yogurt tidak dapat mendengar audio panggilan.",  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone anda tidak dapat melihat komputer ini. Benarkan Yogurt melalui tembok api anda pada rangkaian peribadi.",  "Merge into {name}": "Gabung ke dalam {name}",
+  "Merge {a} into {b}?": "Gabung {a} ke dalam {b}?",
+  "Name this voice": "Namakan suara ini",
+  "Voice recognition": "Pengecaman suara",
+  "Remember voices across meetings": "Ingat suara merentas mesyuarat",
+  "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "Menamakan penutur apabila suaranya kedengaran lagi. Cap suara kekal di komputer ini.",
+  "No voices remembered yet.": "Belum ada suara yang diingati.",
+  "Voice profiles stay on this computer, unused, until you turn this on again.": "Profil suara kekal di komputer ini, tidak digunakan, sehingga anda hidupkannya semula.",
+  "Delete all voice profiles": "Padam semua profil suara",
+  "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "Cap suara ialah data biometrik. Ia kekal di komputer ini dan anda boleh memadamnya pada bila-bila masa.",
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "Ini membuang semua cap suara dari komputer ini. Nama yang sudah ada dalam mesyuarat anda kekal."
 }

@@ -790,5 +790,15 @@
   "Unmute my mic in Yogurt": "Yogurt-এ আমার মাইক আনমিউট করুন",
   "Mic will stay off on resume": "রেকর্ডিং আবার শুরু হলে মাইক বন্ধ থাকবে",
   "Mic mute couldn’t be confirmed.": "মাইক মিউট হয়েছে কি না নিশ্চিত করা যায়নি।",
-  "Mic off. Yogurt can’t hear call audio.": "মাইক বন্ধ। Yogurt কলের শব্দ শুনতে পাচ্ছে না।"
+  "Mic off. Yogurt can’t hear call audio.": "মাইক বন্ধ। Yogurt কলের শব্দ শুনতে পাচ্ছে না।",  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "আপনার iPhone এই কম্পিউটারটি দেখতে পাচ্ছে না। প্রাইভেট নেটওয়ার্কে আপনার ফায়ারওয়ালের মধ্য দিয়ে Yogurt-কে অনুমতি দিন।",  "Merge into {name}": "{name}-এ একীভূত করুন",
+  "Merge {a} into {b}?": "{a}-কে {b}-তে একীভূত করবেন?",
+  "Name this voice": "এই কণ্ঠের নাম দিন",
+  "Voice recognition": "ভয়েস রিকগনিশন",
+  "Remember voices across meetings": "মিটিং জুড়ে কণ্ঠ মনে রাখুন",
+  "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "পরের বার কারও কণ্ঠ শোনা গেলে বক্তার নাম দেয়। ভয়েসপ্রিন্ট এই কম্পিউটারেই থাকে।",
+  "No voices remembered yet.": "এখনও কোনো কণ্ঠ মনে রাখা হয়নি।",
+  "Voice profiles stay on this computer, unused, until you turn this on again.": "আবার চালু না করা পর্যন্ত ভয়েস প্রোফাইলগুলো ব্যবহার ছাড়া এই কম্পিউটারেই থাকে।",
+  "Delete all voice profiles": "সব ভয়েস প্রোফাইল মুছুন",
+  "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "ভয়েসপ্রিন্ট এক ধরনের বায়োমেট্রিক ডেটা। এটি এই কম্পিউটারেই থাকে এবং যেকোনো সময় মুছে ফেলতে পারবেন।",
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "এতে এই কম্পিউটার থেকে সব ভয়েসপ্রিন্ট সরে যাবে। আপনার মিটিংয়ে আগে থেকে থাকা নামগুলো থেকে যাবে।"
 }

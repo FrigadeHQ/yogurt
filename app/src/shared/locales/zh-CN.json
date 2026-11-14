@@ -760,5 +760,15 @@
   "Unmute my mic in Yogurt": "在 Yogurt 中取消我的麦克风静音",
   "Mic will stay off on resume": "继续录制后麦克风将保持静音",
   "Mic mute couldn’t be confirmed.": "无法确认麦克风是否已静音。",
-  "Mic off. Yogurt can’t hear call audio.": "麦克风已关闭。Yogurt 无法接收通话音频。"
+  "Mic off. Yogurt can’t hear call audio.": "麦克风已关闭。Yogurt 无法接收通话音频。",  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "你的 iPhone 看不到这台电脑。请在防火墙中允许 Yogurt 在专用网络上通信。",  "Merge into {name}": "合并到{name}",
+  "Merge {a} into {b}?": "把 {a} 合并到 {b}？",
+  "Name this voice": "命名这个声音",
+  "Voice recognition": "声音识别",
+  "Remember voices across meetings": "跨会议记住声音",
+  "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "下次听到这个声音时为发言者命名。声纹会留在这台电脑上。",
+  "No voices remembered yet.": "还没有记住的声音。",
+  "Voice profiles stay on this computer, unused, until you turn this on again.": "声音档案会闲置保存在这台电脑上，直到你重新开启。",
+  "Delete all voice profiles": "删除所有声音档案",
+  "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "声纹属于生物识别信息，会留在这台电脑上，你可以随时删除。",
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "此操作会删除这台电脑上的所有声纹。会议中已有的名称会保留。"
 }

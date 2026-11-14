@@ -760,5 +760,15 @@
   "Unmute my mic in Yogurt": "Yogurt で自分のマイクのミュートを解除",
   "Mic will stay off on resume": "録音を再開してもマイクはオフのままです",
   "Mic mute couldn’t be confirmed.": "マイクがミュートされたか確認できませんでした。",
-  "Mic off. Yogurt can’t hear call audio.": "マイクはオフです。Yogurt に通話音声が届いていません。"
+  "Mic off. Yogurt can’t hear call audio.": "マイクはオフです。Yogurt に通話音声が届いていません。",  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhoneからこのコンピュータが見えません。ファイアウォールで、プライベートネットワークでのYogurtの通信を許可してください。",  "Merge into {name}": "{name}に統合",
+  "Merge {a} into {b}?": "{a}を{b}に統合しますか？",
+  "Name this voice": "この声に名前を付ける",
+  "Voice recognition": "音声認識",
+  "Remember voices across meetings": "ミーティングをまたいで声を記憶",
+  "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "次にその声が聞こえたときに話者に名前を付けます。声紋はこのコンピュータの中に残ります。",
+  "No voices remembered yet.": "まだ記憶した声はありません。",
+  "Voice profiles stay on this computer, unused, until you turn this on again.": "音声プロファイルは、もう一度オンにするまで、このコンピュータの中で使われないまま残ります。",
+  "Delete all voice profiles": "すべての音声プロファイルを削除",
+  "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "声紋は生体情報です。このコンピュータの中に残り、いつでも削除できます。",
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "この操作で、このコンピュータからすべての声紋を削除します。ミーティングにすでにある名前はそのまま残ります。"
 }

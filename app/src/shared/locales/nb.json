@@ -802,5 +802,15 @@
   "Unmute my mic in Yogurt": "Slå på mikrofonen min i Yogurt",
   "Mic will stay off on resume": "Mikrofonen forblir av når opptaket fortsetter",
   "Mic mute couldn’t be confirmed.": "Kunne ikke bekrefte at mikrofonen er av.",
-  "Mic off. Yogurt can’t hear call audio.": "Mikrofonen er av. Yogurt får ikke lyd fra samtalen."
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofonen er av. Yogurt får ikke lyd fra samtalen.",  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhonen din ser ikke denne datamaskinen. Slipp Yogurt gjennom brannmuren på private nettverk.",  "Merge into {name}": "Slå sammen i {name}",
+  "Merge {a} into {b}?": "Slå sammen {a} i {b}?",
+  "Name this voice": "Gi denne stemmen et navn",
+  "Voice recognition": "Stemmegjenkjenning",
+  "Remember voices across meetings": "Husk stemmer på tvers av møter",
+  "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "Gir en person et navn neste gang stemmen høres. Stemmeavtrykket blir på denne datamaskinen.",
+  "No voices remembered yet.": "Ingen stemmer husket ennå.",
+  "Voice profiles stay on this computer, unused, until you turn this on again.": "Stemmeprofilene blir på denne datamaskinen, ubrukt, til du slår på dette igjen.",
+  "Delete all voice profiles": "Slett alle stemmeprofiler",
+  "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "Et stemmeavtrykk er biometriske data. Det blir på denne datamaskinen, og du kan slette det når som helst.",
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "Dette fjerner alle stemmeavtryk fra denne datamaskinen. Navn som allerede er i møtene dine, blir."
 }

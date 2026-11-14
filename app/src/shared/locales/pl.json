@@ -838,5 +838,15 @@
   "Unmute my mic in Yogurt": "Włącz mój mikrofon w Yogurt",
   "Mic will stay off on resume": "Po wznowieniu mikrofon pozostanie wyciszony",
   "Mic mute couldn’t be confirmed.": "Nie udało się potwierdzić wyciszenia mikrofonu.",
-  "Mic off. Yogurt can’t hear call audio.": "Mikrofon wyciszony. Yogurt nie odbiera dźwięku rozmowy."
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofon wyciszony. Yogurt nie odbiera dźwięku rozmowy.",  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "Twój iPhone nie widzi tego komputera. Zezwól na Yogurt w zaporze sieciowej dla sieci prywatnych.",  "Merge into {name}": "Scal z {name}",
+  "Merge {a} into {b}?": "Scalić {a} z {b}?",
+  "Name this voice": "Nazwij ten głos",
+  "Voice recognition": "Rozpoznawanie głosu",
+  "Remember voices across meetings": "Zapamiętuj głosy między spotkaniami",
+  "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "Nadaje nazwę mówiącemu, gdy jego głos zostanie ponownie usłyszany. Odcisk głosu zostaje na tym komputerze.",
+  "No voices remembered yet.": "Nie ma jeszcze zapamiętanych głosów.",
+  "Voice profiles stay on this computer, unused, until you turn this on again.": "Profile głosów zostają na tym komputerze, nieużywane, dopóki nie włączysz tego ponownie.",
+  "Delete all voice profiles": "Usuń wszystkie profile głosów",
+  "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "Odcisk głosu to dane biometryczne. Zostaje na tym komputerze, a możesz go usunąć w każdej chwili.",
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "To usuwa każdy odcisk głosu z tego komputera. Nazwy już obecne w Twoich spotkaniach zostają."
 }

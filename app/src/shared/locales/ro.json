@@ -819,5 +819,15 @@
   "Unmute my mic in Yogurt": "Pornește-mi microfonul în Yogurt",
   "Mic will stay off on resume": "Microfonul va rămâne oprit la reluare",
   "Mic mute couldn’t be confirmed.": "Oprirea microfonului nu a putut fi confirmată.",
-  "Mic off. Yogurt can’t hear call audio.": "Microfon oprit. Yogurt nu poate auzi sunetul apelului."
+  "Mic off. Yogurt can’t hear call audio.": "Microfon oprit. Yogurt nu poate auzi sunetul apelului.",  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone-ul tău nu vede acest computer. Permite Yogurt în firewall pentru rețelele private.",  "Merge into {name}": "Îmbină în {name}",
+  "Merge {a} into {b}?": "Îmbină {a} în {b}?",
+  "Name this voice": "Denumiți această voce",
+  "Voice recognition": "Recunoaștere vocală",
+  "Remember voices across meetings": "Reține vocile între întâlniri",
+  "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "Dă un nume vorbitorului data viitoare când i se aude vocea. Amprenta vocală rămâne pe acest computer.",
+  "No voices remembered yet.": "Încă nu sunt voci reținute.",
+  "Voice profiles stay on this computer, unused, until you turn this on again.": "Profilurile de voce rămân pe acest computer, nefolosite, până când activați din nou.",
+  "Delete all voice profiles": "Șterge toate profilurile de voce",
+  "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "Amprenta vocală este o informație biometrică. Rămâne pe acest computer și o puteți șterge oricând.",
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "Aceasta elimină fiecare amprentă vocală de pe acest computer. Numele aflate deja în întâlnirile dvs. rămân."
 }

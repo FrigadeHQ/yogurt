@@ -808,5 +808,15 @@
   "Unmute my mic in Yogurt": "Poista mikrofonini mykistys Yogurtissa",
   "Mic will stay off on resume": "Mikrofoni pysyy mykistettynä, kun tallennusta jatketaan",
   "Mic mute couldn’t be confirmed.": "Mikrofonin mykistystä ei voitu vahvistaa.",
-  "Mic off. Yogurt can’t hear call audio.": "Mikrofoni on mykistetty. Yogurt ei kuule puhelun ääntä."
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofoni on mykistetty. Yogurt ei kuule puhelun ääntä.",  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhonesi ei näe tätä tietokonetta. Salli Yogurt palomuurissa yksityisissä verkoissa.",  "Merge into {name}": "Yhdistä kohteeseen {name}",
+  "Merge {a} into {b}?": "Yhdistetäänkö {a} kohteeseen {b}?",
+  "Name this voice": "Anna tälle äänelle nimi",
+  "Voice recognition": "Äänen tunnistus",
+  "Remember voices across meetings": "Muista äänet kokouksien välillä",
+  "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "Antaa puhujalle nimen, kun ääni kuuluu seuraavan kerran. Äänijälki pysyy tällä tietokoneella.",
+  "No voices remembered yet.": "Ääniä ei ole vielä tallennettu.",
+  "Voice profiles stay on this computer, unused, until you turn this on again.": "Ääniprofiilit pysyvät tällä tietokoneella käyttämättömänä, kunnes laitat tämän uudelleen päälle.",
+  "Delete all voice profiles": "Poista kaikki ääniprofiilit",
+  "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "Äänijälki on biometrinen tieto. Se pysyy tällä tietokoneella, ja voit poistaa sen milloin tahansa.",
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "Tämä poistaa kaikki äänijäljet tältä tietokoneelta. Nimet, jotka ovat jo kokouksissasi, jäävät."
 }

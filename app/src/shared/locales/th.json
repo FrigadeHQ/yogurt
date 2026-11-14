@@ -760,5 +760,15 @@
   "Unmute my mic in Yogurt": "เปิดไมค์ของฉันใน Yogurt",
   "Mic will stay off on resume": "ไมค์จะยังปิดอยู่เมื่อบันทึกต่อ",
   "Mic mute couldn’t be confirmed.": "ยืนยันไม่ได้ว่าปิดไมค์แล้ว",
-  "Mic off. Yogurt can’t hear call audio.": "ไมค์ปิดอยู่ Yogurt ไม่ได้ยินเสียงการโทร"
+  "Mic off. Yogurt can’t hear call audio.": "ไมค์ปิดอยู่ Yogurt ไม่ได้ยินเสียงการโทร",  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone ของคุณมองไม่เห็นคอมพิวเตอร์เครื่องนี้ อนุญาตให้ Yogurt ผ่านไฟร์วอลล์ของคุณบนเครือข่ายส่วนตัว",  "Merge into {name}": "รวมเข้ากับ {name}",
+  "Merge {a} into {b}?": "รวม {a} เข้ากับ {b} หรือไม่?",
+  "Name this voice": "ตั้งชื่อเสียงนี้",
+  "Voice recognition": "การจดจำเสียง",
+  "Remember voices across meetings": "จดจำเสียงในทุกการประชุม",
+  "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "ตั้งชื่อให้ผู้พูดเมื่อได้ยินเสียงนั้นอีกครั้ง ลายเสียงจะอยู่บนคอมพิวเตอร์เครื่องนี้",
+  "No voices remembered yet.": "ยังไม่มีเสียงที่จดจำไว้",
+  "Voice profiles stay on this computer, unused, until you turn this on again.": "โปรไฟล์เสียงจะอยู่บนคอมพิวเตอร์เครื่องนี้โดยไม่ถูกใช้ จนกว่าคุณจะเปิดอีกครั้ง",
+  "Delete all voice profiles": "ลบโปรไฟล์เสียงทั้งหมด",
+  "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "ลายเสียงเป็นข้อมูลไบโอเมตริก อยู่บนคอมพิวเตอร์เครื่องนี้และคุณสามารถลบได้ทุกเมื่อ",
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "การดำเนินการนี้จะลบลายเสียงทุกรายการออกจากคอมพิวเตอร์เครื่องนี้ ชื่อที่มีอยู่แล้วในการประชุมของคุณจะยังอยู่"
 }

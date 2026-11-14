@@ -830,5 +830,15 @@
   "Unmute my mic in Yogurt": "Включить мой микрофон в Yogurt",
   "Mic will stay off on resume": "При возобновлении записи микрофон останется выключенным",
   "Mic mute couldn’t be confirmed.": "Не удалось подтвердить отключение микрофона.",
-  "Mic off. Yogurt can’t hear call audio.": "Микрофон выключен. Yogurt не слышит звук звонка."
+  "Mic off. Yogurt can’t hear call audio.": "Микрофон выключен. Yogurt не слышит звук звонка.",  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone не видит этот компьютер. Разрешите Yogurt в брандмауэре для частных сетей.",  "Merge into {name}": "Объединить с {name}",
+  "Merge {a} into {b}?": "Объединить {a} с {b}?",
+  "Name this voice": "Назвать этот голос",
+  "Voice recognition": "Распознавание голоса",
+  "Remember voices across meetings": "Запоминать голоса между встречами",
+  "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "Даёт имя участнику, когда его голос услышат снова. Голосовой отпечаток остаётся на этом компьютере.",
+  "No voices remembered yet.": "Запомненных голосов пока нет.",
+  "Voice profiles stay on this computer, unused, until you turn this on again.": "Профили голосов остаются на этом компьютере неиспользованными, пока вы снова не включите эту функцию.",
+  "Delete all voice profiles": "Удалить все профили голосов",
+  "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "Голосовой отпечаток — это биометрические данные. Он остаётся на этом компьютере, и вы можете удалить его в любой момент.",
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "С этого компьютера будут удалены все голосовые отпечатки. Имена, которые уже есть в ваших встречах, останутся."
 }

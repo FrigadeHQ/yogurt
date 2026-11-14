@@ -802,5 +802,15 @@
   "Unmute my mic in Yogurt": "I-unmute ang mikropono ko sa Yogurt",
   "Mic will stay off on resume": "Mananatiling naka-mute ang mikropono kapag ipinagpatuloy ang pag-record",
   "Mic mute couldn’t be confirmed.": "Hindi makumpirmang naka-mute ang mikropono.",
-  "Mic off. Yogurt can’t hear call audio.": "Naka-mute ang mikropono. Hindi marinig ng Yogurt ang audio ng tawag."
+  "Mic off. Yogurt can’t hear call audio.": "Naka-mute ang mikropono. Hindi marinig ng Yogurt ang audio ng tawag.",  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "Hindi makita ng iPhone mo ang computer na ito. Payagan ang Yogurt sa firewall mo para sa mga private network.",  "Merge into {name}": "Isama sa {name}",
+  "Merge {a} into {b}?": "Isama ang {a} sa {b}?",
+  "Name this voice": "Bigyan ng pangalan ang boses na ito",
+  "Voice recognition": "Pagkilala sa boses",
+  "Remember voices across meetings": "Tandaan ang mga boses sa mga meeting",
+  "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "Bibigyan ng pangalan ang nagsasalita kapag narinig muli ang boses niya. Nanatili sa computer na ito ang bakas ng boses.",
+  "No voices remembered yet.": "Wala pang natandaang boses.",
+  "Voice profiles stay on this computer, unused, until you turn this on again.": "Nananatili sa computer na ito ang mga voice profile, hindi ginagamit, hanggang i-on mo ulit ito.",
+  "Delete all voice profiles": "Burahin lahat ng voice profile",
+  "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "Ang bakas ng boses ay biometric data. Nanatili ito sa computer na ito, at maaari mo itong burahin anumang oras.",
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "Aalisin nito lahat ng bakas ng boses sa computer na ito. Mananatili ang mga pangalang nasa mga meeting mo na."
 }
