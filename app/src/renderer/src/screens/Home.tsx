@@ -38,7 +38,7 @@ export function Home({ open, openFolder }: { open: (id: string) => void; openFol
   const noMeetings = past.cards?.length === 0
   const calendar = window.yogurt.capabilities.calendar
   return <div data-testid="home" className={calendar ? 'native-home' : 'native-home no-agenda'}>
-    <StartRecording testId="new-note" />
+    <StartRecording testId="new-note" onGone={() => setCalendarRevision(revision => revision + 1)} />
     <div className="native-library" ref={past.setRoot} tabIndex={-1}>
       <h1>{t('Your meetings')}</h1>
       <LoadingContent pending={!past.cards} testId="meetings-loading" skeleton={<MeetingListLoading />} className="library-load">{noMeetings ? <section data-testid="past-empty" className="library-empty empty-state"><div className="empty-state-content">

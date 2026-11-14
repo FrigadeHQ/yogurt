@@ -13,7 +13,7 @@ import { personName } from './People'
 let lastRecording: boolean | undefined
 
 /** A fresh recording from a library destination; main owns capture and opening the note. */
-export function StartRecording({ onStarted, testId = 'start-recording' }: { onStarted?: (id: string) => void; testId?: string }) {
+export function StartRecording({ onStarted, onGone, testId = 'start-recording' }: { onStarted?: (id: string) => void; onGone?: () => void; testId?: string }) {
   const [actions, setActions] = useState<HTMLElement | null>(null)
   const [recording, setRecording] = useState(lastRecording)
   const [starting, setStarting] = useState(false)
@@ -60,7 +60,7 @@ export function StartRecording({ onStarted, testId = 'start-recording' }: { onSt
     try {
       const result = await window.yogurt.meetings.start(eventId)
       if ('error' in result) {
-        if (result.error === 'gone') { setEvents([]); void load() }
+        if (result.error === 'gone') { setEvents([]); void load(); onGone?.() }
         toasts.add({ id: 'start-recording-message', data: { testId: 'start-recording-message' }, title: result.error === 'gone' ? t('That meeting is no longer on your calendar.') : t("Yogurt couldn't start the notes. Try again in a moment.") })
         return
       }

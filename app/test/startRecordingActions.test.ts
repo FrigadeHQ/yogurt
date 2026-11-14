@@ -30,13 +30,14 @@ const event = (id: string, start = now - 60_000, end = now + 30 * 60_000): Agend
 const start = vi.fn()
 const day = vi.fn()
 const started = vi.fn()
+const gone = vi.fn()
 let calendarChanged: () => void
 let widgetChanged: (view: WidgetView | null) => void
 let cleanups: (() => void)[]
 const flush = async () => { await Promise.resolve(); await Promise.resolve() }
 const render = () => {
   hooks.state = 0; hooks.ref = 0; hooks.effects = []; hooks.layout = []
-  return StartRecording({ onStarted: started }) as ReactElement<Record<string, unknown>> | null
+  return StartRecording({ onStarted: started, onGone: gone }) as ReactElement<Record<string, unknown>> | null
 }
 const run = (effect: () => (() => void) | void) => { const cleanup = effect(); if (cleanup) cleanups.push(cleanup) }
 type Element = ReactElement<Record<string, unknown>>
@@ -160,6 +161,7 @@ it('reports a removed event, refreshes choices, and never reports a failed or ra
   day.mockResolvedValue({ status: 'granted', events: [] })
   await click(find(tree, 'start-recording'))
   expect(toasts.add).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'That meeting is no longer on your calendar.' }))
+  expect(gone).toHaveBeenCalledOnce()
   expect(find(render(), 'recording-choices')).toBeUndefined()
   expect(started).not.toHaveBeenCalled()
   start.mockResolvedValueOnce({ id: 'existing', alreadyRecording: true })
@@ -169,4 +171,5 @@ it('reports a removed event, refreshes choices, and never reports a failed or ra
   await click(find(render(), 'start-recording'))
   expect(toasts.add).toHaveBeenLastCalledWith(expect.objectContaining({ title: "Yogurt couldn't start the notes. Try again in a moment." }))
   expect(find(render(), 'start-recording').props.disabled).toBe(false)
+  expect(gone).toHaveBeenCalledOnce()
 })
