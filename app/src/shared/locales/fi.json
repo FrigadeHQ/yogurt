@@ -1,4 +1,8 @@
 {
+  "Take notes · {title}": "Tee muistiinpanoja · {title}",
+  "Take notes · {count} now": "Tee muistiinpanoja · {count} käynnissä",
+  "Now": "Nyt",
+  "in {count} min": "{count} min kuluttua",
   "No matching meetings with {name}.": "Ei vastaavia kokouksia henkilön {name} kanssa.",
   "No matching meetings on {date}.": "Ei vastaavia kokouksia päivänä {date}.",
   "No matching meetings with {name} on {date}.": "Ei vastaavia kokouksia henkilön {name} kanssa päivänä {date}.",

@@ -1,4 +1,8 @@
 {
+  "Take notes · {title}": "Notities maken · {title}",
+  "Take notes · {count} now": "Notities maken · {count} nu",
+  "Now": "Nu",
+  "in {count} min": "over {count} min",
   "No matching meetings with {name}.": "Geen overeenkomende vergaderingen met {name}.",
   "No matching meetings on {date}.": "Geen overeenkomende vergaderingen op {date}.",
   "No matching meetings with {name} on {date}.": "Geen overeenkomende vergaderingen met {name} op {date}.",

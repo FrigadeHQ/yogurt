@@ -1,4 +1,8 @@
 {
+  "Take notes · {title}": "Ghi chú · {title}",
+  "Take notes · {count} now": "Ghi chú · {count} đang diễn ra",
+  "Now": "Đang diễn ra",
+  "in {count} min": "sau {count} phút",
   "No matching meetings with {name}.": "Không có cuộc họp phù hợp với {name}.",
   "No matching meetings on {date}.": "Không có cuộc họp phù hợp vào {date}.",
   "No matching meetings with {name} on {date}.": "Không có cuộc họp phù hợp với {name} vào {date}.",

@@ -127,7 +127,7 @@ export function Agenda({ revision, recording, onStart, onOpen }: Actions & { rev
     </div>
     <div className="agenda-day"><h3>{relativeDay === 0 ? t('Today') : relativeDay === -1 ? t('Tomorrow') : chosen.toLocaleDateString(language(), { weekday: 'long' })}</h3><span>{chosen.toLocaleDateString(language(), { month: 'short', day: 'numeric' })}</span></div>
     <ScrollFade enabled={!!calendar}><div ref={scroll} className="agenda-scroll" data-testid="agenda-scroll">
-    <LoadingContent key={selected} pending={!calendar} skeleton={<div className="agenda-events">{[0, 1].map(n => <Event key={n} loading event={{ id: String(n), title: '', url: null, start: selected, end: selected, attendees: [] }} me="" now={now} near={false} initial={false} selected={false} onInspect={() => {}} onStart={onStart} />)}</div>}>
+    <LoadingContent key={selected} pending={!calendar} skeleton={<div className="agenda-events">{[0, 1].map(n => <Event key={n} loading event={{ id: String(n), title: '', url: null, start: selected, end: selected, attendees: [] }} me="" now={now} near={false} initial={false} selected={false} onInspect={() => {}} />)}</div>}>
     {calendar && (calendar.status !== 'granted' ? <section className="agenda-status" data-testid={calendar.status === 'error' ? 'calendar-error' : 'calendar-off'}>
         <CalendarDays size={22} aria-hidden="true" />
         <h3>{calendar.status === 'error' ? t("Yogurt couldn't read your calendar") : calendar.status === 'denied' ? t('Calendar access is off') : t('See your meetings here')}</h3>
@@ -136,17 +136,16 @@ export function Agenda({ revision, recording, onStart, onOpen }: Actions & { rev
       </section>
       : <div data-testid="coming-up" className="agenda-events">
         {calendar.events.length === 0 ? <div className="agenda-status"><CalendarDays size={18} strokeWidth={1.75} aria-hidden="true" /><h3>{t('No meetings')}</h3><p>{t('Your calendar is clear.')}</p></div>
-          : calendar.events.map((event) => <Event key={event.id} event={event} me={me} now={now} near={event.id === primary} initial={event.id === defaultEvent?.id} selected={event.id === detail?.id} onInspect={button => { opener.current = button; setInspected({ at: selected, id: event.id }) }} recording={recording} onStart={onStart} />)}
+          : calendar.events.map((event) => <Event key={event.id} event={event} me={me} now={now} near={event.id === primary} initial={event.id === defaultEvent?.id} selected={event.id === detail?.id} onInspect={button => { opener.current = button; setInspected({ at: selected, id: event.id }) }} recording={recording} />)}
       </div>)}
     </LoadingContent></div></ScrollFade>
     {calendar?.status === 'granted' && detail && <EventDetails key={detail.id} event={detail} recording={recording} onStart={onStart} now={now} onOpen={onOpen} onClose={closeDetails} opener={opener.current} />}
   </aside>
 }
 
-export function Event({ event, me, now, near, initial, selected, onInspect, recording, onStart, loading = false }: Pick<Actions, 'recording' | 'onStart'> & {
+export function Event({ event, me, now, near, initial, selected, onInspect, recording, loading = false }: Pick<Actions, 'recording'> & {
   loading?: boolean; event: AgendaEvent; me: string; now: number; near: boolean; initial: boolean; selected: boolean; onInspect: (button: HTMLButtonElement) => void
 }) {
-  const [pending, setPending] = useState(false)
   const phase = eventPhase(event, now)
   const mine = recording?.eventId === event.id
   const row = useRef<HTMLElement>(null)
@@ -164,7 +163,6 @@ export function Event({ event, me, now, near, initial, selected, onInspect, reco
   })
   useEffect(() => () => animation.current?.cancel(), [])
   const marker = mine ? recording.paused ? t('Paused') : t('Recording') : event.note ? t('Has notes') : undefined
-  const takeNotes = () => { setPending(true); void onStart(event.id).finally(() => setPending(false)) }
   return <article ref={row} className={`agenda-event ${phase}`} data-testid={loading ? "agenda-skeleton" : "event"} data-selected={selected} data-agenda-default={initial} data-has-note={!loading && !!event.note} data-recording={!loading && mine} data-faded={!loading && phase === 'past' && !mine}>
     <div className="agenda-time">{loading ? <span className="loading-bar" style={{ width: 45 }} /> : timeOf(event.start)}</div>
     <div className="agenda-event-body">
@@ -176,9 +174,6 @@ export function Event({ event, me, now, near, initial, selected, onInspect, reco
       </div>
       {(loading || (phase === 'live' || mine) && event.attendees.length > 0) && <p className="agenda-people" title={event.attendees.map((p) => p.name).join(', ')}>{loading ? <span className="loading-bar" style={{ width: '60%' }} /> : peopleSummary(event.attendees, me)}</p>}
       {!mine && phase === 'upcoming' && near && <span className="agenda-live">{t('Starts in {count} min', { count: Math.ceil((event.start - now) / 60_000) })}</span>}
-      {!loading && phase === 'live' && !recording && (!event.note || event.note.state === 'prepared') && <div className="agenda-actions">
-        <button data-testid="event-start" disabled={pending} className="workspace-button agenda-action" onClick={takeNotes}><Mic size={12} aria-hidden="true" />{t('Take notes')}</button>
-      </div>}
     </div>
   </article>
 }

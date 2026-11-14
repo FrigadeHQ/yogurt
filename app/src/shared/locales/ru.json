@@ -1,4 +1,8 @@
 {
+  "Take notes · {title}": "Вести заметки · {title}",
+  "Take notes · {count} now": "Вести заметки · {count} сейчас",
+  "Now": "Сейчас",
+  "in {count} min": "через {count} мин",
   "No matching meetings with {name}.": "Нет подходящих встреч с {name}.",
   "No matching meetings on {date}.": "Нет подходящих встреч на {date}.",
   "No matching meetings with {name} on {date}.": "Нет подходящих встреч с {name} на {date}.",

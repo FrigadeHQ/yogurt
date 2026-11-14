@@ -1,4 +1,8 @@
 {
+  "Take notes · {title}": "Ambil nota · {title}",
+  "Take notes · {count} now": "Ambil nota · {count} sekarang",
+  "Now": "Sekarang",
+  "in {count} min": "dalam {count} min",
   "No matching meetings with {name}.": "Tiada mesyuarat yang sepadan dengan {name}.",
   "No matching meetings on {date}.": "Tiada mesyuarat yang sepadan pada {date}.",
   "No matching meetings with {name} on {date}.": "Tiada mesyuarat yang sepadan dengan {name} pada {date}.",

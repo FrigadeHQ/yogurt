@@ -1,4 +1,8 @@
 {
+  "Take notes · {title}": "Rób notatki · {title}",
+  "Take notes · {count} now": "Rób notatki · {count} teraz",
+  "Now": "Teraz",
+  "in {count} min": "za {count} min",
   "No matching meetings with {name}.": "Brak pasujących spotkań z {name}.",
   "No matching meetings on {date}.": "Brak pasujących spotkań w dniu {date}.",
   "No matching meetings with {name} on {date}.": "Brak pasujących spotkań z {name} w dniu {date}.",

@@ -119,7 +119,7 @@ test('a prepared calendar note keeps its notes without recording; Start recordin
   } finally { await app.close() }
 })
 
-test('agenda opens details on demand, opens only existing notes, and offers recording inline for the current event', async () => {
+test('agenda opens details on demand and the title bar records the current event', async () => {
   const { app, page } = await launch()
   try {
     // Keep past/current/upcoming fixture rows on one day even when CI runs at midnight.
@@ -140,10 +140,9 @@ test('agenda opens details on demand, opens only existing notes, and offers reco
     await expect(details).toHaveCount(0)
     await expect(page.getByTestId('event-prepare')).toHaveCount(0)
     await expect(page.getByTestId('event-open')).toHaveCount(0)
-    await expect(page.getByTestId('event-start')).toHaveCount(1)
-    await expect(event('Current meeting').getByTestId('event-start')).toBeVisible()
-    // The time/body area belongs to the event button too, without wrapping Take notes in a button.
-    await event('Earlier meeting').click({ position: { x: 20, y: 8 } })
+    await expect(page.getByTestId('event-start')).toHaveCount(0)
+    await expect(page.getByTestId('new-note')).toHaveText('Take notes · Current meeting')
+    await event('Earlier meeting').getByTestId('event-details').click()
     await expect(page.getByTestId('home')).toBeVisible()
     await expect(details.getByRole('heading')).toHaveText('Earlier meeting')
     await expect(details.getByTestId('event-open')).toHaveCount(0)
@@ -160,12 +159,12 @@ test('agenda opens details on demand, opens only existing notes, and offers reco
     const current = await prepareCalendarNote(page, 'Current meeting')
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'prepared')
     await page.getByTestId('nav-home').click()
-    await event('Current meeting').getByTestId('event-start').click()
+    await page.getByTestId('new-note').click()
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
     expect(await routeOf(page)).toBe(`/note/${current}`)
     await page.getByTestId('nav-home').click()
     await expect(page.getByTestId('event-start')).toHaveCount(0)
-    await expect(event('Current meeting').locator('.agenda-live')).toHaveText('Recording')
+    await expect(event('Current meeting').getByRole('img', { name: 'Recording', exact: true })).toBeVisible()
     await event('Current meeting').getByTestId('event-details').click()
     await details.getByRole('button', { name: 'Open note', exact: true }).click()
     expect(await routeOf(page)).toBe(`/note/${current}`)
@@ -375,10 +374,19 @@ test('starting an event gone from the calendar says so plainly, and records noth
     const now = Date.now()
     await fake(app, 'calendarEvents', [{ id: 'vanishing', title: 'Current meeting', start: new Date(now - 60000).toISOString(), end: new Date(now + 300000).toISOString(), attendees: [] }])
     await page.reload()
-    await expect(page.getByTestId('event-start')).toBeVisible()
-    await fake(app, 'calendarEvents', [])
-    await page.getByTestId('event-start').click()
-    await expect(page.getByTestId('home-message')).toHaveText('That meeting is no longer on your calendar.')
+    await expect(page.getByTestId('new-note')).toHaveText('Take notes · Current meeting')
+    // Remove it after the click reaches main, so calendar refresh cannot turn this into an unattached action.
+    await app.evaluate(({ ipcMain }) => {
+      const handlers = (ipcMain as typeof ipcMain & { _invokeHandlers: Map<string, (...args: unknown[]) => unknown> })._invokeHandlers
+      const start = handlers.get('meetings:start')!
+      ipcMain.removeHandler('meetings:start')
+      ipcMain.handle('meetings:start', (...args) => {
+        (globalThis as unknown as { __fake__: { calendarEvents(events: unknown[]): void } }).__fake__.calendarEvents([])
+        return start(...args)
+      })
+    })
+    await page.getByTestId('new-note').click()
+    await expect(page.getByTestId('start-recording-message')).toHaveText('That meeting is no longer on your calendar.')
     await expect(page.getByTestId('home')).toBeVisible()
     expect((await page.evaluate(() => window.yogurt.meetings.cards({ limit: 5 }))).length).toBe(0)
     // the list catches up with the calendar

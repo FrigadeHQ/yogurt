@@ -26,6 +26,18 @@ it('translates agenda marker labels in every locale', () => {
   }
 })
 
+it('translates the contextual recording action and menu timing in every locale', () => {
+  for (const { id } of LOCALES) {
+    const table = load(id)
+    for (const key of ['Take notes · {title}', 'Take notes · {count} now', 'Now', 'in {count} min']) {
+      expect(keys).toContain(key)
+      expect(table[key]).toBeDefined()
+      expect(forms(table[key]).every(value => value.trim().length > 0)).toBe(true)
+      if (id !== 'en') expect(forms(table[key])).not.toContain(key)
+    }
+  }
+})
+
 it('uses Ask and conversations throughout the interface', () => {
   // The rebuild explicitly calls its fresh-conversation action New chat; the page remains Ask.
   expect(keys.filter(key => /\bchats?\b/i.test(key))).toEqual(['New chat'])

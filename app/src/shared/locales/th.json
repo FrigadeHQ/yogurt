@@ -1,4 +1,8 @@
 {
+  "Take notes · {title}": "จดโน้ต · {title}",
+  "Take notes · {count} now": "จดโน้ต · {count} รายการขณะนี้",
+  "Now": "ขณะนี้",
+  "in {count} min": "ในอีก {count} นาที",
   "No matching meetings with {name}.": "ไม่มีการประชุมที่ตรงกันกับ {name}",
   "No matching meetings on {date}.": "ไม่มีการประชุมที่ตรงกันในวันที่ {date}",
   "No matching meetings with {name} on {date}.": "ไม่มีการประชุมที่ตรงกันกับ {name} ในวันที่ {date}",

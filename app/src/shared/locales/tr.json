@@ -1,4 +1,8 @@
 {
+  "Take notes · {title}": "Not al · {title}",
+  "Take notes · {count} now": "Not al · şu anda {count}",
+  "Now": "Şimdi",
+  "in {count} min": "{count} dk sonra",
   "No matching meetings with {name}.": "{name} ile eşleşen toplantı yok.",
   "No matching meetings on {date}.": "{date} tarihinde eşleşen toplantı yok.",
   "No matching meetings with {name} on {date}.": "{date} tarihinde {name} ile eşleşen toplantı yok.",

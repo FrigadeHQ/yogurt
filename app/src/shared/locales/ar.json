@@ -1,4 +1,8 @@
 {
+  "Take notes · {title}": "تدوين الملاحظات · {title}",
+  "Take notes · {count} now": "تدوين الملاحظات · {count} الآن",
+  "Now": "الآن",
+  "in {count} min": "خلال {count} د",
   "No matching meetings with {name}.": "لا توجد اجتماعات مطابقة مع {name}.",
   "No matching meetings on {date}.": "لا توجد اجتماعات مطابقة في {date}.",
   "No matching meetings with {name} on {date}.": "لا توجد اجتماعات مطابقة مع {name} في {date}.",

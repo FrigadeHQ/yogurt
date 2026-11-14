@@ -1,4 +1,14 @@
 {
+  "Take notes · {title}": "Take notes · {title}",
+  "Take notes · {count} now": {
+    "one": "Take notes · {count} now",
+    "other": "Take notes · {count} now"
+  },
+  "Now": "Now",
+  "in {count} min": {
+    "one": "in {count} min",
+    "other": "in {count} min"
+  },
   "Has notes": "Has notes",
   "No matching meetings with {name}.": "No matching meetings with {name}.",
   "No matching meetings on {date}.": "No matching meetings on {date}.",

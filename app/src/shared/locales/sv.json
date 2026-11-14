@@ -1,4 +1,8 @@
 {
+  "Take notes · {title}": "Anteckna · {title}",
+  "Take notes · {count} now": "Anteckna · {count} nu",
+  "Now": "Nu",
+  "in {count} min": "om {count} min",
   "No matching meetings with {name}.": "Inga matchande möten med {name}.",
   "No matching meetings on {date}.": "Inga matchande möten den {date}.",
   "No matching meetings with {name} on {date}.": "Inga matchande möten med {name} den {date}.",

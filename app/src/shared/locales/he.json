@@ -1,4 +1,8 @@
 {
+  "Take notes · {title}": "רישום הערות · {title}",
+  "Take notes · {count} now": "רישום הערות · {count} עכשיו",
+  "Now": "עכשיו",
+  "in {count} min": "בעוד {count} דק׳",
   "No matching meetings with {name}.": "אין פגישות תואמות עם {name}.",
   "No matching meetings on {date}.": "אין פגישות תואמות בתאריך {date}.",
   "No matching meetings with {name} on {date}.": "אין פגישות תואמות עם {name} בתאריך {date}.",

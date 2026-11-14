@@ -1,4 +1,8 @@
 {
+  "Take notes · {title}": "记笔记 · {title}",
+  "Take notes · {count} now": "记笔记 · {count} 个正在进行",
+  "Now": "正在进行",
+  "in {count} min": "{count} 分钟后",
   "No matching meetings with {name}.": "没有与{name}的匹配会议。",
   "No matching meetings on {date}.": "{date}没有匹配的会议。",
   "No matching meetings with {name} on {date}.": "{date}没有与{name}的匹配会议。",

@@ -1,4 +1,8 @@
 {
+  "Take notes · {title}": "Prendi appunti · {title}",
+  "Take notes · {count} now": "Prendi appunti · {count} in corso",
+  "Now": "In corso",
+  "in {count} min": "tra {count} min",
   "No matching meetings with {name}.": "Nessuna riunione corrispondente con {name}.",
   "No matching meetings on {date}.": "Nessuna riunione corrispondente in data {date}.",
   "No matching meetings with {name} on {date}.": "Nessuna riunione corrispondente con {name} in data {date}.",

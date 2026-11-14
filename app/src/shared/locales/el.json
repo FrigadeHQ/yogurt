@@ -1,4 +1,8 @@
 {
+  "Take notes · {title}": "Κράτηση σημειώσεων · {title}",
+  "Take notes · {count} now": "Κράτηση σημειώσεων · {count} τώρα",
+  "Now": "Τώρα",
+  "in {count} min": "σε {count} λεπτά",
   "No matching meetings with {name}.": "Δεν βρέθηκαν συναντήσεις που να ταιριάζουν με {name}.",
   "No matching meetings on {date}.": "Δεν βρέθηκαν συναντήσεις που να ταιριάζουν στις {date}.",
   "No matching meetings with {name} on {date}.": "Δεν βρέθηκαν συναντήσεις που να ταιριάζουν με {name} στις {date}.",

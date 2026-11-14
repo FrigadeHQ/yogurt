@@ -1,4 +1,8 @@
 {
+  "Take notes · {title}": "নোট নিন · {title}",
+  "Take notes · {count} now": "নোট নিন · এখন {count}টি",
+  "Now": "এখন",
+  "in {count} min": "{count} মিনিট পরে",
   "No matching meetings with {name}.": "{name}-এর সঙ্গে মিলে যাওয়া কোনো মিটিং নেই।",
   "No matching meetings on {date}.": "{date} তারিখে মিলে যাওয়া কোনো মিটিং নেই।",
   "No matching meetings with {name} on {date}.": "{date} তারিখে {name}-এর সঙ্গে মিলে যাওয়া কোনো মিটিং নেই।",

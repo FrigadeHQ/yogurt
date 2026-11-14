@@ -1,4 +1,8 @@
 {
+  "Take notes · {title}": "Jegyzetelés · {title}",
+  "Take notes · {count} now": "Jegyzetelés · most {count}",
+  "Now": "Most",
+  "in {count} min": "{count} perc múlva",
   "No matching meetings with {name}.": "Nincs megfelelő megbeszélés vele: {name}.",
   "No matching meetings on {date}.": "Nincs megfelelő megbeszélés ekkor: {date}.",
   "No matching meetings with {name} on {date}.": "Nincs megfelelő megbeszélés vele: {name}, ekkor: {date}.",

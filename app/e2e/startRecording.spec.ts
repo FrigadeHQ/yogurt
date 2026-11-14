@@ -151,6 +151,14 @@ test('localized recording actions leave room for a long folder title at the smal
   const { app, page } = await launch()
   try {
     const folder = await folderPage(page)
+    const title = 'Planning the next release and reviewing open questions '.repeat(4).trim()
+    await app.evaluate((_e, title) => {
+      const now = Date.now()
+      ;(globalThis as unknown as { __fake__: { calendarEvents(events: unknown[]): void } }).__fake__.calendarEvents([
+        { id: 'long-title', title, start: new Date(now - 60_000).toISOString(), end: new Date(now + 30 * 60_000).toISOString(), attendees: [] },
+      ])
+    }, title)
+    await expect(page.getByTestId('start-recording')).toHaveAttribute('title', `Take notes · ${title}`)
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(w => !w.webContents.getURL().includes('#'))!.setSize(720, 520))
     await expect.poll(() => page.evaluate(() => innerWidth)).toBe(720)
     await page.evaluate(id => window.yogurt.folders.rename(id, 'Therapy and personal reflections '.repeat(6)), folder.id)
@@ -165,10 +173,63 @@ test('localized recording actions leave room for a long folder title at the smal
         const button = (await action.boundingBox())!
         return locale === 'ar' ? heading.x - (button.x + button.width) : button.x - (heading.x + heading.width)
       }).toBeGreaterThanOrEqual(12)
-      const button = (await action.boundingBox())!
+      const split = (await page.locator('.recording-split').boundingBox())!
+      expect(split.width).toBeLessThanOrEqual(276)
+      expect(await action.locator('.recording-label').evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true)
+      await expect(action).toHaveAttribute('title', new RegExp(title.trim()))
+      const button = split
       expect(button.x).toBeGreaterThanOrEqual(locale === 'ar' ? 132 : 0)
       expect(button.x + button.width).toBeLessThanOrEqual(await page.evaluate(() => innerWidth))
       await expect(action).toBeEnabled()
     }
+  } finally { await app.close() }
+})
+
+test('two live meetings open the title-bar menu; arrows, Enter and Escape choose or dismiss it', async () => {
+  const { app, page } = await launch()
+  try {
+    const now = await page.evaluate(() => { const date = new Date(); date.setHours(12, 0, 0, 0); return +date })
+    await page.clock.setFixedTime(now)
+    await app.evaluate(async (_e, now) => {
+      const fake = (globalThis as unknown as { __fake__: { advance(ms: number): Promise<void>; calendarEvents(events: unknown[]): void } }).__fake__
+      await fake.advance(now - Date.now())
+      fake.calendarEvents([
+        { id: 'first', title: 'Planning review', start: new Date(now - 60_000).toISOString(), end: new Date(now + 30 * 60_000).toISOString(), attendees: [{ name: 'Robin Vale', email: null }] },
+        { id: 'second', title: 'Project review', start: new Date(now - 30_000).toISOString(), end: new Date(now + 30 * 60_000).toISOString(), attendees: [] },
+        { id: 'soon', title: 'Release review', start: new Date(now + 8 * 60_000).toISOString(), end: new Date(now + 38 * 60_000).toISOString(), attendees: [] },
+      ])
+    }, now)
+    await page.reload()
+    const action = page.getByTestId('new-note')
+    const menu = page.getByRole('menu', { name: 'Start recording', exact: true })
+    await expect(action).toHaveText('Take notes · 2 now')
+    await expect(page.getByTestId('event-start')).toHaveCount(0)
+    await action.click()
+    await expect(menu).toBeVisible()
+    await expect(page.getByTestId('note-state')).toHaveCount(0)
+    await expect(menu.getByTestId('recording-meeting')).toHaveText(['Planning reviewRobin ValeNow', 'Project reviewNow', 'Release reviewin 8 min'])
+    await page.keyboard.press('Escape')
+    await expect(menu).toHaveCount(0)
+    await expect(action).toBeFocused()
+    await action.press('ArrowDown')
+    await expect(menu.getByTestId('recording-meeting').first()).toBeFocused()
+    await page.keyboard.press('ArrowDown')
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
+    await expect(page.getByTestId('note-title')).toHaveText('Project review')
+    const id = await meetingId(page)
+    expect(await page.evaluate(id => window.yogurt.meetings.get(id).then(m => m?.eventId), id)).toBe('second')
+    await page.getByTestId('nav-home').click()
+    await expect(page.getByTestId('recording-return')).toBeVisible()
+    await expect(page.getByTestId('recording-choices')).toHaveCount(0)
+    await page.getByTestId('recording-return').click()
+    await stop(page)
+    await page.getByTestId('nav-home').click()
+    await page.getByTestId('recording-choices').press('ArrowUp')
+    await expect(menu.getByTestId('recording-unattached')).toBeFocused()
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
+    const unattached = await meetingId(page)
+    expect(await page.evaluate(id => window.yogurt.meetings.get(id).then(m => m?.eventId), unattached)).toBeNull()
   } finally { await app.close() }
 })

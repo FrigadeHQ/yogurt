@@ -15,7 +15,7 @@ const event: AgendaEvent = { id: 'event', title: 'Planning', start: 100, end: 20
 const saved: AgendaEvent = { ...event, note: { id: 'note', state: 'done' } }
 const recording: MeetingCard = { id: 'note', title: 'Planning', state: 'recording', startedAt: 100, endedAt: null, attendees: [], folders: [], preview: '', eventId: event.id, app: null, language: null, titleSource: 'calendar' }
 const render = (props: Partial<Parameters<typeof Event>[0]> = {}) => renderToStaticMarkup(createElement(Event, {
-  event, me: '', now: 150, near: true, initial: false, selected: false, onInspect() {}, async onStart() {}, ...props,
+  event, me: '', now: 150, near: true, initial: false, selected: false, onInspect() {}, ...props,
 }))
 const css = readFileSync(new URL('../src/renderer/src/workspace.css', import.meta.url), 'utf8')
 
@@ -74,8 +74,8 @@ it('labels paused bars and keeps markers out of loading rows', () => {
   expect(loading).not.toContain('agenda-recording-levels')
 })
 
-it('keeps the live action, upcoming countdown and even title spacing', () => {
-  expect(render()).toContain('Take notes')
+it('removes the live row action and keeps the upcoming countdown and title spacing', () => {
+  expect(render()).not.toContain('Take notes')
   expect(render({ now: 99 })).toContain('Starts in 1 min')
   expect(render()).not.toContain('agenda-live')
   expect(css).toMatch(/\.agenda-heading \{[^}]*min-height:17px/)
@@ -105,14 +105,12 @@ it('fades only ended, non-recording events, leaving row focus outlines at full s
   expect(css).toContain(':is(.native-meeting-row,.ask-history-row,.agenda-event):is(:focus-visible,:has(:focus-visible)) { outline:2px solid var(--focus);outline-offset:-2px; }')
 })
 
-it('shows people on live and recording rows and keeps the quiet action test id', () => {
+it('shows people on live and recording rows without a Take notes action', () => {
   for (const row of [event, { ...event, note: { id: 'note', state: 'prepared' as const } }]) {
     const html = render({ event: row })
     expect(html).toContain('class="agenda-people" title="Robin Vale">Robin</p>')
-    expect(html).toContain('data-testid="event-start"')
-    expect(html).toContain('class="workspace-button agenda-action"')
-    expect(html).toContain('lucide-mic')
-    expect(html).toContain('Take notes')
+    expect(html).not.toContain('data-testid="event-start"')
+    expect(html).not.toContain('Take notes')
     expect(html).not.toContain('workspace-button primary')
   }
   for (const now of [99, 150, 200]) {
@@ -125,7 +123,6 @@ it('shows people on live and recording rows and keeps the quiet action test id',
   expect(render({ event: { ...event, attendees: [] } })).not.toContain('agenda-people')
   expect(css).toMatch(/\.agenda-event h3 \{[^}]*font-size:11px;line-height:17px;font-weight:400/)
   expect(css).toMatch(/\.agenda-event:is\(\.live,\[data-recording=true\]\) \.agenda-title \{ font-weight:600/)
-  expect(css).toMatch(/\.agenda-action \{[^}]*height:20px;[^}]*background:transparent;[^}]*font-weight:400/)
 })
 
 it('resizes from the previous height, retargets interrupted growth and snaps with reduced motion', () => {

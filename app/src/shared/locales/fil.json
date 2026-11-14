@@ -1,4 +1,8 @@
 {
+  "Take notes · {title}": "Mag-note · {title}",
+  "Take notes · {count} now": "Mag-note · {count} ngayon",
+  "Now": "Ngayon",
+  "in {count} min": "sa loob ng {count} min",
   "No matching meetings with {name}.": "Walang tumutugmang pulong kasama si {name}.",
   "No matching meetings on {date}.": "Walang tumutugmang pulong sa {date}.",
   "No matching meetings with {name} on {date}.": "Walang tumutugmang pulong kasama si {name} sa {date}.",

@@ -1,4 +1,8 @@
 {
+  "Take notes · {title}": "メモを取る · {title}",
+  "Take notes · {count} now": "メモを取る · {count}件が進行中",
+  "Now": "進行中",
+  "in {count} min": "{count}分後",
   "No matching meetings with {name}.": "{name}との一致する会議はありません。",
   "No matching meetings on {date}.": "{date}に一致する会議はありません。",
   "No matching meetings with {name} on {date}.": "{date}の{name}との一致する会議はありません。",

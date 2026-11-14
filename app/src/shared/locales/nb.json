@@ -1,4 +1,8 @@
 {
+  "Take notes · {title}": "Ta notater · {title}",
+  "Take notes · {count} now": "Ta notater · {count} nå",
+  "Now": "Nå",
+  "in {count} min": "om {count} min",
   "No matching meetings with {name}.": "Ingen samsvarende møter med {name}.",
   "No matching meetings on {date}.": "Ingen samsvarende møter den {date}.",
   "No matching meetings with {name} on {date}.": "Ingen samsvarende møter med {name} den {date}.",
