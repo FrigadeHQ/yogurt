@@ -55,8 +55,10 @@ export const withStopState = <T extends Meeting>(m: T): T => {
 export function startMeeting(p: { title: string; event: CalEvent | null; app: string | null }): Meeting {
   if (!store) throw new Error('Meetings are not ready yet')
   if (active) return active
-  const prepared = p.event && eventIds(p.event).map((id) => store!.meetingForEvent(id)).find(Boolean)
-  if (prepared?.state === 'prepared') return startPreparedMeeting(prepared.id, p.app)!
+  const existing = p.event && eventIds(p.event).map((id) => store!.meetingForEvent(id)).find(Boolean)
+  if (existing?.state === 'prepared') return startPreparedMeeting(existing.id, p.app)!
+  // Finished notes open their guarded Resume action before capture can append to them.
+  if (existing) return withStopState(existing)
   const title = p.title || t('Meeting')
   const m = store.createMeeting({
     title, titleSource: sourceOf(title, p.event?.id ?? null), startedAt: Date.now(), endedAt: null, eventId: p.event?.id ?? null,

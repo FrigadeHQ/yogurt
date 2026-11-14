@@ -32,6 +32,7 @@ const day = vi.fn()
 const started = vi.fn()
 const gone = vi.fn()
 let calendarChanged: () => void
+let meetingsChanged: () => void
 let widgetChanged: (view: WidgetView | null) => void
 let cleanups: (() => void)[]
 const flush = async () => { await Promise.resolve(); await Promise.resolve() }
@@ -62,7 +63,7 @@ beforeEach(async () => {
     capabilities: { calendar: true },
     widget: { state: async () => null, onState: (cb: typeof widgetChanged) => { widgetChanged = cb; return vi.fn() } },
     calendar: { day, onChange: (cb: () => void) => { calendarChanged = cb; return vi.fn() } },
-    meetings: { start },
+    meetings: { start, onChange: (cb: () => void) => { meetingsChanged = cb; return vi.fn() } },
   } })
   render(); run(hooks.layout[0]); await flush()
 })
@@ -114,6 +115,43 @@ it('suggests an upcoming meeting but keeps the main action unattached', async ()
   expect(find(tree, 'recording-choices').type).toBe(Menu.Trigger)
   await click(find(tree, 'start-recording'))
   expect(start).toHaveBeenCalledExactlyOnceWith(null)
+})
+it.each(['stopped', 'done'] as const)('labels a %s note for resume in the title bar and menu without suggesting a new folder', async state => {
+  const live = { ...event('live'), note: { id: 'existing', state } }
+  const tree = await calendar([live])
+  expect(label(tree)).toContain('Resume notes · Planning live')
+  expect(find(tree, 'start-recording').props.title).toBe('Resume notes · Planning live')
+  const row = find(tree, 'recording-meeting')
+  const html = renderToStaticMarkup(row.props.children as ReactNode)
+  expect(html).toContain('Resume notes · Planning live')
+  expect(html).toContain('lucide-rotate-ccw')
+  expect(html).toContain('Now')
+  start.mockResolvedValue({ id: 'existing', resumeRequested: true })
+  await click(find(tree, 'start-recording'))
+  await click(row)
+  expect(start).toHaveBeenCalledTimes(2)
+  expect(start).toHaveBeenLastCalledWith(live.id)
+  expect(started).not.toHaveBeenCalled()
+})
+it('keeps the take-notes label and start path for a prepared note', async () => {
+  const tree = await calendar([{ ...event('prepared'), note: { id: 'prepared-note', state: 'prepared' } }])
+  expect(label(tree)).toContain('Take notes · Planning prepared')
+  const html = renderToStaticMarkup(find(tree, 'recording-meeting').props.children as ReactNode)
+  expect(html).not.toContain('Resume notes')
+  expect(html).not.toContain('lucide-rotate-ccw')
+  expect(html).toContain('<svg')
+  await click(find(tree, 'start-recording'))
+  expect(start).toHaveBeenCalledExactlyOnceWith('prepared')
+})
+it('refreshes the resume label when the linked note changes or is trashed', async () => {
+  const live = event('live')
+  await calendar([live])
+  day.mockResolvedValue({ status: 'granted', events: [{ ...live, note: { id: 'existing', state: 'done' } }] })
+  meetingsChanged(); await flush()
+  expect(label(render())).toContain('Resume notes · Planning live')
+  day.mockResolvedValue({ status: 'granted', events: [live] })
+  meetingsChanged(); await flush()
+  expect(label(render())).toContain('Take notes · Planning live')
 })
 it('changes at the 15-minute, start and end boundaries and never offers a past event', async () => {
   const upcoming = event('boundary', now + 16 * 60_000, now + 17 * 60_000)

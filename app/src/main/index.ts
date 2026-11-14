@@ -8,6 +8,7 @@ import { closeAction, keepMainWindow } from './mainWindow'
 import { titleBarOverlay, windowChrome } from './windowChrome'
 import { x11Relaunch } from './display'
 import { isAppRoute } from '../shared/routes'
+import { resumesNote } from '../shared/agendaNote'
 import { relaunchOptions, stripAppImageEnv } from './relaunch'
 import { capabilities, micListHelper, platformOf, supportedKinds } from '../shared/platform'
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, Notification, protocol, shell } from 'electron'
@@ -150,7 +151,7 @@ function createWindow() {
   win.on('restore', visibilityChanged)
   win.on('closed', () => { win = undefined; visibilityChanged() })
   // a page still loading misses a go-to sent to it: tell it again once it is up
-  win.webContents.on('did-finish-load', () => { if (route) win?.webContents.send('nav:go', route) })
+  win.webContents.on('did-finish-load', () => { if (route) win?.webContents.send('nav:go', route, resumeRequested) })
   presentMain()
 }
 
@@ -215,16 +216,18 @@ function showMain() {
 
 /** Where the app was last told to go (e.g. /note/<id>); the window asks for it when it opens */
 let route = ''
+let resumeRequested = false
 let pendingAsk = false
 function askFromMenu() {
   pendingAsk = true
   showMain()
   win?.webContents.send('nav:ask')
 }
-function goTo(next: string) {
+function goTo(next: string, resume = false) {
   route = next
+  resumeRequested = resume
   if (!win) createWindow()
-  win?.webContents.send('nav:go', route)
+  win?.webContents.send('nav:go', route, resumeRequested)
   presented++
   // The card and widget never take focus, so their explicit navigation brings Yogurt forward.
   presentMain(true)
@@ -318,9 +321,11 @@ function startDetection() {
   sendWidgetTranscript = widget.transcript
   /** The one way notes start: the card's Take notes, and home's Start notes and New note. Opens the note. */
   function begin(p: { title: string; event: CalEvent | null; app: string | null }) {
+    const alreadyRecording = !!activeMeeting()
     const m = startMeeting(p)
-    prompts.hide(); watcher.cleared(); goTo(`/note/${m.id}`)
-    return m.id
+    const resume = resumesNote(m)
+    prompts.hide(); watcher.cleared(); goTo(`/note/${m.id}`, resume)
+    return { id: m.id, ...(resume ? { resumeRequested: true as const } : {}), ...(alreadyRecording ? { alreadyRecording: true as const } : {}) }
   }
   // home: Start notes for a calendar event (looked up here, never taken from the page), or New note with none
   // gone: the event left the calendar since the page showed it (moved, cancelled); failed: anything else, in plain words on the page
@@ -333,7 +338,7 @@ function startDetection() {
         event = (await comingUp()).find((e) => matchesEvent(e, eventId)) ?? null
         if (!event) return { error: 'gone' }
       }
-      return { id: begin({ title: event?.title ?? '', event, app: null }) }
+      return begin({ title: event?.title ?? '', event, app: null })
     } catch (e) {
       console.error('start notes failed', e)
       return { error: 'failed' }
@@ -949,6 +954,7 @@ app.whenReady().then(() => {
   ipcMain.on('nav:go', (_e, r: unknown) => {
     if (!isAppRoute(r)) return
     route = r
+    resumeRequested = false
     win?.webContents.send('nav:go', route)
   })
   ipcMain.handle('nav:current', () => route)

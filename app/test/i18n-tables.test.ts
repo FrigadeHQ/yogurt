@@ -55,7 +55,7 @@ it('translates agenda marker labels in every locale', () => {
 it('translates the contextual recording action and menu timing in every locale', () => {
   for (const { id } of LOCALES) {
     const table = load(id)
-    for (const key of ['Take notes · {title}', 'Take notes · {count} now', 'Now', 'in {count} min']) {
+    for (const key of ['Take notes · {title}', 'Resume notes · {title}', 'Take notes · {count} now', 'Now', 'in {count} min']) {
       expect(keys).toContain(key)
       expect(table[key]).toBeDefined()
       expect(forms(table[key]).every(value => value.trim().length > 0)).toBe(true)

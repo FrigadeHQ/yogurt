@@ -11,6 +11,40 @@ beforeEach(() => { store = openStore(':memory:'); initMeetings(store) })
 const event = { id: 'e1', title: 'Design review', start: 1000, end: 2000, attendees: [{ name: 'Ann', email: 'ann@x.com' }], url: null }
 
 describe('meeting lifecycle', () => {
+  it.each(['stopped', 'done'] as const)('returns the existing %s event note without starting capture before the guarded resume', state => {
+    const original = startMeeting({ title: event.title, event, app: null })
+    stopMeeting(original.id)
+    store.updateMeeting(original.id, { state })
+    store.setNotes(original.id, { mine: 'Keep these notes.', enhanced: 'Keep this summary.' })
+    const starts = vi.fn(), off = onMeetingStart(starts)
+    try {
+      const same = startMeeting({ title: event.title, event: { ...event, id: 'calendar-copy', aliases: [event.id] }, app: null })
+      expect(same).toMatchObject({ id: original.id, state })
+      expect(store.meetings({ limit: 10 })).toHaveLength(1)
+      expect(store.notes(original.id)).toMatchObject({ mine: 'Keep these notes.', enhanced: 'Keep this summary.' })
+      expect(activeMeeting()).toBeNull()
+      expect(starts).not.toHaveBeenCalled()
+    } finally { off() }
+  })
+  it('uses the same newest non-trashed event note as the agenda, including ties', () => {
+    const create = (startedAt: number) => store.createMeeting({ title: 'Review fixture', startedAt, endedAt: startedAt + 1, eventId: event.id, attendees: [], app: null, state: 'done' })
+    create(100)
+    const latest = create(200), tied = create(200)
+    const start = () => startMeeting({ title: event.title, event, app: null })
+    expect(start().id).toBe(tied.id)
+    store.db.prepare('UPDATE meetings SET trashed_at = 300 WHERE id = ?').run(tied.id)
+    expect(start().id).toBe(latest.id)
+    expect(start().id).toBe(store.meetingForEvent(event.id)?.id)
+  })
+  it('starts fresh for an unlinked event and for each unattached recording', () => {
+    const first = startMeeting({ title: 'First fixture', event: null, app: null })
+    stopMeeting(first.id)
+    const second = startMeeting({ title: 'Second fixture', event: null, app: null })
+    expect(second.id).not.toBe(first.id)
+    stopMeeting(second.id)
+    expect(startMeeting({ title: event.title, event, app: null }).state).toBe('recording')
+    expect(store.meetings({ limit: 10 })).toHaveLength(3)
+  })
   it('persists a late call binding only for the current unbound recording', () => {
     const m = startMeeting({ title: 'Meeting', event: null, app: null })
     expect(bindMeetingApp('other', 'Zoom')).toBeUndefined()

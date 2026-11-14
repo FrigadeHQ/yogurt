@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { agendaNoteAction, unusedPreparedNote, DAY_MS } from '../src/shared/agendaNote'
+import { agendaNoteAction, resumesNote, unusedPreparedNote, DAY_MS } from '../src/shared/agendaNote'
 import { openStore } from '../src/main/store'
 import type { AgendaEvent } from '../src/shared/types'
 const event: AgendaEvent = { id: 'event', title: 'Review', start: 100, end: 200, attendees: [{ name: 'Other', email: null }], url: null }
+it('resumes only stopped or completed notes', () => {
+  expect(resumesNote(undefined)).toBe(false)
+  for (const state of ['prepared', 'recording', 'stopped', 'done'] as const) {
+    expect(resumesNote({ id: 'note', state })).toBe(state === 'stopped' || state === 'done')
+  }
+})
 it('offers one note action and leaves solo blocks alone', () => {
   expect(agendaNoteAction(event, undefined, 50)).toBe('prepare')
   expect(agendaNoteAction(event, undefined, 150)).toBe('start')

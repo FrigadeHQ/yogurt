@@ -42,6 +42,7 @@ export function App() {
   // where the app was told to go, e.g. /note/<id>
   const [route, setRouteNow] = useState('')
   const [agendaJump, setAgendaJump] = useState<{ at: number }>()
+  const [resumeRequested, setResumeRequested] = useState(false)
   const [meeting, setMeeting] = useState<Pick<MeetingView, 'id' | 'title'>>()
   /** Back and forward keep the same note routes; a new destination starts a new branch. */
   const history = useRef<string[]>([])
@@ -51,6 +52,7 @@ export function App() {
   const setRoute = (r: string, agendaDate?: number) => {
     // A fresh request lets the same date reset a day changed with the arrows.
     setAgendaJump(agendaDate === undefined ? undefined : { at: agendaDate })
+    setResumeRequested(false)
     rememberScrollPositions()
     if (r !== routeRef.current) { history.current = [...history.current, routeRef.current].slice(-50); future.current = [] }
     routeRef.current = r
@@ -62,6 +64,7 @@ export function App() {
     const prev = history.current.pop()
     if (prev === undefined) return
     setAgendaJump(undefined)
+    setResumeRequested(false)
     rememberScrollPositions()
     future.current.push(routeRef.current)
     routeRef.current = prev; setRouteNow(prev); rememberRoute(prev)
@@ -70,6 +73,7 @@ export function App() {
     const next = future.current.pop()
     if (next === undefined) return
     setAgendaJump(undefined)
+    setResumeRequested(false)
     rememberScrollPositions()
     history.current.push(routeRef.current)
     routeRef.current = next; setRouteNow(next); rememberRoute(next)
@@ -77,11 +81,12 @@ export function App() {
   useEffect(() => {
     // a go-to that arrives while the first ask is on its way wins over the older answer
     let told = false
-    const off = window.yogurt.nav.onGo((r) => {
+    const off = window.yogurt.nav.onGo((r, resume) => {
       told = true
       // Main echoes our moves for persistence; delayed echoes must not create new history entries.
       if (echoes.current[0] === r) { echoes.current.shift(); return }
       setRoute(r)
+      setResumeRequested(!!resume)
     })
     void window.yogurt.nav.current().then((r) => { if (!told) { routeRef.current = r; setRouteNow(r) } })
     return off
@@ -186,6 +191,7 @@ export function App() {
   // a folder's page waits for the list; a folder that is gone shows Meetings
   const folderScreen = folderId && (folder ? <Folder key={folder.id} folder={folder} open={open} onStarted={(id) => setSuggestedFolders((current) => ({ ...current, [id]: folder.id }))} /> : !folders ? <div className="native-folder"><StartRecording /><div className="native-library"><LoadingContent pending testId="meetings-loading" skeleton={<><div className="folder-page-heading"><h1><span className="loading-bar" style={{ width: 140 }} /></h1></div><MeetingListLoading showFolders={false} /></>} /></div></div> : null)
   const screen = settings ? <Settings revision={settingsRevision} focus={route.startsWith('/settings/') ? route.slice('/settings/'.length) : undefined} /> : noteId ? <Note key={noteId} id={noteId} onSource={openSource} onTitleChange={setMeeting} at={jump?.id === noteId ? jump : undefined}
+    onResumeRequested={resumeRequested ? () => { setResumeRequested(false); rememberRoute(route) } : undefined}
     folderSuggestion={suggestedFolder ? { folder: suggestedFolder, dismiss: () => dismissFolderSuggestion(noteId) } : undefined} />
     : chatId !== undefined ? <ChatPage id={chatId} go={go} openSource={openSource} />
     : trash ? <Trash open={open} /> : folderScreen || <Home open={open} openFolder={(id) => go(`/folder/${id}`)} agendaJump={agendaJump} />

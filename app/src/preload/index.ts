@@ -268,7 +268,7 @@ const api: YogurtApi = {
     go: (r) => { ipcRenderer.send('nav:go', r) },
     current: () => ipcRenderer.invoke('nav:current'),
     onGo: (cb) => {
-      const on = (_e: unknown, r: string) => cb(r)
+      const on = (_e: unknown, r: string, resumeRequested?: boolean) => cb(r, resumeRequested)
       ipcRenderer.on('nav:go', on)
       return () => { ipcRenderer.removeListener('nav:go', on) }
     },

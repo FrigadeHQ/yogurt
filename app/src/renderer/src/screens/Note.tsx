@@ -52,12 +52,13 @@ function useAutosave(id: string, side: NoteSide, text: string, saved?: NoteSaveR
 const readingViews = new Map<string, { primary: 'transcript' | 'notes'; view: 'mine' | 'enhanced' }>()
 
 /** A meeting keeps its reading tab when revisited; an explicit source or recording action can still switch it. */
-export function Note({ id, onTitleChange, at, folderSuggestion, onSource }: {
+export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResumeRequested }: {
   onSource: (s: LibrarySource, match?: string) => void
   id: string; onTitleChange: (meeting: Pick<MeetingView, 'id' | 'title'>) => void
   /** A citation target: null ms selects notes; seq identifies each Open action. */
   at?: { ms: number | null; match?: string; seq: number }
   folderSuggestion?: FolderSuggestion
+  onResumeRequested?: () => void
 }) {
   const [m, setM] = useState<MeetingView>()
   const [footer, setFooter] = useState<HTMLElement | null>(null)
@@ -211,9 +212,18 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource }: {
     return () => resize.disconnect()
   }, [primary, view, m?.state, notes?.status])
 
+  const summarizing = finishing || notes?.status === 'waiting' || notes?.status === 'writing'
+  const resumeHandled = useRef(false)
+  useEffect(() => {
+    if (!onResumeRequested) { resumeHandled.current = false; return }
+    if (resumeHandled.current || !m || !notes || summarizing || starting || m.stopSavePending) return
+    resumeHandled.current = true
+    onResumeRequested()
+    if (m.trashedAt == null && !m.stopSavePending && (m.state === 'stopped' || m.state === 'done')) void resumeRecording()
+  }, [onResumeRequested, m, notes, summarizing, starting])
+
   if (!m || !notes) return <LoadingContent pending skeleton={<Loading layout="note" />} className="loading-note-frame" />
   const recording = m.state === 'recording'
-  const summarizing = finishing || notes.status === 'waiting' || notes.status === 'writing'
   /** in the Trash: it can be read and restored, not recorded into */
   const trashed = m.trashedAt != null
   const minutes = m.endedAt ? Math.max(1, Math.round((m.durationMs ?? (m.endedAt - m.startedAt)) / 60_000)) : null
@@ -276,7 +286,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource }: {
       if (!await saveAll()) return
       const result = await window.yogurt.meetings.resume(id)
       if ('error' in result) setResumeFailed(true)
-      else { picked.current = false; setPrimary('notes'); setView('mine'); setEditedHere(false) }
+      else { picked.current = false; requestFinish(false); setPrimary('notes'); setView('mine'); setEditedHere(false) }
     } catch { setResumeFailed(true) }
     finally { setStarting(false) }
   }

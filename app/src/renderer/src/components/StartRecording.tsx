@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Menu } from '@base-ui/react/menu'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, RotateCcw } from 'lucide-react'
 import { Mic } from './Icons'
 import { toasts } from './TrashToast'
 import { t } from '../../../shared/i18n'
+import { resumesNote } from '../../../shared/agendaNote'
 import type { AgendaEvent } from '../../../shared/types'
 import { eventPhase, recordingChoices } from '../agenda'
 import { useDay } from '../dates'
@@ -12,7 +13,7 @@ import { personName } from './People'
 
 let lastRecording: boolean | undefined
 
-/** A fresh recording from a library destination; main owns capture and opening the note. */
+/** Start or resume from a library destination; main resolves the event's note. */
 export function StartRecording({ onStarted, onGone, testId = 'start-recording' }: { onStarted?: (id: string) => void; onGone?: () => void; testId?: string }) {
   const [actions, setActions] = useState<HTMLElement | null>(null)
   const [recording, setRecording] = useState(lastRecording)
@@ -37,8 +38,9 @@ export function StartRecording({ onStarted, onGone, testId = 'start-recording' }
     const refresh = () => { setNow(Date.now()); void load() }
     const timer = setInterval(refresh, 60_000)
     const off = window.yogurt.calendar.onChange(() => { setEvents([]); refresh() })
+    const offMeetings = window.yogurt.meetings.onChange(refresh)
     window.addEventListener('focus', refresh)
-    return () => { seq.current++; off(); clearInterval(timer); window.removeEventListener('focus', refresh) }
+    return () => { seq.current++; off(); offMeetings(); clearInterval(timer); window.removeEventListener('focus', refresh) }
   }, [load, today])
   useEffect(() => {
     // Switch at the live/soon boundaries, even between calendar refreshes.
@@ -64,7 +66,7 @@ export function StartRecording({ onStarted, onGone, testId = 'start-recording' }
         toasts.add({ id: 'start-recording-message', data: { testId: 'start-recording-message' }, title: result.error === 'gone' ? t('That meeting is no longer on your calendar.') : t("Yogurt couldn't start the notes. Try again in a moment.") })
         return
       }
-      if (!result.alreadyRecording) onStarted?.(result.id)
+      if (!result.alreadyRecording && !result.resumeRequested) onStarted?.(result.id)
     } catch {
       toasts.add({ id: 'start-recording-message', data: { testId: 'start-recording-message' }, title: t("Yogurt couldn't start the notes. Try again in a moment.") })
     } finally { setStarting(false) }
@@ -73,9 +75,11 @@ export function StartRecording({ onStarted, onGone, testId = 'start-recording' }
   useEffect(() => { if (recording !== false || !choices.length) setOpen(false) }, [recording, choices.length])
   if (recording !== false || !actions) return null
   const live = choices.filter(event => eventPhase(event, now) === 'live')
-  const label = live.length === 1 ? t('Take notes · {title}', { title: live[0].title || t('Meeting') })
+  const title = live[0]?.title || t('Meeting')
+  const resuming = live.length === 1 && resumesNote(live[0].note)
+  const label = live.length === 1 ? resuming ? t('Resume notes · {title}', { title }) : t('Take notes · {title}', { title })
     : live.length > 1 ? t('Take notes · {count} now', { count: live.length }) : t('Start recording')
-  const content = <><Mic size={14} aria-hidden="true" /><span className="recording-label">{label}</span></>
+  const content = <>{resuming ? <RotateCcw size={14} aria-hidden="true" /> : <Mic size={14} aria-hidden="true" />}<span className="recording-label">{label}</span></>
   const button = { 'data-testid': testId, disabled: starting, title: label, className: 'workspace-button primary recording-main no-drag' }
   return createPortal(<Menu.Root modal={false} open={open && choices.length > 0} onOpenChange={setOpen}>
     <div ref={root} className="recording-split no-drag" data-split={choices.length > 0}>
@@ -86,10 +90,15 @@ export function StartRecording({ onStarted, onGone, testId = 'start-recording' }
     {choices.length > 0 && <Menu.Portal>
       <Menu.Positioner anchor={root} side="bottom" align="end" sideOffset={8} className="ask-menu-positioner">
         <Menu.Popup className="menu-entry ask-actions-menu recording-menu" aria-label={t('Start recording')} onKeyDown={e => { if (e.key === 'Escape') e.stopPropagation() }}>
-          {choices.map(event => <Menu.Item key={event.id} data-testid="recording-meeting" label={event.title || t('Meeting')} disabled={starting} onClick={() => void start(event.id)}>
-            <span className="recording-meeting-copy"><span title={event.title || t('Meeting')}>{event.title || t('Meeting')}</span>{event.attendees.length > 0 && <small>{event.attendees.map(person => personName(person.name)).join(', ')}</small>}</span>
-            <span className="recording-timing">{eventPhase(event, now) === 'live' ? t('Now') : t('in {count} min', { count: Math.ceil((event.start - now) / 60_000) })}</span>
-          </Menu.Item>)}
+          {choices.map(event => {
+            const resume = resumesNote(event.note), title = event.title || t('Meeting')
+            const label = resume ? t('Resume notes · {title}', { title }) : title
+            return <Menu.Item key={event.id} data-testid="recording-meeting" label={title} disabled={starting} onClick={() => void start(event.id)}>
+              {resume ? <RotateCcw size={14} aria-hidden="true" /> : <Mic size={14} aria-hidden="true" />}
+              <span className="recording-meeting-copy"><span title={label}>{label}</span>{event.attendees.length > 0 && <small>{event.attendees.map(person => personName(person.name)).join(', ')}</small>}</span>
+              <span className="recording-timing">{eventPhase(event, now) === 'live' ? t('Now') : t('in {count} min', { count: Math.ceil((event.start - now) / 60_000) })}</span>
+            </Menu.Item>
+          })}
           <Menu.Separator className="recording-menu-separator" />
           <Menu.Item data-testid="recording-unattached" disabled={starting} onClick={() => void start(null)}><Mic size={14} aria-hidden="true" />{t('Start recording')}</Menu.Item>
         </Menu.Popup>

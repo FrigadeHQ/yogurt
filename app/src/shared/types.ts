@@ -70,7 +70,7 @@ export type YogurtApi = {
     get(id: string): Promise<MeetingView | undefined>
     /** past and current meetings for home, newest first, a page at a time (before: the last card already shown) */
     cards(o: { before?: { at: number; id: string }; limit: number; /** only the meetings in this folder */ folder?: string }): Promise<MeetingCard[]>
-    /** starts notes now, for a calendar event (its id) or none, the same way the Take notes card does; opens the note */
+    /** starts notes or opens the event's existing note with a guarded resume request */
     start(eventId: string | null): Promise<StartResult>
     /** opens the note for this occurrence, creating a prepared note if needed; never records */
     prepare(eventId: string, day: number): Promise<StartResult>
@@ -297,7 +297,7 @@ export type YogurtApi = {
     go(route: string): void
     /** the page the app was last told to show, e.g. /note/<id>; empty for home */
     current(): Promise<string>
-    onGo(cb: (route: string) => void): () => void
+    onGo(cb: (route: string, resumeRequested?: boolean) => void): () => void
   }
 }
 
@@ -340,7 +340,7 @@ export type { CalEvent, CalendarSource, CalendarStatus } from '../main/calendar'
 /** Calendar occurrence with its saved note, if one exists. No inferred or sample meetings. */
 export type AgendaEvent = CalEvent & { note?: { id: string; state: Meeting['state'] } }
 /** Start notes: the meeting's id, or why it didn't start (gone: the event left the calendar) */
-export type StartResult = { id: string; alreadyRecording?: true } | { error: 'gone' | 'failed' }
+export type StartResult = { id: string; alreadyRecording?: true; resumeRequested?: true } | { error: 'gone' | 'failed' }
 /** one meeting found: parts is a piece of its notes or transcript, hit on the words matched */
 export type SearchResult = { meetingId: string; title: string; startedAt: number; parts: SnippetPart[]; confident?: boolean }
 
