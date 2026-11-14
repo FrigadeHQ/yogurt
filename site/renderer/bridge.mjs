@@ -82,6 +82,8 @@ function controls(s) {
   prepareEditor(s)
   document.documentElement.dataset.typing = String(time >= timing.type && time < timing.typed)
   const input = target('chat-input')
+  if (s.askFocused && document.documentElement.dataset.askFocused !== 'true') click(input)
+  document.documentElement.dataset.askFocused = String(s.askFocused)
   if (input && time < timing.send && input.value !== s.question) {
     Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(input, s.question)
     input.dispatchEvent(new Event('input', { bubbles: true }))
@@ -99,6 +101,7 @@ const clicks = [
   {id:'note-notes-tab',start:timing.notes-1.2,at:timing.notes},
   {id:'note-stop',start:timing.finish-1.3,at:timing.finish},
   {id:'chat-open',start:timing.ask-1.3,at:timing.ask},
+  {id:'chat-input',start:timing.ask+.2,at:timing.askFocus},
   {id:'chat-send',start:timing.send-1.1,at:timing.send},
   {id:'chat-close',start:timing.close-1.1,at:timing.close},
   {id:'note-resume',start:timing.resume-1.1,at:timing.resume},
@@ -113,6 +116,7 @@ function moveCursor(cursorTime = time) {
   if (!cursorMotion && !cursorCue) cursor.style.transform=`translate(${home.x}px,${home.y}px)`
   const cue = clicks.findLast(c => cursorTime >= c.start)
   cursor.style.opacity = cue && cursorTime < cue.at+(cue.id==='note-notes-tab'?.2:.35) && (still === null || cue.id !== 'home') ? '1' : '0'
+  if (cue?.id === 'chat-input') cursor.style.opacity = String(Math.max(0,Math.min(1,1-(cursorTime-cue.at-.15)/.2)))
   cursor.dataset.clicking = String(!!cue && cue.id !== 'home' && cursorTime >= cue.at && cursorTime < cue.at+.15)
   if (!cue) return
   if (cue !== cursorCue) {
@@ -133,7 +137,8 @@ function moveCursor(cursorTime = time) {
       // The pointer returns beside the completed text, while still hidden.
       from = { x:caret.left+10, y:caret.bottom+8 }
     }
-    const travel = Math.max(240,Math.hypot(x-from.x,y-from.y)/.6)
+    // Fit the input approach and a short settle into the existing pre-question gap.
+    const travel = cue.id === 'chat-input' ? (cue.at-cue.start-.1)*1000 : Math.max(240,Math.hypot(x-from.x,y-from.y)/.6)
     cursorMotion?.cancel()
     cursorMotion=cursor.animate([{transform:`translate(${from.x}px,${from.y}px)`},{transform:`translate(${x}px,${y}px)`}],{duration:travel,easing:'cubic-bezier(.45,0,.25,1)',fill:'both'})
     cursorMotion.pause(); cursorCue=cue

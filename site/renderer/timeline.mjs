@@ -1,5 +1,5 @@
 // All people, words and times here are invented for the marketing demonstration.
-export const timing = { notes:8, type:9.5, typed:14, finish:15.5, summaryStart:18, summary:20, ask:24, question:25, send:27.4, answer:29.8, answered:31.3, close:34.6, resume:36.2, transcript:37.4 }
+export const timing = { notes:8, type:9.5, typed:14, finish:15.5, summaryStart:18, summary:20, ask:24, askFocus:24.85, question:25, send:27.4, answer:29.8, answered:31.3, close:34.6, resume:36.2, transcript:37.4 }
 export const duration = 39
 export const beats = [['arrival',0],['live',3.3],['notes',12],['finish',15.45],['writing',18],['summary',22.5],['question',26.5],['thinking',28],['answer',33]]
 export const mine = '- Leave 30 minutes for a quiet QA pass.\n- Ask design for the square crop after this call.'
@@ -36,6 +36,7 @@ export function sceneAt(t) {
     mine: mine + (!replay && t >= timing.type-1.1 ? '\n- ' + bullet.slice(0,keyTimes.filter(at=>at<=t).length) : ''),
     draft: replay || t < timing.summaryStart ? '' : summary.slice(0,Math.floor(summary.length*Math.min(1,(t-timing.summaryStart)/(timing.summary-timing.summaryStart)))),
     tab: t < timing.notes || t >= timing.transcript ? 'note-transcript-toggle' : t < timing.finish || replay ? 'note-notes-tab' : 'note-summary-tab',
+    askFocused: t >= timing.askFocus && t < timing.send,
     question: t < timing.question ? '' : question.slice(0,Math.ceil(question.length*Math.min(1,(t-timing.question)/2))),
     answer: t < timing.answer ? '' : words(answer,(t-timing.answer)/(timing.answered-timing.answer)),
   }

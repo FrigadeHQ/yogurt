@@ -72,5 +72,6 @@ html[data-fragment-playing=false] *{animation-play-state:paused!important}
 .fragment-plan-size{visibility:hidden;pointer-events:none}
 .fragment-plan-live{position:absolute;inset:0}
 
-/* The demo types without focusing the field, so typed text stands in for focus and Ask's ring shows as it does in the app. */
-.ask-box:not([data-busy=true]):has(textarea:not(:placeholder-shown)){--ask-ring-opacity:1;--ask-ring-play:running}
+/* The visible input click stands in for focus without taking focus from the page. */
+html[data-ask-focused=true] .ask-box:not([data-busy=true]){--ask-ring-opacity:1;--ask-ring-play:running}
+html[data-ask-focused=true] [data-testid=chat-suggestions]{visibility:hidden}
