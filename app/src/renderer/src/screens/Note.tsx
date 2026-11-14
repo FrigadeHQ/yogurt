@@ -237,7 +237,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource }: {
       if (side) pick(side)
     }
     const root = panels.current
-    if ((next === primary && (!side || side === shown)) || !root?.startViewTransition) {
+    if ((next === primary && (!side || side === shown)) || !root?.startViewTransition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       update()
       return
     }
