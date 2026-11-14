@@ -27,14 +27,15 @@ const starters = (chips: ContextTarget[], recording: boolean) => chips.length ==
     : [t('What are my next steps this week?'), t('What did we decide last week?'), t('Catch me up on yesterday')]
 
 /** One composer and thread for both the page and the note panel. Draft writes never wait for the model. */
-export function AskConversation({ id, pendingDraftKey, initial, home = false, panel = false, recording = false, onSelect, onSource, onDeleted, onClose, onExpand }: {
-  id: string; pendingDraftKey?: string; initial?: ConversationView; home?: boolean; panel?: boolean; recording?: boolean; onDeleted: () => void; onClose?: () => void; onExpand?: () => void; onSelect: (id: string) => void; onSource: (source: LibrarySource, match?: string) => void
+export function AskConversation({ id, pendingDraftKey, initial, loadError = false, home = false, panel = false, recording = false, onSelect, onSource, onDeleted, onClose, onExpand }: {
+  id: string; pendingDraftKey?: string; initial?: ConversationView; loadError?: boolean; home?: boolean; panel?: boolean; recording?: boolean; onDeleted: () => void; onClose?: () => void; onExpand?: () => void; onSelect: (id: string) => void; onSource: (source: LibrarySource, match?: string) => void
 }) {
   const [chat, setChat] = useState(initial)
   const [text, setText] = useState((pendingDraftKey ? drafts.get(pendingDraftKey) : undefined) ?? drafts.get(id) ?? initial?.draft ?? '')
   const edited = useRef(false)
   const [error, setError] = useState(false)
   const [sending, setSending] = useState(false)
+  const pendingQuestion = useRef<string>(undefined)
   const [changing, setChanging] = useState(false)
   const [mention, setMention] = useState<{ start: number; end: number; query: string }>()
   const [targetResults, setTargetResults] = useState<{ query: string; items: ContextTarget[] }>()
@@ -70,7 +71,12 @@ export function AskConversation({ id, pendingDraftKey, initial, home = false, pa
         if (first) {
           if (!initial && !edited.current) setText(drafts.get(id) ?? v.draft)
         }
-      }).catch(() => { if (active && request === revision) setError(true) })
+      }).catch(() => {
+        if (active && request === revision) {
+          setError(true)
+          if (pendingQuestion.current !== undefined) { pendingQuestion.current = undefined; setSending(false) }
+        }
+      })
     }
     const offMeetings = window.yogurt.meetings.onChange(() => load())
     const offFolders = window.yogurt.folders.onChange(() => load())
@@ -137,16 +143,28 @@ export function AskConversation({ id, pendingDraftKey, initial, home = false, pa
   }
   // Sending from the box (Enter, the send button or a starter) keeps the person in it; the button turns into Stop and starters go. A disabled field would drop focus, so it is read-only while saving.
   const keepTyping = () => { const from = document.activeElement; if (from === document.body || from?.closest('.ask-box, .ask-starters')) input.current?.focus({ preventScroll: true }) }
-  const send = (q: string) => {
-    if (!q.trim() || busy) return
-    keepTyping()
-    follow.resume(); setSending(true); setError(false); setMention(undefined)
+  const submit = (q: string) => {
     void window.yogurt.conversations.ask(id, q).then(made => {
       if (!made) throw new Error('Question was not saved')
       setText(''); drafts.delete(id)
       if (home) onSelect(made)
     }).catch(() => { saveText(q); setError(true) }).finally(() => setSending(false))
   }
+  const send = (q: string) => {
+    if (!q.trim() || sending || changing || answering || loadError || (!chat && (!panel || error))) return
+    keepTyping()
+    follow.resume(); setSending(true); setError(false); setMention(undefined)
+    // Typing is available before the conversation loads; Enter must survive that handoff too.
+    if (!chat) { pendingQuestion.current = q; return }
+    submit(q)
+  }
+  useEffect(() => {
+    if (loadError) { pendingQuestion.current = undefined; setSending(false); return }
+    if (!chat || pendingQuestion.current === undefined) return
+    const question = pendingQuestion.current
+    pendingQuestion.current = undefined
+    submit(question)
+  }, [chat, loadError])
   const key = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.nativeEvent.isComposing) return
     if (mention && ['ArrowDown', 'ArrowUp', 'Enter', 'Escape'].includes(e.key)) {

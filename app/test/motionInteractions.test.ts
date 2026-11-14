@@ -2,6 +2,8 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import { Search } from '../src/renderer/src/components/Search'
 import { Ask } from '../src/renderer/src/components/Chat'
+import { AskConversation } from '../src/renderer/src/components/AskConversation'
+import type { ConversationView } from '../src/shared/types'
 import { Workspace } from '../src/renderer/src/components/Workspace'
 import { FoldersNav } from '../src/renderer/src/components/FoldersNav'
 
@@ -217,4 +219,60 @@ it.each([false, true])('keeps the composer clip inside the growing shape through
   body.computed.clipPath = 'none'
   find(tree, 'chat-open').props.onClick()
   check(false)
+})
+
+
+it.each(['send', 'load', 'resolve'] as const)('keeps an early Enter through loading, without duplicate requests or a lost draft (%s failure)', async failure => {
+  let id = '', loadError = false
+  let loaded!: (view: ConversationView) => void, loadFailed!: (error: Error) => void, rejected!: (error: Error) => void
+  const get = vi.fn(() => new Promise<ConversationView>((resolve, reject) => { loaded = resolve; loadFailed = reject }))
+  const ask = vi.fn(() => new Promise<string>((_resolve, reject) => { rejected = reject }))
+  const draft = vi.fn().mockResolvedValue(undefined)
+  const body = {}
+  vi.stubGlobal('document', { body, activeElement: body })
+  vi.stubGlobal('window', { yogurt: {
+    conversations: { get, ask, draft, onChange: () => () => {} },
+    meetings: { onChange: () => () => {} }, folders: { onChange: () => () => {} },
+  } })
+  const render = renderer(() => AskConversation({ id, loadError, pendingDraftKey: `meeting/early-${failure}`, panel: true, onSelect() {}, onDeleted() {}, onSource() {} }))
+  const flush = async () => { for (let i = 0; i < 5; i++) await Promise.resolve() }
+  const drain = () => vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.length === 2 && deps[1] === loadError)![0]()
+  const enter = (tree: ReactNode) => find(tree, 'chat-input').props.onKeyDown({ key: 'Enter', nativeEvent: {}, preventDefault() {} })
+  let tree = render()
+  const focus = vi.fn()
+  find(tree, 'chat-input').props.ref.current = { focus }
+  find(tree, 'chat-input').props.onChange({ target: { value: 'Who owns the next step?', selectionStart: 23 } })
+  tree = render()
+  enter(tree)
+  tree = render()
+  expect(find(tree, 'chat-input').props.readOnly).toBe(true)
+  expect(focus).toHaveBeenCalledWith({ preventScroll: true })
+  enter(tree)
+  expect(ask).not.toHaveBeenCalled()
+  if (failure === 'resolve') {
+    loadError = true
+    tree = render(); drain(); tree = render()
+  } else {
+    id = `early-${failure}`
+    tree = render()
+    vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.length === 1 && deps[0] === id)![0]()
+    if (failure === 'load') loadFailed(new Error('read failed'))
+    else loaded({ id, title: '', draft: '', chips: [], draftChips: [], firstChips: null, turns: [], waitsForMeeting: false, waitsForModel: false })
+    await flush()
+    tree = render(); drain(); tree = render(); drain()
+    if (failure === 'send') {
+      enter(tree)
+      expect(ask).toHaveBeenCalledExactlyOnceWith(id, 'Who owns the next step?')
+      rejected(new Error('request failed'))
+      await flush()
+    } else expect(ask).not.toHaveBeenCalled()
+    tree = render()
+  }
+  expect(find(tree, 'chat-input').props.readOnly).toBe(false)
+  expect(find(tree, 'chat-input').props.value).toBe('Who owns the next step?')
+  if (failure === 'send') {
+    expect(find(tree, 'chat-send').props.disabled).toBe(false)
+    enter(tree)
+    expect(ask).toHaveBeenCalledTimes(2)
+  }
 })

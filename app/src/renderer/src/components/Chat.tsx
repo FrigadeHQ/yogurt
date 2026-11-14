@@ -119,7 +119,7 @@ export function Ask({ id, recording, anchor, onSource }: { id: string; recording
     <div ref={surface} className="chat-morph-surface" aria-hidden="true" />
     <div ref={contents} className="chat-panel-contents">
       {error && <p role="alert">{t("Yogurt couldn't answer that.")}</p>}
-      <AskConversation key={`${id}/${conversationVersion}`} id={conversationId ?? ''} pendingDraftKey={`meeting/${id}`} panel recording={recording} onSelect={next => { setConversationId(next); setConversationVersion(version => version + 1) }} onClose={() => close()}
+      <AskConversation key={`${id}/${conversationVersion}`} id={conversationId ?? ''} pendingDraftKey={`meeting/${id}`} loadError={error} panel recording={recording} onSelect={next => { setConversationId(next); setConversationVersion(version => version + 1) }} onClose={() => close()}
         onExpand={conversationId ? () => { rememberScrollPositions(); close(false); window.yogurt.nav.go(`/chat/${conversationId}`) } : undefined}
         onDeleted={() => { close(false); setConversationId(undefined); window.yogurt.nav.go('/chat') }}
         onSource={(source, match) => { close(false); onSource(source, match) }} />
