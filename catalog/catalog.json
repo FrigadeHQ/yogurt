@@ -74,7 +74,7 @@
     {
       "id": "gemma-4-e4b-compact",
       "name": "Gemma 4 E4B Compact",
-      "description": "A smaller Gemma 4 E4B for Macs with 8 GB",
+      "description": "A smaller Gemma 4 E4B for computers with 8 GB",
       "family": "gemma4",
       "license": "Apache-2.0",
       "agentScore": 6,
@@ -144,7 +144,7 @@
     {
       "id": "gemma-4-26b-a4b-compact",
       "name": "Gemma 4 26B Compact",
-      "description": "A smaller Gemma 4 26B for Macs with 16 GB",
+      "description": "A smaller Gemma 4 26B for computers with 16 GB",
       "family": "gemma4",
       "license": "Apache-2.0",
       "agentScore": 5,
