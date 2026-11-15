@@ -211,13 +211,11 @@ export class SetupController {
       const chosen = wanted ? [...llm.all, ...(llm.smarter ? [llm.smarter] : [])].find((c) => c.model.id === wanted) : undefined
       if (wanted && !chosen) console.warn('NOTES', `the notes model picked at setup (${wanted}) is not offered on this computer; using the recommended one`)
 
-      // The first notes model is the starter when it downloads faster than the pick; otherwise the pick itself.
-      // A model picked over the recommendation downloads alone: the bigger model doesn't follow it.
-      const keepsDefault = !chosen || chosen.model.id === llm.recommended.model.id
-      const starter = chosen && !keepsDefault
-        ? chosen
-        : llm.starter && llm.starter.build.sizeGB < llm.recommended.build.sizeGB ? llm.starter : llm.recommended
-      const later = keepsDefault && starter !== llm.recommended ? llm.recommended : undefined
+      // The first notes model is the starter when it downloads faster than the target; otherwise the target itself.
+      // The target is the person's pick when there is one, so the download order and triggers stay as they were.
+      const target = chosen ?? llm.recommended
+      const starter = llm.starter && llm.starter.build.sizeGB < target.build.sizeGB ? llm.starter : target
+      const later = starter === target ? undefined : target
       console.info('NOTES', `notes models for this computer: ${starter.model.id}${later ? `, then ${later.model.id}` : ''} (graphics ${hw.gpu.kind}${hw.gpu.name ? ` ${hw.gpu.name}` : ''}, ${hw.totalRamGB} GB)`)
       const dirs = { asr: join(this.deps.modelsDir, 'asr'), llm: join(this.deps.modelsDir, 'llm'), embed: join(this.deps.modelsDir, 'embed') }
 
