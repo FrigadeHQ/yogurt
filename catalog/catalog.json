@@ -168,7 +168,7 @@
     {
       "id": "gpt-oss-120b",
       "name": "gpt-oss 120B",
-      "description": "The best quality, for powerful computers",
+      "description": "The most capable model, with 120B parameters",
       "family": "gpt-oss",
       "license": "Apache-2.0",
       "agentScore": 9,
