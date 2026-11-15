@@ -391,11 +391,12 @@ describe('SetupController', () => {
 })
 
 describe('the notes model picked at setup', () => {
-  it('downloads the picked model, and nothing bigger behind it', async () => {
+  it('downloads the starter first, then the picked model, and not the default recommendation', async () => {
     const { c, rec } = setup({ selectedModelId: () => 'gpt-oss-20b' })
     await c.start(); await c.idle()
-    expect(rec.asked).toContain(gptOssUrl)
-    expect(rec.asked).not.toContain(starterUrl)
+    const at = (u: string) => rec.asked.indexOf(u)
+    expect(at(starterUrl)).toBeGreaterThan(at(turboUrl))
+    expect(at(gptOssUrl)).toBeGreaterThan(at(starterUrl))
     expect(rec.asked).not.toContain(bigUrl)
     expect(c.notesPath()).toMatch(/gpt-oss-20b-MXFP4\.gguf$/)
     expect(c.state).toMatchObject({ phase: 'ready' })
