@@ -35,6 +35,7 @@ import { loginItemOn, openedAtLogin, setLoginItem, syncLoginItem } from './login
 import { createMedia } from './media'
 import { createTray, linuxTrayHost } from './tray'
 import { SetupController } from './setup'
+import { aiPlan } from './aiPlan'
 import { fakeMeasure, measureSpeed, speedClipPath, speedStore } from './asr/speedCheck'
 import { vadModelPath, whisperServerPath } from './asr/server'
 import { openStore, type Store } from './store'
@@ -166,10 +167,8 @@ function createSetup(): SetupController {
       load: () => loadSettings(join(userDataDir(), 'settings.json')).notesUpgradeSkipped === true,
       save: (skipped) => { updateSettings(join(userDataDir(), 'settings.json'), { notesUpgradeSkipped: skipped }) },
     },
-    // Windows and Linux: the notes engine checks the graphics first (a Mac shares its memory with them, no check)
-    getHardware: isFake() ? () => fakeHardware(platform) : async () => toHardware(await readSysInfo(userDataDir()), process.platform === 'darwin' ? undefined : await probeGpu()),
-    // the one in this build: new models come with app updates
-    getCatalog: async () => loadCatalog({ bundled: bundledCatalog, licenses }),
+    getHardware,
+    getCatalog,
     download: isFake() ? fakeDownloadDeps({ stepMs: Number(process.env.YOGURT_FAKE_STEP_MS ?? 5), notesMs: Number(process.env.YOGURT_FAKE_NOTES_MODEL_MS ?? 0) }) : realDeps,
     ...(isFake() ? { sha256Override: 'FAKE' } : {}),
     // Windows and Linux: speech models timed on this computer (asr/speedCheck.ts); a Mac never is
@@ -181,6 +180,11 @@ const speedFile = () => join(userDataDir(), 'speech-speed.json')
 
 /** What this computer can do (fake mode can pretend with YOGURT_FAKE_PLATFORM): Windows and Linux have no calendar or names from calls yet */
 const platform = platformOf(process.platform, process.env)
+/** the hardware setup and the AI plan are for: fake mode's fixed Mac, or this computer */
+const getHardware = async () =>
+  isFake() ? fakeHardware(platform) : toHardware(await readSysInfo(userDataDir()), process.platform === 'darwin' ? undefined : await probeGpu())
+/** the catalog in this build: new models come with app updates */
+const getCatalog = async () => loadCatalog({ bundled: bundledCatalog, licenses })
 const caps = capabilities(platform)
 setCalendarSupported(caps.calendar)
 // the call apps yogurt-system names on this computer (fake mode's helper speaks in a Mac's ids)
@@ -495,6 +499,7 @@ app.whenReady().then(() => {
   const setup = createSetup()
   setup.onState((st) => win?.webContents.send('setup:state', st))
   ipcMain.handle('setup:state', () => setup.state)
+  ipcMain.handle('ai:plan', async () => aiPlan(await getHardware(), (await getCatalog()).models))
   ipcMain.handle('setup:retry', () => setup.retry())
   ipcMain.handle('setup:skip-upgrade', () => setup.skipUpgrade())
   ipcMain.handle('setup:download-upgrade', () => setup.downloadUpgrade())
