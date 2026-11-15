@@ -55,6 +55,16 @@ describe('nameFor: who the other side was, from what the call app showed', () =>
     expect(nameFor({ startMs: 1000, endMs: 5000 }, run(0, 10_000, { ...pair, speaking: ['Alex Morgan'] }))).toBe('Dana Smith')
   })
 
+  it('does not use the two-person fallback when a stale roster conflicts with speaker marks', () => {
+    const pair = { participants: ['Alex Morgan', 'Dana Smith'], me: 'Alex Morgan' }
+    const label = (speaking: string[]) => nameFor({ startMs: 1000, endMs: 5000 }, run(0, 10_000, { ...pair, speaking }))
+    expect(label(['Dana Smith'])).toBe('Dana Smith')
+    expect(label(['Ann Lee'])).toBe('Ann Lee')
+    expect(label(['Alex Morgan', 'Ann Lee'])).toBe('Ann Lee')
+    expect(label(['Dana Smith', 'Ann Lee'])).toBeNull()
+    expect(label(['Ann Lee', 'Bo Park'])).toBeNull()
+  })
+
   it('a call of two where nobody is known to be the person using Yogurt names nobody', () => {
     expect(nameFor({ startMs: 1000, endMs: 5000 }, run(0, 10_000, { participants: ['Ann Lee', 'Dana Smith'] }))).toBeNull()
     // the name in Settings tells them apart

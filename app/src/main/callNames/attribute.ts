@@ -35,8 +35,12 @@ const isMe = (name: string, s: CallSample, o: Opts) => {
 function whoAt(s: CallSample, o: Opts): string | null {
   if (s.ok === false) return null
   const people = [...new Map(s.participants.map((p) => [norm(p), p])).values()]
+  const roster = new Set(people.map(norm))
+  // A floating speaker tile can name someone before (or after) the roster refreshes. In that case this is not
+  // evidence of a two-person call, so do not assign their speech to the one other roster entry.
+  const speakerOutsideRoster = s.speaking.some((p) => !isMe(p, s, o) && !roster.has(norm(p)))
   // one other person in the call: the call's sound can only be them, whoever the app marks
-  if (people.length === 2) {
+  if (people.length === 2 && !speakerOutsideRoster) {
     const mine = people.filter((p) => isMe(p, s, o))
     if (mine.length === 1) return people.find((p) => !isMe(p, s, o))!
   }
