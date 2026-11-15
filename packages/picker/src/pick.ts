@@ -12,6 +12,10 @@ const CONTEXTS = [16384, 8192]
 
 interface Pool { device: Choice['device']; memGB: number; bw: number; gpuMemGB?: number; cpuBw?: number }
 
+/** memory a build needs at a context: weights, cache and overhead, rounded to a tenth of a GB */
+const memoryGB = (build: CatalogBuild, contextSize: number) =>
+  Math.round((build.sizeGB + (KV_GB_PER_1K * contextSize) / 1024 + OVERHEAD_GB) * 10) / 10
+
 function pools(hw: Hardware): Pool[] {
   if (hw.gpu.kind === 'unified') return [{ device: 'gpu', memGB: hw.totalRamGB * 0.7, bw: bandwidthGBs(hw, 'gpu') }]
   const cpu: Pool = { device: 'cpu', memGB: hw.totalRamGB * 0.5, bw: bandwidthGBs(hw, 'cpu') }
@@ -37,6 +41,7 @@ function evaluate(hw: Hardware, model: CatalogModel, build: CatalogBuild): Choic
     const choice: Choice = {
       model, build, contextSize: ctx, estTokPerSec, device: pool.device,
       needsDiskGB: Math.max(0, Math.round((build.sizeGB + DISK_HEADROOM_GB - hw.freeDiskGB) * 100) / 100),
+      estMemoryGB: memoryGB(build, ctx),
     }
     if (!best || choice.contextSize > best.contextSize || (choice.contextSize === best.contextSize && choice.estTokPerSec > best.estTokPerSec)) best = choice
   }

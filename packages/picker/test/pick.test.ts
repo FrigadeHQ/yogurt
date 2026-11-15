@@ -99,6 +99,18 @@ describe('pick', () => {
   })
 })
 
+describe('memory estimates', () => {
+  it('a choice reports the memory it needs at the context it runs with', () => {
+    const r = pick(machines.m1max32, models)
+    expect(r.recommended!.estMemoryGB).toBeCloseTo(17.2, 1)
+  })
+  it('a smaller context means less memory: the 8 GB Mac picks the compact build at 8k', () => {
+    const r = pick(machines.mac8, models)
+    expect(r.recommended!.contextSize).toBe(8192)
+    expect(r.recommended!.estMemoryGB).toBeCloseTo(6.0, 1)
+  })
+})
+
 describe('pick ranking', () => {
   it('equal agent score: full-context model beats one squeezed to 8k', () => {
     const squeezed = { ...models[4], id: 'squeezed', builds: [{ ...models[4].builds[0], sizeGB: 20.2 }] }

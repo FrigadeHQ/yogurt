@@ -115,6 +115,8 @@ export interface Choice {
   device: 'gpu' | 'cpu' | 'split'
   /** 0 when there is enough free disk; otherwise GB the user must free */
   needsDiskGB: number
+  /** approximate memory this choice needs: weights, context cache and overhead (GB) */
+  estMemoryGB: number
 }
 
 export interface PickResult {
