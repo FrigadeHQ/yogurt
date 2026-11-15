@@ -16,6 +16,13 @@ interface Pool { device: Choice['device']; memGB: number; bw: number; gpuMemGB?:
 const memoryGB = (build: CatalogBuild, contextSize: number) =>
   Math.round((build.sizeGB + (KV_GB_PER_1K * contextSize) / 1024 + OVERHEAD_GB) * 10) / 10
 
+/** the memory a model would need at the largest context the picker would run it at (its smallest build) */
+function neededMemoryGB(model: CatalogModel): number {
+  const build = model.builds.reduce((a, b) => (b.sizeGB < a.sizeGB ? b : a))
+  const context = CONTEXTS.find((c) => c <= model.contextMax) ?? model.contextMax
+  return memoryGB(build, context)
+}
+
 function pools(hw: Hardware): Pool[] {
   if (hw.gpu.kind === 'unified') return [{ device: 'gpu', memGB: hw.totalRamGB * 0.7, bw: bandwidthGBs(hw, 'gpu') }]
   const cpu: Pool = { device: 'cpu', memGB: hw.totalRamGB * 0.5, bw: bandwidthGBs(hw, 'cpu') }
@@ -84,7 +91,7 @@ export function pick(hw: Hardware, models: CatalogModel[], opts: { minTokPerSec?
   const fittingIds = new Set(fitting.map((c) => c.model.id))
   const unavailable = models
     .filter((m) => !selectable.has(m.id) && !hidden.has(m.id))
-    .map((m) => ({ model: m, reason: fittingIds.has(m.id) ? ('slow' as const) : ('memory' as const) }))
+    .map((m) => ({ model: m, reason: fittingIds.has(m.id) ? ('slow' as const) : ('memory' as const), needsMemoryGB: neededMemoryGB(m) }))
 
   return {
     recommended, all, starter, faster, smarter, unavailable,

@@ -126,7 +126,7 @@ export interface PickResult {
   /** fast-enough choices, ranked best first */
   all: Choice[]
   /** catalog models this computer can't run well: too big ('memory') or too slow ('slow') */
-  unavailable: { model: CatalogModel; reason: 'memory' | 'slow' }[]
+  unavailable: { model: CatalogModel; reason: 'memory' | 'slow'; /** approximate memory its smallest build needs at the context the picker would use (GB) */ needsMemoryGB: number }[]
   starter: Choice | null
   liteMode: boolean
 }
