@@ -18,7 +18,7 @@ import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { isFake, userDataDir } from './paths'
 import { logToFile } from './log'
-import { loadSettings, localeOf, keepsRecording, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings } from './settings'
+import { loadSettings, localeOf, keepsRecording, recordingReminderOn, saveAiChoice, spokenSetting, stopsWhenCallEnds, updateSettings } from './settings'
 import { CALL_GONE_MS, useCallApps } from './detect'
 import { systemLocale } from './locale'
 import { language as uiLanguage, onLanguage, setLanguage, t } from '../shared/i18n'
@@ -497,10 +497,17 @@ app.whenReady().then(() => {
     onMeetingStart(() => void media.pause())
     onMeetingStop(() => void media.resume())
   }
+  const settingsFile = join(userDataDir(), 'settings.json')
   const setup = createSetup()
   setup.onState((st) => win?.webContents.send('setup:state', st))
   ipcMain.handle('setup:state', () => setup.state)
   ipcMain.handle('ai:plan', async () => aiPlan(await getHardware(), (await getCatalog()).models))
+  ipcMain.handle('ai:choose', (_e, choice: unknown) => {
+    if (!choice || typeof choice !== 'object') return
+    const modelId = text((choice as { modelId?: unknown }).modelId, 80)?.trim()
+    if (modelId) saveAiChoice(settingsFile, { modelId })
+    else if ((choice as { withoutAi?: unknown }).withoutAi === true) saveAiChoice(settingsFile, { withoutAi: true })
+  })
   ipcMain.handle('setup:retry', () => setup.retry())
   ipcMain.handle('setup:skip-upgrade', () => setup.skipUpgrade())
   ipcMain.handle('setup:download-upgrade', () => setup.downloadUpgrade())
@@ -509,7 +516,6 @@ app.whenReady().then(() => {
   store.markInterrupted()
   initMeetings(store)
   // the person's own names, never given to the other side: the one in Settings and the Mac's
-  const settingsFile = join(userDataDir(), 'settings.json')
   setCalendarSelection(() => loadSettings(settingsFile).hiddenCalendarIds ?? [])
   const me = () => loadSettings(settingsFile).myName?.trim() || macName()
   setOwnerName(me)
