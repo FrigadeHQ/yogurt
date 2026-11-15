@@ -6,6 +6,7 @@ import type { Meeting, MeetingCard as StoredMeetingCard, Person, Segment, Snippe
 import type { CalEvent, CalendarSource, CalendarStatus } from '../main/calendar'
 import type { Access, PermissionKind, PermissionStatus } from '../main/permissions'
 import type { Capabilities } from './platform'
+import type { LabScores, LabView } from './lab'
 export type { Access, PermissionKind, PermissionStatus }
 /** one first-run question: a permission, or open at login last */
 export type OnboardingStep = { kind: PermissionKind; status: Access }
@@ -116,6 +117,23 @@ export type YogurtApi = {
     onSpeakers(cb: (meetingId: string) => void): () => void
     /** current unfinished words are replayed on subscribe, then updated live (text empty: the partial is over) */
     onPartial(cb: (p: TranscriptPartial) => void): () => void
+  }
+  /** Transcript lab: extra speech models re-reading a meeting, their versions and the combined one */
+  lab: {
+    /** this computer has the lab set up (transcript-lab.json) */
+    enabled(): Promise<boolean>
+    view(meetingId: string): Promise<LabView | null>
+    /** every model on the meeting now (during a meeting: compared only, the transcript changes after) */
+    run(meetingId: string): Promise<boolean>
+    /** stops the meeting's run, or takes it off the queue */
+    stop(meetingId: string): Promise<void>
+    /** the transcript shows this version: 'live', 'combined' or a model's id */
+    use(meetingId: string, version: string): Promise<void>
+    /** the person's own text for a stretch (null: none) */
+    fix(meetingId: string, key: string, text: string | null): Promise<void>
+    scores(): Promise<LabScores>
+    /** the lab's results changed; transcript: the shown transcript changed too */
+    onChanged(cb: (meetingId: string, transcript: boolean) => void): () => void
   }
   /** the person's own notes and the enhanced notes written after the meeting (Markdown) */
   notes: {

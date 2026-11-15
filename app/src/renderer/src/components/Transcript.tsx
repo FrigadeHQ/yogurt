@@ -16,6 +16,7 @@ import { rememberedScroll, useScrollMemory } from '../useScrollMemory'
 import { followGlide, scrollBehavior } from '../motion'
 import { followTarget, inView } from '../../../shared/follow'
 import { afterFinal, joinWords } from '../../../shared/liveWords'
+import { LabBar, LabCompare, useLab } from './TranscriptLab'
 
 type Line = Omit<Segment, 'id'> & { id?: number }
 const key = (l: { track: string; startMs: number }) => `${l.track}:${l.startMs}`
@@ -52,7 +53,11 @@ function useLines(id: string) {
         return [...cur.map((l) => fresh.get(key(l)) ?? l), ...saved.filter((l) => !have.has(key(l)))].sort((a, b) => a.startMs - b.startMs)
       }))
     })
-    return () => { active = false; off(); offSpeakers() }
+    // the transcript lab put another version in: every line is read again
+    const offLab = window.yogurt.lab.onChanged((m, transcript) => {
+      if (m === id && transcript) void window.yogurt.transcript.get(id, { hidden: true }).then((saved) => { if (active) setLines([...saved].sort((a, b) => a.startMs - b.startMs)) })
+    })
+    return () => { active = false; off(); offSpeakers(); offLab() }
   }, [id])
   return { lines, live, loaded }
 }
@@ -151,6 +156,9 @@ export function Transcript({ id, recording, inline = false, active = true, onClo
   focus?: { ms: number; match?: string; seq: number }
 }) {
   const { lines: allLines, live, loaded } = useLines(id)
+  const lab = useLab(id)
+  const [comparing, setComparing] = useState(false)
+  useEffect(() => { setComparing(false) }, [id])
   const loadingPhase = useLoadingState(!loaded)
   const { live: liveSaid, previewed } = useLive(id, recording)
   // the mic's copy of the call (hidden as an echo) never shows
@@ -342,6 +350,7 @@ export function Transcript({ id, recording, inline = false, active = true, onClo
           <SearchIcon size={14} strokeWidth={1.75} aria-hidden="true" className="shrink-0 text-muted" />
           <input data-testid="transcript-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Search')} aria-label={t('Search the transcript')} spellCheck={false} />
         </label>
+        {lab.enabled && <LabBar id={id} view={lab.view} comparing={comparing} onCompare={setComparing} />}
         {!inline && onClose && <div className="transcript-actions"><button data-testid="transcript-close" onClick={onClose} aria-label={t('Hide transcript')} title={t('Hide transcript')} className="ghost-btn !p-1.5"><ChevronDown size={15} aria-hidden="true" /></button></div>}
       </div>
   )
@@ -350,6 +359,7 @@ export function Transcript({ id, recording, inline = false, active = true, onClo
     <Surface style={{ '--playback-inset': `${playbackInset}px` } as CSSProperties} data-testid="transcript-panel" aria-label={t('Transcript')} onKeyDown={(e) => { if (!inline && e.key === 'Escape') { e.stopPropagation(); onClose?.() } }}
       className={inline ? 'transcript-inline' : 'chat-in pointer-events-auto absolute inset-x-0 bottom-1 z-20 mx-auto flex h-[min(44vh,480px)] w-[min(720px,calc(100%-48px))] flex-col rounded-xl border border-line bg-float shadow-[var(--shadow)]'}>
       {active && (toolbar ? createPortal(tools, toolbar) : tools)}
+      {comparing && lab.view ? <LabCompare id={id} view={lab.view} /> :
       <div className="transcript-scroll-wrap relative flex min-h-0 flex-1 flex-col">
         <ScrollFade enabled={active && loaded}><ol data-loaded={loaded} data-loading-phase={loadingPhase} data-testid="transcript" ref={list} onScroll={onScroll} onWheel={theirs} onTouchStart={theirs} onPointerDown={theirs} onKeyDownCapture={theirs} onKeyDown={onKeyDown} className="loading-content transcript-loading-content flex flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4 pt-2 text-sm leading-[1.55]">
           {loadingPhase !== 'ready' && <li className="loading-placeholder"><Loading layout="transcript" /></li>}
@@ -396,7 +406,7 @@ export function Transcript({ id, recording, inline = false, active = true, onClo
             <ArrowDown size={12} aria-hidden="true" className="follow-arrow" data-up={away === 'up'} />{t('Back to playing')}
           </button>
         )}
-      </div>
+      </div>}
       {active && playable && <div ref={playbackDock} className="transcript-player-dock"><Player ref={player} id={id} tracks={tracks} onTime={onTime} onPlaying={setAudioOn} /></div>}
     </Surface>
   )
