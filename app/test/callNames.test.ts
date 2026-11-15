@@ -97,7 +97,7 @@ describe('Webex accessibility roster', () => {
 
   it('reads AXRow roster descriptions from current Webex builds', () => {
     expect(readCall('webex', webexCurrentWindows()!)).toEqual({
-      speaking: ['Jane Doe'], participants: ['alex@example.com', 'Jane Doe', 'Host'], me: 'alex@example.com',
+      speaking: ['Jane Doe'], participants: ['alex@example.com', 'Jane Doe'], me: 'alex@example.com',
     })
   })
 })

@@ -263,7 +263,8 @@ const WEBEX_PERSON_MARK = /^(?:host|presenter|me|muted|unmuted|speaking|using ph
 const webexRowName = (description: string): string | undefined => {
   const fields = description.normalize('NFKC').split(/\s*[,،]\s*/).filter(Boolean)
   const status = fields.findIndex((field, i) => i > 0 && WEBEX_PERSON_MARK.test(field))
-  return status > 0 ? fields.slice(0, status).join(', ') : undefined
+  const name = status > 0 ? fields.slice(0, status).join(', ') : undefined
+  return name && !WEBEX_PERSON_MARK.test(name) ? name : undefined
 }
 function readWebex(windows: AxWindow[]): CallReading {
   const speaking: string[] = [], participants: string[] = []
