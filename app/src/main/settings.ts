@@ -75,5 +75,15 @@ export function updateSettings(path: string, patch: Partial<Settings>): Settings
   return next
 }
 
+/** The setup choice: a notes model, or the explicit choice to use Yogurt without AI summaries. */
+export type AiChoice = { modelId: string } | { withoutAi: true }
+
+/** Save the setup choice; the two are mutually exclusive, so the other key is removed. */
+export function saveAiChoice(path: string, choice: AiChoice): Settings {
+  return updateSettings(path, 'modelId' in choice
+    ? { selectedModelId: choice.modelId, withoutAi: undefined }
+    : { selectedModelId: undefined, withoutAi: true })
+}
+
 /** The language picked in Settings; the computer's when none (or one Yogurt no longer has) */
 export const localeOf = (s: Settings, system: string): string => (isLocale(s.language) ? s.language : system)
