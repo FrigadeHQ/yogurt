@@ -46,6 +46,7 @@ function setup(over: Partial<SetupDeps> = {}) {
 
 const starterUrl = catalog.models.find((m) => m.starter)!.builds[0].url
 const bigUrl = catalog.models.find((m) => m.id === 'gemma-4-26b-a4b')!.builds[0].url
+const gptOssUrl = catalog.models.find((m) => m.id === 'gpt-oss-20b')!.builds[0].url
 const embedUrl = catalog.embedding.url
 const turboUrl = catalog.asr[0].url
 const smallUrl = catalog.asr[1].url
@@ -386,6 +387,47 @@ describe('SetupController', () => {
     await again.c.start()
     expect(again.c.state).toMatchObject({ phase: 'ready', fraction: 1 })
     expect(again.states.some((s) => s.phase === 'downloading')).toBe(false)
+  })
+})
+
+describe('the notes model picked at setup', () => {
+  it('downloads the picked model, and nothing bigger behind it', async () => {
+    const { c, rec } = setup({ selectedModelId: () => 'gpt-oss-20b' })
+    await c.start(); await c.idle()
+    expect(rec.asked).toContain(gptOssUrl)
+    expect(rec.asked).not.toContain(starterUrl)
+    expect(rec.asked).not.toContain(bigUrl)
+    expect(c.notesPath()).toMatch(/gpt-oss-20b-MXFP4\.gguf$/)
+    expect(c.state).toMatchObject({ phase: 'ready' })
+  })
+
+  it('a picked starter does not download the recommendation after it', async () => {
+    const { c, rec } = setup({ selectedModelId: () => 'gemma-4-e4b' })
+    await c.start(); await c.idle()
+    expect(rec.asked).toContain(starterUrl)
+    expect(rec.asked).not.toContain(bigUrl)
+    expect(c.installed()?.recommendedLlm).toBeUndefined()
+    expect(c.notesPath()).toMatch(/gemma-4-E4B_q4_0-it\.gguf$/)
+  })
+
+  it('picking the recommended model keeps the starter-first download order', async () => {
+    const { c, rec } = setup({ selectedModelId: () => 'gemma-4-26b-a4b' })
+    await c.start(); await c.idle()
+    const at = (u: string) => rec.asked.indexOf(u)
+    expect(at(starterUrl)).toBeGreaterThan(at(turboUrl))
+    expect(at(bigUrl)).toBeGreaterThan(at(starterUrl))
+    expect(c.notesPath()).toMatch(/gemma-4-26B_q4_0-it\.gguf$/)
+  })
+
+  it('a pick this computer no longer offers falls back to the recommendation', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      const { c, rec } = setup({ selectedModelId: () => 'gone-from-the-catalog' })
+      await c.start(); await c.idle()
+      expect(rec.asked).toContain(starterUrl)
+      expect(rec.asked).toContain(bigUrl)
+      expect(warn).toHaveBeenCalledWith('NOTES', expect.stringContaining('gone-from-the-catalog'))
+    } finally { warn.mockRestore() }
   })
 })
 
