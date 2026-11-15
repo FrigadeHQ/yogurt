@@ -16,6 +16,7 @@ const api: YogurtApi = {
       return () => { ipcRenderer.removeListener('setup:state', on) }
     },
     plan: () => ipcRenderer.invoke('ai:plan'),
+    choose: (choice) => ipcRenderer.invoke('ai:choose', choice),
     retry: () => ipcRenderer.invoke('setup:retry'),
     skipUpgrade: () => ipcRenderer.invoke('setup:skip-upgrade'),
     downloadUpgrade: () => ipcRenderer.invoke('setup:download-upgrade'),

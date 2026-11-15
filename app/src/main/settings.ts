@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { isLocale } from '../shared/i18n'
 import { spokenOf, type Spoken } from '../shared/spoken'
+import type { AiChoice } from '../shared/types'
 
 /** theme: light or dark regardless of the system; follows the system when left out. language: the interface's, the computer's when left out */
 export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what the person is called in their meetings; their Mac's full name when left out */ myName?: string
@@ -74,9 +75,6 @@ export function updateSettings(path: string, patch: Partial<Settings>): Settings
   saveSettings(path, next)
   return next
 }
-
-/** The setup choice: a notes model, or the explicit choice to use Yogurt without AI summaries. */
-export type AiChoice = { modelId: string } | { withoutAi: true }
 
 /** Save the setup choice; the two are mutually exclusive, so the other key is removed. */
 export function saveAiChoice(path: string, choice: AiChoice): Settings {

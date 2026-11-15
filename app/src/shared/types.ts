@@ -35,6 +35,8 @@ export type YogurtApi = {
     onState(cb: (s: SetupState) => void): () => void
     /** what local AI can offer this computer, before the person picks a model */
     plan(): Promise<AiPlan>
+    /** saves the notes model picked at setup, or the choice to use Yogurt without AI summaries; does not start a download */
+    choose(choice: AiChoice): Promise<void>
     retry(): Promise<void>
     skipUpgrade(): Promise<void>
     downloadUpgrade(): Promise<void>
@@ -366,6 +368,9 @@ export type AiPlanUnavailable = {
   /** approximate memory its smallest build needs (GB) */
   needsMemoryGB: number
 }
+
+/** The setup choice: a notes model, or the explicit choice to use Yogurt without AI summaries. */
+export type AiChoice = { modelId: string } | { withoutAi: true }
 
 /** What local AI can offer this computer, before the person picks a model. */
 export type AiPlan = {
