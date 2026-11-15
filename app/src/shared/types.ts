@@ -33,6 +33,8 @@ export type YogurtApi = {
     state(): Promise<SetupState>
     /** called with each change; returns the way to stop listening */
     onState(cb: (s: SetupState) => void): () => void
+    /** what local AI can offer this computer, before the person picks a model */
+    plan(): Promise<AiPlan>
     retry(): Promise<void>
     skipUpgrade(): Promise<void>
     downloadUpgrade(): Promise<void>
