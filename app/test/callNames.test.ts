@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { openStore, type Meeting, type Store } from '../src/main/store'
 import { hookCallNames, watchIds, type WatchLine } from '../src/main/callNames'
-import type { AxNode } from '../src/main/callNames/parse'
+import { readCall, type AxNode } from '../src/main/callNames/parse'
 
 const dirs: string[] = [], stores: Store[] = []
 afterEach(() => { stores.splice(0).forEach((s) => s.close()); dirs.splice(0).forEach((d) => rmSync(d, { recursive: true, force: true })) })
@@ -17,6 +17,19 @@ const zoomLine = (t: number, people: string[], talking?: string, me?: string): W
     ...(me ? [{ r: 'AXOutline', d: 'Participants list', k: [{ r: 'AXRow', k: [{ r: 'AXStaticText', v: `${me} (me)` }] }] } as AxNode] : []),
   ] } }],
 })
+
+const webexWindows = (): WatchLine['windows'] => [{ title: 'Webex meeting', tree: { r: 'AXWindow', k: [{ r: 'AXOutline', d: 'Participants', k: [
+  { r: 'AXCell', d: 'Participants group, 2 participants', k: [{ r: 'AXUnknown', i: 'GenericParticipantListGroupCellView' }] },
+  { r: 'AXCell', d: 'alex@example.com, Host, presenter, me, Muted, ', k: [
+    { r: 'AXUnknown', i: 'GenericParticipantListCellView', d: 'alex@example.com, Host, presenter, me, Muted, ' },
+    { r: 'AXStaticText', v: 'alex@example.com' }, { r: 'AXStaticText', v: 'Host, presenter, me' },
+  ] },
+  { r: 'AXCell', d: 'Wilson Pei, apple.com, speaking, ', k: [
+    { r: 'AXUnknown', i: 'GenericParticipantListCellView', d: 'Wilson Pei, apple.com, speaking, ' },
+    { r: 'AXStaticText', v: 'Wilson Pei' }, { r: 'AXStaticText', v: 'apple.com' },
+  ] },
+] }] } }]
+const webexLine = (t: number): WatchLine => ({ t, app: 'Cisco-Systems.Spark', windows: webexWindows() })
 
 function setup(o: { app?: string | null; attendees?: Meeting['attendees'] } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'yogurt-callnames-')); dirs.push(root)
@@ -52,12 +65,21 @@ describe('watchIds: only the call app the meeting is in', () => {
   it('maps the detected app to its ids (bundle ids on a Mac, program names and Flatpak ids on Linux); no app known: every call app (the first with a call is read)', () => {
     expect(watchIds('Zoom')).toEqual(['us.zoom.xos', 'zoom', 'us.zoom.Zoom'])
     expect(watchIds('Teams')).toEqual(['com.microsoft.teams2', 'com.microsoft.teams', 'teams-for-linux', 'com.github.IsmaelMartinez.teams_for_linux'])
+    expect(watchIds('Webex')).toEqual(['Cisco-Systems.Spark', 'com.cisco.webexmeetingsapp'])
     expect(watchIds('Chrome')).toEqual(['com.google.Chrome', 'chrome', 'google-chrome'])
     expect(watchIds('Safari')).toEqual(['com.apple.Safari'])
     expect(watchIds('FaceTime')).toEqual([])
     expect(watchIds(null)).toContain('us.zoom.xos')
     expect(watchIds(null)).toContain('org.mozilla.firefox')
     expect(watchIds(null)).toContain('teams-for-linux')
+  })
+})
+
+describe('Webex accessibility roster', () => {
+  it('reads roster names, the speaking mark, and me while ignoring group rows', () => {
+    expect(readCall('webex', webexWindows()!)).toEqual({
+      speaking: ['Wilson Pei'], participants: ['alex@example.com', 'Wilson Pei'], me: 'alex@example.com',
+    })
   })
 })
 
@@ -83,6 +105,15 @@ describe('hookCallNames', () => {
     expect(s.hook.nameFor(s.m.id, 1500, 4000)).toBe('Dana Smith')
     expect(s.hook.nameFor(s.m.id, 6000, 8000)).toBe('Ann Lee')
     expect(s.hook.nameFor('other', 1500, 4000)).toBeNull()
+  })
+
+  it('reads Webex roster names during a call', () => {
+    const s = setup({ app: 'Webex' })
+    s.start()
+    expect(s.watched).toEqual([['Cisco-Systems.Spark', 'com.cisco.webexmeetingsapp']])
+    s.audio(0, 1_000_100)
+    for (let t = 1_000_000; t < 1_005_000; t += 500) s.emit(webexLine(t))
+    expect(s.hook.nameFor(s.m.id, 1000, 3000)).toBe('Wilson Pei')
   })
 
   it('after the meeting every line of the other side is named again from the whole timeline; new people join the attendees', async () => {

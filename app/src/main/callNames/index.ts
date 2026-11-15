@@ -20,6 +20,7 @@ export type Watch = (ids: string[], onLine: (l: WatchLine) => void) => { stop():
 const APPS: Record<string, { kind: CallKind; ids: string[] }> = {
   Zoom: { kind: 'zoom', ids: ['us.zoom.xos', 'zoom', 'us.zoom.Zoom'] },
   Teams: { kind: 'teams', ids: ['com.microsoft.teams2', 'com.microsoft.teams', 'teams-for-linux', 'com.github.IsmaelMartinez.teams_for_linux'] },
+  Webex: { kind: 'webex', ids: ['Cisco-Systems.Spark', 'com.cisco.webexmeetingsapp'] },
   Chrome: { kind: 'meet', ids: ['com.google.Chrome', 'chrome', 'google-chrome'] },
   Arc: { kind: 'meet', ids: ['company.thebrowser.Browser'] },
   Brave: { kind: 'meet', ids: ['com.brave.Browser', 'brave'] },
