@@ -33,6 +33,10 @@ export type YogurtApi = {
     state(): Promise<SetupState>
     /** called with each change; returns the way to stop listening */
     onState(cb: (s: SetupState) => void): () => void
+    /** what local AI can offer this computer, before the person picks a model */
+    plan(): Promise<AiPlan>
+    /** saves the notes model picked at setup, or the choice to use Yogurt without AI summaries; does not start a download */
+    choose(choice: AiChoice): Promise<void>
     retry(): Promise<void>
     skipUpgrade(): Promise<void>
     downloadUpgrade(): Promise<void>
@@ -333,6 +337,55 @@ export type SetupState = {
   notesRestoreFraction?: number
   notesRestoreTotalBytes?: number
   notesRestoreEtaSec?: number
+}
+
+/** One notes model local AI can offer this computer, ready for the picker. */
+export type AiPlanChoice = {
+  modelId: string
+  name: string
+  /** the catalog's one-line trade-off, when it has one */
+  description?: string
+  /** download size (GB) */
+  sizeGB: number
+  /** approximate memory it needs: weights, context cache and overhead (GB) */
+  estMemoryGB: number
+  /** tokens per second this computer can expect */
+  estTokPerSec: number
+  contextSize: number
+  /** gpu: entirely on the graphics card; split: card and memory; cpu: the processor alone */
+  device: 'gpu' | 'cpu' | 'split'
+  /** 0 when there is enough disk; otherwise GB the person must free */
+  needsDiskGB: number
+}
+
+/** A catalog model this computer can't run well. */
+export type AiPlanUnavailable = {
+  modelId: string
+  name: string
+  /** the catalog's one-line trade-off, when it has one */
+  description?: string
+  reason: 'memory' | 'slow'
+  /** approximate memory its smallest build needs (GB) */
+  needsMemoryGB: number
+}
+
+/** The setup choice: a notes model, or the explicit choice to use Yogurt without AI summaries. */
+export type AiChoice = { modelId: string } | { withoutAi: true }
+
+/** What local AI can offer this computer, before the person picks a model. */
+export type AiPlan = {
+  /** "Apple M2, 16 GB, Metal", "NVIDIA RTX 3060, 12 GB VRAM", or "Processor only" */
+  hardware: string
+  recommended: AiPlanChoice | null
+  faster?: AiPlanChoice
+  smarter?: AiPlanChoice
+  /** every model that keeps up, ranked best first */
+  all: AiPlanChoice[]
+  unavailable: AiPlanUnavailable[]
+  /** only a lite model fits: offer to use Yogurt without AI summaries */
+  liteMode: boolean
+  /** GB to free before the recommended model downloads; 0 when there is room */
+  needsDiskGB: number
 }
 
 export type { Meeting, Person, Segment, SnippetPart, Folder } from '../main/store'

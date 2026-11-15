@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { toHardware } from '../src/main/hardware'
+import { hardwareLine, toHardware } from '../src/main/hardware'
 
 const sys = { platform: 'darwin', arch: 'arm64', cpuModel: 'Apple M2', totalRamBytes: 8_589_934_592, freeDiskGB: 123.456 }
 
@@ -44,5 +44,26 @@ describe('processor cores', () => {
   it('Windows and Linux count them (whisper on the processor needs enough); a Mac is left as it was', () => {
     expect(toHardware({ ...sys, platform: 'linux', cores: 6 }, null).cores).toBe(6)
     expect(toHardware({ ...sys, cores: 8 }).cores).toBeUndefined()
+  })
+})
+
+describe('the hardware line setup shows', () => {
+  it('an Apple Silicon Mac: processor, the memory people know it has, and Metal', () => {
+    const hw = toHardware({ ...sys, totalRamBytes: 17_179_869_184 })
+    expect(hardwareLine(hw)).toBe('Apple M2, 16 GB, Metal')
+  })
+  it('a graphics card with its own memory: its name and the GB on its box', () => {
+    const hw = toHardware({ platform: 'win32', arch: 'x64', cpuModel: 'Intel Core i7-12700H', totalRamBytes: 34_359_738_368, freeDiskGB: 200 },
+      { gpuType: 'cuda', vramTotalGB: 12, unifiedGB: 0, gpuNames: ['NVIDIA GeForce RTX 3060'] })
+    expect(hardwareLine(hw)).toBe('NVIDIA GeForce RTX 3060, 12 GB VRAM')
+  })
+  it('graphics that share the memory say so', () => {
+    const hw = toHardware({ platform: 'linux', arch: 'x64', cpuModel: 'Intel Core i7-12700H', totalRamBytes: 17_179_869_184, freeDiskGB: 200 },
+      { gpuType: 'vulkan', vramTotalGB: 16, unifiedGB: 16, gpuNames: ['Intel(R) Iris(R) Xe Graphics'] })
+    expect(hardwareLine(hw)).toBe('Intel Core i7-12700H, 16 GB, shared graphics')
+  })
+  it('no graphics at all: the processor only', () => {
+    expect(hardwareLine(toHardware({ platform: 'linux', arch: 'x64', cpuModel: 'Intel Core i3', totalRamBytes: 8_589_934_592, freeDiskGB: 200 }, null)))
+      .toBe('Processor only')
   })
 })

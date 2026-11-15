@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { isLocale } from '../shared/i18n'
 import { spokenOf, type Spoken } from '../shared/spoken'
+import type { AiChoice } from '../shared/types'
 
 /** theme: light or dark regardless of the system; follows the system when left out. language: the interface's, the computer's when left out */
 export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what the person is called in their meetings; their Mac's full name when left out */ myName?: string
@@ -10,6 +11,10 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   introSeen?: boolean
   /** The optional bigger notes model stays off until explicitly downloaded again. */
   notesUpgradeSkipped?: boolean
+  /** the notes model the person picked at setup; unset until they choose */
+  selectedModelId?: string
+  /** the person chose "Use Yogurt without AI summaries"; recording and transcripts keep working */
+  withoutAi?: boolean
   /** home's Finish setup was put away while these were missing; it comes back only when something else is */
   setupDismissed?: import('./permissions').PermissionKind[]
   /** opens when the Mac starts; off unless the person said yes */
@@ -69,6 +74,13 @@ export function updateSettings(path: string, patch: Partial<Settings>): Settings
   const next = { ...loadSettings(path), ...patch }
   saveSettings(path, next)
   return next
+}
+
+/** Save the setup choice; the two are mutually exclusive, so the other key is removed. */
+export function saveAiChoice(path: string, choice: AiChoice): Settings {
+  return updateSettings(path, 'modelId' in choice
+    ? { selectedModelId: choice.modelId, withoutAi: undefined }
+    : { selectedModelId: undefined, withoutAi: true })
 }
 
 /** The language picked in Settings; the computer's when none (or one Yogurt no longer has) */

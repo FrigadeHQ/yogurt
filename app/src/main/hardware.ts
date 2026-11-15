@@ -39,3 +39,17 @@ export async function readSysInfo(diskDir: string): Promise<SysInfo> {
     freeDiskGB: await realDeps.freeDiskGB(diskDir),
   }
 }
+
+/** decimal GB (bytes / 1e9, as total memory is read) as the whole GB people know: 17.2 is a 16 GB Mac */
+export const wholeGB = (gb: number) => Math.round(gb / 1.073741824)
+
+/**
+ * The hardware line setup shows in plain language: what the computer is, how much memory it works with, and what
+ * makes the model fast. Example: "Apple M2, 16 GB, Metal", "NVIDIA RTX 3060, 12 GB VRAM", or "Processor only".
+ */
+export function hardwareLine(hw: Hardware): string {
+  // a card's memory is already reported as the GB on its box (12 for a 12 GB card); total memory is bytes / 1e9
+  if (hw.gpu.kind === 'discrete') return `${hw.gpu.name}, ${Math.round(hw.gpu.vramGB)} GB VRAM`
+  if (hw.gpu.kind === 'unified') return `${hw.cpuModel}, ${wholeGB(hw.totalRamGB)} GB, ${hw.os === 'darwin' ? 'Metal' : 'shared graphics'}`
+  return 'Processor only'
+}

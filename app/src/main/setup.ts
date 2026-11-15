@@ -30,6 +30,8 @@ export type SetupDeps = {
   /** the first notes model downloads after ready: the waits between tries when it fails (the last one repeats) */
   notesRetryMs?: number[]
   upgradePreference?: { load(): boolean; save(skipped: boolean): void }
+  /** the notes model the person picked at setup, if any (settings.json) */
+  selectedModelId?: () => string | undefined
   /** Windows and Linux: the speed check picks the speech model (a Mac never has it: turbo, as always) */
   speed?: SpeedDeps
 }
@@ -204,9 +206,16 @@ export class SetupController {
       const weak = tooWeak(hw, !!llm.recommended)
       if (!llm.recommended || weak) return this.set({ phase: 'error', fraction: 0, message: weak ?? '' })
 
-      // The first notes model is the starter when it downloads faster than the pick; otherwise the pick itself.
-      const starter = llm.starter && llm.starter.build.sizeGB < llm.recommended.build.sizeGB ? llm.starter : llm.recommended
-      const later = starter === llm.recommended ? undefined : llm.recommended
+      // The person's pick, when it is still offered here. Anything else falls back to the recommendation.
+      const wanted = this.deps.selectedModelId?.()
+      const chosen = wanted ? [...llm.all, ...(llm.smarter ? [llm.smarter] : [])].find((c) => c.model.id === wanted) : undefined
+      if (wanted && !chosen) console.warn('NOTES', `the notes model picked at setup (${wanted}) is not offered on this computer; using the recommended one`)
+
+      // The first notes model is the starter when it downloads faster than the target; otherwise the target itself.
+      // The target is the person's pick when there is one, so the download order and triggers stay as they were.
+      const target = chosen ?? llm.recommended
+      const starter = llm.starter && llm.starter.build.sizeGB < target.build.sizeGB ? llm.starter : target
+      const later = starter === target ? undefined : target
       console.info('NOTES', `notes models for this computer: ${starter.model.id}${later ? `, then ${later.model.id}` : ''} (graphics ${hw.gpu.kind}${hw.gpu.name ? ` ${hw.gpu.name}` : ''}, ${hw.totalRamGB} GB)`)
       const dirs = { asr: join(this.deps.modelsDir, 'asr'), llm: join(this.deps.modelsDir, 'llm'), embed: join(this.deps.modelsDir, 'embed') }
 

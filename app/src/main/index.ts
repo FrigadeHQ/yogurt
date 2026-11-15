@@ -18,7 +18,7 @@ import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { isFake, userDataDir } from './paths'
 import { logToFile } from './log'
-import { loadSettings, localeOf, keepsRecording, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings } from './settings'
+import { loadSettings, localeOf, keepsRecording, recordingReminderOn, saveAiChoice, spokenSetting, stopsWhenCallEnds, updateSettings } from './settings'
 import { CALL_GONE_MS, useCallApps } from './detect'
 import { systemLocale } from './locale'
 import { language as uiLanguage, onLanguage, setLanguage, t } from '../shared/i18n'
@@ -35,6 +35,7 @@ import { loginItemOn, openedAtLogin, setLoginItem, syncLoginItem } from './login
 import { createMedia } from './media'
 import { createTray, linuxTrayHost } from './tray'
 import { SetupController } from './setup'
+import { aiPlan } from './aiPlan'
 import { fakeMeasure, measureSpeed, speedClipPath, speedStore } from './asr/speedCheck'
 import { vadModelPath, whisperServerPath } from './asr/server'
 import { openStore, type Store } from './store'
@@ -166,10 +167,9 @@ function createSetup(): SetupController {
       load: () => loadSettings(join(userDataDir(), 'settings.json')).notesUpgradeSkipped === true,
       save: (skipped) => { updateSettings(join(userDataDir(), 'settings.json'), { notesUpgradeSkipped: skipped }) },
     },
-    // Windows and Linux: the notes engine checks the graphics first (a Mac shares its memory with them, no check)
-    getHardware: isFake() ? () => fakeHardware(platform) : async () => toHardware(await readSysInfo(userDataDir()), process.platform === 'darwin' ? undefined : await probeGpu()),
-    // the one in this build: new models come with app updates
-    getCatalog: async () => loadCatalog({ bundled: bundledCatalog, licenses }),
+    selectedModelId: () => loadSettings(join(userDataDir(), 'settings.json')).selectedModelId,
+    getHardware,
+    getCatalog,
     download: isFake() ? fakeDownloadDeps({ stepMs: Number(process.env.YOGURT_FAKE_STEP_MS ?? 5), notesMs: Number(process.env.YOGURT_FAKE_NOTES_MODEL_MS ?? 0) }) : realDeps,
     ...(isFake() ? { sha256Override: 'FAKE' } : {}),
     // Windows and Linux: speech models timed on this computer (asr/speedCheck.ts); a Mac never is
@@ -181,6 +181,11 @@ const speedFile = () => join(userDataDir(), 'speech-speed.json')
 
 /** What this computer can do (fake mode can pretend with YOGURT_FAKE_PLATFORM): Windows and Linux have no calendar or names from calls yet */
 const platform = platformOf(process.platform, process.env)
+/** the hardware setup and the AI plan are for: fake mode's fixed Mac, or this computer */
+const getHardware = async () =>
+  isFake() ? fakeHardware(platform) : toHardware(await readSysInfo(userDataDir()), process.platform === 'darwin' ? undefined : await probeGpu())
+/** the catalog in this build: new models come with app updates */
+const getCatalog = async () => loadCatalog({ bundled: bundledCatalog, licenses })
 const caps = capabilities(platform)
 setCalendarSupported(caps.calendar)
 // the call apps yogurt-system names on this computer (fake mode's helper speaks in a Mac's ids)
@@ -492,9 +497,17 @@ app.whenReady().then(() => {
     onMeetingStart(() => void media.pause())
     onMeetingStop(() => void media.resume())
   }
+  const settingsFile = join(userDataDir(), 'settings.json')
   const setup = createSetup()
   setup.onState((st) => win?.webContents.send('setup:state', st))
   ipcMain.handle('setup:state', () => setup.state)
+  ipcMain.handle('ai:plan', async () => aiPlan(await getHardware(), (await getCatalog()).models))
+  ipcMain.handle('ai:choose', (_e, choice: unknown) => {
+    if (!choice || typeof choice !== 'object') return
+    const modelId = text((choice as { modelId?: unknown }).modelId, 80)?.trim()
+    if (modelId) saveAiChoice(settingsFile, { modelId })
+    else if ((choice as { withoutAi?: unknown }).withoutAi === true) saveAiChoice(settingsFile, { withoutAi: true })
+  })
   ipcMain.handle('setup:retry', () => setup.retry())
   ipcMain.handle('setup:skip-upgrade', () => setup.skipUpgrade())
   ipcMain.handle('setup:download-upgrade', () => setup.downloadUpgrade())
@@ -503,7 +516,6 @@ app.whenReady().then(() => {
   store.markInterrupted()
   initMeetings(store)
   // the person's own names, never given to the other side: the one in Settings and the Mac's
-  const settingsFile = join(userDataDir(), 'settings.json')
   setCalendarSelection(() => loadSettings(settingsFile).hiddenCalendarIds ?? [])
   const me = () => loadSettings(settingsFile).myName?.trim() || macName()
   setOwnerName(me)

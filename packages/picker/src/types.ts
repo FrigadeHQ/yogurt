@@ -115,6 +115,8 @@ export interface Choice {
   device: 'gpu' | 'cpu' | 'split'
   /** 0 when there is enough free disk; otherwise GB the user must free */
   needsDiskGB: number
+  /** approximate memory this choice needs: weights, context cache and overhead (GB) */
+  estMemoryGB: number
 }
 
 export interface PickResult {
@@ -124,7 +126,7 @@ export interface PickResult {
   /** fast-enough choices, ranked best first */
   all: Choice[]
   /** catalog models this computer can't run well: too big ('memory') or too slow ('slow') */
-  unavailable: { model: CatalogModel; reason: 'memory' | 'slow' }[]
+  unavailable: { model: CatalogModel; reason: 'memory' | 'slow'; /** approximate memory its smallest build needs at the context the picker would use (GB) */ needsMemoryGB: number }[]
   starter: Choice | null
   liteMode: boolean
 }

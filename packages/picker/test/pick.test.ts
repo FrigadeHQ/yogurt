@@ -99,6 +99,31 @@ describe('pick', () => {
   })
 })
 
+describe('memory estimates', () => {
+  it('a choice reports the memory it needs at the context it runs with', () => {
+    const r = pick(machines.m1max32, models)
+    expect(r.recommended!.estMemoryGB).toBeCloseTo(17.2, 1)
+  })
+  it('a smaller context means less memory: the 8 GB Mac picks the compact build at 8k', () => {
+    const r = pick(machines.mac8, models)
+    expect(r.recommended!.contextSize).toBe(8192)
+    expect(r.recommended!.estMemoryGB).toBeCloseTo(6.0, 1)
+  })
+  it('a model that needs too much memory says how much it would need', () => {
+    const r = pick(machines.m1max32, models)
+    const big = r.unavailable.find((u) => u.model.id === 'gpt-oss-120b')!
+    expect(big.reason).toBe('memory')
+    expect(big.needsMemoryGB).toBeCloseTo(66.2, 1)
+  })
+  it('a model that is only too slow still reports its memory', () => {
+    const dense = { ...models[4], id: 'dense-32b', builds: [{ ...models[4].builds[0], sizeGB: 12, paramsB: 32, activeParamsB: 32 }] }
+    const r = pick(machines.cpu32, [...models, dense])
+    const slow = r.unavailable.find((u) => u.model.id === 'dense-32b')!
+    expect(slow.reason).toBe('slow')
+    expect(slow.needsMemoryGB).toBeCloseTo(14.8, 1)
+  })
+})
+
 describe('pick ranking', () => {
   it('equal agent score: full-context model beats one squeezed to 8k', () => {
     const squeezed = { ...models[4], id: 'squeezed', builds: [{ ...models[4].builds[0], sizeGB: 20.2 }] }
