@@ -29,6 +29,9 @@ const webexWindows = (): WatchLine['windows'] => [{ title: 'Webex meeting', tree
     { r: 'AXStaticText', v: 'Wilson Pei' }, { r: 'AXStaticText', v: 'apple.com' },
   ] },
 ] }] } }]
+const webexFloatingWindows = (): WatchLine['windows'] => [{ title: 'Webex multitasking floating window', tree: { r: 'AXWindow', k: [{
+  r: 'AXGroup', t: 'Wilson Pei, , , speaking, Video off, ', k: [{ r: 'AXStaticText', v: 'Wilson Pei' }],
+}] } }]
 const webexLine = (t: number): WatchLine => ({ t, app: 'Cisco-Systems.Spark', windows: webexWindows() })
 
 function setup(o: { app?: string | null; attendees?: Meeting['attendees'] } = {}) {
@@ -80,6 +83,10 @@ describe('Webex accessibility roster', () => {
     expect(readCall('webex', webexWindows()!)).toEqual({
       speaking: ['Wilson Pei'], participants: ['alex@example.com', 'Wilson Pei'], me: 'alex@example.com',
     })
+  })
+
+  it('reads the marked speaker from the floating video tile when the roster is closed', () => {
+    expect(readCall('webex', webexFloatingWindows()!)).toEqual({ speaking: ['Wilson Pei'], participants: [], me: null })
   })
 })
 

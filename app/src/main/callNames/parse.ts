@@ -254,13 +254,18 @@ function readTeams(windows: AxWindow[]): CallReading {
 
 // ---- Webex desktop app ----
 // The meeting's Participants outline contains AXCell rows backed by GenericParticipantListCellView. Each person row
-// describes its name, organization, and (when present) "speaking" / "me"; group rows and the floating video tile do
-// not reliably identify everyone, so only the roster is used.
+// describes its name, organization, and (when present) "speaking" / "me". With that panel closed, the floating video
+// tile still marks its person as speaking in a fixed English shape; it is safe to use only that explicit mark.
+const WEBEX_SPEAKING_TILE = /^(.+?),\s*,\s*,\s*speaking,\s*Video (?:on|off),?$/i
 function readWebex(windows: AxWindow[]): CallReading {
   const speaking: string[] = [], participants: string[] = []
   let me: string | null = null
   for (const w of windows) {
     walk(w.tree, (n, up) => {
+      if (n.r === 'AXGroup' && n.t) {
+        const tile = WEBEX_SPEAKING_TILE.exec(n.t.normalize('NFKC').trim())
+        if (tile && tile[1].trim().length >= 2 && tile[1].trim().length <= 60) speaking.push(tile[1].trim())
+      }
       if (n.r !== 'AXCell' || !up.some((a) => a.r === 'AXOutline' && /^participants(?:\s|$)/i.test((a.d ?? a.t ?? '').trim()))) return
       let personRow = false, name: string | undefined
       const labels: string[] = []
