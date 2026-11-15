@@ -32,6 +32,12 @@ const webexWindows = (): WatchLine['windows'] => [{ title: 'Webex meeting', tree
 const webexFloatingWindows = (): WatchLine['windows'] => [{ title: 'Webex multitasking floating window', tree: { r: 'AXWindow', k: [{
   r: 'AXGroup', t: 'Riley Okafor, , , speaking, Video off, ', k: [{ r: 'AXStaticText', v: 'Riley Okafor' }],
 }] } }]
+const webexCurrentWindows = (): WatchLine['windows'] => [{ title: 'Webex meeting', tree: { r: 'AXWindow', k: [{ r: 'AXOutline', d: 'Participants', k: [
+  { r: 'AXRow', d: 'Participants group, 3 participant(s)' },
+  { r: 'AXRow', d: 'alex@example.com, Host, presenter, me, Muted,' },
+  { r: 'AXRow', d: 'Jane Doe, using phone, Unverified, speaking,' },
+  { r: 'AXRow', d: 'Host, Muted,' },
+] }] } }]
 const webexLine = (t: number): WatchLine => ({ t, app: 'Cisco-Systems.Spark', windows: webexWindows() })
 
 function setup(o: { app?: string | null; attendees?: Meeting['attendees'] } = {}) {
@@ -79,7 +85,7 @@ describe('watchIds: only the call app the meeting is in', () => {
 })
 
 describe('Webex accessibility roster', () => {
-  it('reads roster names, the speaking mark, and me while ignoring group rows', () => {
+  it('reads legacy AXCell roster names, the speaking mark, and me while ignoring group rows', () => {
     expect(readCall('webex', webexWindows()!)).toEqual({
       speaking: ['Riley Okafor'], participants: ['alex@example.com', 'Riley Okafor'], me: 'alex@example.com',
     })
@@ -87,6 +93,12 @@ describe('Webex accessibility roster', () => {
 
   it('reads the marked speaker from the floating video tile when the roster is closed', () => {
     expect(readCall('webex', webexFloatingWindows()!)).toEqual({ speaking: ['Riley Okafor'], participants: [], me: null })
+  })
+
+  it('reads AXRow roster descriptions from current Webex builds', () => {
+    expect(readCall('webex', webexCurrentWindows()!)).toEqual({
+      speaking: ['Jane Doe'], participants: ['alex@example.com', 'Jane Doe', 'Host'], me: 'alex@example.com',
+    })
   })
 })
 

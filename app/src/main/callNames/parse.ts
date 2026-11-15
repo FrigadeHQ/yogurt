@@ -253,10 +253,18 @@ function readTeams(windows: AxWindow[]): CallReading {
 }
 
 // ---- Webex desktop app ----
-// The meeting's Participants outline contains AXCell rows backed by GenericParticipantListCellView. Each person row
-// describes its name, organization, and (when present) "speaking" / "me". With that panel closed, the floating video
-// tile still marks its person as speaking in a fixed English shape; it is safe to use only that explicit mark.
+// The meeting's Participants outline contains participant rows. Older Webex builds expose AXCell rows backed by
+// GenericParticipantListCellView; current builds expose AXRow descriptions. Each describes a name and, when present,
+// "speaking" / "me". With that panel closed, the floating video tile still marks its person as speaking in a fixed
+// English shape; it is safe to use only that explicit mark.
 const WEBEX_SPEAKING_TILE = /^(.+?),\s*,\s*,\s*speaking,\s*Video (?:on|off),?$/i
+const WEBEX_ROSTER = /^participants(?:\s|$)/i
+const WEBEX_PERSON_MARK = /^(?:host|presenter|me|muted|unmuted|speaking|using phone|unverified)$/i
+const webexRowName = (description: string): string | undefined => {
+  const fields = description.normalize('NFKC').split(/\s*[,،]\s*/).filter(Boolean)
+  const status = fields.findIndex((field, i) => i > 0 && WEBEX_PERSON_MARK.test(field))
+  return status > 0 ? fields.slice(0, status).join(', ') : undefined
+}
 function readWebex(windows: AxWindow[]): CallReading {
   const speaking: string[] = [], participants: string[] = []
   let me: string | null = null
@@ -266,11 +274,12 @@ function readWebex(windows: AxWindow[]): CallReading {
         const tile = WEBEX_SPEAKING_TILE.exec(n.t.normalize('NFKC').trim())
         if (tile && tile[1].trim().length >= 2 && tile[1].trim().length <= 60) speaking.push(tile[1].trim())
       }
-      if (n.r !== 'AXCell' || !up.some((a) => a.r === 'AXOutline' && /^participants(?:\s|$)/i.test((a.d ?? a.t ?? '').trim()))) return
-      let personRow = false, name: string | undefined
+      if (!up.some((a) => a.r === 'AXOutline' && WEBEX_ROSTER.test((a.d ?? a.t ?? '').trim()))) return
+      const rowName = n.r === 'AXRow' && n.d ? webexRowName(n.d) : undefined
+      let personRow = !!rowName, name = rowName
       const labels: string[] = []
       walk(n, (x) => {
-        if (x.i === 'GenericParticipantListCellView') personRow = true
+        if (n.r === 'AXCell' && x.i === 'GenericParticipantListCellView') personRow = true
         labels.push(...texts(x))
         if (!name && STATIC_TEXT.has(x.r)) name = x.v ?? x.t
       })

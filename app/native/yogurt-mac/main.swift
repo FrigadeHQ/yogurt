@@ -278,6 +278,14 @@ func callWindows(_ app: AXUIElement, _ id: String) -> [AXUIElement] {
     }
   }
   if id.hasPrefix("com.microsoft.teams") { return all }
+  // Webex's meeting surfaces have stable accessibility identifiers; exclude its home window so it cannot hide another
+  // call app when a recording was started by hand.
+  if id == "Cisco-Systems.Spark" || id == "com.cisco.webexmeetingsapp" {
+    return all.filter { w in
+      let ident = axText(axAttr(w, kAXIdentifierAttribute)) ?? ""
+      return ident == "FloatingMediaWindow" || ident == "PopOutWindow"
+    }
+  }
   // a browser: only windows whose front tab is a Meet call
   return all.filter { w in (axText(axAttr(w, kAXTitleAttribute)) ?? "").range(of: #"\bMeet\b"#, options: .regularExpression) != nil }
 }
