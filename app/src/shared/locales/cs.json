@@ -681,6 +681,8 @@
   },
   "Recorded with {app}": "Nahráno v aplikaci {app}",
   "A new version of Yogurt is ready": "Nová verze Yogurtu je připravená",
+  "Restart Yogurt to install the new version": "Restartujte Yogurt pro instalaci nové verze",
+  "Update is ready to apply as soon the recording is finished.": "Aktualizace se použije, jakmile skončí nahrávání.",
   "Upgrading AI": "Vylepšování AI",
   "Upgrading AI · {percent}": "Vylepšování AI · {percent}",
   "AI upgrade paused": "Vylepšování AI pozastaveno",

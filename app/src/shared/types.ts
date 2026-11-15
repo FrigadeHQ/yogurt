@@ -433,6 +433,6 @@ export type ConversationSummary = { id: string; title: string; updatedAt: number
 /** enabled: in Settings. clients: apps connected now. command: the program to give an AI app */
 export type McpStatus = { enabled: boolean; clients: string[]; command: string }
 /** Settings → Updates. available: this build updates itself (not in development or a preview); next: the version found */
-export type UpdateStatus = { version: string; available: boolean; on: boolean; state: 'idle' | 'checking' | 'latest' | 'downloading' | 'ready' | 'error'; next?: string
+export type UpdateStatus = { version: string; available: boolean; on: boolean; recording: boolean; state: 'idle' | 'checking' | 'latest' | 'downloading' | 'ready' | 'error'; next?: string
   /** the corner should offer Restart Yogurt for the version that downloaded (offersRestart) */
   offer?: boolean }

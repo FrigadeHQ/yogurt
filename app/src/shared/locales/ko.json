@@ -602,6 +602,8 @@
   "{count} meetings moved to Trash": "회의 {count}개를 휴지통으로 이동했습니다",
   "Recorded with {app}": "{app}(으)로 녹음됨",
   "A new version of Yogurt is ready": "Yogurt 새 버전이 준비되었어요",
+  "Restart Yogurt to install the new version": "새 버전을 설치하려면 Yogurt 다시 시작",
+  "Update is ready to apply as soon the recording is finished.": "녹음이 끝나면 업데이트가 적용돼요.",
   "Upgrading AI": "AI 업그레이드 중",
   "Upgrading AI · {percent}": "AI 업그레이드 중 · {percent}",
   "AI upgrade paused": "AI 업그레이드 일시 중지",

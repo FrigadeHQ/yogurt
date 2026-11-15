@@ -602,6 +602,8 @@
   "{count} meetings moved to Trash": "ย้ายการประชุม {count} รายการไปถังขยะแล้ว",
   "Recorded with {app}": "บันทึกด้วย {app}",
   "A new version of Yogurt is ready": "Yogurt เวอร์ชันใหม่พร้อมแล้ว",
+  "Restart Yogurt to install the new version": "เริ่ม Yogurt ใหม่เพื่อติดตั้งเวอร์ชันใหม่",
+  "Update is ready to apply as soon the recording is finished.": "อัปเดตจะพร้อมใช้งานทันทีที่การบันทึกเสร็จสิ้น",
   "Upgrading AI": "กำลังอัปเกรด AI",
   "Upgrading AI · {percent}": "กำลังอัปเกรด AI · {percent}",
   "AI upgrade paused": "การอัปเกรด AI หยุดชั่วคราว",

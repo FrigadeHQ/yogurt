@@ -137,6 +137,10 @@
 .workspace-toolbar[data-note=true]:has(.notes-download-status) { padding-inline-end:62px; }
 .workspace:dir(rtl) .workspace-toolbar:has(.notes-download-status) { padding-inline-end:132px; }
 .workspace:dir(rtl) .workspace-toolbar[data-note=true]:has(.notes-download-status) { padding-inline-end:185px; }
+/* A downloaded version: restart now, or dimmed until the recording is finished. */
+.update-badge:hover { color:var(--ink);background:var(--row-hover); }
+.update-badge[data-recording] { opacity:.45;cursor:default; }
+.update-badge[data-recording]:hover { color:var(--muted);background:none; }
 .native-library { padding:29px 26px 30px;min-width:0;overflow:auto; }
 .native-library>h1 { font-size:20px;line-height:26px;font-weight:600;letter-spacing:-.55px;margin-bottom:9px; }
 .native-meeting-day { margin-top:25px; }
@@ -667,6 +671,8 @@ body:has(.chat-panel[open]) .app-toast-viewport:dir(rtl) { --toast-x:440px; }
 /* This confirmation and its Settings shortcut stay on one line. */
 .app-toast[data-kind=recording-deleted-toast] { inset-inline-start:auto;width:max-content;max-width:calc(100vw - 40px); }
 .app-toast[data-kind=recording-deleted-toast] :is(.app-toast-title,.app-toast-action) { white-space:nowrap; }
+/* A downloaded version's toasts size to their words, so the message stays on one line (it wraps only in a narrow window). */
+.app-toast:is([data-kind=update-toast],[data-kind=update-badge-blocked]) { inset-inline-start:auto;width:max-content;max-width:calc(100vw - 40px); }
 .workspace-button:active:not(:disabled) { transform:scale(.97); }
 @media (prefers-reduced-motion:reduce) {
   .workspace-button:active:not(:disabled) { transform:none; }

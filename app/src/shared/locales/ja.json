@@ -602,6 +602,8 @@
   "{count} meetings moved to Trash": "{count}件のミーティングをゴミ箱に移動しました",
   "Recorded with {app}": "{app} で録音",
   "A new version of Yogurt is ready": "Yogurt の新しいバージョンの準備ができました",
+  "Restart Yogurt to install the new version": "新しいバージョンをインストールするにはYogurtを再起動",
+  "Update is ready to apply as soon the recording is finished.": "録音が終わり次第、アップデートを適用できます。",
   "Upgrading AI": "AIをアップグレード中",
   "Upgrading AI · {percent}": "AIをアップグレード中 · {percent}",
   "AI upgrade paused": "AIのアップグレードは一時停止中",

@@ -638,6 +638,8 @@
   "{count} meetings moved to Trash": "{count} मीटिंग ट्रैश में ले जाई गईं",
   "Recorded with {app}": "{app} से रिकॉर्ड किया गया",
   "A new version of Yogurt is ready": "Yogurt का नया संस्करण तैयार है",
+  "Restart Yogurt to install the new version": "नया संस्करण इंस्टॉल करने के लिए Yogurt रीस्टार्ट करें",
+  "Update is ready to apply as soon the recording is finished.": "रिकॉर्डिंग खत्म होते ही अपडेट लागू हो जाएगा।",
   "Upgrading AI": "AI अपग्रेड हो रहा है",
   "Upgrading AI · {percent}": "AI अपग्रेड हो रहा है · {percent}",
   "AI upgrade paused": "AI अपग्रेड रुका हुआ है",

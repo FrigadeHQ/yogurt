@@ -638,6 +638,8 @@
   "{count} meetings moved to Trash": "{count} megbeszélés a kukába helyezve",
   "Recorded with {app}": "Rögzítve: {app}",
   "A new version of Yogurt is ready": "Elkészült a Yogurt új verziója",
+  "Restart Yogurt to install the new version": "Indítsd újra a Yogurtot az új verzió telepítéséhez",
+  "Update is ready to apply as soon the recording is finished.": "A frissítés a felvétel befejezése után lép életbe.",
   "Upgrading AI": "AI frissítése",
   "Upgrading AI · {percent}": "AI frissítése · {percent}",
   "AI upgrade paused": "Az AI frissítése szünetel",

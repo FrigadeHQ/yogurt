@@ -602,6 +602,8 @@
   "{count} meetings moved to Trash": "已将 {count} 个会议移到废纸篓",
   "Recorded with {app}": "由 {app} 录制",
   "A new version of Yogurt is ready": "Yogurt 新版本已就绪",
+  "Restart Yogurt to install the new version": "重新启动 Yogurt 以安装新版本",
+  "Update is ready to apply as soon the recording is finished.": "录音结束后即可应用更新。",
   "Upgrading AI": "正在升级 AI",
   "Upgrading AI · {percent}": "正在升级 AI · {percent}",
   "AI upgrade paused": "AI 升级已暂停",

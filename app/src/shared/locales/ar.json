@@ -708,6 +708,8 @@
   },
   "Recorded with {app}": "سُجّل باستخدام {app}",
   "A new version of Yogurt is ready": "إصدار جديد من Yogurt جاهز",
+  "Restart Yogurt to install the new version": "أعد تشغيل Yogurt لتثبيت الإصدار الجديد",
+  "Update is ready to apply as soon the recording is finished.": "التحديث جاهز للتطبيق فور انتهاء التسجيل.",
   "Upgrading AI": "جارٍ ترقية الذكاء الاصطناعي",
   "Upgrading AI · {percent}": "جارٍ ترقية الذكاء الاصطناعي · {percent}",
   "AI upgrade paused": "ترقية الذكاء الاصطناعي متوقفة مؤقتًا",

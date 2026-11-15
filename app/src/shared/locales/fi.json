@@ -650,6 +650,8 @@
   },
   "Recorded with {app}": "Tallennettu sovelluksella {app}",
   "A new version of Yogurt is ready": "Uusi Yogurt-versio on valmis",
+  "Restart Yogurt to install the new version": "Käynnistä Yogurt uudelleen asentaaksesi uuden version",
+  "Update is ready to apply as soon the recording is finished.": "Päivitys otetaan käyttöön heti, kun tallennus päättyy.",
   "Upgrading AI": "Päivitetään tekoälyä",
   "Upgrading AI · {percent}": "Päivitetään tekoälyä · {percent}",
   "AI upgrade paused": "Tekoälyn päivitys keskeytetty",

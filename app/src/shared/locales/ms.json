@@ -602,6 +602,8 @@
   "{count} meetings moved to Trash": "{count} mesyuarat dialihkan ke Sampah",
   "Recorded with {app}": "Dirakam dengan {app}",
   "A new version of Yogurt is ready": "Versi baharu Yogurt sudah sedia",
+  "Restart Yogurt to install the new version": "Mulakan semula Yogurt untuk memasang versi baharu",
+  "Update is ready to apply as soon the recording is finished.": "Kemas kini akan digunakan sebaik sahaja rakaman selesai.",
   "Upgrading AI": "Menaik taraf AI",
   "Upgrading AI · {percent}": "Menaik taraf AI · {percent}",
   "AI upgrade paused": "Naik taraf AI dijeda",

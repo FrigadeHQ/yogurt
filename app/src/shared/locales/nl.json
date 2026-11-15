@@ -647,6 +647,8 @@
   },
   "Recorded with {app}": "Opgenomen met {app}",
   "A new version of Yogurt is ready": "Er is een nieuwe versie van Yogurt klaar",
+  "Restart Yogurt to install the new version": "Yogurt opnieuw starten om de nieuwe versie te installeren",
+  "Update is ready to apply as soon the recording is finished.": "De update wordt toegepast zodra de opname is afgelopen.",
   "Upgrading AI": "AI upgraden",
   "Upgrading AI · {percent}": "AI upgraden · {percent}",
   "AI upgrade paused": "AI-upgrade gepauzeerd",

@@ -650,6 +650,8 @@
   },
   "Recorded with {app}": "Inspelat med {app}",
   "A new version of Yogurt is ready": "En ny version av Yogurt är klar",
+  "Restart Yogurt to install the new version": "Starta om Yogurt för att installera den nya versionen",
+  "Update is ready to apply as soon the recording is finished.": "Uppdateringen tillämpas så snart inspelningen är klar.",
   "Upgrading AI": "Uppgraderar AI",
   "Upgrading AI · {percent}": "Uppgraderar AI · {percent}",
   "AI upgrade paused": "AI-uppgradering pausad",

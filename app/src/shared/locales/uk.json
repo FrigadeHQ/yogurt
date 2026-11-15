@@ -677,6 +677,8 @@
   },
   "Recorded with {app}": "Записано в {app}",
   "A new version of Yogurt is ready": "Нова версія Yogurt готова",
+  "Restart Yogurt to install the new version": "Перезапустіть Yogurt, щоб установити нову версію",
+  "Update is ready to apply as soon the recording is finished.": "Оновлення застосується щойно завершиться запис.",
   "Upgrading AI": "Покращення ШІ",
   "Upgrading AI · {percent}": "Покращення ШІ · {percent}",
   "AI upgrade paused": "Покращення ШІ призупинено",

@@ -647,6 +647,8 @@
   },
   "Recorded with {app}": "Ni-record gamit ang {app}",
   "A new version of Yogurt is ready": "Handa na ang bagong bersyon ng Yogurt",
+  "Restart Yogurt to install the new version": "I-restart ang Yogurt para i-install ang bagong bersyon",
+  "Update is ready to apply as soon the recording is finished.": "Mailalapat ang update kapag natapos na ang pag-record.",
   "Upgrading AI": "Ina-upgrade ang AI",
   "Upgrading AI · {percent}": "Ina-upgrade ang AI · {percent}",
   "AI upgrade paused": "Naka-pause ang pag-upgrade ng AI",

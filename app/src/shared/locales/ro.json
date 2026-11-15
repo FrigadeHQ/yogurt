@@ -665,6 +665,8 @@
   },
   "Recorded with {app}": "Înregistrat cu {app}",
   "A new version of Yogurt is ready": "O versiune nouă de Yogurt este gata",
+  "Restart Yogurt to install the new version": "Reporniți Yogurt pentru a instala versiunea nouă",
+  "Update is ready to apply as soon the recording is finished.": "Actualizarea se aplică imediat ce înregistrarea se termină.",
   "Upgrading AI": "Îmbunătățire AI",
   "Upgrading AI · {percent}": "Îmbunătățire AI · {percent}",
   "AI upgrade paused": "Îmbunătățirea AI este în pauză",

@@ -650,6 +650,8 @@
   },
   "Recorded with {app}": "Ηχογραφήθηκε με το {app}",
   "A new version of Yogurt is ready": "Μια νέα έκδοση του Yogurt είναι έτοιμη",
+  "Restart Yogurt to install the new version": "Επανεκκινήστε το Yogurt για να εγκαταστήσετε τη νέα έκδοση",
+  "Update is ready to apply as soon the recording is finished.": "Η ενημέρωση θα εφαρμοστεί μόλις ολοκληρωθεί η ηχογράφηση.",
   "Upgrading AI": "Αναβάθμιση AI",
   "Upgrading AI · {percent}": "Αναβάθμιση AI · {percent}",
   "AI upgrade paused": "Η αναβάθμιση AI έχει παύσει",

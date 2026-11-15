@@ -638,6 +638,8 @@
   "{count} meetings moved to Trash": "{count} toplantı Çöp Kutusuna taşındı",
   "Recorded with {app}": "{app} ile kaydedildi",
   "A new version of Yogurt is ready": "Yogurt'un yeni sürümü hazır",
+  "Restart Yogurt to install the new version": "Yeni sürümü yüklemek için Yogurt’u yeniden başlat",
+  "Update is ready to apply as soon the recording is finished.": "Kayıt bittiğinde güncelleme uygulanacak.",
   "Upgrading AI": "Yapay zeka yükseltiliyor",
   "Upgrading AI · {percent}": "Yapay zeka yükseltiliyor · {percent}",
   "AI upgrade paused": "Yapay zeka yükseltmesi duraklatıldı",

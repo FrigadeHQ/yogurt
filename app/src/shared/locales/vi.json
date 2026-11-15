@@ -602,6 +602,8 @@
   "{count} meetings moved to Trash": "Đã chuyển {count} cuộc họp vào Thùng rác",
   "Recorded with {app}": "Ghi âm bằng {app}",
   "A new version of Yogurt is ready": "Phiên bản mới của Yogurt đã sẵn sàng",
+  "Restart Yogurt to install the new version": "Khởi động lại Yogurt để cài bản mới",
+  "Update is ready to apply as soon the recording is finished.": "Bản cập nhật sẽ được áp dụng ngay khi quá trình ghi âm kết thúc.",
   "Upgrading AI": "Đang nâng cấp AI",
   "Upgrading AI · {percent}": "Đang nâng cấp AI · {percent}",
   "AI upgrade paused": "Nâng cấp AI đã tạm dừng",

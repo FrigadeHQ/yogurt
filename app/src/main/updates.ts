@@ -56,7 +56,7 @@ export async function hookUpdates(d: { file: string; available: boolean; recordi
   const status = (): UpdateStatus => {
     const on = autoUpdateOn(loadSettings(d.file))
     const offer = offersRestart({ readyAt, now: Date.now(), snoozedUntil, recording: d.recording() || !!d.onCall?.(), on, afterMs: d.fake?.afterMs })
-    return { version: app.getVersion(), available: d.available || !!d.fake, on, state, next, offer }
+    return { version: app.getVersion(), available: d.available || !!d.fake, on, recording: d.recording(), state, next, offer }
   }
   const set = (s: UpdateStatus['state'], version?: string) => {
     state = s

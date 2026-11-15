@@ -659,6 +659,8 @@
   },
   "Recorded with {app}": "הוקלט עם {app}",
   "A new version of Yogurt is ready": "גרסה חדשה של Yogurt מוכנה",
+  "Restart Yogurt to install the new version": "הפעילו מחדש את Yogurt כדי להתקין את הגרסה החדשה",
+  "Update is ready to apply as soon the recording is finished.": "העדכון יוחל ברגע שההקלטה תסתיים.",
   "Upgrading AI": "משדרגים את הבינה המלאכותית",
   "Upgrading AI · {percent}": "משדרגים את הבינה המלאכותית · {percent}",
   "AI upgrade paused": "שדרוג הבינה המלאכותית מושהה",

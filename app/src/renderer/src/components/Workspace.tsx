@@ -13,6 +13,7 @@ import { FileText, MessageCircle, Search, Settings, SidebarToggle } from './Icon
 import { FoldersNav } from './FoldersNav'
 import { FinishSetup } from './FinishSetup'
 import { NotesSetup } from './NotesSetup'
+import { UpdateBadge } from './UpdateBadge'
 
 export function Workspace({ route, meeting, folders, go, back, forward, search, collapsed, sidebarMotion, toggleSidebar, children }: {
   meeting?: Pick<MeetingView, 'id' | 'title'>
@@ -110,6 +111,7 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
         <RecordingTime view={recording} testId="recording-return-time" className="recording-return-time" />
       </button>}
       <NotesSetup go={go} />
+      <UpdateBadge />
       <div id="workspace-actions" className="workspace-toolbar-actions" />
       </header>
       {children}

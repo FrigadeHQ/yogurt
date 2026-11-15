@@ -662,6 +662,8 @@
   },
   "Recorded with {app}": "Gravado com {app}",
   "A new version of Yogurt is ready": "Uma nova versão do Yogurt está pronta",
+  "Restart Yogurt to install the new version": "Reinicie o Yogurt para instalar a nova versão",
+  "Update is ready to apply as soon the recording is finished.": "A atualização será aplicada assim que a gravação terminar.",
   "Upgrading AI": "Melhorando a IA",
   "Upgrading AI · {percent}": "Melhorando a IA · {percent}",
   "AI upgrade paused": "Melhoria da IA pausada",
