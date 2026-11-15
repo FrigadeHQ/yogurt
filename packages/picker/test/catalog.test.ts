@@ -12,6 +12,15 @@ describe('validateCatalog', () => {
     const r = validateCatalog(real, licenses)
     expect(r.ok ? [] : r.errors).toEqual([])
   })
+  it('gives every model a one-line description the picker can show', () => {
+    const r = validateCatalog(real, licenses)
+    if (!r.ok) throw new Error(r.errors.join('; '))
+    for (const model of r.catalog.models) {
+      expect(model.description, model.id).toBeTruthy()
+      expect(model.description!.length, model.id).toBeLessThanOrEqual(80)
+      expect(model.description, model.id).not.toMatch(/\n/)
+    }
+  })
   it('pins every ASR model with a sha256', () => {
     const r = validateCatalog(real, licenses)
     if (!r.ok) throw new Error(r.errors.join('; '))
