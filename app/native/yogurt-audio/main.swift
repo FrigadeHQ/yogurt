@@ -470,9 +470,25 @@ final class Mic {
     return err == noErr
   }
 
+  /// The input unit doesn't convert rates: its client side keeps the last mic's rate (48 kHz), and a mic running at
+  /// another (a Scarlett Solo at 44.1 or 96 kHz) then won't start, error -10868 (format not supported).
+  private func matchRate(_ au: AudioUnit) {
+    var hw = AudioStreamBasicDescription(), client = AudioStreamBasicDescription()
+    var size = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
+    guard AudioUnitGetProperty(au, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 1, &hw, &size) == noErr, hw.mSampleRate > 0 else { return }
+    size = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
+    guard AudioUnitGetProperty(au, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Output, 1, &client, &size) == noErr,
+          client.mSampleRate != hw.mSampleRate else { return }
+    log("the microphone runs at \(Int(hw.mSampleRate)) Hz, not \(Int(client.mSampleRate)): following it")
+    client.mSampleRate = hw.mSampleRate
+    let err = AudioUnitSetProperty(au, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Output, 1, &client, size)
+    if err != noErr { log("couldn't set the microphone's rate: \(err)") }
+  }
+
   /// the tap, in the input's format now (a new output device can change its rate)
   private func tap(_ e: AVAudioEngine) -> Bool {
     let input = e.inputNode
+    if let au = input.audioUnit { matchRate(au) }
     // the microphone's own format now: after a switch (a headset in hands-free mode at 16 kHz, then the Mac's own mic)
     // the node's remembered format can be the old one, and a tap asking for it threw an exception that ended the
     // recorder (issue #27). nil takes the bus's format as it is, and each buffer says its own rate.
