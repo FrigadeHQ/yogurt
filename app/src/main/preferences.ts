@@ -1,5 +1,5 @@
 import { BrowserWindow, ipcMain, nativeTheme } from 'electron'
-import { loadSettings, localeOf, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings } from './settings'
+import { loadSettings, localeOf, recordingReminderOn, spokenSetting, startsWhenCallStarts, stopsWhenCallEnds, updateSettings } from './settings'
 import { systemLocale } from './locale'
 import { PERMISSION_KINDS, type PermissionKind, type Permissions } from './permissions'
 import { firstRunPlan, missing, nudge } from '../shared/onboarding'
@@ -49,7 +49,7 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
     // what the Mac says, so a change in System Settings shows here
     // locale: every window (main, card, widget) shows the interface language
     // language: the one picked ('' is the Mac's); locale: the one in use; systemLocale: the Mac's, for the picker
-    return { theme: s.theme ?? 'system', openAtLogin: d.loginOn(s.openAtLogin), showInMenuBar: s.showInMenuBar !== false, language: isLocale(s.language) ? s.language : '', locale: localeOf(s, systemLocale()), systemLocale: systemLocale(), myName: s.myName?.trim() || d.macName(), macName: d.macName(), stopWhenCallEnds: stopsWhenCallEnds(s), recordingReminder: recordingReminderOn(s), keepRecordings: s.keepRecordings !== false, jargon: cleanJargon(s.jargon), spoken: spokenSetting(s) }
+    return { theme: s.theme ?? 'system', openAtLogin: d.loginOn(s.openAtLogin), showInMenuBar: s.showInMenuBar !== false, language: isLocale(s.language) ? s.language : '', locale: localeOf(s, systemLocale()), systemLocale: systemLocale(), myName: s.myName?.trim() || d.macName(), macName: d.macName(), startWhenCallStarts: startsWhenCallStarts(s), stopWhenCallEnds: stopsWhenCallEnds(s), recordingReminder: recordingReminderOn(s), keepRecordings: s.keepRecordings !== false, jargon: cleanJargon(s.jargon), spoken: spokenSetting(s) }
   })
   // what the person is called in meetings (who "You" is when naming voices); blank: the Mac's full name again
   ipcMain.handle('settings:name', (_e, v: unknown) => {
@@ -69,6 +69,11 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
     if (v !== 'light' && v !== 'dark' && v !== 'system') return
     nativeTheme.themeSource = v
     updateSettings(d.file, { theme: v === 'system' ? undefined : v })
+  })
+  // off is the default, so only on is written down
+  ipcMain.handle('settings:auto-start', (_e, on: unknown) => {
+    if (typeof on !== 'boolean') return
+    updateSettings(d.file, { startWhenCallStarts: on ? true : undefined })
   })
   // on is the default, so only off is written down
   ipcMain.handle('settings:auto-stop', (_e, on: unknown) => {

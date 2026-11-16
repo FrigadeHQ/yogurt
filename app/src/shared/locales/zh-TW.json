@@ -548,6 +548,8 @@
   "Asks you to record when a call starts.": "通話開始時提示你錄音。",
   "Names speakers in your transcript.": "在逐字稿中標註發言者姓名。",
   "Untitled meeting": "未命名會議",
+  "Start recording when a call starts": "通話開始時開始錄音",
+  "Record without asking when Yogurt detects a call. Make sure everyone agrees to be recorded.": "Yogurt 偵測到通話時直接錄音，不再詢問。請確認所有人都同意被錄音。",
   "Finish recording when the call ends": "通話結束時結束錄音",
   "Join and record": "加入並錄音",
   "Now: {title}": "進行中：{title}",

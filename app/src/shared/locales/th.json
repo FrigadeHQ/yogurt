@@ -548,6 +548,8 @@
   "Asks you to record when a call starts.": "เสนอให้บันทึกเมื่อเริ่มโทร",
   "Names speakers in your transcript.": "ระบุชื่อผู้พูดในข้อความถอดเสียง",
   "Untitled meeting": "การประชุมไม่มีชื่อ",
+  "Start recording when a call starts": "เริ่มบันทึกเมื่อเริ่มการโทร",
+  "Record without asking when Yogurt detects a call. Make sure everyone agrees to be recorded.": "บันทึกโดยไม่ถามเมื่อ Yogurt ตรวจพบการโทร โปรดตรวจสอบว่าทุกคนยินยอมให้บันทึก",
   "Finish recording when the call ends": "สิ้นสุดการบันทึกเมื่อจบสาย",
   "Join and record": "เข้าร่วมและบันทึก",
   "Now: {title}": "ขณะนี้: {title}",

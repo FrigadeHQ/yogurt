@@ -34,7 +34,7 @@
 - **Free and open source.** You can use Yogurt without an account.
 - **Who said what.** Yogurt names speakers from Zoom, Teams and Meet on Mac only.
 - **Languages.** Multi-language mode transcribes 99 languages.
-- **Recording reminders.** Yogurt offers to record when a supported call starts.
+- **Recording reminders.** Yogurt offers to record when a supported call starts, or records by itself if you turn that on.
 - **Answers with sources.** Yogurt answers questions across meetings and links to the source.
 - **Folders and search.** You can find meetings by folder, title, notes or transcript.
 - **Copy and export.** You can copy notes or transcripts, or save both as Markdown.

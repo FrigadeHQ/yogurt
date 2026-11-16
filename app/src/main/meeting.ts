@@ -7,7 +7,7 @@ import { sourceOf } from './titles'
 /**
  * A meeting's life: optionally prepare a note, start recording, then stop (state stopped, end time).
  * Capture, transcription and the notes queue plug in through the hooks below, so none of them is known here.
- * Nothing starts by itself: only the person's click calls startMeeting.
+ * Nothing starts by itself: only the person's click calls startMeeting, or a detected call with "Start recording when a call starts" on.
  */
 let store: Store | undefined
 let active: Meeting | null = null

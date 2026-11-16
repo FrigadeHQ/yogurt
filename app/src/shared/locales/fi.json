@@ -581,6 +581,8 @@
   "Asks you to record when a call starts.": "Ehdottaa tallennusta puhelun alussa.",
   "Names speakers in your transcript.": "Nimeää puhujat tekstissä.",
   "Untitled meeting": "Nimetön kokous",
+  "Start recording when a call starts": "Aloita tallennus, kun puhelu alkaa",
+  "Record without asking when Yogurt detects a call. Make sure everyone agrees to be recorded.": "Tallenna kysymättä, kun Yogurt havaitsee puhelun. Varmista, että kaikki suostuvat tallennukseen.",
   "Finish recording when the call ends": "Lopeta tallennus puhelun päättyessä",
   "Join and record": "Liity ja tallenna",
   "Now: {title}": "Nyt: {title}",

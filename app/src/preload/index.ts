@@ -228,6 +228,7 @@ const api: YogurtApi = {
     setShowInMenuBar: (on) => ipcRenderer.invoke('settings:menu-bar', on),
     setOpenAtLogin: (on) => ipcRenderer.invoke('settings:login', on),
     setName: (name) => ipcRenderer.invoke('settings:name', name),
+    setStartWhenCallStarts: (on) => ipcRenderer.invoke('settings:auto-start', on),
     setStopWhenCallEnds: (on) => ipcRenderer.invoke('settings:auto-stop', on),
     setRecordingReminder: (on) => ipcRenderer.invoke('settings:recording-reminder', on),
     setKeepRecordings: (on) => ipcRenderer.invoke('settings:keep-recordings', on),

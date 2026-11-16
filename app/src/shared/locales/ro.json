@@ -588,6 +588,8 @@
   "Asks you to record when a call starts.": "Propune înregistrarea la începutul apelului.",
   "Names speakers in your transcript.": "Numește vorbitorii în transcriere.",
   "Untitled meeting": "Întâlnire fără titlu",
+  "Start recording when a call starts": "Pornește înregistrarea când începe un apel",
+  "Record without asking when Yogurt detects a call. Make sure everyone agrees to be recorded.": "Înregistrează fără să întrebe când Yogurt detectează un apel. Asigură-te că toți sunt de acord să fie înregistrați.",
   "Finish recording when the call ends": "Finalizează înregistrarea la încheierea apelului",
   "Join and record": "Participă și înregistrează",
   "Now: {title}": "Acum: {title}",

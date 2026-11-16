@@ -578,6 +578,8 @@
   "Asks you to record when a call starts.": "Felvételt ajánl a hívás kezdetén.",
   "Names speakers in your transcript.": "Megnevezi a beszélőket az átiratban.",
   "Untitled meeting": "Névtelen megbeszélés",
+  "Start recording when a call starts": "Felvétel indítása a hívás kezdetekor",
+  "Record without asking when Yogurt detects a call. Make sure everyone agrees to be recorded.": "Felvétel kérdés nélkül, amikor a Yogurt hívást észlel. Győződj meg róla, hogy mindenki beleegyezik a felvételbe.",
   "Finish recording when the call ends": "Felvétel befejezése a hívás végén",
   "Join and record": "Csatlakozás és felvétel",
   "Now: {title}": "Most: {title}",

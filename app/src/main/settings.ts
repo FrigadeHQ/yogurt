@@ -24,6 +24,8 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   axAsked?: boolean
   /** AI apps on this Mac (Claude, Cursor, …) may read meetings through MCP; off unless the person turned it on */
   aiApps?: boolean
+  /** a recording starts by itself when a call starts; off unless turned on (recording people needs their consent) */
+  startWhenCallStarts?: boolean
   /** a recording stops by itself when its call ends; on unless turned off (false: ask first) */
   stopWhenCallEnds?: boolean
   /** a quiet reminder to ask everyone before recording; on unless turned off */
@@ -48,6 +50,8 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
 /** "English only" unless Multi-language was picked */
 export const spokenSetting = (s: Settings): Spoken => spokenOf(s.spoken)
 
+/** "Start recording when a call starts": off by default */
+export const startsWhenCallStarts = (s: Settings): boolean => s.startWhenCallStarts === true
 /** "Finish recording when the call ends": on by default */
 export const stopsWhenCallEnds = (s: Settings): boolean => s.stopWhenCallEnds !== false
 export const recordingReminderOn = (s: Settings): boolean => s.recordingReminder !== false

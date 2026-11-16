@@ -578,6 +578,8 @@
   "Asks you to record when a call starts.": "कॉल शुरू होने पर रिकॉर्ड करने को कहता है।",
   "Names speakers in your transcript.": "ट्रांसक्रिप्ट में वक्ताओं के नाम दिखाता है।",
   "Untitled meeting": "बिना शीर्षक की मीटिंग",
+  "Start recording when a call starts": "कॉल शुरू होने पर रिकॉर्डिंग शुरू करें",
+  "Record without asking when Yogurt detects a call. Make sure everyone agrees to be recorded.": "Yogurt को कॉल का पता चलने पर बिना पूछे रिकॉर्ड करें। सुनिश्चित करें कि सभी रिकॉर्ड होने के लिए सहमत हैं।",
   "Finish recording when the call ends": "कॉल खत्म होने पर रिकॉर्डिंग समाप्त करें",
   "Join and record": "जुड़ें और रिकॉर्ड करें",
   "Now: {title}": "अभी: {title}",

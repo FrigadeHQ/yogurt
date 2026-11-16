@@ -22,7 +22,7 @@ The other permissions are optional:
 - **Notifications:** offer to take notes when a call starts.
 - **Accessibility:** read speaker names from supported call apps.
 
-If a permission is off, use its button in Yogurt's Settings to open the right system pane. After changing it, return to Yogurt. Recording always waits for your click.
+If a permission is off, use its button in Yogurt's Settings to open the right system pane. After changing it, return to Yogurt. Recording waits for your click, unless you turn on **Start recording when a call starts** in Settings.
 
 ## Privacy
 

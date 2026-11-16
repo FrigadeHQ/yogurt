@@ -578,6 +578,8 @@
   "Asks you to record when a call starts.": "Προτείνει εγγραφή όταν καλείτε.",
   "Names speakers in your transcript.": "Ονομάζει ομιλητές στη μεταγραφή.",
   "Untitled meeting": "Συνάντηση χωρίς τίτλο",
+  "Start recording when a call starts": "Έναρξη εγγραφής όταν ξεκινά μια κλήση",
+  "Record without asking when Yogurt detects a call. Make sure everyone agrees to be recorded.": "Εγγραφή χωρίς ερώτηση όταν το Yogurt εντοπίζει κλήση. Βεβαιωθείτε ότι όλοι συμφωνούν να καταγραφούν.",
   "Finish recording when the call ends": "Ολοκλήρωση εγγραφής όταν τελειώνει η κλήση",
   "Join and record": "Συμμετοχή και εγγραφή",
   "Now: {title}": "Τώρα: {title}",

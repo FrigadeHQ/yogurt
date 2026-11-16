@@ -578,6 +578,8 @@
   "Asks you to record when a call starts.": "Alok na magrekord sa simula ng tawag.",
   "Names speakers in your transcript.": "Pangalan ng nagsasalita sa transcript.",
   "Untitled meeting": "Pulong na walang pamagat",
+  "Start recording when a call starts": "Simulan ang pag-record kapag nagsimula ang tawag",
+  "Record without asking when Yogurt detects a call. Make sure everyone agrees to be recorded.": "Mag-record nang hindi nagtatanong kapag may natukoy na tawag ang Yogurt. Siguraduhing pumapayag ang lahat na ma-record.",
   "Finish recording when the call ends": "Tapusin ang recording kapag natapos ang tawag",
   "Join and record": "Sumali at mag-record",
   "Now: {title}": "Ngayon: {title}",
