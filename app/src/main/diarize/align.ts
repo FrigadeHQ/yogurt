@@ -52,9 +52,43 @@ const textOf = (words: Word[], spell: (t: string) => string) => spell(joinWords(
  * across rows while the voice stays the same. A row no word of which the diarizer heard stays as it is; a word no
  * turn claims joins the voice before it when it is alone there and near it (timing scatter, not an utterance) and
  * stays Them when it comes in company or long after.
+ *
+ * Words are placed per whisper sentence, not per word: a sentence is one utterance, and around fast turn-taking the
+ * diarizer's boundaries wobble by a few hundred ms, so a word's own times can straddle into the neighbour's turn
+ * ("Ich glaube" into the question's tail). The sentence takes the turn it overlaps most, and its words go with it —
+ * a tie or a long unpunctuated stretch (which can hold a real speaker change) stays per word.
  */
 export function splitPlan(rows: SplitRow[], turns: Turn[], spell: (t: string) => string): { keep: number[]; runs: SplitRun[] } {
   const keep = rows.filter(r => !r.words?.length).map(r => r.id)
+  /** one whisper sentence: words up to sentence punctuation or a pause; a longer unpunctuated stretch can hold a real speaker change: per word there */
+  const SENTENCE_WORDS = 16, SENTENCE_MS = 10_000, SENTENCE_PAUSE_MS = 700
+  const endsSentence = (text: string) => /[.?!…。！？]["'»”’)\]]*$/.test(text.trimEnd())
+  const claims = new Map<Word, Turn | null>()
+  let group: Array<{ row: SplitRow; word: Word }> | null = null, prev: Word | null = null
+  const flushGroup = () => {
+    if (!group?.length) { group = null; return }
+    // the verdict comes from the words a turn cleanly contains: a word straddling a boundary wobbles with it, so it
+    // must not vote. A clear verdict (2/3 of the clean overlap) and the whole sentence goes with that turn — its
+    // straddling words too ("Ich glaube" into the answer); a tie, a long unpunctuated stretch (which can hold a real
+    // speaker change) or words no turn covers stay per word.
+    const clean = new Map<string, number>()
+    for (const { word } of group) for (const t of turns) {
+      if (word.startMs >= t.startMs && word.endMs <= t.endMs && word.endMs > word.startMs) { clean.set(t.key, (clean.get(t.key) ?? 0) + (word.endMs - word.startMs)); break }
+    }
+    const ranked = [...clean.entries()].sort((a, b) => b[1] - a[1])
+    const [bestKey, bestSum] = ranked[0] ?? [null, 0]
+    const rest = ranked.slice(1).reduce((n, [, s]) => n + s, 0)
+    const whole = !!bestKey && bestSum / (bestSum + rest) >= 2 / 3 && group.length <= SENTENCE_WORDS && group[group.length - 1].word.endMs - group[0].word.startMs <= SENTENCE_MS
+    const best = turns.find(t => t.key === bestKey) ?? null
+    for (const { word } of group) claims.set(word, whole && turns.some(t => overlap(word, t) > 0) ? best : turnFor(word, turns))
+    group = null
+  }
+  for (const row of rows) for (const word of row.words ?? []) {
+    if (group && prev && (word.startMs - prev.endMs > SENTENCE_PAUSE_MS || endsSentence(prev.text) || group.length >= SENTENCE_WORDS || word.endMs - group[0].word.startMs > SENTENCE_MS)) flushGroup()
+    ;(group ??= []).push({ row, word })
+    prev = word
+  }
+  flushGroup()
   const built: Array<{ run: SplitRun; claims: Map<string | null, number> }> = []
   const speak = (claims: Map<string | null, number>) => evidenceName([...claims].map(([name, ms]) => ({ name, ms })))
   let cur: { key: string | null; words: Word[]; claims: Map<string | null, number>; lineIds: number[] } | null = null
@@ -78,7 +112,7 @@ export function splitPlan(rows: SplitRow[], turns: Turn[], spell: (t: string) =>
   for (const row of rows) {
     const words = row.words ?? []
     if (!words.length) continue
-    const placed = words.map(w => turnFor(w, turns))
+    const placed = words.map(w => claims.get(w) ?? null)
     // lines with words but no turn at all: kept whole (nothing changes for them)
     if (!placed.some(Boolean)) { keep.push(row.id); continue }
     for (let i = 0; i < words.length; i++) {

@@ -73,6 +73,22 @@ describe('splitPlan', () => {
     const over: Turn[] = [{ key: 'v1', startMs: 0, endMs: 4000 }, { key: 'v2', startMs: 3000, endMs: 6000 }]
     expect(splitPlan(rows, over, identity).runs.map(r => r.key)).toEqual(['v2'])
   })
+  it('a sentence takes the turn it overlaps most when the boundary wobbles into it (fast turn-taking)', () => {
+    // real meeting: the answer's "Ich glaube" (7058–7528) straddles the question's turn (until 7429); its sentence
+    // is the guest's, so it goes back, and the question's "Wie viel" goes back to the question's turn
+    const fast: Turn[] = [{ key: 'guest', startMs: 2741, endMs: 4319 }, { key: 'host', startMs: 4621, endMs: 7429 }, { key: 'guest', startMs: 7791, endMs: 9479 }]
+    const rows: SplitRow[] = [
+      { id: 1, text: 'Deep Work ist vorbei. Wie viel', startMs: 2378, endMs: 4528, speaker: null, words: [w('Deep', 2378, 2658), w('Work', 2658, 2928), w('ist', 2978, 3168), w('vorbei', 3168, 3508), w('.', 3618, 3968), w('Wie', 3978, 4208), w('viel', 4228, 4528)] },
+      { id: 2, text: 'deiner Zeit arbeitest du ohne KI? Ich glaube', startMs: 4578, endMs: 7528, speaker: null, words: [w('de', 4578, 4688), w('iner', 4708, 5038), w('Zeit', 5038, 5368), w('ar', 5368, 5528), w('beit', 5688, 5858), w('est', 5858, 6098), w('du', 6098, 6258), w('ohne', 6258, 6588), w('KI', 6588, 6748), w('?', 6748, 7048), w('Ich', 7058, 7198), w('glaube', 7228, 7528)] },
+      { id: 3, text: 'weniger als fünf Prozent. Platz', startMs: 7528, endMs: 9728, speaker: null, words: [w('weniger', 7528, 7908), w('als', 7908, 8068), w('fünf', 8068, 8188), w('Prozent', 8268, 8688), w('.', 8688, 8718), w('Platz', 8738, 9728)] },
+    ]
+    const { runs } = splitPlan(rows, fast, identity)
+    expect(runs.map(r => [r.key, r.text])).toEqual([
+      ['guest', 'Deep Work ist vorbei .'],
+      ['host', 'Wie viel de iner Zeit ar beit est du ohne KI?'],
+      ['guest', 'Ich glaube weniger als fünf Prozent. Platz'],
+    ])
+  })
   it('a voiceless sliver in a gap no turn covers stays an untouched row', () => {
     const both: Turn[] = [{ key: 'v1', startMs: 0, endMs: 2000 }, { key: 'v2', startMs: 6000, endMs: 8000 }]
     const rows: SplitRow[] = [
