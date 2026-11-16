@@ -203,6 +203,11 @@ const api: YogurtApi = {
     dismissNudge: () => ipcRenderer.invoke('onboarding:dismiss-nudge'),
     restoreNudge: () => ipcRenderer.invoke('onboarding:restore-nudge'),
   },
+  notesServer: {
+    get: () => ipcRenderer.invoke('notes-server:get'),
+    set: (patch) => ipcRenderer.invoke('notes-server:set', patch),
+    check: (url, key) => ipcRenderer.invoke('notes-server:check', url, key),
+  },
   mcp: {
     status: () => ipcRenderer.invoke('mcp:status'),
     set: (on) => ipcRenderer.invoke('mcp:set', on),

@@ -2,6 +2,7 @@ import type { WidgetLayout, WidgetSurface } from './widgetMorph'
 import type { ContextChip, ContextTarget } from './askContext'
 import type { FolderAppearance } from './folderAppearance'
 import type { LiveWord } from './liveWords'
+import type { NotesServerCheck, NotesServerView } from '../main/notes/remote'
 import type { Meeting, MeetingCard as StoredMeetingCard, Person, Segment, SnippetPart, Folder } from '../main/store'
 import type { CalEvent, CalendarSource, CalendarStatus } from '../main/calendar'
 import type { Access, PermissionKind, PermissionStatus } from '../main/permissions'
@@ -144,6 +145,12 @@ export type YogurtApi = {
   }
   /** every meeting in one file and back (Settings): import adds the ones that are not here, never changes one that is */
   /** AI apps on this Mac reading meetings through MCP (Settings) */
+  /** a notes model on another computer the person runs, tried before the one on this computer */
+  notesServer: {
+    get(): Promise<NotesServerView>
+    set(patch: { enabled?: boolean; url?: string; model?: string; key?: string }): Promise<NotesServerView>
+    check(url: string, key?: string): Promise<NotesServerCheck>
+  }
   mcp: {
     status(): Promise<McpStatus>
     set(on: boolean): Promise<McpStatus>
@@ -432,6 +439,7 @@ export type ConversationView = {
 export type ConversationSummary = { id: string; title: string; updatedAt: number; chips: ContextTarget[]; draft: string }
 
 /** enabled: in Settings. clients: apps connected now. command: the program to give an AI app */
+export type { NotesServerCheck, NotesServerView } from '../main/notes/remote'
 export type McpStatus = { enabled: boolean; clients: string[]; command: string }
 /** Settings → Updates. available: this build updates itself (not in development or a preview); next: the version found */
 export type UpdateStatus = { version: string; available: boolean; on: boolean; state: 'idle' | 'checking' | 'latest' | 'downloading' | 'ready' | 'error'; next?: string
