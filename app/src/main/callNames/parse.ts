@@ -302,6 +302,31 @@ export function readCall(kind: CallKind, windows: AxWindow[], o: { talkingClasse
 }
 
 /**
+ * What the call app reports itself, beside its window: Teams for Linux, with its opt-in D-Bus control, lists the remote
+ * people on the meeting stage and who of them talks (it reads the ring Teams draws, which the tree does not carry).
+ * yogurt-system call-watch passes it on as `reported`.
+ */
+export type Reported = { speaking: string[]; participants: string[] }
+
+/** a report from the helper, kept only if it has the right shape (names as strings) */
+export function asReported(x: unknown): Reported | null {
+  if (!x || typeof x !== 'object') return null
+  const r = x as Record<string, unknown>
+  const names = (v: unknown) => (Array.isArray(v) ? v.filter((n): n is string => typeof n === 'string' && n.trim() !== '').map((n) => n.trim()) : null)
+  const speaking = names(r.speaking), participants = names(r.participants)
+  return speaking && participants ? { speaking, participants } : null
+}
+
+/**
+ * The window's reading with the report added. Who talks is both together. The people stay the window's when it lists
+ * any (the roster names the person using Yogurt too, which the stage report never does); else they are the report's.
+ */
+export function withReported(r: CallReading, rep: Reported | null): CallReading {
+  if (!rep) return r
+  return { speaking: uniq([...r.speaking, ...rep.speaking]), participants: r.participants.length ? r.participants : uniq(rep.participants), me: r.me }
+}
+
+/**
  * A short picture of a window's tree for the log, so a real call shows what its app gives: element counts by role,
  * and the first lines of text with their role (and DOM classes on Meet's tiles). Names stay on the Mac (the log does).
  */

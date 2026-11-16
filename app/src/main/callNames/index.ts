@@ -1,7 +1,7 @@
 import type { RecordingStart } from '../meeting'
 import type { Meeting, Store } from '../store'
 import { nameFor, othersIn, type CallSample } from './attribute'
-import { readCall, summarize, type AxWindow, type CallKind } from './parse'
+import { asReported, readCall, summarize, withReported, type AxWindow, type CallKind, type Reported } from './parse'
 
 /**
  * Names from the call: while a meeting records, the call app it is in (Zoom, Teams, Meet in a browser) is read through
@@ -9,10 +9,14 @@ import { readCall, summarize, type AxWindow, type CallKind } from './parse'
  * is named after the person the app shows talking, or the only other person in the call. The mic is always You.
  * Without the permission, in another app, or when the app shows nothing clear, lines of the other side are Them.
  * Nothing is guessed, and nothing leaves the computer.
+ *
+ * Teams draws the person talking only as a ring, which no tree carries. Teams for Linux, with its opt-in D-Bus control
+ * (dbusControl.enabled and dbusControl.callParticipants in its config.json), reports who talks, and yogurt-system
+ * call-watch adds that to the reading, so a group call there is named per person. Without it, Linux reads as before.
  */
 
-/** what yogurt-mac call-watch prints each time it reads: the call windows, or why it could not */
-export type WatchLine = { t: number; app?: string; windows?: AxWindow[]; error?: string }
+/** what call-watch prints each time it reads: the call windows, what the app reports itself (Teams for Linux), or why it could not */
+export type WatchLine = { t: number; app?: string; windows?: AxWindow[]; reported?: Reported; error?: string }
 export type Watch = (ids: string[], onLine: (l: WatchLine) => void) => { stop(): void }
 
 /** the call apps that can be read, by the name meeting detection gives them (detect.ts), and the kind of window each
@@ -69,7 +73,8 @@ export function hookCallNames(p: {
   }
 
   const onLine = (id: string, s: Session, l: WatchLine) => {
-    if (l.error || !l.app || !l.windows) {
+    const reported = l.reported === undefined ? null : asReported(l.reported)
+    if (l.error || !l.app || (!l.windows && !reported)) {
       const why = l.error ?? 'nothing read'
       if (!s.errors.has(why)) { s.errors.add(why); log(`call names: ${why}${why === 'not-trusted' ? ' (no Accessibility permission): the other side stays Them' : ''}`) }
       s.samples.push({ t: l.t, speaking: [], participants: [], me: null, ok: false })
@@ -78,8 +83,11 @@ export function hookCallNames(p: {
     const kind = kindOf(l.app)
     if (!kind) return
     // the first reading of each meeting goes to the log in short, so a real call shows what its app gives
-    if (!s.pictured) { s.pictured = true; log(`call names: reading ${l.app} (${kind}), its window in short:\n${summarize(l.windows)}`) }
-    const r = readCall(kind, l.windows)
+    if (!s.pictured) {
+      s.pictured = true
+      log(`call names: reading ${l.app} (${kind})${reported ? ', with who talks as it reports' : ''}, its window in short:\n${summarize(l.windows ?? [])}`)
+    }
+    const r = withReported(readCall(kind, l.windows ?? []), reported)
     s.samples.push({ t: l.t, ...r })
     const said = `${r.speaking.join(', ') || '-'} of ${r.participants.length}${r.me ? ', me known' : ''}`
     if (said !== s.last && s.logged < LOGGED_CHANGES) { s.logged++; log(`call names: ${kind} talking ${said}`) }
