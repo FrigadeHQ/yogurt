@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import type { Llm } from '../src/main/notes/enhance'
 import type { NotesModel } from '../src/main/notes/model'
-import { remoteChat, remoteFirst, roughTokens, type NotesServer } from '../src/main/notes/remote'
+import { REASONING_ROOM, remoteChat, remoteFirst, roughTokens, type NotesServer } from '../src/main/notes/remote'
 
 const server: NotesServer = { url: 'http://notes.test/v1/', model: 'qwen' }
 
@@ -43,7 +43,17 @@ describe('remoteChat', () => {
     expect(text).toBe('Hello, world')
     expect(got.join('')).toBe('Hello, world')
     expect(calls[0].url).toBe('http://notes.test/v1/chat/completions')
-    expect(JSON.parse(String(calls[0].init?.body))).toMatchObject({ model: 'qwen', stream: true, max_tokens: 50, temperature: 0 })
+    expect(JSON.parse(String(calls[0].init?.body))).toMatchObject({ model: 'qwen', stream: true, max_tokens: 50 + REASONING_ROOM, temperature: 0 })
+  })
+
+  it('gives a reasoning model room to think, and still holds the answer to the limit', async () => {
+    const { f, calls } = fakeFetch(() => sse([{ reasoning_content: 'hmm' }, { content: 'Pizza oven certification' }, { content: ' and a very long tail '.repeat(40) }]))
+    const got: string[] = []
+    const text = await remoteChat(server, [{ role: 'user', content: 'title?' }], (t) => got.push(t), { maxTokens: 40 }, f)
+    expect(JSON.parse(String(calls[0].init?.body)).max_tokens).toBe(40 + REASONING_ROOM)
+    expect(text.startsWith('Pizza oven certification')).toBe(true)
+    expect(roughTokens(text)).toBeLessThanOrEqual(40) // held to the limit, not the whole tail
+    expect(got.join('')).toBe(text)
   })
 
   it('sends the key from its file, never from settings', async () => {

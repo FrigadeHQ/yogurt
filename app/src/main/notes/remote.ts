@@ -30,6 +30,9 @@ export type NotesServerCheck =
   | { ok: true; models: string[] }
   | { ok: false; reason: 'address' | 'unreachable' | 'refused' | 'status'; status?: number }
 
+/** tokens a reasoning model may think for on top of the answer's limit */
+export const REASONING_ROOM = 2048
+
 /** a rough count, high on purpose: about 3 characters a token keeps a prompt inside the window on any tokenizer */
 export const roughTokens = (text: string) => Math.ceil(text.length / 3) + 1
 
@@ -84,15 +87,21 @@ export async function reachable(s: NotesServer, ms = 3000, f: Fetch = fetch): Pr
 /** one streamed answer: only the answer's words reach onToken, never the model's reasoning */
 export async function remoteChat(s: NotesServer, messages: { role: string; content: string }[], onToken: (t: string) => void,
   o: { maxTokens?: number; temperature?: number; signal?: AbortSignal } = {}, f: Fetch = fetch): Promise<string> {
+  // A reasoning model spends tokens thinking before it answers, and servers count those against max_tokens:
+  // a 40-token title came back empty. The server gets room to think; the answer is still held to the limit here.
+  const stop = new AbortController()
+  const signal = o.signal ? AbortSignal.any([o.signal, stop.signal]) : stop.signal
   const r = await f(`${base(s)}/chat/completions`, {
     method: 'POST',
     headers: headers(s),
-    signal: o.signal,
-    body: JSON.stringify({ model: s.model, messages, stream: true, ...(o.maxTokens ? { max_tokens: o.maxTokens } : {}), ...(o.temperature !== undefined ? { temperature: o.temperature } : {}) }),
+    signal,
+    body: JSON.stringify({ model: s.model, messages, stream: true, ...(o.maxTokens ? { max_tokens: o.maxTokens + REASONING_ROOM } : {}), ...(o.temperature !== undefined ? { temperature: o.temperature } : {}) }),
   })
   if (!r.ok || !r.body) throw new Error(`notes server answered ${r.status}`)
   const decoder = new TextDecoder()
   let pending = '', text = ''
+  /** the answer's limit in characters, the inverse of roughTokens */
+  const limit = o.maxTokens ? (o.maxTokens - 1) * 3 : undefined
   const take = (line: string) => {
     if (!line.startsWith('data:')) return
     const data = line.slice(5).trim()
@@ -103,16 +112,24 @@ export async function remoteChat(s: NotesServer, messages: { role: string; conte
     // the answer starts at its first word: some servers send the blank lines that followed the reasoning
     if (!text) piece = piece.replace(/^\s+/, '')
     if (!piece) return
+    if (limit !== undefined) piece = (piece as string).slice(0, Math.max(0, limit - text.length))
+    if (!piece) return
     text += piece
     onToken(piece as string)
   }
-  for await (const chunk of r.body as unknown as AsyncIterable<Uint8Array>) {
-    pending += decoder.decode(chunk, { stream: true })
-    const lines = pending.split('\n')
-    pending = lines.pop() ?? ''
-    for (const l of lines) take(l.trim())
+  const full = () => limit !== undefined && text.length >= limit
+  try {
+    for await (const chunk of r.body as unknown as AsyncIterable<Uint8Array>) {
+      pending += decoder.decode(chunk, { stream: true })
+      const lines = pending.split('\n')
+      pending = lines.pop() ?? ''
+      for (const l of lines) take(l.trim())
+      if (full()) { stop.abort(); break }
+    }
+  } catch (e) {
+    if (!stop.signal.aborted) throw e
   }
-  take(pending.trim())
+  if (!stop.signal.aborted) take(pending.trim())
   return text
 }
 
