@@ -59,6 +59,8 @@ import { setGenericTitles } from './titles'
 import { installAppMenu } from './appMenu'
 import { UtilityEngine } from './engine'
 import { createNotesModel } from './notes/model'
+import { activeServer, remoteFirst } from './notes/remote'
+import { notesServerSettings, type NotesServerPatch } from './notes/serverSettings'
 import { FakeEngine } from './notes/fake'
 import { hookNotes } from './notes'
 import { hookReadAhead, readAheadAllowed } from './notes/readAhead'
@@ -570,11 +572,17 @@ app.whenReady().then(() => {
   }, (e) => { console.warn("couldn't check the graphics", e); return null })
   // fake mode: the fixed Mac (a bigger one) unless a test asks for a 16 GB one
   const smallMac = isFake() ? process.env.YOGURT_FAKE_SMALL_MAC === '1' : isSmallMac(os.totalmem())
-  const model = createNotesModel({ engine, modelPath: () => setup.notesPath(), onLoaded: path => setup.notesModelLoaded(path) })
+  const localModel = createNotesModel({ engine, modelPath: () => setup.notesPath(), onLoaded: path => setup.notesModelLoaded(path) })
+  // a notes server the person runs (settings.json notesServer) is tried first; the model on this computer is the fallback
+  const model = remoteFirst(localModel, () => activeServer(loadSettings(settingsFile).notesServer))
+  const notesServer = notesServerSettings({ settingsFile, profile: userDataDir() })
+  ipcMain.handle('notes-server:get', () => notesServer.view())
+  ipcMain.handle('notes-server:set', (_e, patch: unknown) => notesServer.set((patch && typeof patch === 'object' ? patch : {}) as NotesServerPatch))
+  ipcMain.handle('notes-server:check', (_e, url: unknown, key: unknown) => notesServer.check(typeof url === 'string' ? url : '', typeof key === 'string' ? key : undefined))
   // first run: the notes model lands after recording already works; jobs wait in the queue for it
   // the embedding model (meaning search across meetings) runs in the same worker and is let go with the notes model
   const embedder = createEmbedder({ engine, modelPath: () => setup.installed()?.embed, id: bundledCatalog.embedding.id, dims: bundledCatalog.embedding.dims })
-  const queue = createQueue({ recording: () => !!activeMeeting(), smallMac, backlogMs: transcriptionBacklogMs, onIdle: () => { void model.unload().catch(e => console.error('letting the notes model go failed', e)); void embedder.unload() }, modelReady: () => !!setup.notesPath() })
+  const queue = createQueue({ recording: () => !!activeMeeting(), smallMac, backlogMs: transcriptionBacklogMs, onIdle: () => { void model.unload().catch(e => console.error('letting the notes model go failed', e)); void embedder.unload() }, modelReady: () => !!activeServer(loadSettings(settingsFile).notesServer) || !!setup.notesPath() })
   ipcMain.handle('setup:remove-upgrade', () => setup.removeUpgrade(remove => queue.enqueue(async () => {
     await model.unload()
     remove()

@@ -15,6 +15,7 @@ import { appShortcuts } from '../components/Shortcuts'
 import { CalendarSettings } from '../components/CalendarSettings'
 import { supportedKinds } from '../../../shared/platform'
 import { Swap, SwapText } from '../components/Swap'
+import { NotesServerSettings } from '../components/NotesServerSettings'
 
 const THEMES = () => [['system', osWords({ mac: t('Match my Mac'), windows: t('Match Windows'), linux: t('Match my system') })], ['light', t('Light')], ['dark', t('Dark')]] as const
 // each computer's own words for starting at login and its icon's place: the menu bar, the notification area, the tray
@@ -28,6 +29,8 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
   const [prefs, setPrefs] = useState<{ theme: Theme; openAtLogin: boolean; showInMenuBar: boolean; myName: string; macName: string; stopWhenCallEnds: boolean; recordingReminder: boolean; keepRecordings: boolean }>()
   const [name, setName] = useState('')
   const [generalReady, setGeneralReady] = useState(false)
+  /** notes written on the person's own server: the privacy line says where transcripts go */
+  const [serverOn, setServerOn] = useState(false)
   const scroll = useScrollMemory<HTMLDivElement>('settings', !!prefs && !!perms)
   useEffect(() => { void window.yogurt.settings.get().then(setPrefs) }, [revision])
   const reload = useCallback(() => { void window.yogurt.permissions.status().then(setPerms) }, [])
@@ -145,6 +148,8 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
 
           <Backup />
 
+          <NotesServerSettings onChange={setServerOn} />
+
           <AiApps />
 
           <Updates />
@@ -155,7 +160,9 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
               <div className="settings-row" key={keys}><dt>{label}</dt><dd><kbd>{keys}</kbd></dd></div>)}
           </dl>
 
-          <p className="settings-privacy"><Lock size={12} aria-hidden="true" />{osWords({ mac: t('Your meetings, notes and audio stay on this Mac.'), other: t('Your meetings, notes and audio stay on this computer.') })}</p>
+          <p className="settings-privacy"><Lock size={12} aria-hidden="true" />{serverOn
+            ? t('Your meetings and audio stay on this computer. Transcripts go to your notes server to write notes.')
+            : osWords({ mac: t('Your meetings, notes and audio stay on this Mac.'), other: t('Your meetings, notes and audio stay on this computer.') })}</p>
         </div>
       </div>
     </div>

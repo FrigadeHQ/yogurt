@@ -4,6 +4,8 @@ import { spokenOf, type Spoken } from '../shared/spoken'
 
 /** theme: light or dark regardless of the system; follows the system when left out. language: the interface's, the computer's when left out */
 export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what the person is called in their meetings; their Mac's full name when left out */ myName?: string
+  /** a notes model on another computer the person runs (OpenAI-compatible), tried before the one on this computer */
+  notesServer?: import('./notes/remote').NotesServer
   /** the first-run questions were shown (answered or put off): never asked again */
   welcomed?: boolean
   /** the intro screens were read or skipped (kept apart, so a restart halfway through goes on with the permissions) */
