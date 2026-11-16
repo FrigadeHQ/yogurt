@@ -33,9 +33,13 @@ describe('search dates', () => {
     expect(relative.slice(span.start, span.end)).toBe('last week')
   })
 
-  it('uses the locale for numeric dates', () => {
+  it('uses the locale for numeric dates while still accepting month-day names', () => {
     expect(parse('standup 10/11', 'en-GB').date).toEqual(parse('standup 11/10').date)
     expect(parse('11/10', 'en-GB').date).toEqual({ start: at(10, 11), end: at(10, 12) })
+    expect(parse('11/20', 'en-GB').date).toBeUndefined()
+    expect(parse('standup nov 10', 'en-GB')).toMatchObject({ text: 'standup', date: { start: at(11, 10), end: at(11, 11) } })
+    expect(parse('November 10', 'en-IN').date).toEqual({ start: at(11, 10), end: at(11, 11) })
+    expect(parse('standup 10 nov', 'en-GB')).toMatchObject({ text: 'standup', date: { start: at(11, 10), end: at(11, 11) } })
   })
 
   it.each([
