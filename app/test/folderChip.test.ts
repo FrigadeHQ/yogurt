@@ -113,7 +113,7 @@ it('tags the suggested folder where it already sits in the list, without moving 
 
 it('keeps the meeting link then More before any folder controls in DOM tab order', () => {
   for (const folders of [[], [alpha], [alpha, suggested]]) {
-    const card: MeetingCard = { id: 'meeting', title: 'Budget review', state: 'done', startedAt: 1, endedAt: 2, preview: '', eventId: null, app: null, language: null, titleSource: 'user', attendees: [], folders }
+    const card: MeetingCard = { id: 'meeting', title: 'Budget review', state: 'done', startedAt: 1, endedAt: 2, preview: '', eventId: null, app: null, language: null, titleSource: 'user', attendees: [], folders, diarizeError: null, voicesAllowed: false }
     const html = renderToStaticMarkup(createElement(PastNotes, { cards: [card], day: '', more: false, sentinel() {}, onOpen() {} }))
     const buttons = [...html.matchAll(/<button\b[^>]*>/g)].map(match => match[0])
     expect(buttons[0]).toContain('class="native-meeting-link"')

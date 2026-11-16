@@ -8,7 +8,7 @@ vi.mock('../src/renderer/src/components/FolderPicker', () => ({
   FolderPicker: () => null,
   FolderChip: ({ rowFolders, children }: { rowFolders: MeetingCard['folders']; children: ReactNode }) => rowFolders?.length ? children : createElement('button', { 'data-testid': 'row-suggestion' }, 'Suggested folder'),
 }))
-const meeting: MeetingCard = { id: 'meeting', title: 'Planning', state: 'done', startedAt: 1, endedAt: 60001, attendees: [], folders: [], preview: '', eventId: null, app: null, language: null, titleSource: 'user' }
+const meeting: MeetingCard = { id: 'meeting', title: 'Planning', state: 'done', startedAt: 1, endedAt: 60001, attendees: [], folders: [], preview: '', eventId: null, app: null, language: null, titleSource: 'user', diarizeError: null, voicesAllowed: false }
 const render = (props: Partial<Parameters<typeof PastCard>[0]> = {}) => renderToStaticMarkup(createElement(PastCard, { c: meeting, me: '', onOpen() {}, ...props }))
 
 it('places the suggestion beside the meeting button without nesting interactive controls', () => {
