@@ -1,4 +1,5 @@
-import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { dirname } from 'node:path'
 import { isLocale } from '../shared/i18n'
 import { spokenOf, type Spoken } from '../shared/spoken'
 
@@ -84,10 +85,15 @@ export function visibilityOf(s: Settings, os: string = process.platform): Visibi
 }
 
 export function loadSettings(path: string): Settings {
-  try { return existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : {} } catch { return {} }
+  try {
+    if (!existsSync(path)) return {}
+    const parsed: unknown = JSON.parse(readFileSync(path, 'utf8'))
+    return parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Settings) : {}
+  } catch { return {} }
 }
 export function saveSettings(path: string, s: Settings) {
   // write-then-rename so a crash mid-save never leaves a half-written file
+  mkdirSync(dirname(path), { recursive: true })
   writeFileSync(path + '.tmp', JSON.stringify(s, null, 2))
   renameSync(path + '.tmp', path)
 }
