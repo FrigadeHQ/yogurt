@@ -578,6 +578,8 @@
   "Asks you to record when a call starts.": "Arama başında kayıt önerir.",
   "Names speakers in your transcript.": "Dökümde konuşmacıları adlandırır.",
   "Untitled meeting": "Başlıksız toplantı",
+  "Start recording when a call starts": "Arama başladığında kaydı başlat",
+  "Record without asking when Yogurt detects a call. Make sure everyone agrees to be recorded.": "Yogurt bir arama algıladığında sormadan kaydet. Herkesin kayda onay verdiğinden emin olun.",
   "Finish recording when the call ends": "Arama sona erdiğinde kaydı bitir",
   "Join and record": "Katıl ve kaydet",
   "Now: {title}": "Şimdi: {title}",

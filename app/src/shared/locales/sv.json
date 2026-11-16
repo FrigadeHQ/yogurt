@@ -578,6 +578,8 @@
   "Asks you to record when a call starts.": "Erbjuder inspelning när samtal börjar.",
   "Names speakers in your transcript.": "Namnger talarna i utskriften.",
   "Untitled meeting": "Möte utan titel",
+  "Start recording when a call starts": "Starta inspelning när ett samtal börjar",
+  "Record without asking when Yogurt detects a call. Make sure everyone agrees to be recorded.": "Spela in utan att fråga när Yogurt upptäcker ett samtal. Se till att alla godkänner att bli inspelade.",
   "Finish recording when the call ends": "Avsluta inspelningen när samtalet slutar",
   "Join and record": "Anslut och spela in",
   "Now: {title}": "Nu: {title}",

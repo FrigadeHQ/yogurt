@@ -109,6 +109,73 @@ describe('start cards', () => {
   })
 })
 
+describe('starts by itself when a call starts', () => {
+  let autoStart: boolean
+  /** what autoStart reports: a recording started (false: a finished note needs Resume, or the start failed) */
+  let starts: boolean
+  beforeEach(() => {
+    autoStart = true; starts = true
+    w = new Watcher({
+      read: async () => reading, now: () => clock, active: () => active,
+      bindApp: (_id, app) => (active = { ...active!, app }),
+      offer: (p) => log.push('offer:' + p.key), askStop: () => log.push('stop'), hide: () => log.push('hide'),
+      autoStart: (p) => { log.push('start:' + p.key); return starts },
+      autoStartOn: () => autoStart,
+      autoStop: (m) => log.push('auto:' + m.id), autoStopOn: () => true,
+    })
+  })
+  it('starts the recording instead of offering a card', async () => {
+    reading = { micApps: [zoom], events: [] }
+    await w.tick()
+    expect(log).toEqual(['start:app:us.zoom.xos'])
+  })
+  it('offers the card when the setting is off', async () => {
+    autoStart = false
+    reading = { micApps: [zoom], events: [] }
+    await w.tick()
+    expect(log).toEqual(['offer:app:us.zoom.xos'])
+  })
+  it('nothing started: tries once, offers the card instead, and takes it down when the call ends', async () => {
+    starts = false
+    reading = { micApps: [zoom], events: [ev()] }
+    await w.tick(); await w.tick()
+    expect(log).toEqual(['start:event:e1:' + clock, 'offer:event:e1:' + clock])
+    reading = { micApps: [], events: [ev()] }
+    await w.tick()
+    expect(log.at(-1)).toBe('hide')
+  })
+  it('never restarts a call the person finished, and starts the next call', async () => {
+    reading = { micApps: [zoom], events: [] }
+    await w.tick()
+    active = meeting(); w.cleared()
+    await w.tick()
+    // Finish in Yogurt while Zoom still holds the mic
+    active = null; w.cleared()
+    await w.tick(); await w.tick()
+    expect(log).toEqual(['start:app:us.zoom.xos'])
+    reading = { micApps: [], events: [] }
+    await w.tick()
+    reading = { micApps: [zoom], events: [] }
+    await w.tick()
+    expect(log).toEqual(['start:app:us.zoom.xos', 'start:app:us.zoom.xos'])
+  })
+  it('rejoining the same event after the call ended by itself tries again', async () => {
+    const e = ev()
+    reading = { micApps: [zoom], events: [e] }
+    await w.tick()
+    active = meeting({ eventId: e.id }); w.cleared()
+    await w.tick()
+    // the connection drops: auto-stop ends the recording
+    reading = { micApps: [], events: [e] }
+    clock += 11_000; await w.tick()
+    active = null; w.cleared()
+    await w.tick()
+    reading = { micApps: [zoom], events: [e] }
+    await w.tick()
+    expect(log.filter((l) => l.startsWith('start'))).toHaveLength(2)
+  })
+})
+
 describe('stop nudge', () => {
   beforeEach(() => { active = meeting() })
 

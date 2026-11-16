@@ -25,7 +25,7 @@ const trayLabel = () => osWords({ mac: t('Show Yogurt in the menu bar'), windows
 /** focus: the setting a toast's Settings button opens, recordings or notes-model */
 export function Settings({ revision = 0, focus }: { revision?: number; focus?: string }) {
   const [perms, setPerms] = useState<PermissionStatus>()
-  const [prefs, setPrefs] = useState<{ theme: Theme; openAtLogin: boolean; showInMenuBar: boolean; myName: string; macName: string; stopWhenCallEnds: boolean; recordingReminder: boolean; keepRecordings: boolean }>()
+  const [prefs, setPrefs] = useState<{ theme: Theme; openAtLogin: boolean; showInMenuBar: boolean; myName: string; macName: string; startWhenCallStarts: boolean; stopWhenCallEnds: boolean; recordingReminder: boolean; keepRecordings: boolean }>()
   const [name, setName] = useState('')
   const [generalReady, setGeneralReady] = useState(false)
   const scroll = useScrollMemory<HTMLDivElement>('settings', !!prefs && !!perms)
@@ -51,6 +51,11 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
     if (!prefs) return
     const on = !prefs.openAtLogin
     setPrefs({ ...prefs, openAtLogin: on }); void window.yogurt.settings.setOpenAtLogin(on)
+  }
+  const autoStart = () => {
+    if (!prefs) return
+    const on = !prefs.startWhenCallStarts
+    setPrefs({ ...prefs, startWhenCallStarts: on }); void window.yogurt.settings.setStartWhenCallStarts(on)
   }
   const autoStop = () => {
     if (!prefs) return
@@ -102,6 +107,16 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
               <button data-testid="menu-bar-toggle" role="switch" aria-checked={!!prefs?.showInMenuBar} aria-label={trayLabel()}
                 onClick={() => { if (!prefs) return; const on = !prefs.showInMenuBar; setPrefs({ ...prefs, showInMenuBar: on }); void window.yogurt.settings.setShowInMenuBar(on) }}
                 className="settings-toggle"><span className="settings-toggle-knob" /></button>
+            </div>
+            <div className="settings-row">
+              <div className="settings-row-copy">
+                <p className="settings-label">{t('Start recording when a call starts')}</p>
+                <p className="settings-description">{t('Record without asking when Yogurt detects a call. Make sure everyone agrees to be recorded.')}</p>
+              </div>
+              <button data-testid="autostart-toggle" role="switch" aria-checked={!!prefs?.startWhenCallStarts} aria-label={t('Start recording when a call starts')} onClick={autoStart}
+                className="settings-toggle">
+                <span className="settings-toggle-knob" />
+              </button>
             </div>
             <div className="settings-row">
               <div className="settings-row-copy">

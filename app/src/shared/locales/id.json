@@ -548,6 +548,8 @@
   "Asks you to record when a call starts.": "Menawarkan rekaman saat panggilan.",
   "Names speakers in your transcript.": "Menamai pembicara di transkrip.",
   "Untitled meeting": "Rapat tanpa judul",
+  "Start recording when a call starts": "Mulai merekam saat panggilan dimulai",
+  "Record without asking when Yogurt detects a call. Make sure everyone agrees to be recorded.": "Rekam tanpa bertanya saat Yogurt mendeteksi panggilan. Pastikan semua orang setuju untuk direkam.",
   "Finish recording when the call ends": "Selesaikan rekaman saat panggilan berakhir",
   "Join and record": "Gabung dan rekam",
   "Now: {title}": "Sekarang: {title}",

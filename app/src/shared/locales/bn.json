@@ -578,6 +578,8 @@
   "Asks you to record when a call starts.": "কল শুরু হলে রেকর্ড করতে বলে।",
   "Names speakers in your transcript.": "প্রতিলিপিতে বক্তার নাম দেখায়।",
   "Untitled meeting": "শিরোনামহীন মিটিং",
+  "Start recording when a call starts": "কল শুরু হলে রেকর্ডিং শুরু করুন",
+  "Record without asking when Yogurt detects a call. Make sure everyone agrees to be recorded.": "Yogurt কল শনাক্ত করলে জিজ্ঞাসা না করেই রেকর্ড করুন। নিশ্চিত করুন যে সবাই রেকর্ড হতে রাজি।",
   "Finish recording when the call ends": "কল শেষ হলে রেকর্ডিং শেষ করুন",
   "Join and record": "যোগ দিন ও রেকর্ড করুন",
   "Now: {title}": "এখন: {title}",

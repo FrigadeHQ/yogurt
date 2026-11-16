@@ -548,6 +548,8 @@
   "Asks you to record when a call starts.": "통화 시작 시 녹음을 제안합니다.",
   "Names speakers in your transcript.": "기록에 발언자 이름을 표시합니다.",
   "Untitled meeting": "제목 없는 회의",
+  "Start recording when a call starts": "통화가 시작되면 녹음 시작",
+  "Record without asking when Yogurt detects a call. Make sure everyone agrees to be recorded.": "Yogurt가 통화를 감지하면 묻지 않고 녹음합니다. 모든 참석자가 녹음에 동의했는지 확인하세요.",
   "Finish recording when the call ends": "통화가 끝나면 녹음 종료",
   "Join and record": "참여 및 녹음",
   "Now: {title}": "진행 중: {title}",

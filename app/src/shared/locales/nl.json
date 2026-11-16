@@ -578,6 +578,8 @@
   "Asks you to record when a call starts.": "Biedt opname aan bij gespreksstart.",
   "Names speakers in your transcript.": "Benoemt sprekers in het transcript.",
   "Untitled meeting": "Naamloze vergadering",
+  "Start recording when a call starts": "Opname starten wanneer een gesprek begint",
+  "Record without asking when Yogurt detects a call. Make sure everyone agrees to be recorded.": "Opnemen zonder te vragen wanneer Yogurt een gesprek detecteert. Zorg dat iedereen akkoord gaat met de opname.",
   "Finish recording when the call ends": "Opname afronden als het gesprek eindigt",
   "Join and record": "Deelnemen en opnemen",
   "Now: {title}": "Nu: {title}",

@@ -18,8 +18,8 @@ import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { isFake, userDataDir } from './paths'
 import { logToFile } from './log'
-import { loadSettings, localeOf, keepsRecording, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings } from './settings'
-import { CALL_GONE_MS, useCallApps } from './detect'
+import { loadSettings, localeOf, keepsRecording, recordingReminderOn, spokenSetting, startsWhenCallStarts, stopsWhenCallEnds, updateSettings } from './settings'
+import { CALL_GONE_MS, useCallApps, type Prompt } from './detect'
 import { systemLocale } from './locale'
 import { language as uiLanguage, onLanguage, setLanguage, t } from '../shared/i18n'
 import bundledCatalog from '../../../catalog/catalog.json'
@@ -280,7 +280,7 @@ const macName = () => (isFake() ? process.env.YOGURT_FAKE_FULL_NAME ?? 'Sam Rive
 let storeRef: Store | undefined
 let indexerRef: { schedule(): Promise<unknown> } | undefined
 
-/** Notice calls, offer to take notes, stop when the call ends (or ask, with that setting off). Starts nothing without a click. */
+/** Notice calls, offer to take notes (or start them, with that setting on), stop when the call ends (or ask, with that setting off). */
 function startDetection() {
   if (isFake()) setHelper(fakeHelper)
   const signals = createSignals({ helper: runHelper, events: readCalendar })
@@ -292,6 +292,12 @@ function startDetection() {
     // the call ended: the same stop as the widget's Stop button, then say so
     autoStop: (m) => { widget.callEnded(m.id); stopMeeting(m.id); prompts.stopped(m) },
     autoStopOn: () => stopsWhenCallEnds(loadSettings(join(userDataDir(), 'settings.json'))),
+    // the call started: record in the background (the pill shows it). Nothing started (a finished note for this event
+    // keeps its guarded Resume, or the start failed): the watcher offers the card instead.
+    autoStart: (p) => {
+      try { return activeMeeting()?.id === startMeeting(callNote(p)).id } catch (e) { console.error('auto-start failed', e); return false }
+    },
+    autoStartOn: () => startsWhenCallStarts(loadSettings(join(userDataDir(), 'settings.json'))),
     // fake mode: tests can shorten the grace
     graceMs: isFake() && process.env.YOGURT_FAKE_CALL_GONE_MS ? Number(process.env.YOGURT_FAKE_CALL_GONE_MS) : CALL_GONE_MS,
   })
@@ -299,7 +305,7 @@ function startDetection() {
   onCall = () => watcher.onCall()
   const prompts = createPrompts({
     windowVisible: () => !!win && win.isVisible() && !win.isMinimized(),
-    takeNotes: (p) => begin({ title: p.title || t('{app} call', { app: p.app ?? '' }).trim(), event: p.event, app: p.app }),
+    takeNotes: (p) => begin(callNote(p)),
     stop: (id) => { stopMeeting(id) },
     dismissed: (key) => watcher.dismiss(key),
     keepGoing: () => watcher.keepGoing(),
@@ -326,7 +332,9 @@ function startDetection() {
   })().catch((e) => console.warn("couldn't check what recording needs", e)))
   updateWidgetVisibility = widget.visibilityChanged
   sendWidgetTranscript = widget.transcript
-  /** The one way notes start: the card's Take notes, and home's Start notes and New note. Opens the note. */
+  /** The note a detected call starts, from the card or by itself */
+  function callNote(p: Prompt) { return { title: p.title || t('{app} call', { app: p.app ?? '' }).trim(), event: p.event, app: p.app } }
+  /** The way notes start from a click: the card's Take notes, and home's Start notes and New note. Opens the note. */
   function begin(p: { title: string; event: CalEvent | null; app: string | null }) {
     const alreadyRecording = !!activeMeeting()
     const m = startMeeting(p)

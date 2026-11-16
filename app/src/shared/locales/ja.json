@@ -548,6 +548,8 @@
   "Asks you to record when a call starts.": "通話開始時に録音を提案します。",
   "Names speakers in your transcript.": "文字起こしに話者名を表示します。",
   "Untitled meeting": "無題のミーティング",
+  "Start recording when a call starts": "通話が始まったら録音を開始",
+  "Record without asking when Yogurt detects a call. Make sure everyone agrees to be recorded.": "Yogurt が通話を検出したら、確認せずに録音します。全員が録音に同意していることを確認してください。",
   "Finish recording when the call ends": "通話が終わったら録音を終了",
   "Join and record": "参加して録音",
   "Now: {title}": "開催中: {title}",

@@ -598,6 +598,8 @@
   "Asks you to record when a call starts.": "Proponuje nagrywanie na start rozmowy.",
   "Names speakers in your transcript.": "Nadaje imiona mówcom w transkrypcji.",
   "Untitled meeting": "Spotkanie bez tytułu",
+  "Start recording when a call starts": "Rozpocznij nagrywanie, gdy zaczyna się rozmowa",
+  "Record without asking when Yogurt detects a call. Make sure everyone agrees to be recorded.": "Nagrywaj bez pytania, gdy Yogurt wykryje rozmowę. Upewnij się, że wszyscy zgadzają się na nagrywanie.",
   "Finish recording when the call ends": "Zakończ nagrywanie po zakończeniu rozmowy",
   "Join and record": "Dołącz i nagrywaj",
   "Now: {title}": "Teraz: {title}",

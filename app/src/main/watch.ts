@@ -21,13 +21,17 @@ export type WatchDeps = {
   autoStop?(m: Meeting): void
   /** the "Finish recording when the call ends" setting; off or missing: ask instead */
   autoStopOn?(): boolean
+  /** start the recording because a call started (no card); false when nothing started, so the card offers instead */
+  autoStart?(p: Prompt): boolean
+  /** the "Start recording when a call starts" setting; off or missing: offer the card instead */
+  autoStartOn?(): boolean
   /** how long the call must be gone (CALL_GONE_MS unless fake mode says) */
   graceMs?: number
 }
 
 const SNOOZE = 5 * 60_000
 
-/** Looks at the signals each tick: offers notes when a call starts; when it ends, stops the recording (or asks, with that setting off). Never starts anything itself. */
+/** Looks at the signals each tick: offers notes when a call starts (or starts them, with that setting on); when it ends, stops the recording (or asks, with that setting off). */
 export class Watcher {
   readonly dismissed = new Set<string>()
   private shown: string | null = null // key of the start card, or 'stop'
@@ -37,6 +41,8 @@ export class Watcher {
   /** call apps on the mic at the last look before recording: a recording started from the card belongs to that call */
   private idleMic = new Set<string>()
   private idleCall: { app: string; at: number } | null = null
+  /** the call a recording was started for by itself (or tried): once per call, forgotten when no call is up */
+  private autoStarted: string | null = null
   /** a recording was going at the last look */
   private wasRecording = false
 
@@ -74,6 +80,7 @@ export class Watcher {
     this.idleMic = new Set(s.micApps.flatMap((m) => callAppName(m.bundleId, s.runningApps) ?? []))
     const call = decide(s, now, new Set())
     this.idleCall = call?.app ? { app: call.app, at: now } : null
+    if (!call) this.autoStarted = null
     // a call app that let go of the mic is a new call next time
     for (const k of [...this.dismissed]) {
       if (k.startsWith('app:') && !s.micApps.some((m) => callAppName(k.slice(4)) === callAppName(m.bundleId, s.runningApps))) this.dismissed.delete(k)
@@ -81,6 +88,12 @@ export class Watcher {
     const p = decide(s, now, this.dismissed)
     if (!p) { if (this.shown) { this.shown = null; this.d.hide() } return }
     if (this.shown === p.key) return
+    // a Finish during the call never restarts it (dismissed above); a start that failed never retries
+    if (this.d.autoStart && this.autoStarted !== p.key && this.d.autoStartOn?.()) {
+      this.autoStarted = p.key
+      console.info(`CALL auto-start app=${p.app}`)
+      if (this.d.autoStart(p)) return
+    }
     this.shown = p.key
     console.info(`CALL offer app=${p.app} mic=${s.micApps.filter(m => callAppName(m.bundleId, s.runningApps) === p.app).map(m => m.bundleId).join(',')}`)
     this.d.offer(p)

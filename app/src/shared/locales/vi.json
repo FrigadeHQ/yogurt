@@ -548,6 +548,8 @@
   "Asks you to record when a call starts.": "Gợi ý ghi âm khi cuộc gọi bắt đầu.",
   "Names speakers in your transcript.": "Ghi tên người nói trong bản chép.",
   "Untitled meeting": "Cuộc họp chưa có tiêu đề",
+  "Start recording when a call starts": "Bắt đầu ghi âm khi cuộc gọi bắt đầu",
+  "Record without asking when Yogurt detects a call. Make sure everyone agrees to be recorded.": "Ghi âm mà không hỏi khi Yogurt phát hiện cuộc gọi. Hãy đảm bảo mọi người đồng ý được ghi âm.",
   "Finish recording when the call ends": "Kết thúc ghi âm khi cuộc gọi kết thúc",
   "Join and record": "Tham gia và ghi âm",
   "Now: {title}": "Đang diễn ra: {title}",

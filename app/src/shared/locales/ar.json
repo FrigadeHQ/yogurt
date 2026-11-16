@@ -622,6 +622,8 @@
   "Asks you to record when a call starts.": "يقترح التسجيل عند بدء المكالمة.",
   "Names speakers in your transcript.": "يحدد أسماء المتحدثين في النص.",
   "Untitled meeting": "اجتماع بلا عنوان",
+  "Start recording when a call starts": "بدء التسجيل عند بدء مكالمة",
+  "Record without asking when Yogurt detects a call. Make sure everyone agrees to be recorded.": "التسجيل دون سؤال عندما يكتشف Yogurt مكالمة. تأكد من موافقة الجميع على التسجيل.",
   "Finish recording when the call ends": "إنهاء التسجيل عند انتهاء المكالمة",
   "Join and record": "الانضمام والتسجيل",
   "Now: {title}": "الآن: {title}",

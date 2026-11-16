@@ -598,6 +598,8 @@
   "Asks you to record when a call starts.": "Предлагает запись в начале звонка.",
   "Names speakers in your transcript.": "Указывает имена в расшифровке.",
   "Untitled meeting": "Встреча без названия",
+  "Start recording when a call starts": "Начинать запись при начале звонка",
+  "Record without asking when Yogurt detects a call. Make sure everyone agrees to be recorded.": "Записывать без вопроса, когда Yogurt обнаруживает звонок. Убедитесь, что все согласны на запись.",
   "Finish recording when the call ends": "Завершать запись после окончания звонка",
   "Join and record": "Присоединиться и записать",
   "Now: {title}": "Сейчас: {title}",

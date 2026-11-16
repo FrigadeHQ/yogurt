@@ -598,6 +598,8 @@
   "Asks you to record when a call starts.": "Nabídne nahrávání při začátku hovoru.",
   "Names speakers in your transcript.": "Přiřadí jména v přepisu.",
   "Untitled meeting": "Schůzka bez názvu",
+  "Start recording when a call starts": "Spustit nahrávání při zahájení hovoru",
+  "Record without asking when Yogurt detects a call. Make sure everyone agrees to be recorded.": "Nahrávat bez ptaní, když Yogurt zjistí hovor. Ujistěte se, že všichni s nahráváním souhlasí.",
   "Finish recording when the call ends": "Ukončit nahrávání po skončení hovoru",
   "Join and record": "Připojit se a nahrávat",
   "Now: {title}": "Právě teď: {title}",

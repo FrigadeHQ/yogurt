@@ -578,6 +578,8 @@
   "Asks you to record when a call starts.": "Tilbyder optagelse, når opkald starter.",
   "Names speakers in your transcript.": "Navngiver talere i udskriften.",
   "Untitled meeting": "Møde uden titel",
+  "Start recording when a call starts": "Start optagelse, når et opkald starter",
+  "Record without asking when Yogurt detects a call. Make sure everyone agrees to be recorded.": "Optag uden at spørge, når Yogurt registrerer et opkald. Sørg for, at alle accepterer at blive optaget.",
   "Finish recording when the call ends": "Afslut optagelsen, når opkaldet slutter",
   "Join and record": "Deltag og optag",
   "Now: {title}": "Nu: {title}",
