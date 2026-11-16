@@ -635,8 +635,10 @@ body:has(.chat-panel[open]) .app-toast-viewport:dir(rtl) { --toast-x:440px; }
 
 /* The scroll viewport meets the tab/footer borders; spacing belongs inside the scrolled content. */
 .note-reading-frame { position:relative;min-width:0;min-height:0;flex:1;margin:0 calc(max(0px,(100% - 860px)/2) + clamp(20px,calc(10cqw - 42px),48px) - 14px);padding:0 2px;border-radius:12px; }
-/* Keep a status lane even at rest, so progress never covers or displaces the summary. */
-.note-reading-frame[data-has-summary=true] { padding-bottom:44px; }
+/* A status lane only while a status or Latest shows (reading, rewriting, writing), so progress never covers the summary; at rest it runs to the footer. */
+.note-reading-frame[data-has-summary=true]:has(> .summary-waiting, > .note-summary-status, > .note-latest) { padding-bottom:44px; }
+.note-reading-frame[data-has-summary=true] { transition:padding-bottom var(--dur-base) var(--ease-out); }
+@media (prefers-reduced-motion:reduce) { .note-reading-frame[data-has-summary=true] { transition:none; } }
 .note-reading-frame[hidden] { display:none; }
 .note-reading-clip { height:100%;overflow:hidden;border-radius:10px; }
 .main-window .note-reading-clip>.note-notes-pane { height:100%;scrollbar-width:auto;scrollbar-gutter:stable; }
