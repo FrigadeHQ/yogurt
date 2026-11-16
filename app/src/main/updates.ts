@@ -37,10 +37,10 @@ export function finishQuit(): void {
  */
 export async function hookUpdates(d: { file: string; available: boolean; recording(): boolean; /** fake mode: a version already downloaded */ fake?: { version: string; restarted(): void } }): Promise<void> {
   let state: UpdateStatus['state'] = 'idle'
-  let next: string | undefined
+  let next: string | undefined, dismissedVersion: string | undefined
   const status = (): UpdateStatus => {
     const on = autoUpdateOn(loadSettings(d.file))
-    return { version: app.getVersion(), available: d.available || !!d.fake, on, state, next }
+    return { version: app.getVersion(), available: d.available || !!d.fake, on, state, next, dismissed: !!next && next === dismissedVersion }
   }
   const set = (s: UpdateStatus['state'], version?: string) => {
     state = s
@@ -58,6 +58,11 @@ export async function hookUpdates(d: { file: string; available: boolean; recordi
     return status()
   })
   ipcMain.handle('updates:check', () => { check() })
+  ipcMain.handle('updates:later', () => {
+    if (state !== 'ready' || !next) return
+    dismissedVersion = next
+    set(state)
+  })
   ipcMain.handle('updates:restart', () => {
     if (state !== 'ready' || d.recording()) return false
     // fake mode: as if Yogurt came back on the new version

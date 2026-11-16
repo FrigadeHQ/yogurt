@@ -8,7 +8,7 @@ vi.mock('react', async original => ({ ...await original<typeof import('react')>(
 let values: unknown[], cursor: number, tree: ReactNode
 let notify: (status: UpdateStatus) => void
 let initial: (status: UpdateStatus) => void
-const off = vi.fn(), restart = vi.fn()
+const off = vi.fn(), restart = vi.fn(), later = vi.fn()
 const ready: UpdateStatus = { version: '0.3.1', next: '0.3.2', state: 'ready', available: true, on: true }
 function nodes(node: ReactNode): ReactElement<Record<string, any>>[] {
   if (Array.isArray(node)) return node.flatMap(nodes)
@@ -28,9 +28,10 @@ beforeEach(() => {
     return [values[index], (next: unknown) => { values[index] = next }]
   }) as typeof useState)
   restart.mockResolvedValue(true)
+  later.mockImplementation(async () => notify({ ...ready, dismissed: true }))
   vi.stubGlobal('window', { yogurt: { updates: {
     status: () => new Promise<UpdateStatus>(resolve => { initial = resolve }),
-    onStatus: (fn: typeof notify) => { notify = fn; return off }, restart,
+    onStatus: (fn: typeof notify) => { notify = fn; return off }, restart, later,
   } } })
 })
 afterEach(() => vi.unstubAllGlobals())
@@ -56,7 +57,6 @@ it('ignores a pending status read after unmount', async () => {
 it('closing the popover keeps the pill and does not restart', async () => {
   mount(); initial(ready); await Promise.resolve(); render()
   root().onOpenChange(true); render(); expect(root().open).toBe(true)
-  expect(nodes(tree).find(n => n.props['data-testid'] === 'update-later')!.type).toBe(Popover.Close)
   root().onOpenChange(false); render()
   expect(control('update-ready')).toBeDefined(); expect(root().open).toBe(false)
   expect(restart).not.toHaveBeenCalled()
@@ -85,4 +85,22 @@ it.each(['false', 'reject'] as const)('retains ready and the open popover if res
   await vi.waitFor(() => { render(); expect(root().open).toBe(false) })
   expect(restart).toHaveBeenCalledTimes(2)
   notify({ ...ready, state: 'latest' }); expect(render()).toBeNull()
+})
+
+it('Later hides the version across remounts, then a newer ready version returns', async () => {
+  mount(); initial(ready); await Promise.resolve(); render(); root().onOpenChange(true); render()
+  control('update-later').onClick(); await Promise.resolve()
+  expect(render()).toBeNull(); expect(later).toHaveBeenCalledOnce(); expect(restart).not.toHaveBeenCalled()
+  values = []; mount(); initial({ ...ready, dismissed: true }); await Promise.resolve()
+  expect(render()).toBeNull()
+  notify({ ...ready, next: '0.3.3', dismissed: false }); render()
+  expect(control('update-ready')).toBeDefined(); expect(content()).toContain('Yogurt 0.3.3')
+})
+
+it('keeps the pill and popover available if Later fails', async () => {
+  mount(); notify(ready); render(); root().onOpenChange(true); render()
+  later.mockRejectedValueOnce(new Error('unavailable'))
+  control('update-later').onClick()
+  await vi.waitFor(() => { render(); expect(content()).toContain("Yogurt couldn't make that change. Try again.") })
+  expect(root().open).toBe(true); expect(control('update-ready')).toBeDefined()
 })

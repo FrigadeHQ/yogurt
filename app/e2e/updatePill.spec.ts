@@ -3,9 +3,9 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-async function launch() {
+async function launch(root = mkdtempSync(join(tmpdir(), 'yogurt-update-'))) {
   const app = await electron.launch({ args: [join(import.meta.dirname, '../out/main/index.js')], env: {
-    ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: mkdtempSync(join(tmpdir(), 'yogurt-update-')),
+    ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: root,
     YOGURT_FAKE_UPDATE: '9.9.9',
   } })
   const page = await app.firstWindow()
@@ -15,7 +15,7 @@ async function launch() {
 const restarts = (app: Awaited<ReturnType<typeof launch>>['app']) =>
   app.evaluate(() => (globalThis as any).__fake__.main().updateRestarts as number)
 
-test('a ready version is visible immediately, and Later preserves the pill', async () => {
+test('a ready version is visible immediately and can restart', async () => {
   const { app, page } = await launch()
   try {
     const pill = page.getByTestId('update-ready'), popup = page.getByTestId('update-popover')
@@ -24,7 +24,7 @@ test('a ready version is visible immediately, and Later preserves the pill', asy
     await pill.click()
     await expect(popup).toContainText('Yogurt 9.9.9')
     await expect(popup).toContainText('Installs when you restart Yogurt')
-    await page.getByTestId('update-later').click()
+    await page.keyboard.press('Escape')
     await expect(popup).toHaveCount(0); await expect(pill).toBeVisible()
     expect(await restarts(app)).toBe(0)
     await pill.focus(); await page.keyboard.press('Enter')
@@ -89,4 +89,50 @@ test('keeps update and AI download controls visible together before the main act
     await page.getByTestId('update-ready').click()
     await expect(page.getByTestId('update-popover')).toHaveCSS('transform', 'none')
   } finally { await app.close() }
+})
+
+
+test('Later survives a renderer reload but Settings still offers Restart', async () => {
+  const { app, page } = await launch()
+  try {
+    await page.getByTestId('update-ready').click(); await page.getByTestId('update-later').click()
+    await expect(page.getByTestId('update-ready')).toHaveCount(0)
+    await expect(page.getByTestId('update-popover')).toHaveCount(0)
+    expect(await restarts(app)).toBe(0)
+    await page.reload(); await expect(page.getByTestId('home')).toBeVisible()
+    await expect(page.getByTestId('update-ready')).toHaveCount(0)
+    await page.evaluate(() => window.yogurt.nav.go('/settings'))
+    await expect(page.getByTestId('updates-restart')).toBeVisible()
+    await expect(page.getByTestId('updates-state')).toHaveAttribute('data-state', 'ready')
+    await expect(page.getByTestId('updates-toggle')).toHaveAttribute('aria-checked', 'true')
+    await page.getByTestId('updates-restart').click()
+    await expect.poll(() => restarts(app)).toBe(1)
+  } finally { await app.close() }
+})
+
+test('a newer ready version is visible after Later', async () => {
+  const { app, page } = await launch()
+  try {
+    await page.getByTestId('update-ready').click(); await page.getByTestId('update-later').click()
+    await expect(page.getByTestId('update-ready')).toHaveCount(0)
+    await app.evaluate(({ BrowserWindow }) => {
+      for (const win of BrowserWindow.getAllWindows()) win.webContents.send('updates:status', {
+        state: 'ready', version: '0.3.1', next: '9.9.10', available: true, on: true, dismissed: false,
+      })
+    })
+    await page.getByTestId('update-ready').click()
+    await expect(page.getByTestId('update-popover')).toContainText('Yogurt 9.9.10')
+  } finally { await app.close() }
+})
+
+test('restarting the app offers the same ready version again', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'yogurt-update-session-'))
+  const first = await launch(root)
+  try {
+    await first.page.getByTestId('update-ready').click(); await first.page.getByTestId('update-later').click()
+    await expect(first.page.getByTestId('update-ready')).toHaveCount(0)
+  } finally { await first.app.close() }
+  const second = await launch(root)
+  try { await expect(second.page.getByTestId('update-ready')).toBeVisible() }
+  finally { await second.app.close() }
 })

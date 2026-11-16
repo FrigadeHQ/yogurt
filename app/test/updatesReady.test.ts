@@ -30,5 +30,5 @@ it('publishes ready immediately, protects recordings, and restarts only on reque
   expect(handlers.get('updates:restart')!()).toBe(true)
   expect(restarted).toHaveBeenCalledOnce(); expect(status().state).toBe('latest')
   expect(handlers.get('updates:restart')!()).toBe(false)
-  expect(handlers.has('updates:later')).toBe(false)
+  expect(handlers.has('updates:later')).toBe(true)
 })

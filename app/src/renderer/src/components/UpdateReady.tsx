@@ -8,13 +8,13 @@ export function UpdateReady({ recording }: { recording: boolean }) {
   const [status, setStatus] = useState<UpdateStatus>()
   const [open, setOpen] = useState(false)
   const [restarting, setRestarting] = useState(false)
-  const [failed, setFailed] = useState(false)
+  const [failed, setFailed] = useState<'restart' | 'later'>()
   useEffect(() => {
     let active = true, updated = false
     const update = (next: UpdateStatus) => {
       if (!active) return
       updated = true; setStatus(next)
-      if (next.state !== 'ready') { setOpen(false); setFailed(false) }
+      if (next.state !== 'ready' || next.dismissed) { setOpen(false); setFailed(undefined) }
     }
     const off = window.yogurt.updates.onStatus(update)
     void window.yogurt.updates.status().then(next => { if (!updated) update(next) }).catch(() => {})
@@ -22,14 +22,19 @@ export function UpdateReady({ recording }: { recording: boolean }) {
   }, [])
   const restart = async () => {
     if (recording || restarting || status?.state !== 'ready') return
-    setRestarting(true); setFailed(false)
+    setRestarting(true); setFailed(undefined)
     try {
       if (await window.yogurt.updates.restart()) setOpen(false)
-      else setFailed(true)
-    } catch { setFailed(true) }
+      else setFailed('restart')
+    } catch { setFailed('restart') }
     finally { setRestarting(false) }
   }
-  if (status?.state !== 'ready') return null
+  const later = async () => {
+    setFailed(undefined)
+    try { await window.yogurt.updates.later(); setOpen(false) }
+    catch { setFailed('later') }
+  }
+  if (status?.state !== 'ready' || status.dismissed) return null
   return <DirectionProvider direction={dirOf(language())}><span className="notes-download-status update-ready-status">
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger data-testid="update-ready" className="bar-btn notes-download-trigger no-drag" title={t('Update ready')}>
@@ -41,10 +46,10 @@ export function UpdateReady({ recording }: { recording: boolean }) {
             <Popover.Title>{t('Yogurt {version}', { version: status.next ?? '' })}</Popover.Title>
             <Popover.Description className="update-ready-description">{recording ? t('You can restart after recording') : t('Installs when you restart Yogurt')}</Popover.Description>
             <div className="update-ready-actions">
-              <Popover.Close data-testid="update-later" className="update-ready-later">{t('Later')}</Popover.Close>
+              <button data-testid="update-later" className="update-ready-later" onClick={() => void later()}>{t('Later')}</button>
               <button data-testid="update-restart" className="workspace-button primary" disabled={recording || restarting} onClick={() => void restart()}>{t('Restart')}</button>
             </div>
-            {failed && !recording && <p role="alert">{t("Yogurt couldn't restart. Try again.")}</p>}
+            {failed && (failed === 'later' || !recording) && <p role="alert">{failed === 'later' ? t("Yogurt couldn't make that change. Try again.") : t("Yogurt couldn't restart. Try again.")}</p>}
           </Popover.Popup>
         </Popover.Positioner>
       </Popover.Portal>

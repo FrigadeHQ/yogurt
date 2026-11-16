@@ -27,3 +27,32 @@ it('updates are on by default, and turning them off also keeps a downloaded vers
   expect(updater.autoInstallOnAppQuit).toBe(true)
   vi.useRealTimers()
 })
+
+it('Later hides only this version for this app session without changing installation or Settings restart', async () => {
+  vi.useFakeTimers()
+  try {
+    updater.removeAllListeners()
+    const { hookUpdates } = await import('../src/main/updates')
+    const file = join(mkdtempSync(join(tmpdir(), 'yogurt-updates-')), 'settings.json')
+    await hookUpdates({ file, available: true, recording: () => false })
+    const status = () => handlers.get('updates:status')!() as import('../src/shared/types').UpdateStatus
+    handlers.get('updates:later')!()
+    updater.emit('update-downloaded', { version: '0.3.7' })
+    expect(status()).toMatchObject({ state: 'ready', next: '0.3.7', dismissed: false })
+    handlers.get('updates:later')!()
+    expect(status()).toMatchObject({ state: 'ready', next: '0.3.7', dismissed: true, on: true })
+    expect(updater.autoInstallOnAppQuit).toBe(true)
+    expect(handlers.get('updates:restart')!()).toBe(true)
+    updater.emit('update-downloaded', { version: '0.3.7' })
+    expect(status().dismissed).toBe(true)
+    updater.emit('update-downloaded', { version: '0.3.8' })
+    expect(status()).toMatchObject({ state: 'ready', next: '0.3.8', dismissed: false })
+    handlers.get('updates:later')!()
+    expect(status().dismissed).toBe(true)
+    updater.removeAllListeners()
+    await hookUpdates({ file, available: true, recording: () => false })
+    updater.emit('update-downloaded', { version: '0.3.8' })
+    expect(status().dismissed).toBe(false)
+    expect(updater.autoInstallOnAppQuit).toBe(true)
+  } finally { vi.clearAllTimers(); vi.useRealTimers() }
+})
