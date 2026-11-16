@@ -57,6 +57,33 @@ describe('splitPlan', () => {
     expect(keep).toEqual([])
     expect(runs.map(r => [r.key, r.text, r.endMs])).toEqual([['v1', 'a b', 2000], [null, 'stray', 6600]])
   })
+  it('a voiceless sliver inside a turn joins that voice (whisper chunk splits)', () => {
+    // whisper splits a word across chunks; the leftover words are zero-length, and a point in time overlaps no turn
+    const rows: SplitRow[] = [
+      { id: 1, text: 'mit einem Orang-', startMs: 2600, endMs: 3200, speaker: null, words: [w('mit', 2600, 2900), w('einem', 2900, 3050), w('Orang-', 3050, 3200)] },
+      { id: 2, text: 'Also Or', startMs: 3300, endMs: 3300, speaker: null, words: [w('Also', 3300, 3300), w('Or', 3300, 3300)] },
+      { id: 3, text: 'ang-Utans sind toll', startMs: 3340, endMs: 4000, speaker: null, words: [w('ang-Utans', 3340, 3600), w('sind', 3600, 3800), w('toll', 3800, 4000)] },
+    ]
+    const { keep, runs } = splitPlan(rows, [{ key: 'v1', startMs: 2000, endMs: 5000 }], identity)
+    expect(keep).toEqual([])
+    expect(runs.map(r => [r.key, r.text])).toEqual([['v1', 'mit einem Orang- Also Or ang-Utans sind toll']])
+  })
+  it('a zero-length word inside overlapping turns takes the innermost one', () => {
+    const rows: SplitRow[] = [{ id: 1, text: 'Was', startMs: 3500, endMs: 3500, speaker: null, words: [w('Was', 3500, 3500)] }]
+    const over: Turn[] = [{ key: 'v1', startMs: 0, endMs: 4000 }, { key: 'v2', startMs: 3000, endMs: 6000 }]
+    expect(splitPlan(rows, over, identity).runs.map(r => r.key)).toEqual(['v2'])
+  })
+  it('a voiceless sliver in a gap no turn covers stays an untouched row', () => {
+    const both: Turn[] = [{ key: 'v1', startMs: 0, endMs: 2000 }, { key: 'v2', startMs: 6000, endMs: 8000 }]
+    const rows: SplitRow[] = [
+      { id: 1, text: 'a', startMs: 1000, endMs: 1500, speaker: null, words: [w('a', 1000, 1500)] },
+      { id: 2, text: 'b', startMs: 3000, endMs: 3000, speaker: null, words: [w('b', 3000, 3000)] },
+      { id: 3, text: 'c', startMs: 6500, endMs: 7000, speaker: null, words: [w('c', 6500, 7000)] },
+    ]
+    const { keep, runs } = splitPlan(rows, both, identity)
+    expect(keep).toEqual([2])
+    expect(runs.map(r => r.key)).toEqual(['v1', 'v2'])
+  })
   it('glues punctuation without a space, like the live view does', () => {
     const glued: SplitRow = { id: 1, text: 'Sure.', startMs: 0, endMs: 500, speaker: null, words: [w('Sure', 0, 400), w('.', 400, 500)] }
     expect(splitPlan([glued], [{ key: 'v1', startMs: 0, endMs: 500 }], identity).runs[0].text).toBe('Sure.')

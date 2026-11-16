@@ -12,11 +12,18 @@ export type SplitRun = { lineIds: number[]; key: string | null; startMs: number;
 
 const overlap = (a: { startMs: number; endMs: number }, b: { startMs: number; endMs: number }) => Math.max(0, Math.min(a.endMs, b.endMs) - Math.max(a.startMs, b.startMs))
 
-/** the turn with the greatest overlap (ties to the earlier turn); none, a turn that starts within 2 s after it (a span is never pulled back into the turn before it); else null */
+/** the turn with the greatest overlap (ties to the earlier turn); a zero-length span (a whisper chunk split leaves
+ * whole words without times) takes the turn it sits in, the innermost when turns overlap; else a turn that starts
+ * within 2 s after it (a span is never pulled back into the turn before it); else null */
 function turnFor(span: { startMs: number; endMs: number }, turns: Turn[]): Turn | null {
   let best: Turn | null = null, bestOv = 0
   for (const t of turns) { const ov = overlap(span, t); if (ov > bestOv) { best = t; bestOv = ov } }
   if (best) return best
+  if (span.endMs <= span.startMs) {
+    let inside: Turn | null = null
+    for (const t of turns) if (t.startMs <= span.startMs && span.startMs <= t.endMs && (!inside || t.startMs > inside.startMs)) inside = t
+    if (inside) return inside
+  }
   let near: Turn | null = null, gap = Infinity
   for (const t of turns) {
     const d = t.startMs >= span.endMs ? t.startMs - span.endMs : Infinity
