@@ -43,8 +43,8 @@ export function evidenceName(claims: Array<{ name: string | null; ms: number }>)
 }
 
 /** punctuation whisper splits off joins the word before it without a space, when it does not start after that word ends */
-const GLUED = /^[^\p{L}\p{N}]+$/u
-const textOf = (words: Word[], spell: (t: string) => string) => spell(joinWords(words.map((w, i) => (i > 0 && GLUED.test(w.text) && w.startMs <= words[i - 1].endMs ? { ...w, glue: true } : w))))
+/** the tokens carry their own spacing (whisper's pieces: " Mat"+" he"+" v" is "Mathev"), so the line's text comes back exactly */
+const textOf = (words: Word[], spell: (t: string) => string) => spell(words.map(w => w.text).join(''))
 
 /**
  * The whole ordered word stream of the rows being diarized, split at speaker changes. Whisper's line boundaries

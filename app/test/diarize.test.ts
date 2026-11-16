@@ -12,7 +12,7 @@ afterEach(() => { stores.splice(0).forEach((s) => s.close()); dirs.splice(0).for
 const fresh = () => { const d = mkdtempSync(join(tmpdir(), 'yogurt-diarize-')); dirs.push(d); const s = openStore(join(d, 'yogurt.db')); stores.push(s); return s }
 // 'stopped': recorded and closed, not yet analyzed — the diarizer skips a meeting that is still recording
 const base = { title: 'Sync', endedAt: null, eventId: null, app: null, attendees: [], state: 'stopped' as const }
-const word = (text: string, startMs: number, endMs: number) => ({ text, startMs, endMs })
+const word = (text: string, startMs: number, endMs: number) => ({ text: /^[^\p{L}\p{N}]/u.test(text) ? text : ' ' + text, startMs, endMs })
 const RTTM = 'SPEAKER them 1 0.000 2.100 <NA> <NA> 0 <NA> <NA>\nSPEAKER them 1 2.300 2.200 <NA> <NA> 1 <NA> <NA>\n'
 
 /** two voices; the call names on the rows decide the claims (pass [null, null] for a Them-only meeting) */
@@ -58,9 +58,9 @@ describe('diarizer', () => {
     d.schedule(id)
     await d.finished(id)
     expect(store.segments(id).map(x => [x.track, x.text, x.speakerKey])).toEqual([
-      ['them', 'hello there', 'v1'],
+      ['them', ' hello there', 'v1'],
       ['me', 'hi', null],
-      ['them', 'ok friend sure', 'v2'],
+      ['them', ' ok friend sure', 'v2'],
     ])
     expect(them(store, id).map(x => x.speaker)).toEqual(['Ann Lee', 'Speaker 1'])
     expect(store.meeting(id)).toMatchObject({ diarizeError: null })
@@ -164,9 +164,9 @@ describe('diarizer', () => {
     const d2 = createDiarizer(deps)
     d2.schedule(id)
     await d2.finished(id)
-    expect(store.segments(id).filter(x => x.text === 'still me').map(x => [x.speakerKey, x.speaker])).toEqual([['v1', 'Ann Lee']])
-    expect(store.segments(id).filter(x => x.text === 'hello there').map(x => x.speakerKey)).toEqual(['v1'])
-    expect(store.segments(id).filter(x => x.text === 'ok friend sure').map(x => x.speaker)).toEqual(['Speaker 1'])
+    expect(store.segments(id).filter(x => x.text === ' still me').map(x => [x.speakerKey, x.speaker])).toEqual([['v1', 'Ann Lee']])
+    expect(store.segments(id).filter(x => x.text === ' hello there').map(x => x.speakerKey)).toEqual(['v1'])
+    expect(store.segments(id).filter(x => x.text === ' ok friend sure').map(x => x.speaker)).toEqual(['Speaker 1'])
   })
 
   it('decode failure is recorded on the meeting and the transcript stays as it was', async () => {
