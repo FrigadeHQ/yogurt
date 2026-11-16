@@ -576,7 +576,6 @@
     "other": "{count} møter flyttet til papirkurven"
   },
   "Recorded with {app}": "Tatt opp med {app}",
-  "A new version of Yogurt is ready": "En ny versjon av Yogurt er klar",
   "Upgrading AI": "Oppgraderer KI",
   "Upgrading AI · {percent}": "Oppgraderer KI · {percent}",
   "AI upgrade paused": "KI-oppgradering satt på pause",
@@ -677,5 +676,12 @@
   "Show Yogurt in": "Vis Yogurt i",
   "Menu bar and Dock": "Menylinje og Dock",
   "Menu bar only": "Bare menylinjen",
-  "Dock only": "Bare Dock"
+  "Dock only": "Bare Dock",
+  "Update ready": "Oppdatering klar",
+  "Installs when you restart Yogurt": "Installeres når du starter Yogurt på nytt",
+  "You can restart after recording": "Du kan starte på nytt etter opptaket",
+  "Later": "Senere",
+  "Restart": "Start på nytt",
+  "Yogurt couldn't restart. Try again.": "Yogurt kunne ikke starte på nytt. Prøv igjen.",
+  "Yogurt {version}": "Yogurt {version}"
 }

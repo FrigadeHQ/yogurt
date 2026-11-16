@@ -13,6 +13,7 @@ import { FileText, MessageCircle, Search, Settings, SidebarToggle } from './Icon
 import { FoldersNav } from './FoldersNav'
 import { FinishSetup } from './FinishSetup'
 import { NotesSetup } from './NotesSetup'
+import { UpdateReady } from './UpdateReady'
 
 export function Workspace({ route, meeting, folders, go, back, forward, search, collapsed, sidebarMotion, toggleSidebar, children }: {
   meeting?: Pick<MeetingView, 'id' | 'title'>
@@ -104,12 +105,13 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
           </span>
           <span data-testid="workspace-heading" aria-current="page" title={label}>{label}</span>
         </div>
+      <UpdateReady recording={recording?.kind === 'recording'} />
+      <NotesSetup go={go} />
       {returnToRecording && <button className="workspace-recording-link no-drag" data-testid="recording-return" data-paused={recording.paused}
         aria-label={t('Open {title}', { title: recording.title })} title={t('Open {title}', { title: recording.title })} onClick={() => go(`/note/${recording.meetingId}`)}>
         <LevelBars testId="recording-return-wave" height={16} paused={recording.paused} />
         <RecordingTime view={recording} testId="recording-return-time" className="recording-return-time" />
       </button>}
-      <NotesSetup go={go} />
       <div id="workspace-actions" className="workspace-toolbar-actions" />
       </header>
       {children}

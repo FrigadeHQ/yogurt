@@ -197,5 +197,12 @@
   "Show Yogurt in": "Show Yogurt in",
   "Menu bar and Dock": "Menu bar and Dock",
   "Menu bar only": "Menu bar only",
-  "Dock only": "Dock only"
+  "Dock only": "Dock only",
+  "Update ready": "Update ready",
+  "Installs when you restart Yogurt": "Installs when you restart Yogurt",
+  "You can restart after recording": "You can restart after recording",
+  "Later": "Later",
+  "Restart": "Restart",
+  "Yogurt couldn't restart. Try again.": "Yogurt couldn't restart. Try again.",
+  "Yogurt {version}": "Yogurt {version}"
 }

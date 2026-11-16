@@ -77,7 +77,7 @@ import { startedHidden } from './mcp/paths'
 import { deleteRecording } from './deleteRecording'
 import { AUDIO_SCHEME, audioExts, createAudioHandler, trackFile, type AudioExt } from './audio'
 import { helperDecode, wavDecode } from './asr/backfill'
-import { finishQuit, hookUpdates, isPreviewBuild, updateOfferChanged, updatesOn } from './updates'
+import { finishQuit, hookUpdates, isPreviewBuild, updatesOn } from './updates'
 import type { NoteSaveResult, StartResult } from '../shared/types'
 
 // the transcript's player streams each meeting's audio from here; seeking needs stream support (before ready)
@@ -240,7 +240,6 @@ let presented = 0
 let settingsOpened = 0
 let refreshCalendarConsumers = () => {}
 /** a call is on (recording or not): the corner never offers Restart then */
-let onCall = () => false
 /** fake mode: the System Settings panes the permission steps and Settings would have opened */
 const systemSettings: string[] = []
 /** fake mode: how many times Yogurt would have quit and opened again for a permission */
@@ -296,8 +295,7 @@ function startDetection() {
     // fake mode: tests can shorten the grace
     graceMs: isFake() && process.env.YOGURT_FAKE_CALL_GONE_MS ? Number(process.env.YOGURT_FAKE_CALL_GONE_MS) : CALL_GONE_MS,
   })
-  onMeetingStop(() => { watcher.cleared(); updateOfferChanged() })
-  onCall = () => watcher.onCall()
+  onMeetingStop(() => { watcher.cleared() })
   const prompts = createPrompts({
     windowVisible: () => !!win && win.isVisible() && !win.isMinimized(),
     takeNotes: (p) => begin({ title: p.title || t('{app} call', { app: p.app ?? '' }).trim(), event: p.event, app: p.app }),
@@ -313,7 +311,7 @@ function startDetection() {
     stop: (id) => { stopMeeting(id) },
     foreground: () => !!win && !win.isDestroyed() && win.isVisible() && !win.isMinimized() && win.isFocused(),
   })
-  onMeetingStart(() => { prompts.hide(); watcher.cleared(); updateOfferChanged() })
+  onMeetingStart(() => { prompts.hide(); watcher.cleared() })
   // Recording needs the mic and the call audio: one never asked is asked now (the Mac's own prompt, as any app does
   // when it first records); one still off says so under the note, where its button turns it on.
   onMeetingStart((m) => void (async () => {
@@ -1024,9 +1022,9 @@ app.whenReady().then(() => {
   const updatesAvailable = updatesOn({ packaged: app.isPackaged, fake: isFake(), profile: !!process.env.YOGURT_USER_DATA, platform: process.platform, appImage: !!process.env.APPIMAGE,
     feed: app.isPackaged && existsSync(join(process.resourcesPath, 'app-update.yml')),
     preview: app.isPackaged && isPreviewBuild((() => { try { return readFileSync(join(app.getAppPath(), 'package.json'), 'utf8') } catch { return '' } })()) })
-  hookUpdates({ file: join(userDataDir(), 'settings.json'), available: updatesAvailable, recording: () => !!activeMeeting(), onCall: () => onCall(),
-    // fake mode: a test pretends a version downloaded, and how long it waits before the corner offers Restart
-    fake: isFake() && process.env.YOGURT_FAKE_UPDATE ? { version: process.env.YOGURT_FAKE_UPDATE, afterMs: Number(process.env.YOGURT_FAKE_UPDATE_AFTER_MS ?? 0), restarted: () => { updateRestarts++ } } : undefined })
+  hookUpdates({ file: join(userDataDir(), 'settings.json'), available: updatesAvailable, recording: () => !!activeMeeting(),
+    // fake mode: a test pretends a version downloaded
+    fake: isFake() && process.env.YOGURT_FAKE_UPDATE ? { version: process.env.YOGURT_FAKE_UPDATE, restarted: () => { updateRestarts++ } } : undefined })
     .catch((err) => console.warn("couldn't start looking for new versions", err))
   // the Dock icon: the main window, even while the widget is up
   app.on('activate', showMain)

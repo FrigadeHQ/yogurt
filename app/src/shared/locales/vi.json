@@ -537,7 +537,6 @@
   "Move {count} meetings to Trash": "Chuyển {count} cuộc họp vào Thùng rác",
   "{count} meetings moved to Trash": "Đã chuyển {count} cuộc họp vào Thùng rác",
   "Recorded with {app}": "Ghi âm bằng {app}",
-  "A new version of Yogurt is ready": "Phiên bản mới của Yogurt đã sẵn sàng",
   "Upgrading AI": "Đang nâng cấp AI",
   "Upgrading AI · {percent}": "Đang nâng cấp AI · {percent}",
   "AI upgrade paused": "Nâng cấp AI đã tạm dừng",
@@ -635,5 +634,12 @@
   "Show Yogurt in": "Hiển thị Yogurt trong",
   "Menu bar and Dock": "Thanh menu và Dock",
   "Menu bar only": "Chỉ thanh menu",
-  "Dock only": "Chỉ Dock"
+  "Dock only": "Chỉ Dock",
+  "Update ready": "Bản cập nhật đã sẵn sàng",
+  "Installs when you restart Yogurt": "Cài đặt khi bạn khởi động lại Yogurt",
+  "You can restart after recording": "Bạn có thể khởi động lại sau khi ghi âm",
+  "Later": "Để sau",
+  "Restart": "Khởi động lại",
+  "Yogurt couldn't restart. Try again.": "Không thể khởi động lại Yogurt. Hãy thử lại.",
+  "Yogurt {version}": "Yogurt {version}"
 }

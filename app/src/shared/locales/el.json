@@ -579,7 +579,6 @@
     "other": "{count} συσκέψεις μετακινήθηκαν στον Κάδο"
   },
   "Recorded with {app}": "Ηχογραφήθηκε με το {app}",
-  "A new version of Yogurt is ready": "Μια νέα έκδοση του Yogurt είναι έτοιμη",
   "Upgrading AI": "Αναβάθμιση AI",
   "Upgrading AI · {percent}": "Αναβάθμιση AI · {percent}",
   "AI upgrade paused": "Η αναβάθμιση AI έχει παύσει",
@@ -680,5 +679,12 @@
   "Show Yogurt in": "Εμφάνιση Yogurt σε",
   "Menu bar and Dock": "Γραμμή μενού και Dock",
   "Menu bar only": "Μόνο γραμμή μενού",
-  "Dock only": "Μόνο Dock"
+  "Dock only": "Μόνο Dock",
+  "Update ready": "Η ενημέρωση είναι έτοιμη",
+  "Installs when you restart Yogurt": "Εγκαθίσταται στην επανεκκίνηση του Yogurt",
+  "You can restart after recording": "Μπορείτε να επανεκκινήσετε μετά την εγγραφή",
+  "Later": "Αργότερα",
+  "Restart": "Επανεκκίνηση",
+  "Yogurt couldn't restart. Try again.": "Το Yogurt δεν μπόρεσε να επανεκκινηθεί. Δοκιμάστε ξανά.",
+  "Yogurt {version}": "Yogurt {version}"
 }

@@ -567,7 +567,6 @@
   "Move {count} meetings to Trash": "{count} megbeszélés áthelyezése a kukába",
   "{count} meetings moved to Trash": "{count} megbeszélés a kukába helyezve",
   "Recorded with {app}": "Rögzítve: {app}",
-  "A new version of Yogurt is ready": "Elkészült a Yogurt új verziója",
   "Upgrading AI": "AI frissítése",
   "Upgrading AI · {percent}": "AI frissítése · {percent}",
   "AI upgrade paused": "Az AI frissítése szünetel",
@@ -665,5 +664,12 @@
   "Show Yogurt in": "Yogurt megjelenítése",
   "Menu bar and Dock": "Menüsáv és Dock",
   "Menu bar only": "Csak a menüsáv",
-  "Dock only": "Csak a Dock"
+  "Dock only": "Csak a Dock",
+  "Update ready": "Frissítés kész",
+  "Installs when you restart Yogurt": "A Yogurt újraindításakor települ",
+  "You can restart after recording": "A felvétel után újraindítható",
+  "Later": "Később",
+  "Restart": "Újraindítás",
+  "Yogurt couldn't restart. Try again.": "A Yogurt nem tudott újraindulni. Próbáld újra.",
+  "Yogurt {version}": "Yogurt {version}"
 }

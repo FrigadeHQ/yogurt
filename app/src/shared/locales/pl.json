@@ -605,7 +605,6 @@
     "other": "Przeniesiono {count} spotkania do kosza"
   },
   "Recorded with {app}": "Nagrano w {app}",
-  "A new version of Yogurt is ready": "Nowa wersja Yogurt jest gotowa",
   "Upgrading AI": "Ulepszanie AI",
   "Upgrading AI · {percent}": "Ulepszanie AI · {percent}",
   "AI upgrade paused": "Ulepszanie AI wstrzymane",
@@ -713,5 +712,12 @@
   "Show Yogurt in": "Pokaż Yogurt w",
   "Menu bar and Dock": "Pasek menu i Dock",
   "Menu bar only": "Tylko pasek menu",
-  "Dock only": "Tylko Dock"
+  "Dock only": "Tylko Dock",
+  "Update ready": "Aktualizacja gotowa",
+  "Installs when you restart Yogurt": "Instaluje się po ponownym uruchomieniu Yogurt",
+  "You can restart after recording": "Możesz uruchomić ponownie po nagraniu",
+  "Later": "Później",
+  "Restart": "Uruchom ponownie",
+  "Yogurt couldn't restart. Try again.": "Nie udało się ponownie uruchomić Yogurt. Spróbuj ponownie.",
+  "Yogurt {version}": "Yogurt {version}"
 }

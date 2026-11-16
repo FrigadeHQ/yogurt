@@ -885,3 +885,15 @@ html:not(.widget) button:focus-visible, html:not(.widget) input:focus-visible { 
 /* the summary's status line shimmers like Ask's thinking line */
 .summary-status-text { background:linear-gradient(100deg,var(--muted) 35%,var(--ink) 50%,var(--muted) 65%) 0 0 / 250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:step-shimmer 2.2s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .summary-status-text { animation:none;background:none;color:inherit; } }
+
+/* The update shares the download status pattern, without a progress indicator. */
+.update-ready-status { flex-shrink:0;max-width:35%; }
+.update-ready-menu { width:max-content;min-width:286px;max-width:calc(100vw - 24px); }
+.update-ready-menu h2 { font-size:12px;font-weight:550;line-height:18px; }
+.update-ready-menu .update-ready-description { margin:6px 0 15px;color:var(--muted);font-size:11px;white-space:nowrap;text-wrap:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.update-ready-actions { display:flex;justify-content:flex-end;align-items:center;gap:14px; }
+.update-ready-later { border:0;padding:4px 0;background:transparent;color:var(--muted);font-size:11px; }
+.update-ready-later:hover { color:var(--ink);background:transparent; }
+.update-ready-later:active { transform:none; }
+.update-ready-later:focus-visible { outline:2px solid var(--focus);outline-offset:2px; }
+.update-ready-menu [role=alert] { max-width:320px;font-size:11px;color:var(--muted); }

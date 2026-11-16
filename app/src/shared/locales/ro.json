@@ -592,7 +592,6 @@
     "other": "{count} de întâlniri mutate în Coș"
   },
   "Recorded with {app}": "Înregistrat cu {app}",
-  "A new version of Yogurt is ready": "O versiune nouă de Yogurt este gata",
   "Upgrading AI": "Îmbunătățire AI",
   "Upgrading AI · {percent}": "Îmbunătățire AI · {percent}",
   "AI upgrade paused": "Îmbunătățirea AI este în pauză",
@@ -694,5 +693,12 @@
   "Show Yogurt in": "Afișează Yogurt în",
   "Menu bar and Dock": "Bara de meniu și Dock",
   "Menu bar only": "Doar bara de meniu",
-  "Dock only": "Doar Dock"
+  "Dock only": "Doar Dock",
+  "Update ready": "Actualizare pregătită",
+  "Installs when you restart Yogurt": "Se instalează când repornești Yogurt",
+  "You can restart after recording": "Poți reporni după înregistrare",
+  "Later": "Mai târziu",
+  "Restart": "Repornește",
+  "Yogurt couldn't restart. Try again.": "Yogurt nu a putut reporni. Încearcă din nou.",
+  "Yogurt {version}": "Yogurt {version}"
 }

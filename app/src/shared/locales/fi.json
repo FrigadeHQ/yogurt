@@ -579,7 +579,6 @@
     "other": "{count} kokousta siirretty roskakoriin"
   },
   "Recorded with {app}": "Tallennettu sovelluksella {app}",
-  "A new version of Yogurt is ready": "Uusi Yogurt-versio on valmis",
   "Upgrading AI": "Päivitetään tekoälyä",
   "Upgrading AI · {percent}": "Päivitetään tekoälyä · {percent}",
   "AI upgrade paused": "Tekoälyn päivitys keskeytetty",
@@ -683,5 +682,12 @@
   "Show Yogurt in": "Yogurtin sijainti",
   "Menu bar and Dock": "Valikkorivi ja Dock",
   "Menu bar only": "Vain valikkorivi",
-  "Dock only": "Vain Dock"
+  "Dock only": "Vain Dock",
+  "Update ready": "Päivitys valmis",
+  "Installs when you restart Yogurt": "Asennetaan, kun käynnistät Yogurtin uudelleen",
+  "You can restart after recording": "Voit käynnistää uudelleen tallennuksen jälkeen",
+  "Later": "Myöhemmin",
+  "Restart": "Käynnistä uudelleen",
+  "Yogurt couldn't restart. Try again.": "Yogurt ei voinut käynnistyä uudelleen. Yritä uudelleen.",
+  "Yogurt {version}": "Yogurt {version}"
 }

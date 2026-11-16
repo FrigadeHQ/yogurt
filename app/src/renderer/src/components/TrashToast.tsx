@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Toast } from '@animate-ui/react/primitives/base-ui/toast'
 import { X } from 'lucide-react'
 import { t } from '../../../shared/i18n'
-import type { SetupState, UpdateStatus } from '../../../shared/types'
+import type { SetupState } from '../../../shared/types'
 import { motion, useReducedMotion } from '../motion'
 import { notesReadyNotice } from '../notesSetup'
 import { changeMeetingRows } from '../meetingRowMotion'
@@ -80,29 +80,6 @@ export function TrashToast({ go }: { go: (route: string) => void }) {
     }
     const off = window.yogurt.meetings.onChange(remind)
     remind()
-    return off
-  }, [])
-  useEffect(() => {
-    // a downloaded version Yogurt has waited a day to install: Restart Yogurt here; X asks again tomorrow
-    let shown: string | undefined, restarting = false
-    const offer = (s: UpdateStatus) => {
-      if (!s.offer || !s.next) { if (shown) toasts.close(shown); shown = undefined; return }
-      if (shown) return
-      const id = shown = toasts.add({
-        id: 'update-ready', title: t('A new version of Yogurt is ready'), timeout: 0,
-        data: { testId: 'update-toast', actionTestId: 'update-restart' },
-        onClose: () => { if (shown !== id) return; shown = undefined; if (!restarting) void window.yogurt.updates.later() },
-        actionProps: { children: t('Restart Yogurt'), onClick: async () => {
-          restarting = true
-          const ok = await window.yogurt.updates.restart().catch(() => false)
-          if (ok) { toasts.close(id); return }
-          restarting = false
-          toasts.update(id, { title: t('Stop the recording first, then try again.') })
-        } },
-      })
-    }
-    const off = window.yogurt.updates.onStatus(offer)
-    void window.yogurt.updates.status().then(offer)
     return off
   }, [])
   const previous = useRef<string>(undefined)

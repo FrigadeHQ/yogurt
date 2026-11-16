@@ -602,7 +602,6 @@
     "other": "{count} встречи перемещены в Корзину"
   },
   "Recorded with {app}": "Записано в {app}",
-  "A new version of Yogurt is ready": "Новая версия Yogurt готова",
   "Upgrading AI": "Улучшение ИИ",
   "Upgrading AI · {percent}": "Улучшение ИИ · {percent}",
   "AI upgrade paused": "Улучшение ИИ приостановлено",
@@ -705,5 +704,12 @@
   "Show Yogurt in": "Показывать Yogurt в",
   "Menu bar and Dock": "Строка меню и Dock",
   "Menu bar only": "Только строка меню",
-  "Dock only": "Только Dock"
+  "Dock only": "Только Dock",
+  "Update ready": "Обновление готово",
+  "Installs when you restart Yogurt": "Установится при перезапуске Yogurt",
+  "You can restart after recording": "Можно перезапустить после записи",
+  "Later": "Позже",
+  "Restart": "Перезапустить",
+  "Yogurt couldn't restart. Try again.": "Не удалось перезапустить Yogurt. Попробуйте ещё раз.",
+  "Yogurt {version}": "Yogurt {version}"
 }

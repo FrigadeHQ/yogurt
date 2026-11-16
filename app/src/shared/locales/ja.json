@@ -537,7 +537,6 @@
   "Move {count} meetings to Trash": "{count}件のミーティングをゴミ箱に移動",
   "{count} meetings moved to Trash": "{count}件のミーティングをゴミ箱に移動しました",
   "Recorded with {app}": "{app} で録音",
-  "A new version of Yogurt is ready": "Yogurt の新しいバージョンの準備ができました",
   "Upgrading AI": "AIをアップグレード中",
   "Upgrading AI · {percent}": "AIをアップグレード中 · {percent}",
   "AI upgrade paused": "AIのアップグレードは一時停止中",
@@ -635,5 +634,12 @@
   "Show Yogurt in": "Yogurtの表示場所",
   "Menu bar and Dock": "メニューバーとDock",
   "Menu bar only": "メニューバーのみ",
-  "Dock only": "Dockのみ"
+  "Dock only": "Dockのみ",
+  "Update ready": "更新の準備完了",
+  "Installs when you restart Yogurt": "Yogurtの再起動時にインストールされます",
+  "You can restart after recording": "録音後に再起動できます",
+  "Later": "後で",
+  "Restart": "再起動",
+  "Yogurt couldn't restart. Try again.": "Yogurtを再起動できませんでした。もう一度お試しください。",
+  "Yogurt {version}": "Yogurt {version}"
 }
