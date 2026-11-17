@@ -64,7 +64,7 @@ export function MeetingRow({ id, recording, children, selected, targets, members
       deleteMeetingFromKey(e, e.target === row.current?.querySelector('.native-meeting-link'), busy || (recording && !selected), () => onTrash(targets))
     }}>
     {children(folderId => { setSuggestedId(folderId); setInFolders(true); setOpen('button') },
-    <button ref={button} data-testid="past-note-more" className="workspace-icon meeting-more row-swap-actions" aria-label={t('More')} title={t('More')} aria-haspopup="menu" aria-expanded={!!open} aria-controls={open ? menuId : undefined}
+    <button ref={button} data-testid="past-note-more" className="ghost-btn workspace-icon meeting-more row-swap-actions" aria-label={t('More')} title={t('More')} aria-haspopup="menu" aria-expanded={!!open} aria-controls={open ? menuId : undefined}
       onClick={() => { if (open) close(); else show('button') }}><Ellipsis size={14} aria-hidden="true" /></button>)}
     {presence.value && createPortal(<div {...presence.props} ref={menu} id={menuId} data-testid="meeting-row-menu" role="menu" aria-label={t('More')} onKeyDown={menuKey}
       className="menu-entry meeting-row-menu" style={{ visibility: 'hidden' }}>

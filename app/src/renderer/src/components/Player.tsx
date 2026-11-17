@@ -136,13 +136,13 @@ function MeetingPlayer({ id, tracks, ref, onTime, onPlaying }: PlayerProps) {
           <span className="w-9 shrink-0 tabular-nums">{clock(duration * 1000)}</span>
           <button data-testid="player-speed" aria-label={t('Playback speed {rate}', { rate: rateText })}
             onClick={() => setRate((r) => RATES[(RATES.indexOf(r) + 1) % RATES.length])}
-            className="ghost-btn h-7 w-10 shrink-0 justify-center !px-0 tabular-nums">
+            className="ghost-btn tabular-nums">
             {rateText}
           </button>
         </>}
           <Menu.Root modal={false}>
             <Menu.Trigger ref={menuButton} data-testid="recording-menu" aria-label={t('More')} title={t('More')}
-              className="bar-btn ms-auto grid size-7 shrink-0 place-items-center rounded-md text-muted"><Ellipsis size={17} aria-hidden="true" /></Menu.Trigger>
+              className="ghost-btn workspace-icon ms-auto"><Ellipsis size={17} aria-hidden="true" /></Menu.Trigger>
             <Menu.Portal>
               <Menu.Positioner side="top" align="end" sideOffset={6} className="ask-menu-positioner">
                 <Menu.Popup className="menu-entry ask-actions-menu" aria-label={t('More')} finalFocus={confirm ? false : menuButton} onKeyDown={e => { if (e.key === 'Escape') e.stopPropagation() }}>
@@ -180,7 +180,7 @@ export function DeleteRecording({ id, onCancel, onDeleted }: { id: string; onCan
       : failed === 'recording' ? t('Stop the recording first, then try again.') : t("Yogurt couldn't delete the recording.")}</span></InlineError>}
     <div className="modal-actions">
       <button data-testid="recording-delete-yes" className="modal-button danger" disabled={busy} onClick={() => void yes()}>{t('Delete recording')}</button>
-      <ModalClose data-testid="recording-delete-cancel" data-dialog-cancel className="modal-button" disabled={busy}>{t('Cancel')}</ModalClose>
+      <ModalClose data-testid="recording-delete-cancel" data-dialog-cancel className="workspace-button" disabled={busy}>{t('Cancel')}</ModalClose>
     </div>
   </Modal>
 }

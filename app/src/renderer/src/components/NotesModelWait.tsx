@@ -29,7 +29,7 @@ export function NotesModelWait({ children, downloading }: { children: ReactNode;
     <div data-testid="notes-model-error" role="status" className="flex flex-col items-start gap-2 text-[14px] text-muted">
       <p className="font-medium text-ink">{t("The notes model couldn't download.")}</p>
       <p>{setup.notesError}</p>
-      <button data-testid="notes-model-retry" onClick={() => void retry()} disabled={retrying} className="rounded px-1 font-medium text-accent underline underline-offset-2 disabled:opacity-50">
+      <button data-testid="notes-model-retry" onClick={() => void retry()} disabled={retrying} className="text-action">
         {retrying ? t('Retrying…') : t('Retry download')}
       </button>
       {retryFailed && <p className="text-danger">{t("Yogurt couldn't restart the download.")}</p>}

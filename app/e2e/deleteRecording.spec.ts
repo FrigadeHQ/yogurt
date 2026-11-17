@@ -38,7 +38,7 @@ test('deleting audio asks first, preserves the note and search, and survives Tra
     const toast = page.getByTestId('recording-deleted-toast')
     await expect(toast).toContainText('Recording deleted')
     await expect(page.getByTestId('recording-settings')).toHaveText('Settings')
-    expect(await toast.evaluate(el => ['.app-toast-title', '.app-toast-action'].every(selector => {
+    expect(await toast.evaluate(el => ['.app-toast-title', '[data-testid=recording-settings]'].every(selector => {
       const text = el.querySelector(selector)!, range = document.createRange(); range.selectNodeContents(text)
       return new Set(Array.from(range.getClientRects()).map(r => r.top)).size === 1 && text.scrollWidth <= text.clientWidth
     }))).toBe(true)

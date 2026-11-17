@@ -116,7 +116,7 @@ export function FinishSetup({ collapsed = false }: { collapsed?: boolean }) {
         <h2>{t('Finish setup')}</h2>
         <div className="finish-setup-controls">
           <Menu.Root modal={false}>
-            <Menu.Trigger data-testid="finish-setup-more" aria-label={t('More')} title={t('More')} className="finish-setup-close no-drag"><Ellipsis size={14} aria-hidden="true" /></Menu.Trigger>
+            <Menu.Trigger data-testid="finish-setup-more" aria-label={t('More')} title={t('More')} className="ghost-btn workspace-icon no-drag"><Ellipsis size={14} aria-hidden="true" /></Menu.Trigger>
             <Menu.Portal>
               <Menu.Positioner side="bottom" align="end" sideOffset={6} className="ask-menu-positioner">
                 <Menu.Popup ref={menu} className="menu-entry ask-actions-menu" aria-label={t('More')} onKeyDown={e => { if (e.key === 'Escape') e.stopPropagation() }}>
@@ -125,7 +125,7 @@ export function FinishSetup({ collapsed = false }: { collapsed?: boolean }) {
               </Menu.Positioner>
             </Menu.Portal>
           </Menu.Root>
-          <button data-testid="finish-setup-close" aria-label={t('Close')} title={t('Close')} className="finish-setup-close no-drag" onClick={close}>
+          <button data-testid="finish-setup-close" aria-label={t('Close')} title={t('Close')} className="ghost-btn workspace-icon no-drag" onClick={close}>
             <X size={14} aria-hidden="true" />
           </button>
         </div>
@@ -138,7 +138,7 @@ export function FinishSetup({ collapsed = false }: { collapsed?: boolean }) {
               <div className="finish-setup-copy"><p title={c.name}>{m.kind === 'accessibility' ? t('Accessibility') : c.name}</p>
                 <p id={`finish-setup-detail-${m.kind}`} data-testid="finish-setup-detail" className="finish-setup-detail">{finishSetupReason(m.kind)}</p>
               </div>
-              <TurnOn kind={m.kind} status={m.status} onOn={reload} testId="finish-setup-fix" descriptionId={`finish-setup-detail-${m.kind}`} className="workspace-button finish-setup-action" />
+              <TurnOn kind={m.kind} status={m.status} onOn={reload} testId="finish-setup-fix" descriptionId={`finish-setup-detail-${m.kind}`} className="workspace-button" />
             </li>
           )
         })}

@@ -52,7 +52,7 @@ export function Prompt() {
         )}
       </div>
       {start && (
-        <button data-testid="prompt-close" aria-label={t('Not now')} className="call-prompt-close" onClick={() => window.yogurt.prompt.act('close')}>
+        <button data-testid="prompt-close" aria-label={t('Not now')} className="ghost-btn workspace-icon" onClick={() => window.yogurt.prompt.act('close')}>
           <X size={16} strokeWidth={1.5} aria-hidden="true" />
         </button>
       )}

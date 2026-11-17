@@ -39,6 +39,8 @@ test('a call starts: the card offers notes, and Take notes opens the meeting rec
     await signals(app, { micApps: [zoom], events: [event()] })
     const p = await card(app)
     await expect(p.getByTestId('prompt-heading')).toHaveText('Take notes?')
+    await expect(p.getByTestId('prompt-heading')).toHaveCSS('font-size', '13px')
+    await expect(p.getByTestId('prompt-title')).toHaveCSS('font-size', '12px')
     await expect(p.getByTestId('prompt-take-notes')).toHaveText('Start recording')
     await expect(p.getByTestId('prompt-take-notes')).not.toHaveClass(/primary/)
     await expect(p.getByTestId('prompt-title')).toHaveText('Zoom call')

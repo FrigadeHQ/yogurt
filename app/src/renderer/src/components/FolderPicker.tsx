@@ -159,8 +159,8 @@ export function FolderChip({ meetingId, onNew, suggestion: manualSuggestion, row
       {proposed ? <div data-testid="folder-suggestion" role="group" aria-label={accepted ? t('Folders') : t('Suggested')} inert={held?.phase === 'dismissed'} data-phase={held?.phase} className={row ? 'meeting-folder-pill meeting-folder-proposal' : 'note-chip note-folder-proposal flex items-center rounded-md border border-line text-[13px] text-muted'}>
         {trigger}
         <div className="note-folder-actions" inert={accepted || held?.phase === 'dismissed'}>
-          <button data-testid="folder-suggestion-cancel" className="workspace-icon" disabled={adding || !!held} onClick={() => void dismissSuggestion()} aria-label={t('Dismiss suggestion')} title={t('Dismiss suggestion')}><X size={row ? 12 : 15} aria-hidden="true" /></button>
-          <button data-testid="folder-suggestion-confirm" className="workspace-icon" disabled={adding || !!held} onClick={() => void confirmSuggestion()} aria-label={t('Add to folder')} title={t('Add to folder')}><Check size={row ? 12 : 15} aria-hidden="true" /></button>
+          <button data-testid="folder-suggestion-cancel" className="ghost-btn workspace-icon" disabled={adding || !!held} onClick={() => void dismissSuggestion()} aria-label={t('Dismiss suggestion')} title={t('Dismiss suggestion')}><X size={row ? 12 : 15} aria-hidden="true" /></button>
+          <button data-testid="folder-suggestion-confirm" className="ghost-btn workspace-icon" disabled={adding || !!held} onClick={() => void confirmSuggestion()} aria-label={t('Add to folder')} title={t('Add to folder')}><Check size={row ? 12 : 15} aria-hidden="true" /></button>
         </div>
       </div> : trigger}
       {presence.value && <div data-testid="folder-menu" {...presence.props} data-anchor="start" role="menu" aria-label={t('Add to folder')} onKeyDown={key}

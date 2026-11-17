@@ -304,7 +304,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
           <span data-testid="search-primary-hint"><kbd className="search-key">↵</kbd>{t('Select')}</span>
           <span data-testid="search-secondary-hint"><kbd className="search-key">{keys('⌘↵')}</kbd>{t('Ask')}</span>
           <span><kbd className="search-key">esc</kbd>{t('Close')}</span>
-          <button data-testid="search-shortcuts" onClick={onShortcuts} aria-label={t('Keyboard shortcuts')} title={`${t('Keyboard shortcuts')} ${keys('⌘/')}`}><Keyboard size={15} aria-hidden="true" /></button>
+          <button className="ghost-btn workspace-icon" data-testid="search-shortcuts" onClick={onShortcuts} aria-label={t('Keyboard shortcuts')} title={`${t('Keyboard shortcuts')} ${keys('⌘/')}`}><Keyboard size={15} aria-hidden="true" /></button>
         </div>
       </MotionPopup>
     </Dialog.Portal>

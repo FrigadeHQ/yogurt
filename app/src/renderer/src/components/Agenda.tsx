@@ -125,8 +125,8 @@ export function Agenda({ revision, recording, onStart, onOpen, jumpTo }: Actions
     </div>
     <div className="agenda-navigation">
       <span className="agenda-month">{new Date(weekAnchor).toLocaleDateString(language(), { month: 'long', year: 'numeric' })}</span>
-      <button className="workspace-icon" aria-label={t('Previous day')} onClick={() => step(-1)}><ChevronLeft size={15} className="rtl:-scale-x-100" /></button>
-      <button className="workspace-icon" aria-label={t('Next day')} onClick={() => step(1)}><ChevronRight size={15} className="rtl:-scale-x-100" /></button>
+      <button className="ghost-btn workspace-icon" aria-label={t('Previous day')} onClick={() => step(-1)}><ChevronLeft size={15} className="rtl:-scale-x-100" /></button>
+      <button className="ghost-btn workspace-icon" aria-label={t('Next day')} onClick={() => step(1)}><ChevronRight size={15} className="rtl:-scale-x-100" /></button>
     </div>
     <div className="agenda-week" aria-label={t('Choose agenda date')}>
       {weekDates(weekAnchor).map((at) => {
@@ -227,7 +227,7 @@ function EventDetails({ motionProps, event, recording, onOpen, onStart, now, onC
     <i className="agenda-inspector-arrow" aria-hidden="true" />
     <div className="agenda-inspector-content">
     <div className="agenda-inspector-heading"><h3 id="agenda-detail-title" tabIndex={-1}>{event.title || t('Meeting')}</h3>
-      <button className="workspace-icon" aria-label={t('Close')} onClick={() => onClose()}><X size={16} aria-hidden="true" /></button>
+      <button className="ghost-btn workspace-icon" aria-label={t('Close')} onClick={() => onClose()}><X size={16} aria-hidden="true" /></button>
     </div>
     <div className="agenda-inspector-line agenda-inspector-time"><Clock size={15} aria-hidden="true" /><div>
       <p>{timeOf(event.start)} – {timeOf(event.end)}</p>
@@ -237,14 +237,14 @@ function EventDetails({ motionProps, event, recording, onOpen, onStart, now, onC
       <ul id="agenda-detail-people" aria-label={t('People')}>
         {(expanded ? event.attendees : event.attendees.slice(0, 5)).map((person, i) => <li key={`${person.name}-${i}`} title={person.email || undefined}>{personName(person.name)}{expanded && person.email && person.email !== personName(person.name) && <span>{person.email}</span>}</li>)}
       </ul>
-      {!expanded && event.attendees.length > 5 && <button className="agenda-more-people" aria-expanded={false} aria-controls="agenda-detail-people" onClick={() => setExpanded(true)}>{t('and {count} more', { count: event.attendees.length - 5 })}</button>}
+      {!expanded && event.attendees.length > 5 && <button className="text-action mt-2" aria-expanded={false} aria-controls="agenda-detail-people" onClick={() => setExpanded(true)}>{t('and {count} more', { count: event.attendees.length - 5 })}</button>}
     </div></div></ScrollFade>}
-    {action === 'start' && <button data-testid="event-open" disabled={pending} className="workspace-button agenda-open-note primary self-start" onClick={() => void act()}><Mic size={13} aria-hidden="true" />{t('Take notes')}</button>}
+    {action === 'start' && <button data-testid="event-open" disabled={pending} className="workspace-button primary self-start" onClick={() => void act()}><Mic size={13} aria-hidden="true" />{t('Take notes')}</button>}
     {(event.calendar || action && action !== 'start' || url) && <div className="agenda-inspector-footer" data-testid="agenda-detail-footer">
     {event.calendar && <div className="agenda-inspector-line"><CalendarDays size={15} aria-hidden="true" /><p>{event.calendar.name}{event.calendar.source && <span>{event.calendar.source}</span>}</p></div>}
     {(action && action !== 'start' || url) && <div className="agenda-inspector-actions">
-    {action && action !== 'start' && <button data-testid="event-open" disabled={pending} className="workspace-button agenda-open-note" title={action === 'open' ? t('Open note') : t('Prepare note')} onClick={() => void act()}><FileText size={13} aria-hidden="true" /><span>{action === 'open' ? t('Open note') : t('Prepare note')}</span></button>}
-    {url && <a className="workspace-button agenda-open-note" title={t('Join meeting')} href={url} target="_blank" rel="noreferrer"><span>{t('Join meeting')}</span><ExternalLink size={12} aria-hidden="true" /></a>}
+    {action && action !== 'start' && <button data-testid="event-open" disabled={pending} className="workspace-button" title={action === 'open' ? t('Open note') : t('Prepare note')} onClick={() => void act()}><FileText size={13} aria-hidden="true" /><span>{action === 'open' ? t('Open note') : t('Prepare note')}</span></button>}
+    {url && <a className="workspace-button" title={t('Join meeting')} href={url} target="_blank" rel="noreferrer"><span>{t('Join meeting')}</span><ExternalLink size={12} aria-hidden="true" /></a>}
     </div>}
     </div>}
     {failed && <p role="alert" className="text-danger">{t("Yogurt couldn't start the notes. Try again in a moment.")}</p>}

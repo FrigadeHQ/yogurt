@@ -199,7 +199,7 @@ function Preview({ view, open }: { view: WidgetView; open: boolean }) {
   return <div data-testid="widget-preview" className="widget-preview" role="region" aria-label={t('Live transcript')} inert={!open} aria-hidden={!open}>
     {note && <div className="widget-preview-warning" role="status">
       <p data-testid="widget-note" data-tone={note.tone}>{note.text}</p>
-      {permission && <button className="widget-settings" onClick={() => { void window.yogurt.permissions.open(permission) }}>{t('Open Settings')}</button>}
+      {permission && <button className="workspace-button widget-settings" onClick={() => { void window.yogurt.permissions.open(permission) }}>{t('Open Settings')}</button>}
     </div>}
     <ScrollFade>
     <div ref={scroll} data-testid="widget-preview-text" className="widget-preview-conversation" role="log" aria-live="off" aria-label={t('Transcript')}
@@ -225,6 +225,6 @@ function Preview({ view, open }: { view: WidgetView; open: boolean }) {
       </div>
     </div>
     </ScrollFade>
-    {behind && <button data-testid="widget-preview-latest" className="widget-preview-latest" onClick={latest}><ArrowDown size={12} aria-hidden="true" />{t('Latest')}</button>}
+    {behind && <button data-testid="widget-preview-latest" className="workspace-button widget-preview-latest" onClick={latest}><ArrowDown size={12} aria-hidden="true" />{t('Latest')}</button>}
   </div>
 }

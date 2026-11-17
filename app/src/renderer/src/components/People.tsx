@@ -178,10 +178,10 @@ function Row({ name, email, mine, onRemove, onRename }: { name: string; email?: 
           : <span>{name}{mine && <span className="text-muted"> {t('(me)')}</span>}</span>}
         {email && <span data-testid="people-email" className="block break-words text-xs leading-[17px] text-muted">{email}</span>}
       </div>
-      {onRename && !editing && <button data-testid="people-edit" aria-label={t('Rename')} title={t('Rename')} onClick={() => { setDraft(name); setEditing(true) }} className="person-remove grid size-6 shrink-0 place-items-center rounded text-muted hover:bg-[var(--line)] hover:text-ink"><Pencil size={14} strokeWidth={1.75} aria-hidden="true" /></button>}
+      {onRename && !editing && <button data-testid="people-edit" aria-label={t('Rename')} title={t('Rename')} onClick={() => { setDraft(name); setEditing(true) }} className="ghost-btn workspace-icon person-remove"><Pencil size={14} strokeWidth={1.75} aria-hidden="true" /></button>}
       {onRemove && (
         <button data-testid="people-remove" onClick={onRemove} aria-label={t('Remove {name}', { name })} title={t('Remove')}
-          className="person-remove grid size-6 shrink-0 place-items-center rounded-full text-muted hover:bg-[var(--line)] hover:text-ink">
+          className="ghost-btn workspace-icon person-remove">
           <X size={14} strokeWidth={1.75} aria-hidden="true" />
         </button>
       )}

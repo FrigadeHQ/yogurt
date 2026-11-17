@@ -41,7 +41,7 @@ export function FolderName({ folder, onDone }: { folder?: Folder; onDone: (made?
         {failed && <p className="modal-error" role="alert">{t("Yogurt couldn't save this folder.")}</p>}
         <div className="modal-actions">
           <button data-testid="folder-name-save" type="submit" disabled={busy || !name.trim()} className="modal-button primary">{folder ? t('Rename') : t('Create folder')}</button>
-          <ModalClose data-testid="folder-name-cancel" type="button" data-dialog-cancel disabled={busy} className="modal-button">{t('Cancel')}</ModalClose>
+          <ModalClose data-testid="folder-name-cancel" type="button" data-dialog-cancel disabled={busy} className="workspace-button">{t('Cancel')}</ModalClose>
         </div>
       </form>
     </Modal>
@@ -62,7 +62,7 @@ export function DeleteFolder({ folder, onDone }: { folder: Folder; onDone: (dele
       {failed && <p className="modal-error" role="alert">{t("Yogurt couldn't delete this folder.")}</p>}
       <div className="modal-actions">
         <button data-testid="folder-delete-yes" onClick={() => void yes()} disabled={busy} className="modal-button danger">{t('Delete folder')}</button>
-        <ModalClose data-testid="folder-delete-cancel" data-dialog-cancel disabled={busy} className="modal-button">{t('Cancel')}</ModalClose>
+        <ModalClose data-testid="folder-delete-cancel" data-dialog-cancel disabled={busy} className="workspace-button">{t('Cancel')}</ModalClose>
       </div>
     </Modal>
   )
@@ -86,7 +86,7 @@ export function FolderAppearanceDialog({ folder, onDone }: { folder: Folder; onD
     {failed && <p className="modal-error" role="alert">{t("Yogurt couldn't save this folder.")}</p>}
     <div className="modal-actions">
       <button data-testid="folder-appearance-save" onClick={() => void save()} disabled={busy} className="modal-button primary">{t('Save')}</button>
-      <ModalClose data-dialog-cancel disabled={busy} className="modal-button">{t('Cancel')}</ModalClose>
+      <ModalClose data-dialog-cancel disabled={busy} className="workspace-button">{t('Cancel')}</ModalClose>
     </div>
   </Modal>
 }

@@ -36,7 +36,7 @@ export function NoteMenu({ recording, savePending, onRename, onDelete, folders, 
   return (
     <div ref={root} className="relative">
       <button ref={button} data-testid="note-menu-button" aria-haspopup="menu" aria-expanded={!!open} aria-label={t('More')} title={t('More')}
-        onClick={(e) => setOpen((o) => o ? false : e.detail > 0 ? 'pointer' : 'keyboard')} className="bar-btn grid size-7 place-items-center rounded-md text-muted"><Ellipsis size={17} strokeWidth={1.75} aria-hidden="true" /></button>
+        onClick={(e) => setOpen((o) => o ? false : e.detail > 0 ? 'pointer' : 'keyboard')} className="ghost-btn workspace-icon"><Ellipsis size={17} strokeWidth={1.75} aria-hidden="true" /></button>
       {presence.value && (
         <div data-testid="note-menu" {...presence.props} role="menu" aria-label={t('More')} onKeyDown={onKey}
           className="menu-entry absolute end-0 top-full z-30 mt-2 w-60 rounded-xl border border-line bg-float p-1.5 shadow-[var(--shadow)]">

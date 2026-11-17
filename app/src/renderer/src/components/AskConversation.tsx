@@ -263,7 +263,7 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
   </button>
   const results = <>
     {!!offset && <>
-      {!!scoped.length && <div role="group" aria-label={t('In this chat')}><h3>{t('In this chat')}<button type="button" className="ask-picker-clear" disabled={busy}
+      {!!scoped.length && <div role="group" aria-label={t('In this chat')}><h3>{t('In this chat')}<button type="button" data-testid="ask-picker-clear" className="text-action" disabled={busy}
         onMouseDown={e => e.preventDefault()} onClick={() => void remove(chips)}>{t('Clear')}</button></h3>
         {scoped.map((c, i) => targetRow(c, i))}
         {!!scopeMore && <button type="button" role="option" tabIndex={-1} aria-selected={false} data-active={selected === offset - 1 || undefined} id={`${prefix}-context-${offset - 1}`}
@@ -286,8 +286,8 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
       <h2 id={panel ? 'meeting-chat-title' : undefined} title={[chat?.title || t('New chat'), ...(chat?.chips.map(chipTitle) ?? [])].join('\n')}>{chat?.title || t('New chat')}</h2>
       <div className="ask-header-actions">
         {chat && <ConversationActions id={id} title={chat.title} onNew={fresh} onDeleted={onDeleted} />}
-        {onExpand && <button type="button" data-testid="chat-expand" className="chat-icon" onClick={onExpand} aria-label={t('Open in Ask')} title={t('Open in Ask')}><Maximize2 size={15} aria-hidden="true" /></button>}
-        {onClose && <button type="button" data-testid="chat-close" className="chat-icon" onClick={onClose} aria-label={t('Close')} title={t('Close')}><X size={16} aria-hidden="true" /></button>}
+        {onExpand && <button type="button" data-testid="chat-expand" className="ghost-btn workspace-icon" onClick={onExpand} aria-label={t('Open in Ask')} title={t('Open in Ask')}><Maximize2 size={15} aria-hidden="true" /></button>}
+        {onClose && <button type="button" data-testid="chat-close" className="ghost-btn workspace-icon" onClick={onClose} aria-label={t('Close')} title={t('Close')}><X size={16} aria-hidden="true" /></button>}
       </div>
     </header>}
     <div className="ask-thread-wrap">
@@ -298,7 +298,7 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
         {panel && suggestions}</LoadingContent>
         </div>
       </div></ScrollFade>
-      {follow.behind && <button className="chat-latest" data-testid="chat-latest" aria-label={t('Back to latest')} onClick={follow.latest}><ArrowDown size={15} /></button>}
+      {follow.behind && <button className="workspace-button workspace-icon chat-latest" data-testid="chat-latest" aria-label={t('Back to latest')} onClick={follow.latest}><ArrowDown size={15} /></button>}
     </div>
     <div className={`ask-composer${panel ? ' chat-composer' : ''}`}>
       {error && <p data-testid={panel ? "chat-send-error" : "chat-page-error"} role="alert" className="chat-error">{t("Couldn't save your changes")}</p>}
@@ -359,7 +359,7 @@ function Turn({ turn, chat, panel, showCopy, onSource, onRetry }: { showCopy: bo
       ? <NotesModelWait downloading={percent => <p role="status" className="text-sm text-muted">{t("Your question is waiting for Yogurt's AI to download.")} <span className="whitespace-nowrap">{percent}</span></p>}><p role="status" className="text-sm text-muted">{t('Getting ready to answer. Yogurt is still setting up.')}</p></NotesModelWait>
       : <p className="chat-progress" role="status">{chat.waitsForMeeting && turn.status === 'waiting' ? t('Yogurt will answer once the meeting ends.') : <><ThinkingDots /><StepText step={turn.status === 'waiting' ? undefined : turn.step} /></>}</p>)}
     {answer && <div data-testid={`${prefix}-answer`} dir="auto" data-streaming={live || undefined} className={`note-prose chat-answer${live ? ' stream-caret' : ''}`}><AnswerText md={answer} live={live} sources={turn.sources} onSource={onSource} /></div>}
-    {answer && !live && <div className="chat-answer-actions"><button className="chat-copy-action" data-testid="chat-copy-answer" aria-label={copied ? t('Copied') : t('Copy answer')} onClick={() => {
+    {answer && !live && <div className="chat-answer-actions"><button className="ghost-btn chat-copy-action" data-testid="chat-copy-answer" aria-label={copied ? t('Copied') : t('Copy answer')} onClick={() => {
       void navigator.clipboard.writeText(turn.answer).then(() => { setCopied(true); setFailed(false) }).catch(() => setFailed(true))
     }}><Swap show={copied ? 'done' : 'copy'} options={{ copy: <Copy size={13} />, done: <Check size={13} /> }} /><SwapText text={copied ? t('Copied') : t('Copy')} widest={t('Copied')} /></button>{turn.scope && <AnswerScope chips={turn.scope} />}<span role="status" className={failed ? 'text-danger' : 'sr-only'}>{failed ? t("Yogurt couldn't copy.") : copied ? t('Copied') : ''}</span></div>}
     {turn.status === 'stopped' && <p className="text-xs text-muted">{answer ? t('Stopped') : t('Stopped before answering')}</p>}

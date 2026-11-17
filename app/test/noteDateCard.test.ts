@@ -41,7 +41,7 @@ it.each([
     expect(html).toContain('Tuesday, Nov 10')
     expect(html).toContain('7 min')
     expect(html).toContain(message.replaceAll("'", '&#x27;'))
-    expect(html).toContain(`class="workspace-button agenda-open-note">${action}</button>`)
+    expect(html).toContain(`class="workspace-button">${action}</button>`)
     expect(html).not.toContain('note-date-days')
     expect(html).not.toContain('note-date-previous')
     expect(html).not.toContain('note-date-next')

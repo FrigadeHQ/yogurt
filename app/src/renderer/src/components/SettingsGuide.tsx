@@ -18,7 +18,7 @@ export function SettingsGuide({ kind, onOpenAgain, canRelaunch, art = true }: { 
       <p className="ob-guide-copy">{c.where}</p>
       <p data-testid="settings-guide-waiting" role="status" className="ob-guide-waiting">{t('This closes automatically when access is on.')}</p>
       <div className="ob-guide-actions">
-        <button data-testid="settings-guide-open" onClick={onOpenAgain} className="settings-link no-drag">
+        <button data-testid="settings-guide-open" onClick={onOpenAgain} className="ghost-btn no-drag">
           <span>{t('Open System Settings')}</span><ExternalLink size={13} aria-hidden="true" className="rtl:-scale-x-100" />
         </button>
       </div>
@@ -26,7 +26,7 @@ export function SettingsGuide({ kind, onOpenAgain, canRelaunch, art = true }: { 
         <summary>{t('Still not working?')}</summary>
         <div className="ob-guide-help-content">
         {(kind === 'accessibility' || kind === 'systemAudio') && <p>{t('Not in the list? Click +, then choose Yogurt in Applications.')}</p>}
-        {canRelaunch && <><p>{t('If you turned access on and this stays open, restart Yogurt.')}</p><button data-testid="settings-guide-relaunch" className="ob-button secondary no-drag" onClick={() => {
+        {canRelaunch && <><p>{t('If you turned access on and this stays open, restart Yogurt.')}</p><button data-testid="settings-guide-relaunch" className="workspace-button no-drag" onClick={() => {
           void window.yogurt.permissions.relaunch().then((ok) => setRelaunchFailed(!ok), () => setRelaunchFailed(true))
         }}><span>{t('Restart Yogurt')}</span></button></>}
       </div>

@@ -18,7 +18,7 @@ export function ConversationActions({ id, title, onNew, onDeleted, onEdit, class
   const cancel = () => { setDialog(undefined); button.current?.focus({ preventScroll: true }) }
   return <>
     <Menu.Root modal={false}>
-      <Menu.Trigger ref={mountButton} data-testid="chat-menu" className={`chat-icon ask-menu-trigger ${className}`} aria-label={t('More')} title={t('More')}><Ellipsis size={17} aria-hidden="true" /></Menu.Trigger>
+      <Menu.Trigger ref={mountButton} data-testid="chat-menu" className={`ghost-btn workspace-icon ask-menu-trigger ${className}`} aria-label={t('More')} title={t('More')}><Ellipsis size={17} aria-hidden="true" /></Menu.Trigger>
       <Menu.Portal container={container}>
         <Menu.Positioner side="bottom" align="end" sideOffset={6} className="ask-menu-positioner">
           <Menu.Popup className="menu-entry ask-actions-menu" aria-label={t('More')} finalFocus={dialog ? false : button} onKeyDown={e => { if (e.key === 'Escape') e.stopPropagation() }}>
@@ -64,7 +64,7 @@ export function ConversationDialog({ id, title, kind, container, onClose, onDele
       <div className="modal-actions">
         <button type="submit" data-testid={kind === 'delete' ? 'chat-delete-yes' : 'chat-rename-save'} disabled={busy || kind === 'rename' && !draft.trim()}
           className={`modal-button ${kind === 'delete' ? 'danger' : 'primary'}`}>{kind === 'delete' ? t('Delete') : t('Save')}</button>
-        <ModalClose type="button" data-dialog-cancel data-testid="chat-delete-cancel" className="modal-button" disabled={busy}>{t('Cancel')}</ModalClose>
+        <ModalClose type="button" data-dialog-cancel data-testid="chat-delete-cancel" className="workspace-button" disabled={busy}>{t('Cancel')}</ModalClose>
       </div>
     </form>
   </Modal>

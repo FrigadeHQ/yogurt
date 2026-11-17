@@ -28,7 +28,7 @@ export function SummaryActions({ hasSummary, canWriteAgain, onWriteAgain, menuBu
   return (
     <div ref={root} className="note-summary-actions relative">
       <button ref={menuButton} data-testid="note-view-menu" aria-haspopup="menu" aria-expanded={!!open} aria-label={t('Summary actions')} title={action}
-        onClick={(e) => setOpen((o) => o ? false : e.detail > 0 ? 'pointer' : 'keyboard')} className="note-view-menu">
+        onClick={(e) => setOpen((o) => o ? false : e.detail > 0 ? 'pointer' : 'keyboard')} className="ghost-btn workspace-icon">
         <Ellipsis size={15} strokeWidth={1.75} aria-hidden="true" />
       </button>
       {presence.value && (

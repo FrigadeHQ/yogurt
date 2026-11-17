@@ -52,10 +52,10 @@ export function Trash({ open }: { open: (id: string) => void }) {
       </div></section> : <ul aria-label={t('Deleted meetings')}>
         {cards?.map((c) => <li key={c.id} data-row-id={c.id} data-testid="trash-row" className="native-meeting-row trash-row row-swap" tabIndex={0} title={dayLabel(c.startedAt)}>
           <PastCard c={c} onOpen={open} me={me} fixed />
-          <div className="trash-actions row-swap-actions"><button data-testid="trash-restore" title={t('Restore')} className="workspace-icon" onClick={() => void changeMeetingRows('restore', [c.id], () => window.yogurt.meetings.restore(c.id))} aria-label={t('Restore')}>
+          <div className="trash-actions row-swap-actions"><button data-testid="trash-restore" title={t('Restore')} className="ghost-btn workspace-icon" onClick={() => void changeMeetingRows('restore', [c.id], () => window.yogurt.meetings.restore(c.id))} aria-label={t('Restore')}>
             <RotateCcw size={14} aria-hidden="true" />
           </button>
-          <button data-testid="trash-delete" className="workspace-icon meeting-delete" onClick={() => setDeleting(c)} aria-label={t('Delete now')} title={t('Delete now')}>
+          <button data-testid="trash-delete" className="ghost-btn workspace-icon meeting-delete" onClick={() => setDeleting(c)} aria-label={t('Delete now')} title={t('Delete now')}>
             <Trash2 size={14} aria-hidden="true" />
           </button></div>
         </li>)}
@@ -82,7 +82,7 @@ function EmptyTrash({ ids, onDone }: { ids: string[]; onDone: () => void }) {
     {failed && <p className="modal-error" role="alert">{t("Yogurt couldn't delete everything in the Trash.")}</p>}
     <div className="modal-actions">
       <button data-testid="trash-empty-yes" onClick={() => void yes()} disabled={busy} className="modal-button danger">{t('Empty Trash')}</button>
-      <ModalClose data-testid="trash-empty-cancel" data-dialog-cancel disabled={busy} className="modal-button">{t('Cancel')}</ModalClose>
+      <ModalClose data-testid="trash-empty-cancel" data-dialog-cancel disabled={busy} className="workspace-button">{t('Cancel')}</ModalClose>
     </div>
   </Modal>
 }

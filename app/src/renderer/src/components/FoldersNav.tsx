@@ -137,7 +137,7 @@ function FolderItem({ folder, collapsed, sidebarMotion, current, go, onRename, o
       <FolderGlyph appearance={folder} /><span>{folder.name}</span>
       <small data-testid="sidebar-folder-count" aria-label={t('{count} meetings', { count: folder.count })}>{folder.count}</small>
     </button>
-    <button ref={more} data-testid="sidebar-folder-more" className="workspace-icon workspace-folder-more" aria-haspopup="menu" aria-expanded={!!menu}
+    <button ref={more} data-testid="sidebar-folder-more" className="ghost-btn workspace-icon workspace-folder-more" aria-haspopup="menu" aria-expanded={!!menu}
       aria-label={t('More for “{name}”', { name: folder.name })} title={t('More')} onClick={() => (menu ? setMenu(undefined) : openMenu(true))}>
       <Ellipsis size={15} aria-hidden="true" />
     </button>

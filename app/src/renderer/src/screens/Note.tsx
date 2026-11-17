@@ -314,7 +314,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
         onCancel={() => setResumeConfirm(false)}>
         <div className="modal-actions">
           <button data-testid="resume-yes" onClick={() => void resumeRecording(true)} className="modal-button primary">{t('Resume recording')}</button>
-          <ModalClose data-dialog-cancel data-testid="resume-cancel" className="modal-button">{t('Cancel')}</ModalClose>
+          <ModalClose data-dialog-cancel data-testid="resume-cancel" className="workspace-button">{t('Cancel')}</ModalClose>
         </div>
       </Modal>}
       <div data-testid="note-topbar" className="note-topbar no-drag fixed right-4 top-[10px] z-[60]">
@@ -347,7 +347,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                 </>}
                 {finishing && <span data-testid="note-finishing" role="status" className="note-finishing">{t('Finishing…')}</span>}
                 {!finishing && (m.state === 'stopped' || m.state === 'done') && !m.stopSavePending && !trashed && <button data-testid="note-resume" disabled={starting || summarizing} aria-busy={summarizing} data-processing={summarizing} onClick={() => void resumeRecording()}
-                  className="note-record-action note-resume-action" title={summarizing ? t('Summarizing…') : t('Resume recording in this note')}>
+                  className="workspace-button note-resume-action" title={summarizing ? t('Summarizing…') : t('Resume recording in this note')}>
                   <Swap show={summarizing ? 'busy' : 'mic'} options={{ mic: <Mic size={14} />, busy: <Loader size={14} /> }} />
                   <SwapText text={summarizing ? t('Summarizing…') : starting ? t('Preparing…') : t('Resume recording')} widest={t('Resume recording')} />
                 </button>}
@@ -407,7 +407,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
               <div data-testid="note-stop-unsaved" role="alert" className="mt-5 flex flex-wrap items-start gap-3 rounded-xl border border-line bg-card px-4 py-3 text-[13px] leading-relaxed">
                 <TriangleAlert size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-danger" />
                 <p className="min-w-48 flex-1">{t("Recording stopped. Yogurt couldn't save when it ended. Keep Yogurt open and try again.")}</p>
-                <button data-testid="note-stop-retry" disabled={retryingStop} className="bar-btn rounded-md border border-line bg-bg px-3 py-1 text-ink disabled:opacity-50" onClick={() => {
+                <button data-testid="note-stop-retry" disabled={retryingStop} className="workspace-button" onClick={() => {
                   setRetryingStop(true)
                   void window.yogurt.meetings.retryStopSave(id).then((saved) => {
                     if (saved) transcriptButton.current?.focus({ preventScroll: true })
@@ -433,7 +433,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
           {saveStatus === 'failed' && (
             <InlineError testId="note-save-status" warningTestId="note-save-warning" className="pointer-events-auto mx-auto mt-3 w-fit max-w-[calc(100%-32px)]">
               <span>{mineSave.reason === 'too-long' || enhancedSave.reason === 'too-long' ? t('This note is too long to save. Shorten it and try again.') : t("Couldn't save your changes")}</span>
-              <button data-testid="note-save-retry" className="inline-error-action" onClick={() => { void saveAll() }}>{t('Try again')}</button>
+              <button data-testid="note-save-retry" className="text-action" onClick={() => { void saveAll() }}>{t('Try again')}</button>
             </InlineError>
           )}
           {startFailed && <p role="alert" className="pointer-events-auto mx-auto mt-3 w-fit text-[13px] text-danger">{t("Yogurt couldn't start the notes. Try again in a moment.")}</p>}
@@ -508,7 +508,7 @@ function Enhanced({ notes, presentation, disabled, onChange, onBlur, onRetry, fo
     return (
       <InlineError testId="note-enhanced-failed">
         <span>{t("Yogurt couldn't generate this summary.")}</span>
-        <button onClick={onRetry} className="inline-error-action">{t('Try again')}</button>
+        <button onClick={onRetry} className="text-action">{t('Try again')}</button>
       </InlineError>
     )
   }
@@ -526,7 +526,7 @@ function Enhanced({ notes, presentation, disabled, onChange, onBlur, onRetry, fo
     <div data-testid="note-enhanced" data-status={status} className={presentation === 'streaming' ? 'streaming' : ''}>
       {status === 'failed' && <InlineError testId="note-enhanced-rewrite-failed" className="mb-6">
         <span>{t("Yogurt couldn't regenerate the summary, so your previous version is still shown.")}</span>
-        <button onClick={onRetry} className="inline-error-action">{t('Try again')}</button>
+        <button onClick={onRetry} className="text-action">{t('Try again')}</button>
       </InlineError>}
       {(rewriting || handoff) && <SummaryWaiting outline={false} writing={handoff} part={status === 'writing' ? notes.part : undefined} />}
       <div ref={surface} className="summary-rewrite" data-rewriting={rewriting} data-handoff={handoff} style={handoff ? { minHeight: height.current } : undefined}>

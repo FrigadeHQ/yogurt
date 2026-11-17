@@ -27,8 +27,8 @@ for (const theme of ['light', 'dark'] as const) for (const status of ['notDeterm
       await expect(card.getByTestId('note-date-heading')).toBeVisible()
       const label = status === 'error' ? 'Try again' : status === 'denied' ? 'Open System Settings' : status === 'notDetermined' ? 'Connect calendar' : 'Link event'
       const action = card.getByRole('button', { name: label, exact: true })
-      await expect(action).toHaveClass('workspace-button agenda-open-note')
-      await expect(action).toHaveCSS('height', '28px')
+      await expect(action).toHaveClass('workspace-button')
+      await expect(action).toHaveCSS('height', '30px')
       // the label fits its button: a collapsed button once let it spill over "Calendar access is off"
       expect(await action.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
       if (status === 'denied') {

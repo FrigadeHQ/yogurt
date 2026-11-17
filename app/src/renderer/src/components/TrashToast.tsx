@@ -119,8 +119,8 @@ function ToastList() {
     data-kind={item.data?.testId} data-testid={item.transitionStatus === 'ending' ? undefined : item.data?.testId ?? 'app-toast'}>
     <Toast.Content className="app-toast-content" transition={{ duration: motion.micro / 1000, ease: motion.out }}>
       <Toast.Title className="app-toast-title" />
-      {item.actionProps && <Toast.Action className="app-toast-action" data-testid={item.data?.actionTestId} />}
-      <Toast.Close className="app-toast-close" aria-label={t('Close')}><X size={14} aria-hidden="true" /></Toast.Close>
+      {item.actionProps && <Toast.Action className="workspace-button" data-testid={item.data?.actionTestId} />}
+      <Toast.Close className="ghost-btn workspace-icon" aria-label={t('Close')}><X size={14} aria-hidden="true" /></Toast.Close>
     </Toast.Content>
   </Toast.Root>)
 }

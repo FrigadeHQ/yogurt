@@ -74,9 +74,9 @@ export function ChatPage({ id, go, openSource }: { id: string | null; go: (route
   return <div ref={page} data-testid="chat-page" className={`chat-page ask-page${id ? ' ask-full-thread' : ' ask-home'}`}>
     {!id && <StartRecording />}
     <div className="ask-page-toolbar">
-      {id && <button className="ask-back" onClick={back}><ArrowLeft size={14} aria-hidden="true" />{t('Ask')}</button>}
+      {id && <button className="ghost-btn ask-back" onClick={back}><ArrowLeft size={14} aria-hidden="true" />{t('Ask')}</button>}
       <Popover.Root open={recent} onOpenChange={next => { setRecent(next); if (!next) setShowAll(false) }}>
-        <Popover.Trigger ref={recentButton} data-testid="chat-recent" className="ask-recent-button"><Clock size={14} aria-hidden="true" />{t('Recent')}</Popover.Trigger>
+        <Popover.Trigger ref={recentButton} data-testid="chat-recent" className="ghost-btn"><Clock size={14} aria-hidden="true" />{t('Recent')}</Popover.Trigger>
         <Popover.Portal>
           <Popover.Positioner side="bottom" align="end" sideOffset={8} collisionPadding={16} className="ask-recent-positioner">
             <Popover.Popup data-testid="chat-recent-list" className="menu-entry ask-history" aria-label={t('Conversations')}>
@@ -93,7 +93,7 @@ export function ChatPage({ id, go, openSource }: { id: string | null; go: (route
                   <ConversationActions className="row-swap-actions" id={c.id} title={c.title} onDeleted={() => deleted(c.id)} onEdit={kind => { setRecent(false); setEditing({ id: c.id, title: c.title, kind }) }} />
                 </li>)}</ul>
               </section>)}
-              {history.hasMore && <button data-testid="chat-history-all" className="ask-history-all" onClick={() => setShowAll(true)}>{t('Show all')}</button>}
+              {history.hasMore && <button data-testid="chat-history-all" className="ghost-btn ask-history-all" onClick={() => setShowAll(true)}>{t('Show all')}</button>}
               </LoadingContent></div></ScrollFade>
             </Popover.Popup>
           </Popover.Positioner>

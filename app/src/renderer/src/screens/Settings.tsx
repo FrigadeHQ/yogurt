@@ -360,12 +360,12 @@ function Backup() {
             <p data-testid="backup-said" data-kind={said.kind} className={`settings-backup-status ${said.kind === 'error' ? 'text-danger' : 'text-ink'}`}>
               {said.kind === 'exported' && <>
                 <span className="flex items-center gap-1.5"><Check size={14} aria-hidden="true" className="text-muted" />{t('Exported {count} meetings', { count: said.count })}</span>
-                <button data-testid="backup-show" onClick={() => window.yogurt.backup.show()} className="settings-link">{osWords({ mac: t('Show in Finder'), windows: t('Show in File Explorer'), linux: t('Show in Files') })}</button>
+                <button data-testid="backup-show" onClick={() => window.yogurt.backup.show()} className="ghost-btn">{osWords({ mac: t('Show in Finder'), windows: t('Show in File Explorer'), linux: t('Show in Files') })}</button>
               </>}
               {said.kind === 'imported' && <span className="flex items-center gap-1.5"><Check size={14} aria-hidden="true" className="text-muted" />
                 {said.added ? t('Added {count} meetings.', { count: said.added }) : t('Nothing new in this backup.')}
                 {said.skipped > 0 && ' ' + t('{count} were already here.', { count: said.skipped })}</span>}
-              {said.kind === 'error' && <>{said.text}{said.meetingId && <button data-testid="backup-open-note" className="settings-link" onClick={() => window.yogurt.nav.go(`/note/${said.meetingId}`)}>{t('Open note')}</button>}</>}
+              {said.kind === 'error' && <>{said.text}{said.meetingId && <button data-testid="backup-open-note" className="ghost-btn" onClick={() => window.yogurt.nav.go(`/note/${said.meetingId}`)}>{t('Open note')}</button>}</>}
             </p>
           )}
         </div>

@@ -181,10 +181,10 @@ test('permission help starts collapsed and uses the same secondary action in onb
         await help.locator('summary').click()
         const restart = page.getByTestId('settings-guide-relaunch')
         await expect(restart).toBeVisible()
-        await expect(restart).toHaveCSS('height', '36px')
-        await expect(restart).toHaveClass(/ob-button secondary/)
+        await expect(restart).toHaveCSS('height', '30px')
+        await expect(restart).toHaveClass(/workspace-button/)
         await expect(restart.locator('svg')).toHaveCount(0)
-        if (surface === 'onboarding') expect((await restart.boundingBox())!.height).toBe((await page.getByTestId('step-later').boundingBox())!.height)
+        if (surface === 'onboarding') await expect(page.getByTestId('step-later')).toHaveCSS('height', '26px')
         await page.screenshot({ path: info.outputPath(`help-${surface}-${colorScheme}-expanded.png`) })
         await help.locator('summary').click()
       }

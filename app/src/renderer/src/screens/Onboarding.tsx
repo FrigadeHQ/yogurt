@@ -154,7 +154,7 @@ function Ask({ screen, step, lit, chained, leaving, state, progress, onOn, onLat
           onClick={() => (back ? onOn() : away ? void flow.openSettings() : void flow.allow())} className="ob-button primary no-drag">
           {flow.phase === 'asking' && <LoaderCircle size={14} aria-hidden="true" className="animate-spin motion-reduce:animate-none" />}{label}
         </button>
-        {!back && <button data-testid="step-later" disabled={busy} onClick={onLater} className="ob-button quiet no-drag">{t('Not now')}</button>}
+        {!back && <button data-testid="step-later" disabled={busy} onClick={onLater} className="text-action no-drag">{t('Not now')}</button>}
       </>}
     />
   )
@@ -171,7 +171,7 @@ function GuideNote({ kind }: { kind: PermissionKind }) {
         <div className="ob-guide-help-content">
         {(kind === 'accessibility' || kind === 'systemAudio') && <p>{t('Not in the list? Click +, then choose Yogurt in Applications.')}</p>}
         <p>{t('If you turned access on and this stays open, restart Yogurt.')}</p>
-        <button data-testid="settings-guide-relaunch" className="ob-button secondary no-drag" onClick={() => {
+        <button data-testid="settings-guide-relaunch" className="workspace-button no-drag" onClick={() => {
           void window.yogurt.permissions.relaunch().then((ok) => setFailed(!ok), () => setFailed(true))
         }}>{t('Restart Yogurt')}</button>
       </div>

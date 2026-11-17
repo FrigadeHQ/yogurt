@@ -29,7 +29,7 @@ export function DeleteNote({ id, title, onDone }: { id: string; title: string; o
           : t("Yogurt couldn't finish deleting this note.")}</span></InlineError>}
         <div className="modal-actions">
           <button data-testid="delete-yes" onClick={() => void yes()} disabled={busy} className="modal-button danger">{t('Delete forever')}</button>
-          <ModalClose data-testid="delete-cancel" data-dialog-cancel disabled={busy} className="modal-button">{t('Cancel')}</ModalClose>
+          <ModalClose data-testid="delete-cancel" data-dialog-cancel disabled={busy} className="workspace-button">{t('Cancel')}</ModalClose>
         </div>
     </Modal>
   )

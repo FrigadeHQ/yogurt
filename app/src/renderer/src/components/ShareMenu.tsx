@@ -88,7 +88,7 @@ export function ShareMenu({ id, shown, status, hasEnhanced, beforeUse }: { id: s
         </>}
       </span>
       <button ref={button} data-testid="share-button" data-state={copied ? 'copied' : 'idle'} aria-haspopup="menu" aria-expanded={!!open} title={t('Copy and export')}
-        onClick={(e) => setOpen((o) => o ? false : e.detail > 0 ? 'pointer' : 'keyboard')} className="note-record-action share-btn">
+        onClick={(e) => setOpen((o) => o ? false : e.detail > 0 ? 'pointer' : 'keyboard')} className="ghost-btn">
         {/* the status under the button confirms a copy; the button itself stays put */}
         <Copy size={13} strokeWidth={1.75} aria-hidden="true" />{t('Copy')}
         <ChevronDown size={12} strokeWidth={1.75} aria-hidden="true" />

@@ -57,7 +57,7 @@ export function SourceCitationCard({ source, sentence, triggerId, animate, onOpe
           </div>
           {bubble ? preview.match.text && (preview.kind === 'transcript' ? <TranscriptPassage key={JSON.stringify(preview.lines) + preview.matchedLine} preview={preview} /> : <NotesPassage preview={preview} />) : passage.match && <Passage key={passage.match + passage.before} passage={passage} />}
           <div className="citation-footer"><span>{source.atMs !== null ? <>{t('Transcript')} · {clock(bubble ? preview.match.atMs ?? source.atMs : source.atMs)}</> : t('Notes')}</span>
-            <button className="citation-open" data-testid="citation-open" aria-label={t('Open {source}', { source: title })} onClick={() => onOpen(bubble ? preview.match.text : passage.match)}>{t('Open')}<ArrowUpRight size={12} aria-hidden="true" /></button>
+            <button className="ghost-btn" data-testid="citation-open" aria-label={t('Open {source}', { source: title })} onClick={() => onOpen(bubble ? preview.match.text : passage.match)}>{t('Open')}<ArrowUpRight size={12} aria-hidden="true" /></button>
           </div>
         </div>
       </Popover.Popup>

@@ -73,8 +73,8 @@ export function NotesSetup({ go }: { go: (route: string) => void }) {
                 ? error
                 : upgrading ? t("Once this model is ready, we'll remove the old one.") : t('You can record meetings. AI summaries and Ask work when this finishes.')}</p>
               {(failed || upgrading) && <div className="notes-download-actions">
-                {failed && <button data-testid="notes-setup-retry" className="notes-download-retry" disabled={retrying} onClick={() => void retry()}>{retrying ? t('Retrying…') : t('Try again')}</button>}
-                {upgrading && <button data-testid="notes-setup-skip" className="notes-download-skip" disabled={setup.notesUpgradeChanging} onClick={() => void skip()}>{t('Skip')}</button>}
+                {failed && <button data-testid="notes-setup-retry" className="workspace-button" disabled={retrying} onClick={() => void retry()}>{retrying ? t('Retrying…') : t('Try again')}</button>}
+                {upgrading && <button data-testid="notes-setup-skip" className="text-action" disabled={setup.notesUpgradeChanging} onClick={() => void skip()}>{t('Skip')}</button>}
               </div>}
             </div>
             {retryFailed && <p role="alert">{t("Yogurt couldn't restart the download.")}</p>}

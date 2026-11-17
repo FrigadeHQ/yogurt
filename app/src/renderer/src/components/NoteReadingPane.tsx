@@ -27,6 +27,6 @@ export function NoteReadingPane({ active, summary, hasSummary, generating, writi
       </section></ScrollFade>
     </div>
     {writing && !follow.behind && <span className="note-summary-status" aria-hidden="true"><span className="summary-status-text">{t('Generating notes…')}</span></span>}
-    {follow.behind && <button type="button" className="note-latest" data-testid="note-summary-latest" onClick={follow.latest}><ArrowDown size={12} aria-hidden="true" />{t('Latest')}</button>}
+    {follow.behind && <button type="button" className="workspace-button note-latest" data-testid="note-summary-latest" onClick={follow.latest}><ArrowDown size={12} aria-hidden="true" />{t('Latest')}</button>}
   </div>
 }

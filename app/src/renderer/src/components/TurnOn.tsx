@@ -25,7 +25,7 @@ export function TurnOn({ kind, status, onOn, recording = false, className = 'wor
         <Modal testId="permission-guide" title={t('Turn it on in System Settings')} description={t('System Settings is open at {pane}.', { pane: c.pane })} onCancel={flow.stop}>
           <div className="modal-guide"><SettingsGuide kind={kind} canRelaunch={!recording} onOpenAgain={() => void flow.openSettings()} /></div>
           <div className="modal-actions">
-            <ModalClose data-testid="permission-guide-close" data-dialog-cancel className="modal-button">{t('Close')}</ModalClose>
+            <ModalClose data-testid="permission-guide-close" data-dialog-cancel className="workspace-button">{t('Close')}</ModalClose>
           </div>
         </Modal>
       )}

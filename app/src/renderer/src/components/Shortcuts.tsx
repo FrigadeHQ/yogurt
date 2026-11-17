@@ -26,7 +26,7 @@ export function Shortcuts({ onClose }: { onClose(): void }) {
   const words = query.trim().toLocaleLowerCase().split(/\s+/)
   const matching = groups.map(([group, rows]) => ({ group, rows: rows.filter(([label]) => words.every(word => `${group} ${label}`.toLocaleLowerCase().includes(word))) }))
   return <Modal testId="shortcuts-dialog" title={t('Keyboard shortcuts')} onCancel={onClose}>
-    <ModalClose className="workspace-icon shortcuts-close" aria-label={t('Close')}><X size={17} aria-hidden="true" /></ModalClose>
+    <ModalClose className="ghost-btn workspace-icon shortcuts-close" aria-label={t('Close')}><X size={17} aria-hidden="true" /></ModalClose>
     <label className="shortcuts-search"><Search size={16} aria-hidden="true" /><input data-dialog-focus value={query} onChange={e => setQuery(e.target.value)} placeholder={t('Search')} aria-label={t('Search')} /></label>
     <div className="shortcuts-list">
       {matching.map(({ group, rows }) => rows.length > 0 && <section key={group}><h3>{group}</h3><dl>{rows.map(([label, keys]) =>

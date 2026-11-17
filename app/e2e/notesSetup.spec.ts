@@ -52,6 +52,10 @@ async function expectClear(page: Page) {
 }
 
 async function expectQuietLayout(page: Page, upgrading: boolean, failed: boolean) {
+  if (upgrading) {
+    await expect(page.getByTestId('notes-setup-skip')).toHaveCSS('font-size', '12px')
+    await expect(page.getByTestId('notes-setup-skip')).toHaveCSS('line-height', '18px')
+  }
   const popup = page.getByTestId('notes-setup')
   await expect(popup).toHaveCSS('width', '408px')
   await expect(popup.locator('.notes-download-progress')).toHaveCSS('height', '3px')
@@ -302,7 +306,7 @@ test('skipping from the popover confirms only success, opens Settings, and dismi
       await expect(toast).toContainText('AI upgrade skipped')
       await expect(toast.getByRole('button', { name: 'Settings', exact: true })).toBeVisible()
       expect(await toast.evaluate(el => {
-        const title = el.querySelector('.app-toast-title')!, action = el.querySelector('.app-toast-action')!
+        const title = el.querySelector('.app-toast-title')!, action = el.querySelector('.workspace-button')!
         return [title, action].every(line => {
           const range = document.createRange()
           range.selectNodeContents(line)
@@ -315,7 +319,7 @@ test('skipping from the popover confirms only success, opens Settings, and dismi
         await expect(page.getByTestId('settings')).toBeVisible()
         await expect.poll(() => page.evaluate(() => window.yogurt.nav.current())).toBe('/settings/notes-model')
       } else if (dismiss === 'close') {
-        await toast.locator('.app-toast-close').click()
+        await toast.getByRole('button', { name: 'Close', exact: true }).click()
       } else {
         await page.mouse.move(0, 0)
       }

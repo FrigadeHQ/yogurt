@@ -120,8 +120,8 @@ function DateCard({ m, chip, motionProps, onClose }: { m: Meeting; chip: RefObje
         <h3 ref={heading} data-testid="note-date-heading" tabIndex={-1} aria-live="polite" aria-label={fullDate} title={fullDate}>{compactDate ? shortDate : fullDate}</h3>
         <div className="flex shrink-0 items-center gap-1">
           {(available || browsing) && <>
-            <button type="button" ref={previous} className="workspace-icon" data-testid="note-date-previous" aria-label={t('Previous day')} disabled={linking} onClick={e => { pickerKeyboard.current = e.detail === 0; setPicking(true); browse(shiftCalendarDay(day, -1)) }}><ChevronLeft size={15} aria-hidden="true" /></button>
-            <button type="button" className="workspace-icon" data-testid="note-date-next" aria-label={t('Next day')} disabled={linking} onClick={e => { pickerKeyboard.current = e.detail === 0; setPicking(true); browse(shiftCalendarDay(day, 1)) }}><ChevronRight size={15} aria-hidden="true" /></button>
+            <button type="button" ref={previous} className="ghost-btn workspace-icon" data-testid="note-date-previous" aria-label={t('Previous day')} disabled={linking} onClick={e => { pickerKeyboard.current = e.detail === 0; setPicking(true); browse(shiftCalendarDay(day, -1)) }}><ChevronLeft size={15} aria-hidden="true" /></button>
+            <button type="button" className="ghost-btn workspace-icon" data-testid="note-date-next" aria-label={t('Next day')} disabled={linking} onClick={e => { pickerKeyboard.current = e.detail === 0; setPicking(true); browse(shiftCalendarDay(day, 1)) }}><ChevronRight size={15} aria-hidden="true" /></button>
           </>}
         </div>
       </div>
@@ -135,12 +135,12 @@ function DateCard({ m, chip, motionProps, onClose }: { m: Meeting; chip: RefObje
         <p>{timeOf(at)}{eventEnd != null ? ` – ${timeOf(eventEnd)}` : ` · ${t('{count} min', { count: minutes })}`}</p>
       </div></div>
       {linked && available && event === null && <p role="status" className="text-xs text-muted">{t('Calendar event unavailable')}
-        <button className="ms-2 underline" onClick={() => setRevision(n => n + 1)}>{t('Try again')}</button>
+        <button className="text-action ms-2" onClick={() => setRevision(n => n + 1)}>{t('Try again')}</button>
       </p>}
       {(eventCalendar || url) && <div className="agenda-inspector-footer">
         {eventCalendar && <div className="agenda-inspector-line"><CalendarDays size={15} aria-hidden="true" /><p>{eventCalendar.name}<span className="agenda-inspector-muted">{eventCalendar.source}</span></p></div>}
         {url && <div className="agenda-inspector-actions">
-          <a className="workspace-button agenda-open-note" title={t('Join meeting')} href={url} target="_blank" rel="noreferrer"><span>{t('Join meeting')}</span><ExternalLink size={12} aria-hidden="true" /></a>
+          <a className="workspace-button" title={t('Join meeting')} href={url} target="_blank" rel="noreferrer"><span>{t('Join meeting')}</span><ExternalLink size={12} aria-hidden="true" /></a>
         </div>}
       </div>}
       </div></div></div>}
@@ -148,11 +148,11 @@ function DateCard({ m, chip, motionProps, onClose }: { m: Meeting; chip: RefObje
         {!result ? loading
           : !available ? <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <p role="status" className="text-xs text-muted">{result.status === 'error' ? t("Yogurt couldn't read your calendar") : t('Calendar access is off')}</p>
-            <div className="ms-auto flex shrink-0"><button ref={recovery} className="workspace-button agenda-open-note" onClick={result.status === 'error' ? () => setRevision(n => n + 1) : connect}>{result.status === 'error' ? t('Try again') : result.status === 'denied' ? t('Open System Settings') : t('Connect calendar')}</button></div>
+            <div className="ms-auto flex shrink-0"><button ref={recovery} className="workspace-button" onClick={result.status === 'error' ? () => setRevision(n => n + 1) : connect}>{result.status === 'error' ? t('Try again') : result.status === 'denied' ? t('Open System Settings') : t('Connect calendar')}</button></div>
           </div>
           : !linked && <div className="note-date-empty-row">
             {!result.events.length && <p role="status" className="text-xs text-muted" data-testid="note-date-events-none" title={t('No events')}>{t('No events')}</p>}
-            <div className="ms-auto flex shrink-0"><button ref={toggle} data-testid="note-date-events-toggle" className="workspace-button agenda-open-note" title={t('Link to a calendar event')} aria-expanded={browsing} onClick={e => { pickerKeyboard.current = e.detail === 0; setPicking(true) }}><Link2 size={13} aria-hidden="true" /><span>{t('Link event')}</span></button></div>
+            <div className="ms-auto flex shrink-0"><button ref={toggle} data-testid="note-date-events-toggle" className="workspace-button" title={t('Link to a calendar event')} aria-expanded={browsing} onClick={e => { pickerKeyboard.current = e.detail === 0; setPicking(true) }}><Link2 size={13} aria-hidden="true" /><span>{t('Link event')}</span></button></div>
           </div>}
       </>}
       {picking && !linked && <EventPicker keyboard={pickerKeyboard.current} m={m} day={day} result={result} loading={loading} previous={previous} linking={linking} onLinking={setLinking} onLinked={() => requestAnimationFrame(() => toggle.current?.focus({ preventScroll: true }))} />}

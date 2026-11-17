@@ -122,7 +122,7 @@ test('the welcome says what Yogurt is on one screen, and Get started goes on to 
   } finally { await again.close() }
 })
 
-test('every screen uses the same buttons: Allow and Not now are the same height and sit in the same place on every step', async () => {
+test('every screen keeps Allow and the quiet Not now action centered in the same place', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'yogurt-e2e-'))
   const app = await launchWith(dir, firstRun)
   try {
@@ -139,7 +139,15 @@ test('every screen uses the same buttons: Allow and Not now are the same height 
       // the step's entrance settles before measuring
       await page.waitForTimeout(500)
       const allow = await box('step-allow'), later = await box('step-later')
-      expect(later.height).toBe(allow.height)
+      expect(later.height).toBe(26)
+      expect(later.y + later.height / 2).toBe(allow.y + allow.height / 2)
+      await expect(page.getByTestId('step-later')).toHaveClass(/text-action/)
+      await expect(page.getByTestId('step-later')).toHaveCSS('font-size', '13px')
+      await expect(page.getByTestId('step-later')).toHaveCSS('min-width', '112px')
+      await expect(page.getByTestId('step-later')).toHaveCSS('padding-inline-start', '19px')
+      await expect(page.getByTestId('step-later')).toHaveCSS('line-height', await page.getByTestId('step-allow').evaluate(el => getComputedStyle(el).lineHeight))
+      await page.getByTestId('step-later').hover()
+      await expect(page.getByTestId('step-later')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
       expect(allow.height).toBe(start.height)
       if (first) {
         expect(allow.y).toBe(first.allow.y)

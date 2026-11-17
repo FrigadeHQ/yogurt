@@ -61,7 +61,7 @@ export function MeetingSelectionBar({ ids, memberships, list, busy, clear, trash
         }}><FolderPicker key={ids.join(',')} meetingIds={ids} memberships={memberships} testId="selection-folders" onNew={() => { setOpen(false); setNaming(true) }} /></div>}
       </div>
       <button className="workspace-button meeting-selection-delete" disabled={busy} onClick={trash}><Trash2 size={14} aria-hidden="true" />{t('Delete')}</button>
-      <button className="workspace-icon" aria-label={t('Clear selection')} onClick={e => { clear(); if (!e.detail) list.current?.querySelector<HTMLButtonElement>('.native-meeting-link')?.focus() }}><X size={16} aria-hidden="true" /></button>
+      <button className="ghost-btn workspace-icon" aria-label={t('Clear selection')} onClick={e => { clear(); if (!e.detail) list.current?.querySelector<HTMLButtonElement>('.native-meeting-link')?.focus() }}><X size={16} aria-hidden="true" /></button>
     </div>
     {naming && <FolderName onDone={made => {
       setNaming(false); trigger.current?.focus()
