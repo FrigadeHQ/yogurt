@@ -180,7 +180,7 @@ const Row = memo(function Row({ line: l, focused, name, playing, playable, focus
  * A voice of the other side: its name is editable in place, and two voices can be merged (one inline confirm; no undo).
  * The widget transcript stays read-only.
  */
-function WhoName({ meetingId, line, voices }: { meetingId: string; line: Line; voices: Array<{ name: string; key: string }> }) {
+export function WhoName({ meetingId, line, voices }: { meetingId: string; line: Line; voices: Array<{ name: string; key: string }> }) {
   const named = line.speaker
   const color = !('speakerColor' in line) ? undefined : line.speakerColor
   const voiceKey = line.speakerKey
@@ -190,9 +190,24 @@ function WhoName({ meetingId, line, voices }: { meetingId: string; line: Line; v
   const [confirming, setConfirming] = useState<{ name: string; key: string } | null>(null)
   const input = useRef<HTMLInputElement>(null)
   useEffect(() => { if (editing) input.current?.select() }, [editing])
-  // undiarized, or the mic's side: a plain name, nothing to do on it
+  // diarization left this line unclaimed: the person says who said it
   if (!voiceKey) return (
-    <span data-testid="transcript-who" data-color={color} data-folder-color={color === undefined ? undefined : SPEAKER_COLORS[color]} className="line-who font-medium text-muted name-in">{who(line)}</span>
+    <span className="turn-head-name name-in">
+      <button type="button" data-testid="transcript-who" data-color={color} data-folder-color={color === undefined ? undefined : SPEAKER_COLORS[color]} className="line-who font-medium text-muted" title={t('Assign to speaker')}
+        onClick={() => setMenu((m) => !m)}>{who(line)}</button>
+      <button type="button" data-testid="speaker-menu" aria-label={t('Assign to speaker')} aria-haspopup="menu" aria-expanded={menu}
+        onClick={() => setMenu((m) => !m)} className="speaker-menu-btn"><ChevronDown size={12} aria-hidden="true" /></button>
+      {menu && (
+        <div role="menu" data-testid="speaker-menu-list" onKeyDown={(e) => { if (e.key === 'Escape') setMenu(false) }}>
+          {voices.map((v) => (
+            <button type="button" role="menuitem" data-testid="speaker-assign" key={v.key}
+              onClick={() => { setMenu(false); if (line.id !== undefined) void window.yogurt.transcript.assignSpeaker(meetingId, line.id, v.key) }}>
+              {t('Assign to {name}', { name: v.name })}
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
   )
   const commit = () => {
     const name = draft.replace(/\s+/g, ' ').trim().slice(0, 80)
