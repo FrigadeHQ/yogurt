@@ -678,6 +678,5 @@
   "Yogurt couldn't reach that address. Check your connection and the address.": "Yogurt เข้าถึงที่อยู่นั้นไม่ได้ ตรวจสอบการเชื่อมต่อและที่อยู่",
   "{name} is connected. You can change this any time in Settings.": "เชื่อมต่อ {name} แล้ว เปลี่ยนได้ทุกเมื่อในการตั้งค่า",
   "Only see \"Public address in iCal format\"? Your organization turned off secret addresses, so this calendar can't be connected this way.": "เห็นแค่ \"Public address in iCal format\" ใช่ไหม องค์กรของคุณปิดที่อยู่ลับไว้ จึงเชื่อมต่อปฏิทินนี้ด้วยวิธีนี้ไม่ได้",
-  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "นั่นคือที่อยู่สาธารณะ ซึ่งใช้ได้เฉพาะเมื่อปฏิทินเป็นแบบสาธารณะ ให้คัดลอก \"Secret address in iCal format\" แทน",
-  "Add a calendar link": "เพิ่มลิงก์ปฏิทิน"
+  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "นั่นคือที่อยู่สาธารณะ ซึ่งใช้ได้เฉพาะเมื่อปฏิทินเป็นแบบสาธารณะ ให้คัดลอก \"Secret address in iCal format\" แทน"
 }

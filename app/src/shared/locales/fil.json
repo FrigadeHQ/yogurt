@@ -720,6 +720,5 @@
   "Yogurt couldn't reach that address. Check your connection and the address.": "Hindi maabot ng Yogurt ang address na iyan. Tingnan ang koneksyon mo at ang address.",
   "{name} is connected. You can change this any time in Settings.": "Nakakonekta na ang {name}. Puwede mo itong baguhin anumang oras sa Settings.",
   "Only see \"Public address in iCal format\"? Your organization turned off secret addresses, so this calendar can't be connected this way.": "\"Public address in iCal format\" lang ang nakikita mo? In-off ng organisasyon mo ang mga secret address, kaya hindi maikokonekta ang calendar na ito sa ganitong paraan.",
-  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Iyan ang public address, na gumagana lang kung public ang calendar mo. Kopyahin na lang ang \"Secret address in iCal format\".",
-  "Add a calendar link": "Magdagdag ng calendar link"
+  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Iyan ang public address, na gumagana lang kung public ang calendar mo. Kopyahin na lang ang \"Secret address in iCal format\"."
 }

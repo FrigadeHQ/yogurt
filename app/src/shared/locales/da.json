@@ -720,6 +720,5 @@
   "Yogurt couldn't reach that address. Check your connection and the address.": "Yogurt kunne ikke nå den adresse. Tjek din forbindelse og adressen.",
   "{name} is connected. You can change this any time in Settings.": "{name} er forbundet. Du kan ændre det når som helst i Indstillinger.",
   "Only see \"Public address in iCal format\"? Your organization turned off secret addresses, so this calendar can't be connected this way.": "Ser du kun \"Public address in iCal format\"? Din organisation har slået hemmelige adresser fra, så kalenderen kan ikke forbindes på denne måde.",
-  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Det er den offentlige adresse, som kun virker, hvis din kalender er offentlig. Kopiér \"Secret address in iCal format\" i stedet.",
-  "Add a calendar link": "Tilføj et kalenderlink"
+  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Det er den offentlige adresse, som kun virker, hvis din kalender er offentlig. Kopiér \"Secret address in iCal format\" i stedet."
 }

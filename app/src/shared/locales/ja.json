@@ -678,6 +678,5 @@
   "Yogurt couldn't reach that address. Check your connection and the address.": "Yogurt はそのアドレスにアクセスできませんでした。接続とアドレスを確認してください。",
   "{name} is connected. You can change this any time in Settings.": "{name}を接続しました。設定でいつでも変更できます。",
   "Only see \"Public address in iCal format\"? Your organization turned off secret addresses, so this calendar can't be connected this way.": "「Public address in iCal format」しか表示されませんか？組織が非公開アドレスをオフにしているため、このカレンダーはこの方法では接続できません。",
-  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "それは公開アドレスで、カレンダーが公開されている場合にしか使えません。代わりに「Secret address in iCal format」をコピーしてください。",
-  "Add a calendar link": "カレンダーのリンクを追加"
+  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "それは公開アドレスで、カレンダーが公開されている場合にしか使えません。代わりに「Secret address in iCal format」をコピーしてください。"
 }

@@ -736,6 +736,5 @@
   "Yogurt couldn't reach that address. Check your connection and the address.": "O Yogurt não conseguiu acessar esse endereço. Verifique sua conexão e o endereço.",
   "{name} is connected. You can change this any time in Settings.": "{name} está conectado. Você pode mudar isso quando quiser nos Ajustes.",
   "Only see \"Public address in iCal format\"? Your organization turned off secret addresses, so this calendar can't be connected this way.": "Só aparece \"Public address in iCal format\"? Sua organização desativou os endereços secretos, então este calendário não pode ser conectado assim.",
-  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Esse é o endereço público, que só funciona se o seu calendário for público. Copie \"Secret address in iCal format\" no lugar.",
-  "Add a calendar link": "Adicionar um link de calendário"
+  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Esse é o endereço público, que só funciona se o seu calendário for público. Copie \"Secret address in iCal format\" no lugar."
 }

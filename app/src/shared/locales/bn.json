@@ -708,6 +708,5 @@
   "Yogurt couldn't reach that address. Check your connection and the address.": "Yogurt ওই ঠিকানায় পৌঁছাতে পারেনি। আপনার সংযোগ ও ঠিকানাটি দেখুন।",
   "{name} is connected. You can change this any time in Settings.": "{name} যুক্ত হয়েছে। সেটিংসে যেকোনো সময় এটি বদলাতে পারেন।",
   "Only see \"Public address in iCal format\"? Your organization turned off secret addresses, so this calendar can't be connected this way.": "শুধু \"Public address in iCal format\" দেখছেন? আপনার প্রতিষ্ঠান গোপন ঠিকানা বন্ধ করে রেখেছে, তাই এই ক্যালেন্ডারটি এভাবে যুক্ত করা যাবে না।",
-  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "এটি পাবলিক ঠিকানা, যা শুধু আপনার ক্যালেন্ডার পাবলিক হলে কাজ করে। এর বদলে \"Secret address in iCal format\" কপি করুন।",
-  "Add a calendar link": "ক্যালেন্ডার লিংক যোগ করুন"
+  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "এটি পাবলিক ঠিকানা, যা শুধু আপনার ক্যালেন্ডার পাবলিক হলে কাজ করে। এর বদলে \"Secret address in iCal format\" কপি করুন।"
 }

@@ -85,7 +85,7 @@ export function CalendarSettings() {
           </label>)}</>)}</LoadingContent>
         {!link && view && view.status !== 'error' && (adding
           ? <div className="settings-row settings-calendar-link"><CalendarLinkForm only="other" autoFocus onConnected={() => { setAdding(false); reload() }} /></div>
-          : <div className="settings-row"><button type="button" data-testid="calendar-link-add" className="workspace-button" onClick={() => setAdding(true)}>{t('Add a calendar link')}</button></div>)}
+          : <div className="settings-row"><button type="button" data-testid="calendar-link-add" className="workspace-button" onClick={() => setAdding(true)}>{t('Add another calendar')}</button></div>)}
         {link && view?.status === 'granted' && view.calendars.length > 0 && (adding
           ? <div className="settings-row settings-calendar-link"><CalendarLinkForm autoFocus onConnected={() => { setAdding(false); reload() }} /></div>
           : <div className="settings-row"><button type="button" data-testid="calendar-link-add" className="workspace-button" onClick={() => setAdding(true)}>{t('Add another calendar')}</button></div>)}

@@ -678,6 +678,5 @@
   "Yogurt couldn't reach that address. Check your connection and the address.": "Yogurt không truy cập được địa chỉ đó. Hãy kiểm tra kết nối và địa chỉ.",
   "{name} is connected. You can change this any time in Settings.": "Đã kết nối {name}. Bạn có thể đổi bất cứ lúc nào trong Cài đặt.",
   "Only see \"Public address in iCal format\"? Your organization turned off secret addresses, so this calendar can't be connected this way.": "Chỉ thấy \"Public address in iCal format\"? Tổ chức của bạn đã tắt địa chỉ bí mật, nên không thể kết nối lịch này theo cách này.",
-  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Đó là địa chỉ công khai, chỉ dùng được khi lịch của bạn ở chế độ công khai. Hãy sao chép \"Secret address in iCal format\" thay vào đó.",
-  "Add a calendar link": "Thêm liên kết lịch"
+  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Đó là địa chỉ công khai, chỉ dùng được khi lịch của bạn ở chế độ công khai. Hãy sao chép \"Secret address in iCal format\" thay vào đó."
 }
