@@ -1,6 +1,6 @@
 import type { RecordingStart } from '../meeting'
 import type { Meeting, Store } from '../store'
-import { nameFor, othersIn, type CallSample } from './attribute'
+import { fillSameSpeaker, nameFor, othersIn, type CallSample } from './attribute'
 import { asReported, readCall, summarize, withReported, type AxWindow, type CallKind, type Reported } from './parse'
 
 /**
@@ -122,7 +122,10 @@ export function hookCallNames(p: {
       const o = { myNames: p.myNames() }
       // every line of the other side again, now that the whole call is known
       const lines = p.store.segments(m.id, { hidden: true }).filter((x) => x.track === 'them' && !s.priorLines.has(x.id))
-      const names = lines.map((x) => ({ id: x.id, speaker: nameFor(x, tl, o) }))
+      // a line in a short pause between two lines of the same person is theirs too
+      const named = fillSameSpeaker(lines.map((x) => ({ id: x.id, startMs: x.startMs, endMs: x.endMs, speaker: nameFor(x, tl, o) })))
+      const byId = new Map(named.map((n) => [n.id, n.speaker]))
+      const names = lines.map((x) => ({ id: x.id, speaker: byId.get(x.id) ?? null }))
       const moved = names.filter((x, i) => x.speaker !== lines[i].speaker)
       if (moved.length) p.store.setSegmentSpeakers(moved)
       // everyone seen in the call is one of the people at the meeting

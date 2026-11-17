@@ -89,3 +89,22 @@ describe('othersIn: everyone seen in the call but the person using Yogurt', () =
     expect(othersIn(run(0, 1000, { participants: ['Alex Morgan', 'Dana Smith'] }), { myNames: ['Alex Morgan'] })).toEqual(['Dana Smith'])
   })
 })
+
+describe('fillSameSpeaker', () => {
+  const l = (startMs: number, endMs: number, speaker: string | null) => ({ startMs, endMs, speaker })
+  it('gives a line in a short pause between two lines of one person to that person', async () => {
+    const { fillSameSpeaker } = await import('../src/main/callNames/attribute')
+    expect(fillSameSpeaker([l(0, 4000, 'Dana'), l(5000, 6000, null), l(7000, 9000, 'Dana')]).map((x) => x.speaker)).toEqual(['Dana', 'Dana', 'Dana'])
+  })
+  it('never guesses between two people, and leaves long gaps alone', async () => {
+    const { fillSameSpeaker } = await import('../src/main/callNames/attribute')
+    expect(fillSameSpeaker([l(0, 4000, 'Dana'), l(5000, 6000, null), l(7000, 9000, 'Sam')])[1].speaker).toBeNull()
+    expect(fillSameSpeaker([l(0, 4000, 'Dana'), l(10000, 11000, null), l(12000, 13000, 'Dana')])[1].speaker).toBeNull()
+    expect(fillSameSpeaker([l(0, 1000, null), l(2000, 3000, 'Dana')])[0].speaker).toBeNull()
+  })
+  it('fills only lines close to both neighbours, sorted by time; a long unnamed stretch may be someone else', async () => {
+    const { fillSameSpeaker } = await import('../src/main/callNames/attribute')
+    const out = fillSameSpeaker([l(9000, 9500, 'Dana'), l(1500, 2000, null), l(0, 1000, 'Dana'), l(2500, 3000, null), l(3500, 8500, null)])
+    expect(out.map((x) => [x.startMs, x.speaker])).toEqual([[0, 'Dana'], [1500, null], [2500, null], [3500, 'Dana'], [9000, 'Dana']])
+  })
+})

@@ -78,3 +78,25 @@ export function othersIn(samples: CallSample[], o: Opts = {}): string[] {
   const me = new Set(samples.flatMap((s) => (s.me ? [norm(s.me)] : [])))
   return [...out].filter(([k]) => !me.has(k)).map(([, v]) => v)
 }
+
+/** a pause inside one person's turn that still counts as their turn */
+export const SAME_SPEAKER_GAP_MS = 5000
+
+/**
+ * The person talking gets a line the app showed no one talking for, when the lines either side of it are theirs and
+ * close by: the speaking ring flickers off in short pauses mid-sentence, so "Dana, Them, Dana" was Dana all along.
+ * Only between two lines of the same person, with no one else's line in between: it never guesses who of two.
+ */
+export function fillSameSpeaker<T extends { startMs: number; endMs: number; speaker: string | null }>(lines: T[], gapMs = SAME_SPEAKER_GAP_MS): T[] {
+  const sorted = [...lines].sort((a, b) => a.startMs - b.startMs)
+  return sorted.map((l, i) => {
+    if (l.speaker) return l
+    let prev: T | undefined, next: T | undefined
+    for (let j = i - 1; j >= 0 && !prev; j--) if (sorted[j].speaker) prev = sorted[j]
+    for (let j = i + 1; j < sorted.length && !next; j++) if (sorted[j].speaker) next = sorted[j]
+    if (!prev || !next || prev.speaker !== next.speaker) return l
+    if (l.startMs - prev.endMs > gapMs || next.startMs - l.endMs > gapMs) return l
+    return { ...l, speaker: prev.speaker }
+  })
+}
+
