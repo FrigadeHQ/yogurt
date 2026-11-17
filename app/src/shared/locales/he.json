@@ -822,5 +822,7 @@
   "Voice profiles stay on this computer, unused, until you turn this on again.": "פרופילי הקול נשארים במחשב הזה, בלי שימוש, עד שתפעיל את זה שוב.",
   "Delete all voice profiles": "מחיקת כל פרופילי הקול",
   "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "טביעת קול היא נתונים ביומטריים. היא נשארת במחשב הזה, ואפשר למחוק אותה בכל עת.",
-  "This removes every voiceprint from this computer. Names already in your meetings stay.": "הפעולה הזאת מסירה כל טביעת קול מהמחשב הזה. השמות שכבר נמצאים בפגישות שלך נשארים."
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "הפעולה הזאת מסירה כל טביעת קול מהמחשב הזה. השמות שכבר נמצאים בפגישות שלך נשארים.",
+  "Assign to speaker": "שיוך לדובר",
+  "Assign to {name}": "שיוך בשם {name}"
 }

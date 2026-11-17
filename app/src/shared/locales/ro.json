@@ -829,5 +829,7 @@
   "Voice profiles stay on this computer, unused, until you turn this on again.": "Profilurile de voce rămân pe acest computer, nefolosite, până când activați din nou.",
   "Delete all voice profiles": "Șterge toate profilurile de voce",
   "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "Amprenta vocală este o informație biometrică. Rămâne pe acest computer și o puteți șterge oricând.",
-  "This removes every voiceprint from this computer. Names already in your meetings stay.": "Aceasta elimină fiecare amprentă vocală de pe acest computer. Numele aflate deja în întâlnirile dvs. rămân."
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "Aceasta elimină fiecare amprentă vocală de pe acest computer. Numele aflate deja în întâlnirile dvs. rămân.",
+  "Assign to speaker": "Atribuie unui vorbitor",
+  "Assign to {name}": "Atribuie ca {name}"
 }

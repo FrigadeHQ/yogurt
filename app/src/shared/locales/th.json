@@ -770,5 +770,7 @@
   "Voice profiles stay on this computer, unused, until you turn this on again.": "โปรไฟล์เสียงจะอยู่บนคอมพิวเตอร์เครื่องนี้โดยไม่ถูกใช้ จนกว่าคุณจะเปิดอีกครั้ง",
   "Delete all voice profiles": "ลบโปรไฟล์เสียงทั้งหมด",
   "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "ลายเสียงเป็นข้อมูลไบโอเมตริก อยู่บนคอมพิวเตอร์เครื่องนี้และคุณสามารถลบได้ทุกเมื่อ",
-  "This removes every voiceprint from this computer. Names already in your meetings stay.": "การดำเนินการนี้จะลบลายเสียงทุกรายการออกจากคอมพิวเตอร์เครื่องนี้ ชื่อที่มีอยู่แล้วในการประชุมของคุณจะยังอยู่"
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "การดำเนินการนี้จะลบลายเสียงทุกรายการออกจากคอมพิวเตอร์เครื่องนี้ ชื่อที่มีอยู่แล้วในการประชุมของคุณจะยังอยู่",
+  "Assign to speaker": "มอบหมายให้ผู้พูด",
+  "Assign to {name}": "ระบุเป็น {name}"
 }

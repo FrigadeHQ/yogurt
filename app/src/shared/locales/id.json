@@ -770,5 +770,7 @@
   "Voice profiles stay on this computer, unused, until you turn this on again.": "Profil suara tetap di komputer ini, tidak terpakai, sampai Anda mengaktifkannya lagi.",
   "Delete all voice profiles": "Hapus semua profil suara",
   "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "Sidik suara adalah data biometrik. Tetap di komputer ini dan Anda dapat menghapusnya kapan saja.",
-  "This removes every voiceprint from this computer. Names already in your meetings stay.": "Ini menghapus semua sidik suara dari komputer ini. Nama yang sudah ada di rapat Anda tetap ada."
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "Ini menghapus semua sidik suara dari komputer ini. Nama yang sudah ada di rapat Anda tetap ada.",
+  "Assign to speaker": "Tetapkan ke pembicara",
+  "Assign to {name}": "Tetapkan sebagai {name}"
 }

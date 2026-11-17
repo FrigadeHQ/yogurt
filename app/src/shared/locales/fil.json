@@ -812,5 +812,7 @@
   "Voice profiles stay on this computer, unused, until you turn this on again.": "Nananatili sa computer na ito ang mga voice profile, hindi ginagamit, hanggang i-on mo ulit ito.",
   "Delete all voice profiles": "Burahin lahat ng voice profile",
   "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "Ang bakas ng boses ay biometric data. Nanatili ito sa computer na ito, at maaari mo itong burahin anumang oras.",
-  "This removes every voiceprint from this computer. Names already in your meetings stay.": "Aalisin nito lahat ng bakas ng boses sa computer na ito. Mananatili ang mga pangalang nasa mga meeting mo na."
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "Aalisin nito lahat ng bakas ng boses sa computer na ito. Mananatili ang mga pangalang nasa mga meeting mo na.",
+  "Assign to speaker": "Italaga sa tagapagsalita",
+  "Assign to {name}": "Italaga bilang {name}"
 }

@@ -812,5 +812,7 @@
   "Voice profiles stay on this computer, unused, until you turn this on again.": "Stimmprofile bleiben unbenutzt auf diesem Computer, bis du sie wieder einschaltest.",
   "Delete all voice profiles": "Alle Stimmprofile löschen",
   "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "Ein Stimmabdruck ist biometrische Daten. Er bleibt auf diesem Computer, und du kannst ihn jederzeit löschen.",
-  "This removes every voiceprint from this computer. Names already in your meetings stay.": "Damit werden alle Stimmabdrücke von diesem Computer entfernt. Namen, die schon in deinen Meetings sind, bleiben."
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "Damit werden alle Stimmabdrücke von diesem Computer entfernt. Namen, die schon in deinen Meetings sind, bleiben.",
+  "Assign to speaker": "Sprecher zuweisen",
+  "Assign to {name}": "Zuweisen an {name}"
 }

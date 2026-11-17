@@ -812,5 +812,7 @@
   "Voice profiles stay on this computer, unused, until you turn this on again.": "Röstprofilerna stannar på den här datorn, oanvända, tills du slår på detta igen.",
   "Delete all voice profiles": "Radera alla röstprofiler",
   "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "Ett röstavtryck är biometrisk data. Det stannar på den här datorn, och du kan radera det när som helst.",
-  "This removes every voiceprint from this computer. Names already in your meetings stay.": "Det här tar bort alla röstavtryck från den här datorn. Namn som redan finns i dina möten stannar."
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "Det här tar bort alla röstavtryck från den här datorn. Namn som redan finns i dina möten stannar.",
+  "Assign to speaker": "Tilldela till en talare",
+  "Assign to {name}": "Tilldela till {name}"
 }

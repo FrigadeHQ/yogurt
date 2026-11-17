@@ -812,5 +812,7 @@
   "Voice profiles stay on this computer, unused, until you turn this on again.": "Stemprofielen blijven op deze computer, ongebruikt, tot je dit weer aanzet.",
   "Delete all voice profiles": "Alle stemprofielen verwijderen",
   "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "Een stemprint is biometrische data. Die blijft op deze computer en je kunt die op elk moment verwijderen.",
-  "This removes every voiceprint from this computer. Names already in your meetings stay.": "Hiermee worden alle stemprints van deze computer verwijderd. Namen die al in je meetings staan, blijven."
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "Hiermee worden alle stemprints van deze computer verwijderd. Namen die al in je meetings staan, blijven.",
+  "Assign to speaker": "Toewijzen aan een spreker",
+  "Assign to {name}": "Toewijzen aan {name}"
 }

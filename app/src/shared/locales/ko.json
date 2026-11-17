@@ -770,5 +770,7 @@
   "Voice profiles stay on this computer, unused, until you turn this on again.": "음성 프로필은 다시 켤 때까지 이 컴퓨터에 사용되지 않은 채로 남아요.",
   "Delete all voice profiles": "모든 음성 프로필 삭제",
   "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "음성 지문은 생체 인식 정보예요. 이 컴퓨터에만 남고 언제든지 삭제할 수 있어요.",
-  "This removes every voiceprint from this computer. Names already in your meetings stay.": "이 컴퓨터의 모든 음성 지문이 사라져요. 회의에 이미 있는 이름은 그대로 남아요."
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "이 컴퓨터의 모든 음성 지문이 사라져요. 회의에 이미 있는 이름은 그대로 남아요.",
+  "Assign to speaker": "화자에게 할당",
+  "Assign to {name}": "{name}(으)로 할당"
 }

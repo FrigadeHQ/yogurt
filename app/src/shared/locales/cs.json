@@ -843,5 +843,7 @@
   "Voice profiles stay on this computer, unused, until you turn this on again.": "Profily hlasů zůstávají na tomto počítači nevyužité, dokud tuto funkci znovu nezapnete.",
   "Delete all voice profiles": "Smazat všechny profily hlasů",
   "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "Hlasový otisk je biometrický údaj. Zůstává na tomto počítači a kdykoli ho můžete smazat.",
-  "This removes every voiceprint from this computer. Names already in your meetings stay.": "Tím se z tohoto počítače odstraní všechny hlasové otisky. Jména, která už jsou ve vašich schůzkách, zůstanou."
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "Tím se z tohoto počítače odstraní všechny hlasové otisky. Jména, která už jsou ve vašich schůzkách, zůstanou.",
+  "Assign to speaker": "Přiřadit ke řečníkovi",
+  "Assign to {name}": "Přiřadit řečníkovi {name}"
 }

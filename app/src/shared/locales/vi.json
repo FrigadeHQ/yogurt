@@ -770,5 +770,7 @@
   "Voice profiles stay on this computer, unused, until you turn this on again.": "Hồ sơ giọng nói nằm trên máy tính này, không được dùng, cho đến khi bạn bật lại.",
   "Delete all voice profiles": "Xóa tất cả hồ sơ giọng nói",
   "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "Vân tiếng nói là dữ liệu sinh trắc học. Nó nằm trên máy tính này và bạn có thể xóa bất cứ lúc nào.",
-  "This removes every voiceprint from this computer. Names already in your meetings stay.": "Thao tác này xóa mọi vân tiếng nói khỏi máy tính này. Tên đã có trong các cuộc họp của bạn vẫn giữ nguyên."
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "Thao tác này xóa mọi vân tiếng nói khỏi máy tính này. Tên đã có trong các cuộc họp của bạn vẫn giữ nguyên.",
+  "Assign to speaker": "Gán cho người nói",
+  "Assign to {name}": "Gán là {name}"
 }

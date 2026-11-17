@@ -800,5 +800,7 @@
   "Voice profiles stay on this computer, unused, until you turn this on again.": "Ses profilleri, bunu yeniden açana kadar, kullanılmadan bu bilgisayarda kalır.",
   "Delete all voice profiles": "Tüm ses profillerini sil",
   "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "Ses izi biyometrik bir veridir. Bu bilgisayarda kalır ve dilediğiniz an silebilirsiniz.",
-  "This removes every voiceprint from this computer. Names already in your meetings stay.": "Bu işlem bu bilgisayardaki tüm ses izlerini kaldırır. Toplantılarınızda zaten var olan adlar kalır."
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "Bu işlem bu bilgisayardaki tüm ses izlerini kaldırır. Toplantılarınızda zaten var olan adlar kalır.",
+  "Assign to speaker": "Konuşmacıya ata",
+  "Assign to {name}": "{name} olarak ata"
 }

@@ -770,5 +770,7 @@
   "Voice profiles stay on this computer, unused, until you turn this on again.": "声音档案会闲置保存在这台电脑上，直到你重新开启。",
   "Delete all voice profiles": "删除所有声音档案",
   "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "声纹属于生物识别信息，会留在这台电脑上，你可以随时删除。",
-  "This removes every voiceprint from this computer. Names already in your meetings stay.": "此操作会删除这台电脑上的所有声纹。会议中已有的名称会保留。"
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "此操作会删除这台电脑上的所有声纹。会议中已有的名称会保留。",
+  "Assign to speaker": "分配给说话人",
+  "Assign to {name}": "分配给 {name}"
 }

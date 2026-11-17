@@ -800,5 +800,7 @@
   "Voice profiles stay on this computer, unused, until you turn this on again.": "आवाज़ प्रोफ़ाइल बिना इस्तेमाल के इसी कंप्यूटर पर रहती हैं, जब तक आप इसे दोबारा चालू नहीं करते।",
   "Delete all voice profiles": "सभी आवाज़ प्रोफ़ाइल मिटाएँ",
   "A voiceprint is biometric data. It stays on this computer and you can delete it at any time.": "वॉइसप्रिंट बायोमेट्रिक डेटा है। यह इसी कंप्यूटर पर रहता है और आप इसे कभी भी मिटा सकते हैं।",
-  "This removes every voiceprint from this computer. Names already in your meetings stay.": "इससे इस कंप्यूटर से सारे वॉइसप्रिंट हट जाते हैं। आपकी मीटिंग्स में पहले से मौजूद नाम बने रहते हैं।"
+  "This removes every voiceprint from this computer. Names already in your meetings stay.": "इससे इस कंप्यूटर से सारे वॉइसप्रिंट हट जाते हैं। आपकी मीटिंग्स में पहले से मौजूद नाम बने रहते हैं।",
+  "Assign to speaker": "वक्ता को असाइन करें",
+  "Assign to {name}": "{name} के रूप में असाइन करें"
 }

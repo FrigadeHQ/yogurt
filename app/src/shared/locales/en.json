@@ -308,5 +308,6 @@
   "Mute my mic": "Mute my mic",
   "Mic on in Yogurt": "Mic on in Yogurt",
   "Mic mute couldn’t be confirmed.": "Mic mute couldn’t be confirmed.",
-  "Mic off. Yogurt can’t hear call audio.": "Mic off. Yogurt can’t hear call audio."
+  "Mic off. Yogurt can’t hear call audio.": "Mic off. Yogurt can’t hear call audio.",  "Restart to update · {version}": "Restart to update · {version}",  "Assign to speaker": "Assign to speaker",
+  "Assign to {name}": "Assign to {name}"
 }
