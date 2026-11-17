@@ -735,6 +735,12 @@ app.whenReady().then(() => {
     if (ok) speakersChanged(id)
     return ok
   })
+  ipcMain.handle('transcript:assign-speaker', (_e, id: unknown, segment: unknown, key: unknown) => {
+    if (!isId(id) || typeof segment !== 'number' || !Number.isInteger(segment) || typeof key !== 'string') return false
+    const ok = store.assignSegment(id, segment, key)
+    if (ok) speakersChanged(id)
+    return ok
+  })
   ipcMain.handle('voices:list', () => store.voiceProfiles())
   ipcMain.handle('voices:delete', (_e, id: unknown) => { if (typeof id !== 'string' || !id) return; store.deleteVoiceProfile(id); win?.webContents.send('voices:changed') })
   ipcMain.handle('voices:delete-all', () => { store.deleteAllVoiceProfiles(); win?.webContents.send('voices:changed') })
