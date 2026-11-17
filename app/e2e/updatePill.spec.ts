@@ -42,6 +42,11 @@ test('the pill stays visible while recording and ending recording only enables R
   try {
     await page.evaluate(() => window.yogurt.meetings.start(null))
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
+    await expect.poll(() => page.evaluate(() => {
+      const pill = document.querySelector('[data-testid="update-ready"]')!.getBoundingClientRect()
+      const more = document.querySelector('[data-testid="note-menu-button"]')!.getBoundingClientRect()
+      return { pillHeight: pill.height, moreHeight: more.height, moreWidth: more.width, centre: pill.y + pill.height / 2 - more.y - more.height / 2 }
+    })).toEqual({ pillHeight: 30, moreHeight: 30, moreWidth: 30, centre: 0 })
     await page.getByTestId('update-ready').click()
     await expect(page.getByTestId('update-popover')).toContainText('You can restart after recording')
     await expect(page.getByTestId('update-restart')).toBeDisabled()
