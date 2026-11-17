@@ -735,5 +735,7 @@
   "Under \"Publish a calendar\", choose your calendar and \"Can view all details\", then Publish.": "La „Publish a calendar”, alegeți calendarul și „Can view all details”, apoi Publish.",
   "Under \"Settings for my calendars\", choose your calendar, then \"Integrate calendar\".": "La „Settings for my calendars”, alegeți calendarul, apoi „Integrate calendar”.",
   "Yogurt couldn't reach that address. Check your connection and the address.": "Yogurt nu a putut accesa această adresă. Verificați conexiunea și adresa.",
-  "{name} is connected. You can change this any time in Settings.": "{name} este conectat. Puteți schimba asta oricând din Setări."
+  "{name} is connected. You can change this any time in Settings.": "{name} este conectat. Puteți schimba asta oricând din Setări.",
+  "Only see \"Public address in iCal format\"? Your organization turned off secret addresses, so this calendar can't be connected this way.": "Vedeți doar „Public address in iCal format”? Organizația dvs. a dezactivat adresele secrete, așa că acest calendar nu poate fi conectat astfel.",
+  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Aceasta este adresa publică, care funcționează doar dacă calendarul este public. Copiați în schimb „Secret address in iCal format”."
 }

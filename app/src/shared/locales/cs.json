@@ -749,5 +749,7 @@
   "Under \"Publish a calendar\", choose your calendar and \"Can view all details\", then Publish.": "V části „Publish a calendar“ vyberte svůj kalendář a „Can view all details“, pak Publish.",
   "Under \"Settings for my calendars\", choose your calendar, then \"Integrate calendar\".": "V části „Settings for my calendars“ vyberte svůj kalendář a pak „Integrate calendar“.",
   "Yogurt couldn't reach that address. Check your connection and the address.": "Yogurt se k té adrese nedostal. Zkontrolujte připojení a adresu.",
-  "{name} is connected. You can change this any time in Settings.": "{name} je připojený. Můžete to kdykoli změnit v Nastavení."
+  "{name} is connected. You can change this any time in Settings.": "{name} je připojený. Můžete to kdykoli změnit v Nastavení.",
+  "Only see \"Public address in iCal format\"? Your organization turned off secret addresses, so this calendar can't be connected this way.": "Vidíte jen „Public address in iCal format“? Vaše organizace vypnula tajné adresy, takže tento kalendář takto připojit nejde.",
+  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "To je veřejná adresa, která funguje jen u veřejného kalendáře. Zkopírujte místo ní „Secret address in iCal format“."
 }

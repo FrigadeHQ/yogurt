@@ -718,5 +718,7 @@
   "Under \"Publish a calendar\", choose your calendar and \"Can view all details\", then Publish.": "Kies onder \"Publish a calendar\" je agenda en \"Can view all details\", en dan Publish.",
   "Under \"Settings for my calendars\", choose your calendar, then \"Integrate calendar\".": "Kies onder \"Settings for my calendars\" je agenda, en dan \"Integrate calendar\".",
   "Yogurt couldn't reach that address. Check your connection and the address.": "Yogurt kon dat adres niet bereiken. Controleer je verbinding en het adres.",
-  "{name} is connected. You can change this any time in Settings.": "{name} is gekoppeld. Je kunt dit altijd wijzigen in Instellingen."
+  "{name} is connected. You can change this any time in Settings.": "{name} is gekoppeld. Je kunt dit altijd wijzigen in Instellingen.",
+  "Only see \"Public address in iCal format\"? Your organization turned off secret addresses, so this calendar can't be connected this way.": "Zie je alleen \"Public address in iCal format\"? Je organisatie heeft geheime adressen uitgezet, dus deze agenda kan niet op deze manier worden gekoppeld.",
+  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Dat is het openbare adres, dat alleen werkt als je agenda openbaar is. Kopieer in plaats daarvan \"Secret address in iCal format\"."
 }

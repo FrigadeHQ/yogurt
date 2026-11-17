@@ -724,5 +724,7 @@
   "Under \"Publish a calendar\", choose your calendar and \"Can view all details\", then Publish.": "Valitse kohdassa \"Publish a calendar\" kalenterisi ja \"Can view all details\", sitten Publish.",
   "Under \"Settings for my calendars\", choose your calendar, then \"Integrate calendar\".": "Valitse kohdassa \"Settings for my calendars\" kalenterisi ja sitten \"Integrate calendar\".",
   "Yogurt couldn't reach that address. Check your connection and the address.": "Yogurt ei saanut yhteyttä osoitteeseen. Tarkista yhteys ja osoite.",
-  "{name} is connected. You can change this any time in Settings.": "{name} on yhdistetty. Voit muuttaa tätä milloin tahansa Asetuksissa."
+  "{name} is connected. You can change this any time in Settings.": "{name} on yhdistetty. Voit muuttaa tätä milloin tahansa Asetuksissa.",
+  "Only see \"Public address in iCal format\"? Your organization turned off secret addresses, so this calendar can't be connected this way.": "Näkyykö vain \"Public address in iCal format\"? Organisaatiosi on poistanut salaiset osoitteet käytöstä, joten tätä kalenteria ei voi yhdistää näin.",
+  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Tuo on julkinen osoite, joka toimii vain julkiselle kalenterille. Kopioi sen sijaan \"Secret address in iCal format\"."
 }

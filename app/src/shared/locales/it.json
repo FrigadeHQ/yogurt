@@ -737,5 +737,7 @@
   "Under \"Publish a calendar\", choose your calendar and \"Can view all details\", then Publish.": "In \"Publish a calendar\", scegli il tuo calendario e \"Can view all details\", poi Publish.",
   "Under \"Settings for my calendars\", choose your calendar, then \"Integrate calendar\".": "In \"Settings for my calendars\", scegli il tuo calendario, poi \"Integrate calendar\".",
   "Yogurt couldn't reach that address. Check your connection and the address.": "Yogurt non è riuscito a raggiungere quell’indirizzo. Controlla la connessione e l’indirizzo.",
-  "{name} is connected. You can change this any time in Settings.": "{name} è collegato. Puoi cambiarlo quando vuoi in Impostazioni."
+  "{name} is connected. You can change this any time in Settings.": "{name} è collegato. Puoi cambiarlo quando vuoi in Impostazioni.",
+  "Only see \"Public address in iCal format\"? Your organization turned off secret addresses, so this calendar can't be connected this way.": "Vedi solo \"Public address in iCal format\"? La tua organizzazione ha disattivato gli indirizzi segreti, quindi questo calendario non si può collegare così.",
+  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Quello è l’indirizzo pubblico, che funziona solo se il calendario è pubblico. Copia invece \"Secret address in iCal format\"."
 }

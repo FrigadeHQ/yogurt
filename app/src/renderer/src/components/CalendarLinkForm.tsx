@@ -20,7 +20,8 @@ const PAGE: Partial<Record<Provider, string>> = {
   outlook: 'https://outlook.office.com/calendar/options/calendar/SharedCalendars',
 }
 const steps = (p: Provider): string[] => p === 'google'
-  ? [t('Under "Settings for my calendars", choose your calendar, then "Integrate calendar".'), t('Copy "Secret address in iCal format" and paste it below.')]
+  ? [t('Under "Settings for my calendars", choose your calendar, then "Integrate calendar".'), t('Copy "Secret address in iCal format" and paste it below.'),
+    t('Only see "Public address in iCal format"? Your organization turned off secret addresses, so this calendar can\'t be connected this way.')]
   : p === 'outlook'
     ? [t('Under "Publish a calendar", choose your calendar and "Can view all details", then Publish.'), t('Copy the ICS link and paste it below.')]
     : [t('In your calendar app\'s settings, find its private iCal address. It ends in .ics or starts with webcal://.'), t('Paste it below.')]
@@ -29,6 +30,7 @@ const ERRORS = {
   'bad-url': () => t('That doesn\'t look like a calendar address. It should start with https:// or webcal://.'),
   'unreachable': () => t('Yogurt couldn\'t reach that address. Check your connection and the address.'),
   'not-calendar': () => t('That address isn\'t a calendar. Copy the iCal address, not the page\'s address.'),
+  'public-address': () => t('That\'s the public address, which only works if your calendar is public. Copy "Secret address in iCal format" instead.'),
 }
 
 /**

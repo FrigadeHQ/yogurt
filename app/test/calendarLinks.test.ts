@@ -44,6 +44,12 @@ describe('calendar links (Windows and Linux): a private calendar address, kept o
     expect(await rig(() => { throw new Error('offline') }).links.add('https://example.com/cal.ics')).toEqual({ ok: false, error: 'unreachable' })
     expect(await rig(() => '<html>Sign in</html>').links.add('https://example.com/cal.ics')).toEqual({ ok: false, error: 'not-calendar' })
   })
+  it("Google's public address says so when it fails (it works only for a public calendar), and works when the calendar is public", async () => {
+    const pub = 'https://calendar.google.com/calendar/ical/alex%40example.com/public/basic.ics'
+    expect(await rig(() => { throw new Error('404') }).links.add(pub)).toEqual({ ok: false, error: 'public-address' })
+    expect(await rig(() => '<html>Not found</html>').links.add(pub)).toEqual({ ok: false, error: 'public-address' })
+    expect(await rig(() => ics('Team')).links.add(pub)).toMatchObject({ ok: true, name: 'Team' })
+  })
   it('reads events, fetching again only after five minutes, and keeps the last good copy when the network fails', async () => {
     let fail = false
     const r = rig(() => { if (fail) throw new Error('offline'); return ics('Work') })

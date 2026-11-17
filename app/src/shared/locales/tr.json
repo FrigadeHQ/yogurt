@@ -706,5 +706,7 @@
   "Under \"Publish a calendar\", choose your calendar and \"Can view all details\", then Publish.": "\"Publish a calendar\" altında takviminizi ve \"Can view all details\" seçeneğini seçin, ardından Publish.",
   "Under \"Settings for my calendars\", choose your calendar, then \"Integrate calendar\".": "\"Settings for my calendars\" altında takviminizi seçin, ardından \"Integrate calendar\".",
   "Yogurt couldn't reach that address. Check your connection and the address.": "Yogurt bu adrese ulaşamadı. Bağlantınızı ve adresi kontrol edin.",
-  "{name} is connected. You can change this any time in Settings.": "{name} bağlandı. Bunu istediğiniz zaman Ayarlar’dan değiştirebilirsiniz."
+  "{name} is connected. You can change this any time in Settings.": "{name} bağlandı. Bunu istediğiniz zaman Ayarlar’dan değiştirebilirsiniz.",
+  "Only see \"Public address in iCal format\"? Your organization turned off secret addresses, so this calendar can't be connected this way.": "Yalnızca \"Public address in iCal format\" mı görünüyor? Kuruluşunuz gizli adresleri kapatmış, bu yüzden bu takvim bu yolla bağlanamaz.",
+  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Bu, yalnızca takviminiz herkese açıksa çalışan genel adres. Bunun yerine \"Secret address in iCal format\" adresini kopyalayın."
 }

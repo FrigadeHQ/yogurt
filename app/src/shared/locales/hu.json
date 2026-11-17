@@ -706,5 +706,7 @@
   "Under \"Publish a calendar\", choose your calendar and \"Can view all details\", then Publish.": "A „Publish a calendar” résznél válaszd ki a naptárad és a „Can view all details” lehetőséget, majd Publish.",
   "Under \"Settings for my calendars\", choose your calendar, then \"Integrate calendar\".": "A „Settings for my calendars” résznél válaszd ki a naptárad, majd „Integrate calendar”.",
   "Yogurt couldn't reach that address. Check your connection and the address.": "A Yogurt nem érte el ezt a címet. Ellenőrizd a kapcsolatot és a címet.",
-  "{name} is connected. You can change this any time in Settings.": "{name} csatlakoztatva. Bármikor módosíthatod a Beállításokban."
+  "{name} is connected. You can change this any time in Settings.": "{name} csatlakoztatva. Bármikor módosíthatod a Beállításokban.",
+  "Only see \"Public address in iCal format\"? Your organization turned off secret addresses, so this calendar can't be connected this way.": "Csak a „Public address in iCal format” látszik? A szervezeted kikapcsolta a titkos címeket, így ez a naptár így nem csatlakoztatható.",
+  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Ez a nyilvános cím, ami csak nyilvános naptárnál működik. Másold ki helyette a „Secret address in iCal format” címet."
 }

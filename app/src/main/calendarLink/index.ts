@@ -9,7 +9,7 @@ import { icsEvents, icsName, type RawEvent } from './ics'
  * come out in the Mac helper's shape, so the agenda, call detection and attendees work as on a Mac (calendar.ts).
  */
 
-export type LinkError = 'bad-url' | 'unreachable' | 'not-calendar'
+export type LinkError = 'bad-url' | 'unreachable' | 'not-calendar' | 'public-address'
 export type AddResult = { ok: true; id: string; name: string } | { ok: false; error: LinkError }
 type Stored = { id: string; name: string; host: string; url: string }
 
@@ -62,10 +62,12 @@ export function createCalendarLinks(d: {
     async add(raw: string): Promise<AddResult> {
       const url = normalize(raw)
       if (!url) return { ok: false, error: 'bad-url' }
+      // Google's public address only answers for a public calendar; work accounts often have no secret one to use instead
+      const publicGoogle = url.hostname === 'calendar.google.com' && /\/public\/[^/]*\.ics$/i.test(url.pathname)
       let t: string
-      try { t = await d.get(url.toString()) } catch { return { ok: false, error: 'unreachable' } }
+      try { t = await d.get(url.toString()) } catch { return { ok: false, error: publicGoogle ? 'public-address' : 'unreachable' } }
       let name: string | null
-      try { name = icsName(t).name } catch { return { ok: false, error: 'not-calendar' } }
+      try { name = icsName(t).name } catch { return { ok: false, error: publicGoogle ? 'public-address' : 'not-calendar' } }
       const id = randomUUID()
       const host = url.hostname
       const label = name ?? host
