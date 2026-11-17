@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import { ExternalLink, LoaderCircle } from 'lucide-react'
 import { t } from '../../../shared/i18n'
 
@@ -31,7 +31,11 @@ const ERRORS = {
   'not-calendar': () => t('That address isn\'t a calendar. Copy the iCal address, not the page\'s address.'),
 }
 
-export function CalendarLinkForm({ onConnected, autoFocus }: { onConnected(name: string): void; autoFocus?: boolean }) {
+/**
+ * settings: the address and Connect on one row, as Settings' other rows. onboarding: Connect becomes the screen's main
+ * button, beside `extra` (Not now), so the screen ends like every other first-run screen.
+ */
+export function CalendarLinkForm({ onConnected, autoFocus, variant = 'settings', extra }: { onConnected(name: string): void; autoFocus?: boolean; variant?: 'settings' | 'onboarding'; extra?: ReactNode }) {
   const [provider, setProvider] = useState<Provider>('google')
   const [url, setUrl] = useState('')
   const [busy, setBusy] = useState(false)
@@ -46,6 +50,9 @@ export function CalendarLinkForm({ onConnected, autoFocus }: { onConnected(name:
     } catch { setError('unreachable') } finally { setBusy(false) }
   }
   const page = PAGE[provider]
+  const connect = (className: string) => <button data-testid="calendar-link-connect" type="submit" disabled={busy || !url.trim()} className={className}>
+    {busy && <LoaderCircle size={13} aria-hidden="true" className="animate-spin motion-reduce:animate-none" />}{t('Connect')}
+  </button>
   return (
     <form data-testid="calendar-link-form" className="calendar-link-form" onSubmit={(e) => void submit(e)}>
       <div role="tablist" aria-label={t('Your calendar')} className="calendar-link-providers">
@@ -59,12 +66,11 @@ export function CalendarLinkForm({ onConnected, autoFocus }: { onConnected(name:
       <div className="calendar-link-row">
         <input data-testid="calendar-link-input" type="url" inputMode="url" autoComplete="off" spellCheck={false} autoFocus={autoFocus}
           aria-label={t('Calendar address')} placeholder="https://… .ics" value={url} onChange={(e) => { setUrl(e.target.value); setError(null) }} className="calendar-link-input" />
-        <button data-testid="calendar-link-connect" type="submit" disabled={busy || !url.trim()} className="workspace-button primary shrink-0">
-          {busy && <LoaderCircle size={13} aria-hidden="true" className="animate-spin motion-reduce:animate-none" />}{t('Connect')}
-        </button>
+        {variant === 'settings' && connect('workspace-button primary shrink-0')}
       </div>
       {error && <p data-testid="calendar-link-error" role="alert" className="calendar-link-error">{ERRORS[error]()}</p>}
       <p className="calendar-link-note">{t('The address stays on this computer. Anyone who has it can see your calendar, so keep it private.')}</p>
+      {variant === 'onboarding' && <div className="calendar-link-actions">{connect('ob-button primary no-drag')}{extra}</div>}
     </form>
   )
 }

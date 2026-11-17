@@ -429,3 +429,7 @@
 .calendar-link-input:focus-visible { outline:2px solid var(--accent);outline-offset:1px; }
 .calendar-link-error { color:var(--danger, #C4352B); }
 .calendar-link-note { font-size:11px; }
+/* the first run: the form takes the actions row, and ends with Connect and Not now like every other screen */
+.ob-actions > .calendar-link-form { flex:1;max-width:400px; }
+.calendar-link-actions { display:flex;align-items:center;gap:8px;margin-top:8px; }
+.ob-actions > .calendar-link-form .calendar-link-input { height:36px;border-radius:9px;font-size:13px; }

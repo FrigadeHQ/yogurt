@@ -119,10 +119,10 @@ function CalendarLinkScreen({ state, progress, onNext }: { state: SetupState; pr
       art={<ScreenArt id="calendar" on={connected ? ['calendar'] : []} />} progress={progress} state={state}
       title={connected ? t('All set') : t('Connect your calendar')}
       text={connected ? t('{name} is connected. You can change this any time in Settings.', { name: connected }) : sc.text}
-      note={connected ? null : <CalendarLinkForm onConnected={setConnected} />}
       actions={connected
         ? <button ref={primary} data-testid="step-allow" onClick={onNext} className="ob-button primary no-drag">{t('Continue')}</button>
-        : <button data-testid="step-later" onClick={onNext} className="ob-button quiet no-drag">{t('Not now')}</button>}
+        : <CalendarLinkForm variant="onboarding" onConnected={setConnected}
+          extra={<button type="button" data-testid="step-later" onClick={onNext} className="ob-button quiet no-drag">{t('Not now')}</button>} />}
     />
   )
 }

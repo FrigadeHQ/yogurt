@@ -116,7 +116,8 @@ app.on('second-instance', (_e, argv) => { if (app.isReady() && !startedHidden(pr
 
 /** Links open in the user's browser, never inside the app window. */
 function openExternally(url: string) {
-  if (!isFake() && /^https:\/\//.test(url)) void shell.openExternal(url)
+  // fake mode opens nothing (tests), unless a person trying it by hand asks for links (YOGURT_FAKE_OPEN_LINKS=1)
+  if ((!isFake() || process.env.YOGURT_FAKE_OPEN_LINKS === '1') && /^https:\/\//.test(url)) void shell.openExternal(url)
 }
 
 let updateWidgetVisibility = () => {}
