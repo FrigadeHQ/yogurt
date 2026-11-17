@@ -6,8 +6,10 @@ import type { PermissionKind } from './types'
  * A Mac has everything, as it always had. Windows and Linux turn features on here as each one gets its own helper.
  */
 export type Capabilities = {
-  /** the computer's own calendars (EventKit): the agenda, linking a note to an event, the calendar permission */
+  /** a calendar: the agenda, linking a note to an event. The Mac's own (EventKit, its permission) or a calendar link */
   calendar: boolean
+  /** the calendar comes from a pasted private calendar address (Windows and Linux: no system calendar to read) */
+  calendarLink: boolean
   /** names of the people in a call, read through Accessibility, and that permission */
   callNames: boolean
   /**
@@ -25,7 +27,7 @@ export type Capabilities = {
 export function capabilities(platform: string): Capabilities {
   const mac = platform === 'darwin'
   // Linux reads call names through AT-SPI, Windows through UI Automation (yogurt-system call-watch), the same WatchLine JSON as the Mac
-  return { calendar: mac, callNames: mac || platform === 'linux' || platform === 'win32', permissionPrompts: mac, mediaPause: mac }
+  return { calendar: true, calendarLink: !mac, callNames: mac || platform === 'linux' || platform === 'win32', permissionPrompts: mac, mediaPause: mac }
 }
 
 /** permission kinds Windows has a Settings page for (main/permissions.ts WINDOWS_SETTINGS has their links) */
@@ -54,7 +56,8 @@ export const micListHelper = (platform: string): HelperKind => (platform === 'da
 
 /** The permissions this computer has: no calendar or names from calls means those are never asked for */
 export function supportedKinds(c: Capabilities): PermissionKind[] {
-  return PERMISSION_KINDS.filter((k) => (k !== 'calendar' || c.calendar) && (k !== 'accessibility' || c.callNames))
+  // a calendar link is no permission: it lives in Settings' calendars and the first run's calendar screen
+  return PERMISSION_KINDS.filter((k) => (k !== 'calendar' || (c.calendar && !c.calendarLink)) && (k !== 'accessibility' || c.callNames))
 }
 
 /** keys a Mac shortcut means something else on Windows and Linux (⌃⌘ is no pair there; full screen is F11) */

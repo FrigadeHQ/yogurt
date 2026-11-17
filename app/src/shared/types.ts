@@ -5,6 +5,8 @@ import type { FolderAppearance } from './folderAppearance'
 import type { LiveWord } from './liveWords'
 import type { Meeting, MeetingCard as StoredMeetingCard, Person, Segment, SnippetPart, Folder } from '../main/store'
 import type { CalEvent, CalendarSource, CalendarStatus } from '../main/calendar'
+/** a connected calendar link, as the window sees it: never its address */
+export type CalendarLinkInfo = { id: string; name: string; host: string }
 import type { Access, PermissionKind, PermissionStatus } from '../main/permissions'
 import type { Capabilities } from './platform'
 export type { Access, PermissionKind, PermissionStatus }
@@ -229,6 +231,11 @@ export type YogurtApi = {
     connect(): Promise<CalendarStatus>
     /** the events on the day of this time, earliest first (none without Calendar access) */
     day(at: number): Promise<{ status: CalendarStatus; events: AgendaEvent[] }>
+    /** Windows and Linux: the calendar links connected (never their addresses) */
+    links(): Promise<CalendarLinkInfo[]>
+    /** connect a private calendar address; why not when it can't be */
+    addLink(url: string): Promise<{ ok: true; id: string; name: string } | { ok: false; error: 'bad-url' | 'unreachable' | 'not-calendar' }>
+    removeLink(id: string): Promise<boolean>
   }
   /** what Yogurt may use: read it, ask for it (the Mac's own prompt), or open its pane of System Settings */
   permissions: {

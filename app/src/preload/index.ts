@@ -190,6 +190,9 @@ const api: YogurtApi = {
     comingUp: () => ipcRenderer.invoke('calendar:coming-up'),
     connect: () => ipcRenderer.invoke('calendar:connect'),
     day: (at) => ipcRenderer.invoke('calendar:day', at),
+    links: () => ipcRenderer.invoke('calendar:links'),
+    addLink: (url) => ipcRenderer.invoke('calendar:add-link', url),
+    removeLink: (id) => ipcRenderer.invoke('calendar:remove-link', id),
   },
   permissions: {
     status: () => ipcRenderer.invoke('permissions:status'),

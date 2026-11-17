@@ -6,6 +6,8 @@ import { spokenOf, type Spoken } from '../shared/spoken'
 export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what the person is called in their meetings; their Mac's full name when left out */ myName?: string
   /** the first-run questions were shown (answered or put off): never asked again */
   welcomed?: boolean
+  /** Windows and Linux: private calendar addresses (iCal), sealed with the system's keychain where it has one (calendarLink) */
+  calendarLinks?: Array<{ id: string; name: string; host: string; url: string }>
   /** the intro screens were read or skipped (kept apart, so a restart halfway through goes on with the permissions) */
   introSeen?: boolean
   /** The optional bigger notes model stays off until explicitly downloaded again. */

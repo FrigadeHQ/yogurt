@@ -13,9 +13,12 @@ const open = (a: Access) => a === 'unknown' || a === 'denied'
  * ask: whether this run may show it at all (fake mode only when a test sets the permissions).
  * kinds: the permissions this computer has (supportedKinds in platform.ts); a Mac has them all.
  */
-export function firstRunPlan(o: { ask: boolean; welcomed: boolean; introSeen: boolean; status: PermissionStatus; kinds?: readonly PermissionKind[] }): OnboardingPlan {
+export function firstRunPlan(o: { ask: boolean; welcomed: boolean; introSeen: boolean; status: PermissionStatus; kinds?: readonly PermissionKind[]
+  /** Windows and Linux: the calendar is a calendar link; its screen asks for one while none is connected */
+  calendarLink?: { linked: boolean } }): OnboardingPlan {
   if (!o.ask || o.welcomed) return { intro: false, steps: [] }
   const steps: OnboardingStep[] = (o.kinds ?? PERMISSION_KINDS).filter((k) => open(o.status[k])).map((kind) => ({ kind, status: o.status[kind] }))
+  if (o.calendarLink && !o.calendarLink.linked) steps.push({ kind: 'calendar', status: 'unknown' })
   return { intro: !o.introSeen, steps }
 }
 

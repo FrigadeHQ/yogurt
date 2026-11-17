@@ -4,11 +4,11 @@ import { PERMISSION_KINDS } from '../src/main/permissions'
 
 describe('what each computer can do', () => {
   it('a Mac has every feature, exactly as before', () => {
-    expect(capabilities('darwin')).toEqual({ calendar: true, callNames: true, permissionPrompts: true, mediaPause: true })
+    expect(capabilities('darwin')).toEqual({ calendar: true, calendarLink: false, callNames: true, permissionPrompts: true, mediaPause: true })
   })
-  it('Windows and Linux have no calendar; both read names from calls (UI Automation, AT-SPI)', () => {
-    expect(capabilities('win32')).toEqual({ calendar: false, callNames: true, permissionPrompts: false, mediaPause: false })
-    expect(capabilities('linux')).toEqual({ calendar: false, callNames: true, permissionPrompts: false, mediaPause: false })
+  it('Windows and Linux have a calendar through a calendar link (no system calendar to ask), and names from calls', () => {
+    expect(capabilities('win32')).toEqual({ calendar: true, calendarLink: true, callNames: true, permissionPrompts: false, mediaPause: false })
+    expect(capabilities('linux')).toEqual({ calendar: true, calendarLink: true, callNames: true, permissionPrompts: false, mediaPause: false })
   })
   it('only fake mode can pretend to be another computer, so the Mac CI can try the Windows and Linux screens', () => {
     expect(platformOf('darwin', { YOGURT_FAKE: '1', YOGURT_FAKE_PLATFORM: 'win32' })).toBe('win32')

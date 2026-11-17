@@ -66,13 +66,24 @@ let supported = true
 /** Windows and Linux have no calendar (capabilities().calendar): the helper is never asked, and nothing shows it */
 export const setCalendarSupported = (on: boolean) => { supported = on; if (!on) status = 'unsupported' }
 
+/**
+ * Windows and Linux: the calendar comes from calendar links (calendarLink/), which answer what the Mac helper answers
+ * here (status, calendars, events in its shape), so the rest of Yogurt never knows the difference. null: the helper.
+ */
+export type CalendarLinkSource = { status(): 'granted' | 'notDetermined'; calendars(): Promise<CalendarSource[]>; events(fromMs: number, toMs: number): Promise<unknown[]> }
+let links: CalendarLinkSource | null = null
+export const setCalendarLinkSource = (s: CalendarLinkSource | null) => { links = s; if (s) status = s.status() }
+
 export async function refreshCalendarStatus(): Promise<CalendarStatus> {
+  if (links) return status = links.status()
   if (!supported) return status = 'unsupported'
   try { status = asStatus(await helper(['calendar-status'])) } catch { status = 'error' }
   return status
 }
 /** Asks once with the system's own prompt */
 export async function requestCalendarAccess(): Promise<CalendarStatus> {
+  // a link has no prompt: it is connected when one is pasted (Settings or the first run)
+  if (links) return status = links.status()
   if (!supported) return status = 'unsupported'
   try { status = asStatus(await helper(['calendar-auth'])) } catch { status = 'error' }
   return status
@@ -88,6 +99,7 @@ export const setCalendarSelection = (read: typeof calendarSelection) => { calend
 
 export async function calendars(): Promise<CalendarSource[]> {
   if (await refreshCalendarStatus() !== 'granted') return []
+  if (links) return links.calendars()
   try {
     const raw = await helper(['calendars'])
     if (!Array.isArray(raw)) throw new Error('Invalid calendars')
@@ -133,7 +145,7 @@ export function parseEvents(raw: unknown, hidden: string[] = []): CalEvent[] {
 export async function upcoming(fromMs: number, toMs: number, keep?: (event: CalEvent) => boolean): Promise<CalEvent[]> {
   if (await refreshCalendarStatus() !== 'granted') return []
   try {
-    const raw = await helper(['events', new Date(fromMs).toISOString(), new Date(toMs).toISOString()])
+    const raw = links ? await links.events(fromMs, toMs) : await helper(['events', new Date(fromMs).toISOString(), new Date(toMs).toISOString()])
     const selection = calendarSelection()
     return parseEvents(raw, selection.hiddenCalendarIds).filter(event =>
       selection.hideEventsWithoutCallLink !== true || event.url !== null || keep?.(event))

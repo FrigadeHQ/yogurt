@@ -26,7 +26,9 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
   /** the spoken language changed: the meeting being recorded follows it where it can */
   onSpoken?: (v: Spoken) => void
   /** the permissions this computer has (supportedKinds in platform.ts); a Mac has them all */
-  kinds?: readonly PermissionKind[]; os?: string }) {
+  kinds?: readonly PermissionKind[]; os?: string
+  /** Windows and Linux: whether a calendar link is connected (the first run asks for one while none is) */
+  calendarLinked?: () => boolean }) {
   const kinds = d.kinds ?? PERMISSION_KINDS
   const os = d.os ?? process.platform
   let plan: Promise<OnboardingPlan> | undefined
@@ -35,7 +37,7 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
     if (d.slowStartMs) await new Promise((r) => setTimeout(r, d.slowStartMs))
     const s = loadSettings(d.file)
     if (!d.ask || s.welcomed) return { intro: false, steps: [] }
-    const p = await firstRunPlan({ ask: d.ask, welcomed: !!s.welcomed, introSeen: !!s.introSeen, status: await d.permissions.status(), kinds })
+    const p = await firstRunPlan({ ask: d.ask, welcomed: !!s.welcomed, introSeen: !!s.introSeen, status: await d.permissions.status(), kinds, ...(d.calendarLinked ? { calendarLink: { linked: d.calendarLinked() } } : {}) })
     firstRunShowing = p.intro || p.steps.length > 0
     return p
   })()))

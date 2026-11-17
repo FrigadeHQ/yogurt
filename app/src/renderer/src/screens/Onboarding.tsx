@@ -5,6 +5,7 @@ import { screensOf, viaSystemSettings, type OnboardingScreen } from '../../../sh
 import { Wordmark } from '../components/Logo'
 import { ReadyArt, ScreenArt, WelcomeArt } from '../components/OnboardingArt'
 import { SettingsArt } from '../components/SettingsGuide'
+import { CalendarLinkForm } from '../components/CalendarLinkForm'
 import { SetupStatus, transcriptionPhase, transcriptionPercent } from '../components/SetupStatus'
 import { permissionCopy, screenCopy } from '../permissionCopy'
 import { usePermissionFlow } from '../permissionFlow'
@@ -32,7 +33,9 @@ export function Onboarding({ state, plan, onDone }: { state: SetupState; plan: O
   return (
     <div data-testid="onboarding" data-phase={state.phase} data-stage={stage} className="setup-screen">
       {stage === 'intro' ? <Welcome state={state} progress={progress} onDone={introDone} />
-        : stage === 'steps' && screen ? <PermissionScreen key={screen.id} screen={screen} state={state} progress={progress} onNext={next} />
+        : stage === 'steps' && screen ? (screen.id === 'calendar' && window.yogurt.capabilities.calendarLink
+          ? <CalendarLinkScreen key={screen.id} state={state} progress={progress} onNext={next} />
+          : <PermissionScreen key={screen.id} screen={screen} state={state} progress={progress} onNext={next} />)
           : <Ready state={state} />}
     </div>
   )
@@ -97,6 +100,29 @@ function Welcome({ state, progress, onDone }: { state: SetupState; progress: Pro
     <Layout
       testId="intro-page" step="welcome" motionKey="welcome" art={<WelcomeArt />} title={c.title} text={c.text} progress={progress} state={state}
       actions={<button ref={primary} data-testid="intro-next" onClick={onDone} className="ob-button primary no-drag">{t('Get started')}</button>}
+    />
+  )
+}
+
+/**
+ * Windows and Linux: the calendar screen asks for a calendar link instead of a permission, with the very form Settings
+ * shows (CalendarLinkForm), so the steps for Google and Outlook are written once.
+ */
+function CalendarLinkScreen({ state, progress, onNext }: { state: SetupState; progress: Progress; onNext(): void }) {
+  const [connected, setConnected] = useState<string | null>(null)
+  const sc = screenCopy('calendar')
+  const primary = useRef<HTMLButtonElement>(null)
+  useFocus(primary, [connected])
+  return (
+    <Layout
+      testId="onboarding-step" step="calendar" kind="calendar" motionKey={connected ? 'calendar-done' : 'calendar'}
+      art={<ScreenArt id="calendar" on={connected ? ['calendar'] : []} />} progress={progress} state={state}
+      title={connected ? t('All set') : t('Connect your calendar')}
+      text={connected ? t('{name} is connected. You can change this any time in Settings.', { name: connected }) : sc.text}
+      note={connected ? null : <CalendarLinkForm onConnected={setConnected} />}
+      actions={connected
+        ? <button ref={primary} data-testid="step-allow" onClick={onNext} className="ob-button primary no-drag">{t('Continue')}</button>
+        : <button data-testid="step-later" onClick={onNext} className="ob-button quiet no-drag">{t('Not now')}</button>}
     />
   )
 }

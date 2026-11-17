@@ -21,6 +21,9 @@ importers:
       electron-updater:
         specifier: 6.8.10
         version: 6.8.10
+      ical.js:
+        specifier: 2.2.1
+        version: 2.2.1
       node-llama-cpp:
         specifier: 3.22.1
         version: 3.22.1(patch_hash=fb1b72ef61aee31b92af3fbf2624ad8cd9db513628681b7d141f463433c6ef4c)(typescript@5.9.3)
@@ -1736,6 +1739,9 @@ packages:
   https-proxy-agent@7.0.6:
     resolution: {integrity: sha512-vK9P5/iUfdl95AI+JVyUuIcVtd4ofvtrOr3HNtM2yxC9bnMbEdp3x01OhQNnjb8IJYi38VlTE3mBXwcfvywuSw==}
     engines: {node: '>= 14'}
+
+  ical.js@2.2.1:
+    resolution: {integrity: sha512-yK/UlPbEs316igb/tjRgbFA8ZV75rCsBJp/hWOatpyaPNlgw0dGDmU+FoicOcwX4xXkeXOkYiOmCqNPFpNPkQg==}
 
   ignore@7.0.14:
     resolution: {integrity: sha512-wCBiZ77u1tuWde6G/nfOtLaCTYcFDU5yCzARzK10y+rLhzYoL7a7yEemcopcc2Mzow7gZOIjnV2ym1NYmdiJOQ==}
@@ -4396,6 +4402,8 @@ snapshots:
       debug: 4.4.3
     transitivePeerDependencies:
       - supports-color
+
+  ical.js@2.2.1: {}
 
   ignore@7.0.14: {}
 

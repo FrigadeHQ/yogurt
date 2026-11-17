@@ -2,15 +2,19 @@ import { useCallback, useEffect, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { Loading } from './Loading'
 import { LoadingContent } from './LoadingContent'
+import { CalendarLinkForm } from './CalendarLinkForm'
 import { t } from '../../../shared/i18n'
 
 let expanded = false
 
 export function CalendarSettings() {
+  // Windows and Linux: calendars are pasted calendar links, connected and removed here (and in the first run)
+  const link = !!globalThis.window?.yogurt?.capabilities?.calendarLink
   const [view, setView] = useState<Awaited<ReturnType<typeof window.yogurt.calendar.list>>>()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(false)
-  const [open, setOpen] = useState(expanded)
+  const [open, setOpen] = useState(expanded || link)
+  const [adding, setAdding] = useState(false)
   const reload = useCallback(() => {
     void window.yogurt.calendar.list().then(setView, () => setView({ status: 'error', calendars: [], hideEventsWithoutCallLink: false }))
   }, [])
@@ -33,7 +37,12 @@ export function CalendarSettings() {
   }
   const selected = view?.calendars.filter(c => c.enabled) ?? []
   // Yogurt holds no calendar accounts: disconnecting unticks every calendar; the Mac's own access stays in System Settings
+  const removeLink = async (id: string) => {
+    setBusy(true); setError(false)
+    try { if (!await window.yogurt.calendar.removeLink(id)) throw new Error('Calendar unavailable') } catch { setError(true) } finally { setBusy(false); reload() }
+  }
   const disconnect = async () => {
+    if (link) { for (const c of view?.calendars ?? []) await removeLink(c.id); return }
     const ids = selected.map(c => c.id)
     setBusy(true); setError(false)
     setView((v) => v && { ...v, calendars: v.calendars.map((c) => ({ ...c, enabled: false })) })
@@ -43,8 +52,8 @@ export function CalendarSettings() {
   }
   const summary = !view ? t('Loading calendars…')
     : view.status === 'error' ? t("Yogurt couldn't read your calendars.")
-    : view.status !== 'granted' ? t('Allow calendar access to choose your calendars.')
-    : !view.calendars.length ? t('No calendars found on this Mac.')
+    : view.status !== 'granted' ? (link ? t('Connect a calendar to see your meetings.') : t('Allow calendar access to choose your calendars.'))
+    : !view.calendars.length ? (link ? t('Connect a calendar to see your meetings.') : t('No calendars found on this Mac.'))
     : !selected.length ? t('No calendars selected.')
     : selected.length === 1 ? [selected[0].name, selected[0].source].filter(Boolean).join(' · ')
     : `${selected[0].name} ${t('and {count} more', { count: selected.length - 1 })}`
@@ -59,7 +68,8 @@ export function CalendarSettings() {
         <ChevronDown size={16} aria-hidden="true" />
       </button>
       <div id="settings-calendar-list" className="accordion" data-open={open} inert={!open || undefined}><div className="settings-calendar-list">
-        <LoadingContent pending={!view} skeleton={<Loading layout="calendars" />}>{view && (view.status !== 'granted' ? <div className="settings-row">
+        <LoadingContent pending={!view} skeleton={<Loading layout="calendars" />}>{view && (link && (view.status !== 'granted' || !view.calendars.length) ? <div className="settings-row settings-calendar-link"><CalendarLinkForm onConnected={reload} /></div>
+          : view.status !== 'granted' ? <div className="settings-row">
             <p className="settings-description settings-row-copy">{view.status === 'error' ? t("Yogurt couldn't read your calendars.") : t('Allow calendar access to choose your calendars.')}</p>
             <button className="workspace-button" onClick={() => { if (view.status === 'error') reload(); else void window.yogurt.calendar.connect().then(reload) }}>{view.status === 'error' ? t('Try again') : t('Connect calendar')}</button>
           </div>
@@ -68,7 +78,11 @@ export function CalendarSettings() {
             <span className="settings-calendar-dot" style={{ backgroundColor: c.color }} aria-hidden="true" />
             <span className="settings-row-copy"><span className="settings-label">{c.name}</span><span className="settings-description block">{c.source}</span></span>
             <input type="checkbox" checked={c.enabled} disabled={busy} onChange={(e) => void choose(c.id, e.target.checked)} />
+            {link && <button type="button" data-testid="calendar-link-remove" className="workspace-button shrink-0" disabled={busy} onClick={(e) => { e.preventDefault(); void removeLink(c.id) }}>{t('Remove')}</button>}
           </label>))}</LoadingContent>
+        {link && view?.status === 'granted' && view.calendars.length > 0 && (adding
+          ? <div className="settings-row settings-calendar-link"><CalendarLinkForm autoFocus onConnected={() => { setAdding(false); reload() }} /></div>
+          : <div className="settings-row"><button type="button" data-testid="calendar-link-add" className="workspace-button" onClick={() => setAdding(true)}>{t('Add another calendar')}</button></div>)}
         {view?.status === 'granted' && view.calendars.length > 0 && <div data-testid="calendar-disconnect" className="settings-calendar-actions">
           <div className="settings-row">
             <div className="settings-row-copy">
@@ -81,12 +95,12 @@ export function CalendarSettings() {
           </div>
           <div className="settings-row">
             <span className="settings-row-copy"><span className="settings-label">{t('Disconnect calendars')}</span><span className="settings-description block">{t('Yogurt stops using these calendars.')}</span></span>
-            <button type="button" data-testid="calendar-disconnect-all" className="workspace-button shrink-0" disabled={busy || !selected.length} onClick={() => void disconnect()}>{t('Disconnect')}</button>
+            <button type="button" data-testid="calendar-disconnect-all" className="workspace-button shrink-0" disabled={busy || (link ? !view.calendars.length : !selected.length)} onClick={() => void disconnect()}>{t('Disconnect')}</button>
           </div>
-          <div className="settings-row">
+          {!link && <div className="settings-row">
             <span className="settings-row-copy"><span className="settings-label">{t('Calendar access')}</span><span className="settings-description block">{t('Remove Yogurt’s access in System Settings.')}</span></span>
             <button type="button" className="workspace-button shrink-0" onClick={() => void window.yogurt.permissions.open('calendar')}>{t('Open System Settings')}</button>
-          </div>
+          </div>}
         </div>}
         {error && <p role="alert" className="settings-row text-danger">{t("Couldn't update your calendars. Try again.")}</p>}
       </div></div>

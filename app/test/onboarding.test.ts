@@ -127,3 +127,16 @@ describe('a Linux computer with names from calls', () => {
     expect(finishSetupPercent({ ...all('granted'), calendar: 'unknown' }, kinds)).toBe(100)
   })
 })
+
+
+describe('the first run on Windows and Linux: a calendar link step, the same form as Settings', () => {
+  const kinds = ['mic', 'systemAudio', 'notifications', 'accessibility'] as const
+  it('asks for a calendar link when none is connected, as the calendar screen', () => {
+    const plan = firstRunPlan({ ask: true, welcomed: false, introSeen: true, status: { ...all('granted'), calendar: 'unknown' }, kinds, calendarLink: { linked: false } })
+    expect(screensOf(plan.steps).map((s) => s.id)).toEqual(['calendar'])
+  })
+  it('a connected link (or a Mac, which asks for its own calendar) adds no link step', () => {
+    expect(firstRunPlan({ ask: true, welcomed: false, introSeen: true, status: all('granted'), kinds, calendarLink: { linked: true } }).steps).toEqual([])
+    expect(screensOf(firstRunPlan({ ask: true, welcomed: false, introSeen: true, status: { ...all('granted'), calendar: 'unknown' } }).steps).map((s) => s.id)).toEqual(['calendar'])
+  })
+})

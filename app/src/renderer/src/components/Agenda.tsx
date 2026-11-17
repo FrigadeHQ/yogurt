@@ -143,7 +143,7 @@ export function Agenda({ revision, recording, onStart, onOpen, jumpTo }: Actions
     {calendar && (calendar.status !== 'granted' ? <section className="agenda-status" data-testid={calendar.status === 'error' ? 'calendar-error' : 'calendar-off'}>
         <CalendarDays size={22} aria-hidden="true" />
         <h3>{calendar.status === 'error' ? t("Yogurt couldn't read your calendar") : calendar.status === 'denied' ? t('Calendar access is off') : t('See your meetings here')}</h3>
-        <p>{calendar.status === 'error' ? t('Try reading the calendars on this Mac again.') : t('Connect the calendars on this Mac to see your upcoming meetings.')}</p>
+        <p>{calendar.status === 'error' ? t('Try reading the calendars on this Mac again.') : (window.yogurt.capabilities.calendarLink ? t('Connect a calendar to see your meetings.') : t('Connect the calendars on this Mac to see your upcoming meetings.'))}</p>
         <button className="workspace-button" onClick={calendar.status === 'error' ? () => void load() : connect}>{calendar.status === 'error' ? t('Try again') : calendar.status === 'denied' ? t('Open System Settings') : t('Connect calendar')}</button>
       </section>
       : <div data-testid="coming-up" className="agenda-events">
