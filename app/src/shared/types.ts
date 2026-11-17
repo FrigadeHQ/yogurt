@@ -133,6 +133,7 @@ export type YogurtApi = {
     renameSpeaker(meetingId: string, key: string, name: string): Promise<boolean>
     /** two voices were one person: the first joins the second, keeping its name and colour */
     mergeSpeaker(meetingId: string, fromKey: string, intoKey: string): Promise<boolean>
+    assignSpeaker(meetingId: string, segment: number, key: string): Promise<boolean>
     /** each line as it is saved (a me line a couple of seconds after it was said); returns the way to stop listening */
     onSegment(cb: (s: Omit<Segment, 'id'>) => void): () => void
     /** the meeting's saved lines changed (names from the call after it, echo lines shown again): read them again with get */

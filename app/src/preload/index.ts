@@ -102,6 +102,7 @@ const api: YogurtApi = {
     restore: (id, ids) => ipcRenderer.invoke('transcript:restore', id, ids),
     renameSpeaker: (id, key, name) => ipcRenderer.invoke('transcript:rename-speaker', id, key, name),
     mergeSpeaker: (id, from, into) => ipcRenderer.invoke('transcript:merge-speaker', id, from, into),
+    assignSpeaker: (id, segment, key) => ipcRenderer.invoke('transcript:assign-speaker', id, segment, key),
     onSegment: (cb) => {
       const on = (_e: unknown, seg: Parameters<typeof cb>[0]) => cb(seg)
       ipcRenderer.on('transcript:segment', on)
