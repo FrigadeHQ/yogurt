@@ -721,6 +721,20 @@ export class Store {
     return true
   }
 
+  /** a them line diarization left unclaimed: the person attributes it to one of the meeting's voices by hand */
+  assignSegment(meetingId: string, segmentId: number, key: string): boolean {
+    if (!key) return false
+    const seg = this.db.prepare('SELECT track, hidden FROM segments WHERE meeting_id = ? AND id = ?').get(meetingId, segmentId) as Row | undefined
+    if (!seg || String(seg.track) !== 'them' || Number(seg.hidden) === 1) return false
+    const known = this.db.prepare('SELECT key FROM meeting_speakers WHERE meeting_id = ? AND key = ?').get(meetingId, key) as Row | undefined
+    if (!known) return false
+    const nameOf = (k: string) => { const r = this.db.prepare('SELECT speaker FROM segments WHERE meeting_id = ? AND speaker_key = ? AND speaker IS NOT NULL AND hidden = 0 LIMIT 1').get(meetingId, k) as Row | undefined; return r?.speaker == null ? null : String(r.speaker) }
+    const name = nameOf(key)
+    if (!name) return false
+    this.db.prepare('UPDATE segments SET speaker_key = ?, speaker = ? WHERE id = ?').run(key, name, segmentId)
+    return true
+  }
+
   /** snapshot at recording start: enabling profiles mid-call must not capture a call already in progress */
   setVoicesAllowed(id: string, on: boolean) { this.db.prepare('UPDATE meetings SET voices_allowed = ? WHERE id = ?').run(on ? 1 : 0, id) }
   /** diarization done (error: recorded on the meeting instead, the transcript stays usable) */
