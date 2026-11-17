@@ -576,7 +576,6 @@
     "other": "{count} møder flyttet til papirkurv"
   },
   "Recorded with {app}": "Optaget med {app}",
-  "A new version of Yogurt is ready": "En ny version af Yogurt er klar",
   "Upgrading AI": "Opgraderer AI",
   "Upgrading AI · {percent}": "Opgraderer AI · {percent}",
   "AI upgrade paused": "AI-opgradering sat på pause",
@@ -680,5 +679,12 @@
   "Dock only": "Kun Dock",
   "Summary language": "Opsummeringssprog",
   "Same as the meeting": "Samme som mødet",
-  "Used for new summaries and when you write them again.": "Bruges til nye opsummeringer, og når du skriver dem igen."
+  "Used for new summaries and when you write them again.": "Bruges til nye opsummeringer, og når du skriver dem igen.",
+  "Update ready": "Opdatering klar",
+  "Installs when you restart Yogurt": "Installeres, når du genstarter Yogurt",
+  "You can restart after recording": "Du kan genstarte efter optagelsen",
+  "Later": "Senere",
+  "Restart": "Genstart",
+  "Yogurt couldn't restart. Try again.": "Yogurt kunne ikke genstarte. Prøv igen.",
+  "Yogurt {version}": "Yogurt {version}"
 }

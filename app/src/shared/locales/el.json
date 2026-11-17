@@ -579,7 +579,6 @@
     "other": "{count} συσκέψεις μετακινήθηκαν στον Κάδο"
   },
   "Recorded with {app}": "Ηχογραφήθηκε με το {app}",
-  "A new version of Yogurt is ready": "Μια νέα έκδοση του Yogurt είναι έτοιμη",
   "Upgrading AI": "Αναβάθμιση AI",
   "Upgrading AI · {percent}": "Αναβάθμιση AI · {percent}",
   "AI upgrade paused": "Η αναβάθμιση AI έχει παύσει",
@@ -683,5 +682,12 @@
   "Dock only": "Μόνο Dock",
   "Summary language": "Γλώσσα σύνοψης",
   "Same as the meeting": "Ίδια με τη συνάντηση",
-  "Used for new summaries and when you write them again.": "Χρησιμοποιείται για νέες συνόψεις και όταν τις ξαναγράφετε."
+  "Used for new summaries and when you write them again.": "Χρησιμοποιείται για νέες συνόψεις και όταν τις ξαναγράφετε.",
+  "Update ready": "Η ενημέρωση είναι έτοιμη",
+  "Installs when you restart Yogurt": "Εγκαθίσταται στην επανεκκίνηση του Yogurt",
+  "You can restart after recording": "Μπορείτε να επανεκκινήσετε μετά την εγγραφή",
+  "Later": "Αργότερα",
+  "Restart": "Επανεκκίνηση",
+  "Yogurt couldn't restart. Try again.": "Το Yogurt δεν μπόρεσε να επανεκκινηθεί. Δοκιμάστε ξανά.",
+  "Yogurt {version}": "Yogurt {version}"
 }

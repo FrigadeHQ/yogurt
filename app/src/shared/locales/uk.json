@@ -602,7 +602,6 @@
     "other": "{count} зустрічі переміщено до Кошика"
   },
   "Recorded with {app}": "Записано в {app}",
-  "A new version of Yogurt is ready": "Нова версія Yogurt готова",
   "Upgrading AI": "Покращення ШІ",
   "Upgrading AI · {percent}": "Покращення ШІ · {percent}",
   "AI upgrade paused": "Покращення ШІ призупинено",
@@ -708,5 +707,12 @@
   "Dock only": "Лише Dock",
   "Summary language": "Мова підсумку",
   "Same as the meeting": "Як на зустрічі",
-  "Used for new summaries and when you write them again.": "Використовується для нових і повторно створених підсумків."
+  "Used for new summaries and when you write them again.": "Використовується для нових і повторно створених підсумків.",
+  "Update ready": "Оновлення готове",
+  "Installs when you restart Yogurt": "Встановиться після перезапуску Yogurt",
+  "You can restart after recording": "Можна перезапустити після запису",
+  "Later": "Пізніше",
+  "Restart": "Перезапустити",
+  "Yogurt couldn't restart. Try again.": "Не вдалося перезапустити Yogurt. Спробуйте ще раз.",
+  "Yogurt {version}": "Yogurt {version}"
 }

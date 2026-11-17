@@ -602,7 +602,6 @@
     "other": "{count} встречи перемещены в Корзину"
   },
   "Recorded with {app}": "Записано в {app}",
-  "A new version of Yogurt is ready": "Новая версия Yogurt готова",
   "Upgrading AI": "Улучшение ИИ",
   "Upgrading AI · {percent}": "Улучшение ИИ · {percent}",
   "AI upgrade paused": "Улучшение ИИ приостановлено",
@@ -708,5 +707,12 @@
   "Dock only": "Только Dock",
   "Summary language": "Язык сводки",
   "Same as the meeting": "Как на встрече",
-  "Used for new summaries and when you write them again.": "Используется для новых и повторно созданных сводок."
+  "Used for new summaries and when you write them again.": "Используется для новых и повторно созданных сводок.",
+  "Update ready": "Обновление готово",
+  "Installs when you restart Yogurt": "Установится при перезапуске Yogurt",
+  "You can restart after recording": "Можно перезапустить после записи",
+  "Later": "Позже",
+  "Restart": "Перезапустить",
+  "Yogurt couldn't restart. Try again.": "Не удалось перезапустить Yogurt. Попробуйте ещё раз.",
+  "Yogurt {version}": "Yogurt {version}"
 }

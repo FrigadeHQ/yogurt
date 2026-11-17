@@ -592,7 +592,6 @@
     "other": "{count} de întâlniri mutate în Coș"
   },
   "Recorded with {app}": "Înregistrat cu {app}",
-  "A new version of Yogurt is ready": "O versiune nouă de Yogurt este gata",
   "Upgrading AI": "Îmbunătățire AI",
   "Upgrading AI · {percent}": "Îmbunătățire AI · {percent}",
   "AI upgrade paused": "Îmbunătățirea AI este în pauză",
@@ -697,5 +696,12 @@
   "Dock only": "Doar Dock",
   "Summary language": "Limba rezumatului",
   "Same as the meeting": "Aceeași ca în întâlnire",
-  "Used for new summaries and when you write them again.": "Folosită pentru rezumate noi și când le rescrii."
+  "Used for new summaries and when you write them again.": "Folosită pentru rezumate noi și când le rescrii.",
+  "Update ready": "Actualizare pregătită",
+  "Installs when you restart Yogurt": "Se instalează când repornești Yogurt",
+  "You can restart after recording": "Poți reporni după înregistrare",
+  "Later": "Mai târziu",
+  "Restart": "Repornește",
+  "Yogurt couldn't restart. Try again.": "Yogurt nu a putut reporni. Încearcă din nou.",
+  "Yogurt {version}": "Yogurt {version}"
 }

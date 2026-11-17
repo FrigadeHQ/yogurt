@@ -537,7 +537,6 @@
   "Move {count} meetings to Trash": "ย้ายการประชุม {count} รายการไปถังขยะ",
   "{count} meetings moved to Trash": "ย้ายการประชุม {count} รายการไปถังขยะแล้ว",
   "Recorded with {app}": "บันทึกด้วย {app}",
-  "A new version of Yogurt is ready": "Yogurt เวอร์ชันใหม่พร้อมแล้ว",
   "Upgrading AI": "กำลังอัปเกรด AI",
   "Upgrading AI · {percent}": "กำลังอัปเกรด AI · {percent}",
   "AI upgrade paused": "การอัปเกรด AI หยุดชั่วคราว",
@@ -638,5 +637,12 @@
   "Dock only": "Dock เท่านั้น",
   "Summary language": "ภาษาสรุป",
   "Same as the meeting": "ภาษาเดียวกับการประชุม",
-  "Used for new summaries and when you write them again.": "ใช้สำหรับสรุปใหม่และเมื่อเขียนสรุปอีกครั้ง"
+  "Used for new summaries and when you write them again.": "ใช้สำหรับสรุปใหม่และเมื่อเขียนสรุปอีกครั้ง",
+  "Update ready": "อัปเดตพร้อมแล้ว",
+  "Installs when you restart Yogurt": "ติดตั้งเมื่อเริ่ม Yogurt ใหม่",
+  "You can restart after recording": "คุณเริ่มใหม่ได้หลังบันทึกเสร็จ",
+  "Later": "ภายหลัง",
+  "Restart": "เริ่มใหม่",
+  "Yogurt couldn't restart. Try again.": "เริ่ม Yogurt ใหม่ไม่ได้ ลองอีกครั้ง",
+  "Yogurt {version}": "Yogurt {version}"
 }

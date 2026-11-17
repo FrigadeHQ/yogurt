@@ -21,21 +21,7 @@ export const isPreviewBuild = (packageJson: string): boolean => {
   try { return JSON.parse(packageJson).yogurtPreview === true } catch { return false }
 }
 
-/** how long a downloaded version waits for a quit before the corner offers Restart, and how long X puts it off */
-export const OFFER_AFTER_MS = 24 * 60 * 60 * 1000
-
-/**
- * The corner offers Restart Yogurt for a downloaded version. Most people quit within a day, and it installs then
- * without a word; only someone who keeps Yogurt open longer is asked. Never during a call or a recording (restarting would end it).
- */
-export function offersRestart(o: { readyAt?: number; now: number; snoozedUntil: number; recording: boolean; on: boolean; afterMs?: number }): boolean {
-  return o.readyAt !== undefined && o.on && !o.recording && o.now - o.readyAt >= (o.afterMs ?? OFFER_AFTER_MS) && o.now >= o.snoozedUntil
-}
-
 let updater: AppUpdater | undefined
-let announce = () => {}
-/** a recording started or stopped: the corner's offer may change now */
-export const updateOfferChanged = (): void => announce()
 let installOnQuit = false
 
 /** After quit, installs a downloaded version and reopens if that was requested via Settings. */
@@ -49,23 +35,19 @@ export function finishQuit(): void {
  * available: false in a build that never updates (see updatesOn); Settings then shows only the version.
  * DOES NOT WORK WHILE RECORDING.
  */
-export async function hookUpdates(d: { file: string; available: boolean; recording(): boolean; /** a call app is on the mic, recorded or not */ onCall?(): boolean; /** fake mode: a version already downloaded */ fake?: { version: string; afterMs: number; restarted(): void } }): Promise<void> {
+export async function hookUpdates(d: { file: string; available: boolean; recording(): boolean; /** fake mode: a version already downloaded */ fake?: { version: string; restarted(): void } }): Promise<void> {
   let state: UpdateStatus['state'] = 'idle'
-  let next: string | undefined
-  let readyAt: number | undefined, snoozedUntil = 0
+  let next: string | undefined, dismissedVersion: string | undefined
   const status = (): UpdateStatus => {
     const on = autoUpdateOn(loadSettings(d.file))
-    const offer = offersRestart({ readyAt, now: Date.now(), snoozedUntil, recording: d.recording() || !!d.onCall?.(), on, afterMs: d.fake?.afterMs })
-    return { version: app.getVersion(), available: d.available || !!d.fake, on, state, next, offer }
+    return { version: app.getVersion(), available: d.available || !!d.fake, on, state, next, dismissed: !!next && next === dismissedVersion }
   }
   const set = (s: UpdateStatus['state'], version?: string) => {
     state = s
     if (version) next = version
-    if (s === 'ready') readyAt ??= Date.now()
     for (const w of BrowserWindow.getAllWindows()) if (!w.isDestroyed()) w.webContents.send('updates:status', status())
   }
 
-  announce = () => set(state)
   ipcMain.handle('updates:status', status)
   ipcMain.handle('updates:set', (_e, on: unknown) => {
     if (typeof on !== 'boolean') return status()
@@ -76,22 +58,21 @@ export async function hookUpdates(d: { file: string; available: boolean; recordi
     return status()
   })
   ipcMain.handle('updates:check', () => { check() })
+  ipcMain.handle('updates:later', () => {
+    if (state !== 'ready' || !next) return
+    dismissedVersion = next
+    set(state)
+  })
   ipcMain.handle('updates:restart', () => {
     if (state !== 'ready' || d.recording()) return false
     // fake mode: as if Yogurt came back on the new version
-    if (d.fake) { d.fake.restarted(); readyAt = undefined; set('latest'); return true }
+    if (d.fake) { d.fake.restarted(); set('latest'); return true }
     installOnQuit = true
     app.quit()
     return true
   })
-  // the corner's X: ask again tomorrow
-  ipcMain.handle('updates:later', () => { snoozedUntil = Date.now() + (d.fake?.afterMs ?? OFFER_AFTER_MS); set(state) })
-  // the offer depends on the clock and on recording, so tell the windows again now and then once a version is ready
-  setInterval(() => { if (state === 'ready') set(state) }, d.fake ? Math.max(200, d.fake.afterMs / 4) : 60 * 1000).unref?.()
-
+  const check = () => { if (!d.fake && updater && autoUpdateOn(loadSettings(d.file)) && state !== 'ready') updater.checkForUpdates().catch(() => {}) }
   if (d.fake) { set('ready', d.fake.version); return }
-
-  const check = () => { if (updater && autoUpdateOn(loadSettings(d.file)) && state !== 'ready') updater.checkForUpdates().catch(() => {}) }
   if (!d.available) return
 
   // loaded here: it reads Electron's app as it loads, which tests don't have

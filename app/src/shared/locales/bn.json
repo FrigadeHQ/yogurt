@@ -567,7 +567,6 @@
   "Move {count} meetings to Trash": "{count}টি মিটিং ট্র্যাশে সরান",
   "{count} meetings moved to Trash": "{count}টি মিটিং ট্র্যাশে সরানো হয়েছে",
   "Recorded with {app}": "{app} দিয়ে রেকর্ড করা",
-  "A new version of Yogurt is ready": "Yogurt-এর নতুন সংস্করণ তৈরি",
   "Upgrading AI": "AI আপগ্রেড হচ্ছে",
   "Upgrading AI · {percent}": "AI আপগ্রেড হচ্ছে · {percent}",
   "AI upgrade paused": "AI আপগ্রেড সাময়িকভাবে বন্ধ",
@@ -668,5 +667,12 @@
   "Dock only": "শুধু Dock",
   "Summary language": "সারাংশের ভাষা",
   "Same as the meeting": "মিটিংয়ের ভাষা",
-  "Used for new summaries and when you write them again.": "নতুন সারাংশ ও সারাংশ আবার লেখার সময় ব্যবহৃত হয়।"
+  "Used for new summaries and when you write them again.": "নতুন সারাংশ ও সারাংশ আবার লেখার সময় ব্যবহৃত হয়।",
+  "Update ready": "আপডেট প্রস্তুত",
+  "Installs when you restart Yogurt": "Yogurt আবার চালু করলে ইনস্টল হবে",
+  "You can restart after recording": "রেকর্ডিং শেষে আবার চালু করতে পারবেন",
+  "Later": "পরে",
+  "Restart": "আবার চালু",
+  "Yogurt couldn't restart. Try again.": "Yogurt আবার চালু করা যায়নি। আবার চেষ্টা করুন।",
+  "Yogurt {version}": "Yogurt {version}"
 }

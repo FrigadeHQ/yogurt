@@ -589,7 +589,6 @@
     "other": "{count} réunions déplacées vers la corbeille"
   },
   "Recorded with {app}": "Enregistré avec {app}",
-  "A new version of Yogurt is ready": "Une nouvelle version de Yogurt est prête",
   "Upgrading AI": "Amélioration de l’IA",
   "Upgrading AI · {percent}": "Amélioration de l’IA · {percent}",
   "AI upgrade paused": "Amélioration de l’IA en pause",
@@ -696,5 +695,12 @@
   "Dock only": "Dock uniquement",
   "Summary language": "Langue des résumés",
   "Same as the meeting": "Celle de la réunion",
-  "Used for new summaries and when you write them again.": "Utilisée pour les nouveaux résumés et leur réécriture."
+  "Used for new summaries and when you write them again.": "Utilisée pour les nouveaux résumés et leur réécriture.",
+  "Update ready": "Mise à jour prête",
+  "Installs when you restart Yogurt": "S’installe au redémarrage de Yogurt",
+  "You can restart after recording": "Vous pourrez redémarrer après l’enregistrement",
+  "Later": "Plus tard",
+  "Restart": "Redémarrer",
+  "Yogurt couldn't restart. Try again.": "Yogurt n’a pas pu redémarrer. Réessayez.",
+  "Yogurt {version}": "Yogurt {version}"
 }

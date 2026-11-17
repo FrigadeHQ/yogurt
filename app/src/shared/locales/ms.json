@@ -537,7 +537,6 @@
   "Move {count} meetings to Trash": "Alih {count} mesyuarat ke Sampah",
   "{count} meetings moved to Trash": "{count} mesyuarat dialihkan ke Sampah",
   "Recorded with {app}": "Dirakam dengan {app}",
-  "A new version of Yogurt is ready": "Versi baharu Yogurt sudah sedia",
   "Upgrading AI": "Menaik taraf AI",
   "Upgrading AI · {percent}": "Menaik taraf AI · {percent}",
   "AI upgrade paused": "Naik taraf AI dijeda",
@@ -638,5 +637,12 @@
   "Dock only": "Dock sahaja",
   "Summary language": "Bahasa ringkasan",
   "Same as the meeting": "Sama seperti mesyuarat",
-  "Used for new summaries and when you write them again.": "Digunakan untuk ringkasan baharu dan apabila ditulis semula."
+  "Used for new summaries and when you write them again.": "Digunakan untuk ringkasan baharu dan apabila ditulis semula.",
+  "Update ready": "Kemas kini sedia",
+  "Installs when you restart Yogurt": "Dipasang apabila Yogurt dimulakan semula",
+  "You can restart after recording": "Anda boleh mula semula selepas rakaman",
+  "Later": "Kemudian",
+  "Restart": "Mula semula",
+  "Yogurt couldn't restart. Try again.": "Yogurt tidak dapat dimulakan semula. Cuba lagi.",
+  "Yogurt {version}": "Yogurt {version}"
 }

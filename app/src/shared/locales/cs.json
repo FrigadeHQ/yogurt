@@ -606,7 +606,6 @@
     "other": "{count} schůzek přesunuto do koše"
   },
   "Recorded with {app}": "Nahráno v aplikaci {app}",
-  "A new version of Yogurt is ready": "Nová verze Yogurtu je připravená",
   "Upgrading AI": "Vylepšování AI",
   "Upgrading AI · {percent}": "Vylepšování AI · {percent}",
   "AI upgrade paused": "Vylepšování AI pozastaveno",
@@ -711,5 +710,12 @@
   "Dock only": "Pouze Dock",
   "Summary language": "Jazyk shrnutí",
   "Same as the meeting": "Stejný jako na schůzce",
-  "Used for new summaries and when you write them again.": "Použije se pro nová i znovu vytvořená shrnutí."
+  "Used for new summaries and when you write them again.": "Použije se pro nová i znovu vytvořená shrnutí.",
+  "Update ready": "Aktualizace připravena",
+  "Installs when you restart Yogurt": "Nainstaluje se po restartu Yogurtu",
+  "You can restart after recording": "Restart bude možný po nahrávání",
+  "Later": "Později",
+  "Restart": "Restartovat",
+  "Yogurt couldn't restart. Try again.": "Yogurt se nepodařilo restartovat. Zkuste to znovu.",
+  "Yogurt {version}": "Yogurt {version}"
 }

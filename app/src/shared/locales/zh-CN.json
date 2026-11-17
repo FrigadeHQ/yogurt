@@ -537,7 +537,6 @@
   "Move {count} meetings to Trash": "将 {count} 个会议移到废纸篓",
   "{count} meetings moved to Trash": "已将 {count} 个会议移到废纸篓",
   "Recorded with {app}": "由 {app} 录制",
-  "A new version of Yogurt is ready": "Yogurt 新版本已就绪",
   "Upgrading AI": "正在升级 AI",
   "Upgrading AI · {percent}": "正在升级 AI · {percent}",
   "AI upgrade paused": "AI 升级已暂停",
@@ -638,5 +637,12 @@
   "Dock only": "仅 Dock",
   "Summary language": "摘要语言",
   "Same as the meeting": "与会议相同",
-  "Used for new summaries and when you write them again.": "用于新摘要和重新生成的摘要。"
+  "Used for new summaries and when you write them again.": "用于新摘要和重新生成的摘要。",
+  "Update ready": "更新已就绪",
+  "Installs when you restart Yogurt": "重启 Yogurt 时安装",
+  "You can restart after recording": "录音结束后即可重启",
+  "Later": "稍后",
+  "Restart": "重启",
+  "Yogurt couldn't restart. Try again.": "无法重启 Yogurt。请重试。",
+  "Yogurt {version}": "Yogurt {version}"
 }

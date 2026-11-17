@@ -200,5 +200,12 @@
   "Dock only": "Dock only",
   "Summary language": "Summary language",
   "Same as the meeting": "Same as the meeting",
-  "Used for new summaries and when you write them again.": "Used for new summaries and when you write them again."
+  "Used for new summaries and when you write them again.": "Used for new summaries and when you write them again.",
+  "Update ready": "Update ready",
+  "Installs when you restart Yogurt": "Installs when you restart Yogurt",
+  "You can restart after recording": "You can restart after recording",
+  "Later": "Later",
+  "Restart": "Restart",
+  "Yogurt couldn't restart. Try again.": "Yogurt couldn't restart. Try again.",
+  "Yogurt {version}": "Yogurt {version}"
 }

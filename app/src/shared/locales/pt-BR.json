@@ -589,7 +589,6 @@
     "other": "{count} reuniões movidas para a Lixeira"
   },
   "Recorded with {app}": "Gravado com {app}",
-  "A new version of Yogurt is ready": "Uma nova versão do Yogurt está pronta",
   "Upgrading AI": "Melhorando a IA",
   "Upgrading AI · {percent}": "Melhorando a IA · {percent}",
   "AI upgrade paused": "Melhoria da IA pausada",
@@ -696,5 +695,12 @@
   "Dock only": "Apenas Dock",
   "Summary language": "Idioma do resumo",
   "Same as the meeting": "O mesmo da reunião",
-  "Used for new summaries and when you write them again.": "Usado em novos resumos e quando você os reescreve."
+  "Used for new summaries and when you write them again.": "Usado em novos resumos e quando você os reescreve.",
+  "Update ready": "Atualização pronta",
+  "Installs when you restart Yogurt": "Instala ao reiniciar o Yogurt",
+  "You can restart after recording": "Você pode reiniciar após a gravação",
+  "Later": "Mais tarde",
+  "Restart": "Reiniciar",
+  "Yogurt couldn't restart. Try again.": "Não foi possível reiniciar o Yogurt. Tente novamente.",
+  "Yogurt {version}": "Yogurt {version}"
 }

@@ -589,7 +589,6 @@
     "other": "{count} reuniones movidas a la papelera"
   },
   "Recorded with {app}": "Grabado con {app}",
-  "A new version of Yogurt is ready": "Hay una nueva versión de Yogurt lista",
   "Upgrading AI": "Mejorando la IA",
   "Upgrading AI · {percent}": "Mejorando la IA · {percent}",
   "AI upgrade paused": "Mejora de la IA en pausa",
@@ -693,5 +692,12 @@
   "Dock only": "Solo Dock",
   "Summary language": "Idioma del resumen",
   "Same as the meeting": "El de la reunión",
-  "Used for new summaries and when you write them again.": "Se usa en resúmenes nuevos y cuando los vuelves a escribir."
+  "Used for new summaries and when you write them again.": "Se usa en resúmenes nuevos y cuando los vuelves a escribir.",
+  "Update ready": "Actualización lista",
+  "Installs when you restart Yogurt": "Se instala al reiniciar Yogurt",
+  "You can restart after recording": "Puedes reiniciar después de grabar",
+  "Later": "Más tarde",
+  "Restart": "Reiniciar",
+  "Yogurt couldn't restart. Try again.": "No se pudo reiniciar Yogurt. Inténtalo de nuevo.",
+  "Yogurt {version}": "Yogurt {version}"
 }

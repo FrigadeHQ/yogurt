@@ -576,7 +576,6 @@
     "other": "Inilipat ang {count} na meeting sa Basurahan"
   },
   "Recorded with {app}": "Ni-record gamit ang {app}",
-  "A new version of Yogurt is ready": "Handa na ang bagong bersyon ng Yogurt",
   "Upgrading AI": "Ina-upgrade ang AI",
   "Upgrading AI · {percent}": "Ina-upgrade ang AI · {percent}",
   "AI upgrade paused": "Naka-pause ang pag-upgrade ng AI",
@@ -680,5 +679,12 @@
   "Dock only": "Dock lang",
   "Summary language": "Wika ng buod",
   "Same as the meeting": "Tulad ng sa pulong",
-  "Used for new summaries and when you write them again.": "Gagamitin sa mga bagong buod at kapag isinulat muli ang mga ito."
+  "Used for new summaries and when you write them again.": "Gagamitin sa mga bagong buod at kapag isinulat muli ang mga ito.",
+  "Update ready": "Handa na ang update",
+  "Installs when you restart Yogurt": "Mai-install kapag ni-restart mo ang Yogurt",
+  "You can restart after recording": "Maaari kang mag-restart pagkatapos mag-record",
+  "Later": "Mamaya",
+  "Restart": "I-restart",
+  "Yogurt couldn't restart. Try again.": "Hindi ma-restart ang Yogurt. Subukan muli.",
+  "Yogurt {version}": "Yogurt {version}"
 }

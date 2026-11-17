@@ -82,6 +82,9 @@
 .document-body { padding-inline:clamp(20px,calc(10cqw - 42px),48px); }
 .workspace-toolbar { position:absolute;inset-inline:0;top:0;height:52px;z-index:50;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid var(--line);background:transparent; }
 .workspace-toolbar[data-note=true] { padding-inline-end:185px; }
+/* Match the 30px controls centred above the title bar's bottom hairline. */
+.note-topbar { top:calc((52px - 1px - 30px) / 2); }
+.note-topbar > div > button { width:30px;height:30px; }
 .workspace-breadcrumb { display:flex;gap:9px;align-items:center;min-width:0;color:var(--muted);font-size:13px;white-space:nowrap; }
 .workspace-breadcrumb>svg { flex:none; }
 .workspace-breadcrumb>[aria-current] { color:var(--ink);font-weight:500;overflow:hidden;text-overflow:ellipsis; }
@@ -133,6 +136,7 @@
 .workspace:dir(rtl) .workspace-toolbar:has(.workspace-toolbar-actions:not(:empty)) { padding-inline-end:132px; }
 /* Reserve space for the status and More, truncating labels in a narrow window. */
 .workspace-toolbar:has(.notes-download-status) { gap:10px;padding-inline-end:17px; }
+.workspace-toolbar:has(.update-ready-status):has(.notes-download-status:not(.update-ready-status)) { gap:8px; }
 .workspace-toolbar:has(.notes-download-status) .workspace-breadcrumb { flex:1;overflow:hidden; }
 .workspace-toolbar[data-note=true]:has(.notes-download-status) { padding-inline-end:62px; }
 .workspace:dir(rtl) .workspace-toolbar:has(.notes-download-status) { padding-inline-end:132px; }

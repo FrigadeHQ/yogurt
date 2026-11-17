@@ -579,7 +579,6 @@
     "other": "{count} kokousta siirretty roskakoriin"
   },
   "Recorded with {app}": "Tallennettu sovelluksella {app}",
-  "A new version of Yogurt is ready": "Uusi Yogurt-versio on valmis",
   "Upgrading AI": "Päivitetään tekoälyä",
   "Upgrading AI · {percent}": "Päivitetään tekoälyä · {percent}",
   "AI upgrade paused": "Tekoälyn päivitys keskeytetty",
@@ -686,5 +685,12 @@
   "Dock only": "Vain Dock",
   "Summary language": "Yhteenvedon kieli",
   "Same as the meeting": "Sama kuin kokouksessa",
-  "Used for new summaries and when you write them again.": "Käytetään uusissa ja uudelleen kirjoitetuissa yhteenvedoissa."
+  "Used for new summaries and when you write them again.": "Käytetään uusissa ja uudelleen kirjoitetuissa yhteenvedoissa.",
+  "Update ready": "Päivitys valmis",
+  "Installs when you restart Yogurt": "Asennetaan, kun käynnistät Yogurtin uudelleen",
+  "You can restart after recording": "Voit käynnistää uudelleen tallennuksen jälkeen",
+  "Later": "Myöhemmin",
+  "Restart": "Käynnistä uudelleen",
+  "Yogurt couldn't restart. Try again.": "Yogurt ei voinut käynnistyä uudelleen. Yritä uudelleen.",
+  "Yogurt {version}": "Yogurt {version}"
 }

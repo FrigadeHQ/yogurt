@@ -586,7 +586,6 @@
     "other": "{count} פגישות הועברו לאשפה"
   },
   "Recorded with {app}": "הוקלט עם {app}",
-  "A new version of Yogurt is ready": "גרסה חדשה של Yogurt מוכנה",
   "Upgrading AI": "משדרגים את הבינה המלאכותית",
   "Upgrading AI · {percent}": "משדרגים את הבינה המלאכותית · {percent}",
   "AI upgrade paused": "שדרוג הבינה המלאכותית מושהה",
@@ -690,5 +689,12 @@
   "Dock only": "Dock בלבד",
   "Summary language": "שפת הסיכום",
   "Same as the meeting": "כמו בפגישה",
-  "Used for new summaries and when you write them again.": "משמשת לסיכומים חדשים ולכתיבה מחדש שלהם."
+  "Used for new summaries and when you write them again.": "משמשת לסיכומים חדשים ולכתיבה מחדש שלהם.",
+  "Update ready": "העדכון מוכן",
+  "Installs when you restart Yogurt": "יותקן בהפעלה מחדש של Yogurt",
+  "You can restart after recording": "אפשר להפעיל מחדש אחרי ההקלטה",
+  "Later": "מאוחר יותר",
+  "Restart": "הפעלה מחדש",
+  "Yogurt couldn't restart. Try again.": "לא ניתן היה להפעיל מחדש את Yogurt. נסו שוב.",
+  "Yogurt {version}": "Yogurt {version}"
 }

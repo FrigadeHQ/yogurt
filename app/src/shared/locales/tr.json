@@ -567,7 +567,6 @@
   "Move {count} meetings to Trash": "{count} toplantıyı Çöp Kutusuna taşı",
   "{count} meetings moved to Trash": "{count} toplantı Çöp Kutusuna taşındı",
   "Recorded with {app}": "{app} ile kaydedildi",
-  "A new version of Yogurt is ready": "Yogurt'un yeni sürümü hazır",
   "Upgrading AI": "Yapay zeka yükseltiliyor",
   "Upgrading AI · {percent}": "Yapay zeka yükseltiliyor · {percent}",
   "AI upgrade paused": "Yapay zeka yükseltmesi duraklatıldı",
@@ -668,5 +667,12 @@
   "Dock only": "Yalnızca Dock",
   "Summary language": "Özet dili",
   "Same as the meeting": "Toplantıyla aynı",
-  "Used for new summaries and when you write them again.": "Yeni özetlerde ve özetleri yeniden yazarken kullanılır."
+  "Used for new summaries and when you write them again.": "Yeni özetlerde ve özetleri yeniden yazarken kullanılır.",
+  "Update ready": "Güncelleme hazır",
+  "Installs when you restart Yogurt": "Yogurt yeniden başlatıldığında yüklenir",
+  "You can restart after recording": "Kayıttan sonra yeniden başlatabilirsiniz",
+  "Later": "Daha sonra",
+  "Restart": "Yeniden başlat",
+  "Yogurt couldn't restart. Try again.": "Yogurt yeniden başlatılamadı. Tekrar deneyin.",
+  "Yogurt {version}": "Yogurt {version}"
 }
