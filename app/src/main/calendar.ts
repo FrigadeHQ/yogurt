@@ -72,21 +72,32 @@ export const setCalendarSupported = (on: boolean) => { supported = on; if (!on) 
  */
 export type CalendarLinkSource = { status(): 'granted' | 'notDetermined'; calendars(): Promise<CalendarSource[]>; events(fromMs: number, toMs: number): Promise<unknown[]> }
 let links: CalendarLinkSource | null = null
-export const setCalendarLinkSource = (s: CalendarLinkSource | null) => { links = s; if (s) status = s.status() }
+/** a Mac: links are added next to the Mac's own calendars (Settings), never instead of them */
+let alongside = false
+/** a Mac's own calendar access, apart from the links */
+let macStatus: CalendarStatus = 'notDetermined'
+export const setCalendarLinkSource = (s: CalendarLinkSource | null, o: { alongside?: boolean } = {}) => {
+  links = s; alongside = !!s && !!o.alongside
+  if (s && !alongside) status = s.status()
+}
+/** the Mac's own calendar access, apart from any links (Settings shows both) */
+export const systemCalendarStatus = (): CalendarStatus => (links && !alongside ? 'unsupported' : macStatus)
+/** with links alongside, a connected link is a calendar even while the Mac's own one isn't allowed */
+const overall = (mac: CalendarStatus): CalendarStatus => (links && mac !== 'granted' && links.status() === 'granted' ? 'granted' : mac)
 
 export async function refreshCalendarStatus(): Promise<CalendarStatus> {
-  if (links) return status = links.status()
-  if (!supported) return status = 'unsupported'
-  try { status = asStatus(await helper(['calendar-status'])) } catch { status = 'error' }
-  return status
+  if (links && !alongside) return status = links.status()
+  if (!supported) macStatus = 'unsupported'
+  else try { macStatus = asStatus(await helper(['calendar-status'])) } catch { macStatus = 'error' }
+  return status = overall(macStatus)
 }
 /** Asks once with the system's own prompt */
 export async function requestCalendarAccess(): Promise<CalendarStatus> {
   // a link has no prompt: it is connected when one is pasted (Settings or the first run)
-  if (links) return status = links.status()
-  if (!supported) return status = 'unsupported'
-  try { status = asStatus(await helper(['calendar-auth'])) } catch { status = 'error' }
-  return status
+  if (links && !alongside) return status = links.status()
+  if (!supported) macStatus = 'unsupported'
+  else try { macStatus = asStatus(await helper(['calendar-auth'])) } catch { macStatus = 'error' }
+  return status = overall(macStatus)
 }
 
 // Links that start a call; anything else in an invite (docs, agendas) is not one
@@ -99,13 +110,14 @@ export const setCalendarSelection = (read: typeof calendarSelection) => { calend
 
 export async function calendars(): Promise<CalendarSource[]> {
   if (await refreshCalendarStatus() !== 'granted') return []
-  if (links) return links.calendars()
+  const linked = links ? await links.calendars() : []
+  if ((links && !alongside) || macStatus !== 'granted') return linked
   try {
     const raw = await helper(['calendars'])
     if (!Array.isArray(raw)) throw new Error('Invalid calendars')
-    return raw.flatMap((r) => r && typeof r === 'object' && str(r.id) && str(r.name)
-      ? [{ id: r.id as string, name: r.name as string, source: str(r.source) ?? '', ...(typeof r.color === 'string' && /^#[0-9a-f]{6}$/i.test(r.color) ? { color: r.color } : {}) }] : [])
-  } catch { status = 'error'; return [] }
+    return [...raw.flatMap((r) => r && typeof r === 'object' && str(r.id) && str(r.name)
+      ? [{ id: r.id as string, name: r.name as string, source: str(r.source) ?? '', ...(typeof r.color === 'string' && /^#[0-9a-f]{6}$/i.test(r.color) ? { color: r.color } : {}) }] : []), ...linked]
+  } catch { status = 'error'; return linked }
 }
 
 export function parseEvents(raw: unknown, hidden: string[] = []): CalEvent[] {
@@ -145,7 +157,9 @@ export function parseEvents(raw: unknown, hidden: string[] = []): CalEvent[] {
 export async function upcoming(fromMs: number, toMs: number, keep?: (event: CalEvent) => boolean): Promise<CalEvent[]> {
   if (await refreshCalendarStatus() !== 'granted') return []
   try {
-    const raw = links ? await links.events(fromMs, toMs) : await helper(['events', new Date(fromMs).toISOString(), new Date(toMs).toISOString()])
+    const fromMac = !links || (alongside && macStatus === 'granted')
+    const mac = fromMac ? await helper(['events', new Date(fromMs).toISOString(), new Date(toMs).toISOString()]) : []
+    const raw = [...(links ? await links.events(fromMs, toMs) : []), ...(Array.isArray(mac) ? mac : [])]
     const selection = calendarSelection()
     return parseEvents(raw, selection.hiddenCalendarIds).filter(event =>
       selection.hideEventsWithoutCallLink !== true || event.url !== null || keep?.(event))

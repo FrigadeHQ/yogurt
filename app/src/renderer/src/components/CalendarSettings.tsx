@@ -36,6 +36,8 @@ export function CalendarSettings() {
     } catch { setError(true); reload() } finally { setBusy(false) }
   }
   const selected = view?.calendars.filter(c => c.enabled) ?? []
+  // the Mac's own calendars, apart from calendar links next to them
+  const sys = view?.systemStatus ?? view?.status
   // Yogurt holds no calendar accounts: disconnecting unticks every calendar; the Mac's own access stays in System Settings
   const removeLink = async (id: string) => {
     setBusy(true); setError(false)
@@ -43,6 +45,7 @@ export function CalendarSettings() {
   }
   const disconnect = async () => {
     if (link) { for (const c of view?.calendars ?? []) await removeLink(c.id); return }
+    for (const c of view?.calendars.filter((x) => x.link) ?? []) await removeLink(c.id)
     const ids = selected.map(c => c.id)
     setBusy(true); setError(false)
     setView((v) => v && { ...v, calendars: v.calendars.map((c) => ({ ...c, enabled: false })) })
@@ -69,17 +72,20 @@ export function CalendarSettings() {
       </button>
       <div id="settings-calendar-list" className="accordion" data-open={open} inert={!open || undefined}><div className="settings-calendar-list">
         <LoadingContent pending={!view} skeleton={<Loading layout="calendars" />}>{view && (link && (view.status !== 'granted' || !view.calendars.length) ? <div className="settings-row settings-calendar-link"><CalendarLinkForm onConnected={reload} /></div>
-          : view.status !== 'granted' ? <div className="settings-row">
-            <p className="settings-description settings-row-copy">{view.status === 'error' ? t("Yogurt couldn't read your calendars.") : t('Allow calendar access to choose your calendars.')}</p>
-            <button className="workspace-button" onClick={() => { if (view.status === 'error') reload(); else void window.yogurt.calendar.connect().then(reload) }}>{view.status === 'error' ? t('Try again') : t('Connect calendar')}</button>
-          </div>
-          : !view.calendars.length ? <p className="settings-row settings-description">{t('No calendars found on this Mac.')}</p>
-          : view.calendars.map((c) => <label key={c.id} data-testid="calendar-choice" className="settings-row settings-calendar-choice">
+          : <>{!link && sys !== 'granted' && <div className="settings-row">
+            <p className="settings-description settings-row-copy">{sys === 'error' ? t("Yogurt couldn't read your calendars.") : t('Allow calendar access to choose your calendars.')}</p>
+            <button className="workspace-button" onClick={() => { if (sys === 'error') reload(); else void window.yogurt.calendar.connect().then(reload) }}>{sys === 'error' ? t('Try again') : t('Connect calendar')}</button>
+          </div>}
+          {!link && sys === 'granted' && !view.calendars.some((c) => !c.link) && <p className="settings-row settings-description">{t('No calendars found on this Mac.')}</p>}
+          {view.calendars.map((c) => <label key={c.id} data-testid="calendar-choice" className="settings-row settings-calendar-choice">
             <span className="settings-calendar-dot" style={{ backgroundColor: c.color }} aria-hidden="true" />
             <span className="settings-row-copy"><span className="settings-label">{c.name}</span><span className="settings-description block">{c.source}</span></span>
             <input type="checkbox" checked={c.enabled} disabled={busy} onChange={(e) => void choose(c.id, e.target.checked)} />
-            {link && <button type="button" data-testid="calendar-link-remove" className="workspace-button shrink-0" disabled={busy} onClick={(e) => { e.preventDefault(); void removeLink(c.id) }}>{t('Remove')}</button>}
-          </label>))}</LoadingContent>
+            {c.link && <button type="button" data-testid="calendar-link-remove" className="workspace-button shrink-0" disabled={busy} onClick={(e) => { e.preventDefault(); void removeLink(c.id) }}>{t('Remove')}</button>}
+          </label>)}</>)}</LoadingContent>
+        {!link && view && view.status !== 'error' && (adding
+          ? <div className="settings-row settings-calendar-link"><CalendarLinkForm only="other" autoFocus onConnected={() => { setAdding(false); reload() }} /></div>
+          : <div className="settings-row"><button type="button" data-testid="calendar-link-add" className="workspace-button" onClick={() => setAdding(true)}>{t('Add a calendar link')}</button></div>)}
         {link && view?.status === 'granted' && view.calendars.length > 0 && (adding
           ? <div className="settings-row settings-calendar-link"><CalendarLinkForm autoFocus onConnected={() => { setAdding(false); reload() }} /></div>
           : <div className="settings-row"><button type="button" data-testid="calendar-link-add" className="workspace-button" onClick={() => setAdding(true)}>{t('Add another calendar')}</button></div>)}

@@ -40,7 +40,7 @@ import { SetupController } from './setup'
 import { fakeMeasure, measureSpeed, speedClipPath, speedStore } from './asr/speedCheck'
 import { vadModelPath, whisperServerPath } from './asr/server'
 import { openStore, type Store } from './store'
-import { calendars, eventIds, matchesEvent, setCalendarSelection, calendarStatus, createHelperRunner, helperPath, killAllHelpers, refreshCalendarStatus, requestCalendarAccess, runHelper, setCalendarLinkSource, setCalendarSupported, setHelper, upcoming, type CalEvent } from './calendar'
+import { calendars, eventIds, matchesEvent, setCalendarSelection, calendarStatus, createHelperRunner, helperPath, killAllHelpers, refreshCalendarStatus, requestCalendarAccess, runHelper, setCalendarLinkSource, systemCalendarStatus, setCalendarSupported, setHelper, upcoming, type CalEvent } from './calendar'
 import { createCalendarLinks } from './calendarLink'
 import { getCalendar } from './calendarLink/get'
 import { createSignals } from './detectSignals'
@@ -478,15 +478,16 @@ app.whenReady().then(() => {
   // a moved or reinstalled Yogurt loses its login item: put it back if the person wanted it
   if (!isFake()) syncLoginItem(settings.openAtLogin)
   // Windows and Linux: the calendar is a pasted private calendar address, kept sealed with the system keychain
-  const calendarLinks = caps.calendarLink ? createCalendarLinks({
+  // a Mac: the same links, next to its own calendars (Settings → Calendars → Add a calendar link)
+  const calendarLinks = caps.calendar ? createCalendarLinks({
     file: join(userDataDir(), 'settings.json'), get: getCalendar,
     seal: (plain) => (safeStorage.isEncryptionAvailable() ? `k:${safeStorage.encryptString(plain).toString('base64')}` : `p:${plain}`),
     open: (sealed) => (sealed.startsWith('k:') ? safeStorage.decryptString(Buffer.from(sealed.slice(2), 'base64')) : sealed.replace(/^p:/, '')),
   }) : null
-  if (calendarLinks) setCalendarLinkSource(calendarLinks)
+  if (calendarLinks) setCalendarLinkSource(calendarLinks, { alongside: !caps.calendarLink })
   hookPreferences({
     file: join(userDataDir(), 'settings.json'), permissions, kinds: supportedKinds(caps), os: platform,
-    ...(calendarLinks ? { calendarLinked: () => calendarLinks.status() === 'granted' } : {}),
+    ...(calendarLinks && caps.calendarLink ? { calendarLinked: () => calendarLinks.status() === 'granted' } : {}),
     // fake mode asks the first-run questions only when a test sets the permissions
     ask: !isFake() || !!process.env.YOGURT_FAKE_PERMISSIONS,
     setLogin: (on) => { if (!isFake()) setLoginItem(on) },
@@ -960,7 +961,9 @@ app.whenReady().then(() => {
   })
   const calendarList = async () => {
     const list = await calendars(), settings = loadSettings(settingsFile), hidden = settings.hiddenCalendarIds ?? []
-    return { status: calendarStatus(), hideEventsWithoutCallLink: settings.hideEventsWithoutCallLink === true, calendars: list.map((c) => ({ ...c, enabled: !hidden.includes(c.id) })) }
+    const linkIds = new Set(calendarLinks?.list().map((l) => l.id) ?? [])
+    return { status: calendarStatus(), systemStatus: systemCalendarStatus(), hideEventsWithoutCallLink: settings.hideEventsWithoutCallLink === true,
+      calendars: list.map((c) => ({ ...c, enabled: !hidden.includes(c.id), ...(linkIds.has(c.id) ? { link: true } : {}) })) }
   }
   ipcMain.handle('calendar:list', calendarList)
   ipcMain.handle('calendar:set-enabled', async (_e, id: unknown, enabled: unknown) => {
@@ -1009,7 +1012,7 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('calendar:connect', async () => {
     // a calendar link is pasted in Settings' calendars: the same form as the first run's
-    if (calendarLinks) { goTo('/settings'); return refreshCalendarStatus() }
+    if (calendarLinks && caps.calendarLink) { goTo('/settings'); return refreshCalendarStatus() }
     const was = await refreshCalendarStatus()
     if (was === 'notDetermined') return requestCalendarAccess()
     if (was === 'denied') {

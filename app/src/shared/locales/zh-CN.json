@@ -678,5 +678,6 @@
   "Yogurt couldn't reach that address. Check your connection and the address.": "Yogurt 无法访问该地址。请检查网络连接和地址。",
   "{name} is connected. You can change this any time in Settings.": "{name}已连接。你随时可以在设置中更改。",
   "Only see \"Public address in iCal format\"? Your organization turned off secret addresses, so this calendar can't be connected this way.": "只看到“Public address in iCal format”？你的组织关闭了私密地址，因此无法通过这种方式连接此日历。",
-  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "这是公开地址，只有日历公开时才能使用。请改为复制“Secret address in iCal format”。"
+  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "这是公开地址，只有日历公开时才能使用。请改为复制“Secret address in iCal format”。",
+  "Add a calendar link": "添加日历链接"
 }

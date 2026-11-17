@@ -776,5 +776,6 @@
   "Yogurt couldn't reach that address. Check your connection and the address.": "لم يتمكن Yogurt من الوصول إلى هذا العنوان. تحقق من اتصالك ومن العنوان.",
   "{name} is connected. You can change this any time in Settings.": "تم ربط {name}. يمكنك تغيير ذلك في أي وقت من الإعدادات.",
   "Only see \"Public address in iCal format\"? Your organization turned off secret addresses, so this calendar can't be connected this way.": "ترى \"Public address in iCal format\" فقط؟ أوقفت مؤسستك العناوين السرية، لذا لا يمكن ربط هذا التقويم بهذه الطريقة.",
-  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "هذا هو العنوان العام، ولا يعمل إلا إذا كان تقويمك عامًا. انسخ \"Secret address in iCal format\" بدلًا منه."
+  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "هذا هو العنوان العام، ولا يعمل إلا إذا كان تقويمك عامًا. انسخ \"Secret address in iCal format\" بدلًا منه.",
+  "Add a calendar link": "إضافة رابط تقويم"
 }

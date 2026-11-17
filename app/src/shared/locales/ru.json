@@ -748,5 +748,6 @@
   "Yogurt couldn't reach that address. Check your connection and the address.": "Yogurt не удалось открыть этот адрес. Проверьте подключение и адрес.",
   "{name} is connected. You can change this any time in Settings.": "{name}: подключено. Это можно изменить в любой момент в Настройках.",
   "Only see \"Public address in iCal format\"? Your organization turned off secret addresses, so this calendar can't be connected this way.": "Видите только «Public address in iCal format»? Ваша организация отключила секретные адреса, поэтому этот календарь так подключить нельзя.",
-  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Это общедоступный адрес, он работает только для общедоступного календаря. Скопируйте вместо него «Secret address in iCal format»."
+  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Это общедоступный адрес, он работает только для общедоступного календаря. Скопируйте вместо него «Secret address in iCal format».",
+  "Add a calendar link": "Добавить ссылку на календарь"
 }

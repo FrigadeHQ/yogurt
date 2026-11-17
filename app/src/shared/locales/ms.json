@@ -678,5 +678,6 @@
   "Yogurt couldn't reach that address. Check your connection and the address.": "Yogurt tidak dapat mencapai alamat itu. Semak sambungan dan alamat anda.",
   "{name} is connected. You can change this any time in Settings.": "{name} disambungkan. Anda boleh menukarnya bila-bila masa dalam Tetapan.",
   "Only see \"Public address in iCal format\"? Your organization turned off secret addresses, so this calendar can't be connected this way.": "Hanya nampak \"Public address in iCal format\"? Organisasi anda telah mematikan alamat rahsia, jadi kalendar ini tidak boleh disambungkan dengan cara ini.",
-  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Itu alamat awam, yang hanya berfungsi jika kalendar anda awam. Salin \"Secret address in iCal format\" sebaliknya."
+  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Itu alamat awam, yang hanya berfungsi jika kalendar anda awam. Salin \"Secret address in iCal format\" sebaliknya.",
+  "Add a calendar link": "Tambah pautan kalendar"
 }

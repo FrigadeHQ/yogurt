@@ -64,3 +64,25 @@ test('@everywhere on win32: the first run asks for a calendar link with the same
     await expect(step).toHaveCount(0)
   } finally { await app.close() }
 })
+
+test('@everywhere a Mac keeps its own calendar and can add a calendar link next to it (only "other": no Google or Outlook tabs)', async () => {
+  const { server, base } = await serve()
+  const app = await electron.launch({ args: [main], env: { ...process.env, YOGURT_FAKE: '1', YOGURT_FAKE_PLATFORM: 'darwin', YOGURT_USER_DATA: mkdtempSync(join(tmpdir(), 'yogurt-callink-mac-')) } })
+  try {
+    const page = await app.firstWindow()
+    await expect(page.getByTestId('home')).toBeVisible({ timeout: 15_000 })
+    await page.getByTestId('settings-open').click()
+    const settings = page.getByTestId('calendar-settings')
+    if (await settings.getByTestId('calendar-settings-toggle').getAttribute('aria-expanded') !== 'true') await settings.getByTestId('calendar-settings-toggle').click()
+    const before = await settings.getByTestId('calendar-choice').count()
+    await settings.getByTestId('calendar-link-add').click()
+    const form = settings.getByTestId('calendar-link-form')
+    await expect(form.getByRole('tab')).toHaveCount(0)
+    await form.getByTestId('calendar-link-input').fill(`${base}/cal.ics`)
+    await form.getByTestId('calendar-link-connect').click()
+    await expect(settings.getByTestId('calendar-choice')).toHaveCount(before + 1)
+    await expect(settings.getByTestId('calendar-choice').filter({ hasText: 'Team calendar' }).getByTestId('calendar-link-remove')).toBeVisible()
+    // the Mac's own calendars have no Remove: they live in the Mac's Calendar app
+    await expect(settings.getByTestId('calendar-link-remove')).toHaveCount(1)
+  } finally { await app.close(); server.close() }
+})

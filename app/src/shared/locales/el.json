@@ -723,5 +723,6 @@
   "Yogurt couldn't reach that address. Check your connection and the address.": "Το Yogurt δεν μπόρεσε να φτάσει σε αυτή τη διεύθυνση. Ελέγξτε τη σύνδεση και τη διεύθυνση.",
   "{name} is connected. You can change this any time in Settings.": "Το {name} συνδέθηκε. Μπορείτε να το αλλάξετε όποτε θέλετε στις Ρυθμίσεις.",
   "Only see \"Public address in iCal format\"? Your organization turned off secret addresses, so this calendar can't be connected this way.": "Βλέπετε μόνο το «Public address in iCal format»; Ο οργανισμός σας έχει απενεργοποιήσει τις μυστικές διευθύνσεις, οπότε αυτό το ημερολόγιο δεν μπορεί να συνδεθεί έτσι.",
-  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Αυτή είναι η δημόσια διεύθυνση, που λειτουργεί μόνο αν το ημερολόγιό σας είναι δημόσιο. Αντιγράψτε το «Secret address in iCal format»."
+  "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Αυτή είναι η δημόσια διεύθυνση, που λειτουργεί μόνο αν το ημερολόγιό σας είναι δημόσιο. Αντιγράψτε το «Secret address in iCal format».",
+  "Add a calendar link": "Προσθήκη συνδέσμου ημερολογίου"
 }

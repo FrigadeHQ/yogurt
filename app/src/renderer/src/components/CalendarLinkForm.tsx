@@ -37,8 +37,10 @@ const ERRORS = {
  * settings: the address and Connect on one row, as Settings' other rows. onboarding: Connect becomes the screen's main
  * button, beside `extra` (Not now), so the screen ends like every other first-run screen.
  */
-export function CalendarLinkForm({ onConnected, autoFocus, variant = 'settings', extra }: { onConnected(name: string): void; autoFocus?: boolean; variant?: 'settings' | 'onboarding'; extra?: ReactNode }) {
-  const [provider, setProvider] = useState<Provider>('google')
+export function CalendarLinkForm({ onConnected, autoFocus, variant = 'settings', extra, only }: { onConnected(name: string): void; autoFocus?: boolean; variant?: 'settings' | 'onboarding'; extra?: ReactNode
+  /** one kind of calendar and no tabs: a Mac adds Google and Outlook in its own Calendar app, so only "other" links are pasted here */
+  only?: Provider }) {
+  const [provider, setProvider] = useState<Provider>(only ?? 'google')
   const [url, setUrl] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<keyof typeof ERRORS | null>(null)
@@ -57,10 +59,10 @@ export function CalendarLinkForm({ onConnected, autoFocus, variant = 'settings',
   </button>
   return (
     <form data-testid="calendar-link-form" className="calendar-link-form" onSubmit={(e) => void submit(e)}>
-      <div role="tablist" aria-label={t('Your calendar')} className="calendar-link-providers">
+      {!only && <div role="tablist" aria-label={t('Your calendar')} className="calendar-link-providers">
         {PROVIDERS.map((p) => <button key={p.id} type="button" role="tab" aria-selected={provider === p.id} data-testid={`calendar-link-provider-${p.id}`}
           className="calendar-link-provider" onClick={() => setProvider(p.id)}>{p.name || t('Other')}</button>)}
-      </div>
+      </div>}
       {page && <a href={page} target="_blank" rel="noreferrer" data-testid="calendar-link-open" className="workspace-button calendar-link-open">
         <span>{provider === 'google' ? t('Open Google Calendar settings') : t('Open Outlook calendar settings')}</span><ExternalLink size={12} aria-hidden="true" />
       </a>}

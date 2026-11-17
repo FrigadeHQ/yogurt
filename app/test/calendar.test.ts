@@ -207,3 +207,33 @@ describe('Windows and Linux: the calendar comes from calendar links, not the sys
     setCalendarSelection(() => ({}))
   })
 })
+
+describe('a Mac: calendar links sit alongside the built-in calendar (Settings → Calendars → Add a calendar link)', () => {
+  afterEach(() => { setCalendarLinkSource(null); setCalendarSupported(true); setCalendarSelection(() => ({})) })
+  const linkEvent = { id: 'x|1', externalId: 'x', title: 'Book club', start: '2026-11-17T20:00:00.000Z', end: '2026-11-17T21:00:00.000Z', attendees: [], url: null, location: null, notes: null, calendarId: 'l1', calendar: 'Club', calendarSource: 'Calendar link', me: null }
+  const macRow = { id: 'm1', title: 'Standup', start: '2026-11-17T17:00:00.000Z', end: '2026-11-17T17:15:00.000Z', attendees: [], calendarId: 'work', calendar: 'Work' }
+  const links = (linked: boolean) => ({ status: () => (linked ? 'granted' as const : 'notDetermined' as const), calendars: async () => (linked ? [{ id: 'l1', name: 'Club', source: 'example.com' }] : []), events: async () => (linked ? [linkEvent] : []) })
+  const day = [Date.parse('2026-11-17T00:00:00Z'), Date.parse('2026-11-18T00:00:00Z')] as const
+
+  it('both: the Mac calendars and the links, their events together', async () => {
+    setHelper(async (args) => args[0] === 'calendar-status' ? { status: 'granted' } : args[0] === 'calendars' ? [{ id: 'work', name: 'Work', source: 'iCloud' }] : [macRow])
+    setCalendarLinkSource(links(true), { alongside: true })
+    expect(await refreshCalendarStatus()).toBe('granted')
+    expect((await calendars()).map((c) => c.name)).toEqual(['Work', 'Club'])
+    expect((await upcoming(...day)).map((e) => e.title).sort()).toEqual(['Book club', 'Standup'])
+  })
+  it('a link alone, without the Mac calendar allowed, still fills the agenda; the Mac is still asked with its own prompt', async () => {
+    const asked: string[] = []
+    setHelper(async (args) => { asked.push(args[0]); return args[0] === 'calendar-status' || args[0] === 'calendar-auth' ? { status: 'notDetermined' } : [] })
+    setCalendarLinkSource(links(true), { alongside: true })
+    expect(await refreshCalendarStatus()).toBe('granted')
+    expect((await upcoming(...day)).map((e) => e.title)).toEqual(['Book club'])
+    await requestCalendarAccess()
+    expect(asked).toContain('calendar-auth')
+  })
+  it('no link: exactly the Mac as before', async () => {
+    setHelper(async (args) => args[0] === 'calendar-status' ? { status: 'denied' } : [])
+    setCalendarLinkSource(links(false), { alongside: true })
+    expect(await refreshCalendarStatus()).toBe('denied')
+  })
+})
