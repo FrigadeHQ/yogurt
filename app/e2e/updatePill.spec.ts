@@ -76,7 +76,7 @@ test('keeps update and AI download controls visible together before the main act
       for (const win of BrowserWindow.getAllWindows()) win.webContents.send('setup:state', state)
     })
     await expect(page.getByTestId('notes-setup-open')).toBeVisible()
-    for (const width of [1200, 800]) {
+    for (const width of [1200, 800, 720]) {
       await app.evaluate(({ BrowserWindow }, width) => BrowserWindow.getAllWindows()[0].setSize(width, 800), width)
       await expect.poll(() => page.evaluate(() => {
         const update = document.querySelector('[data-testid="update-ready"]')!.getBoundingClientRect()
@@ -88,6 +88,37 @@ test('keeps update and AI download controls visible together before the main act
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.getByTestId('update-ready').click()
     await expect(page.getByTestId('update-popover')).toHaveCSS('transform', 'none')
+    await page.keyboard.press('Escape')
+    await app.evaluate(() => (globalThis as any).__fake__.manyMeetings({ n: 1, clean: true }))
+    await page.evaluate(async () => {
+      const [card] = await window.yogurt.meetings.cards({ limit: 1 })
+      await window.yogurt.meetings.trash(card.id)
+      await window.yogurt.meetings.start(null)
+      await window.yogurt.nav.go('/trash')
+    })
+    await expect(page.getByTestId('trash-empty')).toBeVisible()
+    await expect(page.getByTestId('recording-return')).toBeVisible()
+    for (const locale of ['en', 'de', 'ar']) {
+      await page.evaluate(locale => window.yogurt.settings.setLanguage(locale), locale)
+      await expect(page.locator('html')).toHaveAttribute('lang', locale)
+      for (const collapsed of [false, true]) {
+        const toggle = page.locator('.workspace-sidebar-toggle')
+        if (await toggle.getAttribute('aria-expanded') !== String(!collapsed)) await toggle.click()
+        await expect.poll(() => page.evaluate(() => {
+          const controls = [...document.querySelectorAll<HTMLElement>('[data-testid="update-ready"], [data-testid="notes-setup-open"], [data-testid="recording-return"], [data-testid="trash-empty"], .workspace-sidebar-toggle')]
+          return controls.length === 5 && controls.every((control, index) => {
+            const box = control.getBoundingClientRect()
+            return box.width >= (control.classList.contains('workspace-sidebar-toggle') ? 28 : 44)
+              && box.x >= 0 && box.right <= innerWidth
+              && control.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2))
+              && controls.slice(index + 1).every(other => {
+                const rect = other.getBoundingClientRect()
+                return box.right <= rect.x || box.x >= rect.right
+              })
+          })
+        })).toBe(true)
+      }
+    }
   } finally { await app.close() }
 })
 

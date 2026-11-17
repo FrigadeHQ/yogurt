@@ -133,6 +133,7 @@
 .workspace:dir(rtl) .workspace-toolbar:has(.workspace-toolbar-actions:not(:empty)) { padding-inline-end:132px; }
 /* Reserve space for the status and More, truncating labels in a narrow window. */
 .workspace-toolbar:has(.notes-download-status) { gap:10px;padding-inline-end:17px; }
+.workspace-toolbar:has(.update-ready-status):has(.notes-download-status:not(.update-ready-status)) { gap:8px; }
 .workspace-toolbar:has(.notes-download-status) .workspace-breadcrumb { flex:1;overflow:hidden; }
 .workspace-toolbar[data-note=true]:has(.notes-download-status) { padding-inline-end:62px; }
 .workspace:dir(rtl) .workspace-toolbar:has(.notes-download-status) { padding-inline-end:132px; }
