@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Menu } from '@base-ui/react/menu'
-import { ChevronDown, RotateCcw } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { Mic } from './Icons'
 import { toasts } from './TrashToast'
 import { t } from '../../../shared/i18n'
@@ -79,7 +79,7 @@ export function StartRecording({ onStarted, onGone, testId = 'start-recording' }
   const resuming = live.length === 1 && resumesNote(live[0].note)
   const label = live.length === 1 ? resuming ? t('Resume notes · {title}', { title }) : t('Take notes · {title}', { title })
     : live.length > 1 ? t('Take notes · {count} now', { count: live.length }) : t('Start recording')
-  const content = <>{resuming ? <RotateCcw size={14} aria-hidden="true" /> : <Mic size={14} aria-hidden="true" />}<span className="recording-label">{label}</span></>
+  const content = <><Mic size={14} aria-hidden="true" /><span className="recording-label">{label}</span></>
   const button = { 'data-testid': testId, disabled: starting, title: label, className: 'workspace-button primary recording-main no-drag' }
   return createPortal(<Menu.Root modal={false} open={open && choices.length > 0} onOpenChange={setOpen}>
     <div ref={root} className="recording-split no-drag" data-split={choices.length > 0}>
@@ -94,7 +94,7 @@ export function StartRecording({ onStarted, onGone, testId = 'start-recording' }
             const resume = resumesNote(event.note), title = event.title || t('Meeting')
             const label = resume ? t('Resume notes · {title}', { title }) : title
             return <Menu.Item key={event.id} data-testid="recording-meeting" label={title} disabled={starting} onClick={() => void start(event.id)}>
-              {resume ? <RotateCcw size={14} aria-hidden="true" /> : <Mic size={14} aria-hidden="true" />}
+              <Mic size={14} aria-hidden="true" />
               <span className="recording-meeting-copy"><span title={label}>{label}</span>{event.attendees.length > 0 && <small>{event.attendees.map(person => personName(person.name)).join(', ')}</small>}</span>
               <span className="recording-timing">{eventPhase(event, now) === 'live' ? t('Now') : t('in {count} min', { count: Math.ceil((event.start - now) / 60_000) })}</span>
             </Menu.Item>

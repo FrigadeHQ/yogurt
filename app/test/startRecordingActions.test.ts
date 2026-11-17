@@ -124,7 +124,9 @@ it.each(['stopped', 'done'] as const)('labels a %s note for resume in the title 
   const row = find(tree, 'recording-meeting')
   const html = renderToStaticMarkup(row.props.children as ReactNode)
   expect(html).toContain('Resume notes · Planning live')
-  expect(html).toContain('lucide-rotate-ccw')
+  // resume keeps the mic: a counterclockwise arrow reads as undo
+  expect(html).not.toContain('lucide-rotate-ccw')
+  expect(html).toContain('<svg')
   expect(html).toContain('Now')
   start.mockResolvedValue({ id: 'existing', resumeRequested: true })
   await click(find(tree, 'start-recording'))
