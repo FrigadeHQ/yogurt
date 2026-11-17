@@ -35,7 +35,7 @@ test('a failed notes-model download explains waiting notes and answers, and retr
     await page.getByTestId('chat-input').press('Enter')
     const chatError = page.getByTestId('chat-turn').last().getByTestId('notes-model-error')
     await expect(chatError).toContainText('needs 4 GB more free space')
-    await expect(chatError.getByTestId('notes-model-retry')).toHaveCSS('text-decoration-line', 'underline')
+    await expect(chatError.getByTestId('notes-model-retry')).toHaveClass('text-action')
     await expect(chatError).toHaveAttribute('role', 'status')
     await expect(page.locator('.ask-conversation')).toHaveAttribute('aria-busy', 'false')
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
@@ -62,7 +62,7 @@ test('a failed notes-model download explains waiting notes and answers, and retr
     await page.getByTestId('chat-close').click()
     await expect(page.getByTestId('notes-model-error')).toHaveCount(1)
     await expect(page.getByTestId('notes-model-error')).toContainText('needs 4 GB more free space')
-    await expect(page.getByTestId('notes-model-retry')).toHaveCSS('text-decoration-line', 'underline')
+    await expect(page.getByTestId('notes-model-retry')).toHaveClass('text-action')
     await expect(page.getByTestId('note-enhanced-waiting')).toHaveCount(0)
     // A rejected Retry request remains visible and retryable instead of escaping the click handler.
     await page.getByTestId('notes-model-retry').click()

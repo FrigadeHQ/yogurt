@@ -64,11 +64,13 @@ async function expectQuietLayout(page: Page, upgrading: boolean, failed: boolean
     range.selectNodeContents(line)
     return range.getClientRects().length === 1 && line.scrollWidth <= line.clientWidth
   }))).toBe(true)
-  const line = (await popup.locator('.notes-download-support').boundingBox())!
   if (upgrading || failed) {
-    const actions = (await popup.locator('.notes-download-actions').boundingBox())!
-    if (failed) expect(actions.y).toBeGreaterThanOrEqual(line.y + line.height)
-    else expect(Math.abs(actions.y + actions.height / 2 - line.y - line.height / 2)).toBeLessThan(1)
+    // Read both boxes in the same frame while the popover finishes its entrance.
+    await expect.poll(() => popup.evaluate((el, failed) => {
+      const line = el.querySelector('.notes-download-support')!.getBoundingClientRect()
+      const actions = el.querySelector('.notes-download-actions')!.getBoundingClientRect()
+      return failed ? actions.y >= line.bottom : Math.abs(actions.y + actions.height / 2 - line.y - line.height / 2) < 1
+    }, failed)).toBe(true)
   }
   if (upgrading) await expect(popup.getByTestId('notes-setup-skip')).toHaveCSS('text-decoration-line', 'none')
   await expect(popup.locator('.notes-download-next')).toHaveCount(0)
@@ -319,6 +321,7 @@ test('skipping from the popover confirms only success, opens Settings, and dismi
         await expect(page.getByTestId('settings')).toBeVisible()
         await expect.poll(() => page.evaluate(() => window.yogurt.nav.current())).toBe('/settings/notes-model')
       } else if (dismiss === 'close') {
+        await toast.hover()
         await toast.getByRole('button', { name: 'Close', exact: true }).click()
       } else {
         await page.mouse.move(0, 0)

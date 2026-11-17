@@ -98,7 +98,7 @@
 .workspace-button.primary:hover:not(:disabled) { background-color:var(--primary-hover); }
 .workspace-button.primary:active:not(:disabled) { background-image:none;box-shadow:inset 0 1px 2px #35006533; }
 .recording-split { display:flex;min-width:0;max-width:min(100%,276px); }
-.recording-main { min-width:0; }
+.recording-main { flex:0 1 auto;min-width:0; }
 .recording-main>svg { flex:none; }
 .recording-label { min-width:0;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
 .recording-split[data-split=true] .recording-main { border-start-end-radius:0;border-end-end-radius:0;border-inline-end:0; }

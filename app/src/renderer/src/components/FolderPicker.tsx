@@ -1,5 +1,5 @@
 import { FolderGlyph } from './FolderAppearance'
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { Check, FolderIcon, Minus, Plus, X } from 'lucide-react'
 import type { Folder, MeetingCard } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
@@ -84,6 +84,7 @@ export function FolderChip({ meetingId, onNew, suggestion: manualSuggestion, row
   const presence = usePopoverPresence(open)
   const root = useRef<HTMLDivElement>(null)
   const chip = useRef<HTMLButtonElement>(null)
+  const focusPending = useRef<HTMLButtonElement | null>(null)
   useEffect(() => {
     if (suggestion && folders?.length) suggestion.dismiss()
     if (transition?.phase === 'settled' && folders?.length) setTransition(null)
@@ -105,13 +106,20 @@ export function FolderChip({ meetingId, onNew, suggestion: manualSuggestion, row
   // Hold the clicked pill through independent suggestion/membership refreshes and the exit motion.
   const held = transition && !(transition.phase === 'settled' && folders?.length) ? transition : null
   const proposed = held?.folder ?? (folders?.length === 0 ? suggestion?.folder : undefined)
+  // The proposed chip is replaced on exit; restore focus after its replacement commits.
+  useLayoutEffect(() => {
+    if (proposed || !focusPending.current) return
+    const focus = row ? focusPending.current : chip.current
+    focusPending.current = null
+    if (document.activeElement === document.body) focus?.focus({ preventScroll: true })
+  }, [proposed, row])
   const accepted = held?.phase === 'accepted' || held?.phase === 'settled'
   const label = proposed?.name ?? (!folders?.length ? t('Add to folder') : folders.length === 1 ? folders[0].name : t('{name} + {more}', { name: folders[0].name, more: folders.length - 1 }))
   const focusAfterSuggestion = () => row ? root.current?.closest('li')?.querySelector<HTMLButtonElement>('.native-meeting-link') : chip.current
   const clearSuggestion = (focus: HTMLButtonElement | null | undefined) => {
+    focusPending.current = focus ?? null
     toasts.close(`folder-suggestion-${meetingId}`); suggestion?.dismiss()
     setAutomatic(null); setOpen(false)
-    requestAnimationFrame(() => { if (document.activeElement === document.body) (row ? focus : chip.current)?.focus({ preventScroll: true }) })
   }
   const dismissSuggestion = async () => {
     if (!proposed || adding || held) return
@@ -139,12 +147,7 @@ export function FolderChip({ meetingId, onNew, suggestion: manualSuggestion, row
   }
   useEffect(() => {
     if (!transition || transition.phase === 'saving' || transition.phase === 'settled') return
-    const focus = focusAfterSuggestion()
-    const finish = () => {
-      setTransition(transition.phase === 'accepted' ? { ...transition, phase: 'settled' } : null)
-      requestAnimationFrame(() => { if (document.activeElement === document.body) (row ? focus : chip.current)?.focus({ preventScroll: true }) })
-    }
-    const timer = setTimeout(finish, reduced ? motion.micro : motion.base)
+    const timer = setTimeout(() => setTransition(transition.phase === 'accepted' ? { ...transition, phase: 'settled' } : null), reduced ? motion.micro : motion.base)
     return () => clearTimeout(timer)
   }, [transition, reduced])
   const appearance = proposed ?? (folders?.length === 1 ? folders[0] : undefined)

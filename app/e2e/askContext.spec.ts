@@ -38,7 +38,7 @@ test('Ask shares meeting history and drafts, and Command-J starts the right cont
     await expect(page.getByTestId('ask-scope')).toHaveCount(1)
     await page.getByTestId('ask-scope').focus()
     await page.getByTestId('ask-scope').press('Enter')
-    await page.locator('.ask-picker-clear').click()
+    await page.getByTestId('ask-picker-clear').click()
     await expect(page.getByTestId('ask-scope')).toHaveText('All meetings')
     await page.getByRole('combobox', { name: 'Search meetings and folders' }).press('Escape')
     await expect(page.getByTestId('chat-page-input')).toBeFocused()
@@ -56,7 +56,7 @@ test('Ask shares meeting history and drafts, and Command-J starts the right cont
     await expect(page.getByTestId('ask-scope')).toContainText(title)
     await expect(page.getByTestId('chat-page-input')).toHaveValue('')
     await page.getByTestId('ask-scope').click()
-    await page.locator('.ask-picker-clear').click()
+    await page.getByTestId('ask-picker-clear').click()
     await expect(page.getByTestId('ask-scope')).toHaveText('All meetings')
     await page.getByRole('combobox', { name: 'Search meetings and folders' }).press('Escape')
   } finally { await app.close() }
@@ -78,7 +78,7 @@ test('the note panel and full conversation expose Rename and a single Delete con
     await expect(page.locator('.chat-panel .ask-conversation-head')).toHaveCount(1)
     // Global retrieval supplies cited chunks; single-meeting answers use the whole transcript.
     await page.getByTestId('ask-scope').click()
-    await page.locator('.ask-picker-clear').click()
+    await page.getByTestId('ask-picker-clear').click()
     await expect(page.getByTestId('ask-scope')).toHaveText('All meetings')
     await page.getByRole('combobox', { name: 'Search meetings and folders' }).press('Escape')
     await page.getByTestId('chat-input').fill('What are my next steps?')
