@@ -1845,6 +1845,8 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
   --color-surface-raised: #303035;
 }
 .folder-list {
+  position: relative;
+  pointer-events: auto;
   width: 100%;
   max-width: 230px;
   padding: 8px;
@@ -1857,6 +1859,7 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
   display: flex;
   align-items: center;
   gap: 11px;
+  position: relative;
   min-height: 43px;
   padding: 8px 12px;
   border-radius: 8px;
@@ -1865,12 +1868,26 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
   white-space: nowrap;
 }
 .folder-row svg {
-  width: 20px;
-  height: 18px;
+  /* Preserve the app’s 16px glyph when the illustrated list scales on a phone. */
+  width: calc(16px / var(--list-scale));
+  height: calc(16px / var(--list-scale));
   flex: none;
 }
-.folder-row.selected {
+.folder-list::before {
+  content: "";
+  position: absolute;
+  inset: 8px 8px auto;
+  height: 43px;
+  border-radius: 8px;
+  transform: translateY(calc(var(--hover-row, 0) * 100%));
+  transition: transform 180ms var(--ease-ui);
   background: color-mix(in srgb, var(--ink) 5%, transparent);
+}
+@media (hover: hover) and (pointer: fine) {
+  .folder-row { cursor: pointer; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .folder-list::before { transition: none; }
 }
 .folder-list [data-folder-color='violet'] svg {
   color: #7434ca;
@@ -1937,7 +1954,8 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
   width: 200px;
   margin: 0;
   justify-self: center;
-  transform: scale(clamp(0.36, tan(atan2(calc(100cqi - 8px), 200px)), 0.91));
+  --list-scale: clamp(0.36, tan(atan2(calc(100cqi - 8px), 200px)), 0.91);
+  transform: scale(var(--list-scale));
 }
 .mcp-tiles {
   --art-edge: #c4c3c9;
@@ -1958,6 +1976,35 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
   --art-glyph: #dedce2;
   --wire: var(--link);
   --pad-dot: #59575d;
+}
+.dial-index {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: rotate(-9deg);
+}
+.client-mark {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.client-mark.claude { color: #d97757; }
+.client-mark.chatgpt { color: #000; }
+.client-mark.cursor { color: #26251e; }
+[data-theme='dark'] .client-mark.chatgpt { color: white; }
+[data-theme='dark'] .client-mark.cursor { color: #edecec; }
+.client-mark:not(.claude) { opacity: 0; }
+.card-language .feature-visual { isolation: isolate; }
+.language-dots {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+  color: var(--link);
+  opacity: .72;
+  mask-image: linear-gradient(90deg, transparent, black 37%, black 96%, transparent),
+    linear-gradient(180deg, transparent, black 13%, black 87%, transparent);
+  mask-composite: intersect;
 }
 .feature-grid .language-art {
   width: min(100%, 182px);

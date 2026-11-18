@@ -1,49 +1,95 @@
-const reduce = matchMedia('(prefers-reduced-motion: reduce)')
-function inView(element, createAnimation) {
-  let inViewport = false,
-    pending = false,
-    animation
-  async function update() {
-    if (!inViewport || document.hidden || reduce.matches) {
-      animation?.pause()
-      if (reduce.matches && animation)
-        animation.currentTime =
-          animation.effect.getTiming().iterations === Infinity ? 0 : animation.effect.getTiming().duration
-      return
-    }
-    if (!animation && !pending) {
-      pending = true
-      try {
-        animation = await createAnimation()
-      } catch {
-        return
-      } finally {
-        pending = false
-      }
-      update()
-    } else if (animation && animation.playState !== 'finished') animation.play()
-  }
-  new IntersectionObserver(
-    ([entry]) => {
-      inViewport = entry.isIntersecting
-      update()
-    },
-    { threshold: 0.1 }
-  ).observe(element)
-  document.addEventListener('visibilitychange', update)
-  reduce.addEventListener('change', update)
-}
-const ring = document.querySelector('.dial-index')
-inView(ring, () =>
-  ring.animate([{ transform: 'rotate(-30deg)' }, { transform: 'rotate(0deg)' }], {
-    duration: 1100,
-    easing: 'cubic-bezier(.45,0,.55,1)',
-    fill: 'both',
-  })
-)
+import { clientFrames, rollingDial } from './feature-motion.mjs'
+import { languageDots } from './language-dots.mjs'
 
+const reduce = matchMedia('(prefers-reduced-motion: reduce)')
+function observeMotion(element, update) {
+  let visible = false
+  function sync() {
+    update(visible && !document.hidden, reduce.matches)
+  }
+  new IntersectionObserver(([entry]) => {
+    visible = entry.isIntersecting && entry.intersectionRatio >= .1
+    sync()
+  }, { threshold: [0, .1] }).observe(element)
+  document.addEventListener('visibilitychange', sync)
+  reduce.addEventListener('change', sync)
+}
+
+function animateInView(element, create) {
+  let animations, pending, running = false
+  function apply() {
+    for (const animation of animations ?? []) {
+      if (running) animation.play()
+      else {
+        animation.pause()
+        if (reduce.matches) animation.currentTime = 0
+      }
+    }
+  }
+  observeMotion(element, async (visible, reduced) => {
+    running = visible && !reduced
+    if (running && !animations && !pending) {
+      pending = true
+      try { animations = [].concat(await create()) }
+      catch { return } // Keep the server-rendered art if the word outlines are unavailable.
+      finally { pending = false }
+    }
+    apply()
+  })
+}
+
+const ring = document.querySelector('.dial-index')
+observeMotion(ring.closest('article'), rollingDial(ring))
+
+const tile = document.querySelector('.mcp-tiles')
+const marks = Array.from(tile.querySelectorAll('.client-mark'))
+let swaps = [], plainSwap, current = 0
+observeMotion(tile.closest('article'), (visible, reduced) => {
+  clearInterval(plainSwap)
+  if (reduced) {
+    // Local clients still change, without movement or a fade.
+    if (swaps.length) {
+      current = Math.floor((swaps[0].currentTime ?? 0) / 3600) % marks.length
+      swaps.forEach(animation => animation.cancel())
+      swaps = []
+    }
+    function show() {
+      marks.forEach((mark, i) => { mark.style.opacity = i === current ? '1' : '0' })
+    }
+    show()
+    if (visible) plainSwap = setInterval(() => { current = (current + 1) % marks.length; show() }, 3600)
+    return
+  }
+  if (!swaps.length && visible) {
+    swaps = marks.map((mark, i) => {
+      mark.style.removeProperty('opacity')
+      const animation = mark.animate(clientFrames(), {
+        duration: 10800, iterations: Infinity, delay: -((marks.length - i) % marks.length * 3600 + 360),
+      })
+      animation.currentTime = current * 3600
+      return animation
+    })
+  }
+  swaps.forEach(animation => visible ? animation.play() : animation.pause())
+})
+
+const list = document.querySelector('.folder-list')
+list.addEventListener('pointerover', (event) => {
+  const row = event.target.closest('.folder-row')
+  if (row && event.pointerType !== 'touch' && matchMedia('(any-hover: hover)').matches)
+    list.style.setProperty('--hover-row', Array.from(list.children).indexOf(row))
+})
+for (const event of ['pointerleave', 'pointercancel', 'pointerdown']) {
+  list.addEventListener(event, (e) => {
+    if (event !== 'pointerdown' || e.pointerType === 'touch') list.style.removeProperty('--hover-row')
+  })
+}
+
+const canvas = document.querySelector('.language-dots')
+const dots = languageDots(canvas)
+observeMotion(canvas.closest('article'), (visible, reduced) => dots(visible && !reduced, reduced))
 const word = document.querySelector('[data-morph]')
-inView(word, async () => {
+animateInView(word, async () => {
   const response = await fetch('/marketing/assets/language-outlines.json')
   if (!response.ok) throw Error('Word outlines unavailable')
   const contours = await response.json()
