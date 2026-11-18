@@ -112,9 +112,11 @@ win:
       arch: [x64]
   icon: build/icon.png
 nsis:
-  oneClick: true
+  oneClick: false
   perMachine: false
-  # never true: uninstalling would delete every meeting, transcript and recording with the models
+  allowToChangeInstallationDirectory: true
+  allowElevation: false
+  deleteAppDataOnUninstall: false
   deleteAppDataOnUninstall: false
 linux:
   files:
