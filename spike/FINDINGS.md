@@ -1,6 +1,6 @@
 # Telling voices apart on one mic: findings (spike, not shipped)
 
-Throwaway research. Nothing here is wired into the app; branch `spike/voice-diarization` stays local.
+Throwaway research. Nothing here is wired into the app; see the draft PR for the plan.
 
 ## Context
 - Today: mic = You, the other side = Them or a name read from the call app. An earlier Mac-only attempt (FluidAudio plus model name guessing) was taken out; any new take must work on Mac, Windows and Linux and never guess names.
