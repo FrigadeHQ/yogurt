@@ -1,3 +1,6 @@
+import electron from 'electron'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { isAbsolute, join } from 'node:path'
 import { hookRendererErrors } from './rendererErrors'
 import { matchSearchPeople, searchPersonKey } from '../shared/searchPeople'
 import { resolvePeople } from './people'
@@ -18,7 +21,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { isFake, userDataDir } from './paths'
+import { hasModelsChoice, isFake, modelsFolder, saveModelsFolder, userDataDir } from './paths'
 import { logToFile } from './log'
 import { loadSettings, localeOf, keepsRecording, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings, visibilityOf, summaryLanguageSetting } from './settings'
 import { CALL_GONE_MS, useCallApps, watchEveryMs } from './detect'
@@ -164,9 +167,30 @@ function createWindow() {
 
 /** First-run downloads: speech, speaker and notes models. Fake mode swaps in instant downloads and a fixed Mac. */
 /** Windows and Linux: what graphics the notes engine can use; null when it can't tell (or crashed checking: it then runs without them) */
+/** First run only: ask where the multi-GB models go, before anything downloads */
+async function chooseModelsFolder(): Promise<void> {
+  if (isFake() || process.env.YOGURT_USER_DATA || hasModelsChoice()) return
+  const fallback = join(userDataDir(), 'models')
+  const ask = await dialog.showMessageBox({
+    type: 'question',
+    title: 'Yogurt',
+    message: 'Where should Yogurt store its AI models?',
+    detail: `They take several GB. The default is ${fallback}. You can pick another drive.`,
+    buttons: ['Choose folder…', 'Use default'],
+    defaultId: 0, cancelId: 1, noLink: true,
+  })
+  if (ask.response === 0) {
+    const pick = await dialog.showOpenDialog({ title: 'Folder for Yogurt models', properties: ['openDirectory', 'createDirectory'] })
+    if (!pick.canceled && pick.filePaths[0]) {
+      saveModelsFolder(join(pick.filePaths[0], 'Yogurt', 'models'))
+      return
+    }
+  }
+  saveModelsFolder(fallback)
+}
 let probeGpu: () => Promise<GpuProbe | null> = async () => null
 function createSetup(): SetupController {
-  const modelsDir = join(userDataDir(), 'models')
+  const modelsDir = modelsFolder()
   return new SetupController({
     modelsDir,
     upgradePreference: {
@@ -460,7 +484,7 @@ function startDetection() {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // Local Electron launches need the same Dock icon as the packaged application.
   if (!app.isPackaged && process.platform === 'darwin') app.dock?.setIcon(join(__dirname, '../../build/icon.png'))
   const settings = loadSettings(join(userDataDir(), 'settings.json'))
@@ -517,6 +541,7 @@ app.whenReady().then(() => {
     onMeetingStart(() => void media.pause())
     onMeetingStop(() => void media.resume())
   }
+  await chooseModelsFolder()
   const setup = createSetup()
   setup.onState((st) => win?.webContents.send('setup:state', st))
   ipcMain.handle('setup:state', () => setup.state)
