@@ -1247,14 +1247,15 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
   .rest-transcript p,.rest-ask .rest-question,.rest-answer{font-size:15px}
 }
 
-/* Equal hero actions; the count keeps its natural spacing. */
+/* Hero actions keep enough room for every platform label. */
 .stars-count{display:inline-block;font-variant-numeric:tabular-nums;text-align:end;white-space:nowrap}
-.hero-actions{--stars-action-gap:11px;gap:var(--stars-action-gap);max-width:411px;margin-inline:auto}
-.hero-actions>:is(.button,.mobile-download){flex:0 0 calc((100% - var(--stars-action-gap))/2);min-width:0}
+.hero-actions{--stars-action-gap:11px;gap:var(--stars-action-gap);width:fit-content;max-width:100%;flex-wrap:wrap;margin-inline:auto}
+.hero-actions>:is(.button,.mobile-download){flex:0 0 auto;min-width:max-content}
 .hero-actions>.mobile-download>summary{width:100%}
+.hero-actions .button{padding-inline:20px}
 .stars-label{white-space:nowrap}
-@media(max-width:760px){.hero-actions{--stars-action-gap:9px;max-width:321px}}
+@media(max-width:760px){.hero-actions{--stars-action-gap:9px}.hero-actions .button{padding-inline:14px}}
 @media(max-width:360px){
   .hero-actions{--stars-action-gap:7px}
-  .hero-actions .button{font-size:10.5px;gap:4px;padding-inline:6px}
+  .hero-actions .button{padding-inline:11px}
 }
