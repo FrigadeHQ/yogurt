@@ -106,6 +106,26 @@ describe('Webex accessibility roster', () => {
 })
 
 describe('hookCallNames', () => {
+  // #83 (Windows): Teams in Chrome was read with the Meet reader, and the Teams desktop app's readings were dropped
+  const teamsTree = (): AxNode => ({ r: 'frame', k: [
+    { r: 'section', t: 'Dana Smith, speaking' },
+    { r: 'tree', t: 'Participants', k: [{ r: 'tree item', t: 'Dana Smith, unmuted' }, { r: 'tree item', t: 'Ann Lee, muted' }, { r: 'tree item', t: 'Alex Morgan (You)' }] },
+  ] })
+  it('Teams in a browser tab is read as Teams, not Meet', () => {
+    const s = setup({ app: 'Chrome' })
+    s.start()
+    s.emit({ t: 1_000_000, app: 'chrome.exe', windows: [{ title: 'Weekly sync | Microsoft Teams - Google Chrome', tree: teamsTree() }] })
+    expect(s.logs.some((l) => l.startsWith('call names: reading chrome.exe (teams)'))).toBe(true)
+    expect(s.logs).toContain('call names: teams talking 1 of 3, me known')
+  })
+  it('a Teams call whose window comes from a program not on the list (its web view) is still read as Teams, and the log names it', () => {
+    const s = setup({ app: 'Teams' })
+    s.start()
+    s.emit({ t: 1_000_000, app: 'msedgewebview2.exe', windows: [{ title: 'Meeting | Microsoft Teams', tree: teamsTree() }] })
+    expect(s.logs.some((l) => l.startsWith('call names: reading msedgewebview2.exe (teams)'))).toBe(true)
+    expect(s.logs).toContain('call names: teams talking 1 of 3, me known')
+  })
+
   it('a reader that goes quiet (no reading for over 5 s while recording) is started again, and the log says so', () => {
     const s = setup()
     s.start()
