@@ -149,9 +149,9 @@ function MeetingPlayer({ id, tracks, ref, onTime, onPlaying, onBusy }: PlayerPro
               className="ghost-btn workspace-icon ms-auto"><Ellipsis size={17} aria-hidden="true" /></Menu.Trigger>
             <Menu.Portal>
               <Menu.Positioner side="top" align="end" sideOffset={6} className="ask-menu-positioner">
-                <Menu.Popup className="menu-entry ask-actions-menu" aria-label={t('More')} finalFocus={confirm ? false : menuButton} onKeyDown={e => { if (e.key === 'Escape') e.stopPropagation() }}>
+                <Menu.Popup className="menu-entry ask-actions-menu player-audio-menu" aria-label={t('More')} finalFocus={confirm ? false : menuButton} onKeyDown={e => { if (e.key === 'Escape') e.stopPropagation() }}>
                   <Menu.Item data-testid="recording-delete" className="text-danger" onClick={() => { pause(); menuButton.current?.focus(); setConfirm(true) }}>
-                    <Trash2 size={14} aria-hidden="true" />{t('Delete recording')}
+                    <Trash2 size={14} aria-hidden="true" />{t('Delete audio')}
                   </Menu.Item>
                 </Menu.Popup>
               </Menu.Positioner>
@@ -178,12 +178,12 @@ export function DeleteRecording({ id, onCancel, onDeleted }: { id: string; onCan
     if (result === 'deleted' || result === 'missing') onDeleted()
     else setFailed(result === 'not-transcribed' || result === 'recording' ? result : 'failed')
   }
-  return <Modal testId="recording-delete-confirm" role="alertdialog" title={t('Delete recording?')}
+  return <Modal testId="recording-delete-confirm" role="alertdialog" title={t('Delete audio?')}
     description={t('The audio is deleted for good. Your transcript and notes stay.')} busy={busy} onCancel={onCancel}>
     {failed && <InlineError testId="recording-delete-failed" className="inline-error-in-dialog"><span>{failed === 'not-transcribed' ? t('Keep the audio until the transcript is saved.')
-      : failed === 'recording' ? t('Stop the recording first, then try again.') : t("Yogurt couldn't delete the recording.")}</span></InlineError>}
+      : failed === 'recording' ? t('Stop the recording first, then try again.') : t("Yogurt couldn't delete the audio.")}</span></InlineError>}
     <div className="modal-actions">
-      <button data-testid="recording-delete-yes" className="modal-button danger" disabled={busy} onClick={() => void yes()}>{t('Delete recording')}</button>
+      <button data-testid="recording-delete-yes" className="modal-button danger" disabled={busy} onClick={() => void yes()}>{t('Delete audio')}</button>
       <ModalClose data-testid="recording-delete-cancel" data-dialog-cancel className="workspace-button" disabled={busy}>{t('Cancel')}</ModalClose>
     </div>
   </Modal>

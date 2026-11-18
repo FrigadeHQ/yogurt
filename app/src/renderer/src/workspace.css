@@ -529,6 +529,7 @@ body:has(.chat-panel[open]) .app-toast-viewport:dir(rtl) { --toast-x:440px; }
 .ask-history-all { width:100%;justify-content:flex-start; }
 .ask-menu-positioner { z-index:110; }
 .ask-actions-menu { min-width:156px; }
+.ask-actions-menu.player-audio-menu { min-width:0; }
 .ask-actions-menu [role=menuitem] { display:flex;align-items:center;gap:8px;cursor:default; }
 .ask-actions-menu [data-highlighted] { background:var(--card);outline:none; }
 .chat-panel .ask-conversation-head { height:44px;padding-inline:16px 12px; }
