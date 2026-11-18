@@ -915,8 +915,8 @@ html:not(.widget) button:focus-visible, html:not(.widget) input:focus-visible { 
 .summary-stop-icon { display:inline-grid;place-items:center;width:14px;height:14px; }
 .summary-stop-icon>* { grid-area:1/1;transition:opacity var(--dur-base) var(--ease-out); }
 .summary-stop-square { width:10px;height:10px;border-radius:2px;background:currentColor;opacity:0; }
-.note-resume-action[data-processing=true] { cursor:pointer; }
-.note-resume-action[data-processing=true]:hover { background:var(--float); }
+.note-resume-action[data-processing=true] { cursor:pointer;box-shadow:0 1px 2px #0000000A; }
+.note-resume-action[data-processing=true]:hover { background:var(--control-hover); }
 .note-resume-action:is(:hover,:focus-visible) .summary-stop-icon>svg { opacity:0; }
 .note-resume-action:is(:hover,:focus-visible) .summary-stop-square { opacity:1; }
 .summary-stopped { display:flex;flex-direction:column;align-items:flex-start;gap:8px;color:var(--muted);font-size:13px; }
@@ -950,3 +950,47 @@ html:not(.widget) button:focus-visible, html:not(.widget) input:focus-visible { 
 .workspace-icon { width:28px;height:28px;padding:0; }
 .modal-actions>.workspace-button { width:100%; }
 .widget-preview { --float:var(--pill);--ink:var(--pill-ink);--line:var(--widget-line);--control-hover:#FFFFFF14;--control-pressed:#FFFFFF20;--focus:var(--pill-accent); }
+
+.audio-upload-fields { display:flex;flex-direction:column;gap:14px;padding:0 20px 20px; }
+.audio-upload-file { display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);min-width:0; }
+.audio-upload-file>span { overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.audio-upload-file>svg { flex:none; }
+.audio-upload-fields label { display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted); }
+.audio-upload-fields input { min-width:0;width:100%;height:34px;padding:6px 9px;border:1px solid var(--line);border-radius:6px;background:var(--card);font-size:13px;color:var(--ink); }
+.audio-upload-progress { display:flex;align-items:center;gap:10px;min-height:20px;font-size:12px;color:var(--muted); }
+.audio-upload-progress progress { flex:1;min-width:0;height:4px;border:0;border-radius:2px;overflow:hidden;appearance:none; }
+.audio-upload-progress progress::-webkit-progress-bar { background:var(--line); }
+.audio-upload-progress progress::-webkit-progress-value { background:var(--accent); }
+
+
+.transcription-notice { padding:0 0 12px; }
+.transcription-placeholder { order:1;display:flex;flex-direction:column;align-items:flex-start;gap:5px; }
+.line[data-previous=true] { opacity:.45; }
+
+.app-modal[data-testid=audio-upload] { width:min(380px,calc(100vw - 40px)); }
+.audio-upload-actions { flex-direction:row;align-items:center;justify-content:flex-end;gap:16px;font-size:12px; }
+.audio-upload-actions>.workspace-button { width:auto; }
+.audio-upload-date-row { display:flex;align-items:center;gap:0;border:1px solid var(--line);border-radius:6px;padding:0;min-width:0;height:34px;color:var(--muted);font-size:12px; }
+.audio-upload-date { display:flex;align-items:center;gap:8px;min-width:0;color:var(--ink);font-size:12px;padding:0 10px;flex:1;border-start-start-radius:5px;border-end-start-radius:5px; }
+.audio-upload-date span { overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.audio-upload-date-row small { font-size:11px;white-space:nowrap;padding-inline:9px; }
+.audio-upload-date-positioner { z-index:110; }
+.audio-upload-date-picker { position:relative;border:1px solid var(--line);border-radius:9px;background:var(--float);color:var(--ink);box-shadow:var(--shadow);width:var(--anchor-width);max-width:calc(100vw - 24px);max-height:var(--available-height);overflow:auto;padding:10px; }
+.audio-upload-date-picker .agenda-navigation { margin:0 0 4px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px; }
+.audio-upload-date-picker .agenda-month { grid-column:span 5;margin:0;padding-inline:10px; }
+.audio-upload-date-picker .agenda-navigation button { justify-self:center; }
+.audio-upload-date-picker .audio-upload-month { padding:4px 0;margin-bottom:0;border-bottom:0;gap:3px 1px;text-align:center; }
+.audio-upload-month button { padding:0; }
+.audio-upload-month button:disabled { opacity:.25;cursor:default; }
+.audio-upload-month button[data-outside=true] { opacity:.45; }
+.audio-upload-month button:disabled:hover b { background:transparent; }
+.audio-upload-month button:focus-visible b { outline:2px solid var(--focus);outline-offset:1px; }
+.audio-upload-date-row .audio-upload-time { width:88px;min-width:0;height:32px;padding:0 8px;border:0;border-inline-start:1px solid var(--line);border-radius:0;background:transparent;flex:none;color:var(--ink);font-size:12px;font-variant-numeric:tabular-nums; }
+.audio-upload-date:focus-visible,.audio-upload-time:focus-visible { outline:2px solid var(--focus);outline-offset:-2px; }
+.audio-upload-time:hover:not(:disabled) { background:var(--control-hover); }
+.audio-upload-submit { position:relative; }
+.audio-upload-submit[aria-busy=true]:disabled { opacity:1;cursor:wait; }
+.audio-upload-submit[aria-busy=true] .audio-upload-submit-label { opacity:0; }
+.audio-upload-submit-icon { position:absolute;inset:0;display:flex;align-items:center;justify-content:center; }
+.audio-upload-date-picker .audio-upload-month button:focus-visible { outline:none; }
+.transcription-notice-slot:empty { display:none; }

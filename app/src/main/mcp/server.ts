@@ -1,3 +1,4 @@
+import { AUDIO_SPEAKER } from '../../shared/audioUpload'
 import type { Meeting, Store } from '../store'
 
 /**
@@ -66,7 +67,7 @@ export function createMcp(d: McpDeps): Mcp {
     if (!m || m.trashedAt != null) throw new Refusal(`No meeting with id ${JSON.stringify(v ?? null)}. list_meetings or search gives the ids.`)
     return m
   }
-  const who = (speaker: string | null, track: Track) => (track === 'me' || speaker === 'me' ? d.me() || 'You' : speaker || 'Them')
+  const who = (speaker: string | null, track: Track) => (speaker === AUDIO_SPEAKER ? 'Audio' : track === 'me' || speaker === 'me' ? d.me() || 'You' : speaker || 'Them')
 
   const tools: Record<string, (a: Record<string, unknown>) => Promise<string>> = {
     async list_meetings(a) {

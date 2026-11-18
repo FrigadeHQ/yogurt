@@ -1,3 +1,5 @@
+import {previousSpeaker} from '../../shared/transcriptReplacement'
+import { AUDIO_SPEAKER } from '../../shared/audioUpload'
 import { onCaptureStart, recordingFinished, type TranscribeWarn, type Track } from '../capture'
 import { onMeetingStart, onMeetingStop } from '../meeting'
 import { isFake } from '../paths'
@@ -22,6 +24,7 @@ import type { Chunk } from './chunker'
 type Session = { complete?: () => boolean; pipeline: Pipeline | null; priorLines: Set<number>; done?: Promise<void>; store?: SessionStore; refresh?: (id: string) => void
   /** a saved recording that could not be read to the end (transcribeRecorded): the meeting keeps waiting */
   failed?: boolean
+  replacement?: boolean
   /** Apple's speech listens in this locale for the meeting (null: whisper only); off once whisper hears another language */
   speech?: string | null }
 
@@ -86,14 +89,15 @@ type SessionStore = Pick<Store, 'updateMeeting'> & Partial<Pick<Store, 'segments
 let server: WhisperServer | undefined
 let serverKey: string | undefined
 const sessions = new Map<string, Session>()
-type Recorded = (id: string, tracks: Partial<Record<Track, AsyncIterable<Float32Array>>>, stopped?: () => boolean) => Promise<boolean>
+export type RecordedOptions = { signal?: AbortSignal; progress?: (ms: number) => void; fromMs?: Partial<Record<Track,number>>; save?: (segments: Omit<Segment,'id'>[]) => void }
+type Recorded = (id: string, tracks: Partial<Record<Track, AsyncIterable<Float32Array>>>, stopped?: () => boolean, options?: RecordedOptions) => Promise<boolean>
 let recorded: Recorded = async () => false
 /**
  * A meeting recorded before the speech model was in (#30): its saved tracks (16 kHz) go through the same pipeline as a
  * live meeting. true: all of it is transcribed (the meeting no longer waits); false: no model yet, already being
  * transcribed, or the recording couldn't be read to the end (it waits for the next try).
  */
-export const transcribeRecorded: Recorded = (id, tracks, stopped) => recorded(id, tracks, stopped)
+export const transcribeRecorded: Recorded = (id, tracks, stopped, options) => recorded(id, tracks, stopped, options)
 /** how much was heard in each language, per meeting; kept after the transcript is done, for the notes */
 const heard = new Map<string, Map<string, number>>()
 
@@ -178,10 +182,11 @@ export function hookTranscription(p: {
     void (sp.locales ?? (() => readSpeechLocales(sp.binary)))().then((l) => { speechLocales = l; if (l.available) console.log(`speech: Apple's on-device speech can listen in ${l.installed.length} of ${l.supported.length} locales`) })
   } else { speechDeps = undefined; speechLocales = { available: false, supported: [], installed: [] } }
   /** later: the saved recording of a meeting that was waiting for the speech model (transcribeRecorded) */
-  const open = (id: string, later = false): Session => {
+  const open = (id: string, later = false, options?: RecordedOptions): Session => {
     const have = sessions.get(id)
     if (have) return have
     // A later live session cannot finish audio awaiting deferred transcription; the recording itself can.
+    const priorSegments=later?p.store.segments?.(id)??[]:[]
     const pendingBefore = later ? false : p.store.meeting?.(id)?.transcriptionPending
     p.store.updateMeeting(id, { transcriptionPending: true })
     let saveFailed = false
@@ -207,20 +212,32 @@ export function hookTranscription(p: {
         // the model takes a few seconds to load: start now, so the first chunk does not wait for it
         srv.url().catch((e) => console.error('whisper-server did not start', e))
         transcribe = createTranscriber({ url: () => srv.url(), recover: recoverer(srv), onLanguage: (_t, lang, chars, locked) => hear(lang, chars, locked), prompt: promptOf,
-          language: () => whisperLanguage(spokenNow()) })
+          language: () => whisperLanguage(spokenNow()), signal: options?.signal })
       } else {
         console.warn('no speech model yet: this meeting is recorded but not transcribed')
         setTimeout(() => warnOnce('no-speech-model'), NO_MODEL_NOTE_DELAY_MS)
       }
     }
+    if (transcribe && options) {
+      const read = transcribe
+      transcribe = async (chunk, opts) => {
+        if (options.signal?.aborted) return []
+        try {
+          const lines = await read(chunk, opts)
+          if (options.signal?.aborted) return []
+          options.progress?.(chunk.startMs + chunk.samples.length / 16)
+          return lines
+        } catch (error) { if (options.signal?.aborted) return []; throw error }
+      }
+    }
     const s: Session = {
-      complete: () => !!transcribe && !pendingBefore && !saveFailed && !warned.has('transcribe-failed') && !s.failed,
-      store: p.store, refresh: p.refresh, speech: speechLocaleFor(id), priorLines: new Set(p.store.segments?.(id).map((s) => s.id) ?? []),
+      complete: () => !!transcribe && !pendingBefore && !saveFailed && !warned.has('transcribe-failed') && !s.failed && !options?.signal?.aborted,
+      replacement: !!options?.save, store: p.store, refresh: p.refresh, speech: speechLocaleFor(id), priorLines: new Set(p.store.segments?.(id).map((s) => s.id) ?? []),
       pipeline: transcribe ? createPipeline({ meetingId: id, transcribe, save: (segs) => {
-        try { p.store.addSegments(segs) } catch (e) { saveFailed = true; throw e }
+        try { if(options?.save) options.save(segs); else p.store.addSegments(segs) } catch (e) { saveFailed = true; throw e }
         if (segs.some(s => s.hidden)) p.refresh?.(id)
-      }, emit: p.send, emitPartial: p.sendPartial, holdMs: p.holdMs, extraWaitMs: p.extraWaitMs, onWarn: warnOnce,
-        nameOf: p.nameOf && ((a, b) => p.nameOf!(id, a, b)),
+      }, emit: options?.save ? () => {} : p.send, emitPartial: options?.save ? undefined : p.sendPartial, holdMs: p.holdMs, extraWaitMs: p.extraWaitMs, onWarn: warnOnce,
+        nameOf: (a, b) => p.store.meeting?.(id)?.source === 'audio-file' ? AUDIO_SPEAKER : p.nameOf?.(id, a, b) ?? previousSpeaker(priorSegments,'them',a,b),
         respell: (t) => { const m = p.store.meeting?.(id); return m ? respell(t, meetingWords(m)) : t } }) : null,
     }
     if (s.speech) s.pipeline?.setQuickReads(false)
@@ -229,19 +246,19 @@ export function hookTranscription(p: {
   }
 
   const offStart = (p.onStart ?? onMeetingStart)((m) => { open(m.id) })
-  recorded = async (id, tracks, stopped) => {
+  recorded = async (id, tracks, stopped, options) => {
     if (sessions.has(id) || !p.modelPath()) return false
-    const s = open(id, true)
+    const s = open(id, true, options)
     if (!s.pipeline) { sessions.delete(id); return false }
     const pipe = s.pipeline
     // no live view to keep up with: only the saved lines
     pipe.setQuickReads(false)
     let ms = 0
-    try { ms = await feedRecording({ tracks, push: (t, at, x) => pipe.push(t, at, x), backlogMs: () => pipe.backlogMs(), stopped }) } catch (e) { s.failed = true; console.error('reading a saved recording failed', id, e) }
-    if (stopped?.()) s.failed = true
+    try { ms = await feedRecording({ tracks, fromMs: options?.fromMs, push: (t, at, x) => pipe.push(t, at, x), backlogMs: () => pipe.backlogMs(), stopped: () => !!stopped?.() || !!options?.signal?.aborted }) } catch (e) { s.failed = true; console.error('reading a saved recording failed', id, e) }
+    if (stopped?.() || options?.signal?.aborted) s.failed = true
     await finishSession(id, s, undefined, p.store)
     console.log(`ASR transcribed ${Math.round(ms / 1000)} s of a saved recording${s.failed ? ', not all of it' : ''}`)
-    return !s.failed
+    return !!s.complete?.()
   }
   // each capture of a meeting (a restarted recorder is a new one) feeds that meeting's session
   const offCapture = onCaptureStart((c, meetingId) => {
@@ -301,9 +318,9 @@ function sweepEcho(id: string, s: Session) {
 function finishSession(id: string, s: Session, audioDone: () => Promise<void> = () => Promise.resolve(), store?: SessionStore): Promise<void> {
   s.store ??= store
   s.done ??= audioDone().then(() => s.pipeline?.finish()).then(() => {
-    sweepEcho(id, s)
-    if (s.complete?.()) s.store?.updateMeeting(id, { transcriptionPending: false })
-  }).catch((e) => console.error('finishing the transcript failed', e)).finally(() => {
+    if (!s.replacement) sweepEcho(id, s)
+    if (!s.replacement && s.complete?.()) s.store?.updateMeeting(id, { transcriptionPending: false })
+  }).catch((e) => { s.failed = true; console.error('finishing the transcript failed', e) }).finally(() => {
     // the meeting's main language is kept with it, for notes written later (after a restart too)
     const lang = meetingLanguage(id)
     if (lang) { try { s.store?.updateMeeting(id, { language: lang }) } catch (e) { console.error('saving the language failed', e) } }

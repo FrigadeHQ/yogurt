@@ -1,3 +1,4 @@
+import { AUDIO_SPEAKER } from '../../shared/audioUpload'
 import type { Segment } from '../store'
 import { transcriptText } from '../notes/enhance'
 
@@ -10,7 +11,7 @@ export const CHUNK_WORDS = 300
 
 export type Chunk = { startMs: number; endMs: number; text: string; speakers: string[] }
 
-const who = (s: Segment) => (s.track === 'me' ? 'You' : s.speaker || 'Them')
+const who = (s: Segment) => (s.speaker === AUDIO_SPEAKER ? 'Audio' : s.track === 'me' ? 'You' : s.speaker || 'Them')
 const count = (s: string) => s.split(/\s+/).filter(Boolean).length
 
 /** segments: the meeting's visible lines, in order (hidden echo lines are left out by the store) */
@@ -30,6 +31,6 @@ export function chunkTranscript(segments: Segment[]): Chunk[] {
     if (last && size + n <= CHUNK_WORDS) { last.push(...u); size += n } else { chunks.push([...u]); size = n }
   }
   return chunks.map((c) => ({
-    startMs: c[0].startMs, endMs: Math.max(...c.map((s) => s.endMs)), text: transcriptText(c), speakers: [...new Set(c.map(who))],
+    startMs: c[0].startMs, endMs: Math.max(...c.map((s) => s.endMs)), text: transcriptText(c), speakers: [...new Set(c.filter(s => s.speaker !== AUDIO_SPEAKER).map(who))],
   }))
 }

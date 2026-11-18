@@ -222,7 +222,9 @@ export function hookNotes(p: {
     p.send(view(m.id))
   }
 
-  const queueWrite = (id: string, note?: string) => {
+  const queueWrite = (id: string, note?: string, allowPartial = false) => {
+    const meeting = p.store.meeting(id)
+    if (meeting?.transcriptionPending && (meeting.transcriptionState || meeting.source==='audio-file') && !allowPartial) return Promise.resolve()
     console.info('NOTES', `queued the notes of ${id}`)
     stopped.delete(id)
     set(id, 'waiting')
@@ -319,14 +321,14 @@ export function hookNotes(p: {
     pendingDraftId: () => [...edits].find(([, sides]) => Object.values(sides).some((v) => v.text !== undefined))?.[0],
     forgetDrafts: (id: string) => { edits.delete(id) },
     /** "Write again": the same job, now (after anything already waiting) */
-    async writeAgain(id: string, note?: string) {
+    async writeAgain(id: string, note?: string, allowPartial = false) {
       const pending = stopping.get(id)
       if (pending) await pending
       if (resuming.has(id) || p.store.meeting(id)?.state === 'recording') return Promise.resolve()
       if (!retryDrafts(id)) return Promise.resolve()
       const s = live.get(id)?.status
       if (s === 'waiting' || s === 'writing') return Promise.resolve()
-      return queueWrite(id, note)
+      return queueWrite(id, note, allowPartial)
     },
     /** at launch: meetings a quit or crash left without notes get them now, one at a time */
     recover() {

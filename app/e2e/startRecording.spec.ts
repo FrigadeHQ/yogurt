@@ -294,6 +294,8 @@ test('two live meetings open the title-bar menu; arrows, Enter and Escape choose
     await stop(page)
     await page.getByTestId('nav-home').click()
     await page.getByTestId('recording-choices').press('ArrowUp')
+    await expect(menu.getByTestId('recording-upload')).toBeFocused()
+    await page.keyboard.press('ArrowUp')
     await expect(menu.getByTestId('recording-unattached')).toBeFocused()
     await page.keyboard.press('Enter')
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')

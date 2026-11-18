@@ -1,3 +1,4 @@
+import { AUDIO_SPEAKER } from '../src/shared/audioUpload'
 import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -36,7 +37,7 @@ function fakeProc() {
 
 let store: Store
 beforeEach(() => { store = openStore(':memory:') })
-const meeting = (): Meeting => store.createMeeting({ title: 't', startedAt: 1, endedAt: null, eventId: null, app: null, attendees: [], state: 'recording' })
+const meeting = (source?: string): Meeting => store.createMeeting({ source, title: 't', startedAt: 1, endedAt: null, eventId: null, app: null, attendees: [], state: 'recording' })
 const says = (c: Chunk): Line[] => [{ track: c.track, startMs: c.startMs, endMs: c.startMs + 1000, text: `${c.track} said it at ${c.startMs}` }]
 
 const disposers: Array<() => void> = []
@@ -384,6 +385,53 @@ describe('a meeting recorded before the speech model was in (#30)', () => {
     expect(lines).toEqual(expect.arrayContaining(['them@1', 'them@4', 'me@7']))
     expect(store.meeting(m.id)?.transcriptionPending).not.toBe(true)
     expect(store.untranscribedMeetings()).toEqual([])
+  })
+  it('continues saved audio at the persisted timestamp without duplicating its first line', async () => {
+    rig('transcription-first')
+    const m=meeting('audio-file')
+    store.addSegments([{meetingId:m.id,track:'them',startMs:1000,endMs:2000,text:'Kept first line',speaker:AUDIO_SPEAKER}])
+    expect(await transcribeRecorded(m.id,{them:track(1,4)},undefined,{fromMs:{them:2000}})).toBe(true)
+    const lines=store.segments(m.id)
+    expect(lines[0].text).toBe('Kept first line');expect(lines).toHaveLength(2)
+    expect(lines[1].startMs).toBeGreaterThanOrEqual(4000)
+  })
+  it('stages replacement words through the actual pipeline without publishing or removing old words', async () => {
+    const r=rig('transcription-first'),m=meeting('audio-file')
+    store.addSegments([{meetingId:m.id,track:'them',startMs:0,endMs:100,text:'Original transcript',speaker:AUDIO_SPEAKER}])
+    expect(await transcribeRecorded(m.id,{them:track(1,4)},undefined,{save:lines=>store.addTranscriptionDraft(m.id,lines)})).toBe(true)
+    expect(store.segments(m.id).map(line=>line.text)).toEqual(['Original transcript'])
+    expect(r.sent).toEqual([]);expect(store.transcriptionDraft(m.id)).toHaveLength(2)
+    expect(store.meeting(m.id)?.transcriptionPending).toBe(true)
+    store.commitTranscriptionDraft(m.id)
+    expect(store.segments(m.id)).toHaveLength(2);expect(store.segments(m.id).some(line=>line.text==='Original transcript')).toBe(false)
+  })
+  it.each([undefined, 'audio-file'])('reports saved transcription progress for source %s without requiring an upload job', async source => {
+    rig('transcription-first')
+    const m = meeting(source), progress = vi.fn()
+    store.updateMeeting(m.id, { state: 'stopped', transcriptionPending: true })
+    expect(await transcribeRecorded(m.id, { them: track(1, 4) }, undefined, { progress })).toBe(true)
+    expect(store.segments(m.id).length).toBeGreaterThan(0)
+    expect(store.segments(m.id).map(line => line.speaker)).toEqual(source ? [AUDIO_SPEAKER, AUDIO_SPEAKER] : [null, null])
+    expect(progress).toHaveBeenCalled()
+    expect(store.meeting(m.id)?.transcriptionPending).not.toBe(true)
+  })
+  it('retains an interrupted uploaded transcript for restart recovery, but never calls it complete', async () => {
+    const abort = new AbortController(), progress = vi.fn()
+    rig('transcription-first', { transcriber: c => { abort.abort(); return says(c) } })
+    const m = meeting('audio-file')
+    store.updateMeeting(m.id, { state: 'stopped', transcriptionPending: true })
+    expect(await transcribeRecorded(m.id, { them: track(1, 4) }, undefined, { signal: abort.signal, progress })).toBe(false)
+    expect(progress).not.toHaveBeenCalled()
+    expect(store.meeting(m.id)?.transcriptionPending).toBe(true)
+    store.addSegments([{ meetingId: m.id, track: 'them', startMs: 0, endMs: 1000, text: 'A partial line', speaker: AUDIO_SPEAKER }])
+    expect(store.untranscribedMeetings().map(m => m.id)).toContain(m.id)
+  })
+  it('does not report successful deferred transcription when the model fails', async () => {
+    rig('transcription-first', { transcriber: () => { throw new Error('speech model failed') } })
+    const m = meeting()
+    store.updateMeeting(m.id, { state: 'stopped', transcriptionPending: true })
+    expect(await transcribeRecorded(m.id, { them: track(1) })).toBe(false)
+    expect(store.meeting(m.id)?.transcriptionPending).toBe(true)
   })
   it('a meeting with some transcript is never transcribed again (no lines twice)', async () => {
     const r = rig('transcription-first', { transcriber: async () => { throw new Error('whisper fell over') } })

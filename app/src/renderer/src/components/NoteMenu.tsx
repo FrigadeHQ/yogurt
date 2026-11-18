@@ -1,7 +1,7 @@
 import { Tooltip } from '@base-ui/react/tooltip'
 import { usePopoverPresence } from '../motion'
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
-import { ChevronRight, Ellipsis, FolderIcon, Pencil, RotateCcw, Trash2 } from 'lucide-react'
+import { AudioLines, ChevronRight, Ellipsis, FolderIcon, Pencil, RotateCcw, Trash2 } from 'lucide-react'
 import { RegenerateForm } from './RegenerateForm'
 import { t } from '../../../shared/i18n'
 
@@ -17,7 +17,8 @@ export function summaryAction({ hasSummary, hasContent, recording, busy, downloa
 }
 
 /** The note's actions share one menu and one anchor for folders and generation. */
-export function NoteMenu({ recording, savePending, onRename, onDelete, folders, trashed, generation, hasSummary, edited, rewriteOpen, setRewriteOpen, onWriteAgain }: {
+export function NoteMenu({ transcription, recording, savePending, onRename, onDelete, folders, trashed, generation, hasSummary, edited, rewriteOpen, setRewriteOpen, onWriteAgain }: {
+  transcription?: {reason?:string;run:()=>void}
   recording: boolean; savePending?: boolean; onRename: () => void; onDelete: () => void; folders?: (close: () => void) => ReactNode
   /** in the Trash already: Delete is for good */
   trashed?: boolean
@@ -77,6 +78,7 @@ export function NoteMenu({ recording, savePending, onRename, onDelete, folders, 
           }} className={row}>
             <FolderIcon size={15} aria-hidden="true" className="text-muted" /><span className="flex-1">{t('Add to folder')}</span><ChevronRight size={14} aria-hidden="true" className="text-muted rtl:-scale-x-100" />
           </button>}
+          {transcription&&<Tooltip.Root disabled={!transcription.reason}><Tooltip.Trigger delay={180} closeOnClick={false} role="menuitem" data-testid="note-transcribe-again" aria-disabled={!!transcription.reason} aria-description={transcription.reason} onClick={()=>{if(!transcription.reason)run(transcription.run)}} className={`${row} whitespace-nowrap aria-disabled:opacity-50 aria-disabled:hover:bg-transparent`}><AudioLines size={15} className="text-muted" aria-hidden="true"/>{t('Transcribe again')}</Tooltip.Trigger><Tooltip.Portal><Tooltip.Positioner side="left" sideOffset={6} className="z-[80]"><Tooltip.Popup role="tooltip" className="rounded-md border border-line bg-float px-2 py-1 text-xs text-ink shadow-[var(--shadow)]">{transcription.reason}</Tooltip.Popup></Tooltip.Positioner></Tooltip.Portal></Tooltip.Root>}
           {generation && <Tooltip.Root disabled={!generation.reason}><Tooltip.Trigger delay={180} closeOnClick={false} role="menuitem" data-testid="note-write-again" aria-disabled={!!generation.reason}
             aria-description={generation.reason}
             onClick={() => { if (generation.reason) return; setOpen(false); setRewriteOpen(true) }}

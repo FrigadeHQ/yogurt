@@ -6,13 +6,14 @@ import { motion, useReducedMotion } from '../motion'
 export const ModalClose = Dialog.Close
 
 /** Shared accessible dialog with restrained motion and safe initial focus. */
-export function Modal({ title, description, children, onCancel, busy = false, role = 'dialog', testId, container }: {
+export function Modal({ title, description, children, onCancel, busy = false, closing=false, role = 'dialog', testId, container }: {
   title: string; description?: string; children: ReactNode
-  onCancel: () => void; busy?: boolean; role?: 'dialog' | 'alertdialog'; testId?: string
+  onCancel: () => void; busy?: boolean; closing?:boolean; role?: 'dialog' | 'alertdialog'; testId?: string
   container?: HTMLElement | null
 }) {
   const [open, setOpen] = useState(true)
   const reduce = useReducedMotion()
+  useEffect(()=>{if(closing)setOpen(false)},[closing])
   const dialog = useRef<HTMLDivElement>(null)
   const opener = useRef(document.activeElement instanceof HTMLElement ? document.activeElement : null)
   const cancel = useRef(onCancel)

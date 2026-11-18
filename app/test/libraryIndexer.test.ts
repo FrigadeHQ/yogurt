@@ -106,3 +106,12 @@ describe('indexing meetings for chat across them', () => {
     expect(r.library.vectors(r.embedder.model())).toHaveLength(20)
   })
 })
+
+it('replaces chunks and vectors even when the transcript length and timestamps are unchanged',async()=>{
+ const r=rig({embedPath:'/m/e.gguf'}),m=meeting(r.store,'Review',['Old words'])
+ await r.indexer.schedule();const old=r.library.chunksOf(m.id)[0].id;r.indexer.vectors()
+ r.store.beginTranscriptionReplacement(m.id);r.store.addTranscriptionDraft(m.id,[{meetingId:m.id,track:'me',startMs:0,endMs:900,text:'New words',speaker:null}]);r.store.commitTranscriptionDraft(m.id)
+ r.indexer.ensure([m.id]);expect(r.library.chunksOf(m.id)[0].text).toContain('New words');expect(r.library.chunksOf(m.id)[0].id).not.toBe(old)
+ expect(r.library.vectors(r.embedder.model())).toEqual([])
+ await r.indexer.schedule();expect(r.library.vectors(r.embedder.model())).toHaveLength(1)
+})

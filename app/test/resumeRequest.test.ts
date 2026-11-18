@@ -26,6 +26,7 @@ vi.mock('../src/renderer/src/motion', async original => ({ ...await original<typ
 let meeting: MeetingView, notes: NoteView
 let meetingChanged: () => void, notesChanged: (notes: NoteView) => void
 const resume = vi.fn(), consumed = vi.fn(), title = vi.fn(), source = vi.fn()
+const meetingListeners=new Set<()=>void>()
 const transcriptGet = vi.fn(), stopSummary = vi.fn()
 let segmentChanged: (line: { meetingId: string; text: string }) => void, transcriptChanged: (id: string) => void, setupChanged: (state: SetupState) => void
 let requested: (() => void) | undefined
@@ -47,7 +48,7 @@ function find(node: ReactNode, id: string | typeof NoteMenu): ReactElement<Recor
   return node.type === id || node.props['data-testid'] === id || node.props.testId === id ? node : find(node.props.children as ReactNode, id)
 }
 beforeEach(() => {
-  vi.clearAllMocks()
+  vi.clearAllMocks();meetingListeners.clear();meetingChanged=()=>meetingListeners.forEach(cb=>cb())
   meeting = { id: 'resume-fixture', title: 'Resume fixture', startedAt: 1, endedAt: 2, eventId: 'event', app: null, attendees: [], state: 'stopped', language: null, titleSource: 'calendar' }
   notes = { meetingId: meeting.id, mine: '', enhanced: null, edited: false, status: 'writing', draft: '', peopleChanged: false }
   requested = () => { consumed(); requested = undefined }
@@ -55,10 +56,11 @@ beforeEach(() => {
   resume.mockResolvedValue({ id: meeting.id })
   stopSummary.mockResolvedValue(undefined)
   vi.stubGlobal('window', { matchMedia: () => ({ matches: true }), yogurt: {
-    meetings: { get: async () => meeting, onChange: (cb: typeof meetingChanged) => { meetingChanged = cb; return vi.fn() }, resume, stop: vi.fn() },
+    meetings: { get: async () => meeting, onChange: (cb: typeof meetingChanged) => { meetingListeners.add(cb); return ()=>meetingListeners.delete(cb) }, resume, stop: vi.fn() },
     notes: { stop: stopSummary, setMine: async (_id: string, _text: string, revision: number) => ({ revision, status: 'saved' }), get: async () => notes, onChange: (cb: typeof notesChanged) => { notesChanged = cb; return vi.fn() } },
     transcript: { get: transcriptGet, onSegment: (cb: typeof segmentChanged) => { segmentChanged = cb; return vi.fn() }, onSpeakers: (cb: typeof transcriptChanged) => { transcriptChanged = cb; return vi.fn() } },
     setup: { state: async () => ({ phase: 'ready', fraction: 1 }), onState: (cb: typeof setupChanged) => { setupChanged = cb; return vi.fn() } },
+    audio: { tracks: async()=>[], onDeleted:()=>vi.fn() },
     widget: { state: async () => null, onState: () => vi.fn() },
   } })
 })

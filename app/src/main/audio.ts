@@ -30,7 +30,7 @@ const TYPES: Record<AudioExt, string> = { m4a: 'audio/mp4', ogg: 'audio/ogg', wa
  */
 export function audioExts(platform: string, fake: boolean): AudioExt[] {
   if (fake) return ['wav']
-  return platform === 'darwin' ? ['m4a', 'ogg'] : ['ogg', 'm4a']
+  return platform === 'darwin' ? ['m4a', 'ogg', 'wav'] : ['ogg', 'm4a', 'wav']
 }
 /** The file of one track in a meeting's folder: the first of these kinds that exists */
 export function trackFile(dir: string, track: string, exts: readonly AudioExt[]): string | null {

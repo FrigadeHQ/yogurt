@@ -1,3 +1,4 @@
+import type { AudioUploadFile, AudioUploadStatus } from './audioUpload'
 import type { RendererError } from './rendererError'
 import type { WidgetLayout, WidgetSurface } from './widgetMorph'
 import type { ContextChip, ContextTarget } from './askContext'
@@ -111,6 +112,11 @@ export type YogurtApi = {
   }
   /** the words heard in a meeting, live */
   transcript: {
+    draft(meetingId:string):Promise<Segment[]>
+    onDraft(cb:(meetingId:string)=>void):()=>void
+    onReplaced(cb:(meetingId:string)=>void):()=>void
+    run(meetingId:string,again:boolean):Promise<boolean>
+    stop(meetingId:string):Promise<void>
     /** the meeting's lines; hidden: the echo lines hidden after the meeting too (each marked hidden); last: only the latest lines */
     get(meetingId: string, o?: { hidden?: boolean; last?: number }): Promise<Segment[]>
     /** brings hidden lines back: the ones given, or all of the meeting's */
@@ -177,6 +183,13 @@ export type YogurtApi = {
     show(): void
   }
   /** a meeting's recording, played at yogurt-audio://<meetingId>/<track> */
+  audioUpload: {
+    pick(): Promise<AudioUploadFile | null>
+    inspect(token: string): Promise<number>
+    start(token: string, title: string, at: number): Promise<void>
+    cancel(token: string): Promise<void>
+    onStatus(cb: (token: string, status: AudioUploadStatus) => void): () => void
+  }
   audio: {
     delete(id: string): Promise<DeleteRecordingResult>
     onDeleted(cb: (id: string) => void): () => void
@@ -353,7 +366,7 @@ export type SetupState = {
 export type { Meeting, Person, Segment, SnippetPart, Folder } from '../main/store'
 export type { CalEvent, CalendarSource, CalendarStatus } from '../main/calendar'
 /** Calendar occurrence with its saved note, if one exists. No inferred or sample meetings. */
-export type AgendaEvent = CalEvent & { note?: { id: string; state: Meeting['state'] } }
+export type AgendaEvent = CalEvent & { note?: { id: string; state: Meeting['state']; source?: string } }
 /** Start notes: the meeting's id, or why it didn't start (gone: the event left the calendar) */
 export type StartResult = { id: string; alreadyRecording?: true; resumeRequested?: true } | { error: 'gone' | 'failed' }
 /** one meeting found: parts is a piece of its notes or transcript, hit on the words matched */

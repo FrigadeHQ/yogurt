@@ -1,14 +1,15 @@
+import {transcriptReplacement} from '../../../shared/transcriptReplacement'
 import { citationTargetIndex } from '../../../shared/citations'
 import { SPEAKER_COLORS } from '../../../shared/speakerColors'
 import { ScrollFade } from './ScrollFade'
 import { Loading } from './Loading'
 import { useLoadingState } from '../useLoadingState'
-import { Fragment, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
+import { Fragment, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
 import { AudioLines, ArrowDown } from 'lucide-react'
 import type { Segment, TranscriptPartial } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
 import { useLanguage } from '../i18n'
-import { bubbles, clock, echoRuns, lineAt, recentRuns, stableKeys, turns, withLive, type LiveSaid } from '../../../shared/transcript'
+import { transcriptSpeaker, bubbles, clock, echoRuns, lineAt, recentRuns, stableKeys, turns, withLive, type LiveSaid } from '../../../shared/transcript'
 import { TranscriptFind } from './TranscriptFind'
 import { Player, type PlayerHandle } from './Player'
 import { attachPlayerVisibility } from '../playerVisibility'
@@ -17,7 +18,7 @@ import { followGlide, scrollBehavior } from '../motion'
 import { followTarget, inView } from '../../../shared/follow'
 import { afterFinal, joinWords } from '../../../shared/liveWords'
 
-type Line = Omit<Segment, 'id'> & { id?: number }
+type Line = Omit<Segment, 'id'> & { id?: number; previous?:boolean }
 const key = (l: { track: string; startMs: number }) => `${l.track}:${l.startMs}`
 /** this close to the bottom still counts as reading the latest lines */
 const STICK_PX = 24
@@ -25,15 +26,30 @@ const STICK_PX = 24
 const HANDS_OFF_MS = 400
 
 /** You on the mic; on the other side the name the call app showed talking, Them when it showed none */
-const who = (l: { track: string; speaker?: string | null }): string => (l.track === 'me' ? t('You') : l.speaker || t('Them'))
+const who = transcriptSpeaker
 
 /** The lines of a meeting, live while it records; `live` holds the lines that arrived while watching */
-function useLines(id: string) {
+function useLines(id: string,replacing:boolean) {
+  const [draft,setDraft]=useState<Line[]>([])
+  const draftRef=useRef<Line[]>([])
+  draftRef.current=draft
+  useEffect(()=>{
+    let active=true,revision=0
+    setDraft([])
+    if(!replacing)return
+    const load=()=>{const request=++revision;void window.yogurt.transcript.draft(id).then(lines=>{
+      if(!active||request!==revision)return
+      for(const line of lines)live.current.add(key(line))
+      setDraft(lines)
+    }).catch(console.error)}
+    const off=window.yogurt.transcript.onDraft(changed=>{if(changed===id)load()})
+    load();return()=>{active=false;off()}
+  },[id,replacing])
   const [lines, setLines] = useState<Line[]>([])
   const [loaded, setLoaded] = useState(false)
   const live = useRef(new Set<string>())
   useEffect(() => {
-    let active = true
+    let active = true,epoch=0
     setLoaded(false); setLines([]); live.current = new Set()
     const add = (more: Line[], arriving: boolean) => setLines((cur) => {
       const seen = new Set(cur.map(key))
@@ -42,19 +58,22 @@ function useLines(id: string) {
       return fresh.length ? [...cur, ...fresh].sort((a, b) => a.startMs - b.startMs) : cur
     })
     const off = window.yogurt.transcript.onSegment((l) => add([l], true))
-    void window.yogurt.transcript.get(id, { hidden: true }).then((saved) => { if (active) { add(saved, false); setLoaded(true) } })
+    void window.yogurt.transcript.get(id, { hidden: true }).then((saved) => { if (active&&epoch===0) { add(saved, false); setLoaded(true) } })
     // names settled after the meeting, or lines hidden or shown again: the saved lines replace the ones shown
     const offSpeakers = window.yogurt.transcript.onSpeakers((m) => {
       if (m !== id) return
+      const requestEpoch=epoch
       void window.yogurt.transcript.get(id, { hidden: true }).then((saved) => setLines((cur) => {
+        if(!active||requestEpoch!==epoch)return cur
         const fresh = new Map(saved.map((l) => [key(l), l]))
         const have = new Set(cur.map(key))
         return [...cur.map((l) => fresh.get(key(l)) ?? l), ...saved.filter((l) => !have.has(key(l)))].sort((a, b) => a.startMs - b.startMs)
       }))
     })
-    return () => { active = false; off(); offSpeakers() }
+    const offReplaced=window.yogurt.transcript.onReplaced?.(changed=>{if(changed===id){epoch++;setLoaded(true);if(draftRef.current.length)setLines(draftRef.current);void window.yogurt.transcript.get(id,{hidden:true}).then(saved=>{if(active)setLines(saved)})}})
+    return () => { active = false; off(); offSpeakers();offReplaced?.() }
   }, [id])
-  return { lines, live, loaded }
+  return { lines, draft, live, loaded }
 }
 
 /**
@@ -135,7 +154,7 @@ const Row = memo(function Row({ line: l, focused, name, playing, playable, focus
       role={playable ? 'button' : undefined} aria-label={playable ? t('Play from {time}, {name}: {text}', { time, name, text: l.text }) : undefined}
       tabIndex={playable ? (focusable ? 0 : -1) : undefined} onFocus={(e) => { if (e.target === e.currentTarget) onFocusLine(k) }}
       onClick={(e) => onPlay(l, e)} title={time}
-      data-hidden={l.hidden || undefined} data-focused={focused || undefined}
+      data-previous={l.previous||undefined} data-hidden={l.hidden || undefined} data-focused={focused || undefined}
       className={`line ${arrived === 'fade' ? 'line-in' : arrived === 'settle' ? 'line-settle' : ''} ${playable ? 'line-playable cursor-pointer' : ''}`}>
       <span data-testid="transcript-text">
         {l.text}
@@ -149,12 +168,13 @@ const Row = memo(function Row({ line: l, focused, name, playing, playable, focus
  * The meeting's transcript: each turn carries who said it, following new lines
  * while it records; after the meeting a line plays from that moment, and the player sits at the bottom. The header searches it.
  */
-export function Transcript({ id, recording, inline = false, active = true, onClose, focus, toolbar }: {
-  id: string; recording: boolean; inline?: boolean; active?: boolean; toolbar?: HTMLElement | null; onClose?: () => void
+export function Transcript({ id, notice, processing=false, replacing=false, recording, inline = false, active = true, onClose, focus, toolbar }: {
+  id: string; notice?:ReactNode; processing?:boolean; replacing?:boolean; recording: boolean; inline?: boolean; active?: boolean; toolbar?: HTMLElement | null; onClose?: () => void
   /** a line to show and mark (an answer's source): ms into the meeting; seq: each time it is asked for */
   focus?: { ms: number; match?: string; seq: number }
 }) {
-  const { lines: allLines, live, loaded } = useLines(id)
+  const { lines:savedLines, draft, live, loaded } = useLines(id,replacing)
+  const allLines=useMemo(()=>replacing?transcriptReplacement(savedLines,draft):savedLines,[savedLines,draft,replacing])
   const loadingPhase = useLoadingState(!loaded)
   const { live: liveSaid, previewed } = useLive(id, recording)
   // the mic's copy of the call (hidden as an echo) never shows
@@ -169,7 +189,7 @@ export function Transcript({ id, recording, inline = false, active = true, onClo
   const [tracks, setTracks] = useState<Array<'me' | 'them'>>([])
   useEffect(() => {
     setTracks([])
-    if (recording) return
+    if (recording || processing) return
     let on = true
     let deleted = false
     const off = window.yogurt.audio.onDeleted(changed => {
@@ -179,11 +199,12 @@ export function Transcript({ id, recording, inline = false, active = true, onClo
       }
       deleted = true; setTracks([]); setAudioOn(false); onTime(null)
     })
-    void window.yogurt.audio.tracks(id).then((t) => { if (on && !deleted) setTracks(t) })
-    return () => { on = false; off() }
-  }, [id, recording])
+    const load=()=>void window.yogurt.audio.tracks(id).then(t=>{if(on&&!deleted)setTracks(t)}).catch(console.error)
+    load();const offMeeting=window.yogurt.meetings.onChange(load)
+    return () => { on = false; off(); offMeeting() }
+  }, [id, recording, processing])
   const player = useRef<PlayerHandle>(null)
-  const playable = tracks.length > 0
+  const playable = !processing && tracks.length > 0
   const playbackDock = useRef<HTMLDivElement>(null)
   const [playbackInset, setPlaybackInset] = useState(0)
   const visibility = useRef<ReturnType<typeof attachPlayerVisibility> | null>(null)
@@ -221,6 +242,14 @@ export function Transcript({ id, recording, inline = false, active = true, onClo
     visibility.current = controls
     return () => { controls.dispose(); visibility.current = null }
   }, [id, active, playable])
+  const replacementFollow=useRef(true)
+  useLayoutEffect(()=>{if(replacing){replacementFollow.current=true;if(list.current)list.current.scrollTop=0}},[id,replacing])
+  useLayoutEffect(()=>{
+    if(!replacing||!processing||!active||finding||!replacementFollow.current||!draft.length)return
+    const line=[...draft].sort((a,b)=>a.startMs-b.startMs).at(-1)!
+    const row=list.current?.querySelector<HTMLElement>(`[data-key="${CSS.escape(key(line))}"]`)
+    row?.scrollIntoView({block:'nearest'})
+  },[draft,replacing,processing,active,finding])
   const stick = useRef(rememberedScroll(scrollKey) === undefined)
   const [behind, setBehind] = useState(false)
   const onScroll = () => {
@@ -292,6 +321,7 @@ export function Transcript({ id, recording, inline = false, active = true, onClo
   }
   // a wheel, a key, a touch or a press (the scroll bar too): a glide of Yogurt's still moving is stopped, so it can't carry them back
   const theirs = () => {
+    replacementFollow.current=false
     handsOn.current = performance.now()
     ours.current?.stop()
     ours.current = null
@@ -319,7 +349,7 @@ export function Transcript({ id, recording, inline = false, active = true, onClo
     focusDone.current = focus.seq
     stick.current = false
     setShowAll(true)
-    setFocusedKey(key(l)); setFocusKey(key(l))
+    setFocusedKey(focus.match&&!match?undefined:key(l)); setFocusKey(key(l))
     requestAnimationFrame(() => { visibility.current?.programmatic(); rowOf(key(l))?.scrollIntoView({ block: 'center' }) })
   }, [focus?.seq, lines, active])
   useEffect(() => {
@@ -356,9 +386,11 @@ export function Transcript({ id, recording, inline = false, active = true, onClo
       className={inline ? 'transcript-inline' : 'chat-in pointer-events-auto absolute inset-x-0 bottom-1 z-20 mx-auto flex h-[min(44vh,480px)] w-[min(720px,calc(100%-48px))] flex-col rounded-xl border border-line bg-float shadow-[var(--shadow)]'}>
       <TranscriptFind key={id} lines={lines} list={list} active={active} playbackInset={playbackInset} beforeScroll={() => visibility.current?.programmatic()} onFinding={find} toolbar={toolbar} onClose={!inline ? onClose : undefined} />
       <div className="transcript-scroll-wrap relative flex min-h-0 flex-1 flex-col">
-        <ScrollFade enabled={active && loaded}><ol data-loaded={loaded} data-loading-phase={loadingPhase} data-testid="transcript" ref={list} onScroll={onScroll} onWheel={theirs} onTouchStart={theirs} onPointerDown={theirs} onKeyDownCapture={theirs} onKeyDown={onKeyDown} className="loading-content transcript-loading-content flex flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4 pt-2 text-sm leading-[1.55]">
-          {loadingPhase !== 'ready' && <li className="loading-placeholder"><Loading layout="transcript" /></li>}
-          {loaded && allLines.length === 0 && liveSaid.length === 0 && <li data-testid="transcript-empty" className="note-empty empty-state"><div className="empty-state-content"><div className="empty-tile"><AudioLines size={28} strokeWidth={1.5} aria-hidden="true" /></div>{t('Nothing heard yet.')}</div></li>}
+        <ScrollFade enabled={active && loaded}><ol data-loaded={loaded} data-loading-phase={loadingPhase} data-testid="transcript" data-replacing={replacing&&processing} ref={list} onScroll={onScroll} onWheel={theirs} onTouchStart={theirs} onPointerDown={theirs} onKeyDownCapture={theirs} onKeyDown={onKeyDown} className="loading-content transcript-loading-content flex flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4 pt-2 text-sm leading-[1.55]">
+          {notice&&<li className="transcription-notice-slot">{notice}</li>}
+          {processing&&!replacing&&timeline.length===0&&<li className="transcription-placeholder" aria-hidden="true"><p className="turn-head"><span className="loading-bar" style={{width:42}}/></p><p className="bubble bubble-them"><span className="loading-bar" style={{width:180}}/></p></li>}
+          {loadingPhase !== 'ready' && timeline.length===0 && <li className="loading-placeholder"><Loading layout="transcript" /></li>}
+          {loaded && !processing && allLines.length === 0 && liveSaid.length === 0 && <li data-testid="transcript-empty" className="note-empty empty-state"><div className="empty-state-content"><div className="empty-tile"><AudioLines size={28} strokeWidth={1.5} aria-hidden="true" /></div>{t('Nothing heard yet.')}</div></li>}
           {drawn.earlier > 0 && <li className="flex justify-center"><button data-testid="transcript-earlier" onClick={() => { visibility.current?.programmatic(); stick.current = false; setShowAll(true) }} className="ghost-btn">{t('Show earlier lines')}</button></li>}
           {drawn.runs.map(run => <Fragment key={run.k}>
             {turns(run.lines).map((turn) => {
@@ -381,7 +413,7 @@ export function Transcript({ id, recording, inline = false, active = true, onClo
                       return (
                         <Fragment key={k}>{i > 0 && ' '}
                           <Row line={x} focused={k === focusedKey} name={who(x)}
-                            playing={k === shownKey} playable={playable} focusable={k === tabKey} arrived={live.current.has(k) ? (previewed(x) ? 'settle' : 'fade') : null} onPlay={onPlay} onFocusLine={setFocusKey} />
+                            playing={k === shownKey} playable={playable} focusable={k === tabKey} arrived={!x.previous&&live.current.has(k) ? (previewed(x) ? 'settle' : 'fade') : null} onPlay={onPlay} onFocusLine={setFocusKey} />
                         </Fragment>
                       )
                     })}

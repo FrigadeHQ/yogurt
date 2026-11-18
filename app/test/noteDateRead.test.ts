@@ -220,3 +220,16 @@ it('opens choices on the note day, browses another day and keeps empty days navi
   expect(byId(tree, 'note-date-previous')).toBeDefined()
   expect(byId(tree, 'note-date-next')).toBeDefined()
 })
+
+it('opens an uploaded note on its inferred start day and offers that day’s calendar events', async () => {
+  const startedAt = +new Date(2026, 10, 15, 22, 30)
+  const dayEvent = { ...event, start: +new Date(2026, 10, 15, 22), end: +new Date(2026, 10, 15, 23) }
+  const result = { status: 'granted', events: [dayEvent] }, day = vi.fn().mockResolvedValue(result)
+  const render = setup(day), imported = { ...unlinked, source: 'audio-file', startedAt }
+  render(imported)
+  await vi.advanceTimersByTimeAsync(0)
+  const choices = picker(render(imported))
+  expect(day).toHaveBeenCalledWith(startedAt)
+  expect(choices.props.day).toBe(startedAt)
+  expect(choices.props.result.events).toEqual([dayEvent])
+})

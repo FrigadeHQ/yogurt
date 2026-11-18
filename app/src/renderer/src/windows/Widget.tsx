@@ -1,3 +1,4 @@
+import { transcriptSpeaker } from '../../../shared/transcript'
 import { SPEAKER_COLORS } from '../../../shared/speakerColors'
 import { widgetDragDelta, isWidgetClick, type WidgetPress } from '../../../shared/widgetGesture'
 import { Loading } from '../components/Loading'
@@ -213,7 +214,7 @@ function Preview({ view, open }: { view: WidgetView; open: boolean }) {
       {!loaded ? <Loading layout="transcript" testId="widget-preview-loading" /> : !grouped.length && <p className="widget-preview-empty">{failed ? t("Couldn't load the transcript. Open Yogurt to try again.") : t('Listening for speech…')}</p>}
       {grouped.map(turn => {
         const first = turn[0], me = first.track === 'me'
-        const who = me ? t('You') : first.speaker || t('Them')
+        const who = transcriptSpeaker(first)
         const color = me || !('speakerColor' in first) ? undefined : first.speakerColor
         return <div key={`${first.track}:${first.startMs}`} className="widget-preview-turn" data-me={me}>
           <span className="widget-preview-speaker" data-color={color} data-folder-color={color === undefined ? undefined : SPEAKER_COLORS[color]}>{who}</span>

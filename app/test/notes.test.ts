@@ -18,12 +18,12 @@ const wait = (ms = 5) => new Promise((r) => setTimeout(r, ms))
 /** waits for what an assertion needs, up to 5 s: a fixed sleep was too short on a slow Windows runner */
 const until = (check: () => void) => vi.waitFor(check, { timeout: 5000, interval: 10 })
 
-function setup(o: { summaryLanguage?: () => string; me?: string; named?: () => Promise<void>; namesWaitMs?: number; reply?: string | ((prompt: string) => string); during?: () => void; load?: Promise<void>; title?: string; recording?: () => boolean; smallMac?: boolean; showLoading?: boolean } = {}) {
+function setup(o: { source?: string; summaryLanguage?: () => string; me?: string; named?: () => Promise<void>; namesWaitMs?: number; reply?: string | ((prompt: string) => string); during?: () => void; load?: Promise<void>; title?: string; recording?: () => boolean; smallMac?: boolean; showLoading?: boolean } = {}) {
   const d = mkdtempSync(join(tmpdir(), 'yogurt-notes-'))
   dirs.push(d)
   const store = openStore(join(d, 'yogurt.db'))
   stores.push(store)
-  const m = store.createMeeting({ title: o.title ?? 'Sync', startedAt: 1, endedAt: 2, eventId: null, app: null, attendees: [], state: 'stopped' })
+  const m = store.createMeeting({ source: o.source, title: o.title ?? 'Sync', startedAt: 1, endedAt: 2, eventId: null, app: null, attendees: [], state: 'stopped' })
   store.addSegments([{ meetingId: m.id, track: 'them', startMs: 0, endMs: 1000, text: 'We ship Tuesday.', speaker: 'Priya Nair' }])
   store.setNotes(m.id, { mine: '- ship tuesday' })
   let transcribed!: () => void
@@ -47,6 +47,18 @@ function setup(o: { summaryLanguage?: () => string; me?: string; named?: () => P
 }
 
 describe('hookNotes', () => {
+  it('waits for an imported transcript before recovery or a manual rewrite creates notes', async () => {
+    const s = setup({ source: 'audio-file' })
+    s.store.updateMeeting(s.m.id, { transcriptionPending: true })
+    s.transcribed()
+    s.notes.recover()
+    await s.notes.writeAgain(s.m.id)
+    await wait()
+    expect(s.prompts).toEqual([])
+    s.store.updateMeeting(s.m.id, { transcriptionPending: false })
+    await s.notes.writeAgain(s.m.id)
+    expect(s.prompts.length).toBeGreaterThan(0)
+  })
   it('a manual stop invalidates a pending transcript without restarting on recovery', async () => {
     const s = setup()
     s.stop()

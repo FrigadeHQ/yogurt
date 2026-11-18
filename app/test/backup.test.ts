@@ -140,7 +140,7 @@ describe('backup merge', () => {
 
   it('knows every table that holds a meeting\'s rows, and every table is one of them', () => {
     const s = fresh()
-    expect(meetingTables(s.db).map((t) => t.table).sort()).toEqual(['chat_turns', 'folder_meetings', 'library_chunks', 'library_sources', 'notes', 'segments'])
+    expect(meetingTables(s.db).map((t) => t.table).sort()).toEqual(['chat_turns', 'folder_meetings', 'library_chunks', 'library_sources', 'notes', 'segments', 'transcription_drafts'])
     // a new table that is not tied to a meeting would be left out of backups: decide what a backup does with it, then list it here
     const all = (s.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '%_fts%'").all() as Array<{ name: string }>).map((r) => r.name)
     expect(all.filter((t) => t !== 'meetings' && !meetingTables(s.db).some((m) => m.table === t)).sort()).toEqual(['conversation_turns', 'conversations', 'folders', 'own_emails', 'people'])

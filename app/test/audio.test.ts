@@ -87,9 +87,9 @@ describe('the yogurt-audio protocol', () => {
 
 describe('recordings from either kind of computer', () => {
   it('a Mac records m4a, Windows and Linux record Ogg Opus; each plays the other\'s too, its own first', () => {
-    expect(audioExts('darwin', false)).toEqual(['m4a', 'ogg'])
-    expect(audioExts('win32', false)).toEqual(['ogg', 'm4a'])
-    expect(audioExts('linux', false)).toEqual(['ogg', 'm4a'])
+    expect(audioExts('darwin', false)).toEqual(['m4a', 'ogg', 'wav'])
+    expect(audioExts('win32', false)).toEqual(['ogg', 'm4a', 'wav'])
+    expect(audioExts('linux', false)).toEqual(['ogg', 'm4a', 'wav'])
     expect(audioExts('darwin', true)).toEqual(['wav'])
   })
   it('serves an Ogg recording as audio/ogg, and a Mac backup\'s m4a beside it', async () => {

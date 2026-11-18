@@ -1,3 +1,4 @@
+import { AUDIO_SPEAKER } from './audioUpload'
 import type { LibrarySource } from './types'
 import { mdToDoc, type PMNode } from './markdown'
 import { citationExcerptLines, citationExcerptText, citationPassage, citationTargetIndex } from './citations'
@@ -46,7 +47,7 @@ export function citationCardPassage(source: LibrarySource, answerSentence: strin
     // Strip only prefixes verified against actual speech, never infer a name from an arbitrary colon.
     excerpt = citationExcerptText(excerpt).split('\n').map(text => {
       for (const line of lines) {
-        const prefix = `${line.track === 'me' ? 'You' : line.speaker || 'Them'}: `
+        const prefix = `${line.speaker === AUDIO_SPEAKER ? 'Audio' : line.track === 'me' ? 'You' : line.speaker || 'Them'}: `
         if (text.startsWith(prefix) && (text.slice(prefix.length).startsWith(citationExcerptText(line.text)) || citationExcerptText(line.text).startsWith(text.slice(prefix.length)))) return text.slice(prefix.length)
       }
       return text

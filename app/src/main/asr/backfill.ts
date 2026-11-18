@@ -26,6 +26,7 @@ async function* pieces(src: AsyncIterable<Float32Array>): AsyncGenerator<Float32
 
 /** Feeds the tracks to the pipeline; resolves with the ms of meeting time fed (the longer track) */
 export async function feedRecording(p: {
+  fromMs?: Partial<Record<Track, number>>
   tracks: Partial<Record<Track, AsyncIterable<Float32Array>>>
   push: (track: Track, ms: number, samples: Float32Array) => void
   backlogMs: () => number
@@ -45,7 +46,8 @@ export async function feedRecording(p: {
     if (r.done) { f.done = true; continue }
     while (p.backlogMs() > max && !p.stopped?.()) await wait(250)
     if (p.stopped?.()) break
-    p.push(f.track, f.ms, r.value)
+    const skip = Math.min(r.value.length, Math.max(0, Math.ceil(((p.fromMs?.[f.track] ?? 0) - f.ms) * 16)))
+    if (skip < r.value.length) p.push(f.track, f.ms + skip / 16, r.value.subarray(skip))
     f.ms += r.value.length / 16
   }
   for (const f of feeds) await f.it.return(undefined)

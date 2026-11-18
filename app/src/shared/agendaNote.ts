@@ -1,6 +1,6 @@
 import type { AgendaEvent, MeetingCard } from './types'
 
-export const resumesNote = (note: AgendaEvent['note']): boolean => note?.state === 'stopped' || note?.state === 'done'
+export const resumesNote = (note: AgendaEvent['note']): boolean => note?.source !== 'audio-file' && (note?.state === 'stopped' || note?.state === 'done')
 
 export function agendaNoteAction(event: AgendaEvent, recording: MeetingCard | undefined, now: number): 'start' | 'open' | 'prepare' | null {
   const note = recording?.eventId === event.id ? recording : event.note

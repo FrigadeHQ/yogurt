@@ -1,3 +1,4 @@
+import { audioUpload } from './audioUpload'
 import type { WidgetLayout } from '../shared/widgetMorph'
 import { contextBridge, ipcRenderer } from 'electron'
 import { capabilities, platformOf } from '../shared/platform'
@@ -87,6 +88,11 @@ const api: YogurtApi = {
     },
   },
   transcript: {
+    draft:id=>ipcRenderer.invoke('transcript:draft',id),
+    onDraft:cb=>{const listener=(_e:unknown,id:string)=>cb(id);ipcRenderer.on('transcript:draft',listener);return()=>ipcRenderer.removeListener('transcript:draft',listener)},
+    onReplaced: cb => {const listener=(_e:unknown,id:string)=>cb(id);ipcRenderer.on('transcript:replaced',listener);return()=>ipcRenderer.removeListener('transcript:replaced',listener)},
+    run: (id,again) => ipcRenderer.invoke('transcript:run',id,again),
+    stop: id => ipcRenderer.invoke('transcript:stop',id),
     get: (id, o) => ipcRenderer.invoke('transcript:get', id, o),
     restore: (id, ids) => ipcRenderer.invoke('transcript:restore', id, ids),
     onSegment: (cb) => {
@@ -131,6 +137,7 @@ const api: YogurtApi = {
     copy: (id, what, side) => ipcRenderer.invoke('share:copy', id, what, side),
     save: (id, side) => ipcRenderer.invoke('share:save', id, side),
   },
+  audioUpload,
   audio: {
     delete: (id) => ipcRenderer.invoke('audio:delete', id),
     onDeleted: (cb) => {

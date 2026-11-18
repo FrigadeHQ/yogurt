@@ -362,3 +362,13 @@ it('calendar reads refresh active snapshots without changing manual edits or not
     finally { fail.mockRestore(); warn.mockRestore() }
   } finally { off() }
 })
+
+it('links an uploaded note to the exact event time, title and people without changing its audio timeline', () => {
+  const startedAt = +new Date(2026, 10, 16, 9, 15), durationMs = 45 * 60_000
+  const imported = store.createMeeting({ source: 'audio-file', title: 'Planning audio', titleSource: 'user', startedAt, endedAt: startedAt + durationMs, durationMs, state: 'done', eventId: null, app: null, attendees: [] })
+  store.setNotes(imported.id, { mine: 'Keep my notes.', enhanced: 'Keep this summary.' })
+  const invite = { id: 'sample-event', title: 'Project planning', start: +new Date(2026, 10, 16, 9), end: +new Date(2026, 10, 16, 10), attendees: [{ name: 'Alex', email: 'alex@example.com' }], url: null }
+  linkEvent(imported.id, invite)
+  expect(store.meeting(imported.id)).toMatchObject({ source: 'audio-file', startedAt, durationMs, endedAt: startedAt + durationMs, eventId: invite.id, eventStartedAt: invite.start, eventEndedAt: invite.end, title: invite.title, titleSource: 'calendar', attendees: invite.attendees })
+  expect(store.notes(imported.id)).toMatchObject({ mine: 'Keep my notes.', enhanced: 'Keep this summary.' })
+})

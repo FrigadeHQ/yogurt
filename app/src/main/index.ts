@@ -1,3 +1,7 @@
+import { createSavedTranscriptions } from './savedTranscription'
+import { transcriptionBusy } from '../shared/transcription'
+import { hookAudioUploads } from './audioUploadIpc'
+import { uploadedAudio } from './audioUpload'
 import { hookRendererErrors } from './rendererErrors'
 import { matchSearchPeople, searchPersonKey } from '../shared/searchPeople'
 import { resolvePeople } from './people'
@@ -564,6 +568,11 @@ app.whenReady().then(() => {
       ui: () => localeOf(loadSettings(join(userDataDir(), 'settings.json')), systemLocale()), last: () => store.lastLanguage(),
       ...(isFake() ? { locales: async () => ({ available: true, supported: ['en-US', 'es-ES'], installed: ['en-US'] }), install: async () => true } : {}),
     } })
+  ipcMain.handle('transcript:draft',(e,id:unknown)=>{
+    if(e.sender!==win?.webContents||!isId(id)||!store.meeting(id)?.transcriptionAgain)return []
+    const order=store.speakerOrder(id)
+    return store.transcriptionDraft(id).map((s,i)=>({...s,id:-i-1,speakerColor:speakerColor(s.track,s.speaker,order)}))
+  })
   ipcMain.handle('transcript:get', (_e, id: unknown, o: unknown) => {
     if (!isId(id)) return []
     const order = store.speakerOrder(id)
@@ -641,13 +650,52 @@ app.whenReady().then(() => {
     // the notes are written: the meeting goes into the library for chat across meetings
     changed: () => { win?.webContents.send('meetings:changed'); void indexer.schedule() },
   })
+  let finishing = false, discardUnsaved = false
+  const savedTranscriptions = createSavedTranscriptions({
+    store, ready: () => !!setup.installed()?.asr, recording: () => !!activeMeeting() || !!resumingId || finishing,
+    tracks: async id => {
+      await recordingSettled(id)
+      const tracks: Partial<Record<'me'|'them',AsyncIterable<Float32Array>>> = {}
+      for(const track of ['me','them'] as const) {
+        const file=trackFile(meetingDir(id),track,audioKinds)
+        if(file?.endsWith('.wav'))tracks[track]=uploadedAudio(file)
+        else if(file)tracks[track]=helperDecode(audioHelperPath(),file)
+      }
+      return tracks
+    },
+    transcribe: (id,tracks,options) => transcribeRecorded(id,tracks,undefined,options),
+    draft:id=>win?.webContents.send('transcript:draft',id),
+    changed: (id,replaced) => {win?.webContents.send('meetings:changed');if(replaced){win?.webContents.send('transcript:replaced',id);void indexer.schedule()}},
+    summarize: id => {void notes.writeAgain(id)},
+  })
+  const uploads = hookAudioUploads({
+    root: join(userDataDir(), 'meetings'), store, window: () => win, exiting: () => allowQuit,
+    recording: () => !!activeMeeting() || !!resumingId || finishing,
+    prepared: id => {void savedTranscriptions.start(id)}, changed: () => win?.webContents.send('meetings:changed'),
+  })
+  setup.onState(() => {uploads.resume();savedTranscriptions.resume()})
+  onMeetingStart(m => {store.clearTranscriptionState(m.id);savedTranscriptions.pause()})
+  onMeetingStopSaved(() => {uploads.resume();savedTranscriptions.resume()})
+  ipcMain.handle('transcript:run', (e,id:unknown,again:unknown) => {
+    if(e.sender!==win?.webContents||!isId(id)||typeof again!=='boolean')return false
+    const meeting=store.meeting(id)
+    if(!meeting||stopSavePending(id)||transcriptionBusy(meeting.transcriptionState))return false
+    return savedTranscriptions.start(id,again)
+  })
+  ipcMain.handle('transcript:stop', async (e,id:unknown) => {
+    if(e.sender!==win?.webContents||!isId(id))return
+    const preparing=uploads.preparing(id)
+    if(preparing){await uploads.cancel(preparing.owner,preparing.file.token);return}
+    savedTranscriptions.stop(id)
+  })
   ipcMain.handle('meetings:resume', async (_e, id: unknown): Promise<StartResult> => {
     if (!isId(id)) return { error: 'gone' }
     const current = activeMeeting()
     if (current) { goTo(`/note/${current.id}`); return { id: current.id } }
     const existing = store.meeting(id)
-    if (!existing || existing.trashedAt != null || (existing.state !== 'stopped' && existing.state !== 'done')) return { error: 'gone' }
-    if (resumingId || stopSavePending(id) || finishing || !notes.retryDrafts(id)) return { error: 'failed' }
+    // shortcut: imports keep one WAV; add a safe native-recording merge before offering Resume.
+    if (!existing || existing.source === 'audio-file' || uploads.owns(id) || existing.trashedAt != null || (existing.state !== 'stopped' && existing.state !== 'done')) return { error: 'gone' }
+    if (transcriptionBusy(existing.transcriptionState) || resumingId || stopSavePending(id) || finishing || !notes.retryDrafts(id)) return { error: 'failed' }
     resumingId = id
     const analysis = notes.suspendForResume(id)
     let started = false, timer: NodeJS.Timeout | undefined
@@ -767,7 +815,7 @@ app.whenReady().then(() => {
   ipcMain.handle('notes:stop', (_e, id: unknown) => { if (known(id)) return notes.stop(id) })
   ipcMain.handle('notes:write-again', (_e, id: unknown, note: unknown) => {
     const instruction = rewriteNote(note)
-    if (known(id) && instruction !== undefined) void notes.writeAgain(id, instruction)
+    if (known(id) && instruction !== undefined && !transcriptionBusy(store.meeting(id)?.transcriptionState)) void notes.writeAgain(id, instruction, true)
   })
   app.on('will-quit', () => engine.dispose())
   // an earlier quit or crash may have left parts unjoined: try again now
@@ -783,31 +831,7 @@ app.whenReady().then(() => {
   setup.onState(catchUp)
   // meetings recorded before the speech model was in (#30): transcribed from their saved recording once it is, one at
   // a time and never while recording (a new recording pauses it; it carries on after)
-  const ownAudio = isFake() ? '.wav' : process.platform === 'darwin' ? '.m4a' : '.ogg'
-  let backfilling = false
-  const transcribeWaiting = async () => {
-    if (backfilling || !setup.installed()?.asr || activeMeeting()) return
-    backfilling = true
-    try {
-      await rejoined.catch(() => {})
-      for (const m of store.untranscribedMeetings()) {
-        if (activeMeeting()) break
-        // the recorder may still be closing its files (the model came in during this very meeting)
-        await recordingSettled(m.id)
-        const tracks: Partial<Record<'me' | 'them', AsyncIterable<Float32Array>>> = {}
-        for (const t of ['me', 'them'] as const) {
-          const file = trackFile(meetingDir(m.id), t, audioKinds)
-          if (file?.endsWith(ownAudio)) tracks[t] = isFake() ? wavDecode(file) : helperDecode(audioHelperPath(), file)
-        }
-        if (!Object.keys(tracks).length) continue
-        console.info('ASR', `transcribing ${m.id} from its recording: it has no transcript yet`)
-        const done = await transcribeRecorded(m.id, tracks, () => !!activeMeeting())
-        win?.webContents.send('meetings:changed'); win?.webContents.send('transcript:speakers', m.id)
-        // notes that came out empty (no transcript then) are written now
-        if (done && !store.notes(m.id).enhanced?.trim()) void notes.writeAgain(m.id)
-      }
-    } catch (e) { console.error('transcribing waiting meetings failed', e) } finally { backfilling = false }
-  }
+  const transcribeWaiting = async () => {await rejoined.catch(()=>{});await savedTranscriptions.pump()}
   setup.onState(() => void transcribeWaiting())
   // at launch too, when the model is already in and setup has nothing new to say
   void transcribeWaiting()
@@ -833,9 +857,9 @@ app.whenReady().then(() => {
     })
   }
   // Flush the last keystroke and retained drafts before the existing recording/transcription shutdown.
-  let finishing = false, discardUnsaved = false
   const resumeEditing = () => {
     finishing = false; allowQuit = false; discardUnsaved = false
+    uploads.resume(); savedTranscriptions.resume()
     win?.webContents.send('notes:flush-request', null)
   }
   app.on('browser-window-created', (_e, window) => {
@@ -851,6 +875,7 @@ app.whenReady().then(() => {
     e.preventDefault()
     if (finishing) return
     finishing = true
+     savedTranscriptions.shutdown()
     void (async () => {
       const flushed = await flushRenderer()
       const saved = notes.retryDrafts()
@@ -996,7 +1021,7 @@ app.whenReady().then(() => {
     const events = (await eventsOn(at)).map((event) => {
       const meeting = eventIds(event).map((id) => store.meetingForEvent(id)).find(Boolean)
       const note = meeting && withStopState(meeting)
-      return { ...event, attendees: resolvePeople(store.db, event.attendees), ...(note ? { note: { id: note.id, state: note.state } } : {}) }
+      return { ...event, attendees: resolvePeople(store.db, event.attendees), ...(note ? { note: { id: note.id, state: note.state, ...(note.source ? { source: note.source } : {}) } } : {}) }
     })
     return { status: calendarStatus(), events }
   })

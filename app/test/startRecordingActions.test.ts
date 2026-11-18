@@ -69,11 +69,12 @@ beforeEach(async () => {
 })
 afterEach(() => { cleanups.reverse().forEach(cleanup => cleanup()); vi.useRealTimers(); vi.unstubAllGlobals() })
 
-it('keeps the plain, unattached action and no arrow outside the live/15-minute window', async () => {
+it('keeps upload and the unattached action available outside the live/15-minute window', async () => {
   for (const events of [[], [event('past', now - 60_000, now)], [event('later', now + 15 * 60_000 + 1)]]) {
     const tree = await calendar(events)
     expect(label(tree)).toContain('Start recording')
-    expect(find(tree, 'recording-choices')).toBeUndefined()
+    expect(find(tree, 'recording-choices').type).toBe(Menu.Trigger)
+    expect(find(tree, 'recording-upload')).toBeDefined()
     await click(find(tree, 'start-recording'))
     expect(start).toHaveBeenLastCalledWith(null)
   }
@@ -91,7 +92,7 @@ it('attaches the one live meeting and preserves its full title while CSS truncat
   expect(css).toMatch(/\.recording-label \{[^}]*max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap/)
   expect(css).toMatch(/\.recording-split \{[^}]*max-width:min\(100%,276px\)/)
 })
-it('uses the menu trigger for two live meetings, with live choices first and an unattached final action', async () => {
+it('uses the menu trigger for two live meetings, with live choices first, New recording, and Upload', async () => {
   const tree = await calendar([event('soon', now + 8 * 60_000), event('second', now - 30_000), event('first')])
   expect(label(tree)).toContain('Take notes · 2 now')
   // The same Base UI trigger used by the arrow owns click, Enter, arrows and Escape.
@@ -101,7 +102,7 @@ it('uses the menu trigger for two live meetings, with live choices first and an 
   expect(render()!.props.open).toBe(true)
   expect(start).not.toHaveBeenCalled()
   const items = elements(tree).filter(el => el.type === Menu.Item)
-  expect(items.map(item => item.props.label)).toEqual(['Planning first', 'Planning second', 'Planning soon', undefined])
+  expect(items.map(item => item.props.label)).toEqual(['Planning first', 'Planning second', 'Planning soon', undefined, undefined])
   expect(renderToStaticMarkup(items[0].props.children as ReactNode)).toContain('Now')
   const soon = renderToStaticMarkup(items[2].props.children as ReactNode)
   expect(soon).toContain('in 8 min'); expect(soon).toContain('Robin Vale')
@@ -158,7 +159,7 @@ it('refreshes the resume label when the linked note changes or is trashed', asyn
 it('changes at the 15-minute, start and end boundaries and never offers a past event', async () => {
   const upcoming = event('boundary', now + 16 * 60_000, now + 17 * 60_000)
   await calendar([upcoming])
-  for (const [minutes, expected, arrow] of [[0, 'Start recording', false], [1, 'Start recording', true], [16, 'Take notes · Planning boundary', true], [17, 'Start recording', false]] as const) {
+  for (const [minutes, expected, arrow] of [[0, 'Start recording', true], [1, 'Start recording', true], [16, 'Take notes · Planning boundary', true], [17, 'Start recording', true]] as const) {
     vi.setSystemTime(now + minutes * 60_000 - 1)
     render(); run(hooks.effects[1]); await vi.advanceTimersByTimeAsync(1)
     const tree = render()
@@ -180,11 +181,11 @@ it('clears revoked calendars immediately and ignores an older in-flight response
   let reply!: (value: unknown) => void
   day.mockImplementationOnce(() => new Promise(resolve => { reply = resolve }))
   calendarChanged()
-  expect(find(render(), 'recording-choices')).toBeUndefined()
+  expect(find(render(), 'recording-meeting')).toBeUndefined()
   day.mockResolvedValue({ status: 'denied', events: [event('private')] })
   calendarChanged(); await flush()
   reply({ status: 'granted', events: [event('stale')] }); await flush()
-  expect(find(render(), 'recording-choices')).toBeUndefined()
+  expect(find(render(), 'recording-meeting')).toBeUndefined()
 })
 it('refreshes on focus and polls today without reading the agenda-selected date', async () => {
   await calendar([])
@@ -202,7 +203,7 @@ it('reports a removed event, refreshes choices, and never reports a failed or ra
   await click(find(tree, 'start-recording'))
   expect(toasts.add).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'That meeting is no longer on your calendar.' }))
   expect(gone).toHaveBeenCalledOnce()
-  expect(find(render(), 'recording-choices')).toBeUndefined()
+  expect(find(render(), 'recording-meeting')).toBeUndefined()
   expect(started).not.toHaveBeenCalled()
   start.mockResolvedValueOnce({ id: 'existing', alreadyRecording: true })
   await click(find(render(), 'start-recording'))
@@ -212,4 +213,24 @@ it('reports a removed event, refreshes choices, and never reports a failed or ra
   expect(toasts.add).toHaveBeenLastCalledWith(expect.objectContaining({ title: "Yogurt couldn't start the notes. Try again in a moment." }))
   expect(find(render(), 'start-recording').props.disabled).toBe(false)
   expect(gone).toHaveBeenCalledOnce()
+})
+
+it('opens an uploaded calendar-linked note without offering to append a recording', async () => {
+  const tree = await calendar([{ ...event('imported'), note: { id: 'imported', state: 'done', source: 'audio-file' } }])
+  expect(label(tree)).toContain('Open Planning imported')
+  expect(label(tree)).not.toContain('Resume')
+})
+
+it('opens the upload flow with the current destination callback without starting a recording', async () => {
+  const dispatchEvent = vi.fn()
+  const file = { token: 'sample', name: 'Planning.mp3', title: 'Planning', modifiedAt: now, size: 1000 }
+  const pick = vi.fn(async () => file)
+  Object.assign(window.yogurt, { audioUpload: { pick } })
+  Object.assign(document, { dispatchEvent })
+  const tree = await calendar([])
+  await click(find(tree, 'recording-upload'))
+  expect(start).not.toHaveBeenCalled()
+  expect(pick).toHaveBeenCalledOnce()
+  expect(dispatchEvent).toHaveBeenCalledOnce()
+  expect(dispatchEvent.mock.calls[0][0]).toMatchObject({ type: 'audio-upload-open', detail: { file, onCreated: started } })
 })

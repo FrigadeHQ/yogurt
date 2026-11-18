@@ -1,3 +1,4 @@
+import { AudioUploadHost } from './AudioUpload'
 import { toasts } from './TrashToast'
 import { askDestination } from '../../../shared/askContext'
 import * as Sidebar from '@animate-ui/react/primitives/sidebar'
@@ -115,6 +116,7 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
       <div id="workspace-actions" className="workspace-toolbar-actions" />
       </header>
       {children}
+      <AudioUploadHost />
 
     </div>
   </div>

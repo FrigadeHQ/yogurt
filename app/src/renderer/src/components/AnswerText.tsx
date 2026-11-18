@@ -68,7 +68,7 @@ export function AnswerText({ md, live, sources, onSource }: {
     setOpen(next)
   }}>{({ payload }) => { ctx.at.n = 0; return <>
     {(doc.content ?? []).map(n => render(n, ctx))}
-    {payload && <SourceCitationCard key={triggerId} source={payload.source} sentence={payload.sentence} triggerId={triggerId} animate onOpen={match => { setPinned(null); setOpen(false); onSource(payload.source, match) }} />}
+    {payload && <SourceCitationCard key={triggerId} source={payload.source} sentence={payload.sentence} triggerId={triggerId} animate onOpen={(match, atMs) => { setPinned(null); setOpen(false); onSource(atMs == null ? payload.source : { ...payload.source, atMs }, match) }} />}
   </> }}</Popover.Root>
 }
 

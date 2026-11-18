@@ -1,3 +1,4 @@
+import { transcriptSpeaker } from './transcript'
 /**
  * Notes out of Yogurt: plain text and simple HTML for the clipboard (Gmail, Docs and Slack paste them cleanly), and a
  * Markdown file with the notes and the transcript. Built from the same document the editor uses (markdown.ts), so
@@ -102,7 +103,7 @@ export function transcriptClipboard(lines: Segment[]): { text: string; html: str
 // ---------- transcript ----------
 
 /** Who said a line: You on the mic; on the other side the name the call showed, Them when it showed none */
-export const whoSaid = (l: Pick<Segment, 'track' | 'speaker'>): string => (l.track === 'me' ? t('You') : l.speaker || t('Them'))
+export const whoSaid = transcriptSpeaker
 
 const text = (s: string, bold = false): PMNode => (bold ? { type: 'text', text: s, marks: [{ type: 'bold' }] } : { type: 'text', text: s })
 const para = (...content: PMNode[]): PMNode => (content.length ? { type: 'paragraph', content } : { type: 'paragraph' })

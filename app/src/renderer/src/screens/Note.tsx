@@ -1,3 +1,5 @@
+import { TranscriptionControl, TranscriptionNotice } from '../components/Transcription'
+import { transcriptionBusy } from '../../../shared/transcription'
 import { citationTargetIndex } from '../../../shared/citations'
 import { NoteReadingPane } from '../components/NoteReadingPane'
 import type { LibrarySource } from '../../../shared/types'
@@ -24,7 +26,8 @@ import { Mic, Pause, Play, Sparkles, Loader } from '../components/Icons'
 import { ShareMenu } from '../components/ShareMenu'
 import { NoteMenu, summaryAction } from '../components/NoteMenu'
 import { DeleteNote } from '../components/DeleteNote'
-import { moveToTrash } from '../components/TrashToast'
+import { openAudioUpload } from '../components/AudioUpload'
+import { moveToTrash, toasts } from '../components/TrashToast'
 import { useSummaryPresentation } from '../summaryPresentation'
 import { useSmoothText } from '../useSmoothText'
 import { NoteAutosave, registerAutosave } from '../noteAutosave'
@@ -95,8 +98,9 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
     }
     const off = window.yogurt.transcript.onSegment(line => { if (line.meetingId === id && line.text.trim()) { revision++; setHasTranscript(true) } })
     const changed = window.yogurt.transcript.onSpeakers(meetingId => { if (meetingId === id) load() })
+    const replaced=window.yogurt.transcript.onReplaced?.(meetingId=>{if(meetingId===id)load()})
     load()
-    return () => { active = false; off(); changed() }
+    return () => { active = false; off(); changed();replaced?.() }
   }, [id])
   useEffect(() => {
     let active = true, received = false
@@ -245,6 +249,10 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
     if (m.trashedAt == null && !m.stopSavePending && (m.state === 'stopped' || m.state === 'done')) void resumeRecording()
   }, [onResumeRequested, m, notes, summarizing, starting])
 
+  const [hasAudio,setHasAudio]=useState(false)
+  useEffect(()=>{let active=true;const load=()=>void window.yogurt.audio.tracks(id).then(tracks=>{if(active)setHasAudio(!!tracks.length)});load();const off=window.yogurt.meetings.onChange(load);return()=>{active=false;off()}},[id])
+  const openedTranscription=useRef<string | undefined>(undefined)
+  useLayoutEffect(()=>{if(m&&openedTranscription.current!==id){openedTranscription.current=id;if(transcriptionBusy(m.transcriptionState))setPrimary('transcript')}},[m,id])
   if (!m || !notes) return <LoadingContent pending skeleton={<Loading layout="note" />} className="loading-note-frame" />
   const recording = m.state === 'recording'
   /** in the Trash: it can be read and restored, not recorded into */
@@ -321,7 +329,11 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
     void window.yogurt.notes.writeAgain(id, note)
   }
   const hasSummary = !!notes.enhanced?.trim()
+  const transcribing=transcriptionBusy(m.transcriptionState)
+  const runTranscript=async(again=false)=>{if(!await saveAll())return;try{const started=await window.yogurt.transcript.run(id,again);if(started)setPrimary('transcript')}catch{toasts.add({title:t("Yogurt couldn't transcribe this file.")})}}
+  const transcriptReason=recording||m.stopSavePending?t('Available after recording'):transcribing?t('Transcribing…'):summarizing?t('Summarizing…'):!hasAudio?t('Audio is unavailable.'):undefined
   const generation = summaryAction({ hasSummary, hasContent: hasTranscript || !!notes.mine.trim(), recording, busy: summarizing, downloading: !!(setup?.notesDownloading || setup?.notesError), trashed })
+  if(generation&&transcribing)generation.reason=t('Transcribing…')
   const requestRewrite = () => {
     if (!generation || generation.reason) return
     if (hasSummary) setRewriteOpen(true)
@@ -329,7 +341,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   }
 
   return (
-    <LoadingContent pending={false} skeleton={<Loading layout="note" />} className="loading-note-frame"><div data-testid="note" className="document-main relative flex h-full bg-bg">
+    <LoadingContent onReady={()=>document.dispatchEvent(new CustomEvent('audio-upload-note-ready',{detail:id}))} pending={false} skeleton={<Loading layout="note" />} className="loading-note-frame"><div data-testid="note" className="document-main relative flex h-full bg-bg">
       {resumeConfirm && <Modal testId="resume-confirm" role="alertdialog" title={t('Record more in this note?')}
         description={t('Your notes, transcript, and previous audio are kept. Your edited summary will be replaced when you finish recording.')}
         onCancel={() => setResumeConfirm(false)}>
@@ -339,7 +351,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
         </div>
       </Modal>}
       <div data-testid="note-topbar" className="note-topbar no-drag fixed end-4 top-[10px] z-[60]">
-          <NoteMenu key={id} generation={generation} hasSummary={hasSummary} edited={notes.edited || editedHere} rewriteOpen={rewriteOpen} setRewriteOpen={setRewriteOpen}
+          <NoteMenu key={id} transcription={{reason:transcriptReason,run:()=>void runTranscript(true)}} generation={generation} hasSummary={hasSummary} edited={notes.edited || editedHere} rewriteOpen={rewriteOpen} setRewriteOpen={setRewriteOpen}
             onWriteAgain={(note) => { if (!generation || generation.reason) return; pickPrimary('notes'); pick('enhanced'); void writeAgain(note) }} recording={recording} savePending={m.stopSavePending} trashed={trashed} onRename={() => setRenaming(true)} onDelete={() => { void saveAll().then((saved) => { if (!saved) return; if (trashed) setDeleting(true); else void moveToTrash(id, `/note/${id}`) }) }}
             folders={(close) => <FolderPicker testId="note-menu-folders" meetingId={id} onNew={() => { close(); setNamingFolder(true) }} />} />
       </div>
@@ -368,7 +380,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                   </button>
                 </>}
                 {finishing && <span data-testid="note-finishing" role="status" className="note-finishing">{t('Finishing…')}</span>}
-                {!finishing && (m.state === 'stopped' || m.state === 'done') && !m.stopSavePending && !trashed && <button data-testid="note-resume" disabled={starting} aria-busy={summarizing} data-processing={summarizing} onClick={() => { if (summarizing) void window.yogurt.notes.stop(id).catch(console.error); else void resumeRecording() }}
+                {!transcribing && !finishing && (m.source !== 'audio-file' || summarizing) && (m.state === 'stopped' || m.state === 'done') && !m.stopSavePending && !trashed && <button data-testid="note-resume" disabled={starting} aria-busy={summarizing} data-processing={summarizing} onClick={() => { if (summarizing) void window.yogurt.notes.stop(id).catch(console.error); else void resumeRecording() }}
                   aria-label={summarizing ? t('Stop summary') : t('Resume recording')} className="workspace-button note-resume-action" title={summarizing ? t('Stop summary') : t('Resume recording in this note')}>
                   <Swap show={summarizing ? 'busy' : 'mic'} options={{ mic: <Mic size={14} />, busy: <span className="summary-stop-icon"><Loader size={14} /><span className="summary-stop-square" /></span> }} />
                   <SwapText text={summarizing ? t('Summarizing…') : starting ? t('Preparing…') : t('Resume recording')} />
@@ -377,6 +389,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                   <Mic size={14} strokeWidth={1.75} aria-hidden="true" />{starting ? t('Starting…') : t('Start recording')}
                 </button>}
               </div>
+              {transcribing&&<TranscriptionControl state={m.transcriptionState!} onStop={()=>void window.yogurt.transcript.stop(id).catch(()=>toasts.add({title:t("Yogurt couldn't transcribe this file.")}))}/>}
               <ShareMenu id={id} shown={shown} status={notes.status} hasEnhanced={notes.enhanced != null} beforeUse={saveAll} />
             </div>
           </div>
@@ -419,7 +432,8 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                 /> : <Enhanced key={id} presentation={summaryState} focus={primary === 'notes' && at?.ms === null ? at : undefined} notes={notes} disabled={starting} onChange={(md) => { setEditedHere(true); const next = { ...current.current!, enhanced: md }; current.current = next; setNotes(next); enhancedSave.change(md) }} onBlur={enhancedSave.flush} onRetry={requestRewrite} />}
           </NoteReadingPane>
           {(primary === 'transcript' || transcriptVisited) && <section hidden={primary !== 'transcript'} id="note-transcript-panel" role="tabpanel" aria-labelledby="note-transcript-tab" className="note-content note-transcript-pane">
-            <Transcript id={id} recording={recording} active={primary === 'transcript'} inline toolbar={transcriptToolbar} focus={at?.ms != null ? { ...at, ms: at.ms } : undefined} />
+            <Transcript notice={<>{(hasAudio&&(m.transcriptionPending||!hasTranscript)||m.transcriptionState==='waiting-model'||m.transcriptionState==='waiting-recording')&&<TranscriptionNotice state={m.transcriptionState} hasLines={hasTranscript} onContinue={()=>void runTranscript()} disabled={recording||!!m.stopSavePending}/>}
+            {!hasAudio&&m.transcriptionState==='error'&&<InlineError testId="upload-preparation-failed"><span>{t("Yogurt couldn't read this audio file.")}</span><button className="text-action" onClick={()=>void openAudioUpload()}>{t('Upload a file')}</button></InlineError>}</>} id={id} processing={transcribing} replacing={!!m.transcriptionAgain} recording={recording} active={primary === 'transcript'} inline toolbar={transcriptToolbar} focus={at?.ms != null ? { ...at, ms: at.ms } : undefined} />
           </section>}
           </div>
         </div>

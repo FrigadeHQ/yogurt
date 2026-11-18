@@ -1,7 +1,8 @@
+import { openAudioUpload } from './AudioUpload'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Menu } from '@base-ui/react/menu'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Upload } from 'lucide-react'
 import { Mic } from './Icons'
 import { toasts } from './TrashToast'
 import { t } from '../../../shared/i18n'
@@ -72,37 +73,38 @@ export function StartRecording({ onStarted, onGone, testId = 'start-recording' }
     } finally { setStarting(false) }
   }
   const choices = recordingChoices(events, now)
-  useEffect(() => { if (recording !== false || !choices.length) setOpen(false) }, [recording, choices.length])
+  useEffect(() => { if (recording !== false) setOpen(false) }, [recording])
   if (recording !== false || !actions) return null
   const live = choices.filter(event => eventPhase(event, now) === 'live')
   const title = live[0]?.title || t('Meeting')
   const resuming = live.length === 1 && resumesNote(live[0].note)
-  const label = live.length === 1 ? resuming ? t('Resume notes · {title}', { title }) : t('Take notes · {title}', { title })
+  const label = live.length === 1 ? live[0].note?.source === 'audio-file' ? t('Open {title}', { title }) : resuming ? t('Resume notes · {title}', { title }) : t('Take notes · {title}', { title })
     : live.length > 1 ? t('Take notes · {count} now', { count: live.length }) : t('Start recording')
   const content = <><Mic size={14} aria-hidden="true" /><span className="recording-label">{label}</span></>
   const button = { 'data-testid': testId, disabled: starting, title: label, className: 'workspace-button primary recording-main no-drag' }
-  return createPortal(<Menu.Root modal={false} open={open && choices.length > 0} onOpenChange={setOpen}>
-    <div ref={root} className="recording-split no-drag" data-split={choices.length > 0}>
+  return createPortal(<Menu.Root modal={false} open={open} onOpenChange={setOpen}>
+    <div ref={root} className="recording-split no-drag" data-split={true}>
       {live.length > 1 ? <Menu.Trigger {...button}>{content}</Menu.Trigger>
         : <button {...button} onClick={() => void start(live[0]?.id ?? null)}>{content}</button>}
-      {choices.length > 0 && <Menu.Trigger data-testid="recording-choices" disabled={starting} className="workspace-button primary recording-chevron no-drag" aria-label={t('More for “{name}”', { name: t('Start recording') })} title={t('More')}><ChevronDown size={13} aria-hidden="true" /></Menu.Trigger>}
+      <Menu.Trigger data-testid="recording-choices" disabled={starting} className="workspace-button primary recording-chevron no-drag" aria-label={t('More for “{name}”', { name: t('Start recording') })} title={t('More')}><ChevronDown size={13} aria-hidden="true" /></Menu.Trigger>
     </div>
-    {choices.length > 0 && <Menu.Portal>
+    <Menu.Portal>
       <Menu.Positioner anchor={root} side="bottom" align="end" sideOffset={8} className="ask-menu-positioner">
         <Menu.Popup className="menu-entry ask-actions-menu recording-menu" aria-label={t('Start recording')} onKeyDown={e => { if (e.key === 'Escape') e.stopPropagation() }}>
           {choices.map(event => {
             const resume = resumesNote(event.note), title = event.title || t('Meeting')
-            const label = resume ? t('Resume notes · {title}', { title }) : title
+            const label = event.note?.source === 'audio-file' ? t('Open {title}', { title }) : resume ? t('Resume notes · {title}', { title }) : title
             return <Menu.Item key={event.id} data-testid="recording-meeting" label={title} disabled={starting} onClick={() => void start(event.id)}>
               <Mic size={14} aria-hidden="true" />
               <span className="recording-meeting-copy"><span title={label}>{label}</span>{event.attendees.length > 0 && <small>{event.attendees.map(person => personName(person.name)).join(', ')}</small>}</span>
               <span className="recording-timing">{eventPhase(event, now) === 'live' ? t('Now') : t('in {count} min', { count: Math.ceil((event.start - now) / 60_000) })}</span>
             </Menu.Item>
           })}
-          <Menu.Separator className="recording-menu-separator" />
+          {choices.length > 0 && <Menu.Separator className="recording-menu-separator" />}
           <Menu.Item data-testid="recording-unattached" disabled={starting} onClick={() => void start(null)}><Mic size={14} aria-hidden="true" />{t('New recording')}</Menu.Item>
+          <Menu.Item data-testid="recording-upload" disabled={starting} onClick={() => { setOpen(false); void openAudioUpload(onStarted) }}><Upload size={14} aria-hidden="true" />{t('Upload a file')}</Menu.Item>
         </Menu.Popup>
       </Menu.Positioner>
-    </Menu.Portal>}
+    </Menu.Portal>
   </Menu.Root>, actions)
 }

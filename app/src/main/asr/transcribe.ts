@@ -46,6 +46,7 @@ type Opts = {
   /** a request failed: bring the server back (true) or give up (false). Asked on each failed call; the server decides how often it agrees. */
   recover?: (reason: 'gone' | 'timeout', used?: string) => Promise<boolean>
   /** how long one request may take before the server is taken to be hung (default: requestTimeoutMs) */
+  signal?: AbortSignal
   timeoutMs?: number
   fetchFn?: typeof fetch
   /** the language a chunk was heard in, and how much was said in it (the notes are written in the main one) */
@@ -98,11 +99,12 @@ export function createTranscriber(o: Opts): Transcribe {
       if (!guess) form.set('no_language_probabilities', 'true')
       if (prompt) form.set('prompt', prompt)
       used = await o.url()
-      return fetchFn(`${used}/inference`, { method: 'POST', body: form, signal: AbortSignal.timeout(o.timeoutMs ?? requestTimeoutMs(c.samples.length)) })
+      return fetchFn(`${used}/inference`, { method: 'POST', body: form, signal: o.signal ? AbortSignal.any([o.signal, AbortSignal.timeout(o.timeoutMs ?? requestTimeoutMs(c.samples.length))]) : AbortSignal.timeout(o.timeoutMs ?? requestTimeoutMs(c.samples.length)) })
     }
     let res: Response
     try { res = await send() } catch (err) {
       // the server crashed or hung: one chance to bring it back, then the chunk is tried again
+      o.signal?.throwIfAborted()
       const reason = err instanceof Error && err.name === 'TimeoutError' ? 'timeout' : 'gone'
       if (!(await o.recover?.(reason, used).catch(() => false))) throw err
       res = await send()
