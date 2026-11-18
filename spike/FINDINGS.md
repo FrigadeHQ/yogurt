@@ -3,7 +3,7 @@
 Throwaway research. Nothing here is wired into the app; branch `spike/voice-diarization` stays local.
 
 ## Context
-- Yogurt shipped voice splitting before (FluidAudio, Mac only, plus LLM name guessing) and removed it on 2026-10-30. The owner's decision then: mic = You, other side = Them or a name read from the call app; no voice splitting, no AI name guessing.
+- Today: mic = You, the other side = Them or a name read from the call app. An earlier Mac-only attempt (FluidAudio plus model name guessing) was taken out; any new take must work on Mac, Windows and Linux and never guess names.
 - The gap: an in-person meeting on one mic labels every line "You" (`notes/enhance.ts` `oneMic()`).
 
 ## Recommended stack
@@ -32,7 +32,7 @@ Throwaway research. Nothing here is wired into the app; branch `spike/voice-diar
 ## Ruled out
 reverb and DiariZen weights (non-commercial), tinydiarize (English only, turn marks only), Nemotron-3-Diarization (OpenMDW, 100M params, GPU-first), Sortformer (4 speakers max, NVIDIA licence), FluidAudio (Mac only).
 
-## Open questions for the owner
+## Open questions
 1. Bring voice splitting back for room meetings only?
 2. Speaker N when no print matches, or keep "You"?
 3. Learn voice prints automatically (biometric, on-device)?
