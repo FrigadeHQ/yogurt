@@ -2,8 +2,8 @@
 
 <html data-theme="light" data-hero-entry="pending" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width,initial-scale=1" name="viewport"/><title>Yogurt · AI meeting notes that stay on your computer</title><meta content="Yogurt takes meeting notes with AI that runs locally on Mac, Windows and Linux. No bot joins the call. Free and open source." name="description"/><link id="theme-icon" href="/marketing/assets/mark.svg" rel="icon" type="image/svg+xml" sizes="any"/><link id="theme-icon-png" href="/marketing/assets/favicon-32.png" rel="icon" type="image/png" sizes="32x32"/><link href="/marketing/assets/apple-touch-icon.png" rel="apple-touch-icon" sizes="180x180"/><link as="font" crossorigin="" href="/marketing/assets/bricolage-grotesque.ttf" rel="preload" type="font/ttf"/><noscript><style>html .fragment-art picture{opacity:1!important}html .hero-still{display:block!important}html .product-window{visibility:visible!important}html .signal-wings,html [data-hero-entry],html[data-hero-entry=pending] :is(.yc-pill,.hero-copy h1,.hero-copy p,.hero-actions,.product-window){visibility:visible!important}html .transcript-turn,html .stream-word,html .summary-reveal,html .summary-reveal.action-item>i,html .result-paper .ready-label,html .result-check,html .answer-result{opacity:1;filter:none;transform:none}html .result-paper .writing-label{opacity:0}html .process-art *,html .roster-asset *{animation:none;transition:none}</style></noscript><link href="https://yogurt.so/" rel="canonical"/><meta content="#ffffff" name="theme-color"/><script>
 (function(){
-  var theme='light';
-  try{if(localStorage.getItem('yogurt-theme')==='dark')theme='dark'}catch{}
+  var theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+  try{var saved=localStorage.getItem('yogurt-theme');if(saved==='light'||saved==='dark')theme=saved}catch{}
   document.documentElement.dataset.theme=theme;
   if(theme==='dark'){
     document.querySelector('meta[name="theme-color"]').content='#1B1B1D';

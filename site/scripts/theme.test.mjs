@@ -7,15 +7,16 @@ const bootstrap=html.match(/<script>\s*(\(function\(\)[\s\S]*?)<\/script>/)[1];
 const script=readFileSync(new URL('../public/marketing/theme.mjs',import.meta.url),'utf8').replace('export function','function');
 assert.ok(html.indexOf(bootstrap)<html.indexOf('href="/marketing/site.css"'));
 
-function page(saved,{blocked=false,search=''}={}){
-  const classes=new Set();
+function page(saved,{blocked=false,search='',systemDark=false}={}){
+  const classes=new Set(),listeners=[];
+  const media={matches:systemDark,addEventListener:(_name,fn)=>listeners.push(fn)};
   const root={dataset:{theme:'light'},classList:{add:v=>classes.add(v),remove:v=>classes.delete(v)}};
   const toggle={hidden:true,setAttribute(k,v){this[k]=v},addEventListener(k,fn){this[k]=fn}};
   const meta={content:'#ffffff'},icon={},fallback={};
   const frames=[false,true].map(hero=>({classList:{contains:()=>hero},contentDocument:{documentElement:{dataset:{},style:{}}}}));
   const storage=new Map(saved===undefined?[]:[['yogurt-theme',saved]]);
   const context=vm.createContext({
-    URLSearchParams,location:{search},
+    URLSearchParams,location:{search},matchMedia:()=>media,
     document:{documentElement:root,querySelector:s=>s==='.theme-toggle'?toggle:meta,
       getElementById:id=>id==='theme-icon'?icon:fallback,querySelectorAll:()=>frames},
     localStorage:{getItem(k){if(blocked)throw Error('denied');return storage.get(k)},setItem(k,v){if(blocked)throw Error('denied');storage.set(k,v)}},
@@ -26,12 +27,12 @@ function page(saved,{blocked=false,search=''}={}){
   assert.equal(meta.content,initial==='dark'?'#1B1B1D':'#ffffff');
   if(initial==='dark')assert.equal(icon.href,'/marketing/assets/mark-dark.svg');
   vm.runInContext(script,context);
-  return {root,toggle,meta,icon,fallback,frames,storage,context,initial};
+  return {root,toggle,meta,icon,fallback,frames,storage,context,initial,system(dark){media.matches=dark;listeners.forEach(fn=>fn({matches:dark}))}};
 }
 
-for(const saved of [undefined,'light','dark','invalid']){
-  const p=page(saved);
-  assert.equal(p.initial,saved==='dark'?'dark':'light');
+for(const systemDark of [false,true])for(const saved of [undefined,'light','dark','invalid']){
+  const p=page(saved,{systemDark});
+  assert.equal(p.initial,saved==='light'||saved==='dark'?saved:systemDark?'dark':'light');
   assert.equal(p.toggle.hidden,false);
   for(let i=0;i<2;i++){
     const next=p.root.dataset.theme==='dark'?'light':'dark';
@@ -63,6 +64,29 @@ for(const saved of ['light','dark']){
   const p=page(saved,{search:'?edge=light&static=1'});
   assert.equal(p.root.dataset.heroEdge,undefined,'the hero edge has no URL switch');
 }
+
+
+for(const saved of [undefined,'invalid']){
+  const p=page(saved,{systemDark:true});
+  assert.equal(p.initial,'dark','system dark applies before styles load');
+  for(const dark of [false,true,false]){
+    p.system(dark);
+    assert.equal(p.root.dataset.theme,dark?'dark':'light');
+    assert.equal(p.toggle['aria-pressed'],String(dark));
+    assert.equal(p.frames[0].contentDocument.documentElement.dataset.marketingTheme,dark?'dark':'light');
+  }
+  p.toggle.click();p.system(false);
+  assert.equal(p.root.dataset.theme,'dark','manual choice wins after system changes');
+}
+for(const saved of ['light','dark']){
+  const p=page(saved,{systemDark:saved==='light'});
+  p.system(false);p.system(true);
+  assert.equal(p.root.dataset.theme,saved,'stored preference wins');
+}
+const denied=page(undefined,{blocked:true,systemDark:true});
+assert.equal(denied.initial,'dark');
+denied.toggle.click();denied.system(true);
+assert.equal(denied.root.dataset.theme,'light','manual preference wins in memory when storage is denied');
 
 function luminance(hex){
   const channels=hex.match(/[\da-f]{2}/gi).map(v=>parseInt(v,16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);

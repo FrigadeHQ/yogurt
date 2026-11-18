@@ -1,5 +1,8 @@
 const root=document.documentElement;
 const toggle=document.querySelector('.theme-toggle');
+const systemTheme=matchMedia('(prefers-color-scheme: dark)');
+let preference;
+try{const saved=localStorage.getItem('yogurt-theme');if(saved==='light'||saved==='dark')preference=saved}catch{}
 
 export function syncFrameTheme(frame){
   const frameRoot=frame.contentDocument?.documentElement;
@@ -25,9 +28,17 @@ function render(){
 toggle.addEventListener('click',()=>{
   root.classList.add('theme-switching');
   root.dataset.theme=root.dataset.theme==='dark'?'light':'dark';
-  try{localStorage.setItem('yogurt-theme',root.dataset.theme)}catch{}
+  preference=root.dataset.theme;
+  try{localStorage.setItem('yogurt-theme',preference)}catch{}
   render();
   requestAnimationFrame(()=>requestAnimationFrame(()=>root.classList.remove('theme-switching')));
 });
+function followSystem(){
+  if(preference)return;
+  root.dataset.theme=systemTheme.matches?'dark':'light';
+  render();
+}
+systemTheme.addEventListener('change',followSystem);
+followSystem();
 render();
 toggle.hidden=false;
