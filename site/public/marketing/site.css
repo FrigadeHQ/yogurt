@@ -2096,6 +2096,12 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
   grid-row: span 2;
   min-height: 165px;
 }
+.activity-board .oss-history .card-arrow {
+  position: static;
+  display: inline-flex;
+  vertical-align: middle;
+  margin-inline-start: 3px;
+}
 .activity-board .oss-calendar {
   min-height: 0;
   display: grid;
@@ -2149,8 +2155,7 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
 }
 .activity-board .star-plot {
   position: absolute;
-  inset: auto 0 0;
-  height: 62%;
+  inset: 29% 0 0 13.5%;
   pointer-events: none;
   z-index: -1;
 }
@@ -2162,6 +2167,11 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
   display: block;
   overflow: visible;
   pointer-events: none;
+}
+.chart-clip {transform-origin: 0 0}
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  .chart-clip {transform:scaleX(0)}
+  #progress:not([data-stars]) .stat-value {visibility: hidden}
 }
 @media (min-width: 761px) and (max-width: 965px) {
   .activity-board .oss-latest {

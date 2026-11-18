@@ -2,10 +2,12 @@ import { refreshSummary, hour, navStars } from './stars-data.mjs'
 
 const section = document.querySelector('#progress'),
   number = section.querySelector('.stat-value'),
+  clip = section.querySelector('.chart-clip'),
+  chart = section.querySelector('.star-chart'),
+  points = Array.from(section.querySelector('.chart-line').points),
   reduce = matchMedia('(prefers-reduced-motion: reduce)')
 let total = Number(number.textContent.replaceAll(',', ''))
-const ease = getComputedStyle(document.documentElement).getPropertyValue('--ease-enter').trim(),
-  format = new Intl.NumberFormat('en')
+const format = new Intl.NumberFormat('en')
 number.setAttribute('aria-hidden', 'true')
 number.parentElement.setAttribute('aria-label', `${format.format(total)} GitHub stars`)
 const tailGaps = [3000, 8000, 15000, 24000, 35000, 48000]
@@ -21,6 +23,27 @@ let started = false,
   tailTimer = 0,
   tailRemaining = tailGaps[0],
   tailMark = 0
+// Interpolate the same straight segment that is visible at the clipping edge.
+function heightAt(progress) {
+  if (progress === 0 || progress === 1 || points.length < 2) return progress
+  const { width, height } = chart.viewBox.baseVal
+  const x = width * progress
+  let left = 0, right = points.length - 1
+  while (right - left > 1) {
+    const middle = (left + right) >>> 1
+    if (points[middle].x <= x) left = middle
+    else right = middle
+  }
+  const a = points[left], b = points[right]
+  const t = b.x === a.x ? 1 : (x - a.x) / (b.x - a.x)
+  const y = a.y + (b.y - a.y) * t
+  const lastHeight = height - points.at(-1).y
+  return lastHeight > 0 ? Math.min(1, (height - y) / lastHeight) : progress
+}
+function paint(progress) {
+  clip.style.transform = 'scaleX(' + progress + ')'
+  updateCount(heightAt(progress))
+}
 function updateCount(progress) {
   number.textContent = format.format(Math.round((finished ? total : base) * progress))
 }
@@ -55,9 +78,9 @@ function scheduleTail() {
   }, tailRemaining)
 }
 function finishCountUp() {
+  paint(1)
   clock?.cancel()
   clock = null
-  updateCount(1)
   if (!tailSize) {
     rest()
     return
@@ -78,7 +101,7 @@ function tick() {
     return
   }
   const progress = clock.effect.getComputedTiming().progress ?? 0
-  updateCount(progress)
+  paint(progress)
   if (clock.playState === 'finished' || progress >= 1) {
     raf = 0
     finishCountUp()
@@ -92,7 +115,7 @@ function sync() {
     clock?.cancel()
     clock = null
     finished = true
-    updateCount(1)
+    paint(1)
     section.dataset.stars = 'still'
     return
   }
@@ -107,40 +130,22 @@ function sync() {
     return
   }
   if (!clock) {
-    const time = document.createElement('i')
-    clock = time.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 1920, easing: ease, fill: 'forwards' })
-    updateCount(0)
+    // A timing-only effect lets one frame update both the clip and the count.
+    clock = new Animation(new KeyframeEffect(null, [], {
+      duration: 1800, easing: 'cubic-bezier(.30,.60,.40,1)', fill: 'both',
+    }), document.timeline)
+    clock.play()
+    paint(0)
   } else clock.play()
   section.dataset.stars = 'playing'
   if (!raf) raf = requestAnimationFrame(tick)
 }
-updateCount(reduce.matches ? 1 : 0)
-const block = section.querySelector('.growth-block')
-let gateFrame = 0
-function gate() {
-  gateFrame = 0
-  const r = block.getBoundingClientRect(),
-    seen = Math.max(0, Math.min(innerHeight, r.bottom) - Math.max(0, r.top))
-  if (!started && seen >= Math.min(r.height, innerHeight) * 0.25) {
-    started = true
-    section.dataset.starGate = 'entered'
-    window.removeEventListener('scroll', onScroll)
-    sync()
-  }
-}
-function onScroll() {
-  if (!gateFrame) gateFrame = requestAnimationFrame(gate)
-}
-window.addEventListener('scroll', onScroll, { passive: true })
-window.addEventListener('resize', onScroll)
-new IntersectionObserver(
-  ([entry]) => {
-    visible = entry.isIntersecting && entry.intersectionRatio >= 0.2
-    gate()
-    sync()
-  },
-  { threshold: [0, 0.2, 0.25, 1] }
-).observe(block)
+paint(reduce.matches ? 1 : 0)
+new IntersectionObserver(([entry]) => {
+  visible = entry.isIntersecting && entry.intersectionRatio > 0
+  if (entry.intersectionRatio >= .55) started = true
+  sync()
+}, {threshold: [0, .55]}).observe(section.querySelector('.oss-history'))
 document.addEventListener('visibilitychange', sync)
 reduce.addEventListener('change', sync)
 

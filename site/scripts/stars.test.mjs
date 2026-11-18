@@ -70,16 +70,17 @@ assert(html.includes('releases/tag/v1.2'))
 assert.equal((html.match(/class="week-day"/g) || []).length, 7)
 assert(html.includes('aria-label="2 releases in seven days"'))
 assert(!html.includes('in 7 days'))
-function assertStaticChart(html) {
-  const chart = html.match(/<div class="star-plot">([\s\S]*?)<\/div>/)[1]
-  assert.doesNotMatch(chart, /clip-path|clipPath|<animate/)
-  const line = chart.match(/class="chart-line" d="([^"]+)"/)[1]
-  assert.ok(chart.includes('d="' + line + 'L510 90Z" fill='))
-  assert.match(line, /L510\.00 [\d.]+$/)
-  assert.doesNotMatch(chart, /<circle|point-overlay/)
+function chartVertices(page) {
+  return page.match(/<polyline class="chart-line" points="([^"]+)"/)[1]
 }
-assertStaticChart(html)
-assertStaticChart(renderActivity(load('../content/home.html'), { ...fresh, history: fresh.history.slice(0, 1) }))
+assert.match(html, /<g clip-path="url\(#history-trace\)">\s*<path class="chart-fill"[^>]*><\/path>\s*<polyline class="chart-line"[^>]*><\/polyline>\s*<\/g>/)
+assert.doesNotMatch(html, /class="chart-dot"|point-overlay/)
+assert.equal(chartVertices(html), '0.00,45.00 510.00,0.00')
+assert.ok(html.includes('d="M' + chartVertices(html).replaceAll(' ', 'L') + 'L510 90L0 90Z"'))
+const single = {...fresh, count: 1, history: fresh.history.slice(0, 1)}
+assert.equal(chartVertices(renderActivity(load('../content/home.html'), single)), '510.00,0.00')
+const fewer = {...fresh, count: 1}
+assert.match(chartVertices(renderActivity(load('../content/home.html'), fewer)), /510\.00,45\.00$/)
 assert(!load('../public/marketing/activity.mjs').includes('api.github.com'))
 console.log('Published releases, UTC days, paginated dated stars, deduplication and outage fallbacks passed.')
 
@@ -96,6 +97,8 @@ function chartPage(reduced = false) {
   const number = { ...element(), textContent: '134', parentElement: element() },
     age = { ...element(), dateTime: '2026-11-01T00:00:00Z' }
   const object = { '.release-version strong': {textContent:'v1.2'}, '.oss-calendar .oss-figure': {textContent:'3'}, '.stat-value': number, '[data-latest-age]': age }
+  object['.chart-line'] = { points: [{ x: 0, y: 90 }, { x: 255, y: 22.5 }, { x: 510, y: 0 }] }
+  object['.star-chart'] = { viewBox: { baseVal: { width: 510, height: 90 } } }
   const query = (s) => (object[s] ??= Object.assign(element(), { querySelector: query, animate: animation }))
   let frame,
     timer,
@@ -103,7 +106,9 @@ function chartPage(reduced = false) {
     visibility,
     passed = 0,
     current = 0
-  function animation() {
+  let timing
+  function animation(frames, options) {
+    timing = { frames, options }
     return {
       pause() {},
       play() {},
@@ -122,6 +127,12 @@ function chartPage(reduced = false) {
     },
   }
   runInNewContext(motionScript, {
+    KeyframeEffect: class {
+      constructor(target, frames, options) { Object.assign(this, {target, frames, options}) }
+    },
+    Animation: class {
+      constructor(effect) { return animation(effect.frames, effect.options) }
+    },
     document: doc,
     window: { addEventListener() {}, removeEventListener() {} },
     innerHeight: 800,
@@ -154,7 +165,11 @@ function chartPage(reduced = false) {
   })
   return {
     number,
-    enter: () => observe([{ isIntersecting: true, intersectionRatio: 1 }]),
+    enter: (ratio = 1) => observe([{ isIntersecting: true, intersectionRatio: ratio }]),
+    clip: () => query('.chart-clip').style.transform,
+    fill: () => query('.chart-fill').style.transform,
+    timing: () => timing,
+    at: p => { current = p; frame?.() },
     leave: () => observe([{ isIntersecting: false, intersectionRatio: 0 }]),
     finishCountUp: () => {
       current = 1
@@ -168,8 +183,23 @@ function chartPage(reduced = false) {
   }
 }
 const chart = chartPage()
-chart.enter()
+assert.equal(chart.clip(), 'scaleX(0)')
+assert.equal(chart.number.textContent, '0')
+chart.enter(.2)
+assert.equal(chart.timing(), undefined)
+chart.enter(.55)
+assert.equal(chart.timing().options.duration, 1800)
+chart.at(.25)
+assert.equal(chart.clip(), 'scaleX(0.25)')
+assert.equal(chart.number.textContent, '48') // Halfway up the first segment.
+chart.at(.5)
+assert.equal(chart.clip(), 'scaleX(0.5)')
+assert.equal(chart.number.textContent, '96') // At the measured midpoint, the count is 75% of the total.
+chart.at(.75)
+assert.equal(chart.number.textContent, '112')
+assert.equal(chart.fill(), undefined)
 chart.finishCountUp()
+assert.equal(chart.clip(), 'scaleX(1)')
 assert.equal(chart.number.textContent, '128')
 assert.equal(chart.timer().ms, 3000)
 chart.advance(1500)
@@ -189,7 +219,9 @@ const still = chartPage(true)
 still.enter()
 assert.equal(still.number.textContent, '134')
 assert(!still.timer())
-console.log('Static chart, staged count, growing intervals, offscreen pause and reduced-motion total passed.')
+assert.equal(still.clip(), 'scaleX(1)')
+assert.equal(still.timing(), undefined)
+console.log('Shared chart and count timing, linear axes, growing intervals, offscreen pause and reduced-motion total passed.')
 
 const template=load('../content/home.html')
 const featureSection=template.match(/<section aria-labelledby="features-title"[\s\S]*?<\/section>/)[0]

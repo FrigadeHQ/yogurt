@@ -910,7 +910,15 @@
       href="https://github.com/FrigadeHQ/yogurt/stargazers"
        target="_blank" rel="noopener noreferrer"><span class="oss-stat"
         ><span class="oss-figure"><span class="stat-value">{{stars}}</span></span
-        ><span class="oss-caption">GitHub stars </span></span
+        ><span class="oss-caption">GitHub stars <span aria-hidden="true" class="card-arrow"
+        ><svg aria-hidden="true" class="oss-arrow" fill="none" viewBox="0 0 16 16">
+          <path
+            d="M4 12 12 4M5 4h7v7"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.4"
+          ></path></svg></span></span></span
       >
       <div class="star-plot">
         <svg
@@ -923,24 +931,19 @@
           <title id="chart-title">GitHub star history</title>
           <desc id="chart-desc">{{historyLabel}}</desc>
           <defs>
+            <clipPath id="history-trace"><rect class="chart-clip" x="0" y="-2" width="510" height="94"></rect></clipPath>
             <linearGradient id="history-wash" x1="0" x2="0" y1="0" y2="1">
               <stop stop-color="currentColor" stop-opacity=".16"></stop>
               <stop offset="1" stop-color="currentColor" stop-opacity=".025"></stop>
             </linearGradient>
           </defs>
-          <path d="{{area}}" fill="url(#history-wash)"></path>
-          <path class="chart-line" d="{{line}}"></path>
+          <g clip-path="url(#history-trace)">
+            <path class="chart-fill" d="{{area}}" fill="url(#history-wash)"></path>
+            <polyline class="chart-line" points="{{vertices}}"></polyline>
+          </g>
         </svg>
       </div>
-      <span aria-hidden="true" class="card-arrow"
-        ><svg aria-hidden="true" class="oss-arrow" fill="none" viewBox="0 0 16 16">
-          <path
-            d="M4 12 12 4M5 4h7v7"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="1.4"
-          ></path></svg></span></a
+      </a
     ><a class="oss-card oss-calendar" href="https://github.com/FrigadeHQ/yogurt/releases"
        target="_blank" rel="noopener noreferrer"><span class="oss-stat"
         ><span class="oss-figure">{{releases}}</span><span class="oss-caption">published releases</span></span

@@ -105,15 +105,17 @@ export async function getActivity(saved, request, now = new Date()) {
 export function renderActivity(html, data) {
   const format = new Intl.NumberFormat('en-US')
   const { count, week, latest, history } = data
-  const start = history[0][0],
-    span = history.at(-1)[0] - start,
-    maximum = history.at(-1)[1],
-    peakY = 4
-  const line = (span ? 'M0 90' : 'M510 90') + history.map(([t, n]) => {
-    const x = span ? 510 * (t - start) / span : 510
-    const y = 90 - (90 - peakY) * n / maximum
-    return 'L' + x.toFixed(2) + ' ' + y.toFixed(2)
-  }).join('')
+  // The total may have refreshed even when dated history was unavailable.
+  const last = history.at(-1)
+  const observedAt = Date.parse(data.capturedAt)
+  const points = count !== last[1] && observedAt > last[0] ? [...history, [observedAt, count]] : history
+  const start = points[0][0], span = points.at(-1)[0] - start
+  const maximum = Math.max(count, last[1])
+  const vertices = points.map(([time, stars]) => {
+    const x = span ? 510 * (time - start) / span : 510
+    const y = 90 - 90 * stars / maximum
+    return x.toFixed(2) + ',' + y.toFixed(2)
+  })
   const first = Date.parse(data.capturedAt.slice(0, 10)) - 6 * day
   const bars = week
     .map((n, i) => {
@@ -127,8 +129,8 @@ export function renderActivity(html, data) {
     capturedAt: data.capturedAt,
     stars: format.format(count),
     navStars: navStars(count),
-    line,
-    area: line + 'L510 90Z',
+    vertices: vertices.join(' '),
+    area: 'M' + vertices.join('L') + (span ? 'L510 90L0 90Z' : 'L510 90Z'),
     releases: format.format(data.releases),
     bars,
     weekTotal: week.reduce((a, b) => a + b, 0),
@@ -140,7 +142,7 @@ export function renderActivity(html, data) {
       year: 'numeric',
       timeZone: 'UTC',
     }),
-    historyLabel: `${format.format(maximum)} dated stars through ${new Date(history.at(-1)[0])
+    historyLabel: `${format.format(last[1])} dated stars through ${new Date(history.at(-1)[0])
       .toISOString()
       .slice(0, 10)}`,
   }
