@@ -1319,6 +1319,7 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
   --page: #fff;
   --panel: #f6f6f6;
   --hairline: #e6e6e8;
+  --section-frame-border: #eeeeef;
   --reading: #606066;
   --link: var(--brand);
 }
@@ -1326,6 +1327,7 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
   --page: #1b1b1d;
   --panel: #202021;
   --hairline: #343436;
+  --section-frame-border: #2a2a2c;
   --reading: #a7a4ad;
   --link: var(--accent);
 }
@@ -1609,12 +1611,17 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
 }
 .tour-layout,
 .feature-grid,
+.growth-block,
+.faq-cards {
+  border: 1px solid var(--section-frame-border);
+}
+.tour-layout,
+.feature-grid,
 .growth-block {
   --tray-space: 7px;
   display: grid;
   gap: var(--tray-space);
   padding: var(--tray-space);
-  border: 1px solid var(--hairline);
   border-radius: 12px;
   background: var(--panel);
 }
@@ -2394,7 +2401,6 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
   gap: var(--card-gap);
   padding: var(--card-gap);
   background: var(--panel);
-  border: 1px solid var(--hairline);
   border-radius: 12px;
 }
 .faq-cards details {
