@@ -34,7 +34,7 @@ export class Watcher {
   readonly dismissed = new Set<string>()
   private shown: string | null = null // key of the start card, or 'stop'
   private busy = false
-  private rec: { id: string; lastMic: number; snoozeUntil: number; /** the call app was on the mic during this recording */ seen: boolean; stopped: boolean } | null = null
+  private rec: { id: string; lastMic: number; snoozeUntil: number; /** the call app was on the mic during this recording */ seen: boolean; stopped: boolean; /** started without a call app (New note, the agenda): never stopped by itself */ byHand: boolean } | null = null
 
   /** call apps on the mic at the last look before recording: a recording started from the card belongs to that call */
   private idleMic = new Set<string>()
@@ -90,6 +90,8 @@ export class Watcher {
 
   private recording(m: Meeting, s: Signals, now: number) {
     const starting = this.rec?.id !== m.id
+    // started by hand (no call app yet: New note, the agenda): never stopped by itself, only asked about
+    const byHand = starting ? !m.app : this.rec!.byHand
     const recent = starting && this.idleCall && now - this.idleCall.at <= 6000 ? this.idleCall.app : null
     const observed = decide({ ...s, recording: false }, now, new Set())?.app ?? null
     if (!m.app && (observed || recent)) {
@@ -97,7 +99,7 @@ export class Watcher {
       if (m.app) console.info(`CALL bind meeting=${m.id} app=${m.app} via=${observed ? 'mic' : 'recent-mic'}`)
     } else if (starting) console.info(`CALL watch meeting=${m.id} app=${m.app ?? 'none'}`)
     if (starting) {
-      this.rec = { id: m.id, lastMic: now, snoozeUntil: 0, seen: !!m.app && this.idleMic.has(m.app), stopped: false }
+      this.rec = { id: m.id, lastMic: now, snoozeUntil: 0, seen: !!m.app && this.idleMic.has(m.app), stopped: false, byHand }
       this.idleCall = null; this.idleMic.clear()
       if (this.shown !== 'stop') this.shown = null
     }
@@ -108,7 +110,7 @@ export class Watcher {
     // a meeting with no known app has no mic to watch: only the event and silence can end it
     const using = !m.app || onMic
     if (using) r.lastMic = now
-    if (this.d.autoStop && this.d.autoStopOn?.() && callGone({ app: m.app, seen: r.seen, micIdleMs: now - r.lastMic, graceMs: this.d.graceMs })) {
+    if (!r.byHand && this.d.autoStop && this.d.autoStopOn?.() && callGone({ app: m.app, seen: r.seen, micIdleMs: now - r.lastMic, graceMs: this.d.graceMs })) {
       console.info(`CALL gone meeting=${m.id} app=${m.app} idle_ms=${now - r.lastMic}`)
       r.stopped = true
       if (this.shown === 'stop') { this.shown = null; this.d.hide() }

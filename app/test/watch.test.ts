@@ -243,18 +243,20 @@ describe('stops by itself when the call ends', () => {
 
 describe('binding a call after any recording start', () => {
   beforeEach(() => { active = meeting({ app: null }); auto = true; w = autoWatcher() })
-  it.each([zoom, { bundleId: 'us.zoom.CptHost', name: 'CptHost' }, { bundleId: 'com.apple.avconferenced', name: 'avconferenced' }])('binds $bundleId ten seconds after an agenda start and stops after the release grace', async (mic) => {
+  // a recording started by hand (New note, Take notes on the agenda) is never stopped by itself: the call app letting go of
+  // the mic while joining (a browser's pre-join screen) stopped one mid-meeting. It asks, as before, after 30 s
+  it.each([zoom, { bundleId: 'us.zoom.CptHost', name: 'CptHost' }, { bundleId: 'com.apple.avconferenced', name: 'avconferenced' }])('binds $bundleId ten seconds after a start by hand, never stops it by itself, and asks after 30 s without the mic', async (mic) => {
     const info = vi.spyOn(console, 'info')
     const appName = callAppName(callAppId(mic.bundleId)!)!
     await w.tick(); clock += 10_000
     reading = { micApps: [mic], events: [], runningApps: [callAppId(mic.bundleId)!] }; await w.tick()
     expect(active?.app).toBe(appName)
-    reading = { micApps: [], events: [] }; clock += 3_999; await w.tick()
+    reading = { micApps: [], events: [] }; clock += 10_000; await w.tick()
     expect(log).toEqual([])
-    clock++; await w.tick(); await w.tick()
-    expect(log).toEqual(['auto:m1'])
-    expect(info.mock.calls.map(([line]) => line)).toEqual([
-      'CALL watch meeting=m1 app=none', `CALL bind meeting=m1 app=${appName} via=mic`, `CALL gone meeting=m1 app=${appName} idle_ms=4000`,
+    clock += 20_000; await w.tick()
+    expect(log).toEqual(['stop'])
+    expect(info.mock.calls.map(([line]) => line).filter((l) => !String(l).startsWith('CALL stop-card'))).toEqual([
+      'CALL watch meeting=m1 app=none', `CALL bind meeting=m1 app=${appName} via=mic`,
     ])
     info.mockRestore()
   })
@@ -263,14 +265,15 @@ describe('binding a call after any recording start', () => {
     expect(active?.app).toBe('Zoom')
     reading = { micApps: [{ bundleId: 'com.microsoft.teams2', name: 'Teams' }], events: [] }
     clock += 10_000; await w.tick()
-    expect(active?.app).toBe('Zoom'); expect(log).toEqual(['auto:m1'])
+    // started by hand: bound, but never stopped by itself
+    expect(active?.app).toBe('Zoom'); expect(log).toEqual([])
   })
   it('uses a fresh pre-start observation once, including a dismissed offer', async () => {
     active = null; reading = { micApps: [zoom], events: [] }; await w.tick()
     w.dismiss('app:us.zoom.xos'); active = meeting({ app: null }); w.cleared()
     reading = { micApps: [], events: [] }; clock += 3000; await w.tick()
     expect(active?.app).toBe('Zoom')
-    clock += 10_000; await w.tick(); expect(log.at(-1)).toBe('auto:m1')
+    clock += 10_000; await w.tick(); expect(log).not.toContain('auto:m1')
   })
   it('does not bind an unrelated microphone app or an unqualified browser', async () => {
     reading = { micApps: [{ bundleId: 'com.apple.VoiceMemos', name: 'Voice Memos' }, { bundleId: 'com.google.Chrome', name: 'Chrome' }], events: [] }

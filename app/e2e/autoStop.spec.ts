@@ -119,7 +119,7 @@ test('a recording started by hand with no call is never stopped by itself', asyn
 for (const call of [
   { name: 'Zoom', bundleId: 'us.zoom.CptHost', owner: 'us.zoom.xos' },
   { name: 'FaceTime', bundleId: 'com.apple.avconferenced', owner: 'com.apple.FaceTime' },
-]) test(`an agenda recording binds ${call.name} when it arrives later, then stops when its mic goes away`, async () => {
+]) test(`an agenda recording binds ${call.name} when it arrives later, and is never stopped by itself when its mic goes away`, async () => {
   const { app, page, userData } = await launch()
   try {
     const now = await page.evaluate(() => { const day = new Date(); day.setHours(12, 0, 0, 0); return +day })
@@ -142,14 +142,12 @@ for (const call of [
     await signals(app, { micApps: [{ bundleId: call.bundleId, name: 'Audio helper' }], events: [e], runningApps: [call.owner] })
     await expect.poll(bound).toBe(call.name)
     await signals(app, { micApps: [], events: [e] })
-    // the grace is 4 s (CALL_GONE_MS)
-    await advance(app, 3000)
+    // started by hand: a browser's pre-join screen letting go of the mic stopped one mid-meeting, so it keeps going
+    await advance(app, 10_000)
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
-    await advance(app, 1500)
-    await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', /^(stopped|done)$/)
     const logs = () => readFileSync(join(userData, 'logs/main.log'), 'utf8')
     await expect.poll(logs).toContain(`CALL bind meeting=${id} app=${call.name} via=mic`)
-    await expect.poll(logs).toContain(`CALL gone meeting=${id} app=${call.name} idle_ms=`)
+    expect(logs()).not.toContain(`CALL gone meeting=${id}`)
   } finally { await app.close() }
 })
 
