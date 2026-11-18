@@ -1,5 +1,4 @@
 import electron from 'electron'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
 import { hookRendererErrors } from './rendererErrors'
 import { matchSearchPeople, searchPersonKey } from '../shared/searchPeople'
