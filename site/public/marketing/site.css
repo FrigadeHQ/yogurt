@@ -1314,6 +1314,8 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
 /* Shared dimensions between the navigation, hero and meeting window. */
 :root {
   --content-width: min(76vw, 1200px);
+  --nav-height: 80px;
+  scroll-padding-top: calc(var(--nav-height) + 8px);
   --page: #fff;
   --panel: #f6f6f6;
   --hairline: #e6e6e8;
@@ -1327,10 +1329,33 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
   --reading: #a7a4ad;
   --link: var(--accent);
 }
+.sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 9;
+  pointer-events: none;
+}
+.sticky-header:not([data-ready]) { background: var(--page); }
+.nav-surface { position: absolute; inset: 0; overflow: clip; }
+.nav-surface i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--nav-height) / 2);
+  background: var(--page);
+  border: 1px solid transparent;
+  transform-origin: top left;
+  pointer-events: auto;
+}
+.sticky-header[data-scrolled] .nav-surface i { border-color: var(--hairline); }
+.nav-surface i:first-child { border-right: 0; border-radius: 100% 0 0 100% / 50% 0 0 50%; }
+.nav-surface i:nth-child(2) { width: 1px; border-inline: 0; }
+.nav-surface i:last-child { border-left: 0; border-radius: 0 100% 100% 0 / 0 50% 50% 0; }
+.sticky-header :is(a, button, summary, .mobile-download-list) { pointer-events: auto; }
 .site-header {
+  position: relative;
   width: var(--content-width);
   max-width: none;
-  height: 80px;
+  height: var(--nav-height);
   padding-inline: 0;
 }
 .site-header nav {
@@ -1430,9 +1455,7 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
 @media (max-width: 760px) {
   :root {
     --content-width: calc(100% - 40px);
-  }
-  .site-header {
-    height: 72px;
+    --nav-height: 72px;
   }
   .site-header nav {
     gap: 10px;
