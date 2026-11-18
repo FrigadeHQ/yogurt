@@ -18,7 +18,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { isFake, userDataDir } from './paths'
+import { isFake, modelsFolder, userDataDir } from './paths'
 import { logToFile } from './log'
 import { loadSettings, localeOf, keepsRecording, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings, visibilityOf, summaryLanguageSetting } from './settings'
 import { CALL_GONE_MS, useCallApps, watchEveryMs } from './detect'
@@ -166,7 +166,7 @@ function createWindow() {
 /** Windows and Linux: what graphics the notes engine can use; null when it can't tell (or crashed checking: it then runs without them) */
 let probeGpu: () => Promise<GpuProbe | null> = async () => null
 function createSetup(): SetupController {
-  const modelsDir = join(userDataDir(), 'models')
+  const modelsDir = modelsFolder()
   return new SetupController({
     modelsDir,
     upgradePreference: {
