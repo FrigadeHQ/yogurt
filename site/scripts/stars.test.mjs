@@ -1,76 +1,234 @@
-import assert from 'node:assert/strict';
-import {existsSync,readFileSync} from 'node:fs';
-import vm from 'node:vm';
-import {cacheKey,hour,formatStars,refreshStars} from '../public/marketing/stars-data.mjs';
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { getActivity, refreshActivity, renderActivity, validSnapshot } from './activity.mjs'
 
-const snapshot=JSON.parse(readFileSync(new URL('../content/stars.json',import.meta.url)));
-const html=readFileSync(new URL('../content/home.html',import.meta.url),'utf8');
-assert.equal((html.match(/data-star-count=/g)||[]).length,1);
-assert.ok(html.includes(`data-star-count="${snapshot.count}">${formatStars(snapshot.count,'en')}</span>`));
-assert.ok(html.includes(`aria-label="View Yogurt on GitHub, ${new Intl.NumberFormat('en').format(snapshot.count)} stars"`));
-assert.ok(html.includes('src="/marketing/stars.mjs"'));
-assert.ok(!/data-stars=|<!--stars-|stars-avatars|stars-preview/.test(html));
-assert.ok(!existsSync(new URL('../content/stars-preview.mjs',import.meta.url)));
-const route=readFileSync(new URL('../app/route.ts',import.meta.url),'utf8');
-assert.ok(route.includes("'force-static'"));
-assert.ok(!route.includes('searchParams'));
-assert.equal(formatStars(9999,'en-US'),'9,999');
-assert.equal(formatStars(9999,'de-DE'),'9.999');
-assert.equal(formatStars(10200,'en-US'),'10.2K');
-const memory=new Map(),storage={getItem:key=>memory.get(key),setItem:(key,value)=>memory.set(key,value)};
-let calls=0;
-const failure=async()=>{calls++;throw Error('offline')};
-assert.deepEqual(await refreshStars(snapshot,{storage,getJSON:failure,now:1}),{count:snapshot.count});
-await refreshStars(snapshot,{storage,getJSON:failure,now:2});
-assert.equal(calls,1,'Failed requests must also be throttled');
-const live=await refreshStars(snapshot,{storage,now:hour+2,getJSON:async()=>({stargazers_count:900})});
-assert.equal(live.count,900);
-await refreshStars(snapshot,{storage,now:hour+3,getJSON:()=>assert.fail('Fresh cache must skip network')});
-const stale=await refreshStars(snapshot,{storage,now:2*hour+3,getJSON:failure});
-assert.equal(stale.count,900,'Offline refresh retains the last good value');
-memory.set(cacheKey,'broken JSON');
-assert.equal((await refreshStars(snapshot,{storage,getJSON:failure})).count,snapshot.count);
-assert.equal((await refreshStars(snapshot,{storage:{getItem(){throw Error()},setItem(){throw Error()}},getJSON:failure})).count,snapshot.count);
-assert.equal((await refreshStars(snapshot,{getJSON:async()=>({stargazers_count:-1})})).count,snapshot.count);
+const load = (name) => readFileSync(new URL(name, import.meta.url), 'utf8')
+const saved = JSON.parse(load('../content/activity.json'))
+assert(validSnapshot(saved))
+for (const broken of [
+  { week: [0] },
+  { history: [null] },
+  { latest: { tag: '<tag>' } },
+  { count: 0 },
+  {
+    history: [
+      [2, 3],
+      [1, 4],
+    ],
+  },
+])
+  assert.equal(validSnapshot({ ...saved, ...broken }), false)
 
-const script=readFileSync(new URL('../public/marketing/stars.mjs',import.meta.url),'utf8').replace(/^import .*;\n/,'');
-function page({reduced=false,blocked=false}={}){
-  const number={dataset:{starCount:'804'},textContent:'804',style:{}},frames=new Map(),events={},motionEvents={};
-  let observer,sequence=0,refresh;
-  const widget={querySelector:()=>number,setAttribute(key,value){this[key]=value}};
-  const document={hidden:false,querySelector:()=>widget,addEventListener:(name,fn)=>events[name]=fn};
-  const motion={matches:reduced,addEventListener:(name,fn)=>motionEvents[name]=fn};
-  const context={document,navigator:{language:'en-US'},Intl,matchMedia:()=>motion,performance:{now:()=>0},formatStars,
-    refreshStars:()=>new Promise(resolve=>refresh=resolve),
-    requestAnimationFrame:fn=>{frames.set(++sequence,fn);return sequence},cancelAnimationFrame:id=>frames.delete(id),
-    IntersectionObserver:class{constructor(fn){observer=this;this.fn=fn}observe(){}disconnect(){this.disconnected=true}},
-  };
-  Object.defineProperty(context,'localStorage',{get(){if(blocked)throw Error('denied');return storage}});
-  vm.runInNewContext(script,context);
-  const tick=time=>{const pending=[...frames.values()];frames.clear();pending.forEach(fn=>fn(time))};
-  return {number,frames,events,motionEvents,motion,document,observer,widget,tick,refresh};
+const now = new Date('2026-11-18T15:00:00Z')
+const times = ['2026-11-11T23:59:59Z', '2026-11-12T00:00:00Z', '2026-11-18T12:00:00Z']
+const releases = times.map((published_at, i) => ({ tag_name: 'v1.' + i, published_at }))
+let requests = 0
+const star = { user: { id: 1 }, starred_at: times[0] }
+async function request(url, accept) {
+  requests++
+  if (url.includes('/releases?'))
+    return [...releases, { ...releases[2], draft: true }, { ...releases[2], prerelease: true }]
+  if (url.includes('/stargazers?')) {
+    assert.equal(accept, 'application/vnd.github.star+json')
+    return url.endsWith('page=1') ? Array(100).fill(star) : [star, { user: { id: 2 }, starred_at: times[2] }]
+  }
+  return { stargazers_count: 2 }
 }
-const p=page({blocked:true});
-assert.equal(p.number.textContent,'804');
-assert.equal(p.number.style.minInlineSize,'3ch');
-p.observer.fn([{isIntersecting:false}]);assert.equal(p.frames.size,0);
-p.observer.fn([{isIntersecting:true}]);assert.equal(p.number.textContent,'0');
-assert.equal(p.number.style.minInlineSize,'3ch','The final width is held throughout count-up');
-p.tick(300);assert.equal(p.number.textContent,'704');
-p.tick(600);assert.equal(p.number.textContent,'804');assert.equal(p.frames.size,0);
-p.observer.fn([{isIntersecting:true}]);assert.equal(p.frames.size,0,'Entrance happens once');
-assert.equal(p.widget['aria-label'],'View Yogurt on GitHub, 804 stars');
-const reduced=page({reduced:true});assert.equal(reduced.frames.size,0);assert.equal(reduced.observer,undefined);assert.equal(reduced.number.textContent,'804');
-for(const reason of ['hidden','reduced']){
-  const active=page();active.observer.fn([{isIntersecting:true}]);
-  if(reason==='hidden'){active.document.hidden=true;active.events.visibilitychange()}
-  else{active.motion.matches=true;active.motionEvents.change()}
-  assert.equal(active.frames.size,0);assert.equal(active.number.textContent,'804');
+const fresh = await getActivity(undefined, request, now)
+assert.equal(requests, 4)
+assert.equal(fresh.count, 2)
+assert.equal(fresh.releases, 3)
+assert.equal(fresh.latest.tag, 'v1.2')
+assert.deepEqual(fresh.week, [1, 0, 0, 0, 0, 0, 1])
+assert.deepEqual(fresh.history, [
+  [Date.parse(times[0]), 1],
+  [Date.parse(times[2]), 2],
+])
+requests = 0
+await getActivity(fresh, request, now)
+assert.equal(requests, 2, 'Reuse fresh dated history')
+const offline = () => {
+  throw Error('offline')
 }
-p.refresh({count:10200});
-await Promise.resolve();
-assert.equal(p.number.textContent,'10.2K');
-assert.equal(p.number.style.minInlineSize,'5ch');
-assert.equal(p.widget['aria-label'],'View Yogurt on GitHub, 10,200 stars');
-assert.equal(p.frames.size,0,'Live refresh never restarts the count-up');
-console.log('Static snapshot, locale, cache/failures, denied storage, held width, once-only animation and reduced motion passed.');
+assert.deepEqual(await refreshActivity(fresh, offline, now), fresh)
+const partial = await refreshActivity(
+  fresh,
+  (url, accept) =>
+    url.includes('/stargazers?')
+      ? offline()
+      : url.includes('/releases?')
+      ? request(url, accept)
+      : { stargazers_count: 3 },
+  now
+)
+assert.deepEqual(partial.history, fresh.history)
+assert.equal(partial.count, 3)
+const html = renderActivity(load('../content/home.html'), fresh)
+assert(!html.includes('{{'))
+assert(html.includes('Yogurt on GitHub, 2 stars'))
+assert(html.includes('releases/tag/v1.2'))
+assert.equal((html.match(/class="week-day"/g) || []).length, 7)
+assert(html.includes('aria-label="2 releases in seven days"'))
+assert(!html.includes('in 7 days'))
+function assertStaticChart(html) {
+  const chart = html.match(/<div class="star-plot">([\s\S]*?)<\/div>/)[1]
+  assert.doesNotMatch(chart, /clip-path|clipPath|<animate/)
+  const line = chart.match(/class="chart-line" d="([^"]+)"/)[1]
+  assert.ok(chart.includes('d="' + line + 'L510 90Z" fill='))
+  assert.match(line, /L510\.00 [\d.]+$/)
+  assert.doesNotMatch(chart, /<circle|point-overlay/)
+}
+assertStaticChart(html)
+assertStaticChart(renderActivity(load('../content/home.html'), { ...fresh, history: fresh.history.slice(0, 1) }))
+assert(!load('../public/marketing/activity.mjs').includes('api.github.com'))
+console.log('Published releases, UTC days, paginated dated stars, deduplication and outage fallbacks passed.')
+
+// Drive the production animation clock without a browser. The real total is always the upper bound.
+const { runInNewContext } = await import('node:vm')
+const motionScript = load('../public/marketing/activity.mjs').replace(/^import [^\n]+\n/, '')
+function chartPage(reduced = false) {
+  const element = () => ({
+    style: {},
+    dataset: {},
+    setAttribute() {},
+    getBoundingClientRect: () => ({ width: 510, height: 90, top: 0, bottom: 90 }),
+  })
+  const number = { ...element(), textContent: '134', parentElement: element() },
+    age = { ...element(), dateTime: '2026-11-01T00:00:00Z' }
+  const object = { '.release-version strong': {textContent:'v1.2'}, '.oss-calendar .oss-figure': {textContent:'3'}, '.stat-value': number, '[data-latest-age]': age }
+  const query = (s) => (object[s] ??= Object.assign(element(), { querySelector: query, animate: animation }))
+  let frame,
+    timer,
+    observe,
+    visibility,
+    passed = 0,
+    current = 0
+  function animation() {
+    return {
+      pause() {},
+      play() {},
+      cancel() {},
+      playState: 'running',
+      effect: { getComputedTiming: () => ({ progress: current }) },
+    }
+  }
+  const doc = {
+    documentElement: element(),
+    hidden: false,
+    querySelector: query,
+    createElement: () => ({ animate: animation }),
+    addEventListener: (key, fn) => {
+      visibility = fn
+    },
+  }
+  runInNewContext(motionScript, {
+    document: doc,
+    window: { addEventListener() {}, removeEventListener() {} },
+    innerHeight: 800,
+    Intl,
+    Date,
+    performance: { now: () => passed },
+    matchMedia: () => ({ matches: reduced, addEventListener() {} }),
+    getComputedStyle: () => ({ getPropertyValue: () => 'ease' }),
+    IntersectionObserver: class {
+      constructor(fn) {
+        observe ??= fn
+      }
+      observe() {}
+    },
+    requestAnimationFrame: (fn) => {
+      frame = fn
+      return 1
+    },
+    cancelAnimationFrame: () => {
+      frame = null
+    },
+    setInterval() {},
+    setTimeout: (fn, ms) => {
+      timer = { fn, ms }
+      return 1
+    },
+    clearTimeout: () => {
+      timer = null
+    },
+  })
+  return {
+    number,
+    enter: () => observe([{ isIntersecting: true, intersectionRatio: 1 }]),
+    leave: () => observe([{ isIntersecting: false, intersectionRatio: 0 }]),
+    finishCountUp: () => {
+      current = 1
+      frame?.()
+    },
+    timer: () => timer,
+    advance: (ms) => {
+      passed += ms
+    },
+    state: () => query('#progress').dataset.stars,
+  }
+}
+const chart = chartPage()
+chart.enter()
+chart.finishCountUp()
+assert.equal(chart.number.textContent, '128')
+assert.equal(chart.timer().ms, 3000)
+chart.advance(1500)
+chart.leave()
+assert.equal(chart.timer(), null)
+chart.enter()
+assert.equal(chart.timer().ms, 1500)
+for (const [i, delay] of [1500, 8000, 15000, 24000, 35000, 48000].entries()) {
+  const t = chart.timer()
+  assert.equal(t.ms, delay)
+  chart.advance(delay)
+  t.fn()
+  assert.equal(chart.number.textContent, String(129 + i))
+}
+assert.equal(chart.state(), 'complete')
+const still = chartPage(true)
+still.enter()
+assert.equal(still.number.textContent, '134')
+assert(!still.timer())
+console.log('Static chart, staged count, growing intervals, offscreen pause and reduced-motion total passed.')
+
+const template=load('../content/home.html')
+const featureSection=template.match(/<section aria-labelledby="features-title"[\s\S]*?<\/section>/)[0]
+assert.doesNotMatch(featureSection, /<a\b|<iframe\b/)
+for(const tag of template.match(/<a\b[^>]*>/g)){
+  if(!tag.includes('href="https://github.com/'))continue
+  if(tag.includes('/download/'))assert.doesNotMatch(tag,/target=/)
+  else {
+    assert.match(tag,/target="_blank"/)
+    assert.match(tag,/rel="[^"]*\bnoopener\b[^"]*"/)
+  }
+}
+const stills=JSON.parse(load('../public/marketing/stills/manifest.json')).images
+for(const theme of ['light','dark'])assert.ok(stills['feature-copy-'+theme+'.webp']?.bytes>0)
+
+const { refreshSummary, hour } = await import('../public/marketing/stars-data.mjs')
+const built = { capturedAt: times[1], count: 12, releases: 1, latest: {tag:'v1.1',published:times[1]} }
+const nextRelease = {tag_name:'v1.2',published_at:times[2]}
+const rows = [nextRelease, releases[1], {...nextRelease,prerelease:true}, {...nextRelease,draft:true}]
+let stored = null, calls = 0
+const storage = {getItem: () => stored, setItem: (_, value) => { stored = value }}
+const live = await refreshSummary(built, {storage, now:1000, getJSON:async url=>{
+  calls++
+  return url.endsWith('per_page=100') ? rows : {stargazers_count:11}
+}})
+assert.deepEqual(live, {...built, count:11, releases:2, latest:{tag:'v1.2',published:times[2]}})
+assert.equal(calls,2)
+const unavailable=async()=>{throw Error('403')}
+assert.deepEqual(await refreshSummary(built,{storage,now:2000,getJSON:()=>assert.fail('cached')}),live)
+assert.deepEqual(await refreshSummary(built,{storage,now:1000+hour,getJSON:unavailable}),live)
+const newerBuild={...built,capturedAt:times[2],count:15}
+assert.deepEqual(await refreshSummary(newerBuild,{storage,now:2000+hour,getJSON:unavailable}),newerBuild)
+assert.deepEqual(await refreshSummary(built,{getJSON:unavailable}),built)
+const oldRelease=await refreshSummary(built,{getJSON:async url=>url.endsWith('per_page=100')?[releases[0]]:{stargazers_count:19}})
+assert.deepEqual(oldRelease,{...built,count:19})
+const partialList = await refreshSummary(built,{getJSON:async url=>url.endsWith('per_page=100')?Array(100).fill(nextRelease):{}})
+assert.equal(partialList.releases,built.releases)
+assert.equal(partialList.latest.tag,'v1.2')
+const large = await refreshSummary({...built,releases:101},{getJSON:async url=>url.endsWith('/releases/latest')?nextRelease:{}})
+assert.equal(large.latest.tag,'v1.2')
+assert.equal(large.releases,101)
+console.log('Hourly browser refresh, newer data, newer deployments, partial lists and rate-limit fallback passed.')

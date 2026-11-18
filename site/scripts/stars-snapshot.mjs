@@ -1,19 +1,31 @@
-import assert from 'node:assert/strict';
-import {execFileSync} from 'node:child_process';
-import {readFileSync,writeFileSync} from 'node:fs';
-import {formatStars,validCount} from '../public/marketing/stars-data.mjs';
+import { execFileSync } from 'node:child_process'
+import { mkdir, readFile, writeFile, rename } from 'node:fs/promises'
+import { refreshActivity, validSnapshot } from './activity.mjs'
 
-// Local CLI credentials never reach the page; only the public count is saved.
-const {stargazers_count:count}=JSON.parse(execFileSync('gh',['api','repos/FrigadeHQ/yogurt'],{encoding:'utf8'}));
-assert.ok(validCount(count),'Invalid count');
-const home=new URL('../content/home.html',import.meta.url);
-let html=readFileSync(home,'utf8');
-const number=/<span class="stars-count" data-star-count="\d+">[^<]*<\/span>/g;
-const label=/aria-label="View Yogurt on GitHub, [\d,]+ stars"/g;
-assert.equal([...html.matchAll(number)].length,1,'Expected one baked star count');
-assert.equal([...html.matchAll(label)].length,1,'Expected one star button label');
-html=html.replace(number,`<span class="stars-count" data-star-count="${count}">${formatStars(count,'en')}</span>`)
-  .replace(label,`aria-label="View Yogurt on GitHub, ${new Intl.NumberFormat('en').format(count)} stars"`);
-writeFileSync(new URL('../content/stars.json',import.meta.url),JSON.stringify({capturedAt:new Date().toISOString(),count},null,2)+'\n');
-writeFileSync(home,html);
-console.log(`Saved ${count} stars to the snapshot and static home page.`);
+const baked = new URL('../content/activity.json', import.meta.url)
+const cache = new URL('../.next/cache/activity.json', import.meta.url)
+async function read(url) {
+  try {
+    const value = JSON.parse(await readFile(url, 'utf8'))
+    if (validSnapshot(value)) return value
+  } catch {}
+}
+const saved = [await read(cache), await read(baked)]
+  .filter(Boolean)
+  .sort((a, b) => Date.parse(b.capturedAt) - Date.parse(a.capturedAt))[0]
+async function request(url, accept = 'application/vnd.github+json') {
+  if (process.argv.includes('--save'))
+    return JSON.parse(execFileSync('gh', ['api', '-H', 'Accept: ' + accept, url], { encoding: 'utf8' }))
+  const headers = { Accept: accept }
+  if (process.env.GITHUB_TOKEN) headers.Authorization = 'Bearer ' + process.env.GITHUB_TOKEN
+  const response = await fetch(url, { headers, signal: AbortSignal.timeout(6000) })
+  if (!response.ok) throw Error('GitHub returned ' + response.status)
+  return response.json()
+}
+const snapshot = await refreshActivity(saved, request)
+await mkdir(new URL('.', cache), { recursive: true })
+const tmp = new URL('activity-' + process.pid + '.json', cache)
+await writeFile(tmp, JSON.stringify(snapshot) + '\n')
+await rename(tmp, cache)
+if (process.argv.includes('--save')) await writeFile(baked, JSON.stringify(snapshot) + '\n')
+console.log(`Project activity: ${snapshot.count} stars, ${snapshot.releases} releases, ${snapshot.latest.tag}.`)

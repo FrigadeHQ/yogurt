@@ -72,3 +72,36 @@ html[data-fragment-playing=false] *{animation-play-state:paused!important}
 
 /* The visible input click stands in for focus without taking focus from the page. */
 html[data-ask-focused=true] [data-testid=chat-suggestions]{visibility:hidden}
+
+/* Marketing treatment of the native Ask turn; the app itself is unchanged. */
+html[data-fragment=ask] .fragment-ask{inset:0;display:flex;align-items:center;justify-content:center;padding:28px}
+.fragment-ask .ask-conversation{flex:none;width:100%;max-width:400px}
+.fragment-ask .ask-thread-wrap,.fragment-ask .ask-thread{flex:none;overflow:visible!important}
+.fragment-ask .ask-turn{gap:28px;margin:0}
+.fragment-ask .ask-turn>.ask-question{max-width:85%;padding:10px 14px;border-radius:14px 14px 4px 14px}
+.fragment-ask .ask-turn>.chat-answer{margin:0 24px 0 32px;padding:12px 16px;border:1px solid var(--line);border-radius:4px 14px 14px 14px;background:var(--float);font-size:14.5px;line-height:1.6}
+.fragment-ask .chat-answer>p{margin:0}.fragment-ask .chat-answer>p+p{margin-top:6px}
+.fragment-ask .fragment-byline{position:absolute;left:0;top:calc(var(--fragment-answer-top) + 12px);margin:0;width:20px;height:20px}
+.fragment-ask .fragment-byline>span{display:none}
+.fragment-ask .ask-turn>.chat-progress{left:48px;top:calc(var(--fragment-answer-top) + 12px);margin:0}
+@media(max-width:320px){html[data-fragment=ask] .fragment-ask{padding:20px}.fragment-ask .ask-turn{gap:24px}.fragment-ask .ask-turn>.chat-answer{margin-right:0;font-size:14px}.fragment-ask .ask-turn>.ask-question{font-size:14px}}
+.fragment-ask .ask-turn>.chat-answer{opacity:var(--reply-opacity,1);transition:opacity 180ms ease-out}
+@media(prefers-reduced-motion:reduce){.fragment-ask .ask-turn>.chat-answer{transition:none}}
+
+.fragment-plan[data-waiting=true] .fragment-plan-live {visibility:hidden}
+.summary-cue {position:absolute;inset:0}
+.summary-cue>span {display:block;color:var(--muted);font-size:14px;margin-bottom:8px}
+
+.fragment-ask .ask-thread-wrap .ask-thread {width:100%;max-width:100%;min-width:0}
+html[data-fragment=copy] #root {display:flex;align-items:center;justify-content:center;container-type:size}
+.copy-stage {
+  width:182px;height:178px;flex:none;
+  transform:scale(clamp(.25,min(tan(atan2(calc(100cqw - 8px),182px)),tan(atan2(calc(100cqh - 6px),178px))),1));
+}
+.copy-stage>div {width:100%;justify-content:flex-end}
+.copy-stage [role=menu] {width:100%;animation:none;box-shadow:var(--shadow-soft)}
+html[data-fragment][data-paused=true] *,html[data-fragment][data-paused=true] *::before,
+html[data-fragment][data-paused=true] *::after {animation-play-state:paused!important}
+
+/* Keep the inert illustration in the resting bordered state while its real menu is open. */
+.copy-stage [aria-haspopup="menu"][aria-expanded="true"] {height:30px;background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:0 12px;gap:6px;box-shadow:none}

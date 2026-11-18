@@ -110,22 +110,41 @@ try {
   }
   await call('Emulation.setDefaultBackgroundColorOverride',{color:{r:0,g:0,b:0,a:0}})
   for (const kind of ['transcript','summary','ask']) {
-    for (const [device,width] of [['desktop',354],['phone',320]]) {
-      const height=device==='phone'?280:304
-      await call('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:2,mobile:false})
-      await call('Page.navigate',{url:origin+`/marketing/app/frame.html?fragment=${kind}&still=99`})
-      await pause(900)
-      assert.deepEqual(errors,[],'fragment components have no runtime errors')
-      const info=await evaluate(`(()=>{const e=document.querySelector('.marketing-fragment'),r=e.getBoundingClientRect();return {ready:document.documentElement.dataset.ready,text:e.innerText,top:r.top,bottom:r.bottom,bg:getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()}})()`)
-      console.log(kind,device,JSON.stringify(info))
-      assert.equal(info.ready,'true');assert(info.top>=0&&info.bottom<=height,'fragment must fit at the app type size')
-      assert.notEqual(info.bg.toLowerCase(),'#1b1b1d','fragments stay light')
-      if(kind==='ask')assert.equal(await evaluate("document.querySelectorAll('[data-testid=source-citation]').length"),1)
-      const file=`fragment-${kind}-${device}.webp`
-      const png=Buffer.from((await call('Page.captureScreenshot',{format:'png'})).data,'base64'),bytes=await sharp(png).webp({quality:90}).toBuffer()
-      await fs.writeFile(path.join(site,'public/marketing/stills',file),bytes)
-      images[file]={bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')}
+    for (const theme of ['light','dark']) {
+      for (const [device,width,height] of [['desktop',420,250],['phone',320,280]]) {
+        await call('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:2,mobile:false})
+        await call('Page.navigate',{url:origin+`/marketing/app/frame.html?fragment=${kind}&still=99&theme=${theme}`})
+        await pause(900)
+        assert.deepEqual(errors,[],'fragment components have no runtime errors')
+        const info=await evaluate(`(()=>{const e=document.querySelector('.marketing-fragment'),r=e.getBoundingClientRect();return {ready:document.documentElement.dataset.ready,text:e.innerText,top:r.top,bottom:r.bottom,bg:getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()}})()`)
+        console.log(kind,device,JSON.stringify(info))
+        assert.equal(info.ready,'true');assert(info.top>=0&&info.bottom<=height,'fragment must fit at the app type size')
+        assert.equal(info.bg.toLowerCase()==='#1b1b1d',theme==='dark','fragments follow the requested theme')
+        if(kind==='ask')assert.equal(await evaluate("document.querySelectorAll('[data-testid=source-citation]').length"),1)
+        const file=`fragment-${kind}${theme==='dark'?'-dark':''}-${device}.webp`
+        const png=Buffer.from((await call('Page.captureScreenshot',{format:'png'})).data,'base64'),bytes=await sharp(png).webp({quality:90}).toBuffer()
+        await fs.writeFile(path.join(site,'public/marketing/stills',file),bytes)
+        images[file]={bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')}
+      }
     }
+  }
+
+  // Capture the static feature illustration from the actual menu in its resting button state.
+  await call('Emulation.setDeviceMetricsOverride',{width:190,height:184,deviceScaleFactor:3,mobile:false})
+  for(const theme of ['light','dark']){
+    await call('Page.navigate',{url:origin+'/marketing/app/frame.html?fragment=copy&theme='+theme})
+    for(let attempt=0;attempt<80;attempt++){
+      if(await evaluate("document.querySelectorAll('.copy-stage [role=menuitem]').length===4"))break
+      await pause(50)
+    }
+    assert.equal(await evaluate("document.querySelectorAll('.copy-stage [role=menuitem]').length"),4)
+    const state=await evaluate("(()=>{const b=document.querySelector('.copy-stage [aria-haspopup=menu]'),c=getComputedStyle(b),r=document.querySelector('[role=menu]').getBoundingClientRect();return [document.documentElement.dataset.marketingTheme,c.backgroundColor,c.borderTopWidth,r.left>=0&&r.right<=innerWidth&&r.bottom<=innerHeight]})()")
+    assert.deepEqual(state,[theme,'rgba(0, 0, 0, 0)','1px',true])
+    const png=Buffer.from((await call('Page.captureScreenshot',{format:'png'})).data,'base64')
+    const bytes=await sharp(png).webp({lossless:true}).toBuffer()
+    const file='feature-copy-'+theme+'.webp'
+    await fs.writeFile(path.join(site,'public/marketing/stills',file),bytes)
+    images[file]={bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')}
   }
   const manifest=JSON.parse(await fs.readFile(path.join(site,'public/marketing/app/manifest.json'),'utf8'))
   await fs.writeFile(path.join(site,'public/marketing/stills/manifest.json'),JSON.stringify({appCommit:manifest.appCommit,bundleSha256:manifest.files['renderer.js'].sha256,bundleCssSha256:manifest.files['renderer.css'].sha256,generatedAt:new Date().toISOString(),images},null,2)+'\n')

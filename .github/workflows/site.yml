@@ -28,4 +28,7 @@ jobs:
           cache: pnpm
           cache-dependency-path: site/pnpm-lock.yaml
       - run: pnpm install --ignore-workspace --frozen-lockfile
+      - run: pnpm test
       - run: pnpm build
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

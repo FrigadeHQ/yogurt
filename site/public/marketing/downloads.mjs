@@ -41,7 +41,7 @@ if(typeof document!=='undefined'){
       chooser.className='mobile-download'
       const summary=document.createElement('summary')
       summary.className=button.className
-      summary.textContent='Download Yogurt'
+      summary.textContent=button.closest('.site-header')?'Download':'Download Yogurt'
       const list=document.createElement('div')
       list.className='mobile-download-list'
       for(const platform of Object.values(platforms)){

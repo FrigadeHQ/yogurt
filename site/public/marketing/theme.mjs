@@ -22,7 +22,7 @@ function render(){
   const fallback=document.getElementById('theme-icon-png');
   fallback.href=dark?'/marketing/assets/mark-dark.svg':'/marketing/assets/favicon-32.png';
   fallback.type=dark?'image/svg+xml':'image/png';
-  document.querySelectorAll('.hero-renderer,.fragment-art iframe').forEach(syncFrameTheme);
+  document.querySelectorAll('.hero-renderer,.tour-frame iframe').forEach(syncFrameTheme);
 }
 
 toggle.addEventListener('click',()=>{

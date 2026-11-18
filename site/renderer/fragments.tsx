@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Transcript } from '@app/components/Transcript'
+import { SummaryWaiting } from '@app/components/SummaryWaiting'
 import { Editor } from '@app/components/Editor'
 import { AskConversation } from '@app/components/AskConversation'
 import { Logo } from '@app/components/Logo'
@@ -45,14 +46,21 @@ function reveals(root:HTMLElement) {
 }
 export function FragmentScene() {
   const [summaryTime,setSummaryTime]=useState(animated?0:99)
+  const waiting = fragment === 'summary' && summaryTime < 1.5
   const [turn,setTurn]=useState<HTMLElement|null>(null)
   const [transcriptRevision,setTranscriptRevision]=useState(0)
   useEffect(()=>{
     let prepared=false,items:Reveal[]=[],transcriptSignature='',measured:HTMLElement|null=null
     const listener=(event:MessageEvent)=>{
-      if(event.source!==parent||event.origin!==location.origin||event.data?.type!=='yogurt-fragment-time'||!Number.isFinite(event.data.seconds))return
+      if(event.source!==parent||event.origin!==location.origin)return
+      if(event.data?.type==='yogurt-fragment-playing'){
+        document.documentElement.dataset.paused=String(!event.data.playing)
+        return
+      }
+      if(event.data?.type!=='yogurt-fragment-time'||!Number.isFinite(event.data.seconds))return
       const t=Math.max(0,Math.min(99,event.data.seconds))
       if(fragment==='summary')setSummaryTime(t)
+      if(fragment==='ask')document.documentElement.style.setProperty('--reply-opacity',t>=2.05?'1':'0')
       if(fragment==='transcript'){
         const scene=fragmentTranscriptAt(t),signature=JSON.stringify(scene)
         if(signature!==transcriptSignature){transcriptSignature=signature;fragmentTranscript(scene.lines,scene.partial)}
@@ -98,9 +106,10 @@ export function FragmentScene() {
   },[])
   return <div className={`marketing-fragment fragment-${fragment}`}>
     {fragment==='transcript'&&<Transcript key={transcriptRevision} id={meeting.id} recording inline />}
-    {fragment==='summary'&&<div className="fragment-plan">
+    {fragment==='summary'&&<div className="fragment-plan" data-waiting={waiting}>
+      {waiting && <div className="summary-cue"><span>Summarizing…</span><SummaryWaiting /></div>}
       <div className="fragment-plan-size" aria-hidden="true"><Editor markdown={finalPlan} editable={false} label="Tuesday launch" testId="fragment-plan-size" className="enhanced" /></div>
-      <div className="fragment-plan-live"><Editor markdown={fragmentSummaryAt(summaryTime)} streaming={animated&&summaryTime<summarySettled} editable={false} label="Tuesday launch" testId="fragment-plan" className="enhanced" /></div>
+      <div className="fragment-plan-live"><Editor markdown={fragmentSummaryAt(Math.max(0, summaryTime - .75))} streaming={animated&&summaryTime<summarySettled} editable={false} label="Tuesday launch" testId="fragment-plan" className="enhanced" /></div>
     </div>}
     {fragment==='ask'&&<><AskConversation id={chat.id} initial={chat} panel onSelect={noop} onSource={noop} onDeleted={noop}/>
       {turn&&createPortal(<div className="fragment-byline"><Logo size={20}/><span>Yogurt</span></div>,turn)}</>}
