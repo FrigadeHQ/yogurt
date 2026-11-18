@@ -7,6 +7,7 @@ const entry=readFileSync(new URL('../public/marketing/hero-entry.mjs',import.met
 const ribbons=readFileSync(new URL('../public/marketing/ribbons.mjs',import.meta.url),'utf8')
 for(const width of [1280,1728,2560])for(const [search,reduced] of [['?static=1',false],['?static=1',true],['?static=0',true],['',true]]){
   const dataset={heroEntry:'pending'},events=[]
+  if(search==='?static=1')dataset.heroStatic='true'
   let viewport=width,onResize
   const node=attributes=>({attributes,getAttribute(name){return this.attributes[name]},setAttribute(name,value){this.attributes[name]=value}})
   const path=node({d:'M0 0 800 325 0 130Z'}),mirror=node({}),gradient=node({}),reflection=node({})
@@ -47,6 +48,7 @@ console.log('Static preview and reduced motion settle entry without starting rib
 for(const width of [390,1280,1728,2560]){
   const dataset={heroEntry:'pending'},animations=[],listeners=[],events=[],materials=[],created=[],windowListeners=new Map()
   let draw,onResize,viewport=width
+  const timeline={currentTime:1000}
   const node=attributes=>({attributes,getAttribute(name){return this.attributes[name]},setAttribute(name,value){this.attributes[name]=value},
     removeAttribute(name){delete this.attributes[name]},append(...children){this.children=children},after(){},remove(){this.removed=true},cloneNode(){const copy=node({...this.attributes});materials.push(copy);return copy},
     animate(frames,options){let finish;const animation={frames,currentTime:0,options,finished:new Promise(resolve=>finish=resolve),finish:()=>finish(),cancel(){}};animations.push(animation);return animation}})
@@ -70,14 +72,15 @@ for(const width of [390,1280,1728,2560]){
     URLSearchParams,Event,location:{search:''},ribbonGeometry,ribbonPath,
     matchMedia:query=>query.includes('reduce')?reduced:{matches:width>760,addEventListener(){}},
     getComputedStyle:()=>({borderTopLeftRadius:'14px'}),
-    document:{documentElement:{dataset},createElementNS(_ns,tag){const element=node({});element.tag=tag;created.push(element);return element},querySelector:selector=>selector==='.signal-wings'?svg:selector==='.product-window'?product:node({})},
+    document:{timeline,documentElement:{dataset},createElementNS(_ns,tag){const element=node({});element.tag=tag;created.push(element);return element},querySelector:selector=>selector==='.signal-wings'?svg:selector==='.product-window'?product:node({})},
     window:{dispatchEvent:event=>events.push(event.type),addEventListener:(name,callback)=>windowListeners.set(name,callback)},
     ResizeObserver:class{constructor(callback){onResize=callback}observe(){}},
     requestAnimationFrame:callback=>{draw=callback;return 1},cancelAnimationFrame(){draw=null},
   })
   if(width===1280){
     assert.equal(draw,undefined,'no ribbon drawing before the renderer is ready')
-    assert.equal(animations.length,4,'only copy enters while the app loads')
+    assert.equal(animations.length,0,'the window and ribbons wait for the renderer')
+    timeline.currentTime+=120
     windowListeners.get('hero-renderer-ready')()
   }
   await execution
@@ -105,9 +108,10 @@ for(const width of [390,1280,1728,2560]){
   const movement=animations.find(animation=>animation.frames[0]?.transform==='translateY(20px)')
   assert.equal(fade.options.duration,300)
   assert.equal(movement.options.duration,600,'the window keeps its original settling motion')
-  assert.equal(fade.options.delay,270)
-  assert.equal(clock.options.duration,270+4*55+350,'ribbons keep their duration and stagger')
-  assert.equal(completionClock.options.duration,570+4*55+350,'the app demo starts on its existing schedule')
+  const delay=width===1280?150:270
+  assert.equal(fade.options.delay,delay,'renderer load counts toward the window delay')
+  assert.equal(clock.options.duration,delay+4*55+350,'ribbons keep their duration and stagger')
+  assert.equal(completionClock.options.duration,delay+300+4*55+350,'the app demo starts on its existing schedule')
   clock.currentTime=fade.options.delay-1;draw();assert.equal(dataset.ribbonPaint,'waiting')
   clock.currentTime=fade.options.delay;draw();assert.equal(dataset.ribbonPaint,'ready')
   clock.currentTime=400;draw()

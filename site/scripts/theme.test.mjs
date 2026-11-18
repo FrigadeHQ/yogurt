@@ -77,6 +77,7 @@ assert.equal(blocked.toggle['aria-pressed'],'true');
 
 for(const saved of ['light','dark']){
   const p=page(saved,{search:'?edge=light&static=1'});
+  assert.equal(p.root.dataset.heroStatic,'true','static previews skip the copy entrance before first paint');
   assert.equal(p.root.dataset.heroEdge,undefined,'the hero edge has no URL switch');
 }
 

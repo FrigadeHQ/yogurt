@@ -1,7 +1,6 @@
 import {ribbonGeometry,ribbonPath} from './ribbon-geometry.mjs';
 const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)');
 const state=document.documentElement.dataset;
-if(new URLSearchParams(location.search).get('static')==='1')state.heroStatic='true';
 const animations=[],restore=[];
 let completed=false,frame;
 const svg=document.querySelector('.signal-wings'),product=document.querySelector('.product-window');
@@ -53,23 +52,18 @@ function complete(){
 if(reduceMotion.matches||state.heroStatic==='true') complete();
 else{
   state.heroEntry='running';
-  const copyEase='cubic-bezier(.23,1,.32,1)';
-  for(const [selector,delay] of [['.yc-pill',0],['.hero-copy h1',70],['.hero-copy p',140],['.hero-actions',210]]){
-    animations.push(document.querySelector(selector).animate([
-      {opacity:0,transform:'translateY(12px)'},{opacity:1,transform:'translateY(0)'},
-    ],{duration:500,delay,easing:copyEase,fill:'backwards'}));
-  }
+  const entryStart=document.timeline.currentTime;
   const desktop=matchMedia('(min-width:761px)');
   if(desktop.matches && product.dataset.live!=='true') {
     await new Promise(resolve=>{
       window.addEventListener('hero-renderer-ready',resolve,{once:true});
-      reduceMotion.addEventListener('change',event=>{if(event.matches){animations.forEach(animation=>animation.cancel());resolve()}},{once:true});
+      reduceMotion.addEventListener('change',event=>{if(event.matches)resolve()},{once:true});
       desktop.addEventListener('change',event=>{if(!event.matches)resolve()},{once:true});
     });
   }
   if(reduceMotion.matches) complete();
   else {
-  const windowDelay=Math.max(0,270-Number(animations[0].currentTime||0)),fadeDuration=300;
+  const windowDelay=Math.max(0,270-(document.timeline.currentTime-entryStart)),fadeDuration=300;
   // The window becomes opaque before it settles, hiding the wings' starting points.
   animations.push(product.animate([{opacity:0},{opacity:1}],
     {duration:fadeDuration,delay:windowDelay,easing:'cubic-bezier(.16,1,.3,1)',fill:'backwards'}));
