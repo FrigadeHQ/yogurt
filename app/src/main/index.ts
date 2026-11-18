@@ -800,7 +800,7 @@ app.whenReady().then(() => {
           if (file?.endsWith(ownAudio)) tracks[t] = isFake() ? wavDecode(file) : helperDecode(audioHelperPath(), file)
         }
         if (!Object.keys(tracks).length) continue
-        console.info('ASR', `transcribing ${m.id} from its recording: it was recorded before the speech model was in`)
+        console.info('ASR', `transcribing ${m.id} from its recording: it has no transcript yet`)
         const done = await transcribeRecorded(m.id, tracks, () => !!activeMeeting())
         win?.webContents.send('meetings:changed'); win?.webContents.send('transcript:speakers', m.id)
         // notes that came out empty (no transcript then) are written now

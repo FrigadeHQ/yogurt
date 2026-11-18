@@ -49,7 +49,7 @@ type MeasureOpts = {
  * clip itself is stopped: null, too slow by far.
  */
 export async function measureSpeed(model: string, o: MeasureOpts): Promise<{ rtf: number | null; gpuOff: boolean }> {
-  const srv = o.server?.(model) ?? createWhisperServer({ binary: o.binary, model, vadModel: o.vadModel, gpuFallback: true, startTimeoutMs: 180_000, backoffMs: [0] })
+  const srv = o.server?.(model) ?? createWhisperServer({ binary: o.binary, model, vadModel: o.vadModel, gpuFallback: true, startTimeoutMs: 180_000, backoffMs: [0], checkGpu: (url) => hearsClip(url, readWav(readFileSync(o.clip)).subarray(0, 5 * 16000)) })
   const samples = readWav(readFileSync(o.clip))
   const clipMs = samples.length / 16
   try {
@@ -67,6 +67,22 @@ export async function measureSpeed(model: string, o: MeasureOpts): Promise<{ rtf
   } finally {
     await srv.stop()
   }
+}
+
+/**
+ * Does whisper at this address hear the clip's words? Some graphics cards (#92 an Adreno, #76 a Radeon RX 9070 XT) load
+ * whisper and answer every request with nothing, without an error: two words or more is hearing it.
+ */
+export async function hearsClip(url: string, samples: Float32Array, fetchFn?: typeof fetch): Promise<boolean> {
+  const lines = await createTranscriber({ url: async () => url, language: () => 'en', timeoutMs: 60_000, ...(fetchFn ? { fetchFn } : {}) })({ track: 'them', startMs: 0, samples })
+  return lines.map((l) => l.text).join(' ').trim().split(/\s+/).filter(Boolean).length >= 2
+}
+
+/** the first seconds of the speed clip, for checking a graphics card (none in a build without it) */
+export function clipStart(seconds = 5): Float32Array | null {
+  const clip = speedClipPath()
+  if (!clip) return null
+  try { return readWav(readFileSync(clip)).subarray(0, seconds * 16000) } catch { return null }
 }
 
 /** The speed check's result, kept in one small file in the profile */

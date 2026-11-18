@@ -8,6 +8,7 @@ import { echoConfidence } from './echo'
 import { appleSpeechAvailable, installSpeechLocale, readSpeechLocales, speechDisagrees, speechFits, wantedSpeechLocale, type SpeechHost, type SpeechLocales } from './appleSpeech'
 import { whisperLanguage, type Spoken } from '../../shared/spoken'
 import { createWhisperServer, recoverer, vadModelPath, whisperServerPath, type WhisperServer } from './server'
+import { clipStart, hearsClip } from './speedCheck'
 import { createTranscriber, type Line, type Transcribe } from './transcribe'
 import { meetingWords, respell, whisperPrompt } from '../vocab'
 import type { TranscriptPartial } from '../../shared/types'
@@ -118,7 +119,7 @@ function serverFor(model: string, pidFile: string | undefined, make?: (model: st
   const key = `${model}|${pidFile}`
   if (!server || serverKey !== key) {
     void server?.stop()
-    server = make ? make(model, pidFile) : createWhisperServer({ binary: whisperServerPath(), model, pidFile, vadModel: vadModelPath(), gpuFallback: process.platform !== 'darwin', onGpuOff: () => gpuOffListener?.() })
+    server = make ? make(model, pidFile) : createWhisperServer({ binary: whisperServerPath(), model, pidFile, vadModel: vadModelPath(), gpuFallback: process.platform !== 'darwin', onGpuOff: () => gpuOffListener?.(), checkGpu: async (url) => { const clip = clipStart(); return !clip || hearsClip(url, clip) } })
     serverKey = key
   }
   return server

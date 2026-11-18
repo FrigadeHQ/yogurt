@@ -88,6 +88,11 @@ type Opts = {
   gpuFallback?: boolean
   /** told once when that happens (the speed check measured with the graphics, so it times again on the next start) */
   onGpuOff?: () => void
+  /**
+   * With gpuFallback: does a launch on the graphics card hear words in a known clip? Some cards (#92 an Adreno, #76 a
+   * Radeon RX 9070 XT) load whisper and answer every request with nothing; then it runs on the processor instead.
+   */
+  checkGpu?: (url: string) => Promise<boolean>
 }
 
 /** a meeting relaunches a dead or hung server at most this often, waiting longer each time */
@@ -157,12 +162,26 @@ export function createWhisperServer(o: Opts) {
       }
       throw new Error('whisper-server did not start in time')
     })()
-    try { return await Promise.race([healthy, gone]) } catch (e) {
+    let up: string
+    try { up = await Promise.race([healthy, gone]) } catch (e) {
       healthy.catch(() => {})
       if (o.gpuFallback && !cpuOnly && (p.exitCode !== null || p.signalCode !== null)) { cpuOnly = true; console.error('whisper-server stopped while loading; starting it again without the graphics card'); o.onGpuOff?.() }
       p.kill('SIGKILL')
       throw e
     }
+    if (o.gpuFallback && !cpuOnly && o.checkGpu) {
+      let hears = true
+      try { hears = await o.checkGpu(up) } catch (e) { console.warn('whisper-server: checking the graphics card failed', e) }
+      if (!hears) {
+        cpuOnly = true
+        console.error('whisper-server heard no words on the graphics card; starting it again without it')
+        o.onGpuOff?.()
+        if (child === p) { child = null; died = false }
+        p.kill('SIGKILL')
+        return launch()
+      }
+    }
+    return up
   }
 
   const self = {

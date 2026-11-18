@@ -132,6 +132,32 @@ describe.skipIf(process.platform === 'win32')('whisper server', () => {
     const third = await s.url()
     await expect(s.wedged(third)).resolves.toMatch(/^http/)
   })
+  // #92 (Adreno), #76 (Radeon RX 9070 XT): whisper loaded on the graphics card and answered every request with no words
+  it('off a Mac, a server whose graphics card hears no words in a known clip starts again without it, before any meeting uses it', async () => {
+    const bin = fakeBinary()
+    const args = () => JSON.parse(readFileSync(join(bin, '../args'), 'utf8')) as string[]
+    const off = vi.fn()
+    const checked: boolean[] = []
+    const s = make(bin, { gpuFallback: true, onGpuOff: off, checkGpu: async () => { const ok = checked.length > 0; checked.push(ok); return ok } })
+    const url = await s.url()
+    expect(args()).toContain('-ng')
+    expect(s.cpuOnly).toBe(true)
+    expect(off).toHaveBeenCalledTimes(1)
+    // checked once, on the graphics card; the processor isn't checked
+    expect(checked).toEqual([false])
+    expect(await alive(url)).toBe(true)
+  })
+  it('a graphics card that hears the clip keeps the graphics, and a Mac is never checked', async () => {
+    const check = vi.fn(async () => true)
+    const bin = fakeBinary()
+    await make(bin, { gpuFallback: true, checkGpu: check }).url()
+    expect(JSON.parse(readFileSync(join(bin, '../args'), 'utf8'))).not.toContain('-ng')
+    expect(check).toHaveBeenCalledTimes(1)
+    const mac = vi.fn(async () => false)
+    await make(fakeBinary(), { checkGpu: mac }).url()
+    expect(mac).not.toHaveBeenCalled()
+  })
+
   it('a Mac keeps its graphics however often it hangs (Metal)', async () => {
     const bin = fakeBinary(0, ['wedge'])
     const s = make(bin)
