@@ -2520,9 +2520,9 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
 
 .site-header .nav-stars span {inline-size:5ch;font-variant-numeric:tabular-nums;text-align:end}
 .activity-board .release-status time {box-sizing:border-box;inline-size:13.6em}
-.release-version {min-inline-size:0;flex:1 1 0}
-.release-version strong {overflow:hidden;text-overflow:ellipsis}
+.release-version {flex:1 0 auto;max-inline-size:100%;flex-wrap:wrap}
+.release-version strong {min-inline-size:0;white-space:normal;overflow-wrap:anywhere}
 .release-status {flex:none}
-@media (max-width:365px), (min-width:761px) and (max-width:965px) {
-  .release-version {flex-basis:100%}
+@media (max-width:760px) {
+  .activity-board .release-status time {inline-size:auto}
 }
