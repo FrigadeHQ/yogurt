@@ -78,7 +78,6 @@ function sync() {
 }
 function select(next, manual = false) {
   if (manual) automatic = false
-  const old = buttons.map((button) => button.getBoundingClientRect().top)
   active = next
   elapsed = 0
   lastSent = -1
@@ -87,23 +86,11 @@ function select(next, manual = false) {
       row = button.closest('.tour-item')
     row.dataset.selected = String(selected)
     button.setAttribute('aria-expanded', String(selected))
-    row.querySelector('.tour-description').hidden = !selected
     row.querySelector('.tour-plus').textContent = selected ? '−' : '+'
     row.querySelector('.marker-rim').style.strokeDashoffset = '1'
     panels[i].hidden = !selected
     panels[i].setAttribute('aria-hidden', String(!selected))
   })
-  if (!reduced.matches && visible) {
-    buttons.forEach((button, i) => {
-      button.getAnimations().forEach((a) => a.cancel())
-      const delta = old[i] - button.getBoundingClientRect().top
-      if (Math.abs(delta) > 1)
-        button.animate([{ transform: `translateY(${delta}px)` }, { transform: 'none' }], {
-          duration: 240,
-          easing: 'ease-out',
-        })
-    })
-  }
   sync()
 }
 buttons.forEach((button, i) => button.addEventListener('click', () => select(i, true)))

@@ -1610,7 +1610,8 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
   border-radius: 7px;
 }
 .tour-item {
-  padding: 0 20px;
+  flex: 0 0 auto;
+  padding: 0 20px 24px;
 }
 .tour-item h3 {
   margin: 0;
@@ -1627,21 +1628,46 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
   font-size: 15px;
   line-height: 20px;
   font-weight: 500;
-  padding: 24px 0;
+  padding: 24px 0 0;
   text-align: left;
 }
-.tour-item[data-selected='true'] {
-  flex: 1;
+/* Keep the full closed-row button hit area, including the space below its title. */
+.tour-item[data-selected='false'] button {
+  padding-bottom: 24px;
+  margin-bottom: -24px;
 }
-.tour-item[data-selected='true'] button {
-  padding-bottom: 0;
+.tour-item[data-selected='true'] {
+  flex-grow: 1;
+}
+.tour-detail {
+  display: grid;
+  grid-template-rows: 0fr;
+}
+.tour-item[data-selected='true'] .tour-detail {
+  grid-template-rows: 1fr;
 }
 .tour-description {
   color: var(--reading);
   font-size: 13px;
   line-height: 20px;
-  padding: 0 26px 24px 44px;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 26px 0 44px;
+  visibility: hidden;
+  opacity: 0;
   margin: 0;
+}
+.tour-item[data-selected='true'] .tour-description {
+  visibility: inherit;
+  opacity: 1;
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* The inert copy used to reserve space must always measure the final heights. */
+  .tour-list:not([inert]) .tour-item { transition: flex-grow 240ms ease-out; }
+  .tour-list:not([inert]) .tour-detail { transition: grid-template-rows 240ms ease-out; }
+  .tour-list:not([inert]) .tour-item[data-selected='true'] .tour-description {
+    transition: opacity 120ms ease-out 70ms;
+  }
 }
 .tour-plus {
   color: var(--reading);

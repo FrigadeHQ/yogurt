@@ -4,6 +4,7 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { verifyWalkthroughFrames } from './walkthrough-frames.mjs'
 import assert from 'node:assert/strict'
 
 const site = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -41,6 +42,7 @@ try {
     return result.result.value
   }
   await call('Page.enable'); await call('Runtime.enable')
+  await verifyWalkthroughFrames(call, origin)
   const {createRequire}=await import('node:module')
   const require=createRequire(await fs.realpath(path.join(site,'node_modules/next/package.json'))),sharp=require('sharp')
   const {beats,timing}=await import('../renderer/timeline.mjs')

@@ -35,7 +35,6 @@ reserve(document.querySelector('.faq-list'), 'details', (row, open) => {
 })
 reserve(document.querySelector('.tour-list'), '.tour-item', (row, open) => {
   row.dataset.selected = String(open)
-  row.querySelector('.tour-description').hidden = !open
 })
 
 function revealAnswer() {
