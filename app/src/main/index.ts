@@ -1,5 +1,4 @@
 import electron from 'electron'
-import { isAbsolute, join } from 'node:path'
 import { hookRendererErrors } from './rendererErrors'
 import { matchSearchPeople, searchPersonKey } from '../shared/searchPeople'
 import { resolvePeople } from './people'
