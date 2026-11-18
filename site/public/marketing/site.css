@@ -2359,31 +2359,82 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
   margin: 0;
 }
 .section-wrap:is(.app-features, .open-progress),
-.faq-story {
+.faq-section {
   padding-top: 128px;
 }
-.faq-story {
-  padding-bottom: 20px;
+.faq-section {
+  padding-bottom: 128px;
 }
-.faq-story .faq-list {
-  align-content: start;
-  gap: 0;
+.faq-cards {
+  --card-gap: 7px;
+  display: grid;
+  gap: var(--card-gap);
+  padding: var(--card-gap);
+  background: var(--panel);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
 }
-.faq-story .faq-list details {
-  background: transparent;
-  border-radius: 0;
-  border-bottom: 1px solid var(--hairline);
+.faq-cards details {
+  min-width: 0;
+  background: var(--page);
+  border-radius: 7px;
 }
-.faq-story .faq-list summary,
-.faq-story .faq-list details[open] summary {
-  padding: 22px 0;
-  line-height: 1.5;
+.faq-cards summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 14px;
+  gap: 16px;
+  align-items: center;
+  min-height: 56px;
+  padding: 14px 20px;
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.45;
+  font-weight: 500;
+  cursor: pointer;
+  list-style: none;
 }
-.faq-story .faq-list p {
-  padding: 0 38px 20px 0;
+.faq-cards summary::-webkit-details-marker { display: none; }
+.faq-cards summary:focus-visible {
+  border-radius: 7px;
+  outline: 2px solid var(--link);
+  outline-offset: -3px;
+}
+.faq-cards .tour-plus { line-height: 1; }
+.faq-cards .tour-plus::before { content: '+'; }
+.faq-cards details[open] .tour-plus::before { content: '−'; color: var(--link); }
+.faq-cards details::details-content {
+  display: grid;
+  grid-template-rows: 0fr;
+}
+.faq-cards details[open]::details-content { grid-template-rows: 1fr; }
+.faq-answer {
+  min-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+}
+.faq-cards details[open] .faq-answer { opacity: 1; visibility: inherit; }
+.faq-answer p {
+  max-width: 68ch;
   margin: 0;
-  line-height: 1.7;
+  padding: 0 20px 18px;
   color: var(--reading);
+  font-size: 14px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .faq-cards details::details-content {
+    transition: grid-template-rows 240ms ease-out, content-visibility 240ms allow-discrete;
+  }
+  .faq-cards details[open] .faq-answer {
+    transition: opacity 120ms ease-out 70ms;
+  }
+}
+@media (max-width: 760px) {
+  .faq-cards { --card-gap: 6px; }
+  .faq-cards summary { min-height: 52px; padding: 14px 16px; font-size: 14px; }
+  .faq-answer p { padding: 0 16px 16px; }
 }
 .site-footer {
   margin-top: 24px;
@@ -2411,13 +2462,10 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
     display: inline-flex !important;
   }
   .section-wrap:is(.app-features, .open-progress),
-  .faq-story {
+  .faq-section {
     padding-top: 88px;
   }
-  .faq-story {
-    row-gap: 6px;
-    padding-bottom: 12px;
-  }
+  .faq-section { padding-bottom: 88px; }
 }
 
 /* The same renderer supplies the initial frame and the complete reduced-motion still. */

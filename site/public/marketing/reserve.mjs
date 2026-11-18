@@ -1,4 +1,4 @@
-// Measure the tallest single open row at this width. Keyboard focus and native details stay in the live list.
+// Measure the tallest single open row at this width. Keyboard focus stays in the live list.
 function reserve(list, rows, select) {
   let lastWidth = 0
   function measure(force = false) {
@@ -30,16 +30,13 @@ function reserve(list, rows, select) {
   new ResizeObserver(() => measure()).observe(list)
   document.fonts.ready.then(() => measure(true))
 }
-reserve(document.querySelector('.faq-list'), 'details', (row, open) => {
-  row.open = open
-})
 reserve(document.querySelector('.tour-list'), '.tour-item', (row, open) => {
   row.dataset.selected = String(open)
 })
 
 function revealAnswer() {
   const item = document.getElementById(location.hash.slice(1))
-  if (item?.matches('.faq-list details')) item.open = true
+  if (item?.matches('.faq-cards details')) item.open = true
 }
 window.addEventListener('hashchange', revealAnswer)
 revealAnswer()

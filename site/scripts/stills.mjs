@@ -70,6 +70,8 @@ try {
     assert(resting.summaryFits && resting.lastLineVisible,'the complete Summary fits above the bottom fade')
   }
   assert.deepEqual(errors,[],'live Summary and Ask have no runtime errors')
+  const { verifyFaqClearance } = await import('./faq-clearance.test.mjs')
+  await verifyFaqClearance(call, origin)
   await call('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'light'},{name:'prefers-reduced-motion',value:'reduce'}]})
   const images={}
   const {createHash}=await import('node:crypto')
