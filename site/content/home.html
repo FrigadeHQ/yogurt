@@ -859,14 +859,65 @@
         </div>
       </div>
     </article>
-    <article class="feature-card card-copy">
+    <article class="feature-card card-mcp" id="local-mcp">
       <div class="feature-copy">
-        <span class="feature-label">Copy and export</span>
-        <h3>Take your notes with you.</h3>
-        <p>Copy notes or transcripts, or save both as Markdown.</p>
+        <span class="feature-label">Local MCP</span>
+        <h3>Use your notes in your AI app.</h3>
+        <p>Let your assistant read meeting notes and transcripts directly from your computer.</p>
       </div>
       <div aria-hidden="true" class="feature-visual material-art">
-        <span class="native-copy"></span>
+        <svg class="mcp-tiles" viewBox="0 0 224 154" fill="none">
+          <defs>
+            <linearGradient id="wired-shell" x1="0" x2="0.3" y1="0" y2="1">
+              <stop stop-color="var(--color-white)"/>
+              <stop offset=".5" stop-color="var(--color-ink-50)"/>
+              <stop offset="1" stop-color="var(--color-ink-200)"/>
+            </linearGradient>
+            <linearGradient id="wired-face" x1="0" x2=".3" y1="0" y2="1">
+              <stop stop-color="var(--color-white)"/>
+              <stop offset="1" stop-color="var(--color-ink-100)"/>
+            </linearGradient>
+            <filter height="220%" id="wired-lift" width="200%" x="-50%" y="-50%">
+              <fedropshadow dx="0" dy="3" flood-color="var(--color-ink-900)" flood-opacity=".08" stdDeviation="2"/>
+              <fedropshadow dx="0" dy="14" flood-color="var(--color-ink-900)" flood-opacity=".09" stdDeviation="12"/>
+            </filter>
+            <pattern id="wired-pad" width="8" height="8" patternUnits="userSpaceOnUse">
+              <circle cx="4" cy="4" r=".75" fill="var(--pad-dot)"/>
+            </pattern>
+            <radialGradient id="wired-fade">
+              <stop offset=".45" stop-color="white"/>
+              <stop offset="1" stop-color="white" stop-opacity="0"/>
+            </radialGradient>
+            <mask id="wired-fade-mask">
+              <ellipse cx="112" cy="76" rx="105" ry="64" fill="url(#wired-fade)"/>
+            </mask>
+          </defs>
+          <rect x="8" y="12" width="208" height="132" fill="url(#wired-pad)" mask="url(#wired-fade-mask)"/>
+          <g stroke-linecap="round">
+            <path d="M70 53H94C119 53 104 101 130 101H153" stroke="var(--art-edge)" stroke-width="6"/>
+            <path d="M70 52H94C119 52 104 100 130 100H153" stroke="var(--art-inner)" stroke-width="4"/>
+            <path d="M70 52H94C119 52 104 100 130 100H153" stroke="var(--wire)" stroke-width="2"/>
+          </g>
+          <g transform="translate(18 21)">
+            <rect x="-1" y="2" width="64" height="64" rx="15" fill="var(--color-ink-100)" filter="url(#wired-lift)"/>
+            <rect x="0" y="0" width="62" height="62" rx="14" fill="url(#wired-shell)" stroke="var(--art-edge)"/>
+            <rect x="2" y="2" width="58" height="57" rx="12" fill="url(#wired-face)" stroke="var(--art-rim)"/>
+            <rect x="5" y="5" width="52" height="51" rx="10" fill="none" stroke="var(--art-inner)"/>
+            <g transform="translate(14 14)" fill="none" stroke="var(--art-glyph)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 3h11l7 7v20H9z M20 3v8h7 M13 16h10 M13 21h8 M13 26h5"/>
+            </g>
+          </g>
+          <g transform="translate(145 70)">
+            <rect x="-1" y="2" width="64" height="64" rx="15" fill="var(--color-ink-100)" filter="url(#wired-lift)"/>
+            <rect x="0" y="0" width="62" height="62" rx="14" fill="url(#wired-shell)" stroke="var(--art-edge)"/>
+            <rect x="2" y="2" width="58" height="57" rx="12" fill="url(#wired-face)" stroke="var(--art-rim)"/>
+            <rect x="5" y="5" width="52" height="51" rx="10" fill="none" stroke="var(--art-inner)"/>
+            <g transform="translate(14 14)" fill="none" stroke="var(--link)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 6h27v19H16l-7 5v-5H4z"/>
+              <path d="M10 13h15 M10 18h10"/>
+            </g>
+          </g>
+        </svg>
       </div>
     </article>
     <article class="feature-card card-language">

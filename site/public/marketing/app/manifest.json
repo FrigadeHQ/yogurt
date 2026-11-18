@@ -3,7 +3,7 @@
   "sourceOverrides": {
     "app/src/renderer/src/styles.css": "13f3c987136d93ff888fb4438e3464864dc04114dcbc036127a660018bec11f3"
   },
-  "generatedAt": "2026-11-18T19:04:58.384Z",
+  "generatedAt": "2026-11-18T19:16:00.868Z",
   "source": "app/src/renderer",
   "fixture": "site/renderer/bridge.mjs",
   "nativeCode": false,
@@ -130,15 +130,15 @@
       "sha256": "45e4eb19dcb4fc8ce3825d6cfeeb1d8f8d7a16e09ee4583a005518c880f028e4"
     },
     "renderer.css": {
-      "bytes": 264247,
-      "gzipBytes": 86034,
-      "sha256": "473a2b82bcbc6d67e26032f54a38d5ec9a7aa7b9821f3f7e01e12fa6ff16990d"
+      "bytes": 263670,
+      "gzipBytes": 85887,
+      "sha256": "802f1ba3a9f1d0076d6f75a5206de0e55c0d8416f7d5d0bbf8b31106ffe430e6"
     },
     "renderer.js": {
-      "bytes": 1505315,
-      "gzipBytes": 463633,
-      "sha256": "526febdc140c297322752d42858d914e9e4c5ae87383b600f81b96752a13eb27"
+      "bytes": 1504949,
+      "gzipBytes": 462855,
+      "sha256": "7ea7d390704d873e34731997dc8236f53d51465ed1c28349321282a18f73060a"
     }
   },
-  "totalGzipBytes": 550031
+  "totalGzipBytes": 549106
 }

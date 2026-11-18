@@ -234,8 +234,6 @@ for(const tag of template.match(/<a\b[^>]*>/g)){
     assert.match(tag,/rel="[^"]*\bnoopener\b[^"]*"/)
   }
 }
-const stills=JSON.parse(load('../public/marketing/stills/manifest.json')).images
-for(const theme of ['light','dark'])assert.ok(stills['feature-copy-'+theme+'.webp']?.bytes>0)
 
 const { refreshSummary, hour } = await import('../public/marketing/stars-data.mjs')
 const built = { capturedAt: times[1], count: 12, releases: 1, latest: {tag:'v1.1',published:times[1]} }

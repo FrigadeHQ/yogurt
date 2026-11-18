@@ -134,23 +134,6 @@ try {
     }
   }
 
-  // Capture the static feature illustration from the actual menu in its resting button state.
-  await call('Emulation.setDeviceMetricsOverride',{width:190,height:184,deviceScaleFactor:3,mobile:false})
-  for(const theme of ['light','dark']){
-    await call('Page.navigate',{url:origin+'/marketing/app/frame.html?fragment=copy&theme='+theme})
-    for(let attempt=0;attempt<80;attempt++){
-      if(await evaluate("document.querySelectorAll('.copy-stage [role=menuitem]').length===4"))break
-      await pause(50)
-    }
-    assert.equal(await evaluate("document.querySelectorAll('.copy-stage [role=menuitem]').length"),4)
-    const state=await evaluate("(()=>{const b=document.querySelector('.copy-stage [aria-haspopup=menu]'),c=getComputedStyle(b),r=document.querySelector('[role=menu]').getBoundingClientRect();return [document.documentElement.dataset.marketingTheme,c.backgroundColor,c.borderTopWidth,r.left>=0&&r.right<=innerWidth&&r.bottom<=innerHeight]})()")
-    assert.deepEqual(state,[theme,'rgba(0, 0, 0, 0)','1px',true])
-    const png=Buffer.from((await call('Page.captureScreenshot',{format:'png'})).data,'base64')
-    const bytes=await sharp(png).webp({lossless:true}).toBuffer()
-    const file='feature-copy-'+theme+'.webp'
-    await fs.writeFile(path.join(site,'public/marketing/stills',file),bytes)
-    images[file]={bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')}
-  }
   const manifest=JSON.parse(await fs.readFile(path.join(site,'public/marketing/app/manifest.json'),'utf8'))
   await fs.writeFile(path.join(site,'public/marketing/stills/manifest.json'),JSON.stringify({appCommit:manifest.appCommit,bundleSha256:manifest.files['renderer.js'].sha256,bundleCssSha256:manifest.files['renderer.css'].sha256,generatedAt:new Date().toISOString(),images},null,2)+'\n')
 

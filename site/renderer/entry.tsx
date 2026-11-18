@@ -1,5 +1,4 @@
 import './bridge.mjs'
-import { CopyScene } from './copy'
 import { FragmentScene } from './fragments'
 import { fragment } from './bridge.mjs'
 import { createRoot } from 'react-dom/client'
@@ -23,4 +22,4 @@ function Scene() {
     <Note key={revision} id={meeting.id} onTitleChange={noop} />
   </Workspace><div className="marketing-traffic"><i/><i/><i/></div></div><svg className="marketing-cursor" viewBox="0 0 30 32" aria-hidden="true"><circle className="cursor-ring" cx="4" cy="3" r="12"/><path className="cursor-pointer" d="M4 3 24 13 15.1 15.7 11.3 25Z" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round"/></svg></>
 }
-createRoot(document.getElementById('root')!).render(fragment === 'copy' ? <CopyScene /> : fragment ? <FragmentScene /> : <Scene />)
+createRoot(document.getElementById('root')!).render(fragment ? <FragmentScene /> : <Scene />)

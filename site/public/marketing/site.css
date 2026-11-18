@@ -1794,10 +1794,6 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
   height: 154px;
   overflow: visible;
 }
-.native-copy {
-  border: 0;
-  display: block;
-}
 .language-art svg {
   display: block;
   width: 100%;
@@ -1943,13 +1939,25 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
   justify-self: center;
   transform: scale(clamp(0.36, tan(atan2(calc(100cqi - 8px), 200px)), 0.91));
 }
-.feature-grid .native-copy {
-  width:min(100%,190px);
-  height:min(100%,184px);
-  background: url('/marketing/stills/feature-copy-light.webp') center / contain no-repeat;
+.mcp-tiles {
+  --art-edge: #c4c3c9;
+  --art-rim: #fff;
+  --art-inner: #e4e2e7;
+  --art-glyph: #625f69;
+  --wire: var(--purple-base);
+  --pad-dot: #d2cfd4;
+  display: block;
+  width: min(100%, 224px);
+  height: auto;
+  overflow: visible;
 }
-:root[data-theme=dark] .feature-grid .native-copy {
-  background-image:url('/marketing/stills/feature-copy-dark.webp');
+:root[data-theme=dark] .mcp-tiles {
+  --art-edge: #57555d;
+  --art-rim: #66636b;
+  --art-inner: #49474f;
+  --art-glyph: #dedce2;
+  --wire: var(--link);
+  --pad-dot: #59575d;
 }
 .feature-grid .language-art {
   width: min(100%, 182px);
