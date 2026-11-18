@@ -18,10 +18,6 @@ function render(){
   toggle.setAttribute('aria-label',dark?'Switch to light mode':'Switch to dark mode');
   toggle.setAttribute('aria-pressed',String(dark));
   document.querySelector('meta[name="theme-color"]').content=dark?'#1B1B1D':'#ffffff';
-  document.getElementById('theme-icon').href=dark?'/marketing/assets/mark-dark.svg':'/marketing/assets/mark.svg';
-  const fallback=document.getElementById('theme-icon-png');
-  fallback.href=dark?'/marketing/assets/mark-dark.svg':'/marketing/assets/favicon-32.png';
-  fallback.type=dark?'image/svg+xml':'image/png';
   document.querySelectorAll('.hero-renderer,.tour-frame iframe').forEach(syncFrameTheme);
 }
 
