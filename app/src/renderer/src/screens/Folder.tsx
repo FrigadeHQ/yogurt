@@ -35,7 +35,7 @@ function FolderTitle({ folder }: { folder: FolderRow }) {
   const cancelled = useRef(false)
   useEffect(() => { if (editing) { setDraft(folder.name); cancelled.current = false } }, [editing, folder.name])
   if (!editing) {
-    return <h1 data-testid="folder-title"><button onClick={() => setEditing(true)} title={t('Rename')} className="note-title-btn -mx-1 max-w-full rounded-lg px-1 text-start">{folder.name}</button></h1>
+    return <h1 data-testid="folder-title"><button onClick={() => setEditing(true)} title={t('Rename')} className="note-title-btn -mx-1 rounded-lg px-1 text-start">{folder.name}</button></h1>
   }
   const done = () => {
     setEditing(false)

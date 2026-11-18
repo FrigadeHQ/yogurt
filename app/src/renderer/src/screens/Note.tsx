@@ -484,7 +484,7 @@ function Title({ id, title, editing, onEdit }: { id: string; title: string; edit
   if (!editing) {
     return (
       <h1 data-testid="note-title" className={cls}>
-        <button onClick={() => onEdit(true)} title={t('Rename')} className="note-title-btn -mx-1 max-w-full rounded-lg px-1 text-start">{title}</button>
+        <button onClick={() => onEdit(true)} title={t('Rename')} className="note-title-btn -mx-1 rounded-lg px-1 text-start">{title}</button>
       </h1>
     )
   }

@@ -416,7 +416,8 @@ html.widget { --pill:#232326;--pill-ink:#F7F7FA;--accent:#B780FF;--pill-accent:v
 .bar-btn { transition: transform var(--dur-micro) var(--ease-out), opacity var(--dur-micro) var(--ease-out), background-color var(--dur-micro) ease, color var(--dur-micro) ease; }
 .bar-btn:hover { color: var(--ink); background: var(--card); }
 /* the note's title renames on click: a faint wash says so */
-.note-title-btn { transition: background-color var(--dur-micro) ease; }
+/* Match the title’s negative side margins so padding cannot squeeze the final glyph. */
+.note-title-btn { max-width:calc(100% + .5rem);overflow-wrap:anywhere;transition: background-color var(--dur-micro) ease; }
 .note-title-btn:hover { background: color-mix(in srgb, var(--line) 60%, transparent); }
 .note-title-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .bar-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
