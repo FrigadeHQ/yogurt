@@ -29,6 +29,17 @@ function layoutRibbons(){
 }
 const resize=new ResizeObserver(layoutRibbons);
 resize.observe(svg);resize.observe(product);layoutRibbons();
+let cover=null;
+function coverWindow(){
+  if(!cover)return;
+  const a=product.getBoundingClientRect(),b=svg.getBoundingClientRect();
+  // A root SVG clip uses viewport pixels, not its stretched viewBox coordinates.
+  // Keep the cutout inside the window border so antialiasing never exposes a page-colored seam.
+  const x=a.left-b.left+1,y=a.top-b.top+1,r=a.right-b.left-1,d=a.bottom-b.top-1;
+  const radius=Math.max(0,parseFloat(getComputedStyle(product).borderTopLeftRadius)-1),rx=radius,ry=radius;
+  cover.setAttribute('d',`M-2 -2H${b.width+2}V${b.height+2}H-2Z M${x+rx} ${y}H${r-rx}Q${r} ${y} ${r} ${y+ry}V${d-ry}Q${r} ${d} ${r-rx} ${d}H${x+rx}Q${x} ${d} ${x} ${d-ry}V${y+ry}Q${x} ${y} ${x+rx} ${y}Z`);
+}
+function makeCover(){const ns='http://www.w3.org/2000/svg',clip=document.createElementNS(ns,'clipPath');clip.id='ribbon-window-cover';clip.setAttribute('clipPathUnits','userSpaceOnUse');cover=document.createElementNS(ns,'path');cover.setAttribute('clip-rule','evenodd');clip.append(cover);svg.querySelector('defs').append(clip);svg.setAttribute('clip-path','url(#ribbon-window-cover)');coverWindow();restore.push(()=>{svg.removeAttribute('clip-path');clip.remove();cover=null})}
 function complete(){
   if(completed) return;
   completed=true;
@@ -67,7 +78,8 @@ else{
   const background='ribbon';
   if(background==='ribbon'){
     const surface=svg.querySelector('#ribbon-surface');
-    const ribbonStart=windowDelay+fadeDuration,bandDuration=350,bandStagger=55;
+    const ribbonStart=windowDelay,bandDuration=350,bandStagger=55;
+    makeCover();
     const bands=[...svg.querySelectorAll('[data-ribbon-band]')].map((band,index)=>{
       const paths=[...band.querySelectorAll('path')];
       const seam=svg.querySelector(`#ribbon-seam-${index+1}`);
@@ -90,7 +102,7 @@ else{
     });
     paintRibbons();
     // A seekable clock drives d attributes, not a transform or clipping wipe.
-    // It starts only after the live window has painted.
+    // Entry starts with the app becoming opaque, after its renderer is ready.
     const clock=svg.animate([],{duration:ribbonStart+4*bandStagger+bandDuration,fill:'backwards'});
     animations.push(clock);
     function draw(){
@@ -102,11 +114,13 @@ else{
         const length=coveredLength+(1-coveredLength)*(1-(1-progress)**3);
         geometry.forEach(part=>part.progress=length);
       });
-      paintRibbons();
+      paintRibbons();coverWindow();
       if(!completed) frame=requestAnimationFrame(draw);
     }
     frame=requestAnimationFrame(draw);
   }
+  // Keep the app demo and idle motion on their existing schedule.
+  animations.push(svg.animate([],{duration:windowDelay+fadeDuration+4*55+350}));
   Promise.all(animations.map(animation=>animation.finished)).then(complete).catch(()=>{});
   reduceMotion.addEventListener('change',event=>{
     if(!event.matches) return;
