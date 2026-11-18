@@ -1,7 +1,9 @@
 {
   "appCommit": "125473d0db59640acfc96261b66b79544ada4302",
-  "sourceOverrides": {},
-  "generatedAt": "2026-11-18T17:31:38.236Z",
+  "sourceOverrides": {
+    "app/src/renderer/src/styles.css": "13f3c987136d93ff888fb4438e3464864dc04114dcbc036127a660018bec11f3"
+  },
+  "generatedAt": "2026-11-18T17:57:33.601Z",
   "source": "app/src/renderer",
   "fixture": "site/renderer/bridge.mjs",
   "nativeCode": false,
@@ -128,9 +130,9 @@
       "sha256": "45e4eb19dcb4fc8ce3825d6cfeeb1d8f8d7a16e09ee4583a005518c880f028e4"
     },
     "renderer.css": {
-      "bytes": 264224,
-      "gzipBytes": 86021,
-      "sha256": "64aa0c8319a55a182397fe1c8a82cb38ec453d6434225cf5c1e42a4d1461fff4"
+      "bytes": 264247,
+      "gzipBytes": 86033,
+      "sha256": "49ae107495cc2d693b9881d29d5988a5b2375121abc40f26498c096d27ef1252"
     },
     "renderer.js": {
       "bytes": 1505315,
@@ -138,5 +140,5 @@
       "sha256": "526febdc140c297322752d42858d914e9e4c5ae87383b600f81b96752a13eb27"
     }
   },
-  "totalGzipBytes": 550018
+  "totalGzipBytes": 550030
 }
