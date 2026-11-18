@@ -18,7 +18,7 @@ const wait = (ms = 5) => new Promise((r) => setTimeout(r, ms))
 /** waits for what an assertion needs, up to 5 s: a fixed sleep was too short on a slow Windows runner */
 const until = (check: () => void) => vi.waitFor(check, { timeout: 5000, interval: 10 })
 
-function setup(o: { summaryLanguage?: () => string; me?: string; named?: () => Promise<void>; namesWaitMs?: number; reply?: string | ((prompt: string) => string); during?: () => void; load?: Promise<void>; title?: string; recording?: () => boolean; smallMac?: boolean; showLoading?: boolean } = {}) {
+function setup(o: { summaryLanguage?: () => string; me?: string; named?: () => Promise<void>; namesWaitMs?: number; reply?: string | ((prompt: string) => string); during?: () => void; load?: Promise<void>; title?: string; recording?: () => boolean; smallMac?: boolean; showLoading?: boolean; modelReady?: () => boolean; isTranscriptionOnly?: () => boolean } = {}) {
   const d = mkdtempSync(join(tmpdir(), 'yogurt-notes-'))
   dirs.push(d)
   const store = openStore(join(d, 'yogurt.db'))
@@ -37,10 +37,10 @@ function setup(o: { summaryLanguage?: () => string; me?: string; named?: () => P
     contextSize: 32_000, count: async (xs) => xs.map((x) => x.length),
     chat: async (prompt, onToken) => { prompts.push(prompt); o.during?.(); const r = typeof o.reply === 'function' ? o.reply(prompt) : o.reply ?? '## Plan\n- We ship Tuesday\n## Next steps\n- **Ann:** Send it.'; onToken(r); return r },
   }
-  const queue = createQueue({ recording: o.recording ?? (() => false), smallMac: o.smallMac ?? false })
+  const queue = createQueue({ recording: o.recording ?? (() => false), smallMac: o.smallMac ?? false, modelReady: o.modelReady, isTranscriptionOnly: o.isTranscriptionOnly })
   const notes = hookNotes({
     store, queue, model: { llm: async (signal) => { if (signal) signals.push(signal); await o.load; return llm }, needsLoad: () => true }, showLoading: o.showLoading,
-    transcribed: () => transcript, named: o.named, namesWaitMs: o.namesWaitMs, language: () => 'spanish', summaryLanguage: o.summaryLanguage,
+    transcribed: () => transcript, named: o.named, namesWaitMs: o.namesWaitMs, language: () => 'spanish', isTranscriptionOnly: o.isTranscriptionOnly, summaryLanguage: o.summaryLanguage,
     onStop: (fn) => stops.push(fn), send: (v) => sent.push(v), changed: (id) => changed.push(id), peopleRewriteMs: 30, me: () => o.me ?? '',
   })
   return { store, m, notes, sent, prompts, changed, queue, llm, signals, stop: () => stops.forEach((f) => f(m)), transcribed }
@@ -570,6 +570,39 @@ it('still refreshes the auto title when an editor keeps changes over an attendee
   expect(s.store.notes(s.m.id).enhanced).toBe('My retained edit')
   expect(s.store.meeting(s.m.id)!.title).toBe('Planning with Guest')
   expect(s.prompts.filter(p => p.startsWith('Now give this meeting a title'))).toHaveLength(1)
+})
+
+describe('transcription only', () => {
+  it('a meeting that stops gets no notes job and no waiting state', async () => {
+    const s = setup({ isTranscriptionOnly: () => true })
+    s.stop(); s.transcribed()
+    await wait(20)
+    expect(s.sent).toEqual([])
+    expect(s.prompts).toEqual([])
+    await s.notes.writeAgain(s.m.id)
+    expect(s.prompts).toEqual([])
+    expect(s.sent.some((v) => v.status === 'waiting')).toBe(false)
+  })
+  it('recover() at launch writes no notes', async () => {
+    const s = setup({ isTranscriptionOnly: () => true })
+    s.notes.recover()
+    await wait(20)
+    expect(s.prompts).toEqual([])
+    expect(s.sent).toEqual([])
+  })
+  it('turning the mode on clears a waiting state instead of leaving a download wait', async () => {
+    let off = false
+    const s = setup({ modelReady: () => false, isTranscriptionOnly: () => off })
+    s.stop(); s.transcribed()
+    await vi.waitFor(() => expect(s.sent.at(-1)).toMatchObject({ status: 'waiting' }))
+    off = true
+    s.queue.transcriptionOnlyChanged()
+    s.notes.transcriptionOnlyChanged()
+    await s.notes.written(s.m.id)
+    await wait(20)
+    expect(s.sent.at(-1)).toMatchObject({ status: 'idle' })
+    expect(s.prompts).toEqual([])
+  })
 })
 
 it('reads the summary default for each new write without changing saved notes or the meeting language', async () => {

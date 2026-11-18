@@ -219,6 +219,15 @@ describe('hookChat: the conversation the window shows, kept per meeting', () => 
     expect(chat.view(id).turns).toEqual([])
     expect(store.chatTurns(id)).toEqual([])
   })
+  it('transcription only: asking creates no turn and asks the model nothing', async () => {
+    const { store, id } = seeded()
+    const { llm, prompts } = fakeLlm()
+    const chat = hookChat({ store, queue: createQueue({ recording: () => false, smallMac: false }), model: { llm: async () => llm }, send: () => {}, waitsForMeeting: () => false, isTranscriptionOnly: () => true })
+    await chat.ask(id, 'When does it go live?')
+    expect(chat.view(id).turns).toEqual([])
+    expect(store.chatTurns(id)).toEqual([])
+    expect(prompts).toEqual([])
+  })
 })
 
 describe('answers never call people by the speaker letters', () => {

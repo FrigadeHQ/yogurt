@@ -7,6 +7,11 @@ import { CONTEXT } from '../../shared/engine-protocol'
  * folder: one folder proposal per meeting, with the same priority and recording policy as indexing.
  */
 export type JobKind = 'names' | 'enhance' | 'chat' | 'readahead' | 'index' | 'folder'
+/**
+ * The jobs that need the notes model. index is intentionally NOT here: embeddings are local and search must work
+ * in transcription-only mode, where no notes model ever arrives.
+ */
+export const LLM_JOB_KINDS: readonly JobKind[] = ['names', 'enhance', 'chat', 'readahead', 'folder']
 /** A job gets a signal: aborted when a recording starts on a small Mac. It is then run again from the start later. */
 export type Job = (signal: AbortSignal) => Promise<void>
 
@@ -54,6 +59,8 @@ export function createQueue(o: {
   idleMs?: number
   /** a notes model is on the Mac (first run: not until its download lands); nothing runs before */
   modelReady?: () => boolean
+  /** Notes & AI off (transcription only): LLM jobs resolve at once instead of waiting for a model that never comes */
+  isTranscriptionOnly?: () => boolean
 }) {
   const waiting: Entry[] = []
   let running: { entry: Entry; abort: AbortController } | undefined
@@ -68,7 +75,9 @@ export function createQueue(o: {
 
   const backlog = () => o.backlogMs?.() ?? 0
   const allowed = (kind: JobKind) => {
-    if (o.modelReady && !o.modelReady()) return false
+    // index uses only the embedding model, never the notes model: it must not wait for one that never arrives
+    // in transcription-only mode (the indexer itself does nothing until the embedding model is in)
+    if (kind !== 'index' && o.modelReady && !o.modelReady()) return false
     if ((kind === 'index' || kind === 'folder') && o.recording()) return false
     if (kind === 'readahead' && !o.smallMac && backlog() > READ_BACKLOG_MS) return false
     if (o.smallMac) return !o.recording()
@@ -97,8 +106,15 @@ export function createQueue(o: {
   /** a stopped job starts over later; a stopped read ahead is dropped (the next one reads what is new by then) */
   const again = (e: Entry) => { if (e.cancelled || e.kind === 'readahead' || (e.meetingId && gone.has(e.meetingId))) e.resolve(); else waiting.unshift(e) }
 
+  /** LLM jobs waiting when Notes & AI is turned off resolve at once: no LLM job may ever be pending while it is off */
+  const dropDisabled = () => {
+    if (!o.isTranscriptionOnly?.()) return
+    for (const e of waiting.filter((x) => x.kind !== 'index')) { waiting.splice(waiting.indexOf(e), 1); e.resolve() }
+  }
+
   const pump = () => {
     watching()
+    dropDisabled()
     if (running) return
     // a question first (someone is waiting on it), reading ahead only once nothing else can run
     let i = waiting.findIndex((e) => e.kind === 'chat' && allowed(e.kind))
@@ -136,6 +152,9 @@ export function createQueue(o: {
     enqueue(job: Job, kind: JobKind, meetingId?: string): Promise<void> {
       let resolve!: () => void, reject!: (e: unknown) => void
       const done = new Promise<void>((yes, no) => { resolve = yes; reject = no })
+      // Transcription only: an LLM job resolves at once, without entering the waiting queue — it must never hang
+      // for a notes model that will never arrive. index still runs: search is the mode's promise.
+      if (o.isTranscriptionOnly?.() && kind !== 'index') { resolve(); return done }
       // Not while a small Mac records; deleted meetings never receive new work.
       if ((kind === 'readahead' && o.smallMac && o.recording()) || (meetingId && gone.has(meetingId))) { resolve(); return done }
       if (kind === 'readahead') {
@@ -179,6 +198,8 @@ export function createQueue(o: {
     },
     /** the first notes model has landed: what waited for it runs now */
     modelArrived() { pump() },
+    /** Notes & AI was just turned off: LLM jobs still waiting resolve at once instead of hanging */
+    transcriptionOnlyChanged() { dropDisabled(); pump() },
     busy: () => !!running || waiting.length > 0,
   }
 }

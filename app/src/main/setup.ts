@@ -29,6 +29,8 @@ export type SetupDeps = {
   retryDelaysMs?: number[]
   /** the first notes model downloads after ready: the waits between tries when it fails (the last one repeats) */
   notesRetryMs?: number[]
+  /** Notes & AI off: no notes model is downloaded and no notes job runs (transcription only) */
+  transcriptionOnly?: () => boolean
   upgradePreference?: { load(): boolean; save(skipped: boolean): void }
   /** Windows and Linux: the speed check picks the speech model (a Mac never has it: turbo, as always) */
   speed?: SpeedDeps
@@ -64,6 +66,9 @@ export class SetupController {
   private busy = false
   private background: Promise<void> | undefined
   private backgroundItem: Item | undefined
+  private embedItem: Item | undefined
+  /** the first notes model's download flow, while it runs; cleared when it ends without landing, so turning Notes & AI back on can start it again */
+  private notesFlow: Promise<void> | undefined
   private firstItem: Item | undefined
   private upgradeAbort: AbortController | undefined
   private upgradeDownload: Promise<void> | undefined
@@ -113,6 +118,8 @@ export class SetupController {
   }
 
   downloadUpgrade() {
+    // transcription only: the bigger notes model never downloads, even when one is already on disk
+    if (this.deps.transcriptionOnly?.()) return
     if (!this.backgroundItem || this.upgradeChange || this.upgradeAbort || this.paths?.recommendedLlm) return
     this.deps.upgradePreference?.save(false)
     this.set({ ...this._state, notesUpgradeSkipped: false, notesUpgradePending: true, notesUpgradeError: undefined })
@@ -222,6 +229,7 @@ export class SetupController {
       const skipped = this.deps.upgradePreference?.load() ?? false
       const e = catalog.embedding
       const embedItem: Item = { url: e.url, sha256: e.sha256, bytes: e.bytes, dir: dirs.embed, fileName: fileNameFor(e.url) }
+      this.embedItem = embedItem
 
       // Windows and Linux: the speed check's stored pick for this computer, or the models it will time, best first
       const speed = hw.os === 'darwin' ? undefined : this.deps.speed
@@ -235,8 +243,9 @@ export class SetupController {
 
       const waitFor: Item[] = [asrItem(speed ? keep ?? candidates[0] : asr.model)]
       const total = waitFor.reduce((n, i) => n + i.bytes, 0)
-      // room for the first notes model too, so it never runs out of disk after ready
-      await this.checkDisk([...waitFor, ...(hasUpgrade ? [] : [starterItem]), embedItem])
+      // room for the first notes model too, so it never runs out of disk after ready; transcription only reserves
+      // none, since that model will never download
+      await this.checkDisk([...waitFor, ...(hasUpgrade || this.deps.transcriptionOnly?.() ? [] : [starterItem]), embedItem])
 
       let done = 0
       const report = (item: Item, fraction: number) => this.set({ phase: 'downloading', fraction: Math.min(1, (done + item.bytes * fraction) / total) })
@@ -304,9 +313,13 @@ export class SetupController {
   /**
    * The first notes model downloads while Yogurt already records: it is tried until it lands (meetings recorded
    * meanwhile get their notes then). The bigger one follows.
+   * Transcription only: the notes model is never downloaded and no retry is armed; the embedding model still
+   * downloads (search must work), and the bigger model is skipped. Turning Notes & AI back on calls
+   * resumeNotesDownload(), which starts this flow again.
    */
   private startNotes(first: Item, embed: Item) {
-    this.background = (async () => {
+    this.notesFlow = (async () => {
+      if (this.deps.transcriptionOnly?.()) return
       const waits = this.deps.notesRetryMs ?? NOTES_RETRY_MS
       // Waiting notes show whole percents; every 10% goes in the log.
       let shown = -1, logged = -1
@@ -318,10 +331,13 @@ export class SetupController {
       const already = isVerified(first.dir, first.fileName, this.sha(first))
       if (!already && !this.paths?.recommendedLlm) console.info('NOTES', `downloading the notes model ${first.fileName}`)
       for (let i = 0; !this.paths?.recommendedLlm; i++) {
+        // turned off while waiting or downloading: stop trying, and never land a download that finished after
+        if (this.deps.transcriptionOnly?.()) return
         shown = -1
         this.set({ ...this._state, notesError: undefined, ...(already ? {} : { notesDownloading: true, notesFraction: 0, notesTotalBytes: first.bytes, notesEtaSec: undefined }) })
         try {
           const path = await this.fetch(first, already ? undefined : progress)
+          if (this.deps.transcriptionOnly?.()) return
           if (this.paths) this.paths = { ...this.paths, llm: path }
           if (!already) console.info('NOTES', 'the notes model is in')
           this.set({ ...this._state, notesFraction: undefined, notesDownloading: undefined, notesTotalBytes: undefined, notesEtaSec: undefined, notesUpgradePending: !!this.backgroundItem && !this._state.notesUpgradeSkipped })
@@ -338,27 +354,42 @@ export class SetupController {
       }
       for (const l of this.notesListeners) { try { l() } catch (e) { console.error('notes model listener failed', e) } }
     })()
-    this.background = this.background.then(() => this.startEmbedding(embed))
-    this.background = this.background.then(() => { if (this.backgroundItem) return this.startBackground(this.backgroundItem) })
+    // a flow that ended without landing leaves the way clear for resumeNotesDownload()
+    const flow = this.notesFlow
+    void flow.finally(() => { if (this.notesFlow === flow && !this.paths?.llm && !this.paths?.recommendedLlm) this.notesFlow = undefined }).catch(() => {})
+    this.background = this.notesFlow.then(() => this.startEmbedding(embed))
+    this.background = this.background.then(() => { if (!this.deps.transcriptionOnly?.() && this.backgroundItem) return this.startBackground(this.backgroundItem) })
+  }
+
+  /**
+   * Turn Notes & AI back on: resume the notes-model download flow if it is not already running or landed.
+   * Idempotent: a second call while the flow runs does nothing. Does nothing before setup reached ready.
+   */
+  resumeNotesDownload() {
+    if (this.notesFlow || this.paths?.llm || this.paths?.recommendedLlm || !this.firstItem || !this.embedItem) return
+    this.startNotes(this.firstItem, this.embedItem)
   }
 
   /**
    * The embedding model (meaning search across meetings), small, after the first notes model. One try first, so the
    * bigger notes model never waits on it; failing, it keeps being tried meanwhile. Chat works on words until it lands.
    */
-  private async startEmbedding(item: Item) {
+  /** The embedding model downloads once; a second startNotes (turning Notes & AI back on mid-download) joins the running one instead of fetching the same file twice. */
+  private startEmbedding(item: Item) {
+    if (this.embedding) return this.embedding
     const landed = (path: string) => {
       if (this.paths) this.paths = { ...this.paths, embed: path }
       for (const l of this.embedListeners) { try { l() } catch (e) { console.error('embedding model listener failed', e) } }
     }
-    try { landed(await this.fetch(item)); return } catch (err) { console.warn('the embedding model did not download yet, trying again', err) }
-    const waits = this.deps.notesRetryMs ?? NOTES_RETRY_MS
     this.embedding = (async () => {
+      try { landed(await this.fetch(item)); return } catch (err) { console.warn('the embedding model did not download yet, trying again', err) }
+      const waits = this.deps.notesRetryMs ?? NOTES_RETRY_MS
       for (let i = 0; ; i++) {
         await new Promise((r) => setTimeout(r, waits[Math.min(i, waits.length - 1)]))
         try { landed(await this.fetch(item)); return } catch (err) { console.warn('the embedding model did not download yet, trying again', err) }
       }
     })()
+    return this.embedding
   }
 
   /** The bigger notes model downloads while Yogurt is already usable. Failing here is not an error screen. */

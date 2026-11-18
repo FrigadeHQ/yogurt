@@ -214,7 +214,7 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
     }).catch(() => { saveText(q); setError(true) }).finally(() => setSending(false))
   }
   const send = (q: string) => {
-    if (!q.trim() || sending || changing || answering || loadError || (!chat && (!panel || error))) return
+    if (!q.trim() || sending || changing || answering || loadError || chat?.transcriptionOnly || (!chat && (!panel || error))) return
     keepTyping()
     follow.resume(); setSending(true); setError(false); setMention(undefined); setSelector(undefined)
     // Typing is available before the conversation loads; Enter must survive that handoff too.
@@ -252,7 +252,7 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
     void window.yogurt.conversations.current(attachContext(chat.chips, chat.draftChips), true).then(onSelect).catch(() => setError(true))
   }
   const startersHidden = !panel && (!!text || !!selector)
-  const suggestions = unsent && (landing || panel) && (!panel || !text) && <div data-testid={panel ? 'chat-suggestions' : 'chat-starters'} aria-hidden={startersHidden || undefined} data-instant={!!selector || undefined} inert={startersHidden} className={`ask-starters${panel ? '' : ' ask-home-starters'}`}>
+  const suggestions = !chat?.transcriptionOnly && unsent && (landing || panel) && (!panel || !text) && <div data-testid={panel ? 'chat-suggestions' : 'chat-starters'} aria-hidden={startersHidden || undefined} data-instant={!!selector || undefined} inert={startersHidden} className={`ask-starters${panel ? '' : ' ask-home-starters'}`}>
     {starters(chips, recording).map(q => <button type="button" key={q} title={q} data-testid={panel ? 'chat-suggestion' : 'chat-starter'} disabled={busy || startersHidden} onClick={() => send(q)}>{q}</button>)}
   </div>
   const targetRow = (c: ContextTarget, i: number) => <button type="button" role="option" tabIndex={-1} disabled={busy}
@@ -302,10 +302,11 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
     </div>
     <div className={`ask-composer${panel ? ' chat-composer' : ''}`}>
       {error && <p data-testid={panel ? "chat-send-error" : "chat-page-error"} role="alert" className="chat-error">{t("Couldn't save your changes")}</p>}
+      {chat?.transcriptionOnly && <p data-testid={`${prefix}-off`} role="status" className="text-sm text-muted">{t('Ask is off in Transcription only mode.')}</p>}
       <LoadingContent pending={!panel && !chat && !error} onReady={() => { if (chat) input.current?.focus({ preventScroll: true }) }} testId={landing ? "chat-loading" : undefined}><form ref={composer} className="ask-box" data-busy={busy || undefined} data-testid={`${prefix}-box`} onSubmit={e => { e.preventDefault(); send(text) }} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setMention(undefined) }}>
         <div className="ask-field">
         <textarea autoFocus={panel} ref={input} id={panel ? 'meeting-question' : 'library-question'} data-testid={`${prefix}-input`} rows={1} maxLength={4000}
-          placeholder={landing ? undefined : panel ? t('Ask anything') : t('Ask about your meetings')} aria-label={panel ? t('Ask anything') : t('Ask about your meetings')} value={text} disabled={!panel && !chat} readOnly={sending || changing}
+          placeholder={landing ? undefined : panel ? t('Ask anything') : t('Ask about your meetings')} aria-label={panel ? t('Ask anything') : t('Ask about your meetings')} value={text} disabled={(!panel && !chat) || chat?.transcriptionOnly === true} readOnly={sending || changing}
           role="combobox" aria-autocomplete="list" aria-expanded={!!mention} aria-controls={mention ? `${prefix}-contexts` : undefined}
           aria-activedescendant={mention && selected < rowCount ? `${prefix}-context-${selected}` : undefined}
           onChange={e => { saveText(e.target.value); detectMention(e.target.value, e.target.selectionStart) }}
@@ -338,7 +339,7 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
             </Popover.Portal>
           </Popover.Root>
           {answering ? <button type="button" data-testid={`${prefix}-stop`} className="ask-toolbar-button ask-stop" aria-label={chat?.waitsForModel ? t('Cancel question') : t('Stop')} title={chat?.waitsForModel ? t('Cancel question') : t('Stop')} onClick={() => { keepTyping(); window.yogurt.conversations.stop(id) }}><Square size={10} fill="currentColor" /></button>
-            : <button type="submit" data-testid={`${prefix}-send`} className="ask-toolbar-button ask-send" disabled={busy || !text.trim()} aria-label={t('Ask')}><span className="orb-material" aria-hidden="true" /><ArrowUp size={16} /></button>}
+            : <button type="submit" data-testid={`${prefix}-send`} className="ask-toolbar-button ask-send" disabled={busy || !text.trim() || chat?.transcriptionOnly === true} aria-label={t('Ask')}><span className="orb-material" aria-hidden="true" /><ArrowUp size={16} /></button>}
         </div>
         </div>
         {mention && createPortal(<div ref={mentionMenu} className="ask-picker ask-mention" id={`${prefix}-contexts`} role="listbox" aria-label={t('Add context')}>{results}</div>, input.current?.closest('dialog') ?? document.body)}
@@ -355,7 +356,9 @@ function Turn({ turn, chat, panel, showCopy, onSource, onRetry }: { showCopy: bo
   useEffect(() => { if (!copied) return; const timer = setTimeout(() => setCopied(false), 1800); return () => clearTimeout(timer) }, [copied])
   return <div data-testid={`${prefix}-turn`} data-status={turn.status} data-show-copy={showCopy || undefined} className="ask-turn">
     <p className="ask-question" data-testid={`${prefix}-question`}>{turn.question}</p>
-    {(turn.status === 'waiting' || live && !answer) && (chat.waitsForModel && turn.status === 'waiting'
+    {(turn.status === 'waiting' || live && !answer) && (chat.transcriptionOnly && turn.status === 'waiting'
+      ? <p role="status" className="text-sm text-muted">{t('Ask is off in Transcription only mode.')}</p>
+      : chat.waitsForModel && turn.status === 'waiting'
       ? <NotesModelWait downloading={percent => <p role="status" className="text-sm text-muted">{t("Your question is waiting for Yogurt's AI to download.")} <span className="whitespace-nowrap">{percent}</span></p>}><p role="status" className="text-sm text-muted">{t('Getting ready to answer. Yogurt is still setting up.')}</p></NotesModelWait>
       : <p className="chat-progress" role="status">{chat.waitsForMeeting && turn.status === 'waiting' ? t('Yogurt will answer once the meeting ends.') : <><ThinkingDots /><StepText step={turn.status === 'waiting' ? undefined : turn.step} /></>}</p>)}
     {answer && <div data-testid={`${prefix}-answer`} dir="auto" data-streaming={live || undefined} className={`note-prose chat-answer${live ? ' stream-caret' : ''}`}><AnswerText md={answer} live={live} sources={turn.sources} onSource={onSource} /></div>}

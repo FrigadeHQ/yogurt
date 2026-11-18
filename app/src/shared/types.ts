@@ -260,12 +260,14 @@ export type YogurtApi = {
   }
   settings: {
     /** myName: what the person is called in meetings (their Mac's full name, macName, when they never changed it) */
-    get(): Promise<{ theme: Theme; openAtLogin: boolean; showInMenuBar: boolean; appVisibility: AppVisibility; /** the language picked; '' follows the Mac */ language: string; /** the language in use */ locale: string; /** the Mac's language, among Yogurt's */ systemLocale: string; myName: string; macName: string; /** a recording stops by itself when its call ends (off: ask first) */ stopWhenCallEnds: boolean; recordingReminder: boolean; keepRecordings: boolean; /** personal jargon, spelled as typed */ jargon: string[]; /** the language people speak in meetings */ spoken: import('./spoken').Spoken; /** default summary language; '' follows the meeting */ summaryLanguage: string }>
+    get(): Promise<{ theme: Theme; openAtLogin: boolean; showInMenuBar: boolean; appVisibility: AppVisibility; /** the language picked; '' follows the Mac */ language: string; /** the language in use */ locale: string; /** the Mac's language, among Yogurt's */ systemLocale: string; myName: string; macName: string; /** a recording stops by itself when its call ends (off: ask first) */ stopWhenCallEnds: boolean; recordingReminder: boolean; keepRecordings: boolean; /** Notes & AI off: run without the notes model */ transcriptionOnly: boolean; /** personal jargon, spelled as typed */ jargon: string[]; /** the language people speak in meetings */ spoken: import('./spoken').Spoken; /** default summary language; '' follows the meeting */ summaryLanguage: string }>
     /** blank goes back to the Mac's full name */
     setName(name: string): Promise<void>
     setTheme(v: Theme): Promise<void>
     setOpenAtLogin(on: boolean): Promise<void>
     setShowInMenuBar(on: boolean): Promise<void>
+    /** Notes & AI off (transcription only): no notes model is downloaded, no notes job runs */
+    setTranscriptionOnly(on: boolean): Promise<void>
     setAppVisibility(choice: AppVisibility): Promise<void>
     setStopWhenCallEnds(on: boolean): Promise<void>
     setRecordingReminder(on: boolean): Promise<void>
@@ -422,6 +424,8 @@ export type ChatView = {
   waitsForMeeting: boolean
   /** the first run is still downloading the notes model: answers wait for it */
   waitsForModel: boolean
+  /** Notes & AI off (transcription only): Ask is disabled, never waiting for a model */
+  transcriptionOnly?: boolean
 }
 
 /** [n] in the answer. atMs is the transcript position (null: notes); older saved sources have no excerpt. */
@@ -441,6 +445,8 @@ export type ConversationView = {
   waitsForMeeting: boolean
   /** the first run is still downloading the notes model: answers wait for it */
   waitsForModel: boolean
+  /** Notes & AI off (transcription only): Ask is disabled, never waiting for a model */
+  transcriptionOnly?: boolean
 }
 /** a saved conversation in the Chat page's list */
 export type ConversationSummary = { id: string; title: string; updatedAt: number; chips: ContextTarget[]; draft: string }

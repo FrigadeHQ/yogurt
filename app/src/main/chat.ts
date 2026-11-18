@@ -258,6 +258,8 @@ export function hookChat(p: Deps & {
   waitsForMeeting: () => boolean
   /** first run: the notes model is still downloading, so answers wait for it */
   waitsForModel?: () => boolean
+  /** Notes & AI off (transcription only): asking creates no turn and asks the model nothing */
+  isTranscriptionOnly?: () => boolean
 }) {
   const chats = new Map<string, ChatTurn[]>()
   const running = new Map<string, AbortController>()
@@ -273,11 +275,13 @@ export function hookChat(p: Deps & {
     }
     return list
   }
-  const view = (id: string): ChatView => ({ meetingId: id, turns: turns(id).map((t) => ({ ...t })), waitsForMeeting: p.waitsForMeeting(), waitsForModel: p.waitsForModel?.() ?? false })
+  const view = (id: string): ChatView => ({ meetingId: id, turns: turns(id).map((t) => ({ ...t })), waitsForMeeting: p.waitsForMeeting(), waitsForModel: p.waitsForModel?.() ?? false, transcriptionOnly: p.isTranscriptionOnly?.() ?? false })
 
   return {
     view,
     async ask(id: string, raw: string) {
+      // transcription only: no turn, no model call — the window disables Ask, this is the backstop
+      if (p.isTranscriptionOnly?.()) return
       const question = raw.trim().slice(0, 4000)
       if (!question || running.has(id)) return
       const list = turns(id)

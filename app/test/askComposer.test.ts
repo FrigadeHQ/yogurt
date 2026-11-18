@@ -68,6 +68,26 @@ it('retains typing across pending-ID handoff and failed persistence without carr
   if (typeof cleanup === 'function') cleanup()
 })
 
+it('disables the composer and says Ask is off when transcription only is on', () => {
+  vi.stubGlobal('window', { matchMedia: () => ({ matches: false }) })
+  const initial: ConversationView = { id: 'composer-off', title: '', chips: [], draft: '', draftChips: [], firstChips: [],
+    turns: [{ id: 1, question: 'What was decided?', status: 'waiting', answer: '', sources: [] }], waitsForMeeting: false, waitsForModel: true, transcriptionOnly: true }
+  const html = renderToStaticMarkup(createElement(AskConversation, { id: initial.id, initial, panel: true, onSelect() {}, onDeleted() {}, onSource() {} }))
+  const input = html.match(/<textarea[^>]*data-testid="chat-input"[^>]*>/)?.[0]
+  expect(input).toBeTruthy()
+  expect(input).toContain('disabled')
+  expect(html).toContain('Ask is off in Transcription only mode.')
+  // without the guard the turn shows the setup wait instead
+  expect(html).not.toContain('Getting ready to answer')
+  expect(html).not.toContain("Waiting for Yogurt's AI to finish downloading")
+  // while a turn waits the send button is replaced by Stop, so the send check lives in the idle render below
+  // a non-empty draft with no turns: the send button is disabled only by the mode
+  const idle: ConversationView = { ...initial, id: 'composer-off-idle', draft: 'A follow-up', turns: [] }
+  const idleHtml = renderToStaticMarkup(createElement(AskConversation, { id: idle.id, initial: idle, panel: true, onSelect() {}, onDeleted() {}, onSource() {} }))
+  expect(idleHtml).toMatch(/data-testid="chat-send"[^>]*disabled=""/)
+  expect(idleHtml).toContain('Ask is off in Transcription only mode.')
+})
+
 it('keeps the landing input labeled without repeating its heading as a placeholder', () => {
   vi.stubGlobal('window', { matchMedia: () => ({ matches: false }) })
   const initial: ConversationView = { id: 'landing-copy', title: '', chips: [], draft: '', draftChips: [], firstChips: null,

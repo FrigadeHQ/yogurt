@@ -25,7 +25,7 @@ const trayLabel = () => window.yogurt.os === 'win32' ? t('Show Yogurt in the not
 /** focus: the setting a toast's Settings button opens, recordings or notes-model */
 export function Settings({ revision = 0, focus }: { revision?: number; focus?: string }) {
   const [perms, setPerms] = useState<PermissionStatus>()
-  const [prefs, setPrefs] = useState<{ theme: Theme; openAtLogin: boolean; showInMenuBar: boolean; appVisibility: AppVisibility; myName: string; macName: string; stopWhenCallEnds: boolean; recordingReminder: boolean; keepRecordings: boolean }>()
+  const [prefs, setPrefs] = useState<{ theme: Theme; openAtLogin: boolean; showInMenuBar: boolean; appVisibility: AppVisibility; myName: string; macName: string; stopWhenCallEnds: boolean; recordingReminder: boolean; keepRecordings: boolean; transcriptionOnly: boolean }>()
   const [name, setName] = useState('')
   const [generalReady, setGeneralReady] = useState(false)
   const scroll = useScrollMemory<HTMLDivElement>('settings', !!prefs && !!perms)
@@ -144,7 +144,12 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
               await window.yogurt.settings.setKeepRecordings(on)
               setPrefs(p => p && { ...p, keepRecordings: on })
             }} />
-            <NotesModel reveal={focus === 'notes-model'} />
+            {/* transcription only: a bigger-model download makes no sense with no notes model at all */}
+            {!prefs?.transcriptionOnly && <NotesModel reveal={focus === 'notes-model'} />}
+            <NotesAiSetting reveal={focus === 'notes-ai'} on={prefs?.transcriptionOnly ?? false} disabled={!prefs} onChange={on => {
+              if (!prefs) return
+              setPrefs({ ...prefs, transcriptionOnly: on }); void window.yogurt.settings.setTranscriptionOnly(on)
+            }} />
           </LoadingContent></div>
 
           <h2 className="settings-section-heading">{t('What Yogurt can use')}</h2>
@@ -179,6 +184,21 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
       </div>
     </div>
   )
+}
+
+/** Settings → Notes & AI: run without the notes model (transcription only), or with it. */
+export function NotesAiSetting({ on, disabled = false, reveal = false, onChange }: { on: boolean; disabled?: boolean; reveal?: boolean; onChange: (on: boolean) => void }) {
+  const row = useRef<HTMLDivElement>(null)
+  useEffect(() => { if (reveal) row.current?.scrollIntoView({ block: 'center', behavior: 'instant' }) }, [reveal])
+  return <div ref={row} className={`settings-row${reveal ? ' settings-reveal' : ''}`} data-testid="settings-notes-ai">
+    <div className="settings-row-copy">
+      <p className="settings-label">{t('Notes & AI')}</p>
+      <p className="settings-description">{on
+        ? t('Transcription only. No notes model is downloaded, and no summaries or Ask answers are made. Transcripts and search keep working. Turning it off downloads the notes model.')
+        : t('Summaries and Ask use a notes model downloaded to this computer.')}</p>
+    </div>
+    <button data-testid="notes-ai-toggle" role="switch" aria-checked={on} aria-label={t('Notes & AI')} disabled={disabled} onClick={() => onChange(!on)} className="settings-toggle"><span className="settings-toggle-knob" /></button>
+  </div>
 }
 
 function NotesModel({ reveal = false }: { reveal?: boolean }) {

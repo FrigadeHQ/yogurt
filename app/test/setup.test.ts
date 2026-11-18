@@ -792,3 +792,116 @@ describe('optional better notes model', () => {
     expect(c.state.notesUpgradeChanging).toBeUndefined()
   })
 })
+
+describe('transcription only', () => {
+  it('downloads speech and the embedding model, but never the notes model, and never arms a retry', async () => {
+    const { c, rec } = setup({ transcriptionOnly: () => true, notesRetryMs: [0] })
+    const arrived: string[] = []
+    c.onNotesModel(() => arrived.push('notes'))
+    await c.start()
+    expect(c.state).toMatchObject({ phase: 'ready', fraction: 1 })
+    await c.idle()
+    const files = rec.asked.map(name)
+    expect(files).toContain(name(turboUrl))
+    expect(files).toContain(name(embedUrl))
+    expect(files).not.toContain(name(starterUrl))
+    expect(files).not.toContain(name(bigUrl))
+    expect(c.installed()?.llm).toBeUndefined()
+    expect(c.installed()?.recommendedLlm).toBeUndefined()
+    expect(c.notesPath()).toBeUndefined()
+    expect(arrived).toEqual([])
+    expect(c.state.notesDownloading).toBeUndefined()
+    expect(c.state.notesError).toBeUndefined()
+  })
+
+  it('turning it back on resumes the notes download, once, and the model lands', async () => {
+    let off = true
+    const { c, rec } = setup({ transcriptionOnly: () => off, notesRetryMs: [0] })
+    const arrived: string[] = []
+    c.onNotesModel(() => arrived.push(c.installed()!.llm!))
+    await c.start(); await c.idle()
+    expect(rec.asked).not.toContain(starterUrl)
+    off = false
+    c.resumeNotesDownload()
+    c.resumeNotesDownload()
+    await vi.waitFor(() => expect(arrived).toHaveLength(1))
+    expect(rec.asked.filter((u) => u === starterUrl)).toHaveLength(1)
+    expect(c.installed()?.llm).toMatch(/E4B/)
+    await c.idle()
+  })
+
+  it('disabling while the notes model downloads keeps it from landing', async () => {
+    let off = false
+    const root = mkdtempSync(join(tmpdir(), 'yogurt-setup-'))
+    const rec = recorder((u) => u === starterUrl)
+    const c = new SetupController({ getHardware: async () => m1max, getCatalog: async () => catalog, modelsDir: root, download: rec.deps, sha256Override: 'FAKE', retryDelaysMs: [0], notesRetryMs: [0], transcriptionOnly: () => off })
+    const arrived: string[] = []
+    c.onNotesModel(() => arrived.push('notes'))
+    await c.start()
+    await vi.waitFor(() => expect(rec.asked).toContain(starterUrl))
+    off = true
+    rec.release()
+    await c.idle()
+    expect(c.installed()?.llm).toBeUndefined()
+    expect(c.notesPath()).toBeUndefined()
+    expect(arrived).toEqual([])
+  })
+
+  it('zero-LLM guarantee: no notes download, no retry, no LLM job, with transcription and search still working', async () => {
+    const off = true
+    const { c, rec } = setup({ transcriptionOnly: () => off, notesRetryMs: [0] })
+    await c.start(); await c.idle()
+    expect(rec.asked).toContain(turboUrl)
+    expect(rec.asked).toContain(embedUrl)
+    expect(rec.asked.filter((u) => u === starterUrl || u === bigUrl)).toEqual([])
+    expect(c.state.notesDownloading).toBeUndefined()
+    expect(c.state.notesError).toBeUndefined()
+    const q = createQueue({ recording: () => false, smallMac: false, isTranscriptionOnly: () => off })
+    const ran: string[] = []
+    await Promise.all((['names', 'enhance', 'chat', 'readahead', 'folder'] as const).map((kind) => q.enqueue(async () => { ran.push(kind) }, kind)))
+    expect(ran).toEqual([])
+    expect(q.busy()).toBe(false)
+    const indexed: string[] = []
+    await q.enqueue(async () => { indexed.push('index') }, 'index')
+    expect(indexed).toEqual(['index'])
+    expect(c.installed()?.embed).toBeTruthy()
+  })
+
+  it('downloadUpgrade does nothing in transcription only mode, even with the starter model already in', async () => {
+    let off = false
+    const rec = recorder(u => u === embedUrl)
+    const root = mkdtempSync(join(tmpdir(), 'yogurt-upgrade-'))
+    const { c } = setup({ modelsDir: root, download: rec.deps, transcriptionOnly: () => off })
+    await c.start()
+    await vi.waitFor(() => expect(rec.asked).toContain(embedUrl))
+    await c.skipUpgrade()
+    rec.release(); await c.idle()
+    expect(c.installed()?.llm).toBeTruthy()
+    expect(rec.asked).not.toContain(bigUrl)
+    off = true
+    c.downloadUpgrade()
+    await new Promise((r) => setTimeout(r, 50))
+    expect(rec.asked).not.toContain(bigUrl)
+    expect(c.state.notesUpgradeSkipped).toBe(true)
+  })
+
+  it('turning the mode off and on again while the embedding downloads fetches it only once', async () => {
+    let off = false
+    const root = mkdtempSync(join(tmpdir(), 'yogurt-setup-'))
+    const rec = recorder((u) => u === starterUrl || u === embedUrl)
+    const c = new SetupController({ getHardware: async () => m1max, getCatalog: async () => catalog, modelsDir: root, download: rec.deps, sha256Override: 'FAKE', retryDelaysMs: [0], notesRetryMs: [0], transcriptionOnly: () => off })
+    await c.start()
+    await vi.waitFor(() => expect(rec.asked).toContain(starterUrl))
+    off = true
+    rec.release()
+    await vi.waitFor(() => expect(rec.asked).toContain(embedUrl))
+    off = false
+    c.resumeNotesDownload()
+    rec.release()
+    await c.idle()
+    expect(rec.asked.filter((u) => u === embedUrl)).toHaveLength(1)
+    expect(rec.asked.filter((u) => u === starterUrl)).toHaveLength(1)
+    expect(c.installed()?.llm).toBeTruthy()
+    expect(c.installed()?.embed).toBeTruthy()
+  })
+})

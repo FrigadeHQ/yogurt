@@ -36,6 +36,8 @@ type Deps = {
   waitsForMeeting: () => boolean
   /** first run: the notes model is still downloading */
   waitsForModel: () => boolean
+  /** Notes & AI off (transcription only): asking creates no turn and asks the model nothing */
+  isTranscriptionOnly?: () => boolean
   /** reading a meeting in ahead of a question is fine now (no recording that needs the room) */
   warmAllowed?: () => boolean
   now?: () => number
@@ -62,7 +64,7 @@ export function hookConversations(p: Deps) {
   }
   const view = (id: string): ConversationView | undefined => {
     const c = p.library.conversation(id)
-    return c && { id, title: c.title, chips: p.library.describe(c.chips), draftChips: p.library.describe(c.firstChips === null ? c.chips : c.draftChips), firstChips: c.firstChips === null ? null : p.library.describe(c.firstChips), draft: c.draft, turns: turns(id).map((t) => ({ ...t, sources: [...t.sources] })), waitsForMeeting: p.waitsForMeeting(), waitsForModel: p.waitsForModel() }
+    return c && { id, title: c.title, chips: p.library.describe(c.chips), draftChips: p.library.describe(c.firstChips === null ? c.chips : c.draftChips), firstChips: c.firstChips === null ? null : p.library.describe(c.firstChips), draft: c.draft, turns: turns(id).map((t) => ({ ...t, sources: [...t.sources] })), waitsForMeeting: p.waitsForMeeting(), waitsForModel: p.waitsForModel(), transcriptionOnly: p.isTranscriptionOnly?.() ?? false }
   }
   const list = (): ConversationSummary[] => p.library.conversations().map((c) => ({ id: c.id, title: c.title, updatedAt: c.updatedAt, chips: p.library.describe(c.chips), draft: c.draft }))
   const push = (id: string) => { const v = view(id); if (v) p.send(v) }
@@ -96,6 +98,8 @@ export function hookConversations(p: Deps) {
 
   /** A resumed question keeps its saved turn and context. */
   function ask(id: string | null, raw: string, o: { scope?: string[] } = {}, resume?: number): { id: string; done: Promise<void> } {
+    // transcription only: no turn, no model call — the window disables Ask, this is the backstop
+    if (p.isTranscriptionOnly?.()) return { id: id ?? '', done: Promise.resolve() }
     const question = raw.trim().slice(0, 4000)
     if (id && !p.library.conversation(id)) throw new Error('Conversation not found')
     if (id && running.has(id)) throw new Error('An answer is already running')

@@ -22,7 +22,7 @@ afterEach(() => {
 
 const now = new Date(2026, 10, 4, 15, 30).getTime()
 
-async function rig(o: { llm?: Partial<Llm>; queue?: ReturnType<typeof createQueue>; waitsForModel?: () => boolean; warmAllowed?: () => boolean } = {}) {
+async function rig(o: { llm?: Partial<Llm>; queue?: ReturnType<typeof createQueue>; waitsForModel?: () => boolean; warmAllowed?: () => boolean; isTranscriptionOnly?: () => boolean } = {}) {
   const d = mkdtempSync(join(tmpdir(), 'yogurt-conversations-'))
   dirs.push(d)
   const store = openStore(join(d, 'yogurt.db'))
@@ -45,7 +45,7 @@ async function rig(o: { llm?: Partial<Llm>; queue?: ReturnType<typeof createQueu
   }
   const views: ConversationView[] = []
   const lists: unknown[] = []
-  const deps = { store, library, indexer, embedder, queue, model: { llm: async () => llm }, send: (v: ConversationView) => { views.push(v) }, sendList: (l: unknown) => { lists.push(l) }, waitsForMeeting: () => false, waitsForModel: o.waitsForModel ?? (() => false), warmAllowed: o.warmAllowed, now: () => now }
+  const deps = { store, library, indexer, embedder, queue, model: { llm: async () => llm }, send: (v: ConversationView) => { views.push(v) }, sendList: (l: unknown) => { lists.push(l) }, waitsForMeeting: () => false, waitsForModel: o.waitsForModel ?? (() => false), warmAllowed: o.warmAllowed, isTranscriptionOnly: o.isTranscriptionOnly, now: () => now }
   const chats = hookConversations(deps)
   return { store, library, chats, prompts, read, views, lists, meeting: m, deps, file: join(d, 'yogurt.db') }
 }
@@ -358,5 +358,24 @@ describe('questions waiting for the first notes download', () => {
     expect(resumed.view(other)?.turns[0].status).toBe('stopped')
     ready = true; queue.modelArrived()
     expect(t.prompts).toEqual([])
+  })
+})
+
+describe('transcription only', () => {
+  it('asking creates no turn and asks the model nothing', async () => {
+    const t = await rig({ isTranscriptionOnly: () => true })
+    const { done } = t.chats.ask(null, 'What did Tarun say about the price?')
+    await done
+    expect(t.chats.list()).toEqual([])
+    expect(t.prompts).toEqual([])
+    expect(t.read).toEqual([])
+  })
+  it('the view says the mode is on, so the window never shows a model download wait', async () => {
+    let off = false
+    const t = await rig({ isTranscriptionOnly: () => off })
+    const { id, done } = t.chats.ask(null, 'What did Tarun say about the price?')
+    await done
+    off = true
+    expect(t.chats.view(id)?.transcriptionOnly).toBe(true)
   })
 })

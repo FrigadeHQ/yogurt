@@ -45,6 +45,8 @@ export function hookNotes(p: {
   peopleRewriteMs?: number
   /** the person's own name, so the invite's other person is known */
   me?: () => string
+  /** Notes & AI off (transcription only): no notes job is queued and no meeting is marked as waiting for one */
+  isTranscriptionOnly?: () => boolean
 }) {
   const stopped = new Set<string>()
   const stopping = new Map<string, Promise<void>>()
@@ -223,6 +225,8 @@ export function hookNotes(p: {
   }
 
   const queueWrite = (id: string, note?: string) => {
+    // transcription only: no notes job, and the meeting is never marked as waiting for one
+    if (p.isTranscriptionOnly?.()) return Promise.resolve()
     console.info('NOTES', `queued the notes of ${id}`)
     stopped.delete(id)
     set(id, 'waiting')
@@ -233,7 +237,7 @@ export function hookNotes(p: {
   const afterStop = new Map<string, Promise<void>>()
   p.onStop((m) => {
     stopped.delete(m.id)
-    set(m.id, 'waiting')
+    if (!p.isTranscriptionOnly?.()) set(m.id, 'waiting')
     const done = Promise.resolve().then(async () => {
       await p.transcribed(m.id)
       // the names from the call are quick; a stuck pass never holds the notes back for long
@@ -320,6 +324,7 @@ export function hookNotes(p: {
     forgetDrafts: (id: string) => { edits.delete(id) },
     /** "Write again": the same job, now (after anything already waiting) */
     async writeAgain(id: string, note?: string) {
+      if (p.isTranscriptionOnly?.()) return Promise.resolve()
       const pending = stopping.get(id)
       if (pending) await pending
       if (resuming.has(id) || p.store.meeting(id)?.state === 'recording') return Promise.resolve()
@@ -330,7 +335,13 @@ export function hookNotes(p: {
     },
     /** at launch: meetings a quit or crash left without notes get them now, one at a time */
     recover() {
+      if (p.isTranscriptionOnly?.()) return
       for (const m of p.store.unenhancedMeetings()) if (!live.has(m.id) && !resuming.has(m.id)) void queueWrite(m.id)
+    },
+    /** Notes & AI was just turned off: a meeting waiting for a notes job that will never run stops waiting instead of showing a download wait forever */
+    transcriptionOnlyChanged() {
+      if (!p.isTranscriptionOnly?.()) return
+      for (const [id, entry] of live) if (entry.status === 'waiting') set(id, 'idle')
     },
   }
   return notes

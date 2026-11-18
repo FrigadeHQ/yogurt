@@ -60,6 +60,7 @@ beforeEach(() => {
     transcript: { get: transcriptGet, onSegment: (cb: typeof segmentChanged) => { segmentChanged = cb; return vi.fn() }, onSpeakers: (cb: typeof transcriptChanged) => { transcriptChanged = cb; return vi.fn() } },
     setup: { state: async () => ({ phase: 'ready', fraction: 1 }), onState: (cb: typeof setupChanged) => { setupChanged = cb; return vi.fn() } },
     widget: { state: async () => null, onState: () => vi.fn() },
+    settings: { get: async () => ({ transcriptionOnly: false }) },
   } })
 })
 afterEach(() => { unmount(); vi.unstubAllGlobals() })

@@ -340,3 +340,60 @@ describe('notes queue', () => {
     })
   })
 })
+
+describe('transcription only', () => {
+  const llmKinds = ['names', 'enhance', 'chat', 'readahead', 'folder'] as const
+  it('resolves every LLM job at once without running it, and still runs index', async () => {
+    const q = createQueue({ recording: () => false, smallMac: false, isTranscriptionOnly: () => true })
+    const ran: string[] = []
+    const done = llmKinds.map((kind) => q.enqueue(async () => { ran.push(kind) }, kind))
+    await Promise.race([Promise.all(done), new Promise((_r, reject) => setTimeout(() => reject(new Error('an LLM job hung')), 100))])
+    expect(ran).toEqual([])
+    expect(q.busy()).toBe(false)
+    const indexed = vi.fn(async () => {})
+    await q.enqueue(indexed, 'index')
+    expect(indexed).toHaveBeenCalledOnce()
+  })
+  it('every job kind except index resolves immediately (a future kind cannot slip through)', async () => {
+    const q = createQueue({ recording: () => false, smallMac: false, isTranscriptionOnly: () => true })
+    const all = ['names', 'enhance', 'chat', 'readahead', 'index', 'folder'] as const
+    const ran: string[] = []
+    for (const kind of all) {
+      const settled = await Promise.race([q.enqueue(async () => { ran.push(kind) }, kind).then(() => 'enqueue'), new Promise((r) => setTimeout(() => r('timeout'), 100))])
+      expect(settled).toBe('enqueue')
+    }
+    expect(ran).toEqual(['index'])
+  })
+  it('turning the mode on resolves LLM jobs already waiting for the notes model', async () => {
+    let off = false
+    const q = createQueue({ recording: () => false, smallMac: false, modelReady: () => false, isTranscriptionOnly: () => off })
+    const ran = vi.fn(async () => {})
+    const a = q.enqueue(ran, 'enhance')
+    const b = q.enqueue(ran, 'names')
+    await tick(); await tick()
+    expect(ran).not.toHaveBeenCalled()
+    expect(q.busy()).toBe(true)
+    off = true
+    q.transcriptionOnlyChanged()
+    await Promise.all([a, b])
+    expect(ran).not.toHaveBeenCalled()
+    expect(q.busy()).toBe(false)
+  })
+  it('index runs without waiting for the notes model', async () => {
+    const q = createQueue({ recording: () => false, smallMac: false, modelReady: () => false })
+    const ran = vi.fn(async () => {})
+    await q.enqueue(ran, 'index')
+    expect(ran).toHaveBeenCalledOnce()
+  })
+  it('with the mode off, LLM jobs wait for the notes model as before', async () => {
+    let have = false
+    const q = createQueue({ recording: () => false, smallMac: false, modelReady: () => have, isTranscriptionOnly: () => false })
+    const ran = vi.fn(async () => {})
+    const done = q.enqueue(ran, 'enhance')
+    await tick()
+    expect(ran).not.toHaveBeenCalled()
+    have = true; q.modelArrived()
+    await done
+    expect(ran).toHaveBeenCalledOnce()
+  })
+})
