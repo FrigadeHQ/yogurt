@@ -975,13 +975,45 @@ body[data-demo=transcript] .hero-listening-widget{top:-52px;right:22px;bottom:au
 .site-footer .footer-column h3,.site-footer .footer-column>a,.site-footer .footer-column>a:hover{color:#fff}
 .site-footer .footer-column{align-self:start}
 .site-footer .footer-column h3{font-size:14px;font-weight:650;margin:0 0 16px}
-.site-footer .footer-column>a{font-size:14px;margin:10px 0}
+.site-footer .footer-column>a{display:flex;align-items:center;gap:5px;font-size:14px;margin:10px 0}
 .site-footer .footer-column>a:last-child{margin-bottom:0}
 .site-footer .button.footer-download{background:#fff;color:var(--ink);border-color:#fff;box-shadow:none;transform:none}
 .site-footer .footer-bottom,.site-footer .made-by,.site-footer .made-by:hover,.site-footer .made-by:focus-visible{color:#fff}
 .site-footer .made-by img,.site-footer .made-by:hover img{filter:brightness(0) invert(1);opacity:1}
 .site-footer .footer-bottom{padding:16px 0 20px;border-top:1px solid #ffffff26}
-.site-footer .footer-column>a:hover{text-decoration:underline;text-underline-offset:4px}
+.footer-link-label,
+.site-footer .download-alternatives a {position:relative}
+.footer-link-label::after,
+.site-footer .download-alternatives a::after {
+  content:"";
+  position:absolute;
+  inset:auto 0 -3px;
+  height:1px;
+  background:currentColor;
+  transform-origin:left;
+  transform:scaleX(var(--underline-scale, 0));
+  transition:transform 180ms var(--ease-enter);
+  pointer-events:none;
+}
+.footer-link-arrow {
+  flex:none;
+  transform:translateX(var(--arrow-offset, 0px));
+  transition:transform 180ms var(--ease-enter);
+}
+.site-footer :is(.footer-column,.download-alternatives)>a:focus-visible {
+  --underline-scale:1;
+  --arrow-offset:3px;
+}
+@media (hover:hover) and (pointer:fine) {
+  .site-footer :is(.footer-column,.download-alternatives)>a:hover {
+    --underline-scale:1;
+    --arrow-offset:3px;
+  }
+}
+@media (prefers-reduced-motion:reduce) {
+  .footer-link-label::after,.site-footer .download-alternatives a::after,.footer-link-arrow {transition:none}
+  .footer-link-arrow {transform:none}
+}
 @media(hover:hover) and (pointer:fine){
   .site-footer .button.footer-download:hover{background:var(--purple-tint);border-color:var(--purple-tint);box-shadow:inset 0 1px #ffffff70,0 3px 8px color-mix(in srgb,var(--brand) 15%,transparent)}
 }
@@ -1100,6 +1132,11 @@ body[data-demo=transcript] .hero-listening-widget{top:-52px;right:22px;bottom:au
 @media(max-width:1000px){.site-footer .download-alternatives{flex-basis:100%}.site-footer .download-alternatives::before{content:none}}
 .download-alternatives a{text-decoration:underline;text-underline-offset:2px;text-decoration-color:color-mix(in srgb,currentColor 35%,transparent)}
 .download-alternatives a:hover{text-decoration-color:currentColor}
+.site-footer .download-alternatives a {
+  text-decoration:none;
+  box-shadow:0 1px 0 color-mix(in srgb,currentColor 35%,transparent);
+}
+.site-footer .download-alternatives a::after {bottom:-1px}
 
 /* Mobile visitors choose a desktop installer without being assigned a Mac download. */
 .download-requirements[hidden]{display:none}
