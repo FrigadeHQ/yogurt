@@ -3,7 +3,7 @@
   "sourceOverrides": {
     "app/src/renderer/src/styles.css": "13f3c987136d93ff888fb4438e3464864dc04114dcbc036127a660018bec11f3"
   },
-  "generatedAt": "2026-11-18T17:57:33.601Z",
+  "generatedAt": "2026-11-18T19:04:58.384Z",
   "source": "app/src/renderer",
   "fixture": "site/renderer/bridge.mjs",
   "nativeCode": false,
@@ -131,8 +131,8 @@
     },
     "renderer.css": {
       "bytes": 264247,
-      "gzipBytes": 86033,
-      "sha256": "49ae107495cc2d693b9881d29d5988a5b2375121abc40f26498c096d27ef1252"
+      "gzipBytes": 86034,
+      "sha256": "473a2b82bcbc6d67e26032f54a38d5ec9a7aa7b9821f3f7e01e12fa6ff16990d"
     },
     "renderer.js": {
       "bytes": 1505315,
@@ -140,5 +140,5 @@
       "sha256": "526febdc140c297322752d42858d914e9e4c5ae87383b600f81b96752a13eb27"
     }
   },
-  "totalGzipBytes": 550030
+  "totalGzipBytes": 550031
 }

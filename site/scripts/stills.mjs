@@ -82,6 +82,11 @@ try {
       console.log(name,beat,JSON.stringify(info))
       assert.deepEqual(errors,[],'the generated frame has no runtime errors')
       assert.equal(info.ready,'true','real renderer fixture is ready')
+      const titleCenters = await evaluate(`['.marketing-traffic i', '.workspace-sidebar-toggle', 'button[aria-label="Back"]'].map(selector => {
+        const rect = document.querySelector(selector).getBoundingClientRect()
+        return rect.top + rect.height / 2
+      })`)
+      for (const center of titleCenters.slice(1)) assert(Math.abs(titleCenters[0] - center) <= 1, 'window buttons align with the title bar')
       assert(!info.text.includes('Planned'));assert(!info.overflow)
       assert.equal(info.bg.toLowerCase(),'#1b1b1d','only the frame is forced to app dark')
       assert(!info.text.includes('Let the others'),'no recording reminder in the demonstration')

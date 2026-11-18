@@ -6,7 +6,8 @@ body{pointer-events:none;user-select:none;caret-color:transparent}
 .marketing-window{transform:translateZ(0)}
 /* Let the app's viewport clamp size Ask, rather than the demo's short note body. */
 @media(min-width:1000px){.marketing-window .chat-panel{--chat-height:initial!important}}
-.marketing-traffic{position:absolute;left:18px;top:16px;display:flex;gap:7px;z-index:100}
+/* Center the 10px dots in the native 52px title bar. */
+.marketing-traffic{position:absolute;left:18px;top:21px;display:flex;gap:7px;z-index:100}
 .marketing-traffic i{width:10px;height:10px;border-radius:50%;background:#ff6058}
 .marketing-traffic i:nth-child(2){background:#febc2e}
 .marketing-traffic i:nth-child(3){background:#29c840}
