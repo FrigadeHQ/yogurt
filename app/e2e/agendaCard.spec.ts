@@ -134,7 +134,13 @@ test('a bottom event opens above its row, tracks scrolling, flips without chatte
       await expect(card).toHaveCount(0)
       await placeRow('bottom')
       await trigger.click()
-      await list.evaluate(el => { el.scrollTop = el.scrollHeight })
+      // the row scrolled out of the list, whichever way takes it out: on a tall screen the list may not go far enough down
+      await list.evaluate((el, row) => {
+        const top = row.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop
+        const max = el.scrollHeight - el.clientHeight
+        el.scrollTop = top + row.getBoundingClientRect().height <= max ? max : 0
+      }, await row.elementHandle())
+      expect(await list.evaluate((el, row) => { const r = row.getBoundingClientRect(), b = el.getBoundingClientRect(); return r.bottom <= b.top || r.top >= b.bottom }, await row.elementHandle())).toBe(true)
       await expect(card).toHaveCount(0)
     }
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(w => !w.webContents.getURL().includes('#'))!.setSize(1100, 760))
