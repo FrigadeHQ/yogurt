@@ -11,8 +11,10 @@ function paintRibbons(){
   geometry.forEach(({path,d,progress})=>path.setAttribute('d',ribbonPath(d,shape,progress)));
 }
 function layoutRibbons(){
-  const windowBounds=product.getBoundingClientRect(),ribbonBounds=svg.getBoundingClientRect();
-  shape=ribbonGeometry(ribbonBounds.width,windowBounds.width);
+  // Size the wings to the resting window even while Lift is scaling it.
+  const box=getComputedStyle(product),ribbonBounds=svg.getBoundingClientRect();
+  const width=parseFloat(box.width),height=parseFloat(box.height);
+  shape=ribbonGeometry(ribbonBounds.width,width);
   svg.setAttribute('viewBox',`0 0 ${shape.width} ${shape.height}`);
   mirrors.forEach(use=>use.setAttribute('transform',`translate(${shape.width} 0) scale(-1 1)`));
   const gradient=svg.querySelector('#ribbon-purple');
@@ -23,22 +25,11 @@ function layoutRibbons(){
     material.setAttribute('y2',Math.max(...ys)*shape.height/650);
   });
   // Start inside the opaque window, including when a resize changes the curve during entry.
-  coveredLength=Math.max(0,Math.min(1,(windowBounds.width-4)/ribbonBounds.width,(windowBounds.height-4)/ribbonBounds.height));
+  coveredLength=Math.max(0,Math.min(1,(width-4)/ribbonBounds.width,(height-4)/ribbonBounds.height));
   paintRibbons();
 }
 const resize=new ResizeObserver(layoutRibbons);
 resize.observe(svg);resize.observe(product);layoutRibbons();
-let cover=null;
-function coverWindow(){
-  if(!cover)return;
-  const a=product.getBoundingClientRect(),b=svg.getBoundingClientRect();
-  // A root SVG clip uses viewport pixels, not its stretched viewBox coordinates.
-  // Keep the cutout inside the window border so antialiasing never exposes a page-colored seam.
-  const x=a.left-b.left+1,y=a.top-b.top+1,r=a.right-b.left-1,d=a.bottom-b.top-1;
-  const radius=Math.max(0,parseFloat(getComputedStyle(product).borderTopLeftRadius)-1),rx=radius,ry=radius;
-  cover.setAttribute('d',`M-2 -2H${b.width+2}V${b.height+2}H-2Z M${x+rx} ${y}H${r-rx}Q${r} ${y} ${r} ${y+ry}V${d-ry}Q${r} ${d} ${r-rx} ${d}H${x+rx}Q${x} ${d} ${x} ${d-ry}V${y+ry}Q${x} ${y} ${x+rx} ${y}Z`);
-}
-function makeCover(){const ns='http://www.w3.org/2000/svg',clip=document.createElementNS(ns,'clipPath');clip.id='ribbon-window-cover';clip.setAttribute('clipPathUnits','userSpaceOnUse');cover=document.createElementNS(ns,'path');cover.setAttribute('clip-rule','evenodd');clip.append(cover);svg.querySelector('defs').append(clip);svg.setAttribute('clip-path','url(#ribbon-window-cover)');coverWindow();restore.push(()=>{svg.removeAttribute('clip-path');clip.remove();cover=null})}
 function complete(){
   if(completed) return;
   completed=true;
@@ -51,7 +42,6 @@ function complete(){
 }
 if(reduceMotion.matches||state.heroStatic==='true') complete();
 else{
-  state.heroEntry='running';
   const entryStart=document.timeline.currentTime;
   const desktop=matchMedia('(min-width:761px)');
   if(desktop.matches && product.dataset.live!=='true') {
@@ -63,17 +53,14 @@ else{
   }
   if(reduceMotion.matches) complete();
   else {
-  const windowDelay=Math.max(0,270-(document.timeline.currentTime-entryStart)),fadeDuration=300;
-  // The window becomes opaque before it settles, hiding the wings' starting points.
-  animations.push(product.animate([{opacity:0},{opacity:1}],
-    {duration:fadeDuration,delay:windowDelay,easing:'cubic-bezier(.16,1,.3,1)',fill:'backwards'}));
-  animations.push(product.animate([{transform:'translateY(20px)'},{transform:'translateY(0)'}],
-    {duration:600,delay:windowDelay,easing:'cubic-bezier(.16,1,.3,1)',fill:'backwards'}));
+  const windowDelay=Math.max(0,270-(document.timeline.currentTime-entryStart)),liftDuration=240;
+  animations.push(product.animate([{transform:'translateY(16px) scale(.988)'},{transform:'none'}],
+    {duration:liftDuration,delay:windowDelay,easing:'cubic-bezier(.23,1,.32,1)',fill:'backwards'}));
+  state.heroEntry='running';
   const background='ribbon';
   if(background==='ribbon'){
     const surface=svg.querySelector('#ribbon-surface');
-    const ribbonStart=windowDelay,bandDuration=350,bandStagger=55;
-    makeCover();
+    const ribbonStart=windowDelay+liftDuration,bandDuration=350,bandStagger=55;
     const bands=[...svg.querySelectorAll('[data-ribbon-band]')].map((band,index)=>{
       const paths=[...band.querySelectorAll('path')];
       const seam=svg.querySelector(`#ribbon-seam-${index+1}`);
@@ -96,7 +83,7 @@ else{
     });
     paintRibbons();
     // A seekable clock drives d attributes, not a transform or clipping wipe.
-    // Entry starts with the app becoming opaque, after its renderer is ready.
+    // The first band grows when the solid window reaches its resting shape.
     const clock=svg.animate([],{duration:ribbonStart+4*bandStagger+bandDuration,fill:'backwards'});
     animations.push(clock);
     function draw(){
@@ -108,13 +95,13 @@ else{
         const length=coveredLength+(1-coveredLength)*(1-(1-progress)**3);
         geometry.forEach(part=>part.progress=length);
       });
-      paintRibbons();coverWindow();
+      paintRibbons();
       if(!completed) frame=requestAnimationFrame(draw);
     }
     frame=requestAnimationFrame(draw);
   }
   // Keep the app demo and idle motion on their existing schedule.
-  animations.push(svg.animate([],{duration:windowDelay+fadeDuration+4*55+350}));
+  animations.push(svg.animate([],{duration:windowDelay+870}));
   Promise.all(animations.map(animation=>animation.finished)).then(complete).catch(()=>{});
   reduceMotion.addEventListener('change',event=>{
     if(!event.matches) return;

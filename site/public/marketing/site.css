@@ -669,17 +669,17 @@ body[data-letter=plain] .plain-word{display:inline}
 [id^=ribbon-entry-surface-] stop:last-child{stop-color:var(--ai-base)}
 .signal-wings{visibility:hidden}
 html[data-ribbon-paint=ready] .signal-wings{visibility:visible}
-html[data-hero-entry=pending] .product-window{visibility:hidden}
 html:not([data-hero-entry=complete]) .signal-wings>use{visibility:hidden}
 .product-stage{isolation:isolate}
 .product-stage>.backdrop{z-index:0}
 .product-stage>.product-window{position:relative;z-index:1;background:#fff}
-@media (prefers-reduced-motion:reduce){html .signal-wings,html[data-hero-entry=pending] .product-window{visibility:visible}}
+@media (prefers-reduced-motion:reduce){html .signal-wings{visibility:visible}}
 
 .hero .headline-visual{white-space:nowrap}
 .hero .headline-take,.hero .headline-word{display:inline-block}
 .hero h1 .headline-take{color:inherit}
 @media (scripting:enabled) and (prefers-reduced-motion:no-preference){
+  html[data-hero-entry=pending]:not([data-hero-static]) .product-window{transform:translateY(16px) scale(.988)}
   html:not([data-hero-static]) .hero-copy :is(.yc-pill,.headline-take,.headline-word,p,.hero-actions>.button,.hero-actions>.mobile-download,.download-requirements):not(:focus-visible){
     animation:hero-arrival 180ms var(--ease-enter) var(--entry-delay,0ms) backwards;
   }
@@ -1103,7 +1103,6 @@ body[data-demo=transcript] .hero-listening-widget{top:-52px;right:22px;bottom:au
 .hero-renderer{clip-path:inset(0 round 12px)}
 
 @media(min-width:761px) and (prefers-reduced-motion:no-preference){
-  .product-window.demo-window:not([data-live=true]){visibility:hidden}
   .hero-still{display:none}
 }
 
