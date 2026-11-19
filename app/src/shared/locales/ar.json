@@ -833,5 +833,18 @@
     "many": "تنطبق القاعدة بالفعل على {count} اجتماعًا. ستُنقل إلى سلة المهملات الآن.",
     "other": "تنطبق القاعدة بالفعل على {count} اجتماع. ستُنقل إلى سلة المهملات الآن."
   },
-  "The transcript was deleted on {date}, as set in Settings.": "حُذف النص في {date} كما هو محدد في الإعدادات."
+  "The transcript was deleted on {date}, as set in Settings.": "حُذف النص في {date} كما هو محدد في الإعدادات.",
+  "Screen": "الشاشة",
+  "Reading the screen…": "جارٍ قراءة الشاشة…",
+  "Delete video": "حذف الفيديو",
+  "Don't keep it": "عدم الاحتفاظ به",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "يُحتفظ بالفيديو المرفوع حتى يمكن قراءة شاشته مرة أخرى. ومن دونه لا يمكن قراءة الشاشة لاحقًا، مثلًا باستخدام نموذج آخر.",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "zero": "لا تنطبق القاعدة على أي اجتماع بعد.",
+    "one": "تنطبق القاعدة بالفعل على اجتماع واحد. سيُحذف الفيديو الخاص به الآن.",
+    "two": "تنطبق القاعدة بالفعل على اجتماعين. سيُحذف الفيديو الخاص بكل منهما الآن.",
+    "few": "تنطبق القاعدة بالفعل على {count} اجتماعات. ستُحذف مقاطع الفيديو الخاصة بها الآن.",
+    "many": "تنطبق القاعدة بالفعل على {count} اجتماعًا. ستُحذف مقاطع الفيديو الخاصة بها الآن.",
+    "other": "تنطبق القاعدة بالفعل على {count} اجتماع. ستُحذف مقاطع الفيديو الخاصة بها الآن."
+  }
 }

@@ -251,6 +251,10 @@
     "one": "1 meeting already qualifies. Its transcript and audio are deleted now; its notes stay.",
     "other": "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay."
   },
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "1 meeting already qualifies. Its video is deleted now.",
+    "other": "{count} meetings already qualify. Their videos are deleted now."
+  },
   "{count} meetings already qualify. They move to the Trash now.": {
     "one": "1 meeting already qualifies. It moves to the Trash now.",
     "other": "{count} meetings already qualify. They move to the Trash now."

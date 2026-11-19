@@ -18,7 +18,7 @@ import { resumesNote } from '../shared/agendaNote'
 import { relaunchOptions, stripAppImageEnv } from './relaunch'
 import { capabilities, micListHelper, platformOf, supportedKinds } from '../shared/platform'
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, Notification, protocol, safeStorage, shell } from 'electron'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -83,6 +83,7 @@ import { hookMcp } from './mcp'
 import { startedHidden } from './mcp/paths'
 import { deleteRecording } from './deleteRecording'
 import { dueNow, isDue, retentionPatch, ruleOf, sweep } from './retention'
+import { readScreen } from './screenText'
 import { RETENTION_KINDS, retentionDays, type RetentionKind } from '../shared/retention'
 import { AUDIO_SCHEME, audioExts, createAudioHandler, trackFile, type AudioExt } from './audio'
 import { helperDecode, wavDecode } from './asr/backfill'
@@ -677,6 +678,8 @@ app.whenReady().then(() => {
     root: join(userDataDir(), 'meetings'), store, window: () => win, exiting: () => allowQuit,
     recording: () => !!activeMeeting() || !!resumingId || finishing,
     prepared: id => {void savedTranscriptions.start(id)}, changed: () => win?.webContents.send('meetings:changed'),
+    ...(process.platform === 'darwin' ? { readScreen: (file: string, progress: (fraction: number) => void, signal: AbortSignal) => readScreen(audioHelperPath(), file, progress, signal) } : {}),
+    keepVideo: () => ruleOf(loadSettings(settingsFile), 'video')?.days !== 0,
   })
   setup.onState(() => {uploads.resume();savedTranscriptions.resume()})
   onMeetingStart(m => {store.clearTranscriptionState(m.id);savedTranscriptions.pause()})
@@ -977,8 +980,11 @@ app.whenReady().then(() => {
   ipcMain.handle('meetings:empty-trash', () => emptyTrash({ store, remove: removeForGood }))
   // What Yogurt keeps (Settings): each rule runs at launch, twice a day with the Trash, and once picked
   const hasAudio = (id: string) => (['me', 'them'] as const).some((t) => !!trackFile(meetingDir(id), t, audioKinds))
+  const videos = (id: string) => { try { return readdirSync(meetingDir(id)).filter((f) => /^video\.(mov|mp4)$/.test(f)) } catch { return [] } }
+  const hasVideo = (id: string) => videos(id).length > 0
   const retain = () => void sweep({
-    store, settings: loadSettings(settingsFile), hasAudio,
+    store, settings: loadSettings(settingsFile), hasAudio, hasVideo,
+    removeVideo: (id) => { for (const f of videos(id)) rmSync(join(meetingDir(id), f), { force: true }) },
     removeAudio: (id) => removeRecording(id, () => false),
     removeTranscript: (id) => { store.deleteTranscript(id); indexer.forget(id); void indexer.schedule(); win?.webContents.send('meetings:changed') },
     trash: (id) => { if (id !== resumingId && !stopSavePending(id)) moveToTrash(id, { store, moved: trashed }) },
@@ -987,7 +993,7 @@ app.whenReady().then(() => {
   // how many meetings a rule would act on at once, for the confirmation before it is saved
   ipcMain.handle('retention:count', (_e, kind: unknown, days: unknown) => {
     const d = isKind(kind) ? retentionDays(kind, days) : null
-    return isKind(kind) && d != null ? dueNow({ store, hasAudio }, kind, { days: d }).length : 0
+    return isKind(kind) && d != null ? dueNow({ store, hasAudio, hasVideo }, kind, { days: d }).length : 0
   })
   ipcMain.handle('settings:retention', (_e, kind: unknown, days: unknown) => {
     if (!isKind(kind) || (days !== null && retentionDays(kind, days) == null)) return

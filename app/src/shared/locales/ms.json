@@ -714,5 +714,11 @@
   "{count} meetings already qualify. Their audio is deleted now.": "{count} mesyuarat sudah memenuhi syarat. Audionya dipadam sekarang.",
   "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": "{count} mesyuarat sudah memenuhi syarat. Transkrip dan audionya dipadam sekarang; notanya dikekalkan.",
   "{count} meetings already qualify. They move to the Trash now.": "{count} mesyuarat sudah memenuhi syarat. Mesyuarat itu dialihkan ke Tong Sampah sekarang.",
-  "The transcript was deleted on {date}, as set in Settings.": "Transkrip dipadam pada {date}, seperti yang ditetapkan dalam Tetapan."
+  "The transcript was deleted on {date}, as set in Settings.": "Transkrip dipadam pada {date}, seperti yang ditetapkan dalam Tetapan.",
+  "Screen": "Skrin",
+  "Reading the screen…": "Membaca skrin…",
+  "Delete video": "Padam video",
+  "Don't keep it": "Jangan simpan",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "Video yang dimuat naik disimpan supaya skrinnya boleh dibaca semula. Tanpanya, skrin tidak boleh dibaca kemudian, contohnya dengan model lain.",
+  "{count} meetings already qualify. Their videos are deleted now.": "{count} mesyuarat sudah memenuhi syarat. Videonya dipadam sekarang."
 }

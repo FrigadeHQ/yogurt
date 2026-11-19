@@ -765,5 +765,14 @@
     "one": "{count} meeting valt er al onder. Deze gaat nu naar de prullenmand.",
     "other": "{count} meetings vallen er al onder. Ze gaan nu naar de prullenmand."
   },
-  "The transcript was deleted on {date}, as set in Settings.": "Het transcript is op {date} verwijderd, zoals ingesteld in Instellingen."
+  "The transcript was deleted on {date}, as set in Settings.": "Het transcript is op {date} verwijderd, zoals ingesteld in Instellingen.",
+  "Screen": "Scherm",
+  "Reading the screen…": "Scherm lezen…",
+  "Delete video": "Video verwijderen",
+  "Don't keep it": "Niet bewaren",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "Een geüploade video wordt bewaard zodat het scherm opnieuw kan worden gelezen. Zonder de video kan het scherm later niet meer worden gelezen, bijvoorbeeld met een ander model.",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "{count} meeting valt er al onder. De video wordt nu verwijderd.",
+    "other": "{count} meetings vallen er al onder. Hun video’s worden nu verwijderd."
+  }
 }

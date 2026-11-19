@@ -47,10 +47,15 @@ Meetings, recordings, settings and downloaded models live here:
 Everything is kept until you choose otherwise in **Settings → What Yogurt keeps**. Each rule counts from when a meeting ended:
 
 - **Delete audio:** once the summary is saved, or after a week, a month, 3 months, a year, or any number of days.
+- **Delete video:** the copy of an uploaded video. **Don't keep it** saves no copy: its screen is read once while uploading and can't be read again later.
 - **Delete transcripts:** the transcript and its audio go; the notes stay, and are no longer written again.
 - **Move meetings to the Trash:** they are deleted for good 30 days later, unless restored.
 
 Audio and transcripts go only from meetings whose summary is saved. When a new rule would act on meetings at once, Yogurt asks first and says how many.
+
+## Upload a recording
+
+Upload an MP3, M4A or WAV, or a screen recording (MOV or MP4), and Yogurt transcribes it into a new note. On a Mac, text shown on a video's screen is read on this computer and added to the transcript as **Screen** lines at the time it was shown, so the notes and Ask can use it.
 
 ## Backup and restore
 

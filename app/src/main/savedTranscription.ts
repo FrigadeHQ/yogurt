@@ -23,7 +23,7 @@ export function createSavedTranscriptions(d: {
         if(quitting)break
         const id=meeting.id
         const current=d.store.meeting(id)
-        if(!current||current.trashedAt!=null||['stopped','error','preparing','done'].includes(current.transcriptionState??''))continue
+        if(!current||current.trashedAt!=null||['stopped','error','preparing','reading-screen','done'].includes(current.transcriptionState??''))continue
         if(d.recording()){set(id,'waiting-recording');continue}
         if(!d.ready()){set(id,'waiting-model');continue}
         const job={id,abort:new AbortController(),stopped:false};running=job;set(id,'transcribing')

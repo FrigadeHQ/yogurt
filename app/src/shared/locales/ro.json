@@ -785,5 +785,15 @@
     "few": "{count} întâlniri se încadrează deja. Se mută acum în Coș.",
     "other": "{count} de întâlniri se încadrează deja. Se mută acum în Coș."
   },
-  "The transcript was deleted on {date}, as set in Settings.": "Transcrierea a fost ștearsă pe {date}, conform Setărilor."
+  "The transcript was deleted on {date}, as set in Settings.": "Transcrierea a fost ștearsă pe {date}, conform Setărilor.",
+  "Screen": "Ecran",
+  "Reading the screen…": "Se citește ecranul…",
+  "Delete video": "Șterge videoclipul",
+  "Don't keep it": "Nu-l păstra",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "Un videoclip încărcat se păstrează ca ecranul lui să poată fi citit din nou. Fără el, ecranul nu mai poate fi citit ulterior, de exemplu cu alt model.",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "{count} întâlnire se încadrează deja. Videoclipul ei se șterge acum.",
+    "few": "{count} întâlniri se încadrează deja. Videoclipurile lor se șterg acum.",
+    "other": "{count} de întâlniri se încadrează deja. Videoclipurile lor se șterg acum."
+  }
 }

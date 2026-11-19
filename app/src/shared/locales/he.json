@@ -778,5 +778,15 @@
     "two": "{count} פגישות כבר עומדות בתנאי. הן עוברות לפח עכשיו.",
     "other": "{count} פגישות כבר עומדות בתנאי. הן עוברות לפח עכשיו."
   },
-  "The transcript was deleted on {date}, as set in Settings.": "התמלול נמחק ב־{date}, בהתאם להגדרות."
+  "The transcript was deleted on {date}, as set in Settings.": "התמלול נמחק ב־{date}, בהתאם להגדרות.",
+  "Screen": "מסך",
+  "Reading the screen…": "קורא את המסך…",
+  "Delete video": "מחיקת וידאו",
+  "Don't keep it": "לא לשמור",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "וידאו שהועלה נשמר כדי שאפשר יהיה לקרוא את המסך שלו שוב. בלעדיו אי אפשר לקרוא את המסך מאוחר יותר, למשל באמצעות מודל אחר.",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "פגישה אחת כבר עומדת בתנאי. הווידאו שלה נמחק עכשיו.",
+    "two": "{count} פגישות כבר עומדות בתנאי. סרטוני הווידאו שלהן נמחקים עכשיו.",
+    "other": "{count} פגישות כבר עומדות בתנאי. סרטוני הווידאו שלהן נמחקים עכשיו."
+  }
 }

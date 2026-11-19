@@ -787,5 +787,15 @@
     "many": "{count} riunioni rientrano già nella regola. Vengono spostate nel Cestino ora.",
     "other": "{count} riunioni rientrano già nella regola. Vengono spostate nel Cestino ora."
   },
-  "The transcript was deleted on {date}, as set in Settings.": "La trascrizione è stata eliminata il {date}, come previsto nelle Impostazioni."
+  "The transcript was deleted on {date}, as set in Settings.": "La trascrizione è stata eliminata il {date}, come previsto nelle Impostazioni.",
+  "Screen": "Schermo",
+  "Reading the screen…": "Lettura dello schermo…",
+  "Delete video": "Elimina video",
+  "Don't keep it": "Non conservarlo",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "Un video caricato viene conservato per poterne rileggere lo schermo. Senza il video, lo schermo non potrà essere letto in seguito, ad esempio con un altro modello.",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "{count} riunione rientra già nella regola. Il suo video viene eliminato ora.",
+    "many": "{count} riunioni rientrano già nella regola. I loro video vengono eliminati ora.",
+    "other": "{count} riunioni rientrano già nella regola. I loro video vengono eliminati ora."
+  }
 }

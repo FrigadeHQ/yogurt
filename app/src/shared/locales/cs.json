@@ -802,5 +802,16 @@
     "many": "{count} schůzky už splňuje podmínku. Teď se přesunou do koše.",
     "other": "{count} schůzek už splňuje podmínku. Teď se přesunou do koše."
   },
-  "The transcript was deleted on {date}, as set in Settings.": "Přepis byl smazán {date}, jak je určeno v Nastavení."
+  "The transcript was deleted on {date}, as set in Settings.": "Přepis byl smazán {date}, jak je určeno v Nastavení.",
+  "Screen": "Obrazovka",
+  "Reading the screen…": "Čtení obrazovky…",
+  "Delete video": "Smazat video",
+  "Don't keep it": "Neuchovávat",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "Nahrané video se uchovává, aby šlo jeho obrazovku přečíst znovu. Bez něj obrazovku později přečíst nepůjde, například jiným modelem.",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "{count} schůzka už splňuje podmínku. Její video se teď smaže.",
+    "few": "{count} schůzky už splňují podmínku. Jejich videa se teď smažou.",
+    "many": "{count} schůzky už splňuje podmínku. Jejich videa se teď smažou.",
+    "other": "{count} schůzek už splňuje podmínku. Jejich videa se teď smažou."
+  }
 }

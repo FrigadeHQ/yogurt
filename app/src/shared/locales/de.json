@@ -765,5 +765,14 @@
     "one": "1 Meeting ist bereits betroffen. Es wird jetzt in den Papierkorb verschoben.",
     "other": "{count} Meetings sind bereits betroffen. Sie werden jetzt in den Papierkorb verschoben."
   },
-  "The transcript was deleted on {date}, as set in Settings.": "Das Transkript wurde am {date} gelöscht, wie in den Einstellungen festgelegt."
+  "The transcript was deleted on {date}, as set in Settings.": "Das Transkript wurde am {date} gelöscht, wie in den Einstellungen festgelegt.",
+  "Screen": "Bildschirm",
+  "Reading the screen…": "Bildschirm wird gelesen…",
+  "Delete video": "Video löschen",
+  "Don't keep it": "Nicht behalten",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "Ein hochgeladenes Video wird behalten, damit sein Bildschirm erneut gelesen werden kann. Ohne das Video lässt sich der Bildschirm später nicht mehr lesen, zum Beispiel mit einem anderen Modell.",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "1 Meeting ist bereits betroffen. Sein Video wird jetzt gelöscht.",
+    "other": "{count} Meetings sind bereits betroffen. Ihre Videos werden jetzt gelöscht."
+  }
 }

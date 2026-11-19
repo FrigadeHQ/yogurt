@@ -41,12 +41,12 @@ it('reads What Yogurt keeps from settings, the audio switch from before rules in
   const file = join(dir, 'settings.json')
   hookPreferences({ file, permissions: {} as Parameters<typeof hookPreferences>[0]['permissions'], ask: false, setLogin: vi.fn(), loginOn: () => false, macName: () => 'Dana', relaunch: () => false, setTrayVisible: vi.fn(), setDockVisible: vi.fn() })
   const get = () => handlers.get('settings:get')!().retention
-  expect(get()).toEqual({ audio: null, transcript: null, meeting: null })
+  expect(get()).toEqual({ audio: null, video: null, transcript: null, meeting: null })
   updateSettings(file, { keepRecordings: false, recordingsOffAt: 2000 })
-  expect(get()).toEqual({ audio: 0, transcript: null, meeting: null })
+  expect(get()).toEqual({ audio: 0, video: null, transcript: null, meeting: null })
   updateSettings(file, { keepRecordings: undefined, recordingsOffAt: undefined, audioDays: 30, transcriptDays: 45, meetingDays: 365 })
-  expect(get()).toEqual({ audio: 30, transcript: 45, meeting: 365 })
+  expect(get()).toEqual({ audio: 30, video: null, transcript: 45, meeting: 365 })
   // hand-edited nonsense is no rule
   updateSettings(file, { audioDays: -1, transcriptDays: 0, meetingDays: 1.5 })
-  expect(get()).toEqual({ audio: null, transcript: null, meeting: null })
+  expect(get()).toEqual({ audio: null, video: null, transcript: null, meeting: null })
 })

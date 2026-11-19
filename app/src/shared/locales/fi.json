@@ -771,5 +771,14 @@
     "one": "{count} kokous täyttää jo ehdon. Se siirretään nyt roskakoriin.",
     "other": "{count} kokousta täyttää jo ehdon. Ne siirretään nyt roskakoriin."
   },
-  "The transcript was deleted on {date}, as set in Settings.": "Litterointi poistettiin {date} Asetusten mukaisesti."
+  "The transcript was deleted on {date}, as set in Settings.": "Litterointi poistettiin {date} Asetusten mukaisesti.",
+  "Screen": "Näyttö",
+  "Reading the screen…": "Luetaan näyttöä…",
+  "Delete video": "Poista video",
+  "Don't keep it": "Älä säilytä",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "Ladattu video säilytetään, jotta sen näyttö voidaan lukea uudelleen. Ilman sitä näyttöä ei voi lukea myöhemmin, esimerkiksi toisella mallilla.",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "{count} kokous täyttää jo ehdon. Sen video poistetaan nyt.",
+    "other": "{count} kokousta täyttää jo ehdon. Niiden videot poistetaan nyt."
+  }
 }

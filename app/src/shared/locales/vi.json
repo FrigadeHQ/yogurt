@@ -714,5 +714,11 @@
   "{count} meetings already qualify. Their audio is deleted now.": "{count} cuộc họp đã đủ điều kiện. Âm thanh của chúng sẽ bị xóa ngay.",
   "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": "{count} cuộc họp đã đủ điều kiện. Bản chép lời và âm thanh của chúng sẽ bị xóa ngay; ghi chú vẫn được giữ.",
   "{count} meetings already qualify. They move to the Trash now.": "{count} cuộc họp đã đủ điều kiện. Chúng sẽ được chuyển vào Thùng rác ngay.",
-  "The transcript was deleted on {date}, as set in Settings.": "Bản chép lời đã bị xóa vào {date} theo Cài đặt."
+  "The transcript was deleted on {date}, as set in Settings.": "Bản chép lời đã bị xóa vào {date} theo Cài đặt.",
+  "Screen": "Màn hình",
+  "Reading the screen…": "Đang đọc màn hình…",
+  "Delete video": "Xóa video",
+  "Don't keep it": "Không giữ lại",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "Video đã tải lên được giữ lại để có thể đọc lại màn hình của nó. Nếu không có video, sẽ không thể đọc màn hình sau này, chẳng hạn bằng một mô hình khác.",
+  "{count} meetings already qualify. Their videos are deleted now.": "{count} cuộc họp đã đủ điều kiện. Video của chúng sẽ bị xóa ngay."
 }

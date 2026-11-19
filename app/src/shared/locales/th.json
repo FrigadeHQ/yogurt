@@ -714,5 +714,11 @@
   "{count} meetings already qualify. Their audio is deleted now.": "มีการประชุม {count} รายการที่เข้าเงื่อนไขแล้ว เสียงของการประชุมเหล่านี้จะถูกลบตอนนี้",
   "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": "มีการประชุม {count} รายการที่เข้าเงื่อนไขแล้ว คำถอดความและเสียงจะถูกลบตอนนี้ ส่วนโน้ตจะยังอยู่",
   "{count} meetings already qualify. They move to the Trash now.": "มีการประชุม {count} รายการที่เข้าเงื่อนไขแล้ว การประชุมเหล่านี้จะถูกย้ายไปถังขยะตอนนี้",
-  "The transcript was deleted on {date}, as set in Settings.": "คำถอดความถูกลบเมื่อ {date} ตามการตั้งค่า"
+  "The transcript was deleted on {date}, as set in Settings.": "คำถอดความถูกลบเมื่อ {date} ตามการตั้งค่า",
+  "Screen": "หน้าจอ",
+  "Reading the screen…": "กำลังอ่านหน้าจอ…",
+  "Delete video": "ลบวิดีโอ",
+  "Don't keep it": "ไม่เก็บไว้",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "วิดีโอที่อัปโหลดจะถูกเก็บไว้เพื่อให้อ่านหน้าจอได้อีกครั้ง หากไม่มีวิดีโอ จะอ่านหน้าจอในภายหลังไม่ได้ เช่น ด้วยโมเดลอื่น",
+  "{count} meetings already qualify. Their videos are deleted now.": "มีการประชุม {count} รายการที่เข้าเงื่อนไขแล้ว วิดีโอของการประชุมเหล่านี้จะถูกลบตอนนี้"
 }

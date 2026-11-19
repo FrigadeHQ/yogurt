@@ -765,5 +765,14 @@
     "one": "Pasok na sa patakaran ang {count} meeting. Ililipat na ito ngayon sa Trash.",
     "other": "Pasok na sa patakaran ang {count} na meeting. Ililipat na ngayon ang mga ito sa Trash."
   },
-  "The transcript was deleted on {date}, as set in Settings.": "Binura ang transcript noong {date} ayon sa Settings."
+  "The transcript was deleted on {date}, as set in Settings.": "Binura ang transcript noong {date} ayon sa Settings.",
+  "Screen": "Sa screen",
+  "Reading the screen…": "Binabasa ang screen…",
+  "Delete video": "Burahin ang video",
+  "Don't keep it": "Huwag itago",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "Itinatago ang na-upload na video para mabasa ulit ang screen nito. Kung wala ito, hindi na mababasa ang screen sa ibang pagkakataon, halimbawa gamit ang ibang modelo.",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "Pasok na sa patakaran ang {count} meeting. Buburahin na ngayon ang video nito.",
+    "other": "Pasok na sa patakaran ang {count} na meeting. Buburahin na ngayon ang mga video ng mga ito."
+  }
 }

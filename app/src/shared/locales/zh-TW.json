@@ -714,5 +714,11 @@
   "{count} meetings already qualify. Their audio is deleted now.": "已有 {count} 場會議符合條件。其音訊將立即刪除。",
   "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": "已有 {count} 場會議符合條件。其逐字稿和音訊將立即刪除，筆記會保留。",
   "{count} meetings already qualify. They move to the Trash now.": "已有 {count} 場會議符合條件。這些會議將立即移到垃圾桶。",
-  "The transcript was deleted on {date}, as set in Settings.": "逐字稿已於{date}依設定刪除。"
+  "The transcript was deleted on {date}, as set in Settings.": "逐字稿已於{date}依設定刪除。",
+  "Screen": "螢幕",
+  "Reading the screen…": "正在讀取螢幕…",
+  "Delete video": "刪除影片",
+  "Don't keep it": "不保留",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "上傳的影片會被保留，以便再次讀取其螢幕內容。沒有影片，之後就無法再讀取螢幕，例如使用其他模型時。",
+  "{count} meetings already qualify. Their videos are deleted now.": "已有 {count} 場會議符合條件。其影片將立即刪除。"
 }

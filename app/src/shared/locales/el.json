@@ -768,5 +768,14 @@
     "one": "{count} σύσκεψη πληροί ήδη τον κανόνα. Μετακινείται τώρα στον Κάδο.",
     "other": "{count} συσκέψεις πληρούν ήδη τον κανόνα. Μετακινούνται τώρα στον Κάδο."
   },
-  "The transcript was deleted on {date}, as set in Settings.": "Η απομαγνητοφώνηση διαγράφηκε στις {date}, όπως ορίζεται στις Ρυθμίσεις."
+  "The transcript was deleted on {date}, as set in Settings.": "Η απομαγνητοφώνηση διαγράφηκε στις {date}, όπως ορίζεται στις Ρυθμίσεις.",
+  "Screen": "Οθόνη",
+  "Reading the screen…": "Ανάγνωση της οθόνης…",
+  "Delete video": "Διαγραφή βίντεο",
+  "Don't keep it": "Να μην κρατηθεί",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "Ένα μεταφορτωμένο βίντεο διατηρείται, ώστε η οθόνη του να μπορεί να διαβαστεί ξανά. Χωρίς αυτό, η οθόνη δεν μπορεί να διαβαστεί αργότερα, για παράδειγμα με άλλο μοντέλο.",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "{count} σύσκεψη πληροί ήδη τον κανόνα. Το βίντεό της διαγράφεται τώρα.",
+    "other": "{count} συσκέψεις πληρούν ήδη τον κανόνα. Τα βίντεό τους διαγράφονται τώρα."
+  }
 }

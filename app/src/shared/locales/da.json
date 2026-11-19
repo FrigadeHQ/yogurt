@@ -765,5 +765,14 @@
     "one": "{count} møde er allerede omfattet. Det flyttes til papirkurven nu.",
     "other": "{count} møder er allerede omfattet. De flyttes til papirkurven nu."
   },
-  "The transcript was deleted on {date}, as set in Settings.": "Transskriptionen blev slettet den {date}, som angivet i Indstillinger."
+  "The transcript was deleted on {date}, as set in Settings.": "Transskriptionen blev slettet den {date}, som angivet i Indstillinger.",
+  "Screen": "Skærm",
+  "Reading the screen…": "Læser skærmen…",
+  "Delete video": "Slet video",
+  "Don't keep it": "Behold den ikke",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "En uploadet video beholdes, så skærmen i den kan læses igen. Uden videoen kan skærmen ikke læses senere, for eksempel med en anden model.",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "{count} møde er allerede omfattet. Videoen slettes nu.",
+    "other": "{count} møder er allerede omfattet. Deres videoer slettes nu."
+  }
 }

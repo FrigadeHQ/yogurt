@@ -799,5 +799,16 @@
     "many": "{count} зустрічей уже підпадають під правило. Їх буде переміщено до Кошика зараз.",
     "other": "{count} зустрічі вже підпадають під правило. Їх буде переміщено до Кошика зараз."
   },
-  "The transcript was deleted on {date}, as set in Settings.": "Розшифровку видалено {date}, як задано в Параметрах."
+  "The transcript was deleted on {date}, as set in Settings.": "Розшифровку видалено {date}, як задано в Параметрах.",
+  "Screen": "Екран",
+  "Reading the screen…": "Читаємо екран…",
+  "Delete video": "Видалити відео",
+  "Don't keep it": "Не зберігати",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "Завантажене відео зберігається, щоб екран із нього можна було прочитати знову. Без нього екран не вдасться прочитати пізніше, наприклад іншою моделлю.",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "{count} зустріч уже підпадає під правило. Її відео буде видалено зараз.",
+    "few": "{count} зустрічі вже підпадають під правило. Їхні відео буде видалено зараз.",
+    "many": "{count} зустрічей уже підпадають під правило. Їхні відео буде видалено зараз.",
+    "other": "{count} зустрічі вже підпадають під правило. Їхні відео буде видалено зараз."
+  }
 }
