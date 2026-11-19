@@ -107,6 +107,9 @@ win:
     # the tray's colour icons (tray.ts; @2x next to them), a Mac uses its template tray.png
     - { from: resources, to: ., filter: ["tray-color*.png", "tray-recording*.png"] }
   artifactName: Yogurt-windows-${arch}.${ext}
+  # a release signs the DLLs and native modules too, not just the programs: with Windows Code Integrity on, an unsigned
+  # whisper.dll or ggml.dll is blocked from loading and speech setup fails (#99)
+  signExts: [".dll", ".node"]
   target:
     - target: nsis
       arch: [x64]
