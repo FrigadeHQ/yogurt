@@ -3,7 +3,7 @@ import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Capture, encodeFrame, hookCapture, recordingFinished, type CaptureProc } from '../src/main/capture'
-import { hookTranscription, transcribeRecorded, settleTranscription, speechLocaleFor, spokenChanged, stopTranscriptionServer, transcribing, releaseIdleSpeech } from '../src/main/asr'
+import { hookTranscription, transcribeRecorded, settleTranscription, speechLocaleFor, spokenChanged, stopTranscriptionServer, transcribing, releaseIdleSpeech, liveTranscriptFinishing } from '../src/main/asr'
 import type { Spoken } from '../src/shared/spoken'
 import type { TranscriptPartial } from '../src/shared/types'
 import { openStore, type Meeting, type Store } from '../src/main/store'
@@ -74,7 +74,11 @@ describe('live transcription of a meeting', () => {
     r.begin(m)
     expect(store.meeting(m.id)?.transcriptionPending).toBe(true)
     r.procs[0].say('them', 500)
-    await r.stop(m)
+    expect(liveTranscriptFinishing(m.id)).toBe(false)
+    const stopped = r.stop(m)
+    expect(liveTranscriptFinishing(m.id)).toBe(true)
+    await stopped
+    expect(liveTranscriptFinishing(m.id)).toBe(false)
     expect(store.segments(m.id).length).toBeGreaterThan(0)
     expect(store.meeting(m.id)?.transcriptionPending).not.toBe(true)
     store.updateMeeting(m.id, { transcriptionPending: true })
