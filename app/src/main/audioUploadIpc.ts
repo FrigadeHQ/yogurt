@@ -18,7 +18,7 @@ export function hookAudioUploads(d:Omit<Parameters<typeof createAudioUploads>[0]
       e.sender.on('did-start-navigation',(_event,_url,inPlace,mainFrame)=>{if(mainFrame&&!inPlace)cancel()})
     }
     const generation=watched.get(id)
-    const result=await dialog.showOpenDialog(d.window()!,{properties:['openFile'],filters:[{name:t('Audio'),extensions:['mp3','m4a','wav']}]})
+    const result=await dialog.showOpenDialog(d.window()!,{properties:['openFile'],filters:[{name:t('Audio'),extensions:['mp3','m4a','wav','mov','mp4']}]})
     return watched.get(id)!==generation||result.canceled||!result.filePaths[0]?null:uploads.select(id,result.filePaths[0])
   })
   ipcMain.handle('audio-upload:info',(e,token)=>uploads.info(owner(e),token))
