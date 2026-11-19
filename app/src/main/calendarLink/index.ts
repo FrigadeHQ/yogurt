@@ -1,3 +1,5 @@
+import { calendarAddress as normalize } from '../../shared/calendarLink'
+export { normalize }
 import { randomUUID } from 'node:crypto'
 import { loadSettings, updateSettings } from '../settings'
 import { icsFeed, icsName, type IcsFeed, type RawEvent } from './ics'
@@ -16,14 +18,6 @@ type Stored = { id: string; name: string; host: string; url: string }
 /** how long a fetched feed is used before asking for it again */
 export const REFRESH_MS = 5 * 60_000
 
-/** https (webcal is the same address), or plain http only on this computer (tests) */
-export function normalize(raw: string): URL | null {
-  let url: URL
-  try { url = new URL(raw.trim().replace(/^webcals?:\/\//i, 'https://')) } catch { return null }
-  if (url.protocol === 'https:') return url
-  if (url.protocol === 'http:' && ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)) return url
-  return null
-}
 
 export function createCalendarLinks(d: {
   file: string

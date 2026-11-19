@@ -121,7 +121,7 @@ function CalendarLinkScreen({ state, progress, onNext }: { state: SetupState; pr
       text={connected ? t('{name} is connected. You can change this any time in Settings.', { name: connected }) : sc.text}
       actions={connected
         ? <button ref={primary} data-testid="step-allow" onClick={onNext} className="ob-button primary no-drag">{t('Continue')}</button>
-        : <CalendarLinkForm variant="onboarding" onConnected={setConnected}
+        : <CalendarLinkForm variant="onboarding" onConnected={setConnected} onCancel={onNext}
           extra={<button type="button" data-testid="step-later" onClick={onNext} className="ob-button quiet no-drag">{t('Not now')}</button>} />}
     />
   )

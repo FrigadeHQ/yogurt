@@ -244,5 +244,10 @@
   "Continue transcription": "Continue transcription",
   "Transcribe again": "Transcribe again",
   "Stop transcription": "Stop transcription",
-  "Audio is unavailable.": "Audio is unavailable."
+  "Audio is unavailable.": "Audio is unavailable.",
+  "Copy the private iCal address from your calendar settings.": "Copy the private iCal address from your calendar settings.",
+  "Enter an https:// or webcal:// calendar address.": "Enter an https:// or webcal:// calendar address.",
+  "The address stays on this computer.": "The address stays on this computer.",
+  "Add a calendar by link": "Add a calendar by link",
+  "Calendars from the Mac's Calendar app appear above automatically.": "Calendars from the Mac's Calendar app appear above automatically."
 }
