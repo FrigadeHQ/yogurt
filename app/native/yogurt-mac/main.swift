@@ -329,10 +329,14 @@ func watchCalls(every: Int, ids: [String]) {
     if !AXIsProcessTrusted() {
       line(["t": t, "error": "not-trusted"])
     } else {
-      // the frontmost of the apps asked about that shows a call, else the first one that does
+      // the frontmost of the apps asked about that shows a call, else the first one that does. Every process of each
+      // app, not just one: two Zoom meetings at once run as two processes under the same bundle id, and keeping only
+      // the first of them read the wrong meeting's window, or none at all when that process had no call window.
       let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
-      let running = ids.compactMap { NSRunningApplication.runningApplications(withBundleIdentifier: $0).first }
-        .sorted { a, _ in a.processIdentifier == front }
+      let apps = ids.flatMap { NSRunningApplication.runningApplications(withBundleIdentifier: $0) }
+      // the frontmost first, the rest in the order the system gave them (sorted(by:) wants a strict weak ordering,
+      // which "is this one frontmost" is not, and it does not promise to keep equal elements in order)
+      let running = apps.filter { $0.processIdentifier == front } + apps.filter { $0.processIdentifier != front }
       var found: (NSRunningApplication, AXUIElement, [AXUIElement])?
       for r in running {
         let app = AXUIElementCreateApplication(r.processIdentifier)

@@ -1,6 +1,6 @@
 import type { RecordingStart } from '../meeting'
 import type { Meeting, Store } from '../store'
-import { nameFor, othersIn, type CallSample } from './attribute'
+import { markedOther, nameFor, norm, othersIn, type CallSample } from './attribute'
 import { readCall, summarize, type AxWindow, type CallKind } from './parse'
 
 /**
@@ -160,10 +160,20 @@ export function hookCallNames(p: {
       if (moved.length) p.store.setSegmentSpeakers(moved)
       // everyone seen in the call is one of the people at the meeting
       const cur = p.store.meeting(m.id)
-      const known = new Set(cur?.attendees.map((a) => a.name.toLocaleLowerCase()) ?? [])
-      const added = othersIn(tl, o).filter((n) => !known.has(n.toLocaleLowerCase()))
+      // the same name the calendar already gave: "Okafor, Riley" from Exchange is the "Riley Okafor" the call shows
+      const known = new Set(cur?.attendees.map((a) => norm(a.name)) ?? [])
+      const added = othersIn(tl, o).filter((n) => !known.has(norm(n)))
       if (cur && added.length) p.store.updateMeeting(m.id, { attendees: [...cur.attendees, ...added.map((name) => ({ name, email: null }))] })
-      log(`call names: ${s.samples.length} readings, ${names.filter((x) => x.speaker).length} of ${lines.length} lines of the other side named, ${added.length} people added`)
+      // A call that stayed Them throughout says nothing about why, and the readings are gone once the session ends.
+      // Counts only, no names: main.log is pasted into public issues. Enough to tell "the app was never read" from
+      // "it was read, and it marked nobody on the other side". Left off when nothing was read at all, where the
+      // leading "0 readings" already says it, and kept to the numbers the per-reading lines above do not total.
+      const read = s.samples.filter((x) => x.ok !== false)
+      const most = read.reduce((n, x) => Math.max(n, x.participants.length), 0)
+      const why = lines.length && s.samples.length && !names.some((x) => x.speaker)
+        ? `; nobody named: ${read.length} of ${s.samples.length} readings read the app, at most ${most} in the call, ${markedOther(read, o)} marked the other side talking`
+        : ''
+      log(`call names: ${s.samples.length} readings, ${names.filter((x) => x.speaker).length} of ${lines.length} lines of the other side named, ${added.length} people added${why}`)
       if (moved.length || added.length) p.changed(m.id)
     })().catch((e) => console.error('call names after the meeting failed', e)).finally(() => { sessions.delete(m.id); finals.delete(m.id) })
     finals.set(m.id, final)
