@@ -737,5 +737,14 @@
   "Continue transcription": "Fortsett transkripsjon",
   "Transcribe again": "Transkriber på nytt",
   "Stop transcription": "Stopp transkripsjon",
-  "Audio is unavailable.": "Lyden er ikke tilgjengelig."
+  "Audio is unavailable.": "Lyden er ikke tilgjengelig.",
+  "Only apps added here": "Bare apper som er lagt til her",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "Hver app får sin egen nøkkel, og andre apper på denne Macen kan ikke lese noe.",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "Hver app får sin egen nøkkel, og andre apper på denne datamaskinen kan ikke lese noe.",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "Legg til hver app her, og lim deretter inn oppsettet i appen som en lokal MCP-server.",
+  "No apps added yet.": "Ingen apper er lagt til ennå.",
+  "Copy setup": "Kopier oppsett",
+  "App name": "Appnavn",
+  "Add an app": "Legg til en app",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "Lim inn dette oppsettet i {name}. Det inneholder appens nøkkel, så hold det privat."
 }

@@ -34,6 +34,15 @@ if fd == nil && env["YOGURT_MCP_NO_LAUNCH"] == nil {
 }
 guard let sock = fd else { fail("Yogurt isn't running, and it couldn't be opened. Open Yogurt, then try again.") }
 
+// the app's key (YOGURT_MCP_TOKEN, from Settings → AI apps) goes first, before anything the AI app says; a Yogurt key
+// has only letters, digits, - and _, so the line needs no escaping
+if let token = env["YOGURT_MCP_TOKEN"], !token.isEmpty {
+  guard token.range(of: "^[A-Za-z0-9_-]{20,200}$", options: .regularExpression) != nil else { fail("YOGURT_MCP_TOKEN isn't a Yogurt key. Copy the app's setup again in Yogurt: Settings, AI apps.") }
+  let line = Array("{\"jsonrpc\":\"2.0\",\"method\":\"yogurt/auth\",\"params\":{\"token\":\"\(token)\"}}\n".utf8)
+  var off = 0
+  while off < line.count { let w = line.withUnsafeBufferPointer { write(sock, $0.baseAddress! + off, line.count - off) }; if w <= 0 { exit(0) }; off += w }
+}
+
 // Yogurt's answers → stdout; when Yogurt goes away, so does this
 Thread.detachNewThread {
   var buf = [UInt8](repeating: 0, count: 65536)

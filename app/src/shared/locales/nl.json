@@ -737,5 +737,14 @@
   "Continue transcription": "Transcriptie hervatten",
   "Transcribe again": "Opnieuw transcriberen",
   "Stop transcription": "Transcriptie stoppen",
-  "Audio is unavailable.": "Audio is niet beschikbaar."
+  "Audio is unavailable.": "Audio is niet beschikbaar.",
+  "Only apps added here": "Alleen apps die hier zijn toegevoegd",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "Elke app krijgt een eigen sleutel, en andere apps op deze Mac kunnen niets lezen.",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "Elke app krijgt een eigen sleutel, en andere apps op deze computer kunnen niets lezen.",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "Voeg hier elke app toe en plak daarna de instelling ervan als lokale MCP-server in de app.",
+  "No apps added yet.": "Nog geen apps toegevoegd.",
+  "Copy setup": "Instelling kopiëren",
+  "App name": "Naam van app",
+  "Add an app": "App toevoegen",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "Plak deze instelling in {name}. Ze bevat de sleutel van de app, dus houd haar privé."
 }

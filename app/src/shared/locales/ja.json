@@ -695,5 +695,14 @@
   "Continue transcription": "文字起こしを続ける",
   "Transcribe again": "再度文字起こし",
   "Stop transcription": "文字起こしを停止",
-  "Audio is unavailable.": "音声を利用できません。"
+  "Audio is unavailable.": "音声を利用できません。",
+  "Only apps added here": "ここで追加したアプリのみ",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "アプリごとに専用のキーが発行され、このMac上の他のアプリは何も読み取れません。",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "アプリごとに専用のキーが発行され、このコンピュータ上の他のアプリは何も読み取れません。",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "ここで各アプリを追加し、その設定をアプリにローカルMCPサーバーとして貼り付けてください。",
+  "No apps added yet.": "まだアプリは追加されていません。",
+  "Copy setup": "設定をコピー",
+  "App name": "アプリ名",
+  "Add an app": "アプリを追加",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "この設定を{name}に貼り付けてください。アプリのキーが含まれているため、他の人と共有しないでください。"
 }

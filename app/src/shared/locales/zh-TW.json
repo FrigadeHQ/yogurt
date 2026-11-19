@@ -695,5 +695,14 @@
   "Continue transcription": "繼續轉錄",
   "Transcribe again": "重新轉錄",
   "Stop transcription": "停止轉錄",
-  "Audio is unavailable.": "音訊無法使用。"
+  "Audio is unavailable.": "音訊無法使用。",
+  "Only apps added here": "僅限在此新增的 App",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "每個 App 都有自己的金鑰，這台 Mac 上的其他 App 無法讀取任何內容。",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "每個 App 都有自己的金鑰，這台電腦上的其他 App 無法讀取任何內容。",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "在此新增每個 App，然後將其設定作為本機 MCP 伺服器貼到 App 中。",
+  "No apps added yet.": "尚未新增任何 App。",
+  "Copy setup": "複製設定",
+  "App name": "App 名稱",
+  "Add an app": "新增 App",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "將此設定貼到 {name} 中。其中包含該 App 的金鑰，請勿分享。"
 }

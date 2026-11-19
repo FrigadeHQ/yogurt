@@ -19,8 +19,11 @@ export type McpDeps = {
   audio: (id: string) => Promise<Array<{ track: Track; path: string }>>
   /** the computer, for the words other apps' models read (a Mac when left out) */
   platform?: string
+  /** only apps added in Settings may read (each connection's key is checked in socket.ts); no keys needed when left out */
+  requiresKey?: () => boolean
 }
-export type Mcp = { handle(msg: unknown): Promise<object | null> }
+/** app: who sent the message, when its connection gave the key of an app added in Settings */
+export type Mcp = { handle(msg: unknown, app?: { name: string }): Promise<object | null> }
 
 /** newest first: the app asked for one of these, it gets that one; otherwise the newest */
 const VERSIONS = ['2025-06-18', '2025-03-26', '2024-11-05']
@@ -111,7 +114,7 @@ export function createMcp(d: McpDeps): Mcp {
   const said = (msgId: unknown, body: string, isError = false) => ok(msgId, { content: [{ type: 'text', text: body }], ...(isError ? { isError: true } : {}) })
 
   return {
-    async handle(msg) {
+    async handle(msg, app) {
       if (!msg || typeof msg !== 'object' || (msg as { jsonrpc?: unknown }).jsonrpc !== '2.0' || typeof (msg as { method?: unknown }).method !== 'string') return fail(null, -32600, 'Not a JSON-RPC request')
       const { id: msgId, method, params } = msg as { id?: unknown; method: string; params?: Record<string, unknown> }
       // a notification: nothing comes back
@@ -132,6 +135,7 @@ export function createMcp(d: McpDeps): Mcp {
         const tool = tools[name]
         if (!tool) return said(msgId, `Yogurt has no tool called ${name}.`, true)
         if (!d.enabled()) return said(msgId, 'Yogurt has connecting AI apps turned off. The person can turn it on in Yogurt: Settings, AI apps.', true)
+        if (d.requiresKey?.() && !app) return said(msgId, "Yogurt only shares meetings with AI apps added in its Settings. The person can add this app in Yogurt: Settings, AI apps, Add an app, then paste the setup it gives into this app.", true)
         try { return said(msgId, await tool((params?.arguments as Record<string, unknown>) ?? {})) } catch (e) {
           if (e instanceof Refusal) return said(msgId, e.message, true)
           console.error(`mcp: ${name} failed`, e)
