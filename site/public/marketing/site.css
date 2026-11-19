@@ -1302,13 +1302,25 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
 .hero-actions{--stars-action-gap:11px;gap:var(--stars-action-gap);width:fit-content;max-width:100%;flex-wrap:wrap;margin-inline:auto}
 .hero-actions>:is(.button,.mobile-download){flex:0 0 auto;min-width:max-content}
 .hero-actions>.mobile-download>summary{width:100%}
-.hero-actions .button{padding-inline:20px}
-.stars-label{white-space:nowrap}
-@media(max-width:760px){.hero-actions{--stars-action-gap:9px}.hero-actions .button{padding-inline:14px}}
-@media(max-width:360px){
-  .hero-actions{--stars-action-gap:7px}
-  .hero-actions .button{padding-inline:11px}
+.hero-actions .button {
+  height: 36px;
+  padding-inline: 13px;
+  gap: 6px;
+  border-radius: 8px;
+  font-size: 12.5px;
 }
+.hero-actions .button > svg {width:14px;height:14px}
+.stars-label{white-space:nowrap}
+@media(max-width:760px){
+  .hero-actions{--stars-action-gap:9px}
+  .hero-actions .button {
+    height: 44px;
+    padding-inline: 8px;
+    gap: 5px;
+    font-size: 12px;
+  }
+}
+@media(max-width:360px){.hero-actions{--stars-action-gap:7px}}
 
 /* Shared dimensions between the navigation, hero and meeting window. */
 :root {
@@ -1431,8 +1443,8 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
   display: block;
 }
 .hero-actions .demo-play svg {
-  width: 15px;
-  height: 15px;
+  width: 12px;
+  height: 12px;
 }
 .site-footer {
   background: var(--brand);
