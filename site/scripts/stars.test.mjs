@@ -134,6 +134,7 @@ function chartPage(reduced = false) {
       constructor(effect) { return animation(effect.frames, effect.options) }
     },
     document: doc,
+    navStars: count => count.toLocaleString('en'),
     window: { addEventListener() {}, removeEventListener() {} },
     innerHeight: 800,
     Intl,
@@ -165,6 +166,7 @@ function chartPage(reduced = false) {
   })
   return {
     number,
+    nav: () => query('span').textContent,
     enter: (ratio = 1) => observe([{ isIntersecting: true, intersectionRatio: ratio }]),
     clip: () => query('.chart-clip').style.transform,
     fill: () => query('.chart-fill').style.transform,
@@ -183,6 +185,7 @@ function chartPage(reduced = false) {
   }
 }
 const chart = chartPage()
+assert.equal(chart.nav(), '128') // The nav starts on the count the tile will land on.
 assert.equal(chart.clip(), 'scaleX(0)')
 assert.equal(chart.number.textContent, '0')
 chart.enter(.2)
@@ -202,26 +205,26 @@ chart.finishCountUp()
 assert.equal(chart.clip(), 'scaleX(1)')
 assert.equal(chart.number.textContent, '128')
 assert.equal(chart.timer().ms, 3000)
-chart.advance(1500)
-chart.leave()
-assert.equal(chart.timer(), null)
-chart.enter()
-assert.equal(chart.timer().ms, 1500)
-for (const [i, delay] of [1500, 8000, 15000, 24000, 35000, 48000].entries()) {
+assert.equal(chart.nav(), '128')
+chart.leave() // Later stars keep arriving after the reader scrolls away from the tile.
+assert.equal(chart.timer().ms, 3000)
+for (const [i, delay] of [3000, 8000, 15000, 24000, 35000, 48000].entries()) {
   const t = chart.timer()
   assert.equal(t.ms, delay)
   chart.advance(delay)
   t.fn()
   assert.equal(chart.number.textContent, String(129 + i))
+  assert.equal(chart.nav(), chart.number.textContent) // The nav and the tile change together.
 }
 assert.equal(chart.state(), 'complete')
 const still = chartPage(true)
 still.enter()
 assert.equal(still.number.textContent, '134')
+assert.equal(still.nav(), '134')
 assert(!still.timer())
 assert.equal(still.clip(), 'scaleX(1)')
 assert.equal(still.timing(), undefined)
-console.log('Shared chart and count timing, linear axes, growing intervals, offscreen pause and reduced-motion total passed.')
+console.log('Shared chart and count timing, linear axes, growing intervals, nav in step with the tile, later stars continuing offscreen and reduced-motion total passed.')
 
 const template=load('../content/home.html')
 const featureSection=template.match(/<section aria-labelledby="features-title"[\s\S]*?<\/section>/)[0]

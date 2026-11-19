@@ -5,7 +5,8 @@ const section = document.querySelector('#progress'),
   clip = section.querySelector('.chart-clip'),
   chart = section.querySelector('.star-chart'),
   points = Array.from(section.querySelector('.chart-line').points),
-  reduce = matchMedia('(prefers-reduced-motion: reduce)')
+  reduce = matchMedia('(prefers-reduced-motion: reduce)'),
+  nav = document.querySelector('.nav-stars')
 let total = Number(number.textContent.replaceAll(',', ''))
 const format = new Intl.NumberFormat('en')
 number.setAttribute('aria-hidden', 'true')
@@ -23,6 +24,9 @@ let started = false,
   tailTimer = 0,
   tailRemaining = tailGaps[0],
   tailMark = 0
+// The nav shows the same count as the tile: the starting count until the tile has played, then each later star with it.
+const showNav = count => { nav.querySelector('span').textContent = navStars(count) }
+if (!finished) showNav(base)
 // Interpolate the same straight segment that is visible at the clipping edge.
 function heightAt(progress) {
   if (progress === 0 || progress === 1 || points.length < 2) return progress
@@ -63,16 +67,18 @@ function rest() {
   clock?.cancel()
   clock = null
   updateCount(1)
+  showNav(total)
   section.dataset.stars = 'complete'
 }
 function scheduleTail() {
-  if (tailTimer || !visible || document.hidden || reduce.matches || finished) return
+  if (tailTimer || document.hidden || reduce.matches || finished) return
   tailMark = performance.now()
   tailTimer = setTimeout(() => {
     tailTimer = 0
     tailValue = Math.min(total, tailValue + 1)
     tailRemaining = tailGaps[tailValue - base] ?? 0
     number.textContent = format.format(tailValue)
+    showNav(tailValue)
     if (tailValue === total) rest()
     else scheduleTail()
   }, tailRemaining)
@@ -116,10 +122,11 @@ function sync() {
     clock = null
     finished = true
     paint(1)
+    showNav(total)
     section.dataset.stars = 'still'
     return
   }
-  if (!visible || document.hidden) {
+  if (document.hidden || (!visible && !tailStage)) {
     stop()
     return
   }
@@ -188,7 +195,6 @@ new IntersectionObserver(([entry])=>{
 document.addEventListener('visibilitychange',syncStatusPulse)
 reduce.addEventListener('change',syncStatusPulse)
 
-const nav = document.querySelector('.nav-stars')
 const releaseCount = section.querySelector('.oss-calendar .oss-figure')
 const releaseLink = section.querySelector('.oss-latest')
 const version = releaseLink.querySelector('.release-version strong')
@@ -220,7 +226,7 @@ async function refresh() {
     base = total - tailSize
     tailValue = Math.min(total, base + ticks)
     const label = format.format(total)
-    nav.querySelector('span').textContent = navStars(total)
+    showNav(finished ? total : tailStage ? tailValue : base)
     nav.setAttribute('aria-label', 'Yogurt on GitHub, ' + label + ' stars')
     section.querySelector('.oss-history').setAttribute('aria-label', label + ' GitHub stars. View on GitHub')
     number.parentElement.setAttribute('aria-label', label + ' GitHub stars')
