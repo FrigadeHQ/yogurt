@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto'
-import { createReadStream } from 'node:fs'
-import { mkdir, open, rename, rm, type FileHandle } from 'node:fs/promises'
+import { constants, createReadStream } from 'node:fs'
+import { copyFile, mkdir, open, rename, rm, type FileHandle } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
 import type { Store } from './store'
-import { uploadDayAllowed, type AudioUploadFile, type AudioUploadStatus } from '../shared/audioUpload'
+import { SCREEN_SPEAKER, uploadDayAllowed, type AudioUploadFile, type AudioUploadStatus } from '../shared/audioUpload'
+import type { ScreenLine } from './screenText'
 import { t } from '../shared/i18n'
 import { wavBytes } from './asr/transcribe'
 
@@ -16,8 +17,9 @@ async function writeAll(file: FileHandle, bytes: Uint8Array, position: number) {
   }
 }
 
-type Job = { owner: number; file: AudioUploadFile; input: FileHandle; output?: FileHandle; dir: string; samples: number; modified: number; status?: AudioUploadStatus; id?: string; title?: string; at?: number; cancelled?: boolean; durable?: boolean; writing: Promise<void>; operation?: Promise<unknown>; wait?: Promise<void>; wake?: () => void }
-type UploadStore = Pick<Store,'createMeeting'|'updateMeeting'|'meeting'|'interruptAudioPreparations'>
+type Job = { owner: number; file: AudioUploadFile; path: string; reading?: AbortController; input: FileHandle; output?: FileHandle; dir: string; samples: number; modified: number; status?: AudioUploadStatus; id?: string; title?: string; at?: number; cancelled?: boolean; durable?: boolean; writing: Promise<void>; operation?: Promise<unknown>; wait?: Promise<void>; wake?: () => void }
+type UploadStore = Pick<Store,'createMeeting'|'updateMeeting'|'meeting'|'interruptAudioPreparations'|'addSegments'>
+const VIDEO = ['.mov','.mp4']
 /** Uploaded audio is canonical 16 kHz mono PCM; stream it without reading hours of audio into RAM. */
 export async function* uploadedAudio(file: string): AsyncGenerator<Float32Array> {
   let rest:Buffer=Buffer.alloc(0)
@@ -31,6 +33,10 @@ export async function* uploadedAudio(file: string): AsyncGenerator<Float32Array>
 export function createAudioUploads(d:{
   root: string; store:UploadStore; recording:()=>boolean
   prepared:(id:string)=>void; changed:()=>void; send:(owner:number,token:string,status:AudioUploadStatus)=>void
+  /** a video's screen as text (a Mac); left out where it can't be read */
+  readScreen?:(file:string,progress:(fraction:number)=>void,signal:AbortSignal)=>Promise<ScreenLine[]>
+  /** a copy of an uploaded video stays with its meeting (What Yogurt keeps), so its screen can be read again later */
+  keepVideo?:()=>boolean
 }) {
   const jobs=new Map<string,Job>()
   const get=(owner:number,token:unknown)=>{const j=typeof token==='string'?jobs.get(token):undefined;if(!j||j.owner!==owner)throw new Error('Unknown audio selection');return j}
@@ -58,7 +64,7 @@ export function createAudioUploads(d:{
       try {
         const stat=await input.stat();if(!stat.isFile()||stat.size<12||stat.size>8*1024**3)throw new Error('Unsupported audio file')
         const token=randomUUID(),name=basename(path),file={token,name,title:name.slice(0,-extname(name).length).trim().slice(0,200)||t('Recording'),modifiedAt:stat.mtimeMs,size:stat.size}
-        jobs.set(token,{owner,file,input,dir:join(d.root,'.uploads',token),samples:0,modified:stat.mtimeMs,writing:Promise.resolve()});return file
+        jobs.set(token,{owner,file,path,input,dir:join(d.root,'.uploads',token),samples:0,modified:stat.mtimeMs,writing:Promise.resolve()});return file
       }catch(error){await input.close();throw error}
     },
     info(owner:number,token:unknown){return get(owner,token).file},
@@ -103,6 +109,17 @@ export function createAudioUploads(d:{
       if(j.cancelled)return
       const id=j.file.token,durationMs=j.samples/16,startedAt=d.store.meeting(id)?.startedAt??j.at,folder=join(d.root,id)
       await mkdir(folder,{recursive:true});await rename(join(j.dir,'audio.wav'),join(folder,'them.wav'))
+      const ext=extname(j.path).toLowerCase()
+      if(VIDEO.includes(ext)){
+        // a clone where the disk can make one (instant, no extra space until either changes)
+        if(d.keepVideo?.()!==false)await copyFile(j.path,join(folder,`video${ext}`),constants.COPYFILE_FICLONE)
+        if(d.readScreen&&!j.cancelled){
+          // the audio is safe in the meeting already: a screen that can't be read leaves it a meeting without screen lines
+          j.reading=new AbortController();tell(j,{phase:'reading-screen',fraction:0})
+          const lines=await d.readScreen(j.path,fraction=>{if(!j.cancelled)tell(j,{phase:'reading-screen',fraction})},j.reading.signal).catch(e=>{if(!j.cancelled)console.warn('reading the screen failed',e);return []})
+          if(!j.cancelled)d.store.addSegments(lines.map((l,i)=>({meetingId:id,track:'them',startMs:l.ms,endMs:Math.max(l.ms,lines[i+1]?.ms??durationMs),text:l.text,speaker:SCREEN_SPEAKER})))
+        }
+      }
       j.id=id;j.durable=true;d.store.updateMeeting(id,{durationMs,endedAt:startedAt+durationMs});if(!j.cancelled){d.prepared(id);tell(j,{phase:'done',meetingId:id})}await cleanup(j)
       })
     },
@@ -113,7 +130,7 @@ export function createAudioUploads(d:{
     },
     async cancel(owner:number,token:unknown) {
       const j=get(owner,token);if(j.status?.phase==='done')return
-      j.cancelled=true;j.wake?.();tell(j,{phase:'cancelling'})
+      j.cancelled=true;j.wake?.();j.reading?.abort();tell(j,{phase:'cancelling'})
       await j.operation?.catch(()=>{});await j.writing.catch(()=>{})
       if(j.id){d.store.updateMeeting(j.id,{transcriptionPending:!!j.durable,transcriptionState:j.durable?'stopped':'error'});d.changed()}
       await cleanup(j);jobs.delete(j.file.token)

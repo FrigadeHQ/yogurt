@@ -830,5 +830,16 @@
     "many": "{count} spotkań już spełnia warunek. Teraz trafią do Kosza.",
     "other": "{count} spotkania już spełnia warunek. Teraz trafią do Kosza."
   },
-  "The transcript was deleted on {date}, as set in Settings.": "Transkrypcja została usunięta {date} zgodnie z Ustawieniami."
+  "The transcript was deleted on {date}, as set in Settings.": "Transkrypcja została usunięta {date} zgodnie z Ustawieniami.",
+  "Screen": "Ekran",
+  "Reading the screen…": "Czytanie ekranu…",
+  "Delete video": "Usuń wideo",
+  "Don't keep it": "Nie przechowuj",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "Przesłane wideo jest przechowywane, aby można było ponownie odczytać jego ekran. Bez niego ekranu nie da się odczytać później, na przykład innym modelem.",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "{count} spotkanie już spełnia warunek. Jego wideo zostanie teraz usunięte.",
+    "few": "{count} spotkania już spełniają warunek. Ich wideo zostaną teraz usunięte.",
+    "many": "{count} spotkań już spełnia warunek. Ich wideo zostaną teraz usunięte.",
+    "other": "{count} spotkania już spełnia warunek. Ich wideo zostaną teraz usunięte."
+  }
 }

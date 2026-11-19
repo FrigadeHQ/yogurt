@@ -776,5 +776,14 @@
     "one": "{count} toplantı zaten kapsama giriyor. Şimdi Çöp Sepeti’ne taşınır.",
     "other": "{count} toplantı zaten kapsama giriyor. Şimdi Çöp Sepeti’ne taşınırlar."
   },
-  "The transcript was deleted on {date}, as set in Settings.": "Transkript, Ayarlar’daki tercihe göre {date} tarihinde silindi."
+  "The transcript was deleted on {date}, as set in Settings.": "Transkript, Ayarlar’daki tercihe göre {date} tarihinde silindi.",
+  "Screen": "Ekran",
+  "Reading the screen…": "Ekran okunuyor…",
+  "Delete video": "Videoyu sil",
+  "Don't keep it": "Saklanmasın",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "Yüklenen video, ekranı yeniden okunabilsin diye saklanır. Video olmadan ekran daha sonra, örneğin başka bir modelle okunamaz.",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "{count} toplantı zaten kapsama giriyor. Videosu şimdi silinir.",
+    "other": "{count} toplantı zaten kapsama giriyor. Videoları şimdi silinir."
+  }
 }

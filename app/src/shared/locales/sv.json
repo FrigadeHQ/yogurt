@@ -788,5 +788,14 @@
     "one": "{count} möte omfattas redan. Det flyttas till papperskorgen nu.",
     "other": "{count} möten omfattas redan. De flyttas till papperskorgen nu."
   },
-  "The transcript was deleted on {date}, as set in Settings.": "Transkriptionen raderades den {date}, enligt Inställningar."
+  "The transcript was deleted on {date}, as set in Settings.": "Transkriptionen raderades den {date}, enligt Inställningar.",
+  "Screen": "Skärm",
+  "Reading the screen…": "Läser skärmen…",
+  "Delete video": "Radera video",
+  "Don't keep it": "Behåll den inte",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "En uppladdad video behålls så att skärmen i den kan läsas igen. Utan videon kan skärmen inte läsas senare, till exempel med en annan modell.",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "{count} möte omfattas redan. Videon raderas nu.",
+    "other": "{count} möten omfattas redan. Deras videor raderas nu."
+  }
 }

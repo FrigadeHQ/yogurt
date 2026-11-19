@@ -737,5 +737,11 @@
   "{count} meetings already qualify. Their audio is deleted now.": "{count}件のミーティングがすでに対象です。音声を今すぐ削除します。",
   "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": "{count}件のミーティングがすでに対象です。文字起こしと音声を今すぐ削除します。メモは残ります。",
   "{count} meetings already qualify. They move to the Trash now.": "{count}件のミーティングがすでに対象です。今すぐゴミ箱に移動します。",
-  "The transcript was deleted on {date}, as set in Settings.": "設定に従い、文字起こしは{date}に削除されました。"
+  "The transcript was deleted on {date}, as set in Settings.": "設定に従い、文字起こしは{date}に削除されました。",
+  "Screen": "画面",
+  "Reading the screen…": "画面を読んでいます…",
+  "Delete video": "ビデオを削除",
+  "Don't keep it": "残さない",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "アップロードしたビデオは、画面をもう一度読み取れるように残ります。ビデオがないと、別のモデルを使うなどして後から画面を読み取ることはできません。",
+  "{count} meetings already qualify. Their videos are deleted now.": "{count}件のミーティングがすでに対象です。ビデオを今すぐ削除します。"
 }

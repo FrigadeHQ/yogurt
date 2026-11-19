@@ -1,4 +1,4 @@
-import { AUDIO_SPEAKER } from '../../shared/audioUpload'
+import { AUDIO_SPEAKER, SCREEN_SPEAKER } from '../../shared/audioUpload'
 import type { ContextChip } from '../../shared/askContext'
 import { toMarkdownFile } from '../../shared/exportNotes'
 import type { Retention } from '../../shared/retention'
@@ -98,7 +98,7 @@ const readTools = (platform: string): Tool[] => [
     inputSchema: { type: 'object', properties: { date: { type: 'string', description: 'The day, like 2026-11-03' } }, required: ['date'] } },
   { name: 'list_trash', description: 'Meetings in the Trash: id, title, start and when they were moved there. They are deleted for good 30 days after. restore_meeting brings one back.',
     inputSchema: { type: 'object', properties: {} } },
-  { name: 'get_settings', description: "Yogurt's settings that shape notes: the person's name, the interface language, the language spoken in meetings, the language summaries are written in, custom words spelled right in transcripts, whether recording stops when a call ends, and the days after a meeting ends before Yogurt deletes its audio (0: once the summary is saved), its transcript, or moves the whole meeting to the Trash (null: never).",
+  { name: 'get_settings', description: "Yogurt's settings that shape notes: the person's name, the interface language, the language spoken in meetings, the language summaries are written in, custom words spelled right in transcripts, whether recording stops when a call ends, and the days after a meeting ends before Yogurt deletes its audio (0: once the summary is saved), the copy of an uploaded video (0: none is kept), its transcript, or moves the whole meeting to the Trash (null: never).",
     inputSchema: { type: 'object', properties: {} } },
   { name: 'export_meeting', description: "A meeting as one Markdown document, exactly as Yogurt's Export Markdown saves it: title, date, people, the notes, and the transcript. side \"summary\" (default) uses Yogurt's summary, \"my_notes\" the person's own notes.",
     inputSchema: { type: 'object', properties: { id: idArg, side: { type: 'string', enum: ['summary', 'my_notes'] } }, required: ['id'] } },
@@ -173,7 +173,7 @@ export function createMcp(d: McpDeps): Mcp {
     const f = s.state === 'pending' && s.folderId ? d.store.folder(s.folderId) : undefined
     return f ? { id: f.id, name: f.name } : null
   }
-  const who = (speaker: string | null, track: Track) => (speaker === AUDIO_SPEAKER ? 'Audio' : track === 'me' || speaker === 'me' ? d.me() || 'You' : speaker || 'Them')
+  const who = (speaker: string | null, track: Track) => (speaker === AUDIO_SPEAKER ? 'Audio' : speaker === SCREEN_SPEAKER ? 'Screen' : track === 'me' || speaker === 'me' ? d.me() || 'You' : speaker || 'Them')
   const events = (r: { status: CalendarStatus; events: CalEvent[] }) => {
     if (!r.events.length && r.status !== 'granted') {
       return r.status === 'unsupported' ? 'Yogurt has no calendar on this computer. The person can add a calendar link in Yogurt: Settings, Calendars.'
@@ -257,7 +257,7 @@ export function createMcp(d: McpDeps): Mcp {
         spoken_language: s.spoken === 'multi' ? 'multi (any language, heard per meeting)' : 'en (English only)',
         summary_language: s.summaryLanguage || "each meeting's own language", custom_words: s.jargon,
         stop_recording_when_call_ends: s.stopWhenCallEnds,
-        delete_audio_after_days: s.retention.audio, delete_transcripts_after_days: s.retention.transcript, move_meetings_to_trash_after_days: s.retention.meeting }, null, 2)
+        delete_audio_after_days: s.retention.audio, delete_video_after_days: s.retention.video, delete_transcripts_after_days: s.retention.transcript, move_meetings_to_trash_after_days: s.retention.meeting }, null, 2)
     },
     async export_meeting(a) {
       const m = meetingOf(a.id)

@@ -776,5 +776,14 @@
     "one": "{count} मीटिंग पहले से इस नियम में आती है। वह अभी ट्रैश में चली जाएगी।",
     "other": "{count} मीटिंग्स पहले से इस नियम में आती हैं। वे अभी ट्रैश में चली जाएँगी।"
   },
-  "The transcript was deleted on {date}, as set in Settings.": "सेटिंग्स के अनुसार ट्रांसक्रिप्ट {date} को मिटाया गया।"
+  "The transcript was deleted on {date}, as set in Settings.": "सेटिंग्स के अनुसार ट्रांसक्रिप्ट {date} को मिटाया गया।",
+  "Screen": "स्क्रीन",
+  "Reading the screen…": "स्क्रीन पढ़ी जा रही है…",
+  "Delete video": "वीडियो मिटाएँ",
+  "Don't keep it": "न रखें",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "अपलोड किया गया वीडियो रखा जाता है ताकि उसकी स्क्रीन फिर से पढ़ी जा सके। इसके बिना स्क्रीन बाद में नहीं पढ़ी जा सकती, जैसे किसी दूसरे मॉडल से।",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "{count} मीटिंग पहले से इस नियम में आती है। उसका वीडियो अभी मिटाया जाएगा।",
+    "other": "{count} मीटिंग्स पहले से इस नियम में आती हैं। उनके वीडियो अभी मिटाए जाएँगे।"
+  }
 }

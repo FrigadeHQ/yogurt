@@ -32,15 +32,16 @@ function meeting(s: Store, daysAgo: number, o: { transcript?: boolean; summary?:
 
 describe('the rules', () => {
   it('keep everything until picked; a picked rule replaces the audio switch from before rules', () => {
-    expect(retentionOf({})).toEqual({ audio: null, transcript: null, meeting: null })
+    expect(retentionOf({})).toEqual({ audio: null, video: null, transcript: null, meeting: null })
     expect(ruleOf({ keepRecordings: false, recordingsOffAt: 5 }, 'audio')).toEqual({ days: 0, after: 5 })
     expect(ruleOf({ keepRecordings: false }, 'audio')).toBeNull()
     expect(ruleOf({ keepRecordings: false, recordingsOffAt: 5, audioDays: 30 }, 'audio')).toEqual({ days: 30 })
     expect(retentionPatch('audio', 30)).toEqual({ audioDays: 30, keepRecordings: undefined, recordingsOffAt: undefined })
     expect(retentionPatch('meeting', null)).toEqual({ meetingDays: undefined })
   })
-  it('take whole days up to ten years; only audio takes 0, once the summary is saved', () => {
+  it('take whole days up to ten years; only audio (once the summary is saved) and video (not kept) take 0', () => {
     expect(retentionDays('audio', 0)).toBe(0)
+    expect(retentionDays('video', 0)).toBe(0)
     expect(retentionDays('transcript', 0)).toBeNull()
     expect(retentionDays('meeting', 3650)).toBe(3650)
     for (const v of [3651, -1, 1.5, '30', null, NaN]) expect(retentionDays('transcript', v)).toBeNull()
@@ -61,12 +62,12 @@ describe('what a rule acts on', () => {
     const old = meeting(s, 40), recent = meeting(s, 10), noSummary = meeting(s, 40, { summary: false }), noLines = meeting(s, 40, { transcript: false })
     const live = meeting(s, 40, { state: 'recording' }), trashed = meeting(s, 40)
     s.trashMeeting(trashed.id, NOW)
-    const due = (kind: 'audio' | 'transcript' | 'meeting') => dueNow({ store: s, hasAudio: () => true }, kind, { days: 30 }, NOW)
+    const due = (kind: 'audio' | 'transcript' | 'meeting') => dueNow({ store: s, hasAudio: () => true, hasVideo: () => true }, kind, { days: 30 }, NOW)
     expect(due('audio')).toEqual([old.id])
     expect(due('transcript')).toEqual([old.id])
     expect(due('meeting').sort()).toEqual([old.id, noSummary.id, noLines.id].sort())
-    expect(dueNow({ store: s, hasAudio: () => false }, 'audio', { days: 30 }, NOW)).toEqual([])
-    expect(dueNow({ store: s, hasAudio: () => true }, 'audio', { days: 0 }, NOW).sort()).toEqual([old.id, recent.id].sort())
+    expect(dueNow({ store: s, hasAudio: () => false, hasVideo: () => false }, 'audio', { days: 30 }, NOW)).toEqual([])
+    expect(dueNow({ store: s, hasAudio: () => true, hasVideo: () => true }, 'audio', { days: 0 }, NOW).sort()).toEqual([old.id, recent.id].sort())
     void live
   })
   it('a deleted transcript goes for good, hidden lines and the library copy too, and its notes stay', () => {
@@ -79,7 +80,7 @@ describe('what a rule acts on', () => {
     expect(s.search('mango', 10).map((h) => h.meetingId)).toEqual([m.id])
     expect(s.notes(m.id)).toMatchObject({ mine: 'kiwi', enhanced: '## Mango\nBudget agreed' })
     expect(s.meeting(m.id)?.transcriptDeletedAt).toBe(NOW)
-    expect(dueNow({ store: s, hasAudio: () => true }, 'transcript', { days: 30 }, NOW)).toEqual([])
+    expect(dueNow({ store: s, hasAudio: () => true, hasVideo: () => true }, 'transcript', { days: 30 }, NOW)).toEqual([])
   })
   it('a database from before rules gets its column, with nothing deleted', () => {
     const s = fresh()
@@ -98,22 +99,22 @@ describe('the sweep', () => {
     const ancient = meeting(s, 400), old = meeting(s, 101), stuck = meeting(s, 100), recent = meeting(s, 40), fresh1 = meeting(s, 5)
     const calls: string[] = []
     const d = {
-      store: s, hasAudio: () => true,
+      store: s, hasAudio: () => true, hasVideo: (id: string) => id === recent.id, removeVideo: (id: string) => { calls.push(`video ${id}`) },
       removeAudio: vi.fn(async (id: string) => { calls.push(`audio ${id}`); return id === stuck.id ? 'failed' as const : 'deleted' as const }),
       removeTranscript: (id: string) => { calls.push(`transcript ${id}`); s.deleteTranscript(id, NOW) },
       trash: (id: string) => { calls.push(`trash ${id}`); s.trashMeeting(id, NOW) },
     }
-    await sweep({ ...d, settings: { meetingDays: 365, transcriptDays: 90, audioDays: 30 } }, NOW)
+    await sweep({ ...d, settings: { meetingDays: 365, transcriptDays: 90, audioDays: 30, videoDays: 30 } }, NOW)
     // old has no transcript left, so nothing of it is due for audio again
-    expect(calls).toEqual([`trash ${ancient.id}`, `audio ${old.id}`, `transcript ${old.id}`, `audio ${stuck.id}`, `audio ${stuck.id}`, `audio ${recent.id}`])
+    expect(calls).toEqual([`trash ${ancient.id}`, `audio ${old.id}`, `transcript ${old.id}`, `audio ${stuck.id}`, `audio ${stuck.id}`, `audio ${recent.id}`, `video ${recent.id}`])
     expect(s.segments(stuck.id)).toHaveLength(1)
     expect(s.segments(fresh1.id)).toHaveLength(1)
   })
   it('keeps everything when no rule is picked', async () => {
     const s = fresh(); meeting(s, 4000)
-    const d = { store: s, hasAudio: () => true, removeAudio: vi.fn(), removeTranscript: vi.fn(), trash: vi.fn() }
+    const d = { store: s, hasAudio: () => true, hasVideo: () => true, removeAudio: vi.fn(), removeTranscript: vi.fn(), trash: vi.fn(), removeVideo: vi.fn() }
     await sweep({ ...d, settings: {} }, NOW)
-    expect([d.removeAudio, d.removeTranscript, d.trash].map((f) => f.mock.calls.length)).toEqual([0, 0, 0])
+    expect([d.removeAudio, d.removeTranscript, d.trash, d.removeVideo].map((f) => f.mock.calls.length)).toEqual([0, 0, 0, 0])
   })
 })
 

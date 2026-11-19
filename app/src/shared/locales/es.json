@@ -804,5 +804,15 @@
     "many": "{count} reuniones ya cumplen la regla. Se moverán a la Papelera ahora.",
     "other": "{count} reuniones ya cumplen la regla. Se moverán a la Papelera ahora."
   },
-  "The transcript was deleted on {date}, as set in Settings.": "La transcripción se eliminó el {date}, según lo configurado en Ajustes."
+  "The transcript was deleted on {date}, as set in Settings.": "La transcripción se eliminó el {date}, según lo configurado en Ajustes.",
+  "Screen": "Pantalla",
+  "Reading the screen…": "Leyendo la pantalla…",
+  "Delete video": "Eliminar vídeo",
+  "Don't keep it": "No conservarlo",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "Un vídeo subido se conserva para poder volver a leer su pantalla. Sin él, la pantalla no se podrá leer más adelante, por ejemplo, con otro modelo.",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "{count} reunión ya cumple la regla. Su vídeo se eliminará ahora.",
+    "many": "{count} reuniones ya cumplen la regla. Sus vídeos se eliminarán ahora.",
+    "other": "{count} reuniones ya cumplen la regla. Sus vídeos se eliminarán ahora."
+  }
 }

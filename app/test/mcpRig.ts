@@ -43,7 +43,7 @@ export function setup(o: { enabled?: boolean; changes?: boolean; platform?: stri
     ask: rec('ask', async () => ({ answer: 'Travel stays flat [1].', sources: [{ n: 1, meetingId: older.id, title: 'Budget review', startedAt: older.startedAt, atMs: 65_000, excerpt: 'Travel spend is down a little.' }] })),
     comingUp: rec('comingUp', async () => ({ status: 'granted' as const, events: [EVENT] })),
     calendarDay: rec('calendarDay', async () => ({ status: 'granted' as const, events: [EVENT] })),
-    settings: () => ({ myName: 'Sam Rivera', locale: 'en', spoken: 'en', summaryLanguage: '', jargon: ['Acme'], stopWhenCallEnds: true, retention: { audio: 0, transcript: null, meeting: 365 } }),
+    settings: () => ({ myName: 'Sam Rivera', locale: 'en', spoken: 'en', summaryLanguage: '', jargon: ['Acme'], stopWhenCallEnds: true, retention: { audio: 0, video: 7, transcript: null, meeting: 365 } }),
     changed: rec('changed', () => {}),
     imported: rec('imported', () => {}),
     rename: rec('rename', (id: string, title: string) => { store.updateMeeting(id, { title, titleSource: 'user' }); return true }),

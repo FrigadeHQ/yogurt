@@ -776,5 +776,14 @@
     "one": "{count} megbeszélés már érintett. Most a Kukába kerül.",
     "other": "{count} megbeszélés már érintett. Most a Kukába kerülnek."
   },
-  "The transcript was deleted on {date}, as set in Settings.": "Az átirat a Beállítások szerint törlődött ekkor: {date}"
+  "The transcript was deleted on {date}, as set in Settings.": "Az átirat a Beállítások szerint törlődött ekkor: {date}",
+  "Screen": "Képernyő",
+  "Reading the screen…": "Képernyő olvasása…",
+  "Delete video": "Videó törlése",
+  "Don't keep it": "Ne őrizze meg",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "A feltöltött videó megmarad, hogy a képernyője újra olvasható legyen. Nélküle a képernyő később már nem olvasható, például egy másik modellel.",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "{count} megbeszélés már érintett. A videója most törlődik.",
+    "other": "{count} megbeszélés már érintett. A videóik most törlődnek."
+  }
 }

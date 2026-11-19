@@ -46,6 +46,8 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   recordingsOffAt?: number
   /** Days after a meeting ends before its audio is deleted (0: once its summary is saved); kept when left out */
   audioDays?: number
+  /** Days after a meeting ends before an uploaded video is deleted (0: not kept, its screen read once); kept when left out */
+  videoDays?: number
   /** Days after a meeting ends before its transcript is deleted, with its audio; kept when left out */
   transcriptDays?: number
   /** Days after a meeting ends before it moves to the Trash; kept when left out */

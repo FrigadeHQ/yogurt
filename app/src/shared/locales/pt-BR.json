@@ -807,5 +807,15 @@
     "many": "{count} reuniões já se encaixam na regra. Elas serão movidas para a Lixeira agora.",
     "other": "{count} reuniões já se encaixam na regra. Elas serão movidas para a Lixeira agora."
   },
-  "The transcript was deleted on {date}, as set in Settings.": "A transcrição foi excluída em {date}, conforme definido nos Ajustes."
+  "The transcript was deleted on {date}, as set in Settings.": "A transcrição foi excluída em {date}, conforme definido nos Ajustes.",
+  "Screen": "Tela",
+  "Reading the screen…": "Lendo a tela…",
+  "Delete video": "Excluir vídeo",
+  "Don't keep it": "Não manter",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "Um vídeo enviado é mantido para que a tela dele possa ser lida de novo. Sem ele, a tela não poderá ser lida depois, por exemplo, com outro modelo.",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "{count} reunião já se encaixa na regra. O vídeo dela será excluído agora.",
+    "many": "{count} reuniões já se encaixam na regra. Os vídeos delas serão excluídos agora.",
+    "other": "{count} reuniões já se encaixam na regra. Os vídeos delas serão excluídos agora."
+  }
 }

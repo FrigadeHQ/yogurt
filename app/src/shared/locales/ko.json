@@ -737,5 +737,11 @@
   "{count} meetings already qualify. Their audio is deleted now.": "회의 {count}개가 이미 해당돼요. 오디오를 지금 삭제해요.",
   "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": "회의 {count}개가 이미 해당돼요. 녹취록과 오디오를 지금 삭제하고, 노트는 남겨요.",
   "{count} meetings already qualify. They move to the Trash now.": "회의 {count}개가 이미 해당돼요. 지금 휴지통으로 이동해요.",
-  "The transcript was deleted on {date}, as set in Settings.": "설정에 따라 녹취록이 {date}에 삭제됐어요."
+  "The transcript was deleted on {date}, as set in Settings.": "설정에 따라 녹취록이 {date}에 삭제됐어요.",
+  "Screen": "화면",
+  "Reading the screen…": "화면을 읽는 중…",
+  "Delete video": "비디오 삭제",
+  "Don't keep it": "보관 안 함",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "업로드한 비디오는 화면을 다시 읽을 수 있도록 보관돼요. 비디오가 없으면 나중에 다른 모델 등으로 화면을 읽을 수 없어요.",
+  "{count} meetings already qualify. Their videos are deleted now.": "회의 {count}개가 이미 해당돼요. 비디오를 지금 삭제해요."
 }

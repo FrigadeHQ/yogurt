@@ -11,10 +11,12 @@ const PRESET_LABEL: Record<number, () => string> = {
 }
 const ROWS: Array<{ kind: RetentionKind; label: () => string; description?: () => string }> = [
   { kind: 'audio', label: () => t('Delete audio') },
+  { kind: 'video', label: () => t('Delete video'), description: () => t("An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.") },
   { kind: 'transcript', label: () => t('Delete transcripts'), description: () => t('Its audio goes with it.') },
   { kind: 'meeting', label: () => t('Move meetings to the Trash'), description: () => t('Meetings in the Trash are deleted for good after {count} days, with their recordings.', { count: TRASH_DAYS }) },
 ]
 const confirmText = (kind: RetentionKind, count: number) => kind === 'audio' ? t('{count} meetings already qualify. Their audio is deleted now.', { count })
+  : kind === 'video' ? t('{count} meetings already qualify. Their videos are deleted now.', { count })
   : kind === 'transcript' ? t('{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.', { count })
     : t('{count} meetings already qualify. They move to the Trash now.', { count })
 const choiceOf = (kind: RetentionKind, days: number | null) => days == null ? 'never' : RETENTION_PRESETS[kind].includes(days) ? String(days) : 'other'
@@ -90,7 +92,7 @@ function RetentionRow({ kind, label, description, saved: initial, reveal, save: 
             else { setChoice(v); void apply(Number(v)) }
           }}>
           <option value="never">{t('Never')}</option>
-          {RETENTION_PRESETS[kind].map((d) => <option key={d} value={String(d)}>{PRESET_LABEL[d]()}</option>)}
+          {RETENTION_PRESETS[kind].map((d) => <option key={d} value={String(d)}>{kind === 'video' && d === 0 ? t("Don't keep it") : PRESET_LABEL[d]()}</option>)}
           <option value="other">{t('Other')}</option>
         </select>
         <ChevronDown size={14} aria-hidden="true" />

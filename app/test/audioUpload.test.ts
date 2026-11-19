@@ -1,11 +1,12 @@
-import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mkdtemp, readFile, rm, writeFile, stat, utimes } from 'node:fs/promises'
 import { join } from 'node:path'
+import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { createAudioUploads, uploadedAudio } from '../src/main/audioUpload'
 import { openStore, type Store } from '../src/main/store'
 import { wavBytes } from '../src/main/asr/transcribe'
-import { AUDIO_SPEAKER, uploadDate, uploadStartedAt, uploadDateTime, uploadTime, type AudioUploadStatus } from '../src/shared/audioUpload'
+import { AUDIO_SPEAKER, SCREEN_SPEAKER, uploadDate, uploadStartedAt, uploadDateTime, uploadTime, type AudioUploadStatus } from '../src/shared/audioUpload'
 import { transcriptSpeaker } from '../src/shared/transcript'
 import { whoSaid } from '../src/shared/exportNotes'
 import { transcriptText } from '../src/main/notes/enhance'
@@ -132,4 +133,55 @@ it('exposes preparation before the first decoded sample and keeps edits made whi
  store.updateMeeting(file.token,{title:'Edited on the note',startedAt:modifiedAt-60000})
  await uploads.write(1,file.token,new Float32Array(1600),1);await uploads.finish(1,file.token)
  expect(store.meeting(file.token)).toMatchObject({title:'Edited on the note',startedAt:modifiedAt-60000,endedAt:modifiedAt-59900,durationMs:100})
+})
+
+describe('an uploaded video', () => {
+  const video = async (o: { keep?: boolean; lines?: Array<{ ms: number; text: string }> | Error; slow?: boolean } = {}) => {
+    const file = join(root, 'Planning.mov'); await writeFile(file, Buffer.from('a screen recording'))
+    const readScreen = vi.fn(async (_file: string, progress: (fraction: number) => void, signal: AbortSignal) => {
+      progress(.5); if (o.lines instanceof Error) throw o.lines
+      await new Promise(r => { signal.addEventListener('abort', r); setTimeout(r, o.slow ? 10_000 : 5) }); signal.throwIfAborted(); return o.lines ?? []
+    })
+    uploads = createAudioUploads({ root: join(root, 'meetings'), store, recording: () => recording, prepared, changed, send, readScreen, keepVideo: () => o.keep !== false })
+    const picked = await uploads.select(1, file)
+    await uploads.start(1, picked.token, 'Planning', modifiedAt - 200); await uploads.write(1, picked.token, new Float32Array(3200).fill(.25), 1)
+    return { picked, readScreen, folder: join(root, 'meetings', picked.token) }
+  }
+  it('keeps a copy with its meeting, and adds what its screen showed as Screen lines before transcription', async () => {
+    const { picked, readScreen, folder } = await video({ lines: [{ ms: 0, text: 'Q3 roadmap' }, { ms: 120, text: 'Budget 40,000 EUR' }] })
+    await uploads.finish(1, picked.token)
+    expect(readScreen.mock.calls[0][0]).toBe(join(root, 'Planning.mov'))
+    expect(send.mock.calls.some(([, , s]) => s.phase === 'reading-screen' && s.fraction === .5)).toBe(true)
+    expect(await readFile(join(folder, 'video.mov'), 'utf8')).toBe('a screen recording')
+    expect(store.segments(picked.token).map(s => [s.startMs, s.endMs, s.text, s.speaker])).toEqual([[0, 120, 'Q3 roadmap', SCREEN_SPEAKER], [120, 200, 'Budget 40,000 EUR', SCREEN_SPEAKER]])
+    expect(prepared).toHaveBeenCalledExactlyOnceWith(picked.token)
+  })
+  it("isn't kept when What Yogurt keeps says so, and a screen that can't be read still leaves the audio's meeting", async () => {
+    const { picked, folder } = await video({ keep: false, lines: new Error('Vision failed') })
+    await uploads.finish(1, picked.token)
+    expect(existsSync(join(folder, 'video.mov'))).toBe(false)
+    expect(existsSync(join(folder, 'them.wav'))).toBe(true)
+    expect(store.segments(picked.token)).toEqual([])
+    expect(last()).toMatchObject({ phase: 'done', meetingId: picked.token })
+  })
+  it('Cancel stops reading the screen', async () => {
+    const { picked, readScreen } = await video({ lines: [{ ms: 0, text: 'never added' }], slow: true })
+    const finishing = uploads.finish(1, picked.token)
+    await vi.waitFor(() => expect(readScreen).toHaveBeenCalled())
+    await uploads.cancel(1, picked.token); await finishing.catch(() => {})
+    expect(readScreen.mock.calls[0][2].aborted).toBe(true)
+    expect(store.segments(picked.token)).toEqual([])
+  })
+  it('a new transcript keeps the Screen lines, and every reader labels them Screen', () => {
+    const m = store.createMeeting({ title: 'Demo', startedAt: 1, endedAt: 2, eventId: null, app: null, attendees: [], state: 'done' })
+    store.addSegments([{ meetingId: m.id, track: 'them', startMs: 0, endMs: 50, text: 'Q3 roadmap', speaker: SCREEN_SPEAKER }])
+    store.addTranscriptionDraft(m.id, [{ meetingId: m.id, track: 'them', startMs: 0, endMs: 40, text: 'Launch on Tuesday', speaker: AUDIO_SPEAKER }])
+    store.commitTranscriptionDraft(m.id)
+    const lines = store.segments(m.id)
+    expect(lines.map(s => s.text)).toEqual(['Q3 roadmap', 'Launch on Tuesday'])
+    expect(transcriptSpeaker(lines[0])).toBe('Screen')
+    expect(transcriptText(lines)).toContain('Screen: Q3 roadmap')
+    // the screen is not a person: Ask never lists it among who spoke
+    expect(chunkTranscript(lines)[0]).toMatchObject({ text: expect.stringContaining('Screen: Q3 roadmap'), speakers: [] })
+  })
 })

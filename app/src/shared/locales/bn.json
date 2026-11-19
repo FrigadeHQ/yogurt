@@ -776,5 +776,14 @@
     "one": "{count}টি মিটিং ইতিমধ্যে এই নিয়মে পড়ে। এটি এখনই ট্র্যাশে যাবে।",
     "other": "{count}টি মিটিং ইতিমধ্যে এই নিয়মে পড়ে। সেগুলো এখনই ট্র্যাশে যাবে।"
   },
-  "The transcript was deleted on {date}, as set in Settings.": "সেটিংস অনুযায়ী ট্রান্সক্রিপ্টটি {date} তারিখে মুছে ফেলা হয়েছে।"
+  "The transcript was deleted on {date}, as set in Settings.": "সেটিংস অনুযায়ী ট্রান্সক্রিপ্টটি {date} তারিখে মুছে ফেলা হয়েছে।",
+  "Screen": "স্ক্রিন",
+  "Reading the screen…": "স্ক্রিন পড়া হচ্ছে…",
+  "Delete video": "ভিডিও মুছুন",
+  "Don't keep it": "রাখবেন না",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "আপলোড করা ভিডিও রাখা হয়, যাতে এর স্ক্রিন আবার পড়া যায়। এটি না থাকলে পরে স্ক্রিন পড়া যাবে না, যেমন অন্য কোনো মডেল দিয়ে।",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "{count}টি মিটিং ইতিমধ্যে এই নিয়মে পড়ে। এর ভিডিও এখনই মুছে যাবে।",
+    "other": "{count}টি মিটিং ইতিমধ্যে এই নিয়মে পড়ে। সেগুলোর ভিডিও এখনই মুছে যাবে।"
+  }
 }
