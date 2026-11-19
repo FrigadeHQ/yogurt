@@ -222,7 +222,7 @@ async function refresh() {
     const label = format.format(total)
     nav.querySelector('span').textContent = navStars(total)
     nav.setAttribute('aria-label', 'Yogurt on GitHub, ' + label + ' stars')
-    section.querySelector('.oss-history').setAttribute('aria-label', label + ' GitHub stars. View stargazers')
+    section.querySelector('.oss-history').setAttribute('aria-label', label + ' GitHub stars. View on GitHub')
     number.parentElement.setAttribute('aria-label', label + ' GitHub stars')
     if (finished) updateCount(1)
     else if (tailStage) number.textContent = format.format(tailValue)

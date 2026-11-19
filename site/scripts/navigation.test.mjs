@@ -53,3 +53,11 @@ for (const width of [1280, 390, 320]) {
   assert(!frame, 'reduced motion changes states immediately')
 }
 console.log('Sticky navigation threshold, reversal, settling and reduced motion passed at desktop and phone widths.')
+
+// GitHub's stargazers page is a 404 unless you are signed in to GitHub, so no link on the site may point at it
+{
+  const { readFileSync } = await import('node:fs')
+  const home = readFileSync(new URL('../content/home.html', import.meta.url), 'utf8')
+  if (/github\.com\/FrigadeHQ\/yogurt\/stargazers/.test(home)) throw new Error('the site links to the stargazers page, a 404 when signed out')
+  console.log('ok - no link to the stargazers page')
+}
