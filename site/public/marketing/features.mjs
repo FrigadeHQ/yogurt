@@ -79,11 +79,10 @@ list.addEventListener('pointerover', (event) => {
   if (row && event.pointerType !== 'touch' && matchMedia('(any-hover: hover)').matches)
     list.style.setProperty('--hover-row', Array.from(list.children).indexOf(row))
 })
-for (const event of ['pointerleave', 'pointercancel', 'pointerdown']) {
-  list.addEventListener(event, (e) => {
-    if (event !== 'pointerdown' || e.pointerType === 'touch') list.style.removeProperty('--hover-row')
-  })
-}
+// The highlight stays on the last folder the pointer was over.
+list.addEventListener('pointerdown', (e) => {
+  if (e.pointerType === 'touch') list.style.removeProperty('--hover-row')
+})
 
 const canvas = document.querySelector('.language-dots')
 const dots = languageDots(canvas)
