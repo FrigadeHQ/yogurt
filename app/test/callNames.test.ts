@@ -459,6 +459,32 @@ describe('hookCallNames', () => {
     expect(s.logs.join('\n')).not.toContain('Dana Smith')
   })
 
+  it('a calendar name in "family, given" order is the person the call shows as "given family", not someone new', async () => {
+    const s = setup({ attendees: [{ name: 'Smith, Dana', email: 'dana@example.com' }] })
+    s.start()
+    s.audio(0, 1_000_100)
+    s.store.addSegments([{ meetingId: s.m.id, track: 'them', startMs: 1000, endMs: 3000, text: 'early', speaker: null }])
+    for (let t = 1_000_000; t < 1_010_000; t += 500) s.emit(zoomLine(t, ['Alex Morgan', 'Dana Smith'], 'Dana Smith', 'Alex Morgan'))
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id)[0].speaker).toBe('Dana Smith')
+    // the calendar's form is kept, and the call's form is not added beside it
+    expect(s.store.meeting(s.m.id)!.attendees).toEqual([{ name: 'Smith, Dana', email: 'dana@example.com' }])
+    expect(s.logs.some((l) => /0 people added/.test(l))).toBe(true)
+  })
+
+  it('a calendar name with a space before the comma still matches the call\'s form', async () => {
+    const s = setup({ attendees: [{ name: 'Smith , Dana', email: 'dana@example.com' }] })
+    s.start()
+    s.audio(0, 1_000_100)
+    s.store.addSegments([{ meetingId: s.m.id, track: 'them', startMs: 1000, endMs: 3000, text: 'early', speaker: null }])
+    for (let t = 1_000_000; t < 1_010_000; t += 500) s.emit(zoomLine(t, ['Alex Morgan', 'Dana Smith'], 'Dana Smith', 'Alex Morgan'))
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id)[0].speaker).toBe('Dana Smith')
+    expect(s.store.meeting(s.m.id)!.attendees).toEqual([{ name: 'Smith , Dana', email: 'dana@example.com' }])
+  })
+
   it('a meeting in an app it can\'t read starts no watch', async () => {
     const s = setup({ app: 'FaceTime' })
     s.start()
