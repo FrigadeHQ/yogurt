@@ -53,8 +53,15 @@ const ACTIVE = new Set(ZOOM.map((l) => low(l[2])))
 const TALKING = ZOOM.map((l) => l[3].normalize('NFKC').replace(/\s*[:：]$/, ''))
 const LISTS = new Set(ZOOM.map((l) => low(l[4])))
 const SELF = new Set(ZOOM.map((l) => low(l[5]).replace(/[()]/g, '')))
-/** other things Zoom appends to a tile, which say nothing about who it is */
-const OTHER_STATUS = /^(video (on|off)|no audio|telephone.*|screen sharing.*|pinned|spotlighted)$/i
+/** other things Zoom appends to a tile, which say nothing about who it is; kept as Zoom's own words for the log */
+const OTHER_STATUS = /^(video (on|off)|no audio.*|telephone.*|screen sharing.*|pinned|spotlighted)$/i
+/**
+ * The audio states Zoom writes where the language table has none: a person who never joined audio ("No audio
+ * connected", 170 of 1744 tiles read on a real call, the rest computer audio muted or unmuted) and a dial-in. They
+ * say the words are a tile as surely as the muted and unmuted words do, so that person is read instead of dropped.
+ * English only as measured, like the Linux tile; another language falls back to the table above.
+ */
+const AUDIO_ELSE = /^(no audio.*|telephone.*)$/i
 /** Zoom's own tags after a name, alone or together ("(Host, me)"): never part of it */
 const TAG = 'me|host|co-host|guest|interpreter|participant id: [^),]*|ich|yo|moi|io|eu|ik|jag|自分|我'
 const ZOOM_TAGS = new RegExp(`\\s*[(（]\\s*(?:${TAG})(?:\\s*[,，、]\\s*(?:${TAG}))*\\s*[)）]\\s*$`, 'i')
@@ -75,16 +82,15 @@ const cleanZoom = (raw: string): string | null => {
 /** "Ana Ruiz, Computer audio unmuted, Video off, Active speaker" → Ana Ruiz, talking; null when it isn't a tile */
 export function zoomTile(description: string): { name: string; talking: boolean } | null {
   const fields = description.normalize('NFKC').split(/,\s*|、/)
-  let talking = false, known = false
-  while (fields.length > 1) {
-    const f = low(fields.at(-1)!)
-    if (ACTIVE.has(f)) talking = known = true
-    else if (AUDIO.has(f)) known = true
-    else if (!OTHER_STATUS.test(f)) break
-    fields.pop()
-  }
-  if (!known) return null
-  const name = cleanZoom(fields.join(', '))
+  // Zoom writes the audio state straight after the name and the rest of the status after that, so the name is what
+  // comes before that word and everything from it on is status, whatever it says. Keeping only the status words it
+  // knew, popped from the end, lost the whole person as soon as Zoom appended a new one: the tile "<name>, Computer
+  // audio unmuted, Video on, Reaction: Raise hand" (Zoom 7.2.5) stopped at the reaction and never reached the audio
+  // state, so a real call of six read as five — and the person missing was the one with their hand up.
+  const state = fields.findIndex((f, i) => i > 0 && (AUDIO.has(low(f)) || AUDIO_ELSE.test(low(f)) || ACTIVE.has(low(f))))
+  if (state < 1) return null
+  const talking = fields.slice(state).some((f) => ACTIVE.has(low(f)))
+  const name = cleanZoom(fields.slice(0, state).join(', '))
   return name ? { name, talking } : null
 }
 
