@@ -5,6 +5,7 @@ import type { Meeting } from './store'
 import type { PromptAction, PromptView } from '../shared/types'
 import { t } from '../shared/i18n'
 import { floatingType, floatOverFullScreen } from './float'
+import { activeMeeting, onMeetingStop } from './meeting'
 
 const BACKGROUND = process.env.YOGURT_BACKGROUND === '1'
 const ACTIONS: readonly string[] = ['take-notes', 'close', 'stop', 'keep-going'] satisfies PromptAction[]
@@ -60,6 +61,9 @@ export function createPrompts(d: {
     card = undefined
     notice?.n?.close(); notice = null
   }
+  onMeetingStop((m) => {
+    if (view?.kind === 'stop' && view.meetingId === m.id) close()
+  })
   /** a button on the card, or a click on its notification (the card's yes: take notes, or stop) */
   const act = (action: PromptAction) => {
     const v = view, p = prompt
@@ -68,8 +72,10 @@ export function createPrompts(d: {
     if (v.kind === 'start') {
       if (action === 'take-notes' && p) d.takeNotes(p)
       else d.dismissed(v.key)
-    } else if (action === 'stop') d.stop(v.meetingId)
-    else d.keepGoing()
+    } else if (activeMeeting()?.id === v.meetingId) {
+      if (action === 'stop') d.stop(v.meetingId)
+      else d.keepGoing()
+    }
   }
   const show = (v: PromptView) => {
     view = v
