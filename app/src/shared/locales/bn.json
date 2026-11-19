@@ -585,9 +585,7 @@
   "Delete audio?": "অডিও মুছবেন?",
   "The audio is deleted for good. Your transcript and notes stay.": "অডিও স্থায়ীভাবে মুছে যাবে। প্রতিলিপি ও নোট থাকবে।",
   "Keep the audio until the transcript is saved.": "প্রতিলিপি সংরক্ষণ না হওয়া পর্যন্ত অডিও রাখুন।",
-  "Keep audio recordings after meetings": "মিটিংয়ের পরে অডিও রেকর্ডিং রাখুন",
   "Recording deleted": "রেকর্ডিং মোছা হয়েছে",
-  "When off, new meetings' audio is deleted once the summary is saved.": "বন্ধ থাকলে সারাংশ সেভের পর নতুন মিটিংয়ের অডিও মুছবে।",
   "New recording": "নতুন রেকর্ডিং",
   "Hide events without a call link": "কলের লিঙ্ক ছাড়া ইভেন্ট লুকান",
   "Keep your agenda and reminders focused on calls.": "আপনার সময়সূচি ও রিমাইন্ডারে কলগুলোকে প্রাধান্য দিন।",
@@ -726,5 +724,34 @@
   "Continue transcription": "প্রতিলিপি চালিয়ে যান",
   "Transcribe again": "আবার প্রতিলিপি করুন",
   "Stop transcription": "প্রতিলিপি বন্ধ করুন",
-  "Audio is unavailable.": "অডিও উপলভ্য নেই।"
+  "Audio is unavailable.": "অডিও উপলভ্য নেই।",
+  "What Yogurt keeps": "Yogurt কী রাখে",
+  "Counted from when each meeting ended. Audio and transcripts go only once the summary is saved, and notes stay.": "প্রতিটি মিটিং শেষ হওয়ার সময় থেকে গোনা হয়। সারাংশ সংরক্ষণের পরেই কেবল অডিও ও ট্রান্সক্রিপ্ট মুছে যায়, আর নোট থেকে যায়।",
+  "Delete transcripts": "ট্রান্সক্রিপ্ট মুছুন",
+  "Its audio goes with it.": "এর অডিওও মুছে যায়।",
+  "Move meetings to the Trash": "মিটিং ট্র্যাশে সরান",
+  "Never": "কখনো না",
+  "Once the summary is saved": "সারাংশ সংরক্ষণ হলেই",
+  "After 1 week": "1 সপ্তাহ পরে",
+  "After 1 month": "1 মাস পরে",
+  "After 3 months": "3 মাস পরে",
+  "After 1 year": "1 বছর পরে",
+  "After 2 years": "2 বছর পরে",
+  "Number of days": "দিনের সংখ্যা",
+  "Days": "দিন",
+  "Apply to past meetings?": "আগের মিটিংয়ে প্রয়োগ করবেন?",
+  "Apply": "প্রয়োগ করুন",
+  "{count} meetings already qualify. Their audio is deleted now.": {
+    "one": "{count}টি মিটিং ইতিমধ্যে এই নিয়মে পড়ে। এর অডিও এখনই মুছে যাবে।",
+    "other": "{count}টি মিটিং ইতিমধ্যে এই নিয়মে পড়ে। সেগুলোর অডিও এখনই মুছে যাবে।"
+  },
+  "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": {
+    "one": "{count}টি মিটিং ইতিমধ্যে এই নিয়মে পড়ে। এর ট্রান্সক্রিপ্ট ও অডিও এখনই মুছে যাবে; নোট থেকে যাবে।",
+    "other": "{count}টি মিটিং ইতিমধ্যে এই নিয়মে পড়ে। সেগুলোর ট্রান্সক্রিপ্ট ও অডিও এখনই মুছে যাবে; নোট থেকে যাবে।"
+  },
+  "{count} meetings already qualify. They move to the Trash now.": {
+    "one": "{count}টি মিটিং ইতিমধ্যে এই নিয়মে পড়ে। এটি এখনই ট্র্যাশে যাবে।",
+    "other": "{count}টি মিটিং ইতিমধ্যে এই নিয়মে পড়ে। সেগুলো এখনই ট্র্যাশে যাবে।"
+  },
+  "The transcript was deleted on {date}, as set in Settings.": "সেটিংস অনুযায়ী ট্রান্সক্রিপ্টটি {date} তারিখে মুছে ফেলা হয়েছে।"
 }

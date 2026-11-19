@@ -623,9 +623,7 @@
   "Delete audio?": "Usunąć dźwięk?",
   "The audio is deleted for good. Your transcript and notes stay.": "Dźwięk zostanie trwale usunięty. Transkrypcja i notatki pozostaną.",
   "Keep the audio until the transcript is saved.": "Zachowaj dźwięk do zapisania transkrypcji.",
-  "Keep audio recordings after meetings": "Zachowuj nagrania dźwiękowe po spotkaniach",
   "Recording deleted": "Nagranie usunięte",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Po wyłączeniu dźwięk nowych spotkań znika po zapisaniu podsumowania.",
   "New recording": "Nowe nagranie",
   "Hide events without a call link": "Ukryj wydarzenia bez linku do rozmowy",
   "Keep your agenda and reminders focused on calls.": "Skup plan dnia i przypomnienia na rozmowach.",
@@ -774,5 +772,40 @@
   "Continue transcription": "Kontynuuj transkrypcję",
   "Transcribe again": "Transkrybuj ponownie",
   "Stop transcription": "Zatrzymaj transkrypcję",
-  "Audio is unavailable.": "Dźwięk jest niedostępny."
+  "Audio is unavailable.": "Dźwięk jest niedostępny.",
+  "What Yogurt keeps": "Co Yogurt przechowuje",
+  "Counted from when each meeting ended. Audio and transcripts go only once the summary is saved, and notes stay.": "Liczone od zakończenia każdego spotkania. Dźwięk i transkrypcje znikają dopiero po zapisaniu podsumowania, a notatki zostają.",
+  "Delete transcripts": "Usuń transkrypcje",
+  "Its audio goes with it.": "Dźwięk też zostanie usunięty.",
+  "Move meetings to the Trash": "Przenieś spotkania do Kosza",
+  "Never": "Nigdy",
+  "Once the summary is saved": "Po zapisaniu podsumowania",
+  "After 1 week": "Po 1 tygodniu",
+  "After 1 month": "Po 1 miesiącu",
+  "After 3 months": "Po 3 miesiącach",
+  "After 1 year": "Po 1 roku",
+  "After 2 years": "Po 2 latach",
+  "Number of days": "Liczba dni",
+  "Days": "Dni",
+  "Apply to past meetings?": "Zastosować do wcześniejszych spotkań?",
+  "Apply": "Zastosuj",
+  "{count} meetings already qualify. Their audio is deleted now.": {
+    "one": "{count} spotkanie już spełnia warunek. Jego dźwięk zostanie teraz usunięty.",
+    "few": "{count} spotkania już spełniają warunek. Ich dźwięk zostanie teraz usunięty.",
+    "many": "{count} spotkań już spełnia warunek. Ich dźwięk zostanie teraz usunięty.",
+    "other": "{count} spotkania już spełnia warunek. Ich dźwięk zostanie teraz usunięty."
+  },
+  "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": {
+    "one": "{count} spotkanie już spełnia warunek. Jego transkrypcja i dźwięk zostaną teraz usunięte; notatki zostają.",
+    "few": "{count} spotkania już spełniają warunek. Ich transkrypcje i dźwięk zostaną teraz usunięte; notatki zostają.",
+    "many": "{count} spotkań już spełnia warunek. Ich transkrypcje i dźwięk zostaną teraz usunięte; notatki zostają.",
+    "other": "{count} spotkania już spełnia warunek. Ich transkrypcje i dźwięk zostaną teraz usunięte; notatki zostają."
+  },
+  "{count} meetings already qualify. They move to the Trash now.": {
+    "one": "{count} spotkanie już spełnia warunek. Teraz trafi do Kosza.",
+    "few": "{count} spotkania już spełniają warunek. Teraz trafią do Kosza.",
+    "many": "{count} spotkań już spełnia warunek. Teraz trafią do Kosza.",
+    "other": "{count} spotkania już spełnia warunek. Teraz trafią do Kosza."
+  },
+  "The transcript was deleted on {date}, as set in Settings.": "Transkrypcja została usunięta {date} zgodnie z Ustawieniami."
 }

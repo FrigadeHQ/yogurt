@@ -610,9 +610,7 @@
   "Delete audio?": "Eliminare l’audio?",
   "The audio is deleted for good. Your transcript and notes stay.": "L’audio viene eliminato per sempre. Trascrizione e note restano.",
   "Keep the audio until the transcript is saved.": "Conserva l’audio finché la trascrizione non è salvata.",
-  "Keep audio recordings after meetings": "Conserva le registrazioni audio dopo le riunioni",
   "Recording deleted": "Registrazione eliminata",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Se disattivato, l’audio delle nuove riunioni si elimina dopo aver salvato il riepilogo.",
   "New recording": "Nuova registrazione",
   "Hide events without a call link": "Nascondi eventi senza link alla chiamata",
   "Keep your agenda and reminders focused on calls.": "Concentra agenda e promemoria sulle chiamate.",
@@ -757,5 +755,37 @@
   "Continue transcription": "Continua la trascrizione",
   "Transcribe again": "Trascrivi di nuovo",
   "Stop transcription": "Interrompi la trascrizione",
-  "Audio is unavailable.": "L’audio non è disponibile."
+  "Audio is unavailable.": "L’audio non è disponibile.",
+  "What Yogurt keeps": "Cosa conserva Yogurt",
+  "Counted from when each meeting ended. Audio and transcripts go only once the summary is saved, and notes stay.": "Si conta dalla fine di ogni riunione. Audio e trascrizioni vengono eliminati solo dopo il salvataggio del riepilogo, e le note restano.",
+  "Delete transcripts": "Elimina trascrizioni",
+  "Its audio goes with it.": "Anche il relativo audio viene eliminato.",
+  "Move meetings to the Trash": "Sposta riunioni nel Cestino",
+  "Never": "Mai",
+  "Once the summary is saved": "Al salvataggio del riepilogo",
+  "After 1 week": "Dopo 1 settimana",
+  "After 1 month": "Dopo 1 mese",
+  "After 3 months": "Dopo 3 mesi",
+  "After 1 year": "Dopo 1 anno",
+  "After 2 years": "Dopo 2 anni",
+  "Number of days": "Numero di giorni",
+  "Days": "Giorni",
+  "Apply to past meetings?": "Applicare alle riunioni passate?",
+  "Apply": "Applica",
+  "{count} meetings already qualify. Their audio is deleted now.": {
+    "one": "{count} riunione rientra già nella regola. Il suo audio viene eliminato ora.",
+    "many": "{count} riunioni rientrano già nella regola. Il loro audio viene eliminato ora.",
+    "other": "{count} riunioni rientrano già nella regola. Il loro audio viene eliminato ora."
+  },
+  "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": {
+    "one": "{count} riunione rientra già nella regola. Trascrizione e audio vengono eliminati ora; le note restano.",
+    "many": "{count} riunioni rientrano già nella regola. Trascrizioni e audio vengono eliminati ora; le note restano.",
+    "other": "{count} riunioni rientrano già nella regola. Trascrizioni e audio vengono eliminati ora; le note restano."
+  },
+  "{count} meetings already qualify. They move to the Trash now.": {
+    "one": "{count} riunione rientra già nella regola. Viene spostata nel Cestino ora.",
+    "many": "{count} riunioni rientrano già nella regola. Vengono spostate nel Cestino ora.",
+    "other": "{count} riunioni rientrano già nella regola. Vengono spostate nel Cestino ora."
+  },
+  "The transcript was deleted on {date}, as set in Settings.": "La trascrizione è stata eliminata il {date}, come previsto nelle Impostazioni."
 }

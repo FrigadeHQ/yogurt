@@ -607,9 +607,7 @@
   "Delete audio?": "Supprimer l’audio ?",
   "The audio is deleted for good. Your transcript and notes stay.": "L’audio est supprimé définitivement. La transcription et les notes restent.",
   "Keep the audio until the transcript is saved.": "Gardez l’audio jusqu’à l’enregistrement de la transcription.",
-  "Keep audio recordings after meetings": "Garder les enregistrements audio après les réunions",
   "Recording deleted": "Enregistrement supprimé",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Si désactivé, l’audio des nouvelles réunions est supprimé après sauvegarde du résumé.",
   "New recording": "Nouvel enregistrement",
   "Hide events without a call link": "Masquer les événements sans lien d’appel",
   "Keep your agenda and reminders focused on calls.": "Gardez les appels au centre de votre agenda et de vos rappels.",
@@ -754,5 +752,37 @@
   "Continue transcription": "Continuer la transcription",
   "Transcribe again": "Transcrire à nouveau",
   "Stop transcription": "Arrêter la transcription",
-  "Audio is unavailable.": "L’audio n’est pas disponible."
+  "Audio is unavailable.": "L’audio n’est pas disponible.",
+  "What Yogurt keeps": "Ce que Yogurt conserve",
+  "Counted from when each meeting ended. Audio and transcripts go only once the summary is saved, and notes stay.": "À compter de la fin de chaque réunion. L’audio et les transcriptions ne sont supprimés qu’une fois le résumé enregistré, et les notes restent.",
+  "Delete transcripts": "Supprimer les transcriptions",
+  "Its audio goes with it.": "Son audio est supprimé avec elle.",
+  "Move meetings to the Trash": "Déplacer les réunions vers la Corbeille",
+  "Never": "Jamais",
+  "Once the summary is saved": "Une fois le résumé enregistré",
+  "After 1 week": "Après 1 semaine",
+  "After 1 month": "Après 1 mois",
+  "After 3 months": "Après 3 mois",
+  "After 1 year": "Après 1 an",
+  "After 2 years": "Après 2 ans",
+  "Number of days": "Nombre de jours",
+  "Days": "Jours",
+  "Apply to past meetings?": "Appliquer aux réunions passées ?",
+  "Apply": "Appliquer",
+  "{count} meetings already qualify. Their audio is deleted now.": {
+    "one": "{count} réunion est déjà concernée. Son audio est supprimé dès maintenant.",
+    "many": "{count} réunions sont déjà concernées. Leur audio est supprimé dès maintenant.",
+    "other": "{count} réunions sont déjà concernées. Leur audio est supprimé dès maintenant."
+  },
+  "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": {
+    "one": "{count} réunion est déjà concernée. Sa transcription et son audio sont supprimés dès maintenant, ses notes restent.",
+    "many": "{count} réunions sont déjà concernées. Leurs transcriptions et leur audio sont supprimés dès maintenant, leurs notes restent.",
+    "other": "{count} réunions sont déjà concernées. Leurs transcriptions et leur audio sont supprimés dès maintenant, leurs notes restent."
+  },
+  "{count} meetings already qualify. They move to the Trash now.": {
+    "one": "{count} réunion est déjà concernée. Elle est placée dans la Corbeille dès maintenant.",
+    "many": "{count} réunions sont déjà concernées. Elles sont placées dans la Corbeille dès maintenant.",
+    "other": "{count} réunions sont déjà concernées. Elles sont placées dans la Corbeille dès maintenant."
+  },
+  "The transcript was deleted on {date}, as set in Settings.": "La transcription a été supprimée le {date}, comme défini dans les Réglages."
 }
