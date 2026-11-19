@@ -695,5 +695,14 @@
   "Continue transcription": "Tiếp tục chép lời",
   "Transcribe again": "Chép lời lại",
   "Stop transcription": "Dừng chép lời",
-  "Audio is unavailable.": "Âm thanh không khả dụng."
+  "Audio is unavailable.": "Âm thanh không khả dụng.",
+  "Only apps added here": "Chỉ các ứng dụng được thêm ở đây",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "Mỗi ứng dụng có khóa riêng, và các ứng dụng khác trên máy Mac này không thể đọc gì.",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "Mỗi ứng dụng có khóa riêng, và các ứng dụng khác trên máy tính này không thể đọc gì.",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "Thêm từng ứng dụng ở đây, rồi dán thiết lập của nó vào ứng dụng dưới dạng máy chủ MCP cục bộ.",
+  "No apps added yet.": "Chưa thêm ứng dụng nào.",
+  "Copy setup": "Sao chép thiết lập",
+  "App name": "Tên ứng dụng",
+  "Add an app": "Thêm ứng dụng",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "Dán thiết lập này vào {name}. Thiết lập chứa khóa của ứng dụng, vì vậy hãy giữ kín."
 }

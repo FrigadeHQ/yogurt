@@ -14,6 +14,7 @@ use std::thread;
 use std::time::Duration;
 
 const NOT_RUNNING: &str = "Yogurt isn't running, and it couldn't be opened. Open Yogurt, then try again.";
+const BAD_KEY: &str = "YOGURT_MCP_TOKEN isn't a Yogurt key. Copy the app's setup again in Yogurt: Settings, AI apps.";
 #[cfg_attr(windows, allow(dead_code))]
 const TOO_LONG: &str = "Yogurt's folder path is too long for its connection.";
 #[cfg_attr(unix, allow(dead_code))]
@@ -25,6 +26,13 @@ const SUN_PATH: usize = 108;
 fn fail(s: &str) -> ! {
     eprintln!("{s}");
     exit(1)
+}
+
+/// The first line to Yogurt when the AI app was given a key (YOGURT_MCP_TOKEN, from Settings → AI apps): the same
+/// shape Yogurt makes its keys in (mcp/tokens.ts), so nothing in it needs escaping. None: not a Yogurt key.
+fn auth_line(token: &str) -> Option<String> {
+    let ok = (20..=200).contains(&token.len()) && token.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-');
+    ok.then(|| format!("{{\"jsonrpc\":\"2.0\",\"method\":\"yogurt/auth\",\"params\":{{\"token\":\"{token}\"}}}}\n"))
 }
 
 /// The profile folder, where Electron puts it (appData + "Yogurt"): %APPDATA%\Yogurt on Windows,
@@ -273,6 +281,19 @@ fn main() {
     }
     let conn: Arc<dyn Conn> = Arc::from(conn.unwrap_or_else(|| fail(NOT_RUNNING)));
 
+    // the app's key goes first, before anything the AI app says
+    if let Some(token) = env::var("YOGURT_MCP_TOKEN").ok().filter(|t| !t.is_empty()) {
+        let line = auth_line(&token).unwrap_or_else(|| fail(BAD_KEY));
+        let bytes = line.as_bytes();
+        let mut off = 0;
+        while off < bytes.len() {
+            match conn.write(&bytes[off..]) {
+                Some(w) => off += w,
+                None => exit(0),
+            }
+        }
+    }
+
     // Yogurt's answers → stdout; when Yogurt goes away, so does this
     let from = conn.clone();
     thread::spawn(move || {
@@ -322,6 +343,15 @@ mod tests {
     fn env_of(pairs: &[(&str, &str)]) -> impl Fn(&str) -> Option<OsString> {
         let m: HashMap<String, OsString> = pairs.iter().map(|(k, v)| (k.to_string(), OsString::from(v))).collect();
         move |k| m.get(k).cloned()
+    }
+
+    #[test]
+    fn a_key_goes_first_as_a_yogurt_auth_line_and_odd_keys_are_refused() {
+        let key = "yog_AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_";
+        assert_eq!(auth_line(key).unwrap(), format!("{{\"jsonrpc\":\"2.0\",\"method\":\"yogurt/auth\",\"params\":{{\"token\":\"{key}\"}}}}\n"));
+        assert_eq!(auth_line("short"), None);
+        assert_eq!(auth_line("yog_has\"quote0123456789abcdef"), None);
+        assert_eq!(auth_line(&"a".repeat(201)), None);
     }
 
     #[test]

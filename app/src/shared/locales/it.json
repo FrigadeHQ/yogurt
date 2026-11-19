@@ -756,5 +756,14 @@
   "Continue transcription": "Continua la trascrizione",
   "Transcribe again": "Trascrivi di nuovo",
   "Stop transcription": "Interrompi la trascrizione",
-  "Audio is unavailable.": "L’audio non è disponibile."
+  "Audio is unavailable.": "L’audio non è disponibile.",
+  "Only apps added here": "Solo le app aggiunte qui",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "Ogni app ha la propria chiave e le altre app su questo Mac non possono leggere nulla.",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "Ogni app ha la propria chiave e le altre app su questo computer non possono leggere nulla.",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "Aggiungi qui ogni app, poi incolla la sua configurazione nell’app come server MCP locale.",
+  "No apps added yet.": "Nessuna app aggiunta per ora.",
+  "Copy setup": "Copia configurazione",
+  "App name": "Nome dell’app",
+  "Add an app": "Aggiungi un’app",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "Incolla questa configurazione in {name}. Contiene la chiave dell’app, quindi tienila privata."
 }

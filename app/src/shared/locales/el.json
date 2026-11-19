@@ -740,5 +740,14 @@
   "Continue transcription": "Συνέχεια απομαγνητοφώνησης",
   "Transcribe again": "Νέα απομαγνητοφώνηση",
   "Stop transcription": "Διακοπή απομαγνητοφώνησης",
-  "Audio is unavailable.": "Ο ήχος δεν είναι διαθέσιμος."
+  "Audio is unavailable.": "Ο ήχος δεν είναι διαθέσιμος.",
+  "Only apps added here": "Μόνο εφαρμογές που προστέθηκαν εδώ",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "Κάθε εφαρμογή παίρνει το δικό της κλειδί και οι άλλες εφαρμογές σε αυτό το Mac δεν μπορούν να διαβάσουν τίποτα.",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "Κάθε εφαρμογή παίρνει το δικό της κλειδί και οι άλλες εφαρμογές σε αυτόν τον υπολογιστή δεν μπορούν να διαβάσουν τίποτα.",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "Προσθέστε κάθε εφαρμογή εδώ και μετά επικολλήστε τη ρύθμισή της στην εφαρμογή ως τοπικό διακομιστή MCP.",
+  "No apps added yet.": "Δεν έχουν προστεθεί εφαρμογές ακόμα.",
+  "Copy setup": "Αντιγραφή ρύθμισης",
+  "App name": "Όνομα εφαρμογής",
+  "Add an app": "Προσθήκη εφαρμογής",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "Επικολλήστε αυτή τη ρύθμιση στο {name}. Περιέχει το κλειδί της εφαρμογής, οπότε κρατήστε τη ιδιωτική."
 }

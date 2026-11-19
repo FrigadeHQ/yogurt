@@ -695,5 +695,14 @@
   "Continue transcription": "ถอดเสียงต่อ",
   "Transcribe again": "ถอดเสียงอีกครั้ง",
   "Stop transcription": "หยุดถอดเสียง",
-  "Audio is unavailable.": "ไม่มีเสียงให้ใช้งาน"
+  "Audio is unavailable.": "ไม่มีเสียงให้ใช้งาน",
+  "Only apps added here": "เฉพาะแอปที่เพิ่มไว้ที่นี่",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "แต่ละแอปจะได้รับคีย์ของตัวเอง และแอปอื่นบน Mac เครื่องนี้จะอ่านอะไรไม่ได้เลย",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "แต่ละแอปจะได้รับคีย์ของตัวเอง และแอปอื่นบนคอมพิวเตอร์เครื่องนี้จะอ่านอะไรไม่ได้เลย",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "เพิ่มแต่ละแอปที่นี่ แล้ววางการตั้งค่าของแอปลงในแอปเป็นเซิร์ฟเวอร์ MCP ภายในเครื่อง",
+  "No apps added yet.": "ยังไม่ได้เพิ่มแอป",
+  "Copy setup": "คัดลอกการตั้งค่า",
+  "App name": "ชื่อแอป",
+  "Add an app": "เพิ่มแอป",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "วางการตั้งค่านี้ลงใน {name} การตั้งค่านี้มีคีย์ของแอปอยู่ จึงควรเก็บไว้เป็นความลับ"
 }

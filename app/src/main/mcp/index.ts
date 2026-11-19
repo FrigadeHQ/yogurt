@@ -3,10 +3,12 @@ import { randomBytes } from 'node:crypto'
 import { existsSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { helperFile } from '../../shared/platform'
+import { isId, text } from '../ipcArgs'
 import type { Store } from '../store'
 import { createMcp } from './server'
 import { helperCopyPath, installHelper, LAUNCH_FILE, launchCommand, mcpAddress, PIPE_FILE } from './paths'
 import { serveMcp } from './socket'
+import type { AiApps } from './tokens'
 
 /** yogurt-mcp, the program an AI app starts: it passes messages between that app and Yogurt */
 export function mcpHelperPath(): string {
@@ -32,6 +34,10 @@ function copyHelper(profile: string): string | undefined {
   return existsSync(dest) ? dest : undefined
 }
 
+/** what the person pastes into an AI app: the usual MCP server entry, with the app's key for the helper */
+export const setupFor = (command: string, token: string): string =>
+  JSON.stringify({ mcpServers: { yogurt: { command, env: { YOGURT_MCP_TOKEN: token } } } }, null, 2)
+
 /**
  * MCP for AI apps on this Mac, behind Settings (off until turned on). The socket is always there, so an app that
  * connects while it's off is told where to turn it on instead of failing without a word.
@@ -39,23 +45,40 @@ function copyHelper(profile: string): string | undefined {
 export async function hookMcp(d: {
   /** the profile folder: the socket (Mac, Linux) or the pipe's name (Windows) is there, for the helper */
   store: Store; profile: string; enabled: () => boolean; setEnabled: (on: boolean) => void; me: () => string; version: string
+  /** the apps added in Settings with their keys, and whether only those may read */
+  apps: AiApps; requiresKey: () => boolean; setRequiresKey: (on: boolean) => void
   audio: (id: string) => Promise<Array<{ track: 'me' | 'them'; path: string }>>
   /** Settings is told when apps come and go */
   send: (clients: string[]) => void
 }) {
-  const mcp = createMcp({ store: d.store, enabled: d.enabled, me: d.me, version: d.version, audio: d.audio, platform: process.platform })
+  const mcp = createMcp({ store: d.store, enabled: d.enabled, me: d.me, version: d.version, audio: d.audio, platform: process.platform, requiresKey: d.requiresKey })
   let server: Awaited<ReturnType<typeof serveMcp>> | undefined
   const address = mcpAddress(process.platform, d.profile, randomBytes(16).toString('hex'))
   try {
-    server = await serveMcp(address, mcp, d.send)
+    server = await serveMcp(address, mcp, d.send, (token) => d.apps.check(token))
     if (process.platform === 'win32') writeWhole(join(d.profile, PIPE_FILE), address)
   } catch (e) { console.error('mcp: could not open its socket', e) }
   // what the helper starts when Yogurt is closed (Windows, Linux): recorded each launch, as an AppImage can move
   const launch = launchCommand(process.platform, app.isPackaged, process.execPath, process.env)
   if (launch) { try { writeWhole(join(d.profile, LAUNCH_FILE), launch) } catch (e) { console.error('mcp: could not record how to open Yogurt', e) } }
   const copy = copyHelper(d.profile)
-  const status = () => ({ enabled: d.enabled(), clients: server?.clients() ?? [], command: copy ?? mcpHelperPath() })
+  const command = () => copy ?? mcpHelperPath()
+  const status = () => ({ enabled: d.enabled(), clients: server?.clients() ?? [], command: command(), requiresKey: d.requiresKey(), apps: d.apps.list() })
   ipcMain.handle('mcp:status', status)
   ipcMain.handle('mcp:set', (_e, on: unknown) => { d.setEnabled(on === true); return status() })
+  ipcMain.handle('mcp:require-key', (_e, on: unknown) => { d.setRequiresKey(on === true); return status() })
+  ipcMain.handle('mcp:add', (_e, name: unknown) => {
+    const label = text(name, 60)
+    const added = label ? d.apps.add(label) : null
+    return { status: status(), ...(added ? { setup: setupFor(command(), added.token) } : {}) }
+  })
+  ipcMain.handle('mcp:setup', (_e, id: unknown) => {
+    const token = isId(id) ? d.apps.token(id) : null
+    return token ? setupFor(command(), token) : null
+  })
+  ipcMain.handle('mcp:remove', (_e, id: unknown) => {
+    if (isId(id) && d.apps.remove(id)) server?.drop(id)
+    return status()
+  })
   return { close: () => server?.close() }
 }

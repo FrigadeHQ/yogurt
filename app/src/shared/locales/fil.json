@@ -737,5 +737,14 @@
   "Continue transcription": "Ipagpatuloy ang transkripsiyon",
   "Transcribe again": "I-transcribe muli",
   "Stop transcription": "Itigil ang transkripsiyon",
-  "Audio is unavailable.": "Hindi available ang audio."
+  "Audio is unavailable.": "Hindi available ang audio.",
+  "Only apps added here": "Mga app na idinagdag dito lang",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "Bawat app ay may sariling key, at walang mababasa ang ibang app sa Mac na ito.",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "Bawat app ay may sariling key, at walang mababasa ang ibang app sa computer na ito.",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "Idagdag dito ang bawat app, pagkatapos ay i-paste ang setup nito sa app bilang lokal na MCP server.",
+  "No apps added yet.": "Wala pang naidagdag na app.",
+  "Copy setup": "Kopyahin ang setup",
+  "App name": "Pangalan ng app",
+  "Add an app": "Magdagdag ng app",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "I-paste ang setup na ito sa {name}. Nasa loob nito ang key ng app, kaya huwag itong ibahagi."
 }

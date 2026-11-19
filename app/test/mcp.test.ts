@@ -17,7 +17,7 @@ afterEach(() => {
 })
 const tmp = () => { const d = mkdtempSync(join(tmpdir(), 'yogurt-mcp-')); dirs.push(d); return d }
 
-function setup(o: { enabled?: boolean; platform?: string } = {}) {
+function setup(o: { enabled?: boolean; platform?: string; requiresKey?: boolean } = {}) {
   const dir = tmp()
   const store = openStore(join(dir, 'yogurt.db')); stores.push(store)
   const base = { endedAt: null, eventId: null, app: 'Zoom', state: 'done' as const }
@@ -35,14 +35,14 @@ function setup(o: { enabled?: boolean; platform?: string } = {}) {
   let on = o.enabled ?? true
   const clients: string[] = []
   const mcp = createMcp({
-    store, enabled: () => on, me: () => 'Sam Rivera', version: '0.1.0', platform: o.platform,
+    store, enabled: () => on, me: () => 'Sam Rivera', version: '0.1.0', platform: o.platform, requiresKey: () => !!o.requiresKey,
     audio: async (id) => id === older.id ? [{ track: 'me', path: join(audioDir, 'me.m4a') }, { track: 'them', path: join(audioDir, 'them.m4a') }] : [],
   })
   return { store, mcp, older, newer, dir, clients, turn: (v: boolean) => { on = v } }
 }
 
-const call = async (mcp: Mcp, name: string, args: Record<string, unknown> = {}) => {
-  const r = await mcp.handle({ jsonrpc: '2.0', id: 7, method: 'tools/call', params: { name, arguments: args } }) as { result: { content: Array<{ text: string }>; isError?: boolean } }
+const call = async (mcp: Mcp, name: string, args: Record<string, unknown> = {}, app?: { name: string }) => {
+  const r = await mcp.handle({ jsonrpc: '2.0', id: 7, method: 'tools/call', params: { name, arguments: args } }, app) as { result: { content: Array<{ text: string }>; isError?: boolean } }
   return { text: r.result.content.map((c) => c.text).join('\n'), isError: !!r.result.isError }
 }
 const json = async (mcp: Mcp, name: string, args: Record<string, unknown> = {}) => JSON.parse((await call(mcp, name, args)).text)
@@ -92,6 +92,18 @@ describe('the MCP server', () => {
     expect(r.isError).toBe(true)
     expect(r.text).toContain('Settings')
     expect(r.text).not.toContain('Budget')
+  })
+  it('with keys required, reads only for an app added in Settings, and tells any other app where to add it', async () => {
+    const { mcp } = setup({ requiresKey: true })
+    const stranger = await call(mcp, 'list_meetings')
+    expect(stranger.isError).toBe(true)
+    expect(stranger.text).toContain('Settings, AI apps')
+    expect(stranger.text).not.toContain('Budget')
+    // listing the tools says nothing about meetings, so any app may still see them
+    expect(await mcp.handle({ jsonrpc: '2.0', id: 3, method: 'tools/list' })).toMatchObject({ result: { tools: expect.any(Array) } })
+    const added = await call(mcp, 'list_meetings', {}, { name: 'Claude' })
+    expect(added.isError).toBe(false)
+    expect(added.text).toContain('Budget review')
   })
   it('lists meetings newest first, with who was in them, and finds them by words', async () => {
     const { mcp, older, newer } = setup()
@@ -178,6 +190,34 @@ describe('the MCP socket', () => {
       sock.end()
       await expect.poll(() => server.clients()).toEqual([])
       expect(seen).toEqual([['Claude'], []])
+    } finally { await server.close() }
+  })
+  it('knows an app by the key it sends first, shows it by its Settings name, and closes it when it is removed', async () => {
+    const { dir } = setup()
+    const seenBy: Array<string | undefined> = []
+    const mcp: Mcp = { handle: async (msg, app) => { seenBy.push(app?.name); return (msg as { id?: number }).id === undefined ? null : { jsonrpc: '2.0', id: (msg as { id: number }).id, result: {} } } }
+    const path = mcpAddress(process.platform, dir, randomBytes(8).toString('hex'))
+    const key = 'yog_' + 'a'.repeat(43)
+    const server = await serveMcp(path, mcp, () => {}, (t) => (t === key ? { id: 'app-1', name: 'Hermes' } : undefined))
+    try {
+      const open = (first: string) => {
+        const sock = connect(path)
+        const replies: unknown[] = []
+        let buf = ''
+        sock.on('data', (d) => { buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { replies.push(JSON.parse(buf.slice(0, i))); buf = buf.slice(i + 1) } })
+        sock.write(first + JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { clientInfo: { name: 'claude-code' } } }) + '\n')
+        return { sock, replies, closed: new Promise<void>((r) => sock.on('close', () => r())) }
+      }
+      const added = open(JSON.stringify({ jsonrpc: '2.0', method: 'yogurt/auth', params: { token: key } }) + '\n')
+      const wrong = open(JSON.stringify({ jsonrpc: '2.0', method: 'yogurt/auth', params: { token: 'yog_' + 'b'.repeat(43) } }) + '\n')
+      await expect.poll(() => added.replies.length + wrong.replies.length).toBe(2)
+      // the key line itself is never answered and never reaches the server
+      expect(seenBy.sort()).toEqual(['Hermes', undefined].sort())
+      expect(server.clients().sort()).toEqual(['Hermes', 'claude-code'])
+      server.drop('app-1')
+      await added.closed
+      await expect.poll(() => server.clients()).toEqual(['claude-code'])
+      wrong.sock.end()
     } finally { await server.close() }
   })
   it.skipIf(process.platform === 'win32')('replaces a socket file left by a crash', async () => {

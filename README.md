@@ -115,7 +115,7 @@ Meeting data stays local; Yogurt goes online for model downloads and update chec
 
 <br>
 
-> In **Settings → AI apps**, turn on access, copy the helper command, and add it as a local MCP server in your assistant app. Access is off by default. The app can read your meetings (including their calendar details: the event, and attendees' names and emails), notes and transcripts, but cannot change them. It may send what it reads to its own online model. Turn access off in Yogurt to stop further reads.
+> In **Settings → AI apps**, turn on access, add your assistant app by name, copy its setup and paste it into the app as a local MCP server. Each app gets its own key. Access is off by default. The app can read your meetings (including their calendar details: the event, and attendees' names and emails), notes and transcripts, but cannot change them. It may send what it reads to its own online model. Turn access off in Yogurt to stop further reads.
 
 </details>
 
@@ -123,7 +123,7 @@ Meeting data stays local; Yogurt goes online for model downloads and update chec
 
 <br>
 
-> Access is off until you enable it in **Settings → AI apps**. Apps get read-only access to meetings (with their calendar event and attendees' names and emails), notes and transcripts. Mac and Linux use a socket in your profile folder with `0600` permissions, so only your user account can open it. Windows uses a named pipe with a new random name each launch, stored only in your profile folder. There is no per-app token, so any app running under your account can read while access is on. Settings shows connected apps by their self-reported names.
+> Access is off until you enable it in **Settings → AI apps**. Apps get read-only access to meetings (with their calendar event and attendees' names and emails), notes and transcripts. Mac and Linux use a socket in your profile folder with `0600` permissions, so only your user account can open it. Windows uses a named pipe with a new random name each launch, stored only in your profile folder. Each app you add gets its own key, kept sealed with your system keychain; the helper sends it first, and an app without a valid key can't read anything. Removing an app in Settings ends its session and its key. Settings shows connected apps by the name you added them with. If you connected apps before keys existed, they keep working until you turn on **Only apps added here**.
 
 </details>
 

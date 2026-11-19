@@ -159,6 +159,12 @@ export type YogurtApi = {
   mcp: {
     status(): Promise<McpStatus>
     set(on: boolean): Promise<McpStatus>
+    /** on: only apps added here may read */
+    requireKey(on: boolean): Promise<McpStatus>
+    /** setup: what to paste into the new app, shown once here and copyable again later */
+    add(name: string): Promise<{ status: McpStatus; setup?: string }>
+    setup(id: string): Promise<string | null>
+    remove(id: string): Promise<McpStatus>
     onClients(fn: (clients: string[]) => void): () => void
   }
   updates: {
@@ -459,6 +465,7 @@ export type ConversationView = {
 export type ConversationSummary = { id: string; title: string; updatedAt: number; chips: ContextTarget[]; draft: string }
 
 /** enabled: in Settings. clients: apps connected now. command: the program to give an AI app */
-export type McpStatus = { enabled: boolean; clients: string[]; command: string }
+/** requiresKey: only the apps added here may read; apps: those apps, by the name the person gave them */
+export type McpStatus = { enabled: boolean; clients: string[]; command: string; requiresKey: boolean; apps: Array<{ id: string; name: string }> }
 /** Settings → Updates. available: this build updates itself (not in development or a preview); next: the version found */
 export type UpdateStatus = { version: string; available: boolean; on: boolean; state: 'idle' | 'checking' | 'latest' | 'downloading' | 'ready' | 'error'; next?: string; dismissed?: boolean }
