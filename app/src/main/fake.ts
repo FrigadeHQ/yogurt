@@ -142,6 +142,7 @@ export const fakeNow = () => Date.now() + skew
  * The hook the end-to-end tests drive, reachable from the test as globalThis.__fake__. Installed only under YOGURT_FAKE=1.
  *   signals({ micApps, events })  pretend the Mac said this, then look at it right away
  *   advance(ms)                   move the clock forward
+ *   silence(ms | null)            confirmed live quiet time; null restores real audio observation
  *   widget()                      what the recording widget shows and where it sits
  *   go(route)                     show a page, as the card or widget would (e.g. /note/<id>)
  *   main()                        whether the main window was brought forward, is visible, and its route
@@ -160,12 +161,13 @@ export const fakeNow = () => Date.now() + skew
  *   chatMeetings()                two finished meetings with transcripts and notes, indexed for chat across meetings (their ids)
  *   prompts()                     what whisper and the notes model were given so far
  */
-export function installFakeHooks(h: { signals(r: Reading): Promise<void>; advance(ms: number): Promise<void>; widget(): unknown; main(): unknown; go(route: string): void; crashCapture(): void; warn(code: string): void; bigMeeting(n: number): string; manyMeetings(o: number | { n: number; clean?: boolean }): void; calendarChanged(): void; tray(): string[]; trayClick(id: string): void; trayAccelerators(): Record<string, string | undefined>; permissions(): Promise<unknown>; notice(): unknown; noticeClick(): void; chatMeetings(): Promise<string[]> }) {
+export function installFakeHooks(h: { silence(ms: number | null): Promise<void>; signals(r: Reading): Promise<void>; advance(ms: number): Promise<void>; widget(): unknown; main(): unknown; go(route: string): void; crashCapture(): void; warn(code: string): void; bigMeeting(n: number): string; manyMeetings(o: number | { n: number; clean?: boolean }): void; calendarChanged(): void; tray(): string[]; trayClick(id: string): void; trayAccelerators(): Record<string, string | undefined>; permissions(): Promise<unknown>; notice(): unknown; noticeClick(): void; chatMeetings(): Promise<string[]> }) {
   // kept: hooks other modules added before these
   ;(globalThis as Record<string, unknown>).__fake__ = {
     ...((globalThis as Record<string, unknown>).__fake__ as object | undefined),
     audioMetadataRelease: () => { audioMetadataReleased = true; releaseAudioMetadata?.() },
     signals: h.signals,
+    silence: h.silence,
     advance: async (ms: number) => { skew += ms; await h.advance(ms) },
     widget: h.widget,
     main: h.main,

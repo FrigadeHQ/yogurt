@@ -1,6 +1,6 @@
 import {previousSpeaker} from '../../shared/transcriptReplacement'
 import { AUDIO_SPEAKER } from '../../shared/audioUpload'
-import { onCaptureStart, recordingFinished, type TranscribeWarn, type Track } from '../capture'
+import { onCaptureStart, recordingFinished, recordingPaused, type TranscribeWarn, type Track } from '../capture'
 import { onMeetingStart, onMeetingStop } from '../meeting'
 import { isFake } from '../paths'
 import { feedRecording } from './backfill'
@@ -26,7 +26,9 @@ type Session = { complete?: () => boolean; pipeline: Pipeline | null; priorLines
   failed?: boolean
   replacement?: boolean
   /** Apple's speech listens in this locale for the meeting (null: whisper only); off once whisper hears another language */
-  speech?: string | null }
+  speech?: string | null
+  /** Live input only: saved-file transcription must never influence call detection. */
+  live?: { quietSince: number; frames: Partial<Record<Track, number>> } }
 
 /**
  * The saved transcript comes from whisper; Apple's words are the live view. Languages listed here are the ones where Apple's
@@ -89,6 +91,14 @@ type SessionStore = Pick<Store, 'updateMeeting'> & Partial<Pick<Store, 'segments
 let server: WhisperServer | undefined
 let serverKey: string | undefined
 const sessions = new Map<string, Session>()
+/** Unknown, stale or paused input is not evidence that a conversation ended. */
+export function liveSilentMs(id: string, now = Date.now()): number {
+  const s = sessions.get(id), live = s?.live
+  if (!s?.pipeline || !live || recordingPaused(id)) return 0
+  if (['me', 'them'].some(track => now - (live.frames[track as Track] ?? -Infinity) > 3000)) return 0
+  return Math.max(0, now - live.quietSince)
+}
+
 export type RecordedOptions = { signal?: AbortSignal; progress?: (ms: number) => void; fromMs?: Partial<Record<Track,number>>; save?: (segments: Omit<Segment,'id'>[]) => void }
 type Recorded = (id: string, tracks: Partial<Record<Track, AsyncIterable<Float32Array>>>, stopped?: () => boolean, options?: RecordedOptions) => Promise<boolean>
 let recorded: Recorded = async () => false
@@ -236,7 +246,13 @@ export function hookTranscription(p: {
       pipeline: transcribe ? createPipeline({ meetingId: id, transcribe, save: (segs) => {
         try { if(options?.save) options.save(segs); else p.store.addSegments(segs) } catch (e) { saveFailed = true; throw e }
         if (segs.some(s => s.hidden)) p.refresh?.(id)
-      }, emit: options?.save ? () => {} : p.send, emitPartial: options?.save ? undefined : p.sendPartial, holdMs: p.holdMs, extraWaitMs: p.extraWaitMs, onWarn: warnOnce,
+      }, emit: options?.save ? () => {} : seg => {
+        if (s.live && seg.text.trim()) s.live.quietSince = Date.now()
+        p.send(seg)
+      }, emitPartial: options?.save || !p.sendPartial ? undefined : part => {
+        if (s.live && part.text.trim()) s.live.quietSince = Date.now()
+        p.sendPartial?.(part)
+      }, holdMs: p.holdMs, extraWaitMs: p.extraWaitMs, onWarn: warnOnce,
         nameOf: (a, b) => p.store.meeting?.(id)?.source === 'audio-file' ? AUDIO_SPEAKER : p.nameOf?.(id, a, b) ?? previousSpeaker(priorSegments,'them',a,b),
         respell: (t) => { const m = p.store.meeting?.(id); return m ? respell(t, meetingWords(m)) : t } }) : null,
     }
@@ -263,7 +279,15 @@ export function hookTranscription(p: {
   // each capture of a meeting (a restarted recorder is a new one) feeds that meeting's session
   const offCapture = onCaptureStart((c, meetingId) => {
     const s = open(meetingId)
-    c.on('pcm', (track, ms, samples) => s.pipeline?.push(track, ms, samples))
+    s.live = { quietSince: Date.now(), frames: {} }
+    c.on('pcm', (track, ms, samples) => {
+      if (!samples.length) return
+      s.pipeline?.push(track, ms, samples)
+      const now = Date.now(), live = s.live!
+      // A gap, restart or pause must earn a new quiet minute, not count missing audio as silence.
+      if (now - (live.frames[track] ?? -Infinity) > 3000 || recordingPaused(meetingId) || s.pipeline?.talking('me') || s.pipeline?.talking('them')) live.quietSince = now
+      live.frames[track] = now
+    })
     // Apple's speech that never speaks up: the helper says so, or someone has talked for a while with no word from it
     c.on('speech-off', () => speechOff(s, 'the helper could not run it'))
     // Apple listening on one track only: whisper's own quick readings cover the other
@@ -274,10 +298,11 @@ export function hookTranscription(p: {
       if (s.pipeline.talking('me') || s.pipeline.talking('them')) talkedPolls++
       if (talkedPolls >= SPEECH_WATCH_POLLS) { clearInterval(watch); speechOff(s, 'no words came while people talked') }
     }, 1000)
-    c.on('ended', () => clearInterval(watch))
+    c.on('ended', () => { clearInterval(watch); if (s.live) s.live.frames = {} })
     // Apple's words: the live view (whisper's line replaces them), or the saved line too where Apple measured as good
     c.on('speech', (f) => {
       heardSpeech = true
+      if (s.live && f.text.trim()) s.live.quietSince = Date.now()
       if (!s.speech || !s.pipeline) return
       const saves = APPLE_FINALS_LANGUAGES.has(s.speech.split('-')[0])
       if (f.final && saves) s.pipeline.speechLines(f.track, [{ track: f.track, startMs: Math.round(f.startMs), endMs: Math.round(f.endMs), text: f.text }])

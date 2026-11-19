@@ -7,6 +7,8 @@ export type Prompt = { key: string; /** the event's title; empty with no event (
 export type Dismissals = ReadonlySet<string>
 
 const MIN = 60_000
+/** Require a full quiet minute before asking or stopping; a call app can release the mic mid-conversation. */
+export const CALL_SILENCE_MS = 60_000
 
 type CallApp = { id: string; name: string; browser?: boolean }
 // Apps that make calls. Browsers only count with a sign of a call (see decide).
@@ -122,18 +124,16 @@ export function decide(s: Signals, now: number, recent: Dismissals): Prompt | nu
   return null
 }
 
-/**
- * Has the meeting ended? micIdleMs: how long the meeting's app has not used the mic (0 while it does).
- * Also ended: the event is 5 minutes over and both tracks have been quiet for 60 s. This only asks; callGone is what stops by itself.
+/** Ask only when the bound call app has left the mic for 30 s and both tracks have been quiet for a minute.
+ * A calendar event ending is not evidence that the conversation ended.
  */
-export function ended(_s: Signals, micIdleMs: number, ctx?: { event: CalEvent | null; silentMs: number; now: number }): boolean {
-  if (micIdleMs >= 30_000) return true
-  return !!ctx?.event && ctx.now >= ctx.event.end + 5 * MIN && ctx.silentMs >= 60_000
+export function ended(micIdleMs: number, silentMs = 0): boolean {
+  return micIdleMs >= 30_000 && silentMs >= CALL_SILENCE_MS
 }
 
 /**
  * How long the call app must be off the mic before a recording stops by itself: a new headset or Zoom's own mute let go
- * for a moment. Short, so hanging up ends the note within a few seconds; a call that drops for longer can be resumed.
+ * for a moment. This grace is separate from the quiet minute required before stopping.
  */
 export const CALL_GONE_MS = 4_000
 /** how often the call signals are read: more often while recording, so the end of a call is seen quickly */
@@ -141,9 +141,9 @@ export const watchEveryMs = (recording: boolean): number => (recording ? 1_500 :
 
 /**
  * Should the recording stop by itself? Only one tied to a call app (app) that was on the mic during this recording (seen),
- * once that app has let go of the mic for the grace. A recording that never observes a call, or a resumed note whose call is over, never.
+ * once that app has let go of the mic for the grace and both tracks have been quiet for a minute. A recording that never observes a call, or a resumed note whose call is over, never.
  * The calendar never stops one: meetings run over.
  */
-export function callGone(o: { app: string | null; seen: boolean; micIdleMs: number; graceMs?: number }): boolean {
-  return !!o.app && o.seen && o.micIdleMs >= (o.graceMs ?? CALL_GONE_MS)
+export function callGone(o: { app: string | null; seen: boolean; micIdleMs: number; silentMs: number; graceMs?: number }): boolean {
+  return !!o.app && o.seen && o.micIdleMs >= (o.graceMs ?? CALL_GONE_MS) && o.silentMs >= CALL_SILENCE_MS
 }

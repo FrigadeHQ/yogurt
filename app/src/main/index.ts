@@ -57,7 +57,7 @@ import { isId, text, rewriteNote } from './ipcArgs'
 import { hookMics } from './mics'
 import { activeCapture, audioHelperPath, hookCapture, joinParts, onCaptureStart, onRecordingEvent, prepareAppend, recordingFinished, recordingPaused, recordingSettled, rejoinInterrupted, setRecordingPaused, settleRecording, tell, type WarnCode } from './capture'
 import { createWidget } from './widget'
-import { hookTranscription, transcribeRecorded, onWhisperGpuOff, meetingLanguage, settleTranscription, speechLocaleFor, spokenChanged, transcriptionBacklogMs, stopTranscriptionServer, releaseIdleSpeech, transcriptFinished, transcriptPartials } from './asr'
+import { liveSilentMs, hookTranscription, transcribeRecorded, onWhisperGpuOff, meetingLanguage, settleTranscription, speechLocaleFor, spokenChanged, transcriptionBacklogMs, stopTranscriptionServer, releaseIdleSpeech, transcriptFinished, transcriptPartials } from './asr'
 import { hookCallNames, type Watch } from './callNames'
 import { helperWatch, killAllWatches } from './callNames/watch'
 import { macFullName } from './user'
@@ -295,11 +295,13 @@ function startDetection() {
   const signals = createSignals({ helper: runHelper, events: readCalendar })
   refreshCalendarConsumers = () => signals.invalidateCalendar()
   const now = isFake() ? fakeNow : Date.now
+  let fakeSilence: number | undefined
   const watcher: Watcher = new Watcher({
     read: (at) => signals.read(at), now, active: activeMeeting, bindApp: bindMeetingApp,
     offer: (p) => prompts.offer(p), askStop: (m) => prompts.askStop(m), hide: () => prompts.hide(),
     // the call ended: the same stop as the widget's Stop button, then say so
     autoStop: (m) => { widget.callEnded(m.id); stopMeeting(m.id); prompts.stopped(m) },
+    silentMs: () => { if (isFake() && fakeSilence !== undefined) return fakeSilence; const m = activeMeeting(); return m ? liveSilentMs(m.id) : 0 },
     autoStopOn: () => stopsWhenCallEnds(loadSettings(join(userDataDir(), 'settings.json'))),
     // no "Take notes?" while onboarding is still on screen
     ready: () => !onboardingShowing(),
@@ -423,13 +425,14 @@ function startDetection() {
   refreshCalendarConsumers = () => { signals.invalidateCalendar(); void tray.refreshCalendar() }
   setTrayVisible = tray.setVisible
   trayShown = tray.shown
-  // cheap, and only while Yogurt runs; more often while recording, so a call that ended stops within a few seconds
+  // cheap, and only while Yogurt runs; more often while recording, so the end of a quiet call is noticed promptly
   let timer: NodeJS.Timeout | undefined
   const watchLoop = () => { timer = setTimeout(() => { void watcher.tick().catch((e) => console.error('detect failed', e)).finally(watchLoop) }, watchEveryMs(!!activeMeeting())) }
   watchLoop()
   app.on('will-quit', () => clearTimeout(timer))
   if (isFake()) {
     installFakeHooks({
+      silence: async (ms) => { fakeSilence = ms ?? undefined; await watcher.tick() },
       signals: async (r) => { signals.override(r); await watcher.tick() },
       advance: () => watcher.tick(),
       widget: () => widget.snapshot(),

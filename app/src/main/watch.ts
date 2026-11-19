@@ -1,4 +1,3 @@
-import { matchesEvent } from './calendar'
 import type { Meeting } from './store'
 import { callAppName, callGone, decide, ended, type Prompt, type Signals } from './detect'
 import type { Reading } from './detectSignals'
@@ -107,20 +106,20 @@ export class Watcher {
     if (r.stopped) return
     const onMic = !!m.app && s.micApps.some((a) => { const n = callAppName(a.bundleId, s.runningApps); return n && n === m.app })
     if (onMic) r.seen = true
-    // a meeting with no known app has no mic to watch: only the event and silence can end it
+    // Without a bound call app there is no mic-loss evidence to ask about.
     const using = !m.app || onMic
     if (using) r.lastMic = now
-    if (!r.byHand && this.d.autoStop && this.d.autoStopOn?.() && callGone({ app: m.app, seen: r.seen, micIdleMs: now - r.lastMic, graceMs: this.d.graceMs })) {
-      console.info(`CALL gone meeting=${m.id} app=${m.app} idle_ms=${now - r.lastMic}`)
+    const silentMs = this.d.silentMs?.() ?? 0
+    if (!r.byHand && this.d.autoStop && this.d.autoStopOn?.() && callGone({ app: m.app, seen: r.seen, micIdleMs: now - r.lastMic, silentMs, graceMs: this.d.graceMs })) {
+      console.info(`CALL gone meeting=${m.id} app=${m.app} idle_ms=${now - r.lastMic} silent_ms=${silentMs}`)
       r.stopped = true
       if (this.shown === 'stop') { this.shown = null; this.d.hide() }
       this.d.autoStop(m)
       return
     }
-    const event = s.events.find((e) => matchesEvent(e, m.eventId)) ?? null
-    const over = ended(s, now - r.lastMic, { event, silentMs: this.d.silentMs?.() ?? 0, now })
+    const over = ended(now - r.lastMic, silentMs)
     if (over && this.shown !== 'stop' && now >= r.snoozeUntil) {
-      console.info(`CALL stop-card meeting=${m.id} app=${m.app ?? 'none'} reason=${now - r.lastMic >= 30_000 ? 'mic-idle' : 'event-ended-and-silent'} idle_ms=${now - r.lastMic}`)
+      console.info(`CALL stop-card meeting=${m.id} app=${m.app ?? 'none'} reason=mic-idle-and-silent idle_ms=${now - r.lastMic} silent_ms=${silentMs}`)
       this.shown = 'stop'; this.d.askStop(m)
     }
     else if (!over && this.shown === 'stop') { this.shown = null; this.d.hide() }

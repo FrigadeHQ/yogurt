@@ -2,8 +2,8 @@ import { AUDIO_SPEAKER } from '../src/shared/audioUpload'
 import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { Capture, encodeFrame, hookCapture, recordingFinished, type CaptureProc } from '../src/main/capture'
-import { hookTranscription, transcribeRecorded, settleTranscription, speechLocaleFor, spokenChanged, stopTranscriptionServer, transcribing, releaseIdleSpeech } from '../src/main/asr'
+import { Capture, encodeFrame, hookCapture, setRecordingPaused, recordingFinished, type CaptureProc } from '../src/main/capture'
+import { liveSilentMs, hookTranscription, transcribeRecorded, settleTranscription, speechLocaleFor, spokenChanged, stopTranscriptionServer, transcribing, releaseIdleSpeech } from '../src/main/asr'
 import type { Spoken } from '../src/shared/spoken'
 import type { TranscriptPartial } from '../src/shared/types'
 import { openStore, type Meeting, type Store } from '../src/main/store'
@@ -449,5 +449,54 @@ describe('a meeting recorded before the speech model was in (#30)', () => {
     store.updateMeeting(m.id, { state: 'stopped', transcriptionPending: true })
     expect(await transcribeRecorded(m.id, { them: track(1) })).toBe(false)
     expect(store.meeting(m.id)?.transcriptionPending).toBe(true)
+  })
+})
+
+
+describe('live silence for call detection', () => {
+  it('requires fresh input on both tracks and resets for either voice, pause, gaps and live words', async () => {
+    let now = 10_000, ms = 0
+    const time = vi.spyOn(Date, 'now').mockImplementation(() => now)
+    const r = rig('transcription-first', { transcriber: () => [] }), m = meeting()
+    r.begin(m)
+    const output = r.procs[0].proc.stdout as PassThrough
+    const frame = (voice?: 'me' | 'them', tracks = ['me', 'them'] as const) => {
+      now += 100; ms += 100
+      for (const track of tracks) output.write(encodeFrame({ t: 'pcm', track, ms, samples: voice === track ? tone(0.1) : new Float32Array(1600) }))
+    }
+    const quiet = (n: number) => { for (let i = 0; i < n; i++) frame() }
+    try {
+      expect(liveSilentMs(m.id)).toBe(0)
+      quiet(601)
+      expect(liveSilentMs(m.id)).toBe(60_000)
+      frame('me'); expect(liveSilentMs(m.id)).toBe(0)
+      quiet(620); expect(liveSilentMs(m.id)).toBeGreaterThanOrEqual(60_000)
+      frame('them'); expect(liveSilentMs(m.id)).toBe(0)
+      quiet(620)
+      expect(setRecordingPaused(m.id, true)).toBe(true)
+      quiet(620); expect(liveSilentMs(m.id)).toBe(0)
+      expect(setRecordingPaused(m.id, false)).toBe(true)
+      frame(); expect(liveSilentMs(m.id)).toBeLessThan(1000)
+      quiet(610); expect(liveSilentMs(m.id)).toBeGreaterThanOrEqual(60_000)
+      now += 3001; expect(liveSilentMs(m.id)).toBe(0)
+      frame(); expect(liveSilentMs(m.id)).toBe(0)
+      quiet(610)
+      output.write(encodeFrame({ t: 'speech', track: 'me', final: false, text: 'Still talking', startMs: ms, endMs: ms + 100 }))
+      expect(liveSilentMs(m.id)).toBe(0)
+      quiet(610)
+      // One missing track is unknown input, not a quiet conversation.
+      for (let i = 0; i < 31; i++) { now += 100; ms += 100; output.write(encodeFrame({ t: 'pcm', track: 'me', ms, samples: new Float32Array(1600) })) }
+      expect(liveSilentMs(m.id)).toBe(0)
+      frame(); expect(liveSilentMs(m.id)).toBe(0)
+    } finally { time.mockRestore(); await r.stop(m) }
+    expect(liveSilentMs(m.id)).toBe(0)
+  })
+  it('cannot claim silence without a speech pipeline, before capture, or for an unknown meeting', async () => {
+    const r = rig('transcription-first', { modelPath: () => undefined }), m = meeting()
+    expect(liveSilentMs(m.id)).toBe(0)
+    r.begin(m)
+    r.procs[0].say('me', 0)
+    expect(liveSilentMs(m.id, Date.now() + 60_000)).toBe(0)
+    await r.stop(m)
   })
 })

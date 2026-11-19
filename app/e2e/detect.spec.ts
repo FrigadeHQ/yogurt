@@ -127,7 +127,8 @@ test('when the call ends the card asks, and Stop stops the meeting; Keep going w
     // still on the call: nothing asked
     await advance(app, 20_000)
     await signals(app, { micApps: [zoom], events: [event()] })
-    // the mic is free for 31 s
+    // Already quiet for a minute; the app must also be off the mic for 30 s.
+    await app.evaluate(() => (globalThis as any).__fake__.silence(60_000))
     await signals(app, { micApps: [], events: [event()] })
     await advance(app, 31_000)
     const p = await card(app)
@@ -161,7 +162,8 @@ test('the window is away: clicking the "Take notes?" notification starts the not
     // the card closed with it
     await expect.poll(() => app.windows().filter((w) => !w.isClosed() && w.url().includes('#prompt')).length).toBe(0)
     expect(await notice()).toBeNull()
-    // the call ends: the stop card and its notification
+    // the call ends quietly: the stop card and its notification
+    await app.evaluate(() => (globalThis as any).__fake__.silence(60_000))
     await signals(app, { micApps: [], events: [event()] })
     await advance(app, 31_000)
     await expect.poll(notice).toMatchObject({ title: 'Stop recording?' })

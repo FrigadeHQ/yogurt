@@ -71,19 +71,14 @@ describe('decide', () => {
 })
 
 describe('ended', () => {
-  it('true after 30 s without the mic, false at 29 s', () => {
-    expect(ended(sig(), 30_000)).toBe(true)
-    expect(ended(sig(), 29_000)).toBe(false)
+  it('asks after 30 s off the mic only when a quiet minute is confirmed', () => {
+    expect(ended(30_000, 60_000)).toBe(true)
+    expect(ended(30_000, 59_999)).toBe(false)
+    expect(ended(600_000)).toBe(false)
+    expect(ended(29_000, 60_000)).toBe(false)
   })
-  it('the event over by 5 minutes with 60 s of silence on both tracks', () => {
-    const event = ev()
-    const ctx = (silentMs: number, now: number) => ({ event, silentMs, now })
-    expect(ended(sig(), 0, ctx(60_000, event.end + 5 * MIN))).toBe(true)
-    expect(ended(sig(), 0, ctx(59_000, event.end + 5 * MIN))).toBe(false)
-    expect(ended(sig(), 0, ctx(60_000, event.end + 4 * MIN))).toBe(false)
-  })
-  it('no event, no silence reading: only the mic counts', () => {
-    expect(ended(sig(), 0, { event: null, silentMs: 600_000, now: NOW })).toBe(false)
+  it.each([60_000, 600_000])('quiet for %i ms cannot ask while the app still holds its mic', silentMs => {
+    expect(ended(0, silentMs)).toBe(false)
   })
 })
 
@@ -114,21 +109,25 @@ describe('browser tab titles', () => {
 })
 
 describe('callGone', () => {
-  const call = { app: 'Zoom', seen: true, micIdleMs: 0 }
+  const call = { app: 'Zoom', seen: true, micIdleMs: 0, silentMs: 60_000 }
   it('a call app that let go of the mic for the grace has ended; a blip has not', () => {
     expect(CALL_GONE_MS).toBe(4_000)
     expect(callGone({ ...call, micIdleMs: 4_000 })).toBe(true)
     expect(callGone({ ...call, micIdleMs: 3_999 })).toBe(false)
   })
-  it('checks more often while recording, so a call that ended stops within about 4 to 5.5 s', () => {
+  it('checks every 1.5 s while recording, after both grace and silence thresholds', () => {
     expect(watchEveryMs(true)).toBe(1_500)
     expect(watchEveryMs(false)).toBe(3_000)
   })
   it('the grace can be shorter (fake mode)', () => {
     expect(callGone({ ...call, micIdleMs: 500, graceMs: 500 })).toBe(true)
   })
+  it('cannot auto-stop while speech continues, regardless of how long the app is gone', () => {
+    expect(callGone({ ...call, micIdleMs: 60 * MIN, silentMs: 0 })).toBe(false)
+    expect(callGone({ ...call, micIdleMs: 60 * MIN, silentMs: 59_999 })).toBe(false)
+  })
   it('never for a recording started by hand with no call', () => {
-    expect(callGone({ app: null, seen: true, micIdleMs: 60 * MIN })).toBe(false)
+    expect(callGone({ app: null, seen: true, micIdleMs: 60 * MIN, silentMs: 60_000 })).toBe(false)
   })
   it('never before the call app was seen on the mic this time (a resumed note after the call)', () => {
     expect(callGone({ ...call, seen: false, micIdleMs: 60 * MIN })).toBe(false)

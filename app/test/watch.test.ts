@@ -18,6 +18,7 @@ const autoWatcher = () => new Watcher({
   read: async () => reading, now: () => clock, active: () => active,
   bindApp: (_id, app) => (active = { ...active!, app }),
   offer: (p) => log.push('offer:' + p.key), askStop: () => log.push('stop'), hide: () => log.push('hide'),
+  silentMs: () => silent,
   autoStop: (m) => log.push('auto:' + m.id), autoStopOn: () => auto,
 })
 
@@ -121,7 +122,7 @@ describe('start cards', () => {
 })
 
 describe('stop nudge', () => {
-  beforeEach(() => { active = meeting() })
+  beforeEach(() => { active = meeting(); silent = 60_000 })
 
   it('asks once after 30 s without the mic, not at 29 s', async () => {
     reading = { micApps: [zoom], events: [] }; await w.tick()
@@ -151,14 +152,17 @@ describe('stop nudge', () => {
     clock += 31_000; await w.tick()
     expect(log).toEqual(['stop'])
   })
-  it('the event over by 5 minutes with 60 s of silence asks even with the mic busy', async () => {
+  it('a linked event over by 5 minutes and a quiet minute cannot ask while the mic is held', async () => {
+    silent = 0
     const e = ev({ start: clock - 40 * MIN, end: clock - 10 * MIN })
     active = meeting({ eventId: 'e1' })
     reading = { micApps: [zoom], events: [e] }
     await w.tick()
     expect(log).toEqual([])
-    silent = 60_000; await w.tick()
-    expect(log).toEqual(['stop'])
+    clock += MIN; silent = 60_000; await w.tick()
+    expect(log).toEqual([])
+    clock += 4 * MIN; silent = 5 * MIN; await w.tick()
+    expect(log).toEqual([])
   })
   it('a meeting with no app: the mic rule never fires', async () => {
     active = meeting({ app: null })
@@ -166,19 +170,19 @@ describe('stop nudge', () => {
     await w.tick(); clock += 10 * MIN; await w.tick()
     expect(log).toEqual([])
   })
-  it('a meeting with no app still ends by the event rule', async () => {
+  it('an overdue event cannot ask about a quiet meeting with no bound app', async () => {
     const e = ev({ start: clock - 40 * MIN, end: clock - 10 * MIN })
     active = meeting({ app: null, eventId: 'e1' })
     reading = { micApps: [], events: [e] }; silent = 60_000
-    await w.tick()
-    expect(log).toEqual(['stop'])
+    await w.tick(); clock += 10 * MIN; await w.tick()
+    expect(log).toEqual([])
   })
 })
 
 describe('stops by itself when the call ends', () => {
-  beforeEach(() => { active = meeting(); auto = true; w = autoWatcher() })
+  beforeEach(() => { active = meeting(); silent = 60_000; auto = true; w = autoWatcher() })
 
-  it('the call app lets go of the mic for 4 s: stops once, with no question', async () => {
+  it('already quiet for a minute, the app lets go for 4 s: stops once, with no question', async () => {
     reading = { micApps: [zoom], events: [] }; await w.tick()
     reading = { micApps: [], events: [] }
     clock += 3_000; await w.tick()
@@ -224,7 +228,8 @@ describe('stops by itself when the call ends', () => {
     await w.tick(); clock += 10 * MIN; await w.tick()
     expect(log.filter((l) => l.startsWith('auto'))).toEqual([])
   })
-  it('the calendar event ending never stops it', async () => {
+  it('the calendar event ending never stops it during speech', async () => {
+    silent = 0
     const e = ev({ start: clock - 40 * MIN, end: clock - 10 * MIN })
     active = meeting({ eventId: 'e1' })
     reading = { micApps: [zoom], events: [e] }
@@ -242,7 +247,7 @@ describe('stops by itself when the call ends', () => {
 
 
 describe('binding a call after any recording start', () => {
-  beforeEach(() => { active = meeting({ app: null }); auto = true; w = autoWatcher() })
+  beforeEach(() => { active = meeting({ app: null }); silent = 60_000; auto = true; w = autoWatcher() })
   // a recording started by hand (New note, Take notes on the agenda) is never stopped by itself: the call app letting go of
   // the mic while joining (a browser's pre-join screen) stopped one mid-meeting. It asks, as before, after 30 s
   it.each([zoom, { bundleId: 'us.zoom.CptHost', name: 'CptHost' }, { bundleId: 'com.apple.avconferenced', name: 'avconferenced' }])('binds $bundleId ten seconds after a start by hand, never stops it by itself, and asks after 30 s without the mic', async (mic) => {
@@ -288,7 +293,7 @@ describe('binding a call after any recording start', () => {
 
 
 it('does not keep a FaceTime recording alive for the shared daemon after FaceTime exits', async () => {
-  active = meeting({ app: 'FaceTime' }); auto = true; w = autoWatcher()
+  active = meeting({ app: 'FaceTime' }); silent = 60_000; auto = true; w = autoWatcher()
   reading = { micApps: [{ bundleId: 'com.apple.avconferenced', name: 'avconferenced' }], events: [], runningApps: ['com.apple.FaceTime'] }
   await w.tick()
   reading.runningApps = []; clock += 10000; await w.tick()
@@ -311,5 +316,59 @@ describe('on a call', () => {
   it('recording is a call too', () => {
     active = meeting()
     expect(w.onCall()).toBe(true)
+  })
+})
+
+
+describe('speech protects a call whose app released the mic', () => {
+  it('continuous speech prevents cards even after multiple five-minute snoozes would have elapsed', async () => {
+    active = meeting(); reading.micApps = [zoom]; await w.tick()
+    reading.micApps = []
+    for (let i = 0; i < 20; i++) { clock += MIN; silent = 0; await w.tick() }
+    expect(log).toEqual([])
+    silent = 59_999; await w.tick(); expect(log).toEqual([])
+    silent = 60_000; await w.tick(); expect(log).toEqual(['stop'])
+  })
+  it('Keep going stays quiet through speech and asks again only after a quiet minute and the snooze', async () => {
+    active = meeting(); reading.micApps = [zoom]; await w.tick()
+    reading.micApps = []; clock += MIN; silent = MIN; await w.tick()
+    expect(log).toEqual(['stop'])
+    w.keepGoing()
+    for (let i = 0; i < 10; i++) { clock += MIN; silent = 0; await w.tick() }
+    expect(log).toEqual(['stop'])
+    clock += 59_999; silent = 59_999; await w.tick()
+    expect(log).toEqual(['stop'])
+    clock++; silent++; await w.tick()
+    expect(log).toEqual(['stop', 'stop'])
+  })
+  it('takes down an already-shown card when speech resumes, even if the app stays off the mic', async () => {
+    active = meeting(); reading.micApps = [zoom]; await w.tick()
+    reading.micApps = []; clock += MIN; silent = MIN; await w.tick()
+    silent = 0; await w.tick()
+    expect(log).toEqual(['stop', 'hide'])
+  })
+  it('auto-stop waits for silence, not just the four-second app grace', async () => {
+    active = meeting(); w = autoWatcher(); auto = true
+    reading.micApps = [zoom]; await w.tick()
+    reading.micApps = []
+    for (let i = 0; i < 10; i++) { clock += MIN; silent = 0; await w.tick() }
+    expect(log).toEqual([])
+    silent = 59_999; await w.tick(); expect(log).toEqual([])
+    silent = MIN; await w.tick(); expect(log).toEqual(['auto:m1'])
+  })
+  it('an open app without microphone use never binds a manually started meeting', async () => {
+    active = meeting({ app: null }); reading.runningApps = ['us.zoom.xos']
+    await w.tick(); clock += MIN; await w.tick()
+    expect(active.app).toBeNull()
+    expect(log).toEqual([])
+  })
+  it('missing silence evidence cannot ask or auto-stop', async () => {
+    active = meeting()
+    const x = new Watcher({ read: async () => reading, now: () => clock, active: () => active,
+      bindApp: () => undefined, offer: vi.fn(), askStop: () => log.push('stop'), hide: vi.fn(),
+      autoStop: () => log.push('auto'), autoStopOn: () => true })
+    reading.micApps = [zoom]; await x.tick()
+    reading.micApps = []; clock += 10 * MIN; await x.tick()
+    expect(log).toEqual([])
   })
 })
