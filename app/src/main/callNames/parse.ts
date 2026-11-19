@@ -10,7 +10,23 @@ export type AxNode = { r: string; s?: string; d?: string; t?: string; v?: string
 export type AxWindow = { title?: string; id?: string; tree: AxNode; minimized?: boolean }
 export type CallKind = 'zoom' | 'teams' | 'meet' | 'webex'
 /** byMute: `speaking` is only the one other person not muted (Teams meetings mark nobody), not a mark of the app */
-export type CallReading = { speaking: string[]; participants: string[]; me: string | null; byMute?: boolean }
+export type CallReading = {
+  speaking: string[]
+  participants: string[]
+  me: string | null
+  byMute?: boolean
+  /**
+   * The newest caption the app shows, when it shows captions: who it is of, and a mark that changes while they keep
+   * talking. A caption stays on screen after the person stops — rows frozen for 45 readings were seen on a real
+   * call — so the name alone says who spoke last, not who is speaking. Only a mark that moved recently does, which is
+   * why this is left for the session (index.ts) to compare and is never folded into `speaking` here.
+   *
+   * The newest row is taken to be the last one in the tree, which is what a real call showed: its words grow while
+   * the rows above it stay as they were. Telling them apart by where they sit would be surer — the tree's order can
+   * lag the screen while the list scrolls — but a reading carries no positions, only each node's words.
+   */
+  caption?: { who: string; mark: string }
+}
 
 // A role has two names: macOS Accessibility says AXTabGroup, AXStaticText, AXRow, AXOutline; AT-SPI (Linux) says
 // page tab, label/static/text, table row/list item, tree table/table/list. The rules below know both. Windows's helper
@@ -53,6 +69,20 @@ const ACTIVE = new Set(ZOOM.map((l) => low(l[2])))
 const TALKING = ZOOM.map((l) => l[3].normalize('NFKC').replace(/\s*[:：]$/, ''))
 const LISTS = new Set(ZOOM.map((l) => low(l[4])))
 const SELF = new Set(ZOOM.map((l) => low(l[5]).replace(/[()]/g, '')))
+/**
+ * Zoom's live captions. Zoom 7.2.5 stopped marking the active speaker on its tiles — the tile description carries
+ * only the name, the audio state and the video state, and nothing in the window says who is talking (checked over a
+ * seven-person call with people speaking throughout). The captions, when they are on, are one row per person's
+ * words with their name, so the newest row says who is speaking. Only English is listed: the label is read off the
+ * window and the other languages' wording is not known, so elsewhere this finds nothing and changes nothing.
+ */
+const CAPTION_AREA = /caption subtitles/
+/**
+ * Zoom's own words in the caption area, which are its interface and not anybody's speech. They arrive as a row with
+ * no name beside them, so requiring a name and words together already skips them; they are listed so that a future
+ * one-line row cannot be read as a person called "Captions are on".
+ */
+const CAPTION_CHROME = new Set(['captions are on', 'captions are off', 'live transcription is on'])
 /** other things Zoom appends to a tile, which say nothing about who it is; kept as Zoom's own words for the log */
 const OTHER_STATUS = /^(video (on|off)|no audio.*|telephone.*|screen sharing.*|pinned|spotlighted)$/i
 /**
@@ -113,6 +143,7 @@ function readZoom(windows: AxWindow[]): CallReading {
   const speaking: string[] = [], participants: string[] = []
   const linuxTiles: Array<{ name: string; talking: boolean }> = []
   let me: string | null = null
+  let captioned: { who: string; mark: string } | null = null
   for (const w of windows) {
     walk(w.tree, (n, up) => {
       // the words are the description on a Mac and Linux, the name under UI Automation (Windows)
@@ -146,12 +177,30 @@ function readZoom(windows: AxWindow[]): CallReading {
         participants.push(name)
         if (tagsOf(text).some((tag) => SELF.has(tag))) me = name
       }
+      // The captions, newest row last: each row's first text is who said it, the second their words. Only the
+      // newest is read; the rows above it are what was said before. The words are never taken, only their length,
+      // as the mark that says the row is still being written — so a caption cannot become a transcript line.
+      // The caption area is matched on part of its words, not all of them, and on any of the three it can carry
+      // them in: while someone shares their screen Zoom moves the captions into a small window of their own.
+      if ([n.d, n.t, n.v].some((x) => x && CAPTION_AREA.test(low(x)))) {
+        walk(n, (row) => {
+          if (!ROW.has(row.r)) return
+          const texts: string[] = []
+          walk(row, (x) => { if (STATIC_TEXT.has(x.r)) { const t = x.v ?? x.t; if (t) texts.push(t) } })
+          // a row is only a caption with both a name and words: Zoom's own words sit in the same area alone
+          if (texts.length < 2 || texts.some((t) => CAPTION_CHROME.has(low(t)))) return
+          const name = cleanZoom(texts[0])
+          if (name) captioned = { who: name, mark: `${name}|${texts[1].length}` }
+        })
+      }
     })
   }
   // The Linux view always says "Active Speaker" on the tile it is showing, even with one person in the call, so the
   // mark is trusted only with three or more tiles (the same threshold the Mac mark has).
   if (uniq(linuxTiles.map((t) => t.name)).length >= 3) for (const t of linuxTiles) if (t.talking) speaking.push(t.name)
-  return { speaking: uniq(speaking), participants: uniq(participants), me }
+  // The caption is handed up untouched, not merged into `speaking`: on its own it names who spoke last, which after
+  // a pause is the wrong person. The session turns it into a speaker only while its mark keeps moving.
+  return { speaking: uniq(speaking), participants: uniq(participants), me, ...(captioned ? { caption: captioned } : {}) }
 }
 
 // ---- Google Meet (in Chrome, Arc, Brave, Edge; Safari and Firefox too where they show the same tree) ----
