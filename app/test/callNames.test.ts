@@ -424,6 +424,39 @@ describe('hookCallNames', () => {
     expect(s.logs.some((l) => /0 people added/.test(l))).toBe(true)
   })
 
+  it('a call that stayed Them says in the log why, in counts', async () => {
+    const s = setup()
+    s.start()
+    s.audio(0, 1_000_100)
+    s.store.addSegments([{ meetingId: s.m.id, track: 'them', startMs: 1000, endMs: 3000, text: 'hello', speaker: null }])
+    // the app was read every time and showed three people, but never marked one of them talking
+    for (let t = 1_000_000; t < 1_005_000; t += 500) s.emit(zoomLine(t, ['Alex Morgan', 'Dana Smith', 'Ann Lee']))
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id)[0].speaker).toBeNull()
+    const summary = s.logs.find((l) => /lines of the other side named/.test(l))!
+    expect(summary).toContain('0 of 1 lines of the other side named')
+    expect(summary).toContain('10 of 10 readings read the app')
+    expect(summary).toContain('at most 3 in the call')
+    expect(summary).toContain('0 marked the other side talking')
+  })
+
+  it('the app marking only the person using Yogurt does not count as marking the other side', async () => {
+    const s = setup()
+    s.start()
+    s.audio(0, 1_000_100)
+    s.store.addSegments([{ meetingId: s.m.id, track: 'them', startMs: 1000, endMs: 3000, text: 'hello', speaker: null }])
+    // Zoom marks Alex (the person using Yogurt, from myNames) as the active speaker and nobody else: whoAt drops
+    // that mark, so counting it would say the app named a speaker when nothing it said could have named one
+    for (let t = 1_000_000; t < 1_005_000; t += 500) s.emit(zoomLine(t, ['Alex Morgan', 'Dana Smith', 'Ann Lee'], 'Alex Morgan', 'Alex Morgan'))
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id)[0].speaker).toBeNull()
+    const summary = s.logs.find((l) => /lines of the other side named/.test(l))!
+    expect(summary).toContain('10 of 10 readings read the app')
+    expect(summary).toContain('0 marked the other side talking')
+  })
+
   it('a calendar name with a space before the comma still matches the call\'s form', async () => {
     const s = setup({ attendees: [{ name: 'Smith , Dana', email: 'dana@example.com' }] })
     s.start()
@@ -434,6 +467,19 @@ describe('hookCallNames', () => {
     await s.hook.finished(s.m.id)
     expect(s.store.segments(s.m.id)[0].speaker).toBe('Dana Smith')
     expect(s.store.meeting(s.m.id)!.attendees).toEqual([{ name: 'Smith , Dana', email: 'dana@example.com' }])
+  })
+
+  it('a call that was never read says so, apart from one that was read and marked nobody', async () => {
+    const s = setup()
+    s.start()
+    s.audio(0, 1_000_100)
+    s.store.addSegments([{ meetingId: s.m.id, track: 'them', startMs: 1000, endMs: 3000, text: 'hello', speaker: null }])
+    for (let t = 1_000_000; t < 1_005_000; t += 500) s.emit({ t, error: 'no-call-window' })
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    const summary = s.logs.find((l) => /lines of the other side named/.test(l))!
+    expect(summary).toContain('0 of 10 readings read the app')
+    expect(summary).toContain('at most 0 in the call')
   })
 
   it('a meeting in an app it can\'t read starts no watch', async () => {
