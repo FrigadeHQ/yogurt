@@ -13,6 +13,7 @@ import { SpokenSetting } from '../components/SpokenSetting'
 import { useScrollMemory } from '../useScrollMemory'
 import { appShortcuts } from '../components/Shortcuts'
 import { CalendarSettings } from '../components/CalendarSettings'
+import { AiModels } from '../components/AiModels'
 import { supportedKinds, settingsPage } from '../../../shared/platform'
 import { Swap, SwapText } from '../components/Swap'
 
@@ -163,6 +164,8 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
           </div>
 
           <Backup />
+
+          <AiModels />
 
           <AiApps />
 
