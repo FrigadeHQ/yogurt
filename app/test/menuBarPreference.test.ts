@@ -36,28 +36,19 @@ it.each(['win32', 'linux'])('%s tray defaults on, persists changes and rejects n
 })
 
 
-it('keeps recordings by default and persists only a valid retention preference', () => {
+it('reads What Yogurt keeps from settings, the audio switch from before rules included', () => {
   const dir = mkdtempSync(join(tmpdir(), 'yogurt-audio-pref-')); dirs.push(dir)
   const file = join(dir, 'settings.json')
-  const deps = { setShowNextMeeting: vi.fn(), file, permissions: {} as Parameters<typeof hookPreferences>[0]['permissions'], ask: false, setLogin: vi.fn(), loginOn: () => false, macName: () => '', relaunch: () => false, setTrayVisible: vi.fn(), setDockVisible: vi.fn() }
-  hookPreferences(deps)
-  const get = () => handlers.get('settings:get')!().keepRecordings
-  const set = (on: unknown) => handlers.get('settings:keep-recordings')!(null, on)
-  expect(get()).toBe(true)
-  const now = vi.spyOn(Date, 'now').mockReturnValue(2000)
-  set(false); hookPreferences(deps)
-  expect(loadSettings(file).recordingsOffAt).toBe(2000)
-  expect(get()).toBe(false)
-  for (const value of [null, 'false', 0, undefined]) set(value)
-  expect(get()).toBe(false)
-  now.mockReturnValue(3000); set(false)
-  expect(loadSettings(file).recordingsOffAt).toBe(2000)
-  set(true)
-  expect(get()).toBe(true)
-  expect(loadSettings(file).keepRecordings).toBeUndefined()
-  expect(loadSettings(file).recordingsOffAt).toBeUndefined()
-  now.mockReturnValue(4000); set(false)
-  expect(loadSettings(file).recordingsOffAt).toBe(4000)
+  hookPreferences({ setShowNextMeeting: vi.fn(), file, permissions: {} as Parameters<typeof hookPreferences>[0]['permissions'], ask: false, setLogin: vi.fn(), loginOn: () => false, macName: () => '', relaunch: () => false, setTrayVisible: vi.fn(), setDockVisible: vi.fn() })
+  const get = () => handlers.get('settings:get')!().retention
+  expect(get()).toEqual({ audio: null, transcript: null, meeting: null })
+  updateSettings(file, { keepRecordings: false, recordingsOffAt: 2000 })
+  expect(get()).toEqual({ audio: 0, transcript: null, meeting: null })
+  updateSettings(file, { keepRecordings: undefined, recordingsOffAt: undefined, audioDays: 30, transcriptDays: 45, meetingDays: 365 })
+  expect(get()).toEqual({ audio: 30, transcript: 45, meeting: 365 })
+  // hand-edited nonsense is no rule
+  updateSettings(file, { audioDays: -1, transcriptDays: 0, meetingDays: 1.5 })
+  expect(get()).toEqual({ audio: null, transcript: null, meeting: null })
 })
 
 it('shows meeting titles by default, preserves the opt-out across visibility changes and validates the switch', () => {

@@ -632,9 +632,7 @@
   "Delete audio?": "Видалити аудіо?",
   "The audio is deleted for good. Your transcript and notes stay.": "Аудіо видалиться назавжди. Розшифровка й нотатки залишаться.",
   "Keep the audio until the transcript is saved.": "Зберігайте аудіо до збереження розшифровки.",
-  "Keep audio recordings after meetings": "Зберігати аудіозаписи після зустрічей",
   "Recording deleted": "Запис видалено",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Якщо вимкнено, аудіо нових зустрічей видаляється після збереження підсумку.",
   "Record {title}": "Записати «{title}»",
   "New recording": "Новий запис",
   "Hide events without a call link": "Приховувати події без посилання на дзвінок",
@@ -789,5 +787,40 @@
   "Help": "Довідка",
   "Help and settings": "Довідка й налаштування",
   "Yogurt menu": "Меню Yogurt",
-  "Restart to update · {version}": "Перезапустити для оновлення · {version}"
+  "Restart to update · {version}": "Перезапустити для оновлення · {version}",
+  "What Yogurt keeps": "Що зберігає Yogurt",
+  "Counted from when each meeting ended. Audio and transcripts go only once the summary is saved, and notes stay.": "Відлік іде від завершення кожної зустрічі. Аудіо й розшифровки видаляються лише після збереження підсумку, а нотатки залишаються.",
+  "Delete transcripts": "Видалити розшифровки",
+  "Its audio goes with it.": "Аудіо видаляється разом із нею.",
+  "Move meetings to the Trash": "Перемістити зустрічі до Кошика",
+  "Never": "Ніколи",
+  "Once the summary is saved": "Після збереження підсумку",
+  "After 1 week": "Через 1 тиждень",
+  "After 1 month": "Через 1 місяць",
+  "After 3 months": "Через 3 місяці",
+  "After 1 year": "Через 1 рік",
+  "After 2 years": "Через 2 роки",
+  "Number of days": "Кількість днів",
+  "Days": "Дні",
+  "Apply to past meetings?": "Застосувати до минулих зустрічей?",
+  "Apply": "Застосувати",
+  "{count} meetings already qualify. Their audio is deleted now.": {
+    "one": "{count} зустріч уже підпадає під правило. Її аудіо буде видалено зараз.",
+    "few": "{count} зустрічі вже підпадають під правило. Їхнє аудіо буде видалено зараз.",
+    "many": "{count} зустрічей уже підпадають під правило. Їхнє аудіо буде видалено зараз.",
+    "other": "{count} зустрічі вже підпадають під правило. Їхнє аудіо буде видалено зараз."
+  },
+  "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": {
+    "one": "{count} зустріч уже підпадає під правило. Її розшифровку й аудіо буде видалено зараз; нотатки залишаться.",
+    "few": "{count} зустрічі вже підпадають під правило. Їхні розшифровки й аудіо буде видалено зараз; нотатки залишаться.",
+    "many": "{count} зустрічей уже підпадають під правило. Їхні розшифровки й аудіо буде видалено зараз; нотатки залишаться.",
+    "other": "{count} зустрічі вже підпадають під правило. Їхні розшифровки й аудіо буде видалено зараз; нотатки залишаться."
+  },
+  "{count} meetings already qualify. They move to the Trash now.": {
+    "one": "{count} зустріч уже підпадає під правило. Її буде переміщено до Кошика зараз.",
+    "few": "{count} зустрічі вже підпадають під правило. Їх буде переміщено до Кошика зараз.",
+    "many": "{count} зустрічей уже підпадають під правило. Їх буде переміщено до Кошика зараз.",
+    "other": "{count} зустрічі вже підпадають під правило. Їх буде переміщено до Кошика зараз."
+  },
+  "The transcript was deleted on {date}, as set in Settings.": "Розшифровку видалено {date}, як задано в Параметрах."
 }

@@ -278,7 +278,7 @@ export type YogurtApi = {
   }
   settings: {
     /** myName: what the person is called in meetings (their Mac's full name, macName, when they never changed it) */
-    get(): Promise<{ theme: Theme; openAtLogin: boolean; showInMenuBar: boolean; showNextMeeting: boolean; showRecordingPill: boolean; appVisibility: AppVisibility; /** the language picked; '' follows the Mac */ language: string; /** the language in use */ locale: string; /** the Mac's language, among Yogurt's */ systemLocale: string; myName: string; macName: string; /** a recording stops by itself when its call ends (off: ask first) */ stopWhenCallEnds: boolean; recordingReminder: boolean; includeRecordingCredit: boolean; keepRecordings: boolean; /** personal jargon, spelled as typed */ jargon: string[]; /** the language people speak in meetings */ spoken: import('./spoken').Spoken; /** default summary language; '' follows the meeting */ summaryLanguage: string }>
+    get(): Promise<{ theme: Theme; openAtLogin: boolean; showInMenuBar: boolean; showNextMeeting: boolean; showRecordingPill: boolean; appVisibility: AppVisibility; /** the language picked; '' follows the Mac */ language: string; /** the language in use */ locale: string; /** the Mac's language, among Yogurt's */ systemLocale: string; myName: string; macName: string; /** a recording stops by itself when its call ends (off: ask first) */ stopWhenCallEnds: boolean; recordingReminder: boolean; includeRecordingCredit: boolean; /** What Yogurt keeps: days after a meeting ends, per kind; null keeps it */ retention: import('./retention').Retention; /** personal jargon, spelled as typed */ jargon: string[]; /** the language people speak in meetings */ spoken: import('./spoken').Spoken; /** default summary language; '' follows the meeting */ summaryLanguage: string }>
     /** blank goes back to the Mac's full name */
     setName(name: string): Promise<void>
     setTheme(v: Theme): Promise<void>
@@ -290,7 +290,10 @@ export type YogurtApi = {
     setStopWhenCallEnds(on: boolean): Promise<void>
     setRecordingReminder(on: boolean): Promise<void>
     setIncludeRecordingCredit(on: boolean): Promise<void>
-    setKeepRecordings(on: boolean): Promise<void>
+    /** a rule in What Yogurt keeps (null: Never); the rule then runs at once */
+    setRetention(kind: import('./retention').RetentionKind, days: number | null): Promise<void>
+    /** how many meetings a rule would act on as soon as it is saved */
+    retentionCount(kind: import('./retention').RetentionKind, days: number): Promise<number>
     /** saves the whole list; gives back what was kept */
     setJargon(terms: string[]): Promise<string[]>
     /** the interface language ('' follows the Mac); gives back the one now in use */

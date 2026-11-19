@@ -40,10 +40,16 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   recordingReminder?: boolean
   /** Credit on copied summaries and saved Markdown; on unless turned off. */
   includeRecordingCredit?: boolean
-  /** keep audio after its transcript and summary are saved; on unless turned off */
+  /** Before retention rules: false deleted audio once the summary was saved, read now as audioDays 0 (retention.ts) */
   keepRecordings?: boolean
-  /** Only meetings ending after this opt-out may lose their audio automatically. */
+  /** Before retention rules: only meetings ending after this opt-out lose their audio by that old switch. */
   recordingsOffAt?: number
+  /** Days after a meeting ends before its audio is deleted (0: once its summary is saved); kept when left out */
+  audioDays?: number
+  /** Days after a meeting ends before its transcript is deleted, with its audio; kept when left out */
+  transcriptDays?: number
+  /** Days after a meeting ends before it moves to the Trash; kept when left out */
+  meetingDays?: number
   /** the mic to record with (its Core Audio UID); Auto, the Mac's own input, when left out or not plugged in */
   mic?: string
   /** Calendars excluded from Yogurt's agenda and meeting detection. Others stay visible. */
@@ -68,9 +74,6 @@ export const summaryLanguageSetting = (s: Settings): string => isLocale(s.summar
 export const stopsWhenCallEnds = (s: Settings): boolean => s.stopWhenCallEnds !== false
 export const includesRecordingCredit = (s: Settings): boolean => s.includeRecordingCredit !== false
 export const recordingReminderOn = (s: Settings): boolean => s.recordingReminder !== false
-/** Old recordings stay, even if their summaries are saved or rewritten after opting out. */
-export const keepsRecording = (s: Settings, endedAt: number | null): boolean =>
-  s.keepRecordings !== false || typeof s.recordingsOffAt !== 'number' || !Number.isFinite(s.recordingsOffAt) || endedAt == null || endedAt <= s.recordingsOffAt
 
 export const autoUpdateOn = (s: Settings): boolean => s.autoUpdate !== false
 

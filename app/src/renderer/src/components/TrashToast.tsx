@@ -30,7 +30,7 @@ export async function recordingDeletedToast() {
   const prefs = await window.yogurt.settings.get().catch(() => undefined)
   const id = toasts.add({ title: t('Recording deleted'), timeout: 8000,
     data: { testId: 'recording-deleted-toast', actionTestId: 'recording-settings' },
-    actionProps: prefs?.keepRecordings ? { children: t('Settings'), onClick: () => {
+    actionProps: prefs && prefs.retention.audio == null ? { children: t('Settings'), onClick: () => {
       window.yogurt.nav.go('/settings/recordings')
       toasts.close(id)
     } } : undefined,

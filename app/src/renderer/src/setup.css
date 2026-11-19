@@ -15,7 +15,9 @@
 .settings-row+.settings-row,.settings-calendar-list>.settings-row:first-child { position:relative; }
 .settings-row+.settings-row::before,.settings-calendar-list>.settings-row:first-child::before { content:"";position:absolute;inset-block-start:0;inset-inline:20px;height:1px;background:var(--line); }
 .settings-row-copy { flex:1 1 160px;min-width:0; }
-.settings-row > :is(button,.settings-select-wrap,.settings-spoken,.settings-name-field) { margin-inline-start:auto; }
+.settings-row > :is(button,.settings-select-wrap,.settings-spoken,.settings-name-field,.settings-retention) { margin-inline-start:auto; }
+.settings-retention { display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;max-width:100%; }
+.settings-retention-days { width:84px; }
 .settings-label,.settings-permission-label { font-size:13px;line-height:19px;font-weight:500; }
 .settings-permission-label { display:flex;align-items:center;flex-wrap:wrap;gap:7px; }
 .settings-description { margin-top:3px;font-size:12px;line-height:18px;color:var(--muted);text-wrap:pretty; }

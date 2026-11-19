@@ -6,10 +6,12 @@ import { RegenerateForm } from './RegenerateForm'
 import { t } from '../../../shared/i18n'
 
 /** Only show generation when it can produce a summary; explain temporary waits. */
-export function summaryAction({ hasSummary, hasContent, recording, busy, downloading, trashed }: {
+export function summaryAction({ hasSummary, hasContent, recording, busy, downloading, trashed, transcriptDeleted = false }: {
   hasSummary: boolean; hasContent: boolean; recording: boolean; busy: boolean; downloading: boolean; trashed: boolean
+  /** a retention rule deleted the transcript: writing again would rebuild the summary from typed notes alone */
+  transcriptDeleted?: boolean
 }) {
-  if (trashed || (!hasSummary && !hasContent)) return undefined
+  if (trashed || transcriptDeleted || (!hasSummary && !hasContent)) return undefined
   return {
     label: hasSummary ? t('Regenerate summary') : t('Generate summary'),
     reason: recording ? t('Available after recording') : downloading ? t('Waiting for Yogurt AI to download') : busy ? t('Writing the summary') : undefined,

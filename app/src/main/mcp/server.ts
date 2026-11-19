@@ -1,6 +1,7 @@
 import { AUDIO_SPEAKER } from '../../shared/audioUpload'
 import type { ContextChip } from '../../shared/askContext'
 import { toMarkdownFile } from '../../shared/exportNotes'
+import type { Retention } from '../../shared/retention'
 import type { LibrarySource, StartResult } from '../../shared/types'
 import type { CalEvent, CalendarStatus } from '../calendar'
 import type { Meeting, Person, Store } from '../store'
@@ -24,7 +25,7 @@ export type McpApp = {
   ask(question: string, chips: ContextChip[]): Promise<{ unavailable: 'model' | 'recording' } | { answer: string; sources: LibrarySource[]; stopped?: true }>
   comingUp(): Promise<{ status: CalendarStatus; events: CalEvent[] }>
   calendarDay(at: number): Promise<{ status: CalendarStatus; events: CalEvent[] }>
-  settings(): { myName: string; locale: string; spoken: 'en' | 'multi'; summaryLanguage: string; jargon: string[]; stopWhenCallEnds: boolean; keepRecordings: boolean }
+  settings(): { myName: string; locale: string; spoken: 'en' | 'multi'; summaryLanguage: string; jargon: string[]; stopWhenCallEnds: boolean; retention: Retention }
   /** the windows hear that meetings or folders changed */
   changed(what: 'meetings' | 'folders'): void
   /** a meeting came in from another app: shown, searched and read for Ask like one recorded here */
@@ -97,7 +98,7 @@ const readTools = (platform: string): Tool[] => [
     inputSchema: { type: 'object', properties: { date: { type: 'string', description: 'The day, like 2026-11-03' } }, required: ['date'] } },
   { name: 'list_trash', description: 'Meetings in the Trash: id, title, start and when they were moved there. They are deleted for good 30 days after. restore_meeting brings one back.',
     inputSchema: { type: 'object', properties: {} } },
-  { name: 'get_settings', description: "Yogurt's settings that shape notes: the person's name, the interface language, the language spoken in meetings, the language summaries are written in, custom words spelled right in transcripts, whether recording stops when a call ends, and whether audio is kept.",
+  { name: 'get_settings', description: "Yogurt's settings that shape notes: the person's name, the interface language, the language spoken in meetings, the language summaries are written in, custom words spelled right in transcripts, whether recording stops when a call ends, and the days after a meeting ends before Yogurt deletes its audio (0: once the summary is saved), its transcript, or moves the whole meeting to the Trash (null: never).",
     inputSchema: { type: 'object', properties: {} } },
   { name: 'export_meeting', description: "A meeting as one Markdown document, exactly as Yogurt's Export Markdown saves it: title, date, people, the notes, and the transcript. side \"summary\" (default) uses Yogurt's summary, \"my_notes\" the person's own notes.",
     inputSchema: { type: 'object', properties: { id: idArg, side: { type: 'string', enum: ['summary', 'my_notes'] } }, required: ['id'] } },
@@ -214,7 +215,8 @@ export function createMcp(d: McpDeps): Mcp {
       const m = meetingOf(a.id)
       const lines = d.store.segments(m.id)
       if (a.format === 'lines') return JSON.stringify(lines.map((s) => ({ start_ms: s.startMs, end_ms: s.endMs, speaker: who(s.speaker, s.track), is_me: s.track === 'me', text: s.text })), null, 2)
-      return lines.map((s) => `[${clock(s.startMs)}] ${who(s.speaker, s.track)}: ${s.text}`).join('\n') || 'Nothing was transcribed in this meeting.'
+      return lines.map((s) => `[${clock(s.startMs)}] ${who(s.speaker, s.track)}: ${s.text}`).join('\n')
+        || (m.transcriptDeletedAt != null ? "This meeting's transcript was deleted, as set in Yogurt's Settings. Its summary is still there." : 'Nothing was transcribed in this meeting.')
     },
     async search(a) {
       const q = text(a.query)
@@ -254,7 +256,8 @@ export function createMcp(d: McpDeps): Mcp {
       return JSON.stringify({ my_name: s.myName, interface_language: s.locale,
         spoken_language: s.spoken === 'multi' ? 'multi (any language, heard per meeting)' : 'en (English only)',
         summary_language: s.summaryLanguage || "each meeting's own language", custom_words: s.jargon,
-        stop_recording_when_call_ends: s.stopWhenCallEnds, keep_audio_recordings: s.keepRecordings }, null, 2)
+        stop_recording_when_call_ends: s.stopWhenCallEnds,
+        delete_audio_after_days: s.retention.audio, delete_transcripts_after_days: s.retention.transcript, move_meetings_to_trash_after_days: s.retention.meeting }, null, 2)
     },
     async export_meeting(a) {
       const m = meetingOf(a.id)

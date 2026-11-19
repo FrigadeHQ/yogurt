@@ -42,6 +42,16 @@ Meetings, recordings, settings and downloaded models live here:
 | Windows | `%APPDATA%\Yogurt` |
 | Linux | `~/.config/Yogurt` (or `$XDG_CONFIG_HOME/Yogurt` if set) |
 
+## What Yogurt keeps
+
+Everything is kept until you choose otherwise in **Settings → What Yogurt keeps**. Each rule counts from when a meeting ended:
+
+- **Delete audio:** once the summary is saved, or after a week, a month, 3 months, a year, or any number of days.
+- **Delete transcripts:** the transcript and its audio go; the notes stay, and are no longer written again.
+- **Move meetings to the Trash:** they are deleted for good 30 days later, unless restored.
+
+Audio and transcripts go only from meetings whose summary is saved. When a new rule would act on meetings at once, Yogurt asks first and says how many.
+
 ## Backup and restore
 
 Finish any recording, then open **Settings → Backup** to export your meetings and audio to one ZIP file. Meetings in the Trash are not included.

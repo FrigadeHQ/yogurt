@@ -606,9 +606,7 @@
   "Delete audio?": "Slet lyd?",
   "The audio is deleted for good. Your transcript and notes stay.": "Lyden slettes permanent. Transskription og noter bevares.",
   "Keep the audio until the transcript is saved.": "Behold lyden, indtil transskriptionen er gemt.",
-  "Keep audio recordings after meetings": "Behold lydoptagelser efter møder",
   "Recording deleted": "Optagelse slettet",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Når slået fra, slettes nye møders lyd, når resuméet er gemt.",
   "Record {title}": "Optag {title}",
   "New recording": "Ny optagelse",
   "Hide events without a call link": "Skjul begivenheder uden opkaldslink",
@@ -761,5 +759,34 @@
   "Help": "Hjælp",
   "Help and settings": "Hjælp og indstillinger",
   "Yogurt menu": "Yogurt-menu",
-  "Restart to update · {version}": "Genstart for at opdatere · {version}"
+  "Restart to update · {version}": "Genstart for at opdatere · {version}",
+  "What Yogurt keeps": "Hvad Yogurt beholder",
+  "Counted from when each meeting ended. Audio and transcripts go only once the summary is saved, and notes stay.": "Regnes fra hvert mødes afslutning. Lyd og transskriptioner slettes først, når resuméet er gemt, og noter bevares.",
+  "Delete transcripts": "Slet transskriptioner",
+  "Its audio goes with it.": "Lyden slettes også.",
+  "Move meetings to the Trash": "Flyt møder til papirkurven",
+  "Never": "Aldrig",
+  "Once the summary is saved": "Når resuméet er gemt",
+  "After 1 week": "Efter 1 uge",
+  "After 1 month": "Efter 1 måned",
+  "After 3 months": "Efter 3 måneder",
+  "After 1 year": "Efter 1 år",
+  "After 2 years": "Efter 2 år",
+  "Number of days": "Antal dage",
+  "Days": "Dage",
+  "Apply to past meetings?": "Anvend på tidligere møder?",
+  "Apply": "Anvend",
+  "{count} meetings already qualify. Their audio is deleted now.": {
+    "one": "{count} møde er allerede omfattet. Lyden slettes nu.",
+    "other": "{count} møder er allerede omfattet. Deres lyd slettes nu."
+  },
+  "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": {
+    "one": "{count} møde er allerede omfattet. Transskription og lyd slettes nu; noterne bevares.",
+    "other": "{count} møder er allerede omfattet. Transskriptioner og lyd slettes nu; noterne bevares."
+  },
+  "{count} meetings already qualify. They move to the Trash now.": {
+    "one": "{count} møde er allerede omfattet. Det flyttes til papirkurven nu.",
+    "other": "{count} møder er allerede omfattet. De flyttes til papirkurven nu."
+  },
+  "The transcript was deleted on {date}, as set in Settings.": "Transskriptionen blev slettet den {date}, som angivet i Indstillinger."
 }
