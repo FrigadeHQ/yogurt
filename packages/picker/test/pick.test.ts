@@ -25,6 +25,17 @@ describe('pick', () => {
     expect(r.liteMode).toBe(false)
     expect(r.recommended!.estTokPerSec).toBeGreaterThan(15)
   })
+  it('M4 Pro 24GB → a model that leaves about 10 GB for macOS and the call (26B froze these Macs)', () => {
+    const r = pick(machines.m4pro24, models)
+    expect(id(r.recommended)).not.toBe('gemma-4-26b-a4b')
+    expect(r.all.map((c) => c.model.id)).not.toContain('gemma-4-26b-a4b')
+    const c = r.recommended!
+    expect(c.build.sizeGB + (0.08 * c.contextSize) / 1024 + 1.5).toBeLessThanOrEqual(25.8 - 10)
+  })
+  it('the 10 GB left free changes nothing on 16 GB and 32 GB Macs', () => {
+    expect(id(pick(machines.m3air16, models).recommended)).toBe('gemma-4-e4b')
+    expect(id(pick(machines.m1max32, models).recommended)).toBe('gemma-4-26b-a4b')
+  })
   it('M4 Max 128GB → biggest model', () => {
     expect(id(pick(machines.m4max128, models).recommended)).toBe('gpt-oss-120b')
   })
@@ -101,7 +112,7 @@ describe('pick', () => {
 
 describe('pick ranking', () => {
   it('equal agent score: full-context model beats one squeezed to 8k', () => {
-    const squeezed = { ...models[4], id: 'squeezed', builds: [{ ...models[4].builds[0], sizeGB: 20.2 }] }
+    const squeezed = { ...models[4], id: 'squeezed', builds: [{ ...models[4].builds[0], sizeGB: 19.8 }] }
     const r = pick(machines.m1max32, [...models, squeezed])
     expect(r.all.find((c) => c.model.id === 'squeezed')?.contextSize).toBe(8192)
     expect(id(r.recommended)).toBe('gemma-4-26b-a4b')

@@ -12,8 +12,18 @@ const CONTEXTS = [16384, 8192]
 
 interface Pool { device: Choice['device']; memGB: number; bw: number; gpuMemGB?: number; cpuBw?: number }
 
+/**
+ * What a Mac's models may use: 70%, but never so much that less than 10 GB is left for macOS, the call app and a browser.
+ * 70% alone gave a 24 GB Mac the 26B notes model, which froze it. Up to 20 GB stays at 70% (5 GB or so left): the cap
+ * would leave them only the smallest models, and the app never runs the notes model there while recording.
+ */
+const MAC_LEFT_FREE_GB = 10
+function unifiedGB(totalGB: number): number {
+  return totalGB <= 20 ? totalGB * 0.7 : Math.min(totalGB * 0.7, totalGB - MAC_LEFT_FREE_GB)
+}
+
 function pools(hw: Hardware): Pool[] {
-  if (hw.gpu.kind === 'unified') return [{ device: 'gpu', memGB: hw.totalRamGB * 0.7, bw: bandwidthGBs(hw, 'gpu') }]
+  if (hw.gpu.kind === 'unified') return [{ device: 'gpu', memGB: unifiedGB(hw.totalRamGB), bw: bandwidthGBs(hw, 'gpu') }]
   const cpu: Pool = { device: 'cpu', memGB: hw.totalRamGB * 0.5, bw: bandwidthGBs(hw, 'cpu') }
   if (hw.gpu.kind !== 'discrete') return [cpu]
   const gpu: Pool = { device: 'gpu', memGB: hw.gpu.vramGB * 0.95, bw: bandwidthGBs(hw, 'gpu') }
