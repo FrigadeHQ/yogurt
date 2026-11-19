@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { openStore, type Meeting, type Store } from '../src/main/store'
 import { hookCallNames, watchIds, type WatchLine } from '../src/main/callNames'
-import { readCall, type AxNode } from '../src/main/callNames/parse'
+import { readCall, type AxNode, type AxWindow } from '../src/main/callNames/parse'
 
 const dirs: string[] = [], stores: Store[] = []
 afterEach(() => { stores.splice(0).forEach((s) => s.close()); dirs.splice(0).forEach((d) => rmSync(d, { recursive: true, force: true })) })
@@ -15,6 +15,17 @@ const zoomLine = (t: number, people: string[], talking?: string, me?: string): W
   t, app: 'us.zoom.xos', windows: [{ id: 'zm.meeting.window.main', tree: { r: 'AXWindow', k: [
     ...people.map((p): AxNode => ({ r: 'AXTabGroup', d: `${p}, Computer audio unmuted${p === talking ? ', Active speaker' : ''}` })),
     ...(me ? [{ r: 'AXOutline', d: 'Participants list', k: [{ r: 'AXRow', k: [{ r: 'AXStaticText', v: `${me} (me)` }] }] } as AxNode] : []),
+  ] } }],
+})
+
+/** Zoom 7.2.5: tiles carry no speaking mark, and the captions table says who said what, newest row last */
+const zoomCaptionLine = (t: number, people: string[], captions: Array<[string, string]>, me?: string): WatchLine => ({
+  t, app: 'us.zoom.xos', windows: [{ id: 'zm.meeting.window.main', tree: { r: 'AXWindow', k: [
+    ...people.map((p): AxNode => ({ r: 'AXTabGroup', d: `${p}, Computer audio unmuted, Video on` })),
+    ...(me ? [{ r: 'AXOutline', d: 'Participants list', k: [{ r: 'AXRow', k: [{ r: 'AXStaticText', v: `${me} (Host, me)` }] }] } as AxNode] : []),
+    { r: 'AXTable', d: 'Closed caption subtitles', k: captions.map(([who, said]): AxNode => ({
+      r: 'AXRow', k: [{ r: 'AXCell', i: 'CellView', k: [{ r: 'AXStaticText', v: who }, { r: 'AXStaticText', v: said }] }],
+    })) },
   ] } }],
 })
 
@@ -112,6 +123,41 @@ describe('Zoom tiles', () => {
   it('a person who never connected their audio is a person in the call', () => {
     expect(readCall('zoom', zoomTiles('Alex Morgan, Computer audio muted, Video on', 'Bo Park, No audio connected, Video off')!))
       .toEqual({ speaking: [], participants: ['Alex Morgan', 'Bo Park'], me: null })
+  })
+})
+
+describe('Zoom captions', () => {
+  /** a caption area holding these rows, each a name and the words beneath it; `where` is how Zoom labels the area */
+  const captionArea = (rows: Array<string[]>, where = 'Closed caption subtitles'): AxWindow[] => [{
+    id: 'zm.meeting.window.main',
+    tree: { r: 'AXWindow', k: [
+      { r: 'AXTabGroup', d: 'Alex Morgan, Computer audio unmuted, Video on' },
+      { r: 'AXTabGroup', d: 'Dana Smith, Computer audio unmuted, Video on' },
+      { r: 'AXTable', d: where, k: rows.map((texts) => ({ r: 'AXRow', k: [{ r: 'AXCell', i: 'CellView', k: texts.map((t) => ({ r: 'AXStaticText', v: t })) }] })) },
+    ] },
+  }]
+
+  it('reads the newest row as the caption, with the words only as a mark', () => {
+    const r = readCall('zoom', captionArea([['Ann Lee', 'said this before'], ['Dana Smith', 'and this now']]))
+    expect(r.caption).toEqual({ who: 'Dana Smith', mark: 'Dana Smith|12' })
+    // never folded into speaking here: on its own it says who spoke last, which the session decides about
+    expect(r.speaking).toEqual([])
+  })
+
+  // Zoom writes its own words into the caption area, with nobody's name beside them
+  it('Zoom\'s own words in the caption area are not a person', () => {
+    expect(readCall('zoom', captionArea([['Captions are on']])).caption).toBeUndefined()
+    expect(readCall('zoom', captionArea([['Captions are on', 'Captions are on']])).caption).toBeUndefined()
+    expect(readCall('zoom', captionArea([['Dana Smith']])).caption).toBeUndefined()
+  })
+
+  // while someone shares their screen Zoom moves the captions out into a small window of their own
+  it('finds the caption area wherever Zoom puts it and however it labels it', () => {
+    expect(readCall('zoom', captionArea([['Dana Smith', 'hello']], 'Closed caption subtitles area')).caption?.who).toBe('Dana Smith')
+    const own: AxWindow[] = [{ title: 'Closed caption subtitles', tree: { r: 'AXWindow', t: 'Closed caption subtitles', k: [
+      { r: 'AXRow', k: [{ r: 'AXCell', i: 'CellView', k: [{ r: 'AXStaticText', v: 'Ann Lee' }, { r: 'AXStaticText', v: 'from the floating window' }] }] },
+    ] } }]
+    expect(readCall('zoom', own).caption?.who).toBe('Ann Lee')
   })
 })
 
@@ -313,6 +359,75 @@ describe('hookCallNames', () => {
     const summary = s.logs.find((l) => /lines of the other side named/.test(l))!
     expect(summary).toContain('10 of 10 readings read the app')
     expect(summary).toContain('0 marked the other side talking')
+  })
+
+  it('names a line from the newest caption when the tiles carry no speaking mark (Zoom 7.2.5)', async () => {
+    const s = setup()
+    s.start()
+    s.audio(0, 1_000_100)
+    s.store.addSegments([{ meetingId: s.m.id, track: 'them', startMs: 1000, endMs: 3000, text: 'hello', speaker: null }])
+    // the newest row grows as Dana keeps talking, which is what says she is talking now
+    let said = 'and'
+    for (let t = 1_000_000; t < 1_010_000; t += 500) {
+      said += ' more'
+      s.emit(zoomCaptionLine(t, ['Alex Morgan', 'Dana Smith', 'Ann Lee'], [['Ann Lee', 'said this earlier'], ['Dana Smith', said]], 'Alex Morgan'))
+    }
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    // the newest row wins, not the one above it
+    expect(s.store.segments(s.m.id)[0].speaker).toBe('Dana Smith')
+    // the words themselves never become a transcript line
+    expect(s.store.segments(s.m.id).map((x) => x.text)).toEqual(['hello'])
+  })
+
+  it('a caption left on screen after the person stopped names nobody', async () => {
+    const s = setup()
+    s.start()
+    s.audio(0, 1_000_100)
+    s.store.addSegments([{ meetingId: s.m.id, track: 'them', startMs: 1000, endMs: 3000, text: 'hello', speaker: null }])
+    // Dana's caption is frozen: the same row, unchanged, for every reading. On a real call a row sat like this for
+    // 45 readings while its speaker was silent, so it says who spoke last, not who is speaking.
+    for (let t = 1_000_000; t < 1_010_000; t += 500) {
+      s.emit(zoomCaptionLine(t, ['Alex Morgan', 'Dana Smith', 'Ann Lee'], [['Dana Smith', 'stopped talking a while ago']], 'Alex Morgan'))
+    }
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id)[0].speaker).toBeNull()
+    const summary = s.logs.find((l) => /lines of the other side named/.test(l))!
+    expect(summary).toContain('0 marked the other side talking')
+  })
+
+  it('a frozen caption missing from some readings is still frozen when it comes back', async () => {
+    const s = setup()
+    s.start()
+    s.audio(0, 1_000_100)
+    s.store.addSegments([{ meetingId: s.m.id, track: 'them', startMs: 1000, endMs: 3000, text: 'hello', speaker: null }])
+    // the same frozen row, but every other reading lacks the caption area (the tree was cut short, or the reading
+    // came from another window): its coming back is not the row moving
+    const people = ['Alex Morgan', 'Dana Smith', 'Ann Lee']
+    for (let t = 1_000_000; t < 1_010_000; t += 500) {
+      s.emit((t / 500) % 2 ? zoomCaptionLine(t, people, [], 'Alex Morgan') : zoomCaptionLine(t, people, [['Dana Smith', 'stopped talking a while ago']], 'Alex Morgan'))
+    }
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id)[0].speaker).toBeNull()
+    expect(s.logs.find((l) => /lines of the other side named/.test(l))).toContain('0 marked the other side talking')
+  })
+
+  it('a tile marked talking still wins over the captions, which only fill a gap', async () => {
+    const s = setup()
+    s.start()
+    s.audio(0, 1_000_100)
+    s.store.addSegments([{ meetingId: s.m.id, track: 'them', startMs: 1000, endMs: 3000, text: 'hello', speaker: null }])
+    // the tile says Ann Lee; the captions lag and still show Dana Smith
+    for (let t = 1_000_000; t < 1_010_000; t += 500) {
+      const l = zoomCaptionLine(t, ['Alex Morgan', 'Dana Smith', 'Ann Lee'], [['Dana Smith', 'lagging behind']], 'Alex Morgan')
+      l.windows![0].tree.k![2] = { r: 'AXTabGroup', d: 'Ann Lee, Computer audio unmuted, Video on, Active speaker' }
+      s.emit(l)
+    }
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id)[0].speaker).toBe('Ann Lee')
   })
 
   it('a calendar name with a space before the comma still matches the call\'s form', async () => {
