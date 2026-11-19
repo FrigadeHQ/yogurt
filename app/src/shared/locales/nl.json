@@ -1,4 +1,6 @@
 {
+  "Open in transcript": "Openen in transcript",
+  "Open note": "Notitie openen",
   "Other people": "Andere personen",
   "No events": "Geen afspraken",
   "Go to {date}": "Ga naar {date}",
@@ -12,7 +14,6 @@
   "No matching meetings with {name} on {date}.": "Geen overeenkomende vergaderingen met {name} op {date}.",
   "Meetings with {name}": "Vergaderingen met {name}",
   "Hide checklist": "Checklist verbergen",
-  "Open": "Openen",
   "Next day": "Volgende dag",
   "Previous day": "Vorige dag",
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt kon de koppeling met de agenda niet bijwerken. Probeer het opnieuw.",

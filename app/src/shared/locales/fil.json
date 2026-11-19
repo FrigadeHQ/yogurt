@@ -1,4 +1,6 @@
 {
+  "Open in transcript": "Buksan sa transcript",
+  "Open note": "Buksan ang tala",
   "Other people": "Iba pang tao",
   "No events": "Walang event",
   "Go to {date}": "Pumunta sa {date}",
@@ -12,7 +14,6 @@
   "No matching meetings with {name} on {date}.": "Walang tumutugmang pulong kasama si {name} sa {date}.",
   "Meetings with {name}": "Mga pulong kasama si {name}",
   "Hide checklist": "Itago ang checklist",
-  "Open": "Buksan",
   "Next day": "Susunod na araw",
   "Previous day": "Nakaraang araw",
   "Yogurt couldn't update the calendar link. Try again.": "Hindi ma-update ng Yogurt ang link sa calendar. Subukan ulit.",

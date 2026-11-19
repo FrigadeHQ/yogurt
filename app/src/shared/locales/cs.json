@@ -1,4 +1,6 @@
 {
+  "Open in transcript": "Otevřít v přepisu",
+  "Open note": "Otevřít poznámku",
   "Other people": "Ostatní lidé",
   "No events": "Žádné události",
   "Go to {date}": "Přejít na {date}",
@@ -12,7 +14,6 @@
   "No matching meetings with {name} on {date}.": "Žádné odpovídající schůzky s {name} dne {date}.",
   "Meetings with {name}": "Schůzky s {name}",
   "Hide checklist": "Skrýt kontrolní seznam",
-  "Open": "Otevřít",
   "Next day": "Další den",
   "Previous day": "Předchozí den",
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt nemohl aktualizovat propojení s kalendářem. Zkuste to znovu.",

@@ -1,4 +1,6 @@
 {
+  "Open in transcript": "Åpne i transkripsjonen",
+  "Open note": "Åpne notat",
   "Other people": "Andre personer",
   "No events": "Ingen hendelser",
   "Go to {date}": "Gå til {date}",
@@ -12,7 +14,6 @@
   "No matching meetings with {name} on {date}.": "Ingen samsvarende møter med {name} den {date}.",
   "Meetings with {name}": "Møter med {name}",
   "Hide checklist": "Skjul sjekkliste",
-  "Open": "Åpne",
   "Next day": "Neste dag",
   "Previous day": "Forrige dag",
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt kunne ikke oppdatere koblingen til kalenderen. Prøv igjen.",

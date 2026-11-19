@@ -1,9 +1,9 @@
-import { useId, useLayoutEffect, useMemo, useRef, useState, type ReactElement } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { AnswerText } from '../src/renderer/src/components/AnswerText'
 import type { Popover } from '@base-ui/react/popover'
 
-vi.mock('react', async original => ({ ...await original<typeof import('react')>(), useId: vi.fn(), useLayoutEffect: vi.fn(), useMemo: vi.fn(), useRef: vi.fn(), useState: vi.fn() }))
+vi.mock('react', async original => ({ ...await original<typeof import('react')>(), useEffect: vi.fn(), useId: vi.fn(), useLayoutEffect: vi.fn(), useMemo: vi.fn(), useRef: vi.fn(), useState: vi.fn() }))
 afterEach(() => { vi.clearAllMocks(); vi.unstubAllGlobals() })
 
 function harness() {

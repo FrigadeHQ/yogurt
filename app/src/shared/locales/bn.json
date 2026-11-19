@@ -1,4 +1,6 @@
 {
+  "Open in transcript": "ট্রান্সক্রিপ্টে খুলুন",
+  "Open note": "নোট খুলুন",
   "Other people": "অন্যান্য ব্যক্তি",
   "No events": "কোনো ইভেন্ট নেই",
   "Go to {date}": "{date} তারিখে যান",
@@ -12,7 +14,6 @@
   "No matching meetings with {name} on {date}.": "{date} তারিখে {name}-এর সঙ্গে মিলে যাওয়া কোনো মিটিং নেই।",
   "Meetings with {name}": "{name}-এর সঙ্গে মিটিং",
   "Hide checklist": "চেকলিস্ট লুকান",
-  "Open": "খুলুন",
   "Next day": "পরের দিন",
   "Previous day": "আগের দিন",
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt ক্যালেন্ডারের লিংক আপডেট করতে পারেনি। আবার চেষ্টা করুন।",

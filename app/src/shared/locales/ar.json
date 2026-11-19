@@ -1,4 +1,6 @@
 {
+  "Open in transcript": "فتح في النص المفرّغ",
+  "Open note": "فتح الملاحظة",
   "Other people": "أشخاص آخرون",
   "No events": "لا أحداث",
   "Go to {date}": "انتقل إلى {date}",
@@ -12,7 +14,6 @@
   "No matching meetings with {name} on {date}.": "لا توجد اجتماعات مطابقة مع {name} في {date}.",
   "Meetings with {name}": "اجتماعات مع {name}",
   "Hide checklist": "إخفاء قائمة التحقق",
-  "Open": "فتح",
   "Next day": "اليوم التالي",
   "Previous day": "اليوم السابق",
   "Yogurt couldn't update the calendar link. Try again.": "تعذّر على Yogurt تحديث رابط التقويم. حاول مرة أخرى.",

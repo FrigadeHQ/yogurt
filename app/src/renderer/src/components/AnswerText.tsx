@@ -3,9 +3,12 @@ import { Popover } from '@base-ui/react/popover'
 import type { LibrarySource } from '../../../shared/types'
 import type { PMNode } from '../../../shared/markdown'
 import { citationDoc, type CitationMark } from '../../../shared/citations'
+import { citationHighlights } from '../../../shared/citationHighlights'
 import { t } from '../../../shared/i18n'
 import { dayLabel } from '../dates'
+import { clock } from '../../../shared/transcript'
 import { SourceCitationCard } from './SourceCitation'
+import { useCitationIntent } from '../useCitationIntent'
 import { InlineText } from './InlineText'
 
 /** The shared streamed/saved Markdown answer. Word and citation keys stay stable as the answer grows. */
@@ -17,35 +20,40 @@ export function AnswerText({ md, live, sources, onSource }: {
   const [pinned, setPinned] = useState<string | null>(null)
   const suppressed = useRef<string | null>(null)
   const actions = useRef<Popover.Root.Actions>(null)
+  const intent = useCitationIntent({ owner: id, enabled: sources.length > 0, open, pinned, triggerId, show: (next, pin) => { setTriggerId(next); setPinned(pin ? next : null); setOpen(true) }, close: () => { setPinned(null); setOpen(false) } })
   const doc = useMemo(() => {
-    const doc = citationDoc(md, sources, live)
+    const doc = citationHighlights(citationDoc(md, sources, live, false))
     const prepare = (node: PMNode) => {
       // Base UI stores trigger payloads; their identity must survive popover state updates.
-      if (node.type === 'citation') node.attrs!.payloads = (node.attrs!.marks as CitationMark[]).map(mark => ({ source: sources.find(s => s.n === mark.source)!, sentence: String(node.attrs!.sentence ?? '') }))
+      if (node.type === 'citationPassageTrigger') {
+        const cited = (node.attrs!.marks as CitationMark[]).map(mark => sources.find(s => s.n === mark.source)!)
+        node.attrs!.payload = { source: cited[0], sources: cited, sentence: String(node.attrs!.sentence ?? '') }
+      }
       node.content?.forEach(prepare)
     }
     prepare(doc)
     return doc
   }, [md, sources, live])
   useLayoutEffect(() => {
-    // A later streamed citation can replace the pill that owns the current preview.
+    // A later streamed citation can replace the highlight that owns the current preview.
     if (triggerId && !document.getElementById(triggerId)) {
       setPinned(null)
       if (open) actions.current?.close()
       else { actions.current?.unmount(); setTriggerId(null) }
     }
   }, [doc, open, triggerId])
-  const ctx: Ctx = { live, at: { n: 0 }, id, sources, pinned, focus: (element) => {
+  const ctx: Ctx = { intent, live, at: { n: 0 }, id, sources, pinned, focus: (element) => {
     if (!element.matches(':focus-visible')) return
     if (suppressed.current === element.id) { suppressed.current = null; return }
-    setPinned(null); setTriggerId(element.id); setOpen(true)
+    intent.focus(element)
   }, blur: () => { suppressed.current = null },
   dismiss: element => {
     if (!open || triggerId !== element.id) return false
-    setPinned(null); setOpen(false)
+    intent.cancel(true); setPinned(null); setOpen(false)
     return true
   } }
-  return <Popover.Root<{ source: LibrarySource; sentence: string }> actionsRef={actions} open={open} triggerId={triggerId} onOpenChange={(next, details) => {
+  return <Popover.Root<{ source: LibrarySource; sources?: LibrarySource[]; sentence: string }> actionsRef={actions} open={open} triggerId={triggerId} onOpenChange={(next, details) => {
+    if (!next) intent.cancel(details.reason === 'escape-key')
     const trigger = triggerId ? document.getElementById(triggerId) : null
     const popup = document.getElementById(trigger?.getAttribute('aria-controls') ?? '')
     const focused = open && (trigger === document.activeElement || !!popup?.contains(document.activeElement))
@@ -68,32 +76,31 @@ export function AnswerText({ md, live, sources, onSource }: {
     setOpen(next)
   }}>{({ payload }) => { ctx.at.n = 0; return <>
     {(doc.content ?? []).map(n => render(n, ctx))}
-    {payload && <SourceCitationCard key={triggerId} source={payload.source} sentence={payload.sentence} triggerId={triggerId} animate onOpen={(match, atMs) => { setPinned(null); setOpen(false); onSource(atMs == null ? payload.source : { ...payload.source, atMs }, match) }} />}
+    {payload && <SourceCitationCard key={triggerId} source={payload.source} additionalSources={payload.sources?.slice(1)} sentence={payload.sentence} triggerId={triggerId} open={open} animate onOpen={(match, source, atMs) => { setPinned(null); setOpen(false); onSource(atMs == null ? source : { ...source, atMs }, match) }} />}
   </> }}</Popover.Root>
 }
 
-type Ctx = { live: boolean; at: { n: number }; id: string; sources: LibrarySource[]; pinned: string | null; focus: (element: HTMLElement) => void; blur: () => void; dismiss: (element: HTMLElement) => boolean }
+type Ctx = { intent: ReturnType<typeof useCitationIntent>; live: boolean; at: { n: number }; id: string; sources: LibrarySource[]; pinned: string | null; focus: (element: HTMLElement) => void; blur: () => void; dismiss: (element: HTMLElement) => boolean }
 
 function render(node: PMNode, c: Ctx): ReactNode {
   const key = `${node.type}-${c.at.n}`
-  if (node.type === 'citation') {
-    c.at.n += Number(node.attrs?.length ?? 0)
-    if (!(node.attrs!.marks as CitationMark[]).length) return null
-    return <span className="citation-group" data-gap={node.attrs!.gap || undefined} data-single={(node.attrs!.marks as CitationMark[]).length === 1 || undefined} key={key}>{(node.attrs!.marks as CitationMark[]).map((mark, i) => {
-      const source = c.sources.find(s => s.n === mark.source)!
-      const title = source.title || t('Untitled')
-      const id = `${c.id}-${key}-${mark.source}`
-      return <Popover.Trigger key={mark.source} id={id} payload={(node.attrs!.payloads as Array<{ source: LibrarySource; sentence: string }>)[i]} openOnHover delay={120} closeDelay={180} aria-pressed={c.pinned === id}
-        className="source-citation" data-testid="source-citation" data-meeting={source.meetingId} data-at={source.atMs ?? undefined}
-        aria-label={`${title} · ${dayLabel(source.startedAt)}`} onFocus={e => c.focus(e.currentTarget)} onBlur={c.blur} onKeyDown={e => {
-          // Consume Escape before the containing note panel handles it.
-          if (e.key === 'Escape' && c.dismiss(e.currentTarget)) { e.preventDefault(); e.stopPropagation() }
-        }}>
-        <span className="source-name">{title}</span>
-      </Popover.Trigger>
-    })}</span>
+  if (node.type === 'citationPassageTrigger') {
+    const payload = node.attrs!.payload as { source: LibrarySource; sources: LibrarySource[]; sentence: string }
+    const id = `${c.id}-${key}-passage`
+    const kids = (node.content ?? []).map(n => render(n, c))
+    return <Popover.Trigger key={key} id={id} render={<span />} nativeButton={false} payload={payload}
+      className="citation-passage" data-intent-owner={c.id} data-testid="source-citation" data-sources={payload.sources.map(s => s.meetingId).join(',')} aria-pressed={c.pinned === id}
+      aria-label={`${payload.sentence} ${payload.sources.map(s => t('Open {source}', { source: `${s.title || t('Untitled')} · ${s.atMs !== null ? clock(s.atMs) + ' · ' : ''}${dayLabel(s.startedAt)}` })).join('; ')}`}
+      onFocus={e => c.focus(e.currentTarget)} onBlur={c.blur}
+      onClick={e => { e.preventBaseUIHandler(); c.intent.activate(e.currentTarget, e.detail === 0) }}
+      onKeyDown={e => {
+        if (e.key === 'Escape' && c.dismiss(e.currentTarget)) { e.preventBaseUIHandler(); e.preventDefault(); e.stopPropagation() }
+        if (e.key === 'Enter' || e.key === ' ') { e.preventBaseUIHandler(); e.preventDefault(); if (!e.repeat) c.intent.activate(e.currentTarget, true) }
+      }} onKeyUp={e => { if (e.key === ' ') { e.preventBaseUIHandler(); e.preventDefault() } }}>
+
+      {kids}
+    </Popover.Trigger>
   }
-  if (node.type === 'citationAnchor') return <span key={key} className="citation-anchor">{node.content!.map(n => render(n, c))}</span>
   if (node.type === 'text') {
     const text = node.text ?? ''
     const out = words(text, c.at.n, c.live)

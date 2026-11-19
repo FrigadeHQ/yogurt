@@ -1,4 +1,6 @@
 {
+  "Open in transcript": "ट्रांसक्रिप्ट में खोलें",
+  "Open note": "नोट खोलें",
   "Other people": "अन्य लोग",
   "No events": "कोई इवेंट नहीं",
   "Go to {date}": "{date} पर जाएँ",
@@ -12,7 +14,6 @@
   "No matching meetings with {name} on {date}.": "{date} को {name} के साथ कोई मेल खाती मीटिंग नहीं मिली।",
   "Meetings with {name}": "{name} के साथ मीटिंग",
   "Hide checklist": "चेकलिस्ट छिपाएँ",
-  "Open": "खोलें",
   "Next day": "अगला दिन",
   "Previous day": "पिछला दिन",
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt कैलेंडर लिंक अपडेट नहीं कर सका। फिर से कोशिश करें।",

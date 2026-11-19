@@ -1,4 +1,6 @@
 {
+  "Open in transcript": "פתיחה בתמלול",
+  "Open note": "פתיחת ההערה",
   "Other people": "אנשים אחרים",
   "No events": "אין אירועים",
   "Go to {date}": "מעבר אל {date}",
@@ -12,7 +14,6 @@
   "No matching meetings with {name} on {date}.": "אין פגישות תואמות עם {name} בתאריך {date}.",
   "Meetings with {name}": "פגישות עם {name}",
   "Hide checklist": "הסתרת רשימת הבדיקה",
-  "Open": "פתיחה",
   "Next day": "היום הבא",
   "Previous day": "היום הקודם",
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt לא הצליח לעדכן את הקישור ליומן. כדאי לנסות שוב.",

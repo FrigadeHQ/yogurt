@@ -1,4 +1,6 @@
 {
+  "Open in transcript": "Buka di transkrip",
+  "Open note": "Buka catatan",
   "Other people": "Orang lain",
   "No events": "Tidak ada acara",
   "Go to {date}": "Buka tanggal {date}",
@@ -12,7 +14,6 @@
   "No matching meetings with {name} on {date}.": "Tidak ada rapat yang cocok dengan {name} pada {date}.",
   "Meetings with {name}": "Rapat dengan {name}",
   "Hide checklist": "Sembunyikan daftar periksa",
-  "Open": "Buka",
   "Next day": "Hari berikutnya",
   "Previous day": "Hari sebelumnya",
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt tidak bisa memperbarui tautan kalender. Coba lagi.",

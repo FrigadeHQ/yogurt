@@ -1,4 +1,6 @@
 {
+  "Open in transcript": "Deschide în transcriere",
+  "Open note": "Deschide nota",
   "Other people": "Alte persoane",
   "No events": "Niciun eveniment",
   "Go to {date}": "Mergi la {date}",
@@ -12,7 +14,6 @@
   "No matching meetings with {name} on {date}.": "Nicio întâlnire corespunzătoare cu {name} pe {date}.",
   "Meetings with {name}": "Întâlniri cu {name}",
   "Hide checklist": "Ascunde lista de verificare",
-  "Open": "Deschide",
   "Next day": "Ziua următoare",
   "Previous day": "Ziua precedentă",
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt nu a putut actualiza legătura cu calendarul. Încercați din nou.",

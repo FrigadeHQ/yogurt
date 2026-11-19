@@ -36,9 +36,9 @@ test('asking across meetings from Chat: the answer streams in with sources that 
     await expect(page.getByTestId('chat-page-answer').locator('.fw').first()).toBeVisible()
     await expect(turn).toHaveAttribute('data-status', 'done', { timeout: 15_000 })
     await expect(page.getByTestId('chat-page-answer')).toContainText('Pricing call')
-    // Meeting pills reveal the supporting quote without leaving the answer.
+    // The cited sentence reveals its supporting quote without leaving the answer.
     const chip = page.getByTestId('source-citation').first()
-    await expect(chip).toHaveText('Pricing call')
+    await expect(chip).toHaveText('In Pricing call, it was discussed.')
     await expect(chip).toHaveAccessibleName(/Pricing call/)
     await chip.hover()
     await expect(page.getByTestId('citation-excerpt')).toContainText('How much would fifty seats be?')
@@ -68,7 +68,7 @@ test('asking across meetings from Chat: the answer streams in with sources that 
     await expect(page.getByTestId('chat-page-turn')).toHaveAttribute('data-status', 'done')
     await page.reload()
     await expect(page.getByTestId('chat-page-answer')).toContainText('Pricing call')
-    await expect(page.getByTestId('source-citation').first()).toHaveText('Pricing call')
+    await expect(page.getByTestId('source-citation').first()).toHaveText('In Pricing call, it was discussed.')
     await page.keyboard.press('Tab')
     await page.getByTestId('source-citation').first().focus()
     await expect(page.getByTestId('citation-excerpt')).toContainText('How much would fifty seats be?')
@@ -111,7 +111,7 @@ test('a follow-up stays in the chat; New chat starts another; chats can be renam
     await page.getByTestId('chat-page-input').press('Enter')
     await expect(page.getByTestId('chat-page-turn')).toHaveAttribute('data-status', 'done', { timeout: 15_000 })
     // The compact preview leads with the meeting and the supporting quote.
-    await expect(page.getByTestId('source-citation').first()).toHaveText('Pricing call')
+    await expect(page.getByTestId('source-citation').first()).toHaveText('In Pricing call, it was discussed.')
     await expect(page.getByTestId('source-citation').first()).toHaveAccessibleName(/Pricing call/)
     await page.getByTestId('source-citation').first().hover()
     await expect(page.locator('.citation-heading')).toContainText('Pricing call')

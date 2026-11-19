@@ -308,3 +308,13 @@ it('translates transcript match counts and navigation in every locale', () => {
     }
   }
 })
+
+
+it('translates both citation destinations in every locale', () => {
+  for (const { id } of LOCALES) for (const key of ['Open in transcript', 'Open note']) {
+    expect(keys).toContain(key)
+    expect(load(id)[key]).toBeTypeOf('string')
+    expect(load(id)[key]).not.toBe('')
+    if (id !== 'en') expect(load(id)[key]).not.toBe(key)
+  }
+})

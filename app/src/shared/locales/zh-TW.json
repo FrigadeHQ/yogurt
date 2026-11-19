@@ -1,4 +1,6 @@
 {
+  "Open in transcript": "在逐字稿中開啟",
+  "Open note": "開啟筆記",
   "Other people": "其他人",
   "No events": "沒有活動",
   "Go to {date}": "前往{date}",
@@ -12,7 +14,6 @@
   "No matching meetings with {name} on {date}.": "{date}沒有與{name}的相符會議。",
   "Meetings with {name}": "與 {name} 的會議",
   "Hide checklist": "隱藏檢查清單",
-  "Open": "開啟",
   "Next day": "後一天",
   "Previous day": "前一天",
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt 無法更新行事曆連結。請再試一次。",

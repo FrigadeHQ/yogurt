@@ -1,4 +1,6 @@
 {
+  "Open in transcript": "Megnyitás az átiratban",
+  "Open note": "Jegyzet megnyitása",
   "Other people": "Más résztvevők",
   "No events": "Nincs esemény",
   "Go to {date}": "Ugrás erre a napra: {date}",
@@ -12,7 +14,6 @@
   "No matching meetings with {name} on {date}.": "Nincs megfelelő megbeszélés vele: {name}, ekkor: {date}.",
   "Meetings with {name}": "Megbeszélések vele: {name}",
   "Hide checklist": "Ellenőrzőlista elrejtése",
-  "Open": "Megnyitás",
   "Next day": "Következő nap",
   "Previous day": "Előző nap",
   "Yogurt couldn't update the calendar link. Try again.": "A Yogurt nem tudta frissíteni a naptárkapcsolatot. Próbáld újra.",

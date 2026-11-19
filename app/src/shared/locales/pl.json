@@ -1,4 +1,6 @@
 {
+  "Open in transcript": "Otwórz w transkrypcji",
+  "Open note": "Otwórz notatkę",
   "Other people": "Inne osoby",
   "No events": "Brak wydarzeń",
   "Go to {date}": "Przejdź do {date}",
@@ -12,7 +14,6 @@
   "No matching meetings with {name} on {date}.": "Brak pasujących spotkań z {name} w dniu {date}.",
   "Meetings with {name}": "Spotkania z {name}",
   "Hide checklist": "Ukryj listę kontrolną",
-  "Open": "Otwórz",
   "Next day": "Następny dzień",
   "Previous day": "Poprzedni dzień",
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt nie mógł zaktualizować połączenia z kalendarzem. Spróbuj ponownie.",

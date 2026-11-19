@@ -1,4 +1,6 @@
 {
+  "Open in transcript": "Відкрити в транскрипції",
+  "Open note": "Відкрити нотатку",
   "Other people": "Інші учасники",
   "No events": "Немає подій",
   "Go to {date}": "Перейти до {date}",
@@ -12,7 +14,6 @@
   "No matching meetings with {name} on {date}.": "Немає відповідних зустрічей з {name} на {date}.",
   "Meetings with {name}": "Зустрічі з {name}",
   "Hide checklist": "Приховати контрольний список",
-  "Open": "Відкрити",
   "Next day": "Наступний день",
   "Previous day": "Попередній день",
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt не зміг оновити зв’язок із календарем. Спробуйте ще раз.",

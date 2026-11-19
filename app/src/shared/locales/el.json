@@ -1,4 +1,6 @@
 {
+  "Open in transcript": "Άνοιγμα στην απομαγνητοφώνηση",
+  "Open note": "Άνοιγμα σημείωσης",
   "Other people": "Άλλα άτομα",
   "No events": "Κανένα συμβάν",
   "Go to {date}": "Μετάβαση στις {date}",
@@ -12,7 +14,6 @@
   "No matching meetings with {name} on {date}.": "Δεν βρέθηκαν συναντήσεις που να ταιριάζουν με {name} στις {date}.",
   "Meetings with {name}": "Συναντήσεις με {name}",
   "Hide checklist": "Απόκρυψη λίστας ελέγχου",
-  "Open": "Άνοιγμα",
   "Next day": "Επόμενη ημέρα",
   "Previous day": "Προηγούμενη ημέρα",
   "Yogurt couldn't update the calendar link. Try again.": "Το Yogurt δεν μπόρεσε να ενημερώσει τη σύνδεση με το ημερολόγιο. Δοκιμάστε ξανά.",

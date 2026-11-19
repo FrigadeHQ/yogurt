@@ -1,4 +1,6 @@
 {
+  "Open in transcript": "เปิดในข้อความถอดเสียง",
+  "Open note": "เปิดบันทึก",
   "Other people": "บุคคลอื่น",
   "No events": "ไม่มีกิจกรรม",
   "Go to {date}": "ไปที่ {date}",
@@ -12,7 +14,6 @@
   "No matching meetings with {name} on {date}.": "ไม่มีการประชุมที่ตรงกันกับ {name} ในวันที่ {date}",
   "Meetings with {name}": "การประชุมกับ {name}",
   "Hide checklist": "ซ่อนรายการตรวจสอบ",
-  "Open": "เปิด",
   "Next day": "วันถัดไป",
   "Previous day": "วันก่อนหน้า",
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt อัปเดตลิงก์ปฏิทินไม่ได้ ลองอีกครั้ง",

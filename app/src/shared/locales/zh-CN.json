@@ -1,4 +1,6 @@
 {
+  "Open in transcript": "在转录中打开",
+  "Open note": "打开笔记",
   "Other people": "其他人",
   "No events": "没有活动",
   "Go to {date}": "转到{date}",
@@ -12,7 +14,6 @@
   "No matching meetings with {name} on {date}.": "{date}没有与{name}的匹配会议。",
   "Meetings with {name}": "与 {name} 的会议",
   "Hide checklist": "隐藏检查清单",
-  "Open": "打开",
   "Next day": "后一天",
   "Previous day": "前一天",
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt 无法更新日历链接。请重试。",

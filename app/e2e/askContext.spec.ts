@@ -26,6 +26,8 @@ test('Ask shares meeting history and drafts, and Command-J starts the right cont
     await input.press('Enter')
     await expect(page.getByTestId('chat-turn')).toHaveAttribute('data-status', 'done', { timeout: 15_000 })
     await expect(page.locator('.chat-answer-scope')).toHaveText('Searched Design review')
+    // This path reads the whole meeting and does not yet emit numbered sources.
+    await expect(page.getByTestId('source-citation')).toHaveCount(0)
     await expect(page.getByTestId('ask-scope')).toHaveCount(1)
     await expect(page.getByTestId('ask-thread-context')).toHaveCount(0)
     await input.fill('Keep this question for later')
@@ -90,6 +92,11 @@ test('the note panel and full conversation expose Rename and a single Delete con
     await expect(card).toBeVisible()
     const popup = await card.boundingBox()
     expect(popup).not.toBeNull()
+    const bounds = await page.getByTestId('chat-panel').boundingBox()
+    expect(popup!.x).toBeGreaterThanOrEqual(bounds!.x + 11)
+    expect(popup!.y).toBeGreaterThanOrEqual(bounds!.y + 11)
+    expect(popup!.x + popup!.width).toBeLessThanOrEqual(bounds!.x + bounds!.width - 11)
+    expect(popup!.y + popup!.height).toBeLessThanOrEqual(bounds!.y + bounds!.height - 11)
     // Travel diagonally through the gap into the card, then leave both surfaces.
     await page.mouse.move(popup!.x + popup!.width - 20, popup!.y + popup!.height / 2, { steps: 12 })
     await expect(card).toBeVisible()

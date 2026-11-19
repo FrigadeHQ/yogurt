@@ -1,4 +1,6 @@
 {
+  "Open in transcript": "Avaa litteroinnissa",
+  "Open note": "Avaa muistiinpano",
   "Other people": "Muut henkilöt",
   "No events": "Ei tapahtumia",
   "Go to {date}": "Siirry päivään {date}",
@@ -12,7 +14,6 @@
   "No matching meetings with {name} on {date}.": "Ei vastaavia kokouksia henkilön {name} kanssa päivänä {date}.",
   "Meetings with {name}": "Kokoukset henkilön {name} kanssa",
   "Hide checklist": "Piilota tarkistuslista",
-  "Open": "Avaa",
   "Next day": "Seuraava päivä",
   "Previous day": "Edellinen päivä",
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt ei voinut päivittää kalenterilinkkiä. Yritä uudelleen.",

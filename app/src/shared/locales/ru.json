@@ -1,4 +1,6 @@
 {
+  "Open in transcript": "Открыть в расшифровке",
+  "Open note": "Открыть заметку",
   "Other people": "Другие участники",
   "No events": "Нет событий",
   "Go to {date}": "Перейти к {date}",
@@ -12,7 +14,6 @@
   "No matching meetings with {name} on {date}.": "Нет подходящих встреч с {name} на {date}.",
   "Meetings with {name}": "Встречи с {name}",
   "Hide checklist": "Скрыть контрольный список",
-  "Open": "Открыть",
   "Next day": "Следующий день",
   "Previous day": "Предыдущий день",
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt не смог обновить связь с календарём. Попробуйте снова.",

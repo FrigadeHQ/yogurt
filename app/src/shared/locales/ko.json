@@ -1,4 +1,6 @@
 {
+  "Open in transcript": "대화록에서 열기",
+  "Open note": "노트 열기",
   "Other people": "기타 참석자",
   "No events": "일정 없음",
   "Go to {date}": "{date}로 이동",
@@ -12,7 +14,6 @@
   "No matching meetings with {name} on {date}.": "{date}에 {name}님과의 일치하는 회의가 없습니다.",
   "Meetings with {name}": "{name} 님과의 회의",
   "Hide checklist": "체크리스트 숨기기",
-  "Open": "열기",
   "Next day": "다음 날",
   "Previous day": "이전 날",
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt가 캘린더 연결을 업데이트하지 못했어요. 다시 시도하세요.",

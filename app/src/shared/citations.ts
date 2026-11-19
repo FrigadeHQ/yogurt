@@ -110,7 +110,7 @@ function placeCitations(nodes: PMNode[], pending: boolean, meetings?: Map<number
 }
 
 /** Keep passage IDs intact; each paragraph retains its last supporting mark per meeting. */
-export function citationDoc(answer: string, sources: Array<{ n: number; meetingId: string }>, live = false): PMNode {
+export function citationDoc(answer: string, sources: Array<{ n: number; meetingId: string }>, live = false, collapseParagraph = true): PMNode {
   const text = tidyCitations(live ? answer.replace(/\[[\d,\s]*$/, '') : answer, sources)
   const doc = mdToDoc(text.replace(/\n{2,}/g, '\n'), { streaming: live })
   const meetingOf = new Map(sources.map(s => [s.n, s.meetingId]))
@@ -121,7 +121,7 @@ export function citationDoc(answer: string, sources: Array<{ n: number; meetingI
     if (node.type !== 'text') {
       if (!node.content) return [node]
       const content = node.content.flatMap(transform)
-      return [{ ...node, content: node.type === 'paragraph' || node.type === 'heading' ? placeCitations(content, node === pending, node.type === 'paragraph' ? meetingOf : undefined) : content }]
+      return [{ ...node, content: node.type === 'paragraph' || node.type === 'heading' ? placeCitations(content, node === pending, node.type === 'paragraph' && collapseParagraph ? meetingOf : undefined) : content }]
     }
     const text = node.text ?? '', parts: PMNode[] = []
     let last = 0

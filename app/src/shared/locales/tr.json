@@ -1,4 +1,6 @@
 {
+  "Open in transcript": "Dökümde aç",
+  "Open note": "Notu aç",
   "Other people": "Diğer kişiler",
   "No events": "Etkinlik yok",
   "Go to {date}": "Şu tarihe git: {date}",
@@ -12,7 +14,6 @@
   "No matching meetings with {name} on {date}.": "{date} tarihinde {name} ile eşleşen toplantı yok.",
   "Meetings with {name}": "{name} ile toplantılar",
   "Hide checklist": "Kontrol listesini gizle",
-  "Open": "Aç",
   "Next day": "Sonraki gün",
   "Previous day": "Önceki gün",
   "Yogurt couldn't update the calendar link. Try again.": "Yogurt takvim bağlantısını güncelleyemedi. Yeniden deneyin.",
