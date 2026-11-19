@@ -774,5 +774,12 @@
   "Continue transcription": "Kontynuuj transkrypcję",
   "Transcribe again": "Transkrybuj ponownie",
   "Stop transcription": "Zatrzymaj transkrypcję",
-  "Audio is unavailable.": "Dźwięk jest niedostępny."
+  "Audio is unavailable.": "Dźwięk jest niedostępny.",
+  "Edit or regenerate summary": "Edytuj lub utwórz podsumowanie od nowa",
+  "Edit summary": "Edytuj podsumowanie",
+  "Edit using the transcript too": "Edytuj, korzystając też z transkrypcji",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "Trwa dłużej i zależy od modelu notatek: długie spotkanie może się w nim nie zmieścić i wtedy jest czytane w częściach.",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "„Generuj ponownie” zastępuje Twoje zmiany w podsumowaniu. „Edytuj” je zachowuje.",
+  "Summary edited": "Podsumowanie edytowane",
+  "The summary changed since, so it wasn't undone.": "Podsumowanie zmieniło się od tego czasu, więc edycji nie cofnięto."
 }

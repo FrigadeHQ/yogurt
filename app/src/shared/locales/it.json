@@ -757,5 +757,12 @@
   "Continue transcription": "Continua la trascrizione",
   "Transcribe again": "Trascrivi di nuovo",
   "Stop transcription": "Interrompi la trascrizione",
-  "Audio is unavailable.": "L’audio non è disponibile."
+  "Audio is unavailable.": "L’audio non è disponibile.",
+  "Edit or regenerate summary": "Modifica o rigenera riepilogo",
+  "Edit summary": "Modifica riepilogo",
+  "Edit using the transcript too": "Modifica usando anche la trascrizione",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "Più lento e dipende dal modello delle note: una riunione lunga potrebbe non starci e viene quindi letta in più parti.",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "«Rigenera» sostituisce le tue modifiche al riepilogo. «Modifica» le mantiene.",
+  "Summary edited": "Riepilogo modificato",
+  "The summary changed since, so it wasn't undone.": "Il riepilogo è cambiato nel frattempo, quindi la modifica non è stata annullata."
 }

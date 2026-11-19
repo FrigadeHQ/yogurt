@@ -726,5 +726,12 @@
   "Continue transcription": "ट्रांसक्रिप्शन जारी रखें",
   "Transcribe again": "फिर से ट्रांसक्राइब करें",
   "Stop transcription": "ट्रांसक्रिप्शन रोकें",
-  "Audio is unavailable.": "ऑडियो उपलब्ध नहीं है।"
+  "Audio is unavailable.": "ऑडियो उपलब्ध नहीं है।",
+  "Edit or regenerate summary": "सारांश संपादित करें या फिर से बनाएँ",
+  "Edit summary": "सारांश संपादित करें",
+  "Edit using the transcript too": "ट्रांसक्रिप्ट का भी इस्तेमाल करके संपादित करें",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "धीमा है और नोट्स के मॉडल पर निर्भर करता है: लंबी मीटिंग शायद उसमें न समाए, तब उसे हिस्सों में पढ़ा जाता है।",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "“फिर से बनाएँ” सारांश में आपके बदलावों को बदल देता है। “संपादित करें” उन्हें बनाए रखता है।",
+  "Summary edited": "सारांश संपादित किया गया",
+  "The summary changed since, so it wasn't undone.": "तब से सारांश बदल चुका है, इसलिए संपादन पूर्ववत नहीं किया गया।"
 }

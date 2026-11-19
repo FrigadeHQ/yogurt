@@ -125,7 +125,7 @@ it('updates generation availability for typed notes, existing summaries, and Tra
   ;(find(tree, 'note-mine')!.props.onChange as (md: string) => void)('Keep the release small.'); await render()
   expect(find(tree, NoteMenu)?.props.generation).toMatchObject({ label: 'Generate summary', reason: undefined })
   notesChanged({ ...notes, enhanced: '## Plan', status: 'done' }); await render()
-  expect(find(tree, NoteMenu)?.props.generation).toMatchObject({ label: 'Regenerate summary' })
+  expect(find(tree, NoteMenu)?.props.generation).toMatchObject({ label: 'Edit or regenerate summary' })
   meeting.trashedAt = 1; meetingChanged(); await render(); await render()
   expect(find(tree, NoteMenu)?.props.generation).toBeUndefined()
 })

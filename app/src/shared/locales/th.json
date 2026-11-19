@@ -696,5 +696,12 @@
   "Continue transcription": "ถอดเสียงต่อ",
   "Transcribe again": "ถอดเสียงอีกครั้ง",
   "Stop transcription": "หยุดถอดเสียง",
-  "Audio is unavailable.": "ไม่มีเสียงให้ใช้งาน"
+  "Audio is unavailable.": "ไม่มีเสียงให้ใช้งาน",
+  "Edit or regenerate summary": "แก้ไขหรือสร้างสรุปใหม่",
+  "Edit summary": "แก้ไขสรุป",
+  "Edit using the transcript too": "แก้ไขโดยใช้คำถอดความด้วย",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "ช้ากว่าและขึ้นอยู่กับโมเดลโน้ต การประชุมที่ยาวอาจเกินความจุของโมเดล จึงจะอ่านทีละส่วน",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "“สร้างใหม่” จะแทนที่การแก้ไขของคุณในสรุป ส่วน “แก้ไข” จะเก็บการแก้ไขไว้",
+  "Summary edited": "แก้ไขสรุปแล้ว",
+  "The summary changed since, so it wasn't undone.": "สรุปมีการเปลี่ยนแปลงหลังจากนั้น จึงไม่ได้เลิกทำ"
 }

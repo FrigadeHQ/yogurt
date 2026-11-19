@@ -794,5 +794,12 @@
   "Continue transcription": "متابعة التفريغ النصي",
   "Transcribe again": "التفريغ النصي مجددًا",
   "Stop transcription": "إيقاف التفريغ النصي",
-  "Audio is unavailable.": "الصوت غير متاح."
+  "Audio is unavailable.": "الصوت غير متاح.",
+  "Edit or regenerate summary": "تعديل الملخص أو إعادة إنشائه",
+  "Edit summary": "تعديل الملخص",
+  "Edit using the transcript too": "التعديل باستخدام النص أيضًا",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "أبطأ، ويعتمد على نموذج الملاحظات: قد لا يتسع النموذج لاجتماع طويل، فيُقرأ حينها على أجزاء.",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "«إعادة الإنشاء» تستبدل تعديلاتك على الملخص. «تعديل» يحتفظ بها.",
+  "Summary edited": "تم تعديل الملخص",
+  "The summary changed since, so it wasn't undone.": "تغيّر الملخص منذ ذلك الحين، لذا لم يتم التراجع عن التعديل."
 }

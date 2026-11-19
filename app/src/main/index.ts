@@ -817,6 +817,12 @@ app.whenReady().then(() => {
     const instruction = rewriteNote(note)
     if (known(id) && instruction !== undefined && !transcriptionBusy(store.meeting(id)?.transcriptionState)) void notes.writeAgain(id, instruction, true)
   })
+  ipcMain.handle('notes:edit', (_e, id: unknown, note: unknown, withTranscript: unknown) => {
+    const instruction = rewriteNote(note)
+    if (!known(id) || !instruction || typeof withTranscript !== 'boolean' || transcriptionBusy(store.meeting(id)?.transcriptionState)) return false
+    return notes.edit(id, instruction, withTranscript)
+  })
+  ipcMain.handle('notes:undo-edit', (_e, id: unknown) => known(id) && notes.undoEdit(id))
   app.on('will-quit', () => engine.dispose())
   // an earlier quit or crash may have left parts unjoined: try again now
   const rejoined = rejoinInterrupted(join(userDataDir(), 'meetings'), async dir => {

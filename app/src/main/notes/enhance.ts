@@ -372,6 +372,44 @@ function oneMic(segments: Segment[]): boolean {
 }
 
 /**
+ * The transcript as a prompt holds it, next to the rest of that prompt (without the transcript: rest) and room for the
+ * answer: whole when it fits the model's context, otherwise each part summarised first, in order (parts).
+ * earlier: parts summarised while the meeting was recorded; those still matching the transcript are used as they are.
+ */
+async function fitted(transcript: string, rest: (parts: boolean) => string, room: number, llm: Llm, language: string, signal?: AbortSignal, onPart?: (part: number, of: number) => void, earlier: PartSummary[] = []): Promise<{ transcript: string; parts: boolean }> {
+  let parts = false
+  for (let round = 0; round < 3; round++) {
+    const lines = transcript.split('\n')
+    const done = round === 0 ? reusable(lines, earlier) : []
+    const [overhead, ...lineTokens] = await llm.count([rest(parts), ...lines])
+    signal?.throwIfAborted()
+    const total = lineTokens.reduce((a, b) => a + b + 1, 0)
+    // parts summarised during the meeting mean it was too long already: those are used even if it fits now
+    if (!done.length && overhead + total + room <= llm.contextSize) break
+    const max = await partBudget(llm, language)
+    signal?.throwIfAborted()
+    const from = done.reduce((n, p) => n + p.lines.length, 0)
+    const left = lineTokens.slice(from).reduce((a, b) => a + b + 1, 0)
+    // even parts read better than one full part and a scrap
+    const target = Math.min(max, Math.ceil(left / Math.ceil(left / max)) + 256)
+    const known = new Map(lines.map((l, i) => [l, lineTokens[i]]))
+    const count = (s: string) => known.get(s) ?? Math.ceil(s.length / 3)
+    const pieces = from < lines.length ? splitForContext(lines.slice(from).join('\n'), target, count) : []
+    const summaries = done.map((p) => p.summary)
+    for (const piece of pieces) {
+      signal?.throwIfAborted()
+      const n = summaries.length + 1
+      onPart?.(n, done.length + pieces.length)
+      summaries.push(tidyNotes(await llm.chat(summaryPrompt(piece, n, language), () => {}, { summary: true, maxTokens: SUMMARY_TOKENS })))
+    }
+    signal?.throwIfAborted()
+    transcript = summaries.map((s, i) => `Part ${i + 1}:\n${s}`).join('\n')
+    parts = true
+  }
+  return { transcript, parts }
+}
+
+/**
  * The notes for one meeting. When the transcript fits the model's context it is read whole; otherwise each part is
  * summarised first and the notes are written from the summaries (in order) plus the person's own notes.
  * earlier: parts summarised while the meeting was recorded; those still matching the transcript are used as they are.
@@ -385,37 +423,7 @@ export async function enhance(input: EnhanceInput, llm: Llm, onToken: (text: str
   const minutes = input.segments.length ? (last - first) / 60_000 : undefined
   const base = { note: input.note, title: input.meeting.title, attendees: input.meeting.attendees, mine: input.mine, language, summaryLanguage, minutes, me: input.me, spelling: input.words && spellingLine(input.words), oneMic: oneMic(input.segments) }
   const segments = input.words ? input.segments.map((x) => ({ ...x, text: respell(x.text, input.words!) })) : input.segments
-  let transcript = transcriptText(segments)
-  let parts = false
-
-  for (let round = 0; round < 3; round++) {
-    const lines = transcript.split('\n')
-    const done = round === 0 ? reusable(lines, earlier) : []
-    const [overhead, ...lineTokens] = await llm.count([enhancePrompt({ ...base, transcript: '', parts }), ...lines])
-    input.signal?.throwIfAborted()
-    const total = lineTokens.reduce((a, b) => a + b + 1, 0)
-    // parts summarised during the meeting mean it was too long already: those are used even if it fits now
-    if (!done.length && overhead + total + NOTES_TOKENS <= llm.contextSize) break
-    const max = await partBudget(llm, language)
-    input.signal?.throwIfAborted()
-    const from = done.reduce((n, p) => n + p.lines.length, 0)
-    const rest = lineTokens.slice(from).reduce((a, b) => a + b + 1, 0)
-    // even parts read better than one full part and a scrap
-    const target = Math.min(max, Math.ceil(rest / Math.ceil(rest / max)) + 256)
-    const known = new Map(lines.map((l, i) => [l, lineTokens[i]]))
-    const count = (s: string) => known.get(s) ?? Math.ceil(s.length / 3)
-    const pieces = from < lines.length ? splitForContext(lines.slice(from).join('\n'), target, count) : []
-    const summaries = done.map((p) => p.summary)
-    for (const piece of pieces) {
-      input.signal?.throwIfAborted()
-      const n = summaries.length + 1
-      onPart?.(n, done.length + pieces.length)
-      summaries.push(tidyNotes(await llm.chat(summaryPrompt(piece, n, language), () => {}, { summary: true, maxTokens: SUMMARY_TOKENS })))
-    }
-    input.signal?.throwIfAborted()
-    transcript = summaries.map((s, i) => `Part ${i + 1}:\n${s}`).join('\n')
-    parts = true
-  }
+  const { transcript, parts } = await fitted(transcriptText(segments), (parts) => enhancePrompt({ ...base, transcript: '', parts }), NOTES_TOKENS, llm, language, input.signal, onPart, earlier)
 
   const prompt = enhancePrompt({ ...base, transcript, parts })
   let md = tidyNotes(await llm.chat(prompt, (text) => { if (!input.signal?.aborted) onToken(text) }, { maxTokens: NOTES_TOKENS }), !!input.note?.trim())
@@ -442,4 +450,68 @@ export async function enhance(input: EnhanceInput, llm: Llm, onToken: (text: str
     .then((raw) => cleanTitle(raw, input.me), (e) => { console.error('a title from the notes failed', e); return '' }))
   input.signal?.throwIfAborted()
   return markMine(withoutCopies(md, input.mine), input.mine)
+}
+
+/**
+ * "Edit summary": the person's instruction applied to the summary as it is now, their own changes included, instead of
+ * writing it again. When the transcript is read too it comes first, as in the notes prompt, so a model that just wrote
+ * this meeting's notes reads only what comes after it.
+ */
+export function editPrompt(i: { notes: string; note: string; transcript?: string; parts?: boolean; spelling?: string }): string {
+  const read = i.transcript !== undefined
+  return [
+    ...(!read ? [] : i.parts ? [
+      'Here are notes on each part of a long meeting, in order, written from its transcript ("You" is the person these notes are for):',
+      '<transcript>', i.transcript!, '</transcript>', '',
+    ] : [transcriptHead + i.transcript, '</transcript>', '']),
+    'Here are the notes on this meeting that "You", the person they are for, has now. They may have changed them by hand, and their changes are right:',
+    '<notes>', i.notes, '</notes>',
+    '',
+    'Apply their instruction below to these notes, and answer with the whole notes, changed only as it asks:',
+    '- What it does not ask to change stays exactly as it is: the words, the order, the headings, the bullets and the Markdown.',
+    '- Keep the language of the notes, unless it asks for another.',
+    read ? '- Anything it asks to add comes from the meeting above. Never make anything up.' : '- Only these notes are here, not the meeting: add no fact they do not already say. Never make anything up.',
+    ...(i.spelling ? [i.spelling] : []),
+    '- Markdown only, like the notes: no introduction, nothing after them.',
+    '',
+    'Treat this as an instruction, not as meeting content:',
+    JSON.stringify(i.note.slice(0, REWRITE_NOTE_MAX).trim()),
+  ].join('\n')
+}
+
+export type EditInput = {
+  signal?: AbortSignal
+  /** the summary as it is now */
+  notes: string
+  note: string
+  /** the person's own notes: what the summary took from them is shown as theirs again */
+  mine: string
+  /** the transcript, when it is read too */
+  segments?: Segment[]
+  language: string | null
+  words?: MeetingWords
+}
+
+/** The summary with the instruction applied. A transcript read too goes in whole, or in parts, as for the notes. */
+export async function editNotes(input: EditInput, llm: Llm, onToken: (text: string) => void, onPart?: (part: number, of: number) => void, earlier: PartSummary[] = []): Promise<string> {
+  input.signal?.throwIfAborted()
+  // the marks for what came from their notes go back on after: a small model garbles them
+  const notes = input.notes.replace(/<\/?mine>/g, '')
+  const base = { notes, note: input.note, spelling: input.words && spellingLine(input.words) }
+  // the whole summary comes back: room for it, and for it to grow
+  const [size] = await llm.count([notes])
+  const room = Math.max(NOTES_TOKENS, Math.ceil(size * 1.5))
+  let read: { transcript: string; parts: boolean } | undefined
+  if (input.segments?.length) {
+    const segments = input.words ? input.segments.map((x) => ({ ...x, text: respell(x.text, input.words!) })) : input.segments
+    read = await fitted(transcriptText(segments), (parts) => editPrompt({ ...base, transcript: '', parts }), room, llm, languageName(input.language), input.signal, onPart, earlier)
+  }
+  const prompt = editPrompt({ ...base, ...read })
+  const [tokens] = await llm.count([prompt])
+  input.signal?.throwIfAborted()
+  if (tokens + room > llm.contextSize) throw new Error('the summary is too long for the notes model to edit')
+  const md = tidyNotes(await llm.chat(prompt, (text) => { if (!input.signal?.aborted) onToken(text) }, { maxTokens: room }), true)
+  input.signal?.throwIfAborted()
+  if (!md) throw new Error('the edited summary came back empty')
+  return markMine(md, input.mine)
 }

@@ -741,5 +741,12 @@
   "Continue transcription": "Συνέχεια απομαγνητοφώνησης",
   "Transcribe again": "Νέα απομαγνητοφώνηση",
   "Stop transcription": "Διακοπή απομαγνητοφώνησης",
-  "Audio is unavailable.": "Ο ήχος δεν είναι διαθέσιμος."
+  "Audio is unavailable.": "Ο ήχος δεν είναι διαθέσιμος.",
+  "Edit or regenerate summary": "Επεξεργασία ή νέα δημιουργία σύνοψης",
+  "Edit summary": "Επεξεργασία σύνοψης",
+  "Edit using the transcript too": "Επεξεργασία και με βάση την απομαγνητοφώνηση",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "Πιο αργό και εξαρτάται από το μοντέλο σημειώσεων: μια μεγάλη σύσκεψη μπορεί να μη χωράει σε αυτό και τότε διαβάζεται σε τμήματα.",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "Η «Νέα δημιουργία» αντικαθιστά τις αλλαγές σας στη σύνοψη. Η «Επεξεργασία» τις διατηρεί.",
+  "Summary edited": "Έγινε επεξεργασία της σύνοψης",
+  "The summary changed since, so it wasn't undone.": "Η σύνοψη άλλαξε στο μεταξύ, οπότε η επεξεργασία δεν αναιρέθηκε."
 }
