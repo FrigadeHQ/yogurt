@@ -112,7 +112,12 @@ win:
       arch: [x64]
   icon: build/icon.png
 nsis:
-  oneClick: true
+  # an installer with pages (not one click): where Yogurt goes, then where its AI models go (build/installer.nsh), for a
+  # small C: drive. Still per user, no admin prompt; updates install silently as before
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  allowElevation: false
+  include: build/installer.nsh
   perMachine: false
   # never true: uninstalling would delete every meeting, transcript and recording with the models
   deleteAppDataOnUninstall: false
