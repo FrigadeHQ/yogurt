@@ -38,7 +38,7 @@ function audioConfig(b: Uint8Array, box: Box): Uint8Array {
   if (specific.tag!==5 || specific.end-specific.at<2 || specific.end-specific.at>64) fail('format')
   return b.slice(specific.at,specific.end)
 }
-// shortcut: one non-fragmented AAC track; add container variants when a supported recording app needs them.
+// shortcut: one non-fragmented AAC audio track (a video's picture and other tracks are skipped); add container variants when a supported recording app needs them.
 export async function m4a(reader: AudioReader): Promise<EncodedAudio & { endSeconds?: number; durationMs: number }> {
   let at=0, moov:Uint8Array|undefined
   while(at<reader.source.size) {
@@ -52,7 +52,7 @@ export async function m4a(reader: AudioReader): Promise<EncodedAudio & { endSeco
     at+=size
   }
   const b=moov??fail('format'), root=boxes(b)[0], tracks=boxes(b,root.data,root.end).filter(x=>x.type==='trak')
-  const audio=tracks.filter(track=>{const mdia=child(b,track,'mdia'), handler=child(b,mdia,'hdlr'), kind=text(b,handler.data+8,4);if(kind==='vide')fail('format');return kind==='soun'})
+  const audio=tracks.filter(track=>{const mdia=child(b,track,'mdia'), handler=child(b,mdia,'hdlr');return text(b,handler.data+8,4)==='soun'})
   if(audio.length!==1)fail('format')
   const track=audio[0],mdia=child(b,track,'mdia'),mdhd=child(b,mdia,'mdhd'),stbl=child(b,child(b,mdia,'minf'),'stbl')
   const timescale=u32(b,mdhd.data+(b[mdhd.data]===1?20:12))
@@ -63,7 +63,9 @@ export async function m4a(reader: AudioReader): Promise<EncodedAudio & { endSeco
   if(entry.type!=='mp4a'||entry.data+28>entry.end)fail('format')
   const version=view(b).getUint16(entry.data+8)
   if(version>1)fail('format')
-  const esds=boxes(b,entry.data+28+(version===1?16:0),entry.end).find(x=>x.type==='esds')??fail('format')
+  const inner=boxes(b,entry.data+28+(version===1?16:0),entry.end),wave=inner.find(x=>x.type==='wave')
+  // QuickTime (.mov) keeps the AAC description inside a wave box
+  const esds=inner.find(x=>x.type==='esds')??(wave&&boxes(b,wave.data,wave.end).find(x=>x.type==='esds'))??fail('format')
   const description=audioConfig(b,esds),object=description[0]>>3
   if(![2,5,29].includes(object))fail('format')
   const sampleRate=u32(b,entry.data+24)>>>16,numberOfChannels=view(b).getUint16(entry.data+16)

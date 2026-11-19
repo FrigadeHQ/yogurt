@@ -18,13 +18,13 @@ import { resumesNote } from '../shared/agendaNote'
 import { relaunchOptions, stripAppImageEnv } from './relaunch'
 import { capabilities, micListHelper, platformOf, supportedKinds } from '../shared/platform'
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, Notification, protocol, safeStorage, shell } from 'electron'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { isFake, userDataDir } from './paths'
 import { logToFile } from './log'
-import { loadSettings, localeOf, keepsRecording, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings, visibilityOf, summaryLanguageSetting } from './settings'
+import { loadSettings, localeOf, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings, visibilityOf, summaryLanguageSetting } from './settings'
 import { CALL_GONE_MS, useCallApps, watchEveryMs } from './detect'
 import { systemLocale } from './locale'
 import { language as uiLanguage, onLanguage, setLanguage, t } from '../shared/i18n'
@@ -82,6 +82,9 @@ import { hookFolders } from './foldersIpc'
 import { hookMcp } from './mcp'
 import { startedHidden } from './mcp/paths'
 import { deleteRecording } from './deleteRecording'
+import { dueNow, isDue, retentionPatch, ruleOf, sweep } from './retention'
+import { readScreen } from './screenText'
+import { RETENTION_KINDS, retentionDays, type RetentionKind } from '../shared/retention'
 import { AUDIO_SCHEME, audioExts, createAudioHandler, trackFile, type AudioExt } from './audio'
 import { helperDecode, wavDecode } from './asr/backfill'
 import { finishQuit, hookUpdates, isPreviewBuild, updatesOn } from './updates'
@@ -451,6 +454,8 @@ function startDetection() {
         return m.id
       },
       manyMeetings: (o) => (typeof o === 'number' ? manyMeetings(storeRef!, o) : manyMeetings(storeRef!, o.n, o.clean)),
+      // a meeting that ended this many days ago (What Yogurt keeps)
+      endedDaysAgo: ([id, days]) => { storeRef!.updateMeeting(id, { endedAt: Date.now() - days * 24 * 60 * 60 * 1000 }) },
       calendarChanged: refreshCalendarConsumers,
       tray: () => tray.items(),
       trayClick: (id) => tray.click(id as Parameters<typeof tray.click>[0]),
@@ -632,15 +637,16 @@ app.whenReady().then(() => {
   })
   const folderSuggestions = createFolderSuggestions({ store, queue, model, changed: () => win?.webContents.send('folders:changed') })
   let resumingId: string | null = null
-  const removeRecording = (id: string, automatic = false) => deleteRecording(id, {
+  /** keep: automatic deletion, which also needs a saved summary (deleteRecording) */
+  const removeRecording = (id: string, keep?: (endedAt: number | null) => boolean) => deleteRecording(id, {
     store, dirOf: id => join(userDataDir(), 'meetings', id),
     busy: id => resumingId === id || stopSavePending(id),
     settle: async id => { await rejoined; await recordingFinished(id); await transcriptFinished(id) },
     removed: id => { for (const w of BrowserWindow.getAllWindows()) w.webContents.send('audio:deleted', id) },
-    ...(automatic ? { keep: endedAt => keepsRecording(loadSettings(settingsFile), endedAt) } : {}),
+    ...(keep ? { keep } : {}),
   })
   const notes = hookNotes({
-    summarized: id => { folderSuggestions.schedule(id); void removeRecording(id, true) },
+    summarized: id => { folderSuggestions.schedule(id); void removeRecording(id, endedAt => !isDue(ruleOf(loadSettings(settingsFile), 'audio'), endedAt, Date.now())) },
     // Windows and Linux: a note waiting while the model loads says so (a Mac shows what it always did)
     showLoading: platform !== 'darwin',
     summaryLanguage: () => summaryLanguageSetting(loadSettings(settingsFile)),
@@ -672,6 +678,8 @@ app.whenReady().then(() => {
     root: join(userDataDir(), 'meetings'), store, window: () => win, exiting: () => allowQuit,
     recording: () => !!activeMeeting() || !!resumingId || finishing,
     prepared: id => {void savedTranscriptions.start(id)}, changed: () => win?.webContents.send('meetings:changed'),
+    ...(process.platform === 'darwin' ? { readScreen: (file: string, progress: (fraction: number) => void, signal: AbortSignal) => readScreen(audioHelperPath(), file, progress, signal) } : {}),
+    keepVideo: () => ruleOf(loadSettings(settingsFile), 'video')?.days !== 0,
   })
   setup.onState(() => {uploads.resume();savedTranscriptions.resume()})
   onMeetingStart(m => {store.clearTranscriptionState(m.id);savedTranscriptions.pause()})
@@ -694,7 +702,7 @@ app.whenReady().then(() => {
     if (current) { goTo(`/note/${current.id}`); return { id: current.id } }
     const existing = store.meeting(id)
     // shortcut: imports keep one WAV; add a safe native-recording merge before offering Resume.
-    if (!existing || existing.source === 'audio-file' || uploads.owns(id) || existing.trashedAt != null || (existing.state !== 'stopped' && existing.state !== 'done')) return { error: 'gone' }
+    if (!existing || existing.source === 'audio-file' || uploads.owns(id) || existing.trashedAt != null || existing.transcriptDeletedAt != null || (existing.state !== 'stopped' && existing.state !== 'done')) return { error: 'gone' }
     if (transcriptionBusy(existing.transcriptionState) || resumingId || stopSavePending(id) || finishing || !notes.retryDrafts(id)) return { error: 'failed' }
     resumingId = id
     const analysis = notes.suspendForResume(id)
@@ -956,15 +964,13 @@ app.whenReady().then(() => {
     },
   })
   ipcMain.handle('meetings:delete', (_e, id: unknown) => removeForGood(id))
+  const trashed = (id: string) => {
+    indexer.forget(id)
+    win?.webContents.send('meetings:changed'); win?.webContents.send('folders:changed')
+    if (route === `/note/${id}`) { route = ''; win?.webContents.send('nav:go', route) }
+  }
   // Delete in a list or a note: to the Trash, kept until restored or deleted for good there (30 days at most)
-  ipcMain.handle('meetings:trash', (_e, id: unknown) => id === resumingId ? 'failed' : isId(id) && stopSavePending(id) ? 'save-pending' : moveToTrash(id, {
-    store,
-    moved: (id) => {
-      indexer.forget(id)
-      win?.webContents.send('meetings:changed'); win?.webContents.send('folders:changed')
-      if (route === `/note/${id}`) { route = ''; win?.webContents.send('nav:go', route) }
-    },
-  }))
+  ipcMain.handle('meetings:trash', (_e, id: unknown) => id === resumingId ? 'failed' : isId(id) && stopSavePending(id) ? 'save-pending' : moveToTrash(id, { store, moved: trashed }))
   ipcMain.handle('meetings:restore', (_e, id: unknown) => {
     if (!isId(id) || store.meeting(id)?.trashedAt == null) return
     store.restoreMeeting(id); indexer.restored(id)
@@ -972,8 +978,30 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('meetings:trashed', () => store.trashed())
   ipcMain.handle('meetings:empty-trash', () => emptyTrash({ store, remove: removeForGood }))
+  // What Yogurt keeps (Settings): each rule runs at launch, twice a day with the Trash, and once picked
+  const hasAudio = (id: string) => (['me', 'them'] as const).some((t) => !!trackFile(meetingDir(id), t, audioKinds))
+  const videos = (id: string) => { try { return readdirSync(meetingDir(id)).filter((f) => /^video\.(mov|mp4)$/.test(f)) } catch { return [] } }
+  const hasVideo = (id: string) => videos(id).length > 0
+  const retain = () => void sweep({
+    store, settings: loadSettings(settingsFile), hasAudio, hasVideo,
+    removeVideo: (id) => { for (const f of videos(id)) rmSync(join(meetingDir(id), f), { force: true }) },
+    removeAudio: (id) => removeRecording(id, () => false),
+    removeTranscript: (id) => { store.deleteTranscript(id); indexer.forget(id); void indexer.schedule(); win?.webContents.send('meetings:changed') },
+    trash: (id) => { if (id !== resumingId && !stopSavePending(id)) moveToTrash(id, { store, moved: trashed }) },
+  }).catch((e) => console.warn('applying what Yogurt keeps failed', e))
+  const isKind = (k: unknown): k is RetentionKind => RETENTION_KINDS.includes(k as RetentionKind)
+  // how many meetings a rule would act on at once, for the confirmation before it is saved
+  ipcMain.handle('retention:count', (_e, kind: unknown, days: unknown) => {
+    const d = isKind(kind) ? retentionDays(kind, days) : null
+    return isKind(kind) && d != null ? dueNow({ store, hasAudio, hasVideo }, kind, { days: d }).length : 0
+  })
+  ipcMain.handle('settings:retention', (_e, kind: unknown, days: unknown) => {
+    if (!isKind(kind) || (days !== null && retentionDays(kind, days) == null)) return
+    updateSettings(settingsFile, retentionPatch(kind, days as number | null))
+    retain()
+  })
   // a meeting in the Trash for 30 days goes for good: at launch, and twice a day for a Yogurt that stays open
-  const purge = () => void purgeTrash({ store, remove: removeForGood })
+  const purge = () => { void purgeTrash({ store, remove: removeForGood }); retain() }
   purge(); setInterval(purge, 12 * 60 * 60 * 1000).unref()
   const tidyPrepared = () => {
     try {

@@ -8,6 +8,7 @@ import { attendeeMembership, matchingOwnEmail, ownAddress, personEmail } from '.
 import type { FolderSuggestionRecord } from '../shared/folderSuggestion'
 import { unusedPreparedNote } from '../shared/agendaNote'
 import { speakerOrder } from '../shared/speakerColors'
+import { SCREEN_SPEAKER } from '../shared/audioUpload'
 import { DatabaseSync } from 'node:sqlite'
 import { randomUUID } from 'node:crypto'
 import { sourceOf, type TitleSource } from './titles'
@@ -43,6 +44,8 @@ export type Meeting = {
   transcriptionAgain?: boolean
   /** when it was moved to the Trash; there it is out of every list, search and chat until restored */
   trashedAt?: number
+  /** when a retention rule deleted its transcript (and audio); its notes stay, and are not written again */
+  transcriptDeletedAt?: number
 }
 /** speaker: 'me' on the mic; on the other side the name the call app showed talking (callNames), null for Them */
 export type Segment = { id: number; meetingId: string; track: 'me' | 'them'; startMs: number; endMs: number; text: string; speaker: string | null
@@ -72,6 +75,7 @@ const toMeeting = (r: Row): Meeting => ({
   ...(r.event_calendar_source == null ? {} : { eventCalendarSource: String(r.event_calendar_source) }),
   ...(r.duration_ms == null ? {} : { durationMs: Number(r.duration_ms) }),
   ...(r.trashed_at == null ? {} : { trashedAt: Number(r.trashed_at) }),
+  ...(r.transcript_deleted_at == null ? {} : { transcriptDeletedAt: Number(r.transcript_deleted_at) }),
 })
 const toSegment = (r: Row): Segment => ({
   id: Number(r.id), meetingId: String(r.meeting_id), track: r.track as Segment['track'], startMs: Number(r.start_ms), endMs: Number(r.end_ms),
@@ -227,6 +231,7 @@ export class Store {
     if (!meetingCols.includes('duration_ms')) this.db.exec('ALTER TABLE meetings ADD COLUMN duration_ms INTEGER')
     if (!meetingCols.includes('language')) this.db.exec('ALTER TABLE meetings ADD COLUMN language TEXT')
     if (!meetingCols.includes('trashed_at')) this.db.exec('ALTER TABLE meetings ADD COLUMN trashed_at INTEGER')
+    if (!meetingCols.includes('transcript_deleted_at')) this.db.exec('ALTER TABLE meetings ADD COLUMN transcript_deleted_at INTEGER')
     if (!meetingCols.includes('title_source')) {
       // meetings from before: worked out from the title and the event, as a new one would be
       this.db.exec("ALTER TABLE meetings ADD COLUMN title_source TEXT NOT NULL DEFAULT 'user'")
@@ -377,6 +382,30 @@ export class Store {
   trashedBefore(at: number): string[] {
     return (this.db.prepare('SELECT id FROM meetings WHERE trashed_at IS NOT NULL AND trashed_at < ? ORDER BY trashed_at').all(at) as Row[]).map((r) => String(r.id))
   }
+  /**
+   * Retention (retention.ts): finished meetings out of the Trash that ended by endedBy (and after endedAfter), and still hold
+   * what the rule removes. Audio and transcripts go only from a meeting with a saved transcript and summary (a video's screen
+   * was read when it was uploaded); whether audio or a video is on disk is the caller's to check.
+   */
+  retentionDue(kind: 'audio' | 'video' | 'transcript' | 'meeting', endedBy: number, endedAfter?: number): string[] {
+    const saved = `AND transcription_pending = 0 AND EXISTS (SELECT 1 FROM segments s WHERE s.meeting_id = m.id)
+      AND EXISTS (SELECT 1 FROM notes n WHERE n.meeting_id = m.id AND trim(coalesce(n.enhanced, '')) != '')`
+    return (this.db.prepare(`SELECT id FROM meetings m WHERE trashed_at IS NULL AND state IN ('stopped', 'done') AND ended_at IS NOT NULL
+      AND ended_at <= ? AND ended_at > ? ${kind === 'meeting' || kind === 'video' ? '' : saved} ${kind === 'transcript' ? 'AND transcript_deleted_at IS NULL' : ''} ORDER BY ended_at`)
+      .all(endedBy, endedAfter ?? Number.MIN_SAFE_INTEGER) as Row[]).map((r) => String(r.id))
+  }
+  /** Retention: the meeting's lines go for good, hidden ones and the library's copies too; its notes stay. */
+  deleteTranscript(id: string, now = Date.now()) {
+    this.db.exec('BEGIN')
+    try {
+      this.db.prepare('DELETE FROM segments WHERE meeting_id = ?').run(id)
+      this.clearTranscriptionDraft(id)
+      this.db.prepare('DELETE FROM library_chunks WHERE meeting_id = ?').run(id)
+      this.db.prepare("UPDATE library_sources SET signature='' WHERE meeting_id=?").run(id)
+      this.db.prepare('UPDATE meetings SET transcript_deleted_at = ? WHERE id = ?').run(now, id)
+      this.db.exec('COMMIT')
+    } catch (e) { this.db.exec('ROLLBACK'); throw e }
+  }
   meeting(id: string): Meeting | undefined {
     const r = this.db.prepare('SELECT * FROM meetings WHERE id = ?').get(id) as Row | undefined
     return r ? this.readMeeting(r) : undefined
@@ -395,7 +424,7 @@ export class Store {
 
   clearTranscriptionState(id:string) { this.db.prepare('UPDATE meetings SET transcription_state=NULL,transcription_again=0 WHERE id=?').run(id);this.clearTranscriptionDraft(id) }
   interruptAudioPreparations() {
-    this.db.prepare("UPDATE meetings SET transcription_state='error',transcription_pending=0 WHERE source='audio-file' AND transcription_state='preparing'").run()
+    this.db.prepare("UPDATE meetings SET transcription_state='error',transcription_pending=0 WHERE source='audio-file' AND transcription_state IN ('preparing','reading-screen')").run()
   }
   beginTranscriptionReplacement(id:string) {
     this.clearTranscriptionDraft(id)
@@ -420,7 +449,8 @@ export class Store {
     const segments = this.transcriptionDraft(id)
     this.db.exec('BEGIN')
     try {
-      this.db.prepare('DELETE FROM segments WHERE meeting_id = ?').run(id)
+      // lines read from a video's screen are not the audio's: a new transcript keeps them
+      this.db.prepare('DELETE FROM segments WHERE meeting_id = ? AND coalesce(speaker, \'\') != ?').run(id, SCREEN_SPEAKER)
       const insert = this.db.prepare('INSERT INTO segments (meeting_id,track,start_ms,end_ms,text,speaker,hidden,echo_confident) VALUES (?,?,?,?,?,?,?,?)')
       for (const s of segments) {
         const result=insert.run(id,s.track,s.startMs,s.endMs,s.text,s.speaker,s.hidden?1:0,s.echoConfident?1:0)
@@ -549,7 +579,7 @@ export class Store {
   /** Resume managed jobs; legacy partial recordings wait for an explicit Continue. */
   untranscribedMeetings(): Meeting[] {
     return (this.db.prepare(`SELECT * FROM meetings m WHERE state IN ('stopped', 'done') AND trashed_at IS NULL AND transcription_pending = 1
-      AND (transcription_state IS NULL OR transcription_state NOT IN ('stopped','error','preparing')) AND (transcription_state IS NOT NULL OR source='audio-file' OR NOT EXISTS (SELECT 1 FROM segments s WHERE s.meeting_id=m.id)) ORDER BY started_at`).all() as Row[]).map(r => this.readMeeting(r))
+      AND (transcription_state IS NULL OR transcription_state NOT IN ('stopped','error','preparing','reading-screen')) AND (transcription_state IS NOT NULL OR source='audio-file' OR NOT EXISTS (SELECT 1 FROM segments s WHERE s.meeting_id=m.id)) ORDER BY started_at`).all() as Row[]).map(r => this.readMeeting(r))
   }
 
   /** Stopped meetings with no enhanced notes: a quit or crash came before they were written */

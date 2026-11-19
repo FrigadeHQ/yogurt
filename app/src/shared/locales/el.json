@@ -597,9 +597,7 @@
   "Delete audio?": "Διαγραφή ήχου;",
   "The audio is deleted for good. Your transcript and notes stay.": "Ο ήχος διαγράφεται οριστικά. Η απομαγνητοφώνηση και οι σημειώσεις μένουν.",
   "Keep the audio until the transcript is saved.": "Κρατήστε τον ήχο μέχρι να αποθηκευτεί η απομαγνητοφώνηση.",
-  "Keep audio recordings after meetings": "Διατήρηση ηχογραφήσεων μετά τις συναντήσεις",
   "Recording deleted": "Η ηχογράφηση διαγράφηκε",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Αν κλείσει, ο ήχος νέων συναντήσεων διαγράφεται μόλις σωθεί η σύνοψη.",
   "New recording": "Νέα ηχογράφηση",
   "Hide events without a call link": "Απόκρυψη συμβάντων χωρίς σύνδεσμο κλήσης",
   "Keep your agenda and reminders focused on calls.": "Εστιάστε το πρόγραμμά σας και τις υπενθυμίσεις στις κλήσεις.",
@@ -741,5 +739,43 @@
   "Continue transcription": "Συνέχεια απομαγνητοφώνησης",
   "Transcribe again": "Νέα απομαγνητοφώνηση",
   "Stop transcription": "Διακοπή απομαγνητοφώνησης",
-  "Audio is unavailable.": "Ο ήχος δεν είναι διαθέσιμος."
+  "Audio is unavailable.": "Ο ήχος δεν είναι διαθέσιμος.",
+  "What Yogurt keeps": "Τι κρατά το Yogurt",
+  "Counted from when each meeting ended. Audio and transcripts go only once the summary is saved, and notes stay.": "Μετρά από τη λήξη κάθε σύσκεψης. Ο ήχος και οι απομαγνητοφωνήσεις διαγράφονται μόνο αφού αποθηκευτεί η σύνοψη, και οι σημειώσεις μένουν.",
+  "Delete transcripts": "Διαγραφή απομαγνητοφωνήσεων",
+  "Its audio goes with it.": "Διαγράφεται και ο ήχος της.",
+  "Move meetings to the Trash": "Μετακίνηση συσκέψεων στον Κάδο",
+  "Never": "Ποτέ",
+  "Once the summary is saved": "Μόλις αποθηκευτεί η σύνοψη",
+  "After 1 week": "Μετά από 1 εβδομάδα",
+  "After 1 month": "Μετά από 1 μήνα",
+  "After 3 months": "Μετά από 3 μήνες",
+  "After 1 year": "Μετά από 1 έτος",
+  "After 2 years": "Μετά από 2 έτη",
+  "Number of days": "Αριθμός ημερών",
+  "Days": "Ημέρες",
+  "Apply to past meetings?": "Εφαρμογή σε παλαιότερες συσκέψεις;",
+  "Apply": "Εφαρμογή",
+  "{count} meetings already qualify. Their audio is deleted now.": {
+    "one": "{count} σύσκεψη πληροί ήδη τον κανόνα. Ο ήχος της διαγράφεται τώρα.",
+    "other": "{count} συσκέψεις πληρούν ήδη τον κανόνα. Ο ήχος τους διαγράφεται τώρα."
+  },
+  "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": {
+    "one": "{count} σύσκεψη πληροί ήδη τον κανόνα. Η απομαγνητοφώνηση και ο ήχος της διαγράφονται τώρα, ενώ οι σημειώσεις μένουν.",
+    "other": "{count} συσκέψεις πληρούν ήδη τον κανόνα. Οι απομαγνητοφωνήσεις και ο ήχος τους διαγράφονται τώρα, ενώ οι σημειώσεις μένουν."
+  },
+  "{count} meetings already qualify. They move to the Trash now.": {
+    "one": "{count} σύσκεψη πληροί ήδη τον κανόνα. Μετακινείται τώρα στον Κάδο.",
+    "other": "{count} συσκέψεις πληρούν ήδη τον κανόνα. Μετακινούνται τώρα στον Κάδο."
+  },
+  "The transcript was deleted on {date}, as set in Settings.": "Η απομαγνητοφώνηση διαγράφηκε στις {date}, όπως ορίζεται στις Ρυθμίσεις.",
+  "Screen": "Οθόνη",
+  "Reading the screen…": "Ανάγνωση της οθόνης…",
+  "Delete video": "Διαγραφή βίντεο",
+  "Don't keep it": "Να μην κρατηθεί",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "Ένα μεταφορτωμένο βίντεο διατηρείται, ώστε η οθόνη του να μπορεί να διαβαστεί ξανά. Χωρίς αυτό, η οθόνη δεν μπορεί να διαβαστεί αργότερα, για παράδειγμα με άλλο μοντέλο.",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "{count} σύσκεψη πληροί ήδη τον κανόνα. Το βίντεό της διαγράφεται τώρα.",
+    "other": "{count} συσκέψεις πληρούν ήδη τον κανόνα. Τα βίντεό τους διαγράφονται τώρα."
+  }
 }

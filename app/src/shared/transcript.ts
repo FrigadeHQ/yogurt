@@ -1,4 +1,4 @@
-import { AUDIO_SPEAKER } from './audioUpload'
+import { AUDIO_SPEAKER, SCREEN_SPEAKER } from './audioUpload'
 import { t } from './i18n'
 import type { LiveWord } from './liveWords'
 /** A transcript line as the view needs it */
@@ -118,4 +118,4 @@ export function recentRuns<L extends object, R extends { lines: L[] }>(runs: R[]
   return { runs: out, earlier }
 }
 
-export const transcriptSpeaker = (line: { track: string; speaker?: string | null }): string => line.speaker === AUDIO_SPEAKER ? t('Audio') : line.track === 'me' ? t('You') : line.speaker || t('Them')
+export const transcriptSpeaker = (line: { track: string; speaker?: string | null }): string => line.speaker === AUDIO_SPEAKER ? t('Audio') : line.speaker === SCREEN_SPEAKER ? t('Screen') : line.track === 'me' ? t('You') : line.speaker || t('Them')

@@ -585,9 +585,7 @@
   "Delete audio?": "ऑडियो मिटाएँ?",
   "The audio is deleted for good. Your transcript and notes stay.": "ऑडियो हमेशा के लिए मिट जाएगा। प्रतिलिपि और नोट्स रहेंगे।",
   "Keep the audio until the transcript is saved.": "प्रतिलिपि सेव होने तक ऑडियो रखें।",
-  "Keep audio recordings after meetings": "मीटिंग के बाद ऑडियो रिकॉर्डिंग रखें",
   "Recording deleted": "रिकॉर्डिंग मिटा दी गई",
-  "When off, new meetings' audio is deleted once the summary is saved.": "बंद होने पर नई मीटिंग का ऑडियो सारांश सेव होने के बाद मिटेगा।",
   "New recording": "नई रिकॉर्डिंग",
   "Hide events without a call link": "कॉल लिंक के बिना इवेंट छिपाएँ",
   "Keep your agenda and reminders focused on calls.": "अपने एजेंडा और रिमाइंडर को कॉल पर केंद्रित रखें।",
@@ -726,5 +724,43 @@
   "Continue transcription": "ट्रांसक्रिप्शन जारी रखें",
   "Transcribe again": "फिर से ट्रांसक्राइब करें",
   "Stop transcription": "ट्रांसक्रिप्शन रोकें",
-  "Audio is unavailable.": "ऑडियो उपलब्ध नहीं है।"
+  "Audio is unavailable.": "ऑडियो उपलब्ध नहीं है।",
+  "What Yogurt keeps": "Yogurt क्या रखता है",
+  "Counted from when each meeting ended. Audio and transcripts go only once the summary is saved, and notes stay.": "हर मीटिंग खत्म होने के समय से गिना जाता है। ऑडियो और ट्रांसक्रिप्ट सारांश सेव होने के बाद ही मिटते हैं, और नोट्स रहते हैं।",
+  "Delete transcripts": "ट्रांसक्रिप्ट मिटाएँ",
+  "Its audio goes with it.": "इसका ऑडियो भी मिट जाता है।",
+  "Move meetings to the Trash": "मीटिंग्स ट्रैश में ले जाएँ",
+  "Never": "कभी नहीं",
+  "Once the summary is saved": "सारांश सेव होते ही",
+  "After 1 week": "1 हफ़्ते बाद",
+  "After 1 month": "1 महीने बाद",
+  "After 3 months": "3 महीने बाद",
+  "After 1 year": "1 साल बाद",
+  "After 2 years": "2 साल बाद",
+  "Number of days": "दिनों की संख्या",
+  "Days": "दिन",
+  "Apply to past meetings?": "पिछली मीटिंग्स पर लागू करें?",
+  "Apply": "लागू करें",
+  "{count} meetings already qualify. Their audio is deleted now.": {
+    "one": "{count} मीटिंग पहले से इस नियम में आती है। उसका ऑडियो अभी मिटाया जाएगा।",
+    "other": "{count} मीटिंग्स पहले से इस नियम में आती हैं। उनका ऑडियो अभी मिटाया जाएगा।"
+  },
+  "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": {
+    "one": "{count} मीटिंग पहले से इस नियम में आती है। उसका ट्रांसक्रिप्ट और ऑडियो अभी मिटाया जाएगा; नोट्स रहेंगे।",
+    "other": "{count} मीटिंग्स पहले से इस नियम में आती हैं। उनके ट्रांसक्रिप्ट और ऑडियो अभी मिटाए जाएँगे; नोट्स रहेंगे।"
+  },
+  "{count} meetings already qualify. They move to the Trash now.": {
+    "one": "{count} मीटिंग पहले से इस नियम में आती है। वह अभी ट्रैश में चली जाएगी।",
+    "other": "{count} मीटिंग्स पहले से इस नियम में आती हैं। वे अभी ट्रैश में चली जाएँगी।"
+  },
+  "The transcript was deleted on {date}, as set in Settings.": "सेटिंग्स के अनुसार ट्रांसक्रिप्ट {date} को मिटाया गया।",
+  "Screen": "स्क्रीन",
+  "Reading the screen…": "स्क्रीन पढ़ी जा रही है…",
+  "Delete video": "वीडियो मिटाएँ",
+  "Don't keep it": "न रखें",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "अपलोड किया गया वीडियो रखा जाता है ताकि उसकी स्क्रीन फिर से पढ़ी जा सके। इसके बिना स्क्रीन बाद में नहीं पढ़ी जा सकती, जैसे किसी दूसरे मॉडल से।",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "{count} मीटिंग पहले से इस नियम में आती है। उसका वीडियो अभी मिटाया जाएगा।",
+    "other": "{count} मीटिंग्स पहले से इस नियम में आती हैं। उनके वीडियो अभी मिटाए जाएँगे।"
+  }
 }

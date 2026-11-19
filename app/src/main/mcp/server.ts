@@ -1,4 +1,4 @@
-import { AUDIO_SPEAKER } from '../../shared/audioUpload'
+import { AUDIO_SPEAKER, SCREEN_SPEAKER } from '../../shared/audioUpload'
 import type { Meeting, Store } from '../store'
 
 /**
@@ -67,7 +67,7 @@ export function createMcp(d: McpDeps): Mcp {
     if (!m || m.trashedAt != null) throw new Refusal(`No meeting with id ${JSON.stringify(v ?? null)}. list_meetings or search gives the ids.`)
     return m
   }
-  const who = (speaker: string | null, track: Track) => (speaker === AUDIO_SPEAKER ? 'Audio' : track === 'me' || speaker === 'me' ? d.me() || 'You' : speaker || 'Them')
+  const who = (speaker: string | null, track: Track) => (speaker === AUDIO_SPEAKER ? 'Audio' : speaker === SCREEN_SPEAKER ? 'Screen' : track === 'me' || speaker === 'me' ? d.me() || 'You' : speaker || 'Them')
 
   const tools: Record<string, (a: Record<string, unknown>) => Promise<string>> = {
     async list_meetings(a) {
@@ -88,7 +88,8 @@ export function createMcp(d: McpDeps): Mcp {
       const m = meetingOf(a.id)
       const lines = d.store.segments(m.id)
       if (a.format === 'lines') return JSON.stringify(lines.map((s) => ({ start_ms: s.startMs, end_ms: s.endMs, speaker: who(s.speaker, s.track), is_me: s.track === 'me', text: s.text })), null, 2)
-      return lines.map((s) => `[${clock(s.startMs)}] ${who(s.speaker, s.track)}: ${s.text}`).join('\n') || 'Nothing was transcribed in this meeting.'
+      return lines.map((s) => `[${clock(s.startMs)}] ${who(s.speaker, s.track)}: ${s.text}`).join('\n')
+        || (m.transcriptDeletedAt != null ? "This meeting's transcript was deleted, as set in Yogurt's Settings. Its summary is still there." : 'Nothing was transcribed in this meeting.')
     },
     async search(a) {
       const q = text(a.query)

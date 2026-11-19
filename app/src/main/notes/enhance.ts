@@ -1,4 +1,4 @@
-import { AUDIO_SPEAKER } from '../../shared/audioUpload'
+import { AUDIO_SPEAKER, SCREEN_SPEAKER } from '../../shared/audioUpload'
 import { REWRITE_NOTE_MAX } from '../../shared/rewriteNote'
 import type { Person, Segment } from '../store'
 import { LOCALES } from '../../shared/i18n'
@@ -44,7 +44,7 @@ export function languageName(code: string | null | undefined): string {
 
 /** "You: …" for the mic, "<Name>: …" for the other side when the call app showed who talked, "Them: …" otherwise */
 export function transcriptText(segments: Segment[]): string {
-  const who = (s: Segment) => (s.speaker === AUDIO_SPEAKER ? 'Audio' : s.track === 'me' ? 'You' : s.speaker || 'Them')
+  const who = (s: Segment) => (s.speaker === AUDIO_SPEAKER ? 'Audio' : s.speaker === SCREEN_SPEAKER ? 'Screen' : s.track === 'me' ? 'You' : s.speaker || 'Them')
   const turns: Array<{ who: string; text: string }> = []
   for (const s of segments) {
     const w = who(s)
@@ -75,7 +75,7 @@ type PromptInput = {
  * after it. The model reads this during the meeting (readAhead.ts), so after it only the rest is new: never change it
  * for one meeting, and put anything new after the transcript.
  */
-export const transcriptHead = 'Here is the transcript of a meeting. Each line starts with who said it: "You" is the person who recorded it, a name is someone on the call, and "Them" is the other side of the call when no name is known. \"Audio\" is an uploaded recording with no identified speakers. What to do with it comes after it.\n<transcript>\n'
+export const transcriptHead = 'Here is the transcript of a meeting. Each line starts with who said it: "You" is the person who recorded it, a name is someone on the call, and "Them" is the other side of the call when no name is known. \"Audio\" is an uploaded recording with no identified speakers. \"Screen\" is text that was shown on screen then, read from a video, not said by anyone. What to do with it comes after it.\n<transcript>\n'
 
 /** the rule about people, for the notes and for answers about a meeting */
 export const peopleRule = '- People: use their names when known, and "You" for the person these notes are for. "Them" is not a name: write who they are in plain words ("the client", "the other person"), or leave out who said it. \"Audio\" labels an unidentified recording, not a person. Never make up a name.'

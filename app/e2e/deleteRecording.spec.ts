@@ -44,14 +44,13 @@ test('deleting audio asks first, preserves the note and search, and survives Tra
     }))).toBe(true)
     await page.getByTestId('recording-settings').click()
     await expect(page.getByTestId('settings')).toBeVisible()
-    await expect(page.getByTestId('keep-recordings-toggle')).toBeFocused()
-    await expect(page.getByTestId('keep-recordings-toggle')).toHaveAttribute('aria-checked', 'true')
-    expect((await page.evaluate(() => window.yogurt.settings.get())).keepRecordings).toBe(true)
-    expect(await page.getByTestId('recording-setting').evaluate(el => {
+    await expect(page.getByTestId('retention-audio-choice')).toBeFocused()
+    await expect(page.getByTestId('retention-audio-choice')).toHaveValue('never')
+    expect((await page.evaluate(() => window.yogurt.settings.get())).retention.audio).toBeNull()
+    expect(await page.getByTestId('retention-audio').evaluate(el => {
       const row = el.getBoundingClientRect(), viewport = el.closest('.settings-scroll')!.getBoundingClientRect()
       return row.top >= viewport.top && row.bottom <= viewport.bottom
     })).toBe(true)
-    expect(await page.getByTestId('recording-setting').locator('.settings-description').evaluate(el => el.getBoundingClientRect().height)).toBeLessThanOrEqual(18)
     const after = await page.evaluate(async id => ({ meeting: await window.yogurt.meetings.get(id), notes: await window.yogurt.notes.get(id), lines: await window.yogurt.transcript.get(id) }), id)
     expect(after).toEqual(before)
     await page.evaluate(async id => { await window.yogurt.meetings.trash(id); await window.yogurt.meetings.restore(id) }, id)
@@ -68,14 +67,14 @@ test('deleting audio asks first, preserves the note and search, and survives Tra
   } finally { await app.close() }
 })
 
-test('turning retention off deletes only after saved transcript and summary and updates the open player', async () => {
+test('audio deleted once the summary is saved goes only after the saved transcript and summary, and updates the open player', async () => {
   const { app, page, userData } = await launch({ YOGURT_FAKE_NOTES_MODEL_MS: '16000' })
   try {
     await page.getByTestId('settings-open').click()
-    const toggle = page.getByTestId('keep-recordings-toggle')
-    await expect(toggle).toHaveAttribute('aria-checked', 'true')
-    await toggle.click(); await expect(toggle).toHaveAttribute('aria-checked', 'false')
-    expect(JSON.parse(readFileSync(join(userData, 'settings.json'), 'utf8')).keepRecordings).toBe(false)
+    const choice = page.getByTestId('retention-audio-choice')
+    await expect(choice).toHaveValue('never')
+    await choice.selectOption('0'); await expect(choice).toHaveValue('0')
+    await expect.poll(() => JSON.parse(readFileSync(join(userData, 'settings.json'), 'utf8')).audioDays).toBe(0)
     await page.getByTestId('nav-home').click()
     await page.getByRole('button', { name: 'Start recording', exact: true }).click()
     const id = (await page.evaluate(() => window.yogurt.nav.current())).slice('/note/'.length)
@@ -132,27 +131,37 @@ test('a meeting with deleted audio resumes after its retained transcript', async
 })
 
 
-test('turning retention off leaves older recordings even when their summaries are generated later', async () => {
+test('an audio rule leaves recordings that have no summary yet, and asks before deleting earlier ones that do', async () => {
   const { app, page, userData } = await launch({ YOGURT_FAKE_LLM_MS: '1' })
   try {
     const id = await fake<string>(app, 'bigMeeting', 4)
     await page.getByTestId('settings-open').click()
-    await expect(page.getByText("When off, new meetings' audio is deleted once the summary is saved.")).toBeVisible()
-    await page.getByTestId('keep-recordings-toggle').click()
-    await expect(page.getByTestId('keep-recordings-toggle')).toHaveAttribute('aria-checked', 'false')
+    // no summary yet: nothing qualifies, so it is saved without asking, and the audio stays
+    await page.getByTestId('retention-audio-choice').selectOption('0')
+    await expect.poll(() => JSON.parse(readFileSync(join(userData, 'settings.json'), 'utf8')).audioDays).toBe(0)
+    expect(await page.evaluate(id => window.yogurt.audio.tracks(id), id)).toEqual(['me', 'them'])
+    await page.getByTestId('retention-audio-choice').selectOption('never')
     await page.evaluate(id => window.yogurt.notes.writeAgain(id), id)
     await expect.poll(async () => (await page.evaluate(id => window.yogurt.notes.get(id), id)).status).toBe('done')
-    expect(await page.evaluate(id => window.yogurt.audio.tracks(id), id)).toEqual(['me', 'them'])
     expect(existsSync(join(userData, 'meetings', id, 'me.wav'))).toBe(true)
+    await page.getByTestId('retention-audio-choice').selectOption('0')
+    await expect(page.getByTestId('retention-confirm')).toContainText('1 meeting already qualifies. Its audio is deleted now.')
+    await page.getByTestId('retention-confirm-cancel').click()
+    await expect(page.getByTestId('retention-audio-choice')).toHaveValue('never')
+    expect(existsSync(join(userData, 'meetings', id, 'me.wav'))).toBe(true)
+    await page.getByTestId('retention-audio-choice').selectOption('0')
+    await page.getByTestId('retention-confirm-yes').click()
+    await expect.poll(() => page.evaluate(id => window.yogurt.audio.tracks(id), id)).toEqual([])
+    expect((await page.evaluate(id => window.yogurt.transcript.get(id), id)).length).toBe(4)
   } finally { await app.close() }
 })
 
 
-test('manual deletion with retention off confirms without offering Settings', async () => {
+test('manual deletion with an audio rule picked confirms without offering Settings', async () => {
   const { app, page } = await launch()
   try {
     const id = await fake<string>(app, 'bigMeeting', 4)
-    await page.evaluate(() => window.yogurt.settings.setKeepRecordings(false))
+    await page.evaluate(() => window.yogurt.settings.setRetention('audio', 30))
     await fake(app, 'go', `/note/${id}`)
     await page.getByRole('tab', { name: 'Transcript', exact: true }).click()
     await page.getByTestId('recording-menu').click()
@@ -160,6 +169,6 @@ test('manual deletion with retention off confirms without offering Settings', as
     await page.getByTestId('recording-delete-yes').click()
     await expect(page.getByTestId('recording-deleted-toast')).toContainText('Recording deleted')
     await expect(page.getByTestId('recording-settings')).toHaveCount(0)
-    expect((await page.evaluate(() => window.yogurt.settings.get())).keepRecordings).toBe(false)
+    expect((await page.evaluate(() => window.yogurt.settings.get())).retention.audio).toBe(30)
   } finally { await app.close() }
 })
