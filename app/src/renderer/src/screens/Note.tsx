@@ -11,7 +11,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEve
 import { useScrollMemory } from '../useScrollMemory'
 import { AudioLines, Lock, RotateCcw, Trash2, TextAlignStart, TriangleAlert } from 'lucide-react'
 import type { MeetingView, NoteSaveResult, NoteSide, NoteView, SetupState, WidgetView } from '../../../shared/types'
-import { t } from '../../../shared/i18n'
+import { language, t } from '../../../shared/i18n'
 import { osWords } from '../keys'
 import { Modal, ModalClose } from '../components/Modal'
 import { NotesModelWait } from '../components/NotesModelWait'
@@ -246,7 +246,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
     if (resumeHandled.current || !m || !notes || summarizing || starting || m.stopSavePending) return
     resumeHandled.current = true
     onResumeRequested()
-    if (m.trashedAt == null && !m.stopSavePending && (m.state === 'stopped' || m.state === 'done')) void resumeRecording()
+    if (m.trashedAt == null && m.transcriptDeletedAt == null && !m.stopSavePending && (m.state === 'stopped' || m.state === 'done')) void resumeRecording()
   }, [onResumeRequested, m, notes, summarizing, starting])
 
   const [hasAudio,setHasAudio]=useState(false)
@@ -332,7 +332,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   const transcribing=transcriptionBusy(m.transcriptionState)
   const runTranscript=async(again=false)=>{if(!await saveAll())return;try{const started=await window.yogurt.transcript.run(id,again);if(started)setPrimary('transcript')}catch{toasts.add({title:t("Yogurt couldn't transcribe this file.")})}}
   const transcriptReason=recording||m.stopSavePending?t('Available after recording'):transcribing?t('Transcribing…'):summarizing?t('Summarizing…'):!hasAudio?t('Audio is unavailable.'):undefined
-  const generation = summaryAction({ hasSummary, hasContent: hasTranscript || !!notes.mine.trim(), recording, busy: summarizing, downloading: !!(setup?.notesDownloading || setup?.notesError), trashed })
+  const generation = summaryAction({ hasSummary, hasContent: hasTranscript || !!notes.mine.trim(), recording, busy: summarizing, downloading: !!(setup?.notesDownloading || setup?.notesError), trashed, transcriptDeleted: m.transcriptDeletedAt != null })
   if(generation&&transcribing)generation.reason=t('Transcribing…')
   const requestRewrite = () => {
     if (!generation || generation.reason) return
@@ -380,7 +380,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                   </button>
                 </>}
                 {finishing && <span data-testid="note-finishing" role="status" className="note-finishing">{t('Finishing…')}</span>}
-                {!transcribing && !finishing && (m.source !== 'audio-file' || summarizing) && (m.state === 'stopped' || m.state === 'done') && !m.stopSavePending && !trashed && <button data-testid="note-resume" disabled={starting} aria-busy={summarizing} data-processing={summarizing} onClick={() => { if (summarizing) void window.yogurt.notes.stop(id).catch(console.error); else void resumeRecording() }}
+                {!transcribing && !finishing && (m.source !== 'audio-file' || summarizing) && (m.state === 'stopped' || m.state === 'done') && !m.stopSavePending && !trashed && m.transcriptDeletedAt == null && <button data-testid="note-resume" disabled={starting} aria-busy={summarizing} data-processing={summarizing} onClick={() => { if (summarizing) void window.yogurt.notes.stop(id).catch(console.error); else void resumeRecording() }}
                   aria-label={summarizing ? t('Stop summary') : t('Resume recording')} className="workspace-button note-resume-action" title={summarizing ? t('Stop summary') : t('Resume recording in this note')}>
                   <Swap show={summarizing ? 'busy' : 'mic'} options={{ mic: <Mic size={14} />, busy: <span className="summary-stop-icon"><Loader size={14} /><span className="summary-stop-square" /></span> }} />
                   <SwapText text={summarizing ? t('Summarizing…') : starting ? t('Preparing…') : t('Resume recording')} />
@@ -432,7 +432,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                 /> : <Enhanced key={id} presentation={summaryState} focus={primary === 'notes' && at?.ms === null ? at : undefined} notes={notes} disabled={starting} onChange={(md) => { setEditedHere(true); const next = { ...current.current!, enhanced: md }; current.current = next; setNotes(next); enhancedSave.change(md) }} onBlur={enhancedSave.flush} onRetry={requestRewrite} />}
           </NoteReadingPane>
           {(primary === 'transcript' || transcriptVisited) && <section hidden={primary !== 'transcript'} id="note-transcript-panel" role="tabpanel" aria-labelledby="note-transcript-tab" className="note-content note-transcript-pane">
-            <Transcript notice={<>{(hasAudio&&(m.transcriptionPending||!hasTranscript)||m.transcriptionState==='waiting-model'||m.transcriptionState==='waiting-recording')&&<TranscriptionNotice state={m.transcriptionState} hasLines={hasTranscript} onContinue={()=>void runTranscript()} disabled={recording||!!m.stopSavePending}/>}
+            <Transcript notice={<>{m.transcriptDeletedAt!=null&&<p data-testid="transcript-deleted" role="status" className="transcription-notice text-xs text-muted">{t('The transcript was deleted on {date}, as set in Settings.',{date:new Date(m.transcriptDeletedAt).toLocaleDateString(language(),{dateStyle:'long'})})}</p>}{(hasAudio&&(m.transcriptionPending||!hasTranscript)||m.transcriptionState==='waiting-model'||m.transcriptionState==='waiting-recording')&&<TranscriptionNotice state={m.transcriptionState} hasLines={hasTranscript} onContinue={()=>void runTranscript()} disabled={recording||!!m.stopSavePending}/>}
             {!hasAudio&&m.transcriptionState==='error'&&<InlineError testId="upload-preparation-failed"><span>{t("Yogurt couldn't read this audio file.")}</span><button className="text-action" onClick={()=>void openAudioUpload()}>{t('Upload a file')}</button></InlineError>}</>} id={id} processing={transcribing} replacing={!!m.transcriptionAgain} recording={recording} active={primary === 'transcript'} inline toolbar={transcriptToolbar} focus={at?.ms != null ? { ...at, ms: at.ms } : undefined} />
           </section>}
           </div>

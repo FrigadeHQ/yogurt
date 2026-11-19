@@ -209,8 +209,8 @@ describe.each(LOCALES.filter((l) => l.id !== 'en'))('$english', ({ id }) => {
 })
 
 it('translates recording deletion and retention in every locale', () => {
-  for (const { id } of LOCALES) for (const old of ['Delete recording', 'Delete recording?', "Yogurt couldn't delete the recording.", 'Keep recordings after meetings', 'Turn off to delete audio after the transcript and summary are saved.', 'Only applies to meetings that finish from now on.']) expect(load(id)[old]).toBeUndefined()
-  for (const { id } of LOCALES) for (const key of ["Recording deleted", "Settings", "Delete audio", "Delete audio?", "The audio is deleted for good. Your transcript and notes stay.", "Keep the audio until the transcript is saved.", "Yogurt couldn't delete the audio.", "Keep audio recordings after meetings", "When off, new meetings' audio is deleted once the summary is saved."]) {
+  for (const { id } of LOCALES) for (const old of ['Delete recording', 'Delete recording?', "Yogurt couldn't delete the recording.", 'Keep recordings after meetings', 'Turn off to delete audio after the transcript and summary are saved.', 'Only applies to meetings that finish from now on.', 'Keep audio recordings after meetings', "When off, new meetings' audio is deleted once the summary is saved."]) expect(load(id)[old]).toBeUndefined()
+  for (const { id } of LOCALES) for (const key of ["Recording deleted", "Settings", "Delete audio", "Delete audio?", "The audio is deleted for good. Your transcript and notes stay.", "Keep the audio until the transcript is saved.", "Yogurt couldn't delete the audio.", 'What Yogurt keeps', 'Once the summary is saved', 'Delete transcripts', 'Move meetings to the Trash', 'Apply to past meetings?']) {
     expect(keys).toContain(key)
     expect(load(id)[key]).toBeTypeOf('string')
     if (id !== 'en' && !(id === 'fil' && key === 'Settings')) expect(load(id)[key]).not.toBe(key)
