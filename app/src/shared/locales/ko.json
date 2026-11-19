@@ -719,5 +719,14 @@
   "Help": "도움말",
   "Help and settings": "도움말 및 설정",
   "Yogurt menu": "Yogurt 메뉴",
-  "Restart to update · {version}": "다시 시작하여 업데이트 · {version}"
+  "Restart to update · {version}": "다시 시작하여 업데이트 · {version}",
+  "Only apps added here": "여기에 추가한 앱만",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "앱마다 고유한 키를 받으며, 이 Mac의 다른 앱은 아무것도 읽을 수 없습니다.",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "앱마다 고유한 키를 받으며, 이 컴퓨터의 다른 앱은 아무것도 읽을 수 없습니다.",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "여기에서 각 앱을 추가한 다음, 해당 설정을 앱에 로컬 MCP 서버로 붙여 넣으세요.",
+  "No apps added yet.": "아직 추가한 앱이 없습니다.",
+  "Copy setup": "설정 복사",
+  "App name": "앱 이름",
+  "Add an app": "앱 추가",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "이 설정을 {name}에 붙여 넣으세요. 앱의 키가 들어 있으니 공유하지 마세요."
 }

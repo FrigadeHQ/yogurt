@@ -18,7 +18,7 @@ const tmp = () => { const d = mkdtempSync(join(tmpdir(), 'yogurt-mcp-')); dirs.p
 export const EVENT: CalEvent = { id: 'evt-9', title: 'Pricing sync', start: Date.parse('2026-11-21T15:00:00Z'), end: Date.parse('2026-11-21T15:30:00Z'),
   attendees: [{ name: 'Dana Smith', email: 'dana@acme.com' }], url: 'https://meet.example.com/abc', calendar: { id: 'c1', name: 'Work', source: 'iCloud' } }
 
-export function setup(o: { enabled?: boolean; changes?: boolean; platform?: string; app?: Partial<McpApp> } = {}) {
+export function setup(o: { enabled?: boolean; changes?: boolean; requiresKey?: boolean; platform?: string; app?: Partial<McpApp> } = {}) {
   const dir = tmp()
   const store = openStore(join(dir, 'yogurt.db')); stores.push(store)
   const base = { endedAt: null, eventId: null, app: 'Zoom', state: 'done' as const }
@@ -69,14 +69,15 @@ export function setup(o: { enabled?: boolean; changes?: boolean; platform?: stri
     ...o.app,
   }
   const mcp = createMcp({
-    store, enabled: () => on, changesEnabled: () => changes, me: () => 'Sam Rivera', version: '0.1.0', platform: o.platform, app, log: (l) => logs.push(l),
+    store, enabled: () => on, changesEnabled: () => changes, requiresKey: () => !!o.requiresKey, me: () => 'Sam Rivera', version: '0.1.0', platform: o.platform, app, log: (l) => logs.push(l),
     audio: async (id) => id === older.id ? [{ track: 'me', path: join(audioDir, 'me.m4a') }, { track: 'them', path: join(audioDir, 'them.m4a') }] : [],
   })
   return { store, mcp, older, newer, dir, calls, logs, turn: (v: boolean) => { on = v }, allowChanges: (v: boolean) => { changes = v } }
 }
 
-export const call = async (mcp: Mcp, name: string, args: Record<string, unknown> = {}) => {
-  const r = await mcp.handle({ jsonrpc: '2.0', id: 7, method: 'tools/call', params: { name, arguments: args } }) as { result: { content: Array<{ text: string }>; isError?: boolean } }
+/** caller: the app whose connection gave a key added in Settings (none: a connection without one) */
+export const call = async (mcp: Mcp, name: string, args: Record<string, unknown> = {}, caller?: { name: string }) => {
+  const r = await mcp.handle({ jsonrpc: '2.0', id: 7, method: 'tools/call', params: { name, arguments: args } }, caller) as { result: { content: Array<{ text: string }>; isError?: boolean } }
   return { text: r.result.content.map((c) => c.text).join('\n'), isError: !!r.result.isError }
 }
 export const json = async (mcp: Mcp, name: string, args: Record<string, unknown> = {}) => {

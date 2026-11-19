@@ -749,5 +749,14 @@
   "Help": "सहायता",
   "Help and settings": "सहायता और सेटिंग",
   "Yogurt menu": "Yogurt मेन्यू",
-  "Restart to update · {version}": "अपडेट के लिए रीस्टार्ट करें · {version}"
+  "Restart to update · {version}": "अपडेट के लिए रीस्टार्ट करें · {version}",
+  "Only apps added here": "केवल यहां जोड़े गए ऐप्स",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "हर ऐप को अपनी कुंजी मिलती है, और इस Mac पर अन्य ऐप्स कुछ भी नहीं पढ़ सकते।",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "हर ऐप को अपनी कुंजी मिलती है, और इस कंप्यूटर पर अन्य ऐप्स कुछ भी नहीं पढ़ सकते।",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "हर ऐप को यहां जोड़ें, फिर उसका सेटअप ऐप में स्थानीय MCP सर्वर के रूप में पेस्ट करें।",
+  "No apps added yet.": "अभी तक कोई ऐप नहीं जोड़ा गया।",
+  "Copy setup": "सेटअप कॉपी करें",
+  "App name": "ऐप का नाम",
+  "Add an app": "ऐप जोड़ें",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "इस सेटअप को {name} में पेस्ट करें। इसमें ऐप की कुंजी है, इसलिए इसे निजी रखें।"
 }

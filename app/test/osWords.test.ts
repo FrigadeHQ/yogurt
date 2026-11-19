@@ -28,6 +28,7 @@ describe('Mac text', () => {
     'Apps on this Mac can read your meetings, notes, transcripts and recordings. If an app uses an online AI, what it reads goes to that AI.',
     "Calendars from the Mac's Calendar app appear above automatically.",
     'Connect the calendars on this Mac to see your upcoming meetings.',
+    'Each app gets its own key, and other apps on this Mac can’t read anything.',
     'Everything stays on your Mac.',
     'Its notes, transcript and recording are removed from this Mac for good.',
     'Match my Mac',
@@ -51,6 +52,7 @@ describe('Mac text', () => {
     for (const k of [
       'Everything stays on your computer.', 'Saved on this computer',
       'Yogurt stores your meetings, notes and audio on this computer.', 'Apps on this computer can read your meetings, notes, transcripts and recordings. If an app uses an online AI, what it reads goes to that AI.',
+      'Each app gets its own key, and other apps on this computer can’t read anything.',
       'Match Windows', 'Match my system', 'Open Yogurt when Windows starts', 'Open Yogurt when you log in',
       'Show Yogurt in the notification area', 'Show Yogurt in the tray', 'Show in File Explorer', 'Show in Files',
     ]) expect(keys).toContain(k)

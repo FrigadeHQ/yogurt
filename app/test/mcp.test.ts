@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { writeFileSync } from 'node:fs'
 import { connect } from 'node:net'
 import { join } from 'node:path'
-import { MCP_TOOLS } from '../src/main/mcp/server'
+import { MCP_TOOLS, type Mcp } from '../src/main/mcp/server'
 import { setup, call, json } from './mcpRig'
 import { serveMcp } from '../src/main/mcp/socket'
 import { mcpAddress } from '../src/main/mcp/paths'
@@ -62,6 +62,18 @@ describe('the MCP server', () => {
     expect(r.isError).toBe(true)
     expect(r.text).toContain('Settings')
     expect(r.text).not.toContain('Budget')
+  })
+  it('with keys required, reads only for an app added in Settings, and tells any other app where to add it', async () => {
+    const { mcp } = setup({ requiresKey: true })
+    const stranger = await call(mcp, 'list_meetings')
+    expect(stranger.isError).toBe(true)
+    expect(stranger.text).toContain('Settings, AI apps')
+    expect(stranger.text).not.toContain('Budget')
+    // listing the tools says nothing about meetings, so any app may still see them
+    expect(await mcp.handle({ jsonrpc: '2.0', id: 3, method: 'tools/list' })).toMatchObject({ result: { tools: expect.any(Array) } })
+    const added = await call(mcp, 'list_meetings', {}, { name: 'Claude' })
+    expect(added.isError).toBe(false)
+    expect(added.text).toContain('Budget review')
   })
   it('lists meetings newest first, with who was in them, and finds them by words', async () => {
     const { mcp, older, newer } = setup()
@@ -148,6 +160,34 @@ describe('the MCP socket', () => {
       sock.end()
       await expect.poll(() => server.clients()).toEqual([])
       expect(seen).toEqual([['Claude'], []])
+    } finally { await server.close() }
+  })
+  it('knows an app by the key it sends first, shows it by its Settings name, and closes it when it is removed', async () => {
+    const { dir } = setup()
+    const seenBy: Array<string | undefined> = []
+    const mcp: Mcp = { handle: async (msg, caller) => { seenBy.push(caller?.name); return (msg as { id?: number }).id === undefined ? null : { jsonrpc: '2.0', id: (msg as { id: number }).id, result: {} } } }
+    const path = mcpAddress(process.platform, dir, randomBytes(8).toString('hex'))
+    const key = 'yog_' + 'a'.repeat(43)
+    const server = await serveMcp(path, mcp, () => {}, (t) => (t === key ? { id: 'app-1', name: 'Hermes' } : undefined))
+    try {
+      const open = (first: string) => {
+        const sock = connect(path)
+        const replies: unknown[] = []
+        let buf = ''
+        sock.on('data', (d) => { buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { replies.push(JSON.parse(buf.slice(0, i))); buf = buf.slice(i + 1) } })
+        sock.write(first + JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { clientInfo: { name: 'claude-code' } } }) + '\n')
+        return { sock, replies, closed: new Promise<void>((r) => sock.on('close', () => r())) }
+      }
+      const added = open(JSON.stringify({ jsonrpc: '2.0', method: 'yogurt/auth', params: { token: key } }) + '\n')
+      const wrong = open(JSON.stringify({ jsonrpc: '2.0', method: 'yogurt/auth', params: { token: 'yog_' + 'b'.repeat(43) } }) + '\n')
+      await expect.poll(() => added.replies.length + wrong.replies.length).toBe(2)
+      // the key line itself is never answered and never reaches the server
+      expect(seenBy.sort()).toEqual(['Hermes', undefined].sort())
+      expect(server.clients().sort()).toEqual(['Hermes', 'claude-code'])
+      server.drop('app-1')
+      await added.closed
+      await expect.poll(() => server.clients()).toEqual(['claude-code'])
+      wrong.sock.end()
     } finally { await server.close() }
   })
   it.skipIf(process.platform === 'win32')('replaces a socket file left by a crash', async () => {

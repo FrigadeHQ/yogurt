@@ -12,6 +12,7 @@ import { importTools, importHandlers } from './importMeeting'
  * Yogurt as an MCP server, so an AI app on this Mac (Claude, Cursor, …) can use the person's meetings: JSON-RPC
  * messages in, answers out (socket.ts carries them; the yogurt-mcp helper connects the app to it).
  * Off until the person turns it on in Settings: until then every tool says where to turn it on and gives nothing.
+ * With "Only apps added here" on (the default), the same goes for an app whose connection gave no key of an app added there.
  * Reading is all it does unless the person also lets AI apps make changes; then each change goes through the same
  * functions the app's own buttons use. Nothing is ever deleted for good: meetings go to the Trash.
  * Text here goes to the other app's model, never to Yogurt's interface, so it is not translated.
@@ -63,8 +64,11 @@ export type McpDeps = {
   platform?: string
   /** main.log, which goes in public issues: ids and outcomes only, never names or words */
   log?: (line: string) => void
+  /** only apps added in Settings may use the tools (each connection's key is checked in socket.ts); no keys needed when left out */
+  requiresKey?: () => boolean
 }
-export type Mcp = { handle(msg: unknown): Promise<object | null> }
+/** caller: who sent the message, when its connection gave the key of an app added in Settings */
+export type Mcp = { handle(msg: unknown, caller?: { name: string }): Promise<object | null> }
 export type Tool = { name: string; description: string; inputSchema: object; annotations: object }
 
 /** newest first: the app asked for one of these, it gets that one; otherwise the newest */
@@ -282,7 +286,7 @@ export function createMcp(d: McpDeps): Mcp {
   }
 
   return {
-    async handle(msg) {
+    async handle(msg, caller) {
       if (!msg || typeof msg !== 'object' || (msg as { jsonrpc?: unknown }).jsonrpc !== '2.0' || typeof (msg as { method?: unknown }).method !== 'string') return fail(null, -32600, 'Not a JSON-RPC request')
       const { id: msgId, method, params } = msg as { id?: unknown; method: string; params?: Record<string, unknown> }
       // a notification: nothing comes back
@@ -306,6 +310,11 @@ export function createMcp(d: McpDeps): Mcp {
         if (!tool) return said(msgId, `Yogurt has no tool called ${name}.`, true)
         if (!d.enabled()) return said(msgId, 'Yogurt has connecting AI apps turned off. The person can turn it on in Yogurt: Settings, AI apps.', true)
         const change = CHANGES.has(name)
+        // who may connect comes first: an app without a key learns where to add itself, nothing about what changes are allowed
+        if (d.requiresKey?.() && !caller) {
+          if (change) logged(name, a, 'refused: no key')
+          return said(msgId, "Yogurt only shares meetings with AI apps added in its Settings. The person can add this app in Yogurt: Settings, AI apps, Add an app, then paste the setup it gives into this app.", true)
+        }
         if (change && !d.changesEnabled()) {
           logged(name, a, 'refused: changes off')
           return said(msgId, 'Yogurt lets AI apps read meetings but not change them. The person can allow changes in Yogurt: Settings, AI apps, "Let AI apps make changes".', true)

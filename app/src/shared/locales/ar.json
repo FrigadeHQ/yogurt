@@ -817,5 +817,14 @@
   "Help": "المساعدة",
   "Help and settings": "المساعدة والإعدادات",
   "Yogurt menu": "قائمة Yogurt",
-  "Restart to update · {version}": "إعادة التشغيل للتحديث · {version}"
+  "Restart to update · {version}": "إعادة التشغيل للتحديث · {version}",
+  "Only apps added here": "التطبيقات المضافة هنا فقط",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "يحصل كل تطبيق على مفتاحه الخاص، ولا يمكن للتطبيقات الأخرى على هذا الـ Mac قراءة أي شيء.",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "يحصل كل تطبيق على مفتاحه الخاص، ولا يمكن للتطبيقات الأخرى على هذا الكمبيوتر قراءة أي شيء.",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "أضف كل تطبيق هنا، ثم الصق إعداده في التطبيق كخادم MCP محلي.",
+  "No apps added yet.": "لم تتم إضافة أي تطبيقات بعد.",
+  "Copy setup": "نسخ الإعداد",
+  "App name": "اسم التطبيق",
+  "Add an app": "إضافة تطبيق",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "الصق هذا الإعداد في {name}. يحتوي على مفتاح التطبيق، فاحتفظ به سرًا."
 }

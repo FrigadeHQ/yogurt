@@ -749,5 +749,14 @@
   "Help": "সহায়তা",
   "Help and settings": "সহায়তা ও সেটিংস",
   "Yogurt menu": "Yogurt মেনু",
-  "Restart to update · {version}": "আপডেট করতে পুনরায় চালু করুন · {version}"
+  "Restart to update · {version}": "আপডেট করতে পুনরায় চালু করুন · {version}",
+  "Only apps added here": "শুধু এখানে যোগ করা অ্যাপ",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "প্রতিটি অ্যাপ নিজের একটি কী পায়, এবং এই Mac-এর অন্য অ্যাপগুলো কিছুই পড়তে পারে না।",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "প্রতিটি অ্যাপ নিজের একটি কী পায়, এবং এই কম্পিউটারের অন্য অ্যাপগুলো কিছুই পড়তে পারে না।",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "প্রতিটি অ্যাপ এখানে যোগ করুন, তারপর এর সেটআপ অ্যাপে স্থানীয় MCP সার্ভার হিসেবে পেস্ট করুন।",
+  "No apps added yet.": "এখনও কোনো অ্যাপ যোগ করা হয়নি।",
+  "Copy setup": "সেটআপ কপি করুন",
+  "App name": "অ্যাপের নাম",
+  "Add an app": "একটি অ্যাপ যোগ করুন",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "এই সেটআপটি {name}-এ পেস্ট করুন। এতে অ্যাপের কী আছে, তাই এটি গোপন রাখুন।"
 }

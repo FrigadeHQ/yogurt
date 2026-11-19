@@ -792,5 +792,14 @@
   "Help": "Nápověda",
   "Help and settings": "Nápověda a nastavení",
   "Yogurt menu": "Nabídka Yogurt",
-  "Restart to update · {version}": "Restartovat a aktualizovat · {version}"
+  "Restart to update · {version}": "Restartovat a aktualizovat · {version}",
+  "Only apps added here": "Jen aplikace přidané zde",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "Každá aplikace dostane vlastní klíč a ostatní aplikace na tomto Macu nemohou nic číst.",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "Každá aplikace dostane vlastní klíč a ostatní aplikace na tomto počítači nemohou nic číst.",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "Přidejte sem každou aplikaci a pak vložte její nastavení do aplikace jako místní MCP server.",
+  "No apps added yet.": "Zatím nejsou přidané žádné aplikace.",
+  "Copy setup": "Kopírovat nastavení",
+  "App name": "Název aplikace",
+  "Add an app": "Přidat aplikaci",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "Vložte toto nastavení do aplikace {name}. Obsahuje klíč aplikace, tak ho nikomu neukazujte."
 }

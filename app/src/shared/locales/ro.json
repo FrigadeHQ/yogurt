@@ -778,5 +778,14 @@
   "Help": "Ajutor",
   "Help and settings": "Ajutor și setări",
   "Yogurt menu": "Meniul Yogurt",
-  "Restart to update · {version}": "Repornește pentru actualizare · {version}"
+  "Restart to update · {version}": "Repornește pentru actualizare · {version}",
+  "Only apps added here": "Doar aplicațiile adăugate aici",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "Fiecare aplicație primește propria cheie, iar celelalte aplicații de pe acest Mac nu pot citi nimic.",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "Fiecare aplicație primește propria cheie, iar celelalte aplicații de pe acest computer nu pot citi nimic.",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "Adaugă aici fiecare aplicație, apoi lipește configurarea ei în aplicație ca server MCP local.",
+  "No apps added yet.": "Nu ai adăugat încă nicio aplicație.",
+  "Copy setup": "Copiază configurarea",
+  "App name": "Numele aplicației",
+  "Add an app": "Adaugă o aplicație",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "Lipește această configurare în {name}. Conține cheia aplicației, așa că păstreaz-o privată."
 }

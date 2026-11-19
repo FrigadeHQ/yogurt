@@ -767,5 +767,14 @@
   "Help": "Ohje",
   "Help and settings": "Ohje ja asetukset",
   "Yogurt menu": "Yogurt-valikko",
-  "Restart to update · {version}": "Käynnistä uudelleen ja päivitä · {version}"
+  "Restart to update · {version}": "Käynnistä uudelleen ja päivitä · {version}",
+  "Only apps added here": "Vain tähän lisätyt apit",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "Jokainen appi saa oman avaimensa, eivätkä tämän Macin muut apit voi lukea mitään.",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "Jokainen appi saa oman avaimensa, eivätkä tämän tietokoneen muut apit voi lukea mitään.",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "Lisää jokainen appi tähän ja liitä sen asetukset sitten appiin paikallisena MCP-palvelimena.",
+  "No apps added yet.": "Appeja ei ole vielä lisätty.",
+  "Copy setup": "Kopioi asetukset",
+  "App name": "Apin nimi",
+  "Add an app": "Lisää appi",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "Liitä nämä asetukset appiin {name}. Ne sisältävät apin avaimen, joten pidä ne omana tietonasi."
 }

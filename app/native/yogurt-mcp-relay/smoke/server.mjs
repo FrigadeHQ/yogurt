@@ -1,7 +1,8 @@
 // A stand-in for Yogurt's MCP server (src/main/mcp/socket.ts): the same place to listen per OS and the same
 // framing, one JSON message a line. node server.mjs PROFILE [args Yogurt was started with...]
 // It writes server.pid and server.args to the profile, then ready once it listens. Methods: initialize, ping,
-// echo (answers with params.text) and bye (closes every connection, as Yogurt quitting would).
+// echo (answers with params.text) and bye (closes every connection, as Yogurt quitting would). A yogurt/auth
+// notification (the app's key) is logged as "auth <key>" and gets no answer, as in Yogurt.
 import { randomBytes } from 'node:crypto'
 import { appendFileSync, existsSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:net'
@@ -25,6 +26,7 @@ const server = createServer((sock) => {
       const msg = JSON.parse(buf.slice(0, i))
       buf = buf.slice(i + 1)
       if (msg.method === 'bye') { for (const c of conns) c.destroy(); continue }
+      if (msg.method === 'yogurt/auth') { log(`auth ${msg.params?.token}`); continue }
       const result = msg.method === 'initialize' ? { protocolVersion: msg.params.protocolVersion, capabilities: { tools: {} }, serverInfo: { name: 'yogurt', version: '0.0.0' } }
         : msg.method === 'echo' ? { echo: msg.params.text } : {}
       sock.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result }) + '\n')
