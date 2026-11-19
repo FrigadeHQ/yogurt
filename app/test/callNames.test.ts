@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { openStore, type Meeting, type Store } from '../src/main/store'
 import { hookCallNames, watchIds, type WatchLine } from '../src/main/callNames'
-import { readCall, type AxNode } from '../src/main/callNames/parse'
+import { readCall, type AxNode, type AxWindow } from '../src/main/callNames/parse'
 
 const dirs: string[] = [], stores: Store[] = []
 afterEach(() => { stores.splice(0).forEach((s) => s.close()); dirs.splice(0).forEach((d) => rmSync(d, { recursive: true, force: true })) })
@@ -17,6 +17,21 @@ const zoomLine = (t: number, people: string[], talking?: string, me?: string): W
     ...(me ? [{ r: 'AXOutline', d: 'Participants list', k: [{ r: 'AXRow', k: [{ r: 'AXStaticText', v: `${me} (me)` }] }] } as AxNode] : []),
   ] } }],
 })
+
+/** Zoom 7.2.5: tiles carry no speaking mark, and the captions table says who said what, newest row last */
+const zoomCaptionLine = (t: number, people: string[], captions: Array<[string, string]>, me?: string): WatchLine => ({
+  t, app: 'us.zoom.xos', windows: [{ id: 'zm.meeting.window.main', tree: { r: 'AXWindow', k: [
+    ...people.map((p): AxNode => ({ r: 'AXTabGroup', d: `${p}, Computer audio unmuted, Video on` })),
+    ...(me ? [{ r: 'AXOutline', d: 'Participants list', k: [{ r: 'AXRow', k: [{ r: 'AXStaticText', v: `${me} (Host, me)` }] }] } as AxNode] : []),
+    { r: 'AXTable', d: 'Closed caption subtitles', k: captions.map(([who, said]): AxNode => ({
+      r: 'AXRow', k: [{ r: 'AXCell', i: 'CellView', k: [{ r: 'AXStaticText', v: who }, { r: 'AXStaticText', v: said }] }],
+    })) },
+  ] } }],
+})
+
+/** Zoom's meeting window with these tiles, each described word for word as Zoom writes it */
+const zoomTiles = (...tiles: string[]): WatchLine['windows'] =>
+  [{ id: 'zm.meeting.window.main', tree: { r: 'AXWindow', k: tiles.map((d): AxNode => ({ r: 'AXTabGroup', d })) } }]
 
 const webexWindows = (): WatchLine['windows'] => [{ title: 'Webex meeting', tree: { r: 'AXWindow', k: [{ r: 'AXOutline', d: 'Participants', k: [
   { r: 'AXCell', d: 'Participants group, 2 participants', k: [{ r: 'AXUnknown', i: 'GenericParticipantListGroupCellView' }] },
@@ -84,6 +99,65 @@ describe('watchIds: only the call app the meeting is in', () => {
     expect(watchIds(null)).toContain('us.zoom.xos')
     expect(watchIds(null)).toContain('org.mozilla.firefox')
     expect(watchIds(null)).toContain('teams-for-linux')
+  })
+})
+
+describe('Zoom tiles', () => {
+  // Zoom 7.2.5 appends a reaction to the tile of whoever has one. Reading the status only from the end stopped at
+  // that unknown word and dropped the whole tile: a real call of six read as five people.
+  it('a tile carrying a status Zoom did not use to write (a reaction) is still a person in the call', () => {
+    expect(readCall('zoom', zoomTiles(
+      'Alex Morgan, Computer audio muted, Video on',
+      'Dana Smith, Computer audio unmuted, Video on, Reaction: Raise hand',
+    )!)).toEqual({ speaking: [], participants: ['Alex Morgan', 'Dana Smith'], me: null })
+  })
+
+  it('a tile with a reaction and the active-speaker mark still reads as talking, in either order', () => {
+    const tiles = (dana: string) => zoomTiles('Alex Morgan, Computer audio muted, Video on', 'Ann Lee, Computer audio muted, Video off', dana)!
+    expect(readCall('zoom', tiles('Dana Smith, Computer audio unmuted, Video on, Active speaker, Reaction: Raise hand')).speaking).toEqual(['Dana Smith'])
+    expect(readCall('zoom', tiles('Dana Smith, Computer audio unmuted, Video on, Reaction: Raise hand, Active speaker')).speaking).toEqual(['Dana Smith'])
+  })
+
+  // "No audio connected" was 170 of 1744 tiles read on a real call: someone who never joined audio is in it as much
+  // as the muted and unmuted people, and dropping them broke the counts the same way the reaction did
+  it('a person who never connected their audio is a person in the call', () => {
+    expect(readCall('zoom', zoomTiles('Alex Morgan, Computer audio muted, Video on', 'Bo Park, No audio connected, Video off')!))
+      .toEqual({ speaking: [], participants: ['Alex Morgan', 'Bo Park'], me: null })
+  })
+})
+
+describe('Zoom captions', () => {
+  /** a caption area holding these rows, each a name and the words beneath it; `where` is how Zoom labels the area */
+  const captionArea = (rows: Array<string[]>, where = 'Closed caption subtitles'): AxWindow[] => [{
+    id: 'zm.meeting.window.main',
+    tree: { r: 'AXWindow', k: [
+      { r: 'AXTabGroup', d: 'Alex Morgan, Computer audio unmuted, Video on' },
+      { r: 'AXTabGroup', d: 'Dana Smith, Computer audio unmuted, Video on' },
+      { r: 'AXTable', d: where, k: rows.map((texts) => ({ r: 'AXRow', k: [{ r: 'AXCell', i: 'CellView', k: texts.map((t) => ({ r: 'AXStaticText', v: t })) }] })) },
+    ] },
+  }]
+
+  it('reads the newest row as the caption, with the words only as a mark', () => {
+    const r = readCall('zoom', captionArea([['Ann Lee', 'said this before'], ['Dana Smith', 'and this now']]))
+    expect(r.caption).toEqual({ who: 'Dana Smith', mark: 'Dana Smith|12' })
+    // never folded into speaking here: on its own it says who spoke last, which the session decides about
+    expect(r.speaking).toEqual([])
+  })
+
+  // Zoom writes its own words into the caption area, with nobody's name beside them
+  it('Zoom\'s own words in the caption area are not a person', () => {
+    expect(readCall('zoom', captionArea([['Captions are on']])).caption).toBeUndefined()
+    expect(readCall('zoom', captionArea([['Captions are on', 'Captions are on']])).caption).toBeUndefined()
+    expect(readCall('zoom', captionArea([['Dana Smith']])).caption).toBeUndefined()
+  })
+
+  // while someone shares their screen Zoom moves the captions out into a small window of their own
+  it('finds the caption area wherever Zoom puts it and however it labels it', () => {
+    expect(readCall('zoom', captionArea([['Dana Smith', 'hello']], 'Closed caption subtitles area')).caption?.who).toBe('Dana Smith')
+    const own: AxWindow[] = [{ title: 'Closed caption subtitles', tree: { r: 'AXWindow', t: 'Closed caption subtitles', k: [
+      { r: 'AXRow', k: [{ r: 'AXCell', i: 'CellView', k: [{ r: 'AXStaticText', v: 'Ann Lee' }, { r: 'AXStaticText', v: 'from the floating window' }] }] },
+    ] } }]
+    expect(readCall('zoom', own).caption?.who).toBe('Ann Lee')
   })
 })
 
@@ -240,12 +314,164 @@ describe('hookCallNames', () => {
     expect(s.logs.filter((l) => l.includes('not-trusted'))).toHaveLength(1)
   })
 
+  it('a calendar name in "family, given" order is the person the call shows as "given family", not someone new', async () => {
+    const s = setup({ attendees: [{ name: 'Smith, Dana', email: 'dana@example.com' }] })
+    s.start()
+    s.audio(0, 1_000_100)
+    s.store.addSegments([{ meetingId: s.m.id, track: 'them', startMs: 1000, endMs: 3000, text: 'early', speaker: null }])
+    for (let t = 1_000_000; t < 1_010_000; t += 500) s.emit(zoomLine(t, ['Alex Morgan', 'Dana Smith'], 'Dana Smith', 'Alex Morgan'))
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id)[0].speaker).toBe('Dana Smith')
+    // the calendar's form is kept, and the call's form is not added beside it
+    expect(s.store.meeting(s.m.id)!.attendees).toEqual([{ name: 'Smith, Dana', email: 'dana@example.com' }])
+    expect(s.logs.some((l) => /0 people added/.test(l))).toBe(true)
+  })
+
+  it('a call that stayed Them says in the log why, in counts', async () => {
+    const s = setup()
+    s.start()
+    s.audio(0, 1_000_100)
+    s.store.addSegments([{ meetingId: s.m.id, track: 'them', startMs: 1000, endMs: 3000, text: 'hello', speaker: null }])
+    // the app was read every time and showed three people, but never marked one of them talking
+    for (let t = 1_000_000; t < 1_005_000; t += 500) s.emit(zoomLine(t, ['Alex Morgan', 'Dana Smith', 'Ann Lee']))
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id)[0].speaker).toBeNull()
+    const summary = s.logs.find((l) => /lines of the other side named/.test(l))!
+    expect(summary).toContain('0 of 1 lines of the other side named')
+    expect(summary).toContain('10 of 10 readings read the app')
+    expect(summary).toContain('at most 3 in the call')
+    expect(summary).toContain('0 marked the other side talking')
+  })
+
+  it('the app marking only the person using Yogurt does not count as marking the other side', async () => {
+    const s = setup()
+    s.start()
+    s.audio(0, 1_000_100)
+    s.store.addSegments([{ meetingId: s.m.id, track: 'them', startMs: 1000, endMs: 3000, text: 'hello', speaker: null }])
+    // Zoom marks Alex (the person using Yogurt, from myNames) as the active speaker and nobody else: whoAt drops
+    // that mark, so counting it would say the app named a speaker when nothing it said could have named one
+    for (let t = 1_000_000; t < 1_005_000; t += 500) s.emit(zoomLine(t, ['Alex Morgan', 'Dana Smith', 'Ann Lee'], 'Alex Morgan', 'Alex Morgan'))
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id)[0].speaker).toBeNull()
+    const summary = s.logs.find((l) => /lines of the other side named/.test(l))!
+    expect(summary).toContain('10 of 10 readings read the app')
+    expect(summary).toContain('0 marked the other side talking')
+  })
+
+  it('names a line from the newest caption when the tiles carry no speaking mark (Zoom 7.2.5)', async () => {
+    const s = setup()
+    s.start()
+    s.audio(0, 1_000_100)
+    s.store.addSegments([{ meetingId: s.m.id, track: 'them', startMs: 1000, endMs: 3000, text: 'hello', speaker: null }])
+    // the newest row grows as Dana keeps talking, which is what says she is talking now
+    let said = 'and'
+    for (let t = 1_000_000; t < 1_010_000; t += 500) {
+      said += ' more'
+      s.emit(zoomCaptionLine(t, ['Alex Morgan', 'Dana Smith', 'Ann Lee'], [['Ann Lee', 'said this earlier'], ['Dana Smith', said]], 'Alex Morgan'))
+    }
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    // the newest row wins, not the one above it
+    expect(s.store.segments(s.m.id)[0].speaker).toBe('Dana Smith')
+    // the words themselves never become a transcript line
+    expect(s.store.segments(s.m.id).map((x) => x.text)).toEqual(['hello'])
+  })
+
+  it('a caption left on screen after the person stopped names nobody', async () => {
+    const s = setup()
+    s.start()
+    s.audio(0, 1_000_100)
+    s.store.addSegments([{ meetingId: s.m.id, track: 'them', startMs: 1000, endMs: 3000, text: 'hello', speaker: null }])
+    // Dana's caption is frozen: the same row, unchanged, for every reading. On a real call a row sat like this for
+    // 45 readings while its speaker was silent, so it says who spoke last, not who is speaking.
+    for (let t = 1_000_000; t < 1_010_000; t += 500) {
+      s.emit(zoomCaptionLine(t, ['Alex Morgan', 'Dana Smith', 'Ann Lee'], [['Dana Smith', 'stopped talking a while ago']], 'Alex Morgan'))
+    }
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id)[0].speaker).toBeNull()
+    const summary = s.logs.find((l) => /lines of the other side named/.test(l))!
+    expect(summary).toContain('0 marked the other side talking')
+  })
+
+  it('a frozen caption missing from some readings is still frozen when it comes back', async () => {
+    const s = setup()
+    s.start()
+    s.audio(0, 1_000_100)
+    s.store.addSegments([{ meetingId: s.m.id, track: 'them', startMs: 1000, endMs: 3000, text: 'hello', speaker: null }])
+    // the same frozen row, but every other reading lacks the caption area (the tree was cut short, or the reading
+    // came from another window): its coming back is not the row moving
+    const people = ['Alex Morgan', 'Dana Smith', 'Ann Lee']
+    for (let t = 1_000_000; t < 1_010_000; t += 500) {
+      s.emit((t / 500) % 2 ? zoomCaptionLine(t, people, [], 'Alex Morgan') : zoomCaptionLine(t, people, [['Dana Smith', 'stopped talking a while ago']], 'Alex Morgan'))
+    }
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id)[0].speaker).toBeNull()
+    expect(s.logs.find((l) => /lines of the other side named/.test(l))).toContain('0 marked the other side talking')
+  })
+
+  it('a tile marked talking still wins over the captions, which only fill a gap', async () => {
+    const s = setup()
+    s.start()
+    s.audio(0, 1_000_100)
+    s.store.addSegments([{ meetingId: s.m.id, track: 'them', startMs: 1000, endMs: 3000, text: 'hello', speaker: null }])
+    // the tile says Ann Lee; the captions lag and still show Dana Smith
+    for (let t = 1_000_000; t < 1_010_000; t += 500) {
+      const l = zoomCaptionLine(t, ['Alex Morgan', 'Dana Smith', 'Ann Lee'], [['Dana Smith', 'lagging behind']], 'Alex Morgan')
+      l.windows![0].tree.k![2] = { r: 'AXTabGroup', d: 'Ann Lee, Computer audio unmuted, Video on, Active speaker' }
+      s.emit(l)
+    }
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id)[0].speaker).toBe('Ann Lee')
+  })
+
+  it('a calendar name with a space before the comma still matches the call\'s form', async () => {
+    const s = setup({ attendees: [{ name: 'Smith , Dana', email: 'dana@example.com' }] })
+    s.start()
+    s.audio(0, 1_000_100)
+    s.store.addSegments([{ meetingId: s.m.id, track: 'them', startMs: 1000, endMs: 3000, text: 'early', speaker: null }])
+    for (let t = 1_000_000; t < 1_010_000; t += 500) s.emit(zoomLine(t, ['Alex Morgan', 'Dana Smith'], 'Dana Smith', 'Alex Morgan'))
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id)[0].speaker).toBe('Dana Smith')
+    expect(s.store.meeting(s.m.id)!.attendees).toEqual([{ name: 'Smith , Dana', email: 'dana@example.com' }])
+  })
+
+  it('a call that was never read says so, apart from one that was read and marked nobody', async () => {
+    const s = setup()
+    s.start()
+    s.audio(0, 1_000_100)
+    s.store.addSegments([{ meetingId: s.m.id, track: 'them', startMs: 1000, endMs: 3000, text: 'hello', speaker: null }])
+    for (let t = 1_000_000; t < 1_005_000; t += 500) s.emit({ t, error: 'no-call-window' })
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    const summary = s.logs.find((l) => /lines of the other side named/.test(l))!
+    expect(summary).toContain('0 of 10 readings read the app')
+    expect(summary).toContain('at most 0 in the call')
+  })
+
   it('a meeting in an app it can\'t read starts no watch', async () => {
     const s = setup({ app: 'FaceTime' })
     s.start()
     expect(s.watched).toEqual([])
     s.stop(); s.transcribed()
     await s.hook.finished(s.m.id)
+  })
+
+  it('the person with their hand up still counts, so a call of two is still named (Zoom 7.2.5)', () => {
+    const s = setup()
+    s.start()
+    s.audio(0, 1_000_100)
+    // dropping Dana's tile over its reaction left a call of one, where there is no other side to name
+    for (let t = 1_000_000; t < 1_005_000; t += 500) {
+      s.emit({ t, app: 'us.zoom.xos', windows: zoomTiles('Alex Morgan, Computer audio muted, Video on', 'Dana Smith, Computer audio unmuted, Video on, Reaction: Raise hand') })
+    }
+    expect(s.hook.nameFor(s.m.id, 1000, 3000)).toBe('Dana Smith')
   })
 
   it('the name in Settings is never given to the other side', async () => {
