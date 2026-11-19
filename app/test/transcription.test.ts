@@ -82,6 +82,16 @@ describe('live transcription of a meeting', () => {
     await r.stop(m)
     expect(store.meeting(m.id)?.transcriptionPending).toBe(true)
   })
+  it('a meeting the saved-recording queue parked while its live transcript finished has nothing left waiting', async () => {
+    const r = rig('transcription-first'), m = meeting()
+    r.begin(m)
+    r.procs[0].say('them', 500)
+    // a quit under way when it stopped: the queue saw a stopped meeting with no lines yet and parked it
+    store.updateMeeting(m.id, { transcriptionState: 'waiting-recording' })
+    await r.stop(m)
+    expect(store.meeting(m.id)?.transcriptionPending).not.toBe(true)
+    expect(store.meeting(m.id)?.transcriptionState).toBe('done')
+  })
   it('keeps audio pending when a transcript write fails', async () => {
     const r = rig('transcription-first'), m = meeting()
     r.begin(m)

@@ -39,6 +39,12 @@ it('waits for the model, yields to a recording and resumes without clearing part
  expect(store.meeting(id)?.transcriptionPending).toBe(true);expect(store.segments(id)).toHaveLength(1)
  recording=false;jobs.resume();await vi.waitFor(()=>expect(store.meeting(id)?.transcriptionState).toBe('done'));expect(transcribe.mock.calls.at(-1)?.[2].fromMs).toEqual({them:100})
 })
+it('settles a parked state left with nothing pending (it blocked Resume for good) and keeps a real one',()=>{
+ const stale=note().id,waiting=note().id
+ store.updateMeeting(stale,{transcriptionState:'waiting-recording'});store.updateMeeting(waiting,{transcriptionPending:true,transcriptionState:'waiting-recording'})
+ jobs.shutdown();jobs=make()
+ expect(store.meeting(stale)?.transcriptionState).toBe('done');expect(store.meeting(waiting)?.transcriptionState).toBe('waiting-recording')
+})
 it('leaves failures retryable and never writes a summary from a failed partial result',async()=>{
  const id=note().id;transcribe.mockResolvedValueOnce(false);await jobs.start(id);await vi.waitFor(()=>expect(store.meeting(id)?.transcriptionState).toBe('error'))
  expect(summarize).not.toHaveBeenCalled();await jobs.pump();expect(transcribe).toHaveBeenCalledTimes(1)

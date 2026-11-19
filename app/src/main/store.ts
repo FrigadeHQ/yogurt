@@ -397,6 +397,11 @@ export class Store {
   interruptAudioPreparations() {
     this.db.prepare("UPDATE meetings SET transcription_state='error',transcription_pending=0 WHERE source='audio-file' AND transcription_state='preparing'").run()
   }
+  /** A queue state with nothing pending is left over (an older Yogurt parked it, then the live transcript finished):
+   *  it would block Resume and transcribing again for good */
+  settleParkedTranscriptions() {
+    this.db.prepare("UPDATE meetings SET transcription_state='done' WHERE transcription_pending=0 AND transcription_state IN ('queued','waiting-model','waiting-recording')").run()
+  }
   beginTranscriptionReplacement(id:string) {
     this.clearTranscriptionDraft(id)
     this.db.prepare('UPDATE meetings SET transcription_was_pending=CASE WHEN transcription_again=1 THEN transcription_was_pending ELSE transcription_pending END, transcription_again=1 WHERE id=?').run(id)
