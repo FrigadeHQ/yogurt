@@ -52,8 +52,8 @@ export function createQueue(o: {
   /** nothing to do for IDLE_UNLOAD_MS with nothing recording, or a recording started on a small Mac: the model can go */
   onIdle?: () => void
   idleMs?: number
-  /** a notes model is on the Mac (first run: not until its download lands); nothing runs before */
-  modelReady?: () => boolean
+  /** a model can take this kind of job: a notes model is on the Mac (first run: not until its download lands), or another one is chosen for it (Settings → AI models) */
+  modelReady?: (kind: JobKind) => boolean
 }) {
   const waiting: Entry[] = []
   let running: { entry: Entry; abort: AbortController } | undefined
@@ -68,7 +68,7 @@ export function createQueue(o: {
 
   const backlog = () => o.backlogMs?.() ?? 0
   const allowed = (kind: JobKind) => {
-    if (o.modelReady && !o.modelReady()) return false
+    if (o.modelReady && !o.modelReady(kind)) return false
     if ((kind === 'index' || kind === 'folder') && o.recording()) return false
     if (kind === 'readahead' && !o.smallMac && backlog() > READ_BACKLOG_MS) return false
     if (o.smallMac) return !o.recording()
@@ -107,7 +107,7 @@ export function createQueue(o: {
     if (i === -1) i = waiting.findIndex((e) => (e.kind === 'index' || e.kind === 'folder') && allowed(e.kind))
     if (i === -1) {
       if (!waiting.length) armIdle()
-      else if (o.modelReady && !o.modelReady() && !saidWait) { saidWait = true; console.info('NOTES', 'waiting for the notes model to finish downloading') }
+      else if (o.modelReady && waiting.some((e) => !o.modelReady!(e.kind)) && !saidWait) { saidWait = true; console.info('NOTES', 'waiting for the notes model to finish downloading') }
       watching(); return
     }
     disarmIdle()

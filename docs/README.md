@@ -32,6 +32,24 @@ Yogurt connects to the internet to download models from Hugging Face, to get App
 
 If you [connect an AI app](#connect-an-ai-app), it may send what it reads to its own online model.
 
+If you pick [another AI model](#ai-models) for a task, that task's meeting text goes there instead.
+
+## AI models
+
+Yogurt's own model on your computer writes summaries and titles, answers Ask, and suggests folders. In **Settings → AI models** you can pick another one for each of these:
+
+- **Your server:** any OpenAI-compatible server, like LM Studio, Ollama, or a hosted one. Enter its address, a key if it needs one, and the model (**Test connection** lists them), then **Save**. The key is kept with your system's keychain and is never shown again. **Context, in tokens** is how much the server's model reads at once.
+- **An AI agent app** on your computer: Hermes, Codex or Claude Code. Each appears once Yogurt finds it, and uses its own sign-in and model. Yogurt runs it in an empty folder, turns down every tool it asks to use, and only reads its answer.
+
+If the one you picked fails before it writes anything, Yogurt's own model answers instead, when the question fits it. Settings says where meeting text goes while any task uses something else.
+
+The same section has two settings for what runs on your computer:
+
+- **Yogurt AI on this Mac** (or computer): **Remove** frees the space its model takes, and **Download** brings it back. While it is removed, tasks still set to it wait, and their menu items say to pick another AI.
+- **Transcription** is always done on your computer. **Auto** uses the speech model setup picked for it. Another Whisper model downloads while the current one keeps working, and takes over once nothing is being recorded or transcribed.
+
+A computer with too little memory for any notes model can still be set up: choose **Continue without Yogurt AI**, then pick your own server or an AI app for summaries.
+
 ## Your data
 
 Meetings, recordings, settings and downloaded models live here:

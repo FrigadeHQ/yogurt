@@ -49,7 +49,15 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   /** the default for newly written summaries; the meeting's language when left out */
   summaryLanguage?: string
   /** new versions download by themselves; on unless turned off */
-  autoUpdate?: boolean }
+  autoUpdate?: boolean
+  /** what writes each kind of text (shared/ai.ts); the model on this computer when left out */
+  ai?: Partial<Record<import('../shared/ai').AiTask, string>>
+  /** Settings → AI models: Yogurt AI (the notes model) kept on this computer; on unless turned off */
+  localNotes?: boolean
+  /** Settings → AI models → Transcription: the speech model's catalog id; the pick for this computer when left out */
+  speechModel?: string
+  /** the person's own OpenAI-compatible server; key sealed with the system's keychain where it has one */
+  aiServer?: { url: string; model: string; contextSize?: number; key?: string } }
 
 /** "English only" unless Multi-language was picked */
 export const spokenSetting = (s: Settings): Spoken => spokenOf(s.spoken)

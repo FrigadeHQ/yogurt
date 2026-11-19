@@ -10,6 +10,7 @@ import type { CalEvent, CalendarSource, CalendarStatus } from '../main/calendar'
 export type CalendarLinkInfo = { id: string; name: string; host: string }
 import type { Access, PermissionKind, PermissionStatus } from '../main/permissions'
 import type { Capabilities } from './platform'
+import type { AiStatus, AiTask, Provider } from './ai'
 export type { Access, PermissionKind, PermissionStatus }
 /** one first-run question: a permission, or open at login last */
 export type OnboardingStep = { kind: PermissionKind; status: Access }
@@ -43,6 +44,8 @@ export type YogurtApi = {
     skipUpgrade(): Promise<void>
     downloadUpgrade(): Promise<void>
     removeUpgrade(): Promise<void>
+    /** no notes model fits here: go on without Yogurt AI, for another AI to write summaries (Settings → AI models) */
+    skipLocal(): Promise<void>
   }
   /** the "Take notes?" and "Stop recording?" card */
   prompt: {
@@ -156,6 +159,20 @@ export type YogurtApi = {
   }
   /** every meeting in one file and back (Settings): import adds the ones that are not here, never changes one that is */
   /** AI apps on this Mac reading meetings through MCP (Settings) */
+  /** Settings → AI models: what writes each task's text, and the person's own server */
+  ai: {
+    /** looks for agent apps again first */
+    status(): Promise<AiStatus>
+    setTask(task: AiTask, provider: Provider): Promise<AiStatus>
+    /** Yogurt AI on this computer: off stops its download and removes it; on downloads it again */
+    setLocal(on: boolean): Promise<AiStatus>
+    /** Transcription: a speech model's id, or null for Auto */
+    setSpeech(id: string | null): Promise<AiStatus>
+    /** null: no server. key: left out keeps the saved one for the same address, '' removes it */
+    setServer(server: { url: string; model: string; contextSize: number; key?: string } | null): Promise<AiStatus>
+    /** Test connection: the models the server offers */
+    serverModels(server: { url: string; key?: string }): Promise<{ models: string[] } | { error: 'address' | 'unreachable'; detail?: string }>
+  }
   mcp: {
     status(): Promise<McpStatus>
     set(on: boolean): Promise<McpStatus>
@@ -335,6 +352,19 @@ export type SetupState = {
   /** 0 to 1 over what ready waits for */
   fraction: number
   message?: string
+  /** the speech model transcribing now (catalog id) */
+  speechModel?: string
+  /** Settings → AI models → Transcription: the one picked downloading, then waiting for meetings to finish being transcribed */
+  speechSwitch?: { id: string; fraction: number }
+  speechSwitchPending?: string
+  speechSwitchError?: string
+  /** Settings → AI models: Yogurt AI is not kept on this computer (summaries come from the AI picked for them) */
+  localNotesOff?: boolean
+  /** what Yogurt AI downloads first on this computer; unavailable: no notes model fits here */
+  localNotesBytes?: number
+  localNotesUnavailable?: boolean
+  /** no notes model fits here: setup can go on without one (setup:skip-local) */
+  notesSkippable?: boolean
   /** Speech is ready, but the first notes-model download failed. Recording and transcription still work. */
   notesError?: string
   /** First notes-model progress (0 to 1), retained on failure until retry or completion. */

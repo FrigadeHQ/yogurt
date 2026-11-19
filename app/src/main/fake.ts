@@ -16,9 +16,12 @@ export function waitForFakeAudioMetadata(): Promise<void> | undefined {
 }
 
 /** Fake mode: the same Mac every time, so tests don't depend on the one they run on */
-/** a fake Mac; with YOGURT_FAKE_PLATFORM the same machine says it runs Windows or Linux (so their speed check runs) */
+/**
+ * a fake Mac; with YOGURT_FAKE_PLATFORM the same machine says it runs Windows or Linux (so their speed check runs), and
+ * with YOGURT_FAKE_RAM_GB it has that much memory (too little for any notes model, say)
+ */
 export const fakeHardware = async (platform = 'darwin'): Promise<Hardware> => ({
-  os: platform as Hardware['os'], arch: 'arm64', cpuModel: 'Apple M2 Max', totalRamGB: 34.4, freeDiskGB: 500, gpu: { kind: 'unified', name: 'Apple M2 Max', vramGB: 0 },
+  os: platform as Hardware['os'], arch: 'arm64', cpuModel: 'Apple M2 Max', totalRamGB: Number(process.env.YOGURT_FAKE_RAM_GB) || 34.4, freeDiskGB: 500, gpu: { kind: 'unified', name: 'Apple M2 Max', vramGB: 0 },
 })
 
 /** Fake mode: files appear after four quick progress steps (a notes model takes notesMs longer); the hash always matches */
