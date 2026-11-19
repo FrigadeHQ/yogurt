@@ -47,6 +47,8 @@ export class Watcher {
   dismiss(key: string) { this.dismissed.add(key); this.shown = null }
   /** "Keep going": ask again in a while, not every tick */
   keepGoing() { if (this.rec) this.rec.snoozeUntil = this.d.now() + SNOOZE; this.shown = null }
+  /** Close: no more stop questions during this recording. */
+  dismissStop() { if (this.rec) this.rec.snoozeUntil = Infinity; this.shown = null }
   /** the card went away by an action, or a recording started or stopped (a resumed note is watched afresh) */
   cleared() { this.shown = null; this.rec = null }
 

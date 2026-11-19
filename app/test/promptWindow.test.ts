@@ -32,21 +32,21 @@ beforeEach(async () => {
   vi.stubEnv('YOGURT_BACKGROUND', '0'); vi.resetModules()
   state.windows.length = 0; state.notices.length = 0; state.handlers.clear(); state.theme.clear(); state.dark = false
   const { createPrompts } = await import('../src/main/prompts')
-  prompts = createPrompts({windowVisible:()=>true,takeNotes:vi.fn(),stop:vi.fn(),dismissed:vi.fn(),keepGoing:vi.fn(),open:vi.fn()})
+  prompts = createPrompts({windowVisible:()=>true,takeNotes:vi.fn(),stop:vi.fn(),dismissed:vi.fn(),keepGoing:vi.fn(),dismissStop:vi.fn(),open:vi.fn()})
 })
 afterEach(() => { prompts.hide(); vi.unstubAllEnvs() })
-it('keeps the start offer in one compact row without changing the stop confirmation size', () => {
+it('gives both prompts the same compact frame and top-right placement', () => {
   prompts.offer({key:'call',app:'Zoom',title:'Design review'} as any)
-  expect(state.windows[0].options).toMatchObject({width:381,height:60,focusable:false,backgroundColor:'#FFFFFF'})
+  expect(state.windows[0].options).toMatchObject({width:381,height:60,x:803,y:12,focusable:false,backgroundColor:'#FFFFFF'})
   prompts.askStop({id:'meeting',title:'Design review'} as any)
-  expect(state.windows[1].options).toMatchObject({width:380,height:128})
+  expect(state.windows[1].options).toMatchObject({width:381,height:60,x:803,y:12,focusable:true})
 })
 it("a Mac's card is a plain window, as before; Windows and Linux make it a tool window that never takes focus", async () => {
   prompts.offer({key:'call',app:'Zoom',title:''} as any)
   expect(state.windows[0].options.type).toBeUndefined()
   prompts.hide()
   const { createPrompts } = await import('../src/main/prompts')
-  const pc = createPrompts({windowVisible:()=>true,takeNotes:vi.fn(),stop:vi.fn(),dismissed:vi.fn(),keepGoing:vi.fn(),open:vi.fn(),os:'win32'})
+  const pc = createPrompts({windowVisible:()=>true,takeNotes:vi.fn(),stop:vi.fn(),dismissed:vi.fn(),keepGoing:vi.fn(),dismissStop:vi.fn(),open:vi.fn(),os:'win32'})
   pc.offer({key:'call',app:'Zoom',title:''} as any)
   expect(state.windows.at(-1).options).toMatchObject({type:'toolbar',focusable:false,skipTaskbar:true})
   pc.hide()
@@ -70,12 +70,12 @@ async function recording() {
   const store = openStore(':memory:')
   meeting.initMeetings(store)
   const m = meeting.startMeeting({ title: 'Review fixture', event: null, app: null })
-  const stop = vi.fn(meeting.stopMeeting), keepGoing = vi.fn(), open = vi.fn()
+  const stop = vi.fn(meeting.stopMeeting), keepGoing = vi.fn(), dismissStop = vi.fn(), open = vi.fn()
   const { createPrompts } = await import('../src/main/prompts')
   prompts.hide()
-  prompts = createPrompts({ windowVisible: () => false, takeNotes: vi.fn(), stop, dismissed: vi.fn(), keepGoing, open })
+  prompts = createPrompts({ windowVisible: () => false, takeNotes: vi.fn(), stop, dismissed: vi.fn(), keepGoing, dismissStop, open })
   prompts.askStop(m)
-  return { ...meeting, store, m, stop, keepGoing, open, card: state.windows.at(-1), notice: state.notices.at(-1) }
+  return { ...meeting, store, m, stop, keepGoing, dismissStop, open, card: state.windows.at(-1), notice: state.notices.at(-1) }
 }
 
 it('stopping by hand immediately closes the stop card and its native notification', async () => {
@@ -113,7 +113,7 @@ it('stopping a different stored recording leaves the active meeting card and not
   } finally { r.store.close() }
 })
 
-it.each(['stop', 'keep-going', 'notification'] as const)('a stale %s action just closes without stopping or snoozing another recording', async action => {
+it.each(['stop', 'keep-going', 'close', 'notification'] as const)('a stale %s action just closes without stopping or snoozing another recording', async action => {
   const r = await recording()
   try {
     r.stopMeeting(r.m.id)
@@ -128,6 +128,7 @@ it.each(['stop', 'keep-going', 'notification'] as const)('a stale %s action just
     expect(prompts.notice()).toBeNull()
     expect(r.stop).not.toHaveBeenCalled()
     expect(r.keepGoing).not.toHaveBeenCalled()
+    expect(r.dismissStop).not.toHaveBeenCalled()
     expect(r.activeMeeting()?.id).toBe(next.id)
     expect(r.store.meeting(r.m.id)?.state).toBe('stopped')
   } finally { r.store.close() }
@@ -145,6 +146,7 @@ it('Stop on an already-ended meeting closes the stale card and leaves its summar
     expect(notice.close).toHaveBeenCalledOnce()
     expect(r.stop).not.toHaveBeenCalled()
     expect(r.keepGoing).not.toHaveBeenCalled()
+    expect(r.dismissStop).not.toHaveBeenCalled()
     expect(r.activeMeeting()).toBeNull()
     expect(r.store.notes(r.m.id)).toMatchObject({ mine: 'Original notes', enhanced: 'Existing summary' })
   } finally { r.store.close() }
@@ -172,5 +174,19 @@ it('preserves the informational call-ended notice after closing the obsolete sto
     prompts.clickNotice()
     expect(r.open).toHaveBeenCalledWith(r.m.id)
     expect(r.stop).not.toHaveBeenCalled()
+  } finally { r.store.close() }
+})
+
+it('Close hides the card and system notification without stopping or snoozing the recording', async () => {
+  const r = await recording()
+  try {
+    state.handlers.get('prompt:act')!({}, 'close')
+    expect(r.card.isDestroyed()).toBe(true)
+    expect(r.notice.close).toHaveBeenCalledOnce()
+    expect(prompts.notice()).toBeNull()
+    expect(r.dismissStop).toHaveBeenCalledOnce()
+    expect(r.stop).not.toHaveBeenCalled()
+    expect(r.keepGoing).not.toHaveBeenCalled()
+    expect(r.activeMeeting()?.id).toBe(r.m.id)
   } finally { r.store.close() }
 })

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import type { PromptView } from '../../../shared/types'
-import { Logo } from '../components/Logo'
 import { t } from '../../../shared/i18n'
 import macIcon from '../../../../build/icon.png'
 
@@ -29,7 +28,7 @@ export function Prompt() {
       onFocusCapture={() => setFocused(true)} onBlurCapture={e => { if (!e.currentTarget.contains(e.relatedTarget)) setFocused(false) }}>
       {start && <span key={countdown} data-testid="prompt-countdown" className="call-prompt-countdown" aria-hidden="true" />}
       <div className="call-prompt-heading">
-        {start ? <img src={macIcon} alt="" className="call-prompt-icon" /> : <Logo size={28} className="call-prompt-logo" />}
+        <img src={macIcon} alt="" className="call-prompt-icon" />
         <div className="min-w-0 flex-1">
           <p data-testid="prompt-heading" className="call-prompt-label">{start ? t('Take notes?') : t('Stop recording?')}</p>
           <p data-testid="prompt-title" className="call-prompt-title" title={view.title || name}>{name}</p>
@@ -51,11 +50,9 @@ export function Prompt() {
           </>
         )}
       </div>
-      {start && (
-        <button data-testid="prompt-close" aria-label={t('Not now')} className="ghost-btn workspace-icon" onClick={() => window.yogurt.prompt.act('close')}>
-          <X size={16} strokeWidth={1.5} aria-hidden="true" />
-        </button>
-      )}
+      <button data-testid={start ? 'prompt-close' : 'prompt-dismiss-stop'} aria-label={t(start ? 'Not now' : 'Close')} title={start ? undefined : t('Close')} className="ghost-btn workspace-icon" onClick={() => window.yogurt.prompt.act('close')}>
+        <X size={16} strokeWidth={1.5} aria-hidden="true" />
+      </button>
     </div>
   )
 }

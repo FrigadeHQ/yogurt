@@ -372,3 +372,29 @@ describe('speech protects a call whose app released the mic', () => {
     expect(log).toEqual([])
   })
 })
+
+
+it('Close suppresses every later stop question for this recording, but a new recording starts fresh', async () => {
+  active = meeting(); reading.micApps = [zoom]; await w.tick()
+  reading.micApps = []; clock += MIN; silent = MIN; await w.tick()
+  expect(log).toEqual(['stop'])
+  w.dismissStop()
+  for (const mins of [6, 20, 120]) { clock += mins * MIN; silent = mins * MIN; await w.tick() }
+  expect(log).toEqual(['stop'])
+  // Resumed speech and a later quiet spell do not undo Close.
+  reading.micApps = [zoom]; silent = 0; await w.tick()
+  reading.micApps = []; clock += 10 * MIN; silent = 10 * MIN; await w.tick()
+  expect(log).toEqual(['stop'])
+  active = null; w.cleared(); await w.tick()
+  active = meeting({ id: 'm2' }); reading.micApps = [zoom]; silent = 0; await w.tick()
+  reading.micApps = []; clock += MIN; silent = MIN; await w.tick()
+  expect(log).toEqual(['stop', 'stop'])
+})
+
+it('Close does not change automatic-stop rules when the setting is enabled later', async () => {
+  active = meeting(); auto = false; w = autoWatcher()
+  reading.micApps = [zoom]; await w.tick()
+  reading.micApps = []; clock += MIN; silent = MIN; await w.tick()
+  w.dismissStop(); auto = true; await w.tick()
+  expect(log).toEqual(['stop', 'auto:m1'])
+})

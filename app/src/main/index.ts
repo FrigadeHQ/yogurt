@@ -315,6 +315,7 @@ function startDetection() {
     stop: (id) => { stopMeeting(id) },
     dismissed: (key) => watcher.dismiss(key),
     keepGoing: () => watcher.keepGoing(),
+    dismissStop: () => watcher.dismissStop(),
     open: (id) => goTo(`/note/${id}`),
     os: process.platform,
   })
