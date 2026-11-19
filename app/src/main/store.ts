@@ -43,6 +43,8 @@ export type Meeting = {
   transcriptionAgain?: boolean
   /** when it was moved to the Trash; there it is out of every list, search and chat until restored */
   trashedAt?: number
+  /** when a retention rule deleted its transcript (and audio); its notes stay, and are not written again */
+  transcriptDeletedAt?: number
 }
 /** speaker: 'me' on the mic; on the other side the name the call app showed talking (callNames), null for Them */
 export type Segment = { id: number; meetingId: string; track: 'me' | 'them'; startMs: number; endMs: number; text: string; speaker: string | null
@@ -72,6 +74,7 @@ const toMeeting = (r: Row): Meeting => ({
   ...(r.event_calendar_source == null ? {} : { eventCalendarSource: String(r.event_calendar_source) }),
   ...(r.duration_ms == null ? {} : { durationMs: Number(r.duration_ms) }),
   ...(r.trashed_at == null ? {} : { trashedAt: Number(r.trashed_at) }),
+  ...(r.transcript_deleted_at == null ? {} : { transcriptDeletedAt: Number(r.transcript_deleted_at) }),
 })
 const toSegment = (r: Row): Segment => ({
   id: Number(r.id), meetingId: String(r.meeting_id), track: r.track as Segment['track'], startMs: Number(r.start_ms), endMs: Number(r.end_ms),
@@ -227,6 +230,7 @@ export class Store {
     if (!meetingCols.includes('duration_ms')) this.db.exec('ALTER TABLE meetings ADD COLUMN duration_ms INTEGER')
     if (!meetingCols.includes('language')) this.db.exec('ALTER TABLE meetings ADD COLUMN language TEXT')
     if (!meetingCols.includes('trashed_at')) this.db.exec('ALTER TABLE meetings ADD COLUMN trashed_at INTEGER')
+    if (!meetingCols.includes('transcript_deleted_at')) this.db.exec('ALTER TABLE meetings ADD COLUMN transcript_deleted_at INTEGER')
     if (!meetingCols.includes('title_source')) {
       // meetings from before: worked out from the title and the event, as a new one would be
       this.db.exec("ALTER TABLE meetings ADD COLUMN title_source TEXT NOT NULL DEFAULT 'user'")
@@ -376,6 +380,30 @@ export class Store {
   /** meetings moved to the Trash before this time (due to be deleted for good) */
   trashedBefore(at: number): string[] {
     return (this.db.prepare('SELECT id FROM meetings WHERE trashed_at IS NOT NULL AND trashed_at < ? ORDER BY trashed_at').all(at) as Row[]).map((r) => String(r.id))
+  }
+  /**
+   * Retention (retention.ts): finished meetings out of the Trash that ended by endedBy (and after endedAfter), and still hold
+   * what the rule removes. Audio and transcripts go only from a meeting with a saved transcript and summary; whether audio
+   * is on disk is the caller's to check.
+   */
+  retentionDue(kind: 'audio' | 'transcript' | 'meeting', endedBy: number, endedAfter?: number): string[] {
+    const saved = `AND transcription_pending = 0 AND EXISTS (SELECT 1 FROM segments s WHERE s.meeting_id = m.id)
+      AND EXISTS (SELECT 1 FROM notes n WHERE n.meeting_id = m.id AND trim(coalesce(n.enhanced, '')) != '')`
+    return (this.db.prepare(`SELECT id FROM meetings m WHERE trashed_at IS NULL AND state IN ('stopped', 'done') AND ended_at IS NOT NULL
+      AND ended_at <= ? AND ended_at > ? ${kind === 'meeting' ? '' : saved} ${kind === 'transcript' ? 'AND transcript_deleted_at IS NULL' : ''} ORDER BY ended_at`)
+      .all(endedBy, endedAfter ?? Number.MIN_SAFE_INTEGER) as Row[]).map((r) => String(r.id))
+  }
+  /** Retention: the meeting's lines go for good, hidden ones and the library's copies too; its notes stay. */
+  deleteTranscript(id: string, now = Date.now()) {
+    this.db.exec('BEGIN')
+    try {
+      this.db.prepare('DELETE FROM segments WHERE meeting_id = ?').run(id)
+      this.clearTranscriptionDraft(id)
+      this.db.prepare('DELETE FROM library_chunks WHERE meeting_id = ?').run(id)
+      this.db.prepare("UPDATE library_sources SET signature='' WHERE meeting_id=?").run(id)
+      this.db.prepare('UPDATE meetings SET transcript_deleted_at = ? WHERE id = ?').run(now, id)
+      this.db.exec('COMMIT')
+    } catch (e) { this.db.exec('ROLLBACK'); throw e }
   }
   meeting(id: string): Meeting | undefined {
     const r = this.db.prepare('SELECT * FROM meetings WHERE id = ?').get(id) as Row | undefined

@@ -593,9 +593,7 @@
   "Delete audio?": "Audio löschen?",
   "The audio is deleted for good. Your transcript and notes stay.": "Die Audiodatei wird endgültig gelöscht. Transkript und Notizen bleiben.",
   "Keep the audio until the transcript is saved.": "Audio behalten, bis das Transkript gespeichert ist.",
-  "Keep audio recordings after meetings": "Audioaufnahmen nach Meetings behalten",
   "Recording deleted": "Aufnahme gelöscht",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Wenn aus, wird Audio neuer Meetings nach Speichern der Zusammenfassung gelöscht.",
   "New recording": "Neue Aufnahme",
   "Hide events without a call link": "Termine ohne Anruflink ausblenden",
   "Keep your agenda and reminders focused on calls.": "Konzentriere dich in Agenda und Erinnerungen auf Anrufe.",
@@ -737,5 +735,34 @@
   "Continue transcription": "Transkription fortsetzen",
   "Transcribe again": "Erneut transkribieren",
   "Stop transcription": "Transkription anhalten",
-  "Audio is unavailable.": "Audio ist nicht verfügbar."
+  "Audio is unavailable.": "Audio ist nicht verfügbar.",
+  "What Yogurt keeps": "Was Yogurt behält",
+  "Counted from when each meeting ended. Audio and transcripts go only once the summary is saved, and notes stay.": "Gerechnet ab dem Ende jedes Meetings. Audio und Transkripte werden erst gelöscht, wenn die Zusammenfassung gespeichert ist; Notizen bleiben.",
+  "Delete transcripts": "Transkripte löschen",
+  "Its audio goes with it.": "Das Audio wird mitgelöscht.",
+  "Move meetings to the Trash": "Meetings in den Papierkorb verschieben",
+  "Never": "Nie",
+  "Once the summary is saved": "Nach Speichern der Zusammenfassung",
+  "After 1 week": "Nach 1 Woche",
+  "After 1 month": "Nach 1 Monat",
+  "After 3 months": "Nach 3 Monaten",
+  "After 1 year": "Nach 1 Jahr",
+  "After 2 years": "Nach 2 Jahren",
+  "Number of days": "Anzahl der Tage",
+  "Days": "Tage",
+  "Apply to past meetings?": "Auf frühere Meetings anwenden?",
+  "Apply": "Anwenden",
+  "{count} meetings already qualify. Their audio is deleted now.": {
+    "one": "1 Meeting ist bereits betroffen. Sein Audio wird jetzt gelöscht.",
+    "other": "{count} Meetings sind bereits betroffen. Ihr Audio wird jetzt gelöscht."
+  },
+  "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": {
+    "one": "1 Meeting ist bereits betroffen. Transkript und Audio werden jetzt gelöscht, die Notizen bleiben.",
+    "other": "{count} Meetings sind bereits betroffen. Transkripte und Audio werden jetzt gelöscht, die Notizen bleiben."
+  },
+  "{count} meetings already qualify. They move to the Trash now.": {
+    "one": "1 Meeting ist bereits betroffen. Es wird jetzt in den Papierkorb verschoben.",
+    "other": "{count} Meetings sind bereits betroffen. Sie werden jetzt in den Papierkorb verschoben."
+  },
+  "The transcript was deleted on {date}, as set in Settings.": "Das Transkript wurde am {date} gelöscht, wie in den Einstellungen festgelegt."
 }

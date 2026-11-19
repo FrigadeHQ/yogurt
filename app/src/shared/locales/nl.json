@@ -593,9 +593,7 @@
   "Delete audio?": "Audio verwijderen?",
   "The audio is deleted for good. Your transcript and notes stay.": "De audio wordt voorgoed verwijderd. Transcript en notities blijven.",
   "Keep the audio until the transcript is saved.": "Bewaar de audio totdat het transcript is opgeslagen.",
-  "Keep audio recordings after meetings": "Audio-opnamen na vergaderingen bewaren",
   "Recording deleted": "Opname verwijderd",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Indien uit, wordt audio van nieuwe vergaderingen gewist zodra de samenvatting is opgeslagen.",
   "New recording": "Nieuwe opname",
   "Hide events without a call link": "Afspraken zonder gesprekslink verbergen",
   "Keep your agenda and reminders focused on calls.": "Richt je agenda en herinneringen op gesprekken.",
@@ -737,5 +735,34 @@
   "Continue transcription": "Transcriptie hervatten",
   "Transcribe again": "Opnieuw transcriberen",
   "Stop transcription": "Transcriptie stoppen",
-  "Audio is unavailable.": "Audio is niet beschikbaar."
+  "Audio is unavailable.": "Audio is niet beschikbaar.",
+  "What Yogurt keeps": "Wat Yogurt bewaart",
+  "Counted from when each meeting ended. Audio and transcripts go only once the summary is saved, and notes stay.": "Gerekend vanaf het einde van elke meeting. Audio en transcripten verdwijnen pas als de samenvatting is opgeslagen, en notities blijven.",
+  "Delete transcripts": "Transcripten verwijderen",
+  "Its audio goes with it.": "De audio wordt ook verwijderd.",
+  "Move meetings to the Trash": "Meetings naar de prullenmand verplaatsen",
+  "Never": "Nooit",
+  "Once the summary is saved": "Zodra de samenvatting is opgeslagen",
+  "After 1 week": "Na 1 week",
+  "After 1 month": "Na 1 maand",
+  "After 3 months": "Na 3 maanden",
+  "After 1 year": "Na 1 jaar",
+  "After 2 years": "Na 2 jaar",
+  "Number of days": "Aantal dagen",
+  "Days": "Dagen",
+  "Apply to past meetings?": "Toepassen op eerdere meetings?",
+  "Apply": "Toepassen",
+  "{count} meetings already qualify. Their audio is deleted now.": {
+    "one": "{count} meeting valt er al onder. De audio wordt nu verwijderd.",
+    "other": "{count} meetings vallen er al onder. Hun audio wordt nu verwijderd."
+  },
+  "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": {
+    "one": "{count} meeting valt er al onder. Transcript en audio worden nu verwijderd; de notities blijven.",
+    "other": "{count} meetings vallen er al onder. Transcripten en audio worden nu verwijderd; de notities blijven."
+  },
+  "{count} meetings already qualify. They move to the Trash now.": {
+    "one": "{count} meeting valt er al onder. Deze gaat nu naar de prullenmand.",
+    "other": "{count} meetings vallen er al onder. Ze gaan nu naar de prullenmand."
+  },
+  "The transcript was deleted on {date}, as set in Settings.": "Het transcript is op {date} verwijderd, zoals ingesteld in Instellingen."
 }
