@@ -1,3 +1,4 @@
+import { trustSystemCertificates } from './systemCerts'
 import { createSavedTranscriptions } from './savedTranscription'
 import { transcriptionBusy } from '../shared/transcription'
 import { hookAudioUploads } from './audioUploadIpc'
@@ -94,6 +95,8 @@ app.setName('Yogurt')
 // Windows shows notifications only for an app with this id (the installer's shortcut carries the same one, electron-builder appId)
 if (process.platform === 'win32') app.setAppUserModelId('so.yogurt.app')
 app.setPath('userData', userDataDir())
+// before anything goes online: a company's own HTTPS certificate, installed in the system, is trusted too (#115)
+const systemCerts = trustSystemCertificates()
 mkdirSync(userDataDir(), { recursive: true })
 logToFile(join(userDataDir(), 'logs', 'main.log'))
 hookRendererErrors()
@@ -469,6 +472,7 @@ function startDetection() {
 }
 
 app.whenReady().then(() => {
+  console.info('APP', `trusting ${systemCerts} certificates from the system on top of the built-in ones`)
   // Local Electron launches need the same Dock icon as the packaged application.
   if (!app.isPackaged && process.platform === 'darwin') app.dock?.setIcon(join(__dirname, '../../build/icon.png'))
   const settings = loadSettings(join(userDataDir(), 'settings.json'))
