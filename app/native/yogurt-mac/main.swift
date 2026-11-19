@@ -213,11 +213,21 @@ func browserTitle(_ id: String) -> String? {
  * Who is in a call and who is talking, as the call app shows it: its meeting windows copied out of the accessibility
  * tree, read-only (nothing is clicked or changed in the app). Only the call app Yogurt was told about, the frontmost
  * one first. Yogurt reads the tree (src/main/callNames/parse.ts). Chromium and Electron build a page's tree only when
- * an assistive app asks, so they are asked the way screen readers do (AXManualAccessibility), and only for a call window.
+ * an assistive app asks, so they are asked the way screen readers do (AXManualAccessibility): see askTree.
  */
 let axKeys = [kAXRoleAttribute, kAXSubroleAttribute, kAXDescriptionAttribute, kAXTitleAttribute, kAXValueAttribute, kAXIdentifierAttribute, "AXDOMClassList", kAXChildrenAttribute, kAXSizeAttribute] as [String]
 let chromium: Set<String> = ["com.google.Chrome", "company.thebrowser.Browser", "com.brave.Browser", "com.microsoft.edgemac", "com.microsoft.teams", "com.microsoft.teams2"]
 var askedTree = Set<pid_t>()
+
+/// Asks a Chromium or Electron app to build its page's accessibility tree, once per process. A browser is asked only
+/// once a window is a Meet call. Teams is asked before looking: a Teams window counts as a call only by its Leave or
+/// Mute button, and Teams shows those only once asked, so asking afterwards never finds a call (#111).
+func askTree(_ app: AXUIElement, _ r: NSRunningApplication, force: Bool = false) {
+  guard let id = r.bundleIdentifier, chromium.contains(id), !askedTree.contains(r.processIdentifier) else { return }
+  guard force || id.hasPrefix("com.microsoft.teams") else { return }
+  AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+  askedTree.insert(r.processIdentifier)
+}
 
 func axAttr(_ e: AXUIElement, _ name: String) -> AnyObject? {
   var v: AnyObject?
@@ -337,14 +347,12 @@ func watchCalls(every: Int, ids: [String]) {
       for r in running {
         let app = AXUIElementCreateApplication(r.processIdentifier)
         AXUIElementSetMessagingTimeout(app, 0.3)
+        askTree(app, r)
         let wins = callWindows(app, r.bundleIdentifier ?? "")
         if !wins.isEmpty { found = (r, app, wins); break }
       }
       if let (target, app, wins) = found, let id = target.bundleIdentifier {
-        if chromium.contains(id) && !askedTree.contains(target.processIdentifier) {
-          AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, kCFBooleanTrue)
-          askedTree.insert(target.processIdentifier)
-        }
+        askTree(app, target, force: true)
         let zoom = id == "us.zoom.xos"
         var budget = zoom ? 1500 : 4000
         let out = wins.prefix(4).map { w -> [String: Any] in
