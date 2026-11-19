@@ -47,7 +47,10 @@ export const norm = (s: string) => {
 
 type Opts = { /** the person's own name in Settings, and the Mac's: never a name for the other side */ myNames?: string[] }
 
-const isMe = (name: string, s: CallSample, o: Opts) => {
+/** all that telling the person recording from the other side needs of a reading: who it marked, and who they are */
+type Marks = Pick<CallSample, 'speaking' | 'me'>
+
+const isMe = (name: string, s: Pick<CallSample, 'me'>, o: Opts) => {
   const n = norm(name)
   return (s.me != null && norm(s.me) === n) || (o.myNames ?? []).some((m) => m && norm(m) === n)
 }
@@ -79,6 +82,14 @@ function steadyMarks(sorted: CallSample[], atMs: number, o: Opts): Set<string> {
   if (crowded < CROWDED_SHARE * seen.length) return new Set()
   return new Set([...marked].filter(([, n]) => n >= STEADY_SHARE * seen.length).map(([p]) => p))
 }
+
+/**
+ * How many readings marked someone who is not the person using Yogurt. Marks of the person themselves are the
+ * only ones whoAt() throws away, so counting every mark would say the app named a speaker when nothing it said
+ * could ever have named one.
+ */
+export const markedOther = (samples: readonly Marks[], o: Opts = {}) =>
+  samples.filter((s) => s.speaking.some((n) => !isMe(n, s, o))).length
 
 /** who the other side was at one reading, or null when it can't be told */
 function whoAt(s: CallSample, o: Opts, steady: Set<string> = new Set()): string | null {
