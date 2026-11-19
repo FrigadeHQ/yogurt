@@ -761,5 +761,12 @@
   "Help": "Hjelp",
   "Help and settings": "Hjelp og innstillinger",
   "Yogurt menu": "Yogurt-meny",
-  "Restart to update · {version}": "Start på nytt for å oppdatere · {version}"
+  "Restart to update · {version}": "Start på nytt for å oppdatere · {version}",
+  "Edit or regenerate summary": "Rediger eller lag sammendrag på nytt",
+  "Edit summary": "Rediger sammendrag",
+  "Edit using the transcript too": "Bruk også transkripsjonen ved redigering",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "Tregere og avhenger av notatmodellen: et langt møte får kanskje ikke plass og leses da i deler.",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "«Generer på nytt» erstatter endringene dine i sammendraget. «Rediger» beholder dem.",
+  "Summary edited": "Sammendrag redigert",
+  "The summary changed since, so it wasn't undone.": "Sammendraget er endret siden, så redigeringen ble ikke angret."
 }

@@ -777,5 +777,12 @@
   "Help": "Aide",
   "Help and settings": "Aide et paramètres",
   "Yogurt menu": "Menu de Yogurt",
-  "Restart to update · {version}": "Redémarrer pour mettre à jour · {version}"
+  "Restart to update · {version}": "Redémarrer pour mettre à jour · {version}",
+  "Edit or regenerate summary": "Modifier ou régénérer le résumé",
+  "Edit summary": "Modifier le résumé",
+  "Edit using the transcript too": "Modifier en utilisant aussi la transcription",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "Plus lent, et dépend du modèle de notes : une longue réunion peut ne pas y tenir et est alors lue par parties.",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "« Régénérer » remplace vos modifications du résumé. « Modifier » les conserve.",
+  "Summary edited": "Résumé modifié",
+  "The summary changed since, so it wasn't undone.": "Le résumé a été modifié depuis, la modification n’a donc pas été annulée."
 }

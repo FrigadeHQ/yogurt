@@ -761,5 +761,12 @@
   "Help": "Hjælp",
   "Help and settings": "Hjælp og indstillinger",
   "Yogurt menu": "Yogurt-menu",
-  "Restart to update · {version}": "Genstart for at opdatere · {version}"
+  "Restart to update · {version}": "Genstart for at opdatere · {version}",
+  "Edit or regenerate summary": "Rediger eller lav resumé igen",
+  "Edit summary": "Rediger resumé",
+  "Edit using the transcript too": "Brug også transskriptionen ved redigering",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "Langsommere og afhænger af notemodellen: et langt møde passer måske ikke ind og læses så i dele.",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "“Generér igen” erstatter dine ændringer i resuméet. “Rediger” beholder dem.",
+  "Summary edited": "Resumé redigeret",
+  "The summary changed since, so it wasn't undone.": "Resuméet er ændret siden, så redigeringen blev ikke fortrudt."
 }

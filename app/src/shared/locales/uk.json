@@ -789,5 +789,12 @@
   "Help": "Довідка",
   "Help and settings": "Довідка й налаштування",
   "Yogurt menu": "Меню Yogurt",
-  "Restart to update · {version}": "Перезапустити для оновлення · {version}"
+  "Restart to update · {version}": "Перезапустити для оновлення · {version}",
+  "Edit or regenerate summary": "Змінити або створити підсумок заново",
+  "Edit summary": "Змінити підсумок",
+  "Edit using the transcript too": "Змінити з урахуванням розшифровки",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "Повільніше й залежить від моделі для нотаток: довга зустріч може в неї не вміститися, і тоді її буде прочитано частинами.",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "«Створити знову» замінить ваші зміни в підсумку. «Змінити» їх збереже.",
+  "Summary edited": "Підсумок змінено",
+  "The summary changed since, so it wasn't undone.": "Підсумок відтоді змінився, тож зміну не відмінено."
 }

@@ -32,6 +32,13 @@ Yogurt connects to the internet to download models from Hugging Face, to get App
 
 If you [connect an AI app](#connect-an-ai-app), it may send what it reads to its own online model.
 
+## Change a Summary
+
+Type in a Summary to change it yourself. To have the notes model change it, open **… → Edit or regenerate summary** and add a note, like "shorter" or "add the budget":
+
+- **Edit summary** applies the note to the Summary as it is now, and keeps your own changes. It reads only the Summary unless you tick **Edit using the transcript too**. Reading the transcript is slower, and a long meeting may not fit the notes model at once, so it is then read in parts. For a few seconds afterwards, **Undo** puts the Summary back as it was.
+- **Regenerate** writes the Summary again from the meeting, and replaces your changes.
+
 ## Your data
 
 Meetings, recordings, settings and downloaded models live here:

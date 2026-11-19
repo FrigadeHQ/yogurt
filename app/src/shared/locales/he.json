@@ -771,5 +771,12 @@
   "Help": "עזרה",
   "Help and settings": "עזרה והגדרות",
   "Yogurt menu": "תפריט Yogurt",
-  "Restart to update · {version}": "הפעלה מחדש לעדכון · {version}"
+  "Restart to update · {version}": "הפעלה מחדש לעדכון · {version}",
+  "Edit or regenerate summary": "עריכה או יצירה מחדש של הסיכום",
+  "Edit summary": "עריכת הסיכום",
+  "Edit using the transcript too": "עריכה גם על סמך התמלול",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "איטי יותר ותלוי במודל ההערות: פגישה ארוכה עשויה לא להיכנס אליו, ואז היא נקראת בחלקים.",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "“יצירה מחדש” מחליפה את העריכות שלך בסיכום. “עריכה” שומרת עליהן.",
+  "Summary edited": "הסיכום נערך",
+  "The summary changed since, so it wasn't undone.": "הסיכום השתנה מאז, ולכן העריכה לא בוטלה."
 }

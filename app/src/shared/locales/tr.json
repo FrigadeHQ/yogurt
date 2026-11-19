@@ -749,5 +749,12 @@
   "Help": "Yardım",
   "Help and settings": "Yardım ve ayarlar",
   "Yogurt menu": "Yogurt menüsü",
-  "Restart to update · {version}": "Güncellemek için yeniden başlat · {version}"
+  "Restart to update · {version}": "Güncellemek için yeniden başlat · {version}",
+  "Edit or regenerate summary": "Özeti düzenle veya yeniden oluştur",
+  "Edit summary": "Özeti düzenle",
+  "Edit using the transcript too": "Transkripti de kullanarak düzenle",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "Daha yavaştır ve not modeline bağlıdır: uzun bir toplantı modele sığmayabilir, bu durumda parça parça okunur.",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "“Yeniden oluştur” özette yaptığınız düzenlemeleri değiştirir. “Düzenle” onları korur.",
+  "Summary edited": "Özet düzenlendi",
+  "The summary changed since, so it wasn't undone.": "Özet o zamandan beri değişti, bu yüzden düzenleme geri alınmadı."
 }

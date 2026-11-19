@@ -354,6 +354,23 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
     setEditedHere(false)
     void window.yogurt.notes.writeAgain(id, note)
   }
+  const editSummary = async (note: string, withTranscript: boolean) => {
+    if (!await saveAll()) return
+    setEditedHere(false)
+    if (!await window.yogurt.notes.edit(id, note, withTranscript).catch(() => false)) return
+    // a small model can get an edit wrong: a few seconds to put the summary back as it was
+    let undoing = false
+    const toast = toasts.add({ title: t('Summary edited'), timeout: 8000,
+      data: { testId: 'summary-edited-toast', actionTestId: 'summary-edit-undo' },
+      actionProps: { children: t('Undo'), onClick: async () => {
+        if (undoing) return
+        undoing = true
+        const undone = await window.yogurt.notes.undoEdit(id).catch(() => false)
+        toasts.close(toast)
+        if (!undone) toasts.add({ title: t("The summary changed since, so it wasn't undone.") })
+      } },
+    })
+  }
   const hasSummary = !!notes.enhanced?.trim()
   const transcribing=transcriptionBusy(m.transcriptionState)
   const runTranscript=async(again=false)=>{if(!await saveAll())return;try{const started=await window.yogurt.transcript.run(id,again);if(started)setPrimary('transcript')}catch{toasts.add({title:t("Yogurt couldn't transcribe this file.")})}}
@@ -378,7 +395,8 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
       </Modal>}
       <div data-testid="note-topbar" className="note-topbar no-drag fixed end-4 top-[10px] z-[60]">
           <NoteMenu key={id} transcription={{reason:transcriptReason,run:()=>void runTranscript(true)}} generation={generation} hasSummary={hasSummary} edited={notes.edited || editedHere} rewriteOpen={rewriteOpen} setRewriteOpen={setRewriteOpen}
-            onWriteAgain={(note) => { if (!generation || generation.reason) return; pickPrimary('notes'); pick('enhanced'); void writeAgain(note) }} recording={recording} savePending={m.stopSavePending} trashed={trashed} onRename={() => setRenaming(true)} onDelete={() => { void saveAll().then((saved) => { if (!saved) return; if (trashed) setDeleting(true); else void moveToTrash(id, `/note/${id}`) }) }}
+            onWriteAgain={(note) => { if (!generation || generation.reason) return; pickPrimary('notes'); pick('enhanced'); void writeAgain(note) }}
+            hasTranscript={hasTranscript} onEdit={(note, withTranscript) => { if (!generation || generation.reason) return; pickPrimary('notes'); pick('enhanced'); void editSummary(note, withTranscript) }} recording={recording} savePending={m.stopSavePending} trashed={trashed} onRename={() => setRenaming(true)} onDelete={() => { void saveAll().then((saved) => { if (!saved) return; if (trashed) setDeleting(true); else void moveToTrash(id, `/note/${id}`) }) }}
             folders={(close) => <FolderPicker testId="note-menu-folders" meetingId={id} onNew={() => { close(); setNamingFolder(true) }} />} />
       </div>
       <div className="note-layout relative flex min-w-0 flex-1 flex-col" data-tab-pointer={tabPointer}>

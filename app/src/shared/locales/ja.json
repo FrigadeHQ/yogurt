@@ -719,5 +719,12 @@
   "Help": "ヘルプ",
   "Help and settings": "ヘルプと設定",
   "Yogurt menu": "Yogurt メニュー",
-  "Restart to update · {version}": "再起動してアップデート · {version}"
+  "Restart to update · {version}": "再起動してアップデート · {version}",
+  "Edit or regenerate summary": "要約を編集または作り直す",
+  "Edit summary": "要約を編集",
+  "Edit using the transcript too": "文字起こしも使って編集",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "時間がかかり、ノート用モデルに左右されます。長いミーティングは収まらない場合があり、その際は分割して読み込みます。",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "「再生成」は要約に加えた編集を置き換えます。「編集」は残します。",
+  "Summary edited": "要約を編集しました",
+  "The summary changed since, so it wasn't undone.": "その後に要約が変更されたため、取り消せませんでした。"
 }

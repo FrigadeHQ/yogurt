@@ -233,7 +233,8 @@ html.widget, .widget-pill[data-illustration] { --pill:#232326;--pill-ink:#F7F7FA
 .main-window .summary-regenerate-input:focus-visible { outline:2px solid var(--muted);outline-offset:2px; }
 .summary-regenerate-input::placeholder { color:var(--muted); }
 .summary-regenerate-warning { margin-top:10px;font-size:12px;line-height:20px;color:var(--muted);overflow-wrap:anywhere; }
-.summary-regenerate-actions { display:flex;justify-content:flex-end;margin-top:12px; }
+.summary-regenerate-option { display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;line-height:20px; }
+.summary-regenerate-actions { display:flex;justify-content:flex-end;gap:8px;margin-top:12px; }
 .note-chip, .note-record-action { height:var(--button-height); }
 .note-chip { transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease, opacity var(--dur-micro) var(--ease-out), box-shadow var(--dur-micro) ease; }
 .note-chip:hover, .note-chip[aria-expanded="true"] { background:var(--control-hover);color:var(--ink); }

@@ -719,5 +719,12 @@
   "Help": "Bantuan",
   "Help and settings": "Bantuan dan tetapan",
   "Yogurt menu": "Menu Yogurt",
-  "Restart to update · {version}": "Mulakan semula untuk mengemas kini · {version}"
+  "Restart to update · {version}": "Mulakan semula untuk mengemas kini · {version}",
+  "Edit or regenerate summary": "Sunting atau jana semula ringkasan",
+  "Edit summary": "Sunting ringkasan",
+  "Edit using the transcript too": "Gunakan juga transkrip semasa menyunting",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "Lebih perlahan dan bergantung pada model nota: mesyuarat panjang mungkin tidak muat, jadi dibaca mengikut bahagian.",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "“Jana semula” menggantikan suntingan anda pada ringkasan. “Sunting” mengekalkannya.",
+  "Summary edited": "Ringkasan disunting",
+  "The summary changed since, so it wasn't undone.": "Ringkasan telah berubah sejak itu, jadi suntingan tidak dibuat asal."
 }
