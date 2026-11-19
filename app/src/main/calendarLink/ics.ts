@@ -107,9 +107,14 @@ export function icsFeed(text: string, link: LinkRef) {
       const it = ev.iterator()
       for (let i = 0, next = it.next(); next && i < MAX_STEPS; i++, next = it.next()) {
         const at = next.toJSDate().getTime()
-        if (at >= toMs && !moved.has(next.toString())) break
-        if (at + lasts <= fromMs && !moved.has(next.toString())) continue
+        if (at >= toMs) break
+        if (at + lasts <= fromMs || moved.has(next.toString())) continue
         const d = ev.getOccurrenceDetails(next)
+        add(d.item, d.startDate, d.endDate)
+      }
+      // moved copies are read by their own time: the original date can be long after the window
+      for (const x of Object.values(ev.exceptions)) {
+        const d = ev.getOccurrenceDetails(x.recurrenceId)
         add(d.item, d.startDate, d.endDate)
       }
     }

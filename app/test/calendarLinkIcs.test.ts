@@ -131,6 +131,24 @@ END:VEVENT`
     expect(details.mock.calls.length).toBeLessThan(20)
     details.mockRestore()
   })
+  it('an occurrence moved into the window from a date long after it still shows', () => {
+    const weekly = `BEGIN:VEVENT
+UID:sync@example.com
+SUMMARY:Sync
+DTSTART:20261102T150000Z
+DTEND:20261102T153000Z
+RRULE:FREQ=WEEKLY
+END:VEVENT
+BEGIN:VEVENT
+UID:sync@example.com
+RECURRENCE-ID:20261214T150000Z
+SUMMARY:Moved up
+DTSTART:20261120T180000Z
+DTEND:20261120T183000Z
+END:VEVENT`
+    const got = icsEvents(feed(weekly), at('2026-11-20T00:00:00Z'), at('2026-11-21T00:00:00Z'), link)
+    expect(got.map((e) => e.title)).toEqual(['Moved up'])
+  })
   it('building a feed of many events does not look through the whole feed once per event (thousands of events took seconds)', () => {
     const many = Array.from({ length: 50 }, (_, i) => `BEGIN:VEVENT\nUID:one-${i}@example.com\nSUMMARY:One ${i}\nDTSTART:20190101T1000${String(i).padStart(2, '0')}Z\nDTEND:20190101T1100${String(i).padStart(2, '0')}Z\nEND:VEVENT`).join('\n')
     const scans = vi.spyOn(ICAL.Component.prototype, 'getAllSubcomponents')
