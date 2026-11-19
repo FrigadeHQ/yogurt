@@ -102,6 +102,20 @@ const meetWindow = (tiles: AxNode[], title = 'Meet - abc-defg-hij') => win(node(
     node('AXGroup', {}, node('AXGroup', {}, node('AXGroup', {}, node('AXGroup', {}, node('AXGroup', {}, node('AXGroup', {}, node('AXGroup', {}, node('AXStaticText', { v: 'abc-defg-hij' }), node('AXStaticText', { v: '10:42' }))))))))))), title)
 
 describe('Google Meet', () => {
+  // Eric, after a two-person Meet: reCAPTCHA, a chat message ("lightsage") and an Upgrade link were added as people
+  it('page words (reCAPTCHA, Upgrade) and anything in the chat panel are never people', () => {
+    const chatMessage = (text: string) => {
+      let n = node('AXStaticText', { v: text })
+      for (let i = 0; i < 7; i++) n = node('AXGroup', {}, n)
+      return node('AXGroup', { d: 'In-call messages' }, node('AXList', { d: 'Chat messages' }, n))
+    }
+    const r = readCall('meet', [meetWindow([meetTile('You'), meetTile('May Wang', ['v5h6Xc']), meetTile('reCAPTCHA'), meetTile('Upgrade'), chatMessage('lightsage')])])
+    expect(r).toEqual({ speaking: ['May Wang'], participants: ['You', 'May Wang'], me: 'You' })
+  })
+  it('a meeting named after a chat still reads its tiles', () => {
+    expect(readCall('meet', [meetWindow([meetTile('Dana Smith', ['v5h6Xc'])], 'Meet - Weekly chat')]).participants).toEqual(['Dana Smith'])
+  })
+
   it('reads each tile once, and the tile with the talking class', () => {
     const r = readCall('meet', [meetWindow([meetTile('You'), meetTile('Dana Smith', ['v5h6Xc']), meetTile('Ann Lee')])])
     expect(r).toEqual({ speaking: ['Dana Smith'], participants: ['You', 'Dana Smith', 'Ann Lee'], me: 'You' })

@@ -160,7 +160,11 @@ const TILE_UP = 7
 const NOT_A_NAME = /^\d{1,2}[:.]\d{2}(\s?[AP]M)?$|^[a-z]{3}-[a-z]{4}-[a-z]{3}$|says in chat|^(AM|PM)$|^\d+$/i
 
 /** Meet's own words that stand alone like a name */
-const MEET_WORDS = new Set(['meet', 'reframe', 'captions', 'chat', 'people', 'activities', 'host controls', 'present', 'raise hand', 'reactions'])
+const MEET_WORDS = new Set(['meet', 'reframe', 'captions', 'chat', 'people', 'activities', 'host controls', 'present', 'raise hand', 'reactions', 'recaptcha', 'upgrade'])
+/** the chat panel: its messages stand alone like names (a one-word message, "lightsage", was taken for a person) */
+const MEET_CHAT = /\b(chat|messages?)\b/i
+/** the window and the page carry the meeting's name ("Weekly chat"): only what's inside them is checked for the chat panel */
+const MEET_PAGE = new Set(['AXWindow', 'AXWebArea', 'frame', 'document web', 'window'])
 /** lowercase words that sit inside real names: Ana María de la Cruz, Ludwig van Beethoven */
 const PARTICLES = new Set(['de', 'del', 'della', 'der', 'den', 'di', 'da', 'das', 'do', 'dos', 'du', 'la', 'le', 'van', 'von', 'ter', 'ten', 'y', 'e', 'bin', 'binti', 'al', 'el', 'ibn', 'zu'])
 
@@ -194,7 +198,7 @@ function readMeet(windows: AxWindow[], o: { talkingClasses?: string[] }): CallRe
     if (w.title && !/\bMeet\b/.test(w.title)) continue
     const skip = new Set((w.title ?? '').split(/\s+[-–—]\s+/).map(low))
     walk(w.tree, (n, up) => {
-      if (!STATIC_TEXT.has(n.r) || up.length < TILE_UP || up.some(isLive)) return
+      if (!STATIC_TEXT.has(n.r) || up.length < TILE_UP || up.some(isLive) || up.some((a) => !MEET_PAGE.has(a.r) && MEET_CHAT.test(a.d ?? a.t ?? ''))) return
       const text = n.v ?? n.t
       if (!text) return
       const name = meetName(text)
