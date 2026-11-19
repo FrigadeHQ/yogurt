@@ -44,6 +44,8 @@ export type YogurtApi = {
     skipUpgrade(): Promise<void>
     downloadUpgrade(): Promise<void>
     removeUpgrade(): Promise<void>
+    /** no notes model fits here: go on without Yogurt AI, for another AI to write summaries (Settings → AI models) */
+    skipLocal(): Promise<void>
   }
   /** the "Take notes?" and "Stop recording?" card */
   prompt: {
@@ -162,6 +164,10 @@ export type YogurtApi = {
     /** looks for agent apps again first */
     status(): Promise<AiStatus>
     setTask(task: AiTask, provider: Provider): Promise<AiStatus>
+    /** Yogurt AI on this computer: off stops its download and removes it; on downloads it again */
+    setLocal(on: boolean): Promise<AiStatus>
+    /** Transcription: a speech model's id, or null for Auto */
+    setSpeech(id: string | null): Promise<AiStatus>
     /** null: no server. key: left out keeps the saved one for the same address, '' removes it */
     setServer(server: { url: string; model: string; contextSize: number; key?: string } | null): Promise<AiStatus>
     /** Test connection: the models the server offers */
@@ -346,6 +352,19 @@ export type SetupState = {
   /** 0 to 1 over what ready waits for */
   fraction: number
   message?: string
+  /** the speech model transcribing now (catalog id) */
+  speechModel?: string
+  /** Settings → AI models → Transcription: the one picked downloading, then waiting for meetings to finish being transcribed */
+  speechSwitch?: { id: string; fraction: number }
+  speechSwitchPending?: string
+  speechSwitchError?: string
+  /** Settings → AI models: Yogurt AI is not kept on this computer (summaries come from the AI picked for them) */
+  localNotesOff?: boolean
+  /** what Yogurt AI downloads first on this computer; unavailable: no notes model fits here */
+  localNotesBytes?: number
+  localNotesUnavailable?: boolean
+  /** no notes model fits here: setup can go on without one (setup:skip-local) */
+  notesSkippable?: boolean
   /** Speech is ready, but the first notes-model download failed. Recording and transcription still work. */
   notesError?: string
   /** First notes-model progress (0 to 1), retained on failure until retry or completion. */

@@ -26,6 +26,8 @@ export type AiStatus = {
   agents: Array<{ id: AgentId; name: string; found: boolean }>
   /** a notes model is on this computer */
   local: boolean
+  /** Transcription: the one picked (null: Auto), what Auto means here, and every speech model there is, best first */
+  speech?: { choice: string | null; auto?: { id: string; name: string }; models: Array<{ id: string; name: string; bytes: number }> }
 }
 /** a server's context when it doesn't say: what the model on this computer reads at most */
 export const SERVER_CONTEXT = 32_768

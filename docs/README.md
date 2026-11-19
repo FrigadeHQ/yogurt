@@ -43,6 +43,13 @@ Yogurt's own model on your computer writes summaries and titles, answers Ask, an
 
 If the one you picked fails before it writes anything, Yogurt's own model answers instead, when the question fits it. Settings says where meeting text goes while any task uses something else.
 
+The same section has two settings for what runs on your computer:
+
+- **Yogurt AI on this Mac** (or computer): **Remove** frees the space its model takes, and **Download** brings it back. While it is removed, tasks still set to it wait, and their menu items say to pick another AI.
+- **Transcription** is always done on your computer. **Auto** uses the speech model setup picked for it. Another Whisper model downloads while the current one keeps working, and takes over once nothing is being recorded or transcribed.
+
+A computer with too little memory for any notes model can still be set up: choose **Continue without Yogurt AI**, then pick your own server or an AI app for summaries.
+
 ## Your data
 
 Meetings, recordings, settings and downloaded models live here:

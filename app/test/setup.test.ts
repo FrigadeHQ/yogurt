@@ -792,3 +792,109 @@ describe('optional better notes model', () => {
     expect(c.state.notesUpgradeChanging).toBeUndefined()
   })
 })
+
+describe('Settings → AI models → Transcription', () => {
+  const smallFile = name(smallUrl), turboFile = name(turboUrl)
+  it('uses the speech model picked instead of the pick for this computer, and skips the speed check for it', async () => {
+    const mac = setup({ speechChoice: () => 'whisper-small-q5_1' })
+    await mac.c.start()
+    expect(mac.c.state).toMatchObject({ phase: 'ready', speechModel: 'whisper-small-q5_1' })
+    expect(mac.c.installed()?.asr).toContain(smallFile)
+    expect(mac.rec.asked).not.toContain(turboUrl)
+    // Auto still means this Mac's pick
+    expect(mac.c.speechChoices().auto?.id).toBe('whisper-large-v3-turbo-q5_0')
+    const timed: string[] = []
+    const pc = setup({ getHardware: async () => ({ ...m1max, os: 'win32', arch: 'x64', gpu: { kind: 'none', name: '', vramGB: 0 } }), speechChoice: () => 'whisper-base-q5_1',
+      speed: { measure: async (p) => { timed.push(p); return { rtf: 0.1 } }, load: () => undefined, save: () => {} } })
+    await pc.c.start()
+    expect(pc.c.state).toMatchObject({ phase: 'ready', speechModel: 'whisper-base-q5_1' })
+    expect(timed).toEqual([])
+    // a choice that is no longer in the catalog: the pick for this computer
+    const gone = setup({ speechChoice: () => 'whisper-huge' })
+    await gone.c.start()
+    expect(gone.c.state.speechModel).toBe('whisper-large-v3-turbo-q5_0')
+  })
+  it('downloads a new pick while the old one goes on, waits for meetings to be transcribed, then swaps and removes the old file', async () => {
+    let choice: string | undefined, busy = true
+    const s = setup({ speechChoice: () => choice, speechBusy: () => busy, speechWaitMs: 5 })
+    await s.c.start()
+    const old = s.c.installed()!.asr
+    expect(old).toContain(turboFile)
+    {
+      choice = 'whisper-small-q5_1'
+      await s.c.switchSpeech()
+      expect(s.states.some((x) => x.speechSwitch?.id === 'whisper-small-q5_1')).toBe(true)
+      // a meeting is still being transcribed: the old one stays meanwhile
+      expect(s.c.state).toMatchObject({ speechModel: 'whisper-large-v3-turbo-q5_0', speechSwitchPending: 'whisper-small-q5_1' })
+      expect(s.c.installed()!.asr).toBe(old)
+      busy = false
+      await vi.waitFor(() => expect(s.c.state).toMatchObject({ speechModel: 'whisper-small-q5_1' }))
+      expect(s.c.state.speechSwitchPending).toBeUndefined()
+      expect(s.c.installed()!.asr).toContain(smallFile)
+      expect(existsSync(old)).toBe(false)
+      // back to Auto: this Mac's pick again
+      choice = undefined
+      await s.c.switchSpeech()
+      expect(s.c.state.speechModel).toBe('whisper-large-v3-turbo-q5_0')
+      // already the one in use: nothing to download
+      const asked = s.rec.asked.length
+      await s.c.switchSpeech()
+      expect(s.rec.asked.length).toBe(asked)
+    }
+  })
+  it('keeps the speech model it has when the new one does not download', async () => {
+    let choice: string | undefined
+    const inner = fakeDownloadDeps({ stepMs: 0 })
+    const download: DownloadDeps['download'] = async (url, ...rest) => { if (url === smallUrl) throw new Error('offline'); return inner.download(url, ...rest) }
+    const s = setup({ speechChoice: () => choice, speechBusy: () => false, download: { ...inner, download } })
+    await s.c.start()
+    choice = 'whisper-small-q5_1'
+    await s.c.switchSpeech()
+    expect(s.c.state.speechSwitchError).toBeTruthy()
+    expect(s.c.state.speechModel).toBe('whisper-large-v3-turbo-q5_0')
+    expect(s.c.installed()!.asr).toContain(turboFile)
+  })
+})
+
+describe('Settings → AI models: Yogurt AI kept on this computer or not', () => {
+  const mac4: Hardware = { ...mac8, totalRamGB: 4, gpu: { kind: 'unified', name: 'Apple M1', vramGB: 3 } }
+  it('lets a computer no notes model fits go on without one, with speech and search across meetings only', async () => {
+    const weak = setup({ getHardware: async () => mac4 })
+    await weak.c.start()
+    expect(weak.c.state).toMatchObject({ phase: 'error', notesSkippable: true, message: 'Yogurt needs a Mac with at least 8 GB of memory.' })
+    const off = setup({ getHardware: async () => mac4, localNotes: () => false })
+    await off.c.start()
+    expect(off.c.state).toMatchObject({ phase: 'ready', localNotesOff: true, localNotesUnavailable: true })
+    await vi.waitFor(() => expect(off.c.installed()?.embed).toBeTruthy())
+    expect(off.c.notesPath()).toBeUndefined()
+    expect(off.rec.asked.some((u) => catalog.models.some((m) => m.builds.some((b) => b.url === u)))).toBe(false)
+    // nothing fits: turning it on has nothing to download
+    await off.c.setLocalNotes(true, async (remove) => remove())
+    expect(off.c.state.localNotesOff).toBe(true)
+  })
+  it('turned off on a computer that runs it: no notes model downloads; turned on, it does', async () => {
+    const s = setup({ localNotes: () => false })
+    await s.c.start()
+    expect(s.c.state).toMatchObject({ phase: 'ready', localNotesOff: true, localNotesBytes: expect.any(Number) })
+    await vi.waitFor(() => expect(s.c.installed()?.embed).toBeTruthy())
+    expect(s.rec.asked).not.toContain(starterUrl)
+    await s.c.setLocalNotes(true, async (remove) => remove())
+    expect(s.c.state.localNotesOff).toBeUndefined()
+    await vi.waitFor(() => expect(s.c.notesPath()).toBeTruthy())
+  })
+  it('stops a notes download when turned off, lets the model go first, and removes its files', async () => {
+    const rec = recorder((url) => url === starterUrl)
+    const s = setup({ download: rec.deps })
+    await s.c.start()
+    await vi.waitFor(() => expect(s.c.state.notesDownloading).toBe(true))
+    const released: string[] = []
+    await s.c.setLocalNotes(false, async (remove) => { released.push('unloaded'); remove() })
+    rec.release()
+    expect(released).toEqual(['unloaded'])
+    expect(s.c.state).toMatchObject({ localNotesOff: true })
+    expect(s.c.state.notesDownloading).toBeUndefined()
+    await new Promise((r) => setTimeout(r, 20))
+    expect(s.c.notesPath()).toBeUndefined()
+    expect(existsSync(join(s.root, 'llm', name(starterUrl)))).toBe(false)
+  })
+})

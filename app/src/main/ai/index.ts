@@ -4,6 +4,7 @@ import { AGENTS, AI_TASKS, isProvider, isTask, MAX_SERVER_CONTEXT, MIN_SERVER_CO
 import { createRouter, type Model } from './router'
 import { serverLlm, serverModels, serverUrl, type Server } from './server'
 import type { Agents } from './agents'
+import type { CatalogAsr } from '@yogurt/picker'
 
 const contextOf = (n: unknown) => (Number.isInteger(n) && (n as number) >= MIN_SERVER_CONTEXT && (n as number) <= MAX_SERVER_CONTEXT ? (n as number) : SERVER_CONTEXT)
 const modelName = (x: unknown) => (typeof x === 'string' && x.trim() && x.length <= 200 ? x.trim() : undefined)
@@ -14,6 +15,10 @@ const modelName = (x: unknown) => (typeof x === 'string' && x.trim() && x.length
  */
 export function hookAi(o: {
   file: string; local: Model; hasLocal: () => boolean; agents?: Agents; changed: () => void
+  /** Transcription: the speech models there are (setup.ts), and the switch once the choice changed */
+  speech?: { choices: () => { auto?: CatalogAsr; models: CatalogAsr[] }; switch: () => void }
+  /** Yogurt AI on this computer turned on or off (setup.ts setLocalNotes) */
+  keepLocal?: (on: boolean) => Promise<void>
   /** the server's key, kept with the system's keychain where it has one */
   seal: (plain: string) => string; open: (sealed: string) => string
 }) {
@@ -42,7 +47,14 @@ export function hookAi(o: {
       server: s && url ? { url, model: s.model ?? '', contextSize: contextOf(s.contextSize), hasKey: !!s.key } : null,
       agents: AGENTS.map((a) => ({ id: a.id, name: a.name, found: !!o.agents?.found(a.id) })),
       local: o.hasLocal(),
+      speech: speechStatus(),
     }
+  }
+  const speechStatus = (): AiStatus['speech'] => {
+    const c = o.speech?.choices()
+    if (!c?.models.length) return undefined
+    const choice = saved().speechModel
+    return { choice: c.models.some((m) => m.id === choice) ? choice! : null, auto: c.auto && { id: c.auto.id, name: c.auto.name }, models: c.models.map((m) => ({ id: m.id, name: m.name, bytes: m.bytes })) }
   }
 
   ipcMain.handle('ai:status', async () => { await o.agents?.refresh(); return status() })
@@ -50,6 +62,20 @@ export function hookAi(o: {
     if (!isTask(task) || !isProvider(provider)) throw new Error('Invalid AI choice')
     updateSettings(o.file, { ai: { ...saved().ai, [task]: provider === 'local' ? undefined : provider } })
     o.changed()
+    return status()
+  })
+  ipcMain.handle('ai:set-local', async (_e, on: unknown) => {
+    if (typeof on !== 'boolean') throw new Error('Invalid choice')
+    updateSettings(o.file, { localNotes: on ? undefined : false })
+    await o.keepLocal?.(on)
+    o.changed()
+    return status()
+  })
+  /** Transcription: a catalog id, or null for Auto (the pick for this computer); it downloads, then takes over */
+  ipcMain.handle('ai:set-speech', (_e, id: unknown) => {
+    if (id !== null && !o.speech?.choices().models.some((m) => m.id === id)) throw new Error('Invalid speech model')
+    updateSettings(o.file, { speechModel: id === null ? undefined : (id as string) })
+    o.speech?.switch()
     return status()
   })
   /** null: no server. key: undefined keeps the saved one (for the same address only), '' removes it */

@@ -127,6 +127,8 @@ function openExternally(url: string) {
 }
 
 let updateWidgetVisibility = () => {}
+/** a meeting is recorded or transcribed: a new speech model waits for it (set once transcription is wired) */
+let speechBusy = () => true
 let sendWidgetTranscript = (_channel: string, _value: unknown) => {}
 function createWindow() {
   win = new BrowserWindow({
@@ -185,6 +187,8 @@ function createSetup(): SetupController {
     getCatalog: async () => loadCatalog({ bundled: bundledCatalog, licenses }),
     download: isFake() ? fakeDownloadDeps({ stepMs: Number(process.env.YOGURT_FAKE_STEP_MS ?? 5), notesMs: Number(process.env.YOGURT_FAKE_NOTES_MODEL_MS ?? 0), notesFailOnce: process.env.YOGURT_FAKE_NOTES_MODEL_FAIL_ONCE === '1' }) : realDeps,
     ...(isFake() ? { sha256Override: 'FAKE' } : {}),
+    speechChoice: () => loadSettings(join(userDataDir(), 'settings.json')).speechModel, speechBusy: () => speechBusy(),
+    localNotes: () => loadSettings(join(userDataDir(), 'settings.json')).localNotes !== false,
     // Windows and Linux: speech models timed on this computer (asr/speedCheck.ts); a Mac never is
     ...(platform === 'darwin' ? {} : { speed: { ...speedStore(speedFile()), measure: isFake() ? fakeMeasure() : (model: string) => measureSpeed(model, { binary: whisperServerPath(), vadModel: vadModelPath(), clip: speedClipPath() ?? '' }) } }),
   })
@@ -530,6 +534,8 @@ app.whenReady().then(() => {
   ipcMain.handle('setup:retry', () => setup.retry())
   ipcMain.handle('setup:skip-upgrade', () => setup.skipUpgrade())
   ipcMain.handle('setup:download-upgrade', () => setup.downloadUpgrade())
+  // no notes model fits here: setup goes on without one, and summaries wait for the AI picked in Settings → AI models
+  ipcMain.handle('setup:skip-local', () => { if (!setup.state.notesSkippable) return; updateSettings(join(userDataDir(), 'settings.json'), { localNotes: false }); return setup.retry() })
   const store = openStore(join(userDataDir(), 'yogurt.db'))
   storeRef = store
   store.markInterrupted()
@@ -615,6 +621,8 @@ app.whenReady().then(() => {
   // Settings → AI models: each task's model, the one on this computer unless the person picked their server or an agent app
   const ai = hookAi({
     file: settingsFile, local: model, hasLocal: () => !!setup.notesPath(), seal, open: unseal,
+    speech: { choices: () => setup.speechChoices(), switch: () => void setup.switchSpeech() },
+    keepLocal: (on) => setup.setLocalNotes(on, remove => queue.enqueue(async () => { await model.unload(); remove() }, 'enhance')),
     agents: createAgents(isFake() ? { dirs: (process.env.YOGURT_FAKE_AGENTS ?? '').split(delimiter).filter(Boolean) } : {}),
     changed: () => { queue.modelArrived(); conversations.refresh() },
   })
@@ -678,6 +686,7 @@ app.whenReady().then(() => {
     changed: (id,replaced) => {win?.webContents.send('meetings:changed');if(replaced){win?.webContents.send('transcript:replaced',id);void indexer.schedule()}},
     summarize: id => {void notes.writeAgain(id)},
   })
+  speechBusy = () => !!activeMeeting() || !!resumingId || finishing || savedTranscriptions.busy() || transcriptionBacklogMs() > 0
   const uploads = hookAudioUploads({
     root: join(userDataDir(), 'meetings'), store, window: () => win, exiting: () => allowQuit,
     recording: () => !!activeMeeting() || !!resumingId || finishing,
