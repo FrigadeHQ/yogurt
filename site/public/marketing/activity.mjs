@@ -3,147 +3,62 @@ import { refreshSummary, hour, navStars } from './stars-data.mjs'
 const section = document.querySelector('#progress'),
   number = section.querySelector('.stat-value'),
   clip = section.querySelector('.chart-clip'),
-  chart = section.querySelector('.star-chart'),
-  points = Array.from(section.querySelector('.chart-line').points),
-  reduce = matchMedia('(prefers-reduced-motion: reduce)'),
-  nav = document.querySelector('.nav-stars')
+  reduce = matchMedia('(prefers-reduced-motion: reduce)')
 let total = Number(number.textContent.replaceAll(',', ''))
 const format = new Intl.NumberFormat('en')
-number.setAttribute('aria-hidden', 'true')
-number.parentElement.setAttribute('aria-label', `${format.format(total)} GitHub stars`)
-const tailGaps = [3000, 8000, 15000, 24000, 35000, 48000]
-let tailSize = Math.min(tailGaps.length, total),
-  base = total - tailSize
 let started = false,
   visible = false,
   finished = reduce.matches,
   clock = null,
-  raf = 0,
-  tailStage = false,
-  tailValue = base,
-  tailTimer = 0,
-  tailRemaining = tailGaps[0],
-  tailMark = 0
-// The nav shows the same count as the tile: the starting count until the tile has played, then each later star with it.
-const showNav = count => { nav.querySelector('span').textContent = navStars(count) }
-if (!finished) showNav(base)
-// Interpolate the same straight segment that is visible at the clipping edge.
-function heightAt(progress) {
-  if (progress === 0 || progress === 1 || points.length < 2) return progress
-  const { width, height } = chart.viewBox.baseVal
-  const x = width * progress
-  let left = 0, right = points.length - 1
-  while (right - left > 1) {
-    const middle = (left + right) >>> 1
-    if (points[middle].x <= x) left = middle
-    else right = middle
-  }
-  const a = points[left], b = points[right]
-  const t = b.x === a.x ? 1 : (x - a.x) / (b.x - a.x)
-  const y = a.y + (b.y - a.y) * t
-  const lastHeight = height - points.at(-1).y
-  return lastHeight > 0 ? Math.min(1, (height - y) / lastHeight) : progress
-}
+  raf = 0
+// The count is always the real total. Only the line draws in.
 function paint(progress) {
   clip.style.transform = 'scaleX(' + progress + ')'
-  updateCount(heightAt(progress))
-}
-function updateCount(progress) {
-  number.textContent = format.format(Math.round((finished ? total : base) * progress))
 }
 function stop() {
   cancelAnimationFrame(raf)
   raf = 0
   clock?.pause()
-  if (tailTimer) {
-    clearTimeout(tailTimer)
-    tailTimer = 0
-    tailRemaining = Math.max(0, tailRemaining - (performance.now() - tailMark))
-  }
 }
-function rest() {
+function rest(state) {
+  stop()
+  clock?.cancel()
+  clock = null
   finished = true
-  tailStage = false
-  clock?.cancel()
-  clock = null
-  updateCount(1)
-  showNav(total)
-  section.dataset.stars = 'complete'
-}
-function scheduleTail() {
-  if (tailTimer || document.hidden || reduce.matches || finished) return
-  tailMark = performance.now()
-  tailTimer = setTimeout(() => {
-    tailTimer = 0
-    tailValue = Math.min(total, tailValue + 1)
-    tailRemaining = tailGaps[tailValue - base] ?? 0
-    number.textContent = format.format(tailValue)
-    showNav(tailValue)
-    if (tailValue === total) rest()
-    else scheduleTail()
-  }, tailRemaining)
-}
-function finishCountUp() {
   paint(1)
-  clock?.cancel()
-  clock = null
-  if (!tailSize) {
-    rest()
-    return
-  }
-  tailStage = true
-  tailValue = base
-  section.dataset.stars = 'settling'
-  scheduleTail()
+  section.dataset.stars = state
 }
 
 function tick() {
-  if (reduce.matches) {
+  if (reduce.matches || !visible || document.hidden) {
     sync()
-    return
-  }
-  if (!visible || document.hidden) {
-    stop()
     return
   }
   const progress = clock.effect.getComputedTiming().progress ?? 0
   paint(progress)
   if (clock.playState === 'finished' || progress >= 1) {
-    raf = 0
-    finishCountUp()
+    rest('complete')
     return
   }
   raf = requestAnimationFrame(tick)
 }
 function sync() {
   if (reduce.matches) {
-    stop()
-    clock?.cancel()
-    clock = null
-    finished = true
-    paint(1)
-    showNav(total)
-    section.dataset.stars = 'still'
+    rest('still')
     return
   }
-  if (document.hidden || (!visible && !tailStage)) {
+  if (!visible || document.hidden) {
     stop()
     return
   }
-  if (!started && !finished) return
-  if (finished) return
-  if (tailStage) {
-    scheduleTail()
-    return
-  }
+  if (!started || finished) return
   if (!clock) {
-    // A timing-only effect lets one frame update both the clip and the count.
     clock = new Animation(new KeyframeEffect(null, [], {
       duration: 1800, easing: 'cubic-bezier(.30,.60,.40,1)', fill: 'both',
     }), document.timeline)
-    clock.play()
     paint(0)
-  } else clock.play()
+  }
+  clock.play()
   section.dataset.stars = 'playing'
   if (!raf) raf = requestAnimationFrame(tick)
 }
@@ -195,6 +110,7 @@ new IntersectionObserver(([entry])=>{
 document.addEventListener('visibilitychange',syncStatusPulse)
 reduce.addEventListener('change',syncStatusPulse)
 
+const nav = document.querySelector('.nav-stars')
 const releaseCount = section.querySelector('.oss-calendar .oss-figure')
 const releaseLink = section.querySelector('.oss-latest')
 const version = releaseLink.querySelector('.release-version strong')
@@ -220,18 +136,12 @@ async function refresh() {
   } })
   lastSummary = data
   if (data.count !== total) {
-    const ticks = tailValue - base
     total = data.count
-    tailSize = Math.min(tailGaps.length, total)
-    base = total - tailSize
-    tailValue = Math.min(total, base + ticks)
     const label = format.format(total)
-    showNav(finished ? total : tailStage ? tailValue : base)
+    number.textContent = label
+    nav.querySelector('span').textContent = navStars(total)
     nav.setAttribute('aria-label', 'Yogurt on GitHub, ' + label + ' stars')
     section.querySelector('.oss-history').setAttribute('aria-label', label + ' GitHub stars. View on GitHub')
-    number.parentElement.setAttribute('aria-label', label + ' GitHub stars')
-    if (finished) updateCount(1)
-    else if (tailStage) number.textContent = format.format(tailValue)
   }
   releaseCount.textContent = format.format(data.releases)
   version.textContent = data.latest.tag

@@ -134,7 +134,6 @@ function chartPage(reduced = false) {
       constructor(effect) { return animation(effect.frames, effect.options) }
     },
     document: doc,
-    navStars: count => count.toLocaleString('en'),
     window: { addEventListener() {}, removeEventListener() {} },
     innerHeight: 800,
     Intl,
@@ -166,7 +165,6 @@ function chartPage(reduced = false) {
   })
   return {
     number,
-    nav: () => query('span').textContent,
     enter: (ratio = 1) => observe([{ isIntersecting: true, intersectionRatio: ratio }]),
     clip: () => query('.chart-clip').style.transform,
     fill: () => query('.chart-fill').style.transform,
@@ -185,46 +183,28 @@ function chartPage(reduced = false) {
   }
 }
 const chart = chartPage()
-assert.equal(chart.nav(), '128') // The nav starts on the count the tile will land on.
 assert.equal(chart.clip(), 'scaleX(0)')
-assert.equal(chart.number.textContent, '0')
+assert.equal(chart.number.textContent, '134') // The count is the real total from the first paint.
 chart.enter(.2)
 assert.equal(chart.timing(), undefined)
 chart.enter(.55)
 assert.equal(chart.timing().options.duration, 1800)
-chart.at(.25)
-assert.equal(chart.clip(), 'scaleX(0.25)')
-assert.equal(chart.number.textContent, '48') // Halfway up the first segment.
 chart.at(.5)
 assert.equal(chart.clip(), 'scaleX(0.5)')
-assert.equal(chart.number.textContent, '96') // At the measured midpoint, the count is 75% of the total.
-chart.at(.75)
-assert.equal(chart.number.textContent, '112')
+assert.equal(chart.number.textContent, '134')
 assert.equal(chart.fill(), undefined)
 chart.finishCountUp()
 assert.equal(chart.clip(), 'scaleX(1)')
-assert.equal(chart.number.textContent, '128')
-assert.equal(chart.timer().ms, 3000)
-assert.equal(chart.nav(), '128')
-chart.leave() // Later stars keep arriving after the reader scrolls away from the tile.
-assert.equal(chart.timer().ms, 3000)
-for (const [i, delay] of [3000, 8000, 15000, 24000, 35000, 48000].entries()) {
-  const t = chart.timer()
-  assert.equal(t.ms, delay)
-  chart.advance(delay)
-  t.fn()
-  assert.equal(chart.number.textContent, String(129 + i))
-  assert.equal(chart.nav(), chart.number.textContent) // The nav and the tile change together.
-}
+assert.equal(chart.number.textContent, '134')
+assert(!chart.timer()) // Nothing keeps counting after the line has drawn.
 assert.equal(chart.state(), 'complete')
 const still = chartPage(true)
 still.enter()
 assert.equal(still.number.textContent, '134')
-assert.equal(still.nav(), '134')
 assert(!still.timer())
 assert.equal(still.clip(), 'scaleX(1)')
 assert.equal(still.timing(), undefined)
-console.log('Shared chart and count timing, linear axes, growing intervals, nav in step with the tile, later stars continuing offscreen and reduced-motion total passed.')
+console.log('Chart line draw, a count that never changes while it draws, and reduced-motion rest passed.')
 
 const template=load('../content/home.html')
 const featureSection=template.match(/<section aria-labelledby="features-title"[\s\S]*?<\/section>/)[0]
