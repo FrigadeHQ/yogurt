@@ -490,9 +490,13 @@ func watchCalls(every: Int, ids: [String], pids: [pid_t] = []) {
       lastControlLook = ""
       let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
       // With the processes on the mic given, only their apps: two Zoom meetings are two processes, and the one not
-      // being recorded must never give this meeting its names (#98)
-      let running = (pids.isEmpty ? ids.compactMap { NSRunningApplication.runningApplications(withBundleIdentifier: $0).first } : pids.compactMap { owningApp($0, ids: ids) })
-        .sorted { a, _ in a.processIdentifier == front }
+      // being recorded must never give this meeting its names (#98). Without them (nothing on the mic yet, or a meeting
+      // joined without computer audio), every process of each app, not just the first: keeping only the first read the
+      // wrong meeting's window, or none at all when that process had no call window.
+      let apps = pids.isEmpty ? ids.flatMap { NSRunningApplication.runningApplications(withBundleIdentifier: $0) } : pids.compactMap { owningApp($0, ids: ids) }
+      // the frontmost first, the rest in the order given (sorted(by:) wants a strict weak ordering, which "is this one
+      // frontmost" is not, and it does not promise to keep equal elements in order)
+      let running = apps.filter { $0.processIdentifier == front } + apps.filter { $0.processIdentifier != front }
       var found: (NSRunningApplication, AXUIElement, [AXUIElement], String?)?
       var teams: (String, AXUIElement, pid_t)?
       for r in running {
