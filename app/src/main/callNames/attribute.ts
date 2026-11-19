@@ -22,7 +22,26 @@ export const HOLD_MS = 2000
 /** a name needs more than this share of the line */
 const MOST = 0.5
 
-const norm = (s: string) => s.normalize('NFKC').replace(/\s+/g, ' ').trim().toLocaleLowerCase()
+/** what follows the comma in "Okafor, Jr." is not a given name, so that one is never flipped */
+const SUFFIX = /^(jr|sr|ii|iii|iv|phd|md|esq)\.?$/
+/**
+ * A name for comparing only. Exchange and Outlook calendars write "Okafor, Riley" where the call apps write
+ * "Riley Okafor", so a bare "family, given" comma is flipped and the two forms compare equal. Without this the
+ * people a call shows are added to the meeting a second time, beside the ones the calendar already gave, and the
+ * person using Yogurt is not recognised as themselves when the two sources disagree on the order. Only the bare
+ * two-part form is flipped: an email, more than one comma, a name suffix, or a trailing qualifier a directory
+ * appends ("Okafor, Riley (Contoso)") is left as it is, and still compares unequal to the call's form.
+ */
+export const norm = (s: string) => {
+  const flat = s.normalize('NFKC').replace(/\s+/g, ' ').trim().toLocaleLowerCase()
+  const m = /^([^,@]+),\s*([^,@]+)$/.exec(flat)
+  if (!m) return flat
+  // the halves are trimmed, so "Okafor , Riley" gives the same key as "Okafor, Riley": a stray space would
+  // otherwise survive the flip, compare unequal to the call's form, and miscount the words below
+  const family = m[1].trim(), given = m[2].trim()
+  const plain = (x: string) => x.length > 0 && x.split(' ').length <= 3
+  return plain(family) && plain(given) && !SUFFIX.test(given) ? `${given} ${family}` : flat
+}
 
 type Opts = { /** the person's own name in Settings, and the Mac's: never a name for the other side */ myNames?: string[] }
 
@@ -34,7 +53,9 @@ const isMe = (name: string, s: CallSample, o: Opts) => {
 /** who the other side was at one reading, or null when it can't be told */
 function whoAt(s: CallSample, o: Opts): string | null {
   if (s.ok === false) return null
-  const people = [...new Map(s.participants.map((p) => [norm(p), p])).values()]
+  // the first written form of each person wins, as in othersIn: now that norm() collapses "family, given" with
+  // "given family", the two must agree on which form they keep or a speaker is named a form the People list lacks
+  const people = s.participants.filter((p, i) => s.participants.findIndex((q) => norm(q) === norm(p)) === i)
   const roster = new Set(people.map(norm))
   // A floating speaker tile can name someone before (or after) the roster refreshes. In that case this is not
   // evidence of a two-person call, so do not assign their speech to the one other roster entry.
