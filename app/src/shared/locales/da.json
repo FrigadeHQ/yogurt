@@ -738,5 +738,12 @@
   "Continue transcription": "Fortsæt transskription",
   "Transcribe again": "Transskriber igen",
   "Stop transcription": "Stop transskription",
-  "Audio is unavailable.": "Lyden er ikke tilgængelig."
+  "Audio is unavailable.": "Lyden er ikke tilgængelig.",
+  "Edit or regenerate summary": "Rediger eller lav resumé igen",
+  "Edit summary": "Rediger resumé",
+  "Edit using the transcript too": "Brug også transskriptionen ved redigering",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "Langsommere og afhænger af notemodellen: et langt møde passer måske ikke ind og læses så i dele.",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "“Generér igen” erstatter dine ændringer i resuméet. “Rediger” beholder dem.",
+  "Summary edited": "Resumé redigeret",
+  "The summary changed since, so it wasn't undone.": "Resuméet er ændret siden, så redigeringen blev ikke fortrudt."
 }

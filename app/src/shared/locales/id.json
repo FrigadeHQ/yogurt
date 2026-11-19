@@ -696,5 +696,12 @@
   "Continue transcription": "Lanjutkan transkripsi",
   "Transcribe again": "Transkripsikan lagi",
   "Stop transcription": "Hentikan transkripsi",
-  "Audio is unavailable.": "Audio tidak tersedia."
+  "Audio is unavailable.": "Audio tidak tersedia.",
+  "Edit or regenerate summary": "Sunting atau buat ulang ringkasan",
+  "Edit summary": "Sunting ringkasan",
+  "Edit using the transcript too": "Gunakan juga transkrip saat menyunting",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "Lebih lambat dan bergantung pada model catatan: rapat panjang mungkin tidak muat, jadi dibaca per bagian.",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "“Buat ulang” mengganti suntingan Anda pada ringkasan. “Sunting” mempertahankannya.",
+  "Summary edited": "Ringkasan disunting",
+  "The summary changed since, so it wasn't undone.": "Ringkasan sudah berubah sejak itu, jadi suntingan tidak diurungkan."
 }

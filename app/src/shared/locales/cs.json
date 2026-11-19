@@ -769,5 +769,12 @@
   "Continue transcription": "Pokračovat v přepisu",
   "Transcribe again": "Přepsat znovu",
   "Stop transcription": "Zastavit přepis",
-  "Audio is unavailable.": "Zvuk není k dispozici."
+  "Audio is unavailable.": "Zvuk není k dispozici.",
+  "Edit or regenerate summary": "Upravit nebo vytvořit souhrn znovu",
+  "Edit summary": "Upravit souhrn",
+  "Edit using the transcript too": "Při úpravě použít i přepis",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "Pomalejší a závisí na modelu pro poznámky: dlouhá schůzka se do něj nemusí vejít a pak se čte po částech.",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "„Vygenerovat znovu“ nahradí vaše úpravy souhrnu. „Upravit“ je zachová.",
+  "Summary edited": "Souhrn upraven",
+  "The summary changed since, so it wasn't undone.": "Souhrn se mezitím změnil, takže úprava nebyla odvolána."
 }

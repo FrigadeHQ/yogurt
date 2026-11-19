@@ -11,19 +11,21 @@ export function summaryAction({ hasSummary, hasContent, recording, busy, downloa
 }) {
   if (trashed || (!hasSummary && !hasContent)) return undefined
   return {
-    label: hasSummary ? t('Regenerate summary') : t('Generate summary'),
+    label: hasSummary ? t('Edit or regenerate summary') : t('Generate summary'),
     reason: recording ? t('Available after recording') : downloading ? t('Waiting for Yogurt AI to download') : busy ? t('Writing the summary') : undefined,
   }
 }
 
 /** The note's actions share one menu and one anchor for folders and generation. */
-export function NoteMenu({ transcription, recording, savePending, onRename, onDelete, folders, trashed, generation, hasSummary, edited, rewriteOpen, setRewriteOpen, onWriteAgain }: {
+export function NoteMenu({ transcription, recording, savePending, onRename, onDelete, folders, trashed, generation, hasSummary, hasTranscript, edited, rewriteOpen, setRewriteOpen, onWriteAgain, onEdit }: {
   transcription?: {reason?:string;run:()=>void}
   recording: boolean; savePending?: boolean; onRename: () => void; onDelete: () => void; folders?: (close: () => void) => ReactNode
   /** in the Trash already: Delete is for good */
   trashed?: boolean
   generation: ReturnType<typeof summaryAction>; hasSummary: boolean; edited: boolean
   rewriteOpen: boolean; setRewriteOpen: (open: boolean) => void; onWriteAgain: (note: string) => void
+  /** "Edit summary": the note applied to the summary as it is now */
+  hasTranscript: boolean; onEdit: (note: string, withTranscript: boolean) => void
 }) {
   const [open, setOpen] = useState<false | 'pointer' | 'keyboard'>(false)
   const presence = usePopoverPresence(rewriteOpen && generation ? 'rewrite' : open)
@@ -58,11 +60,12 @@ export function NoteMenu({ transcription, recording, savePending, onRename, onDe
       <button ref={button} data-testid="note-menu-button" aria-haspopup={rewriteOpen ? "dialog" : "menu"} aria-expanded={!!open || rewriteOpen} aria-label={t('More')} title={t('More')}
         onClick={(e) => { if (rewriteOpen) close(); else setOpen((o) => o ? false : e.detail > 0 ? 'pointer' : 'keyboard') }} className="ghost-btn workspace-icon"><Ellipsis size={17} strokeWidth={1.75} aria-hidden="true" /></button>
       {presence.value === 'rewrite' ? (
-        <div key="rewrite" role="dialog" data-testid="note-regenerate" aria-label={hasSummary ? t('Regenerate summary') : t('Generate summary')}
+        <div key="rewrite" role="dialog" data-testid="note-regenerate" aria-label={hasSummary ? t('Edit or regenerate summary') : t('Generate summary')}
           aria-describedby={edited ? 'note-rewrite-description' : undefined} {...presence.props} data-anchor="end"
           className="menu-entry summary-regenerate" onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close() } }}>
-          <RegenerateForm active={rewriteOpen} hasSummary={hasSummary} edited={edited} disabled={!generation || !!generation.reason}
-            onClose={close} onSubmit={(note) => { if (!generation || generation.reason) return; close(); onWriteAgain(note) }} />
+          <RegenerateForm active={rewriteOpen} hasSummary={hasSummary} hasTranscript={hasTranscript} edited={edited} disabled={!generation || !!generation.reason}
+            onClose={close} onSubmit={(note) => { if (!generation || generation.reason) return; close(); onWriteAgain(note) }}
+            onEdit={(note, withTranscript) => { if (!generation || generation.reason) return; close(); onEdit(note, withTranscript) }} />
         </div>
       ) : presence.value && (
         <div key="menu" data-testid="note-menu" {...presence.props} role="menu" data-anchor="end" aria-label={t('More')} onKeyDown={onKey}

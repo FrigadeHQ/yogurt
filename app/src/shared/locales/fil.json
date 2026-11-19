@@ -738,5 +738,12 @@
   "Continue transcription": "Ipagpatuloy ang transkripsiyon",
   "Transcribe again": "I-transcribe muli",
   "Stop transcription": "Itigil ang transkripsiyon",
-  "Audio is unavailable.": "Hindi available ang audio."
+  "Audio is unavailable.": "Hindi available ang audio.",
+  "Edit or regenerate summary": "I-edit o gawin ulit ang buod",
+  "Edit summary": "I-edit ang buod",
+  "Edit using the transcript too": "I-edit gamit din ang transcript",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "Mas mabagal, at nakadepende sa modelo ng mga tala: baka hindi magkasya ang mahabang meeting, kaya babasahin ito nang pira-piraso.",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "Papalitan ng “Buuin muli” ang mga edit mo sa buod. Pananatilihin ng “I-edit” ang mga ito.",
+  "Summary edited": "Na-edit ang buod",
+  "The summary changed since, so it wasn't undone.": "Nagbago na ang buod mula noon, kaya hindi ito na-undo."
 }

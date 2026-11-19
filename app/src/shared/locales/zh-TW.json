@@ -696,5 +696,12 @@
   "Continue transcription": "繼續轉錄",
   "Transcribe again": "重新轉錄",
   "Stop transcription": "停止轉錄",
-  "Audio is unavailable.": "音訊無法使用。"
+  "Audio is unavailable.": "音訊無法使用。",
+  "Edit or regenerate summary": "編輯或重新產生摘要",
+  "Edit summary": "編輯摘要",
+  "Edit using the transcript too": "編輯時也參考逐字稿",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "速度較慢，且取決於筆記模型：長會議可能超出模型容量，此時會分段讀取。",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "「重新產生」會取代你對摘要的修改。「編輯」會保留這些修改。",
+  "Summary edited": "摘要已編輯",
+  "The summary changed since, so it wasn't undone.": "此後摘要又有變更，因此未還原。"
 }

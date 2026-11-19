@@ -41,6 +41,12 @@ export class FakeEngine implements Engine {
       // a link in an answer (from what was said or pasted) is never shown as one
       ...(prompt.includes('What was decided?\n</question>') ? ['- The plan is at [the launch page](https://example.com/plan).'] : []),
     ].join('\n'), onToken, signal)
+    // a summary edited in place: the one it was given, then what was asked, and whether it read the transcript
+    if (prompt.includes('Apply their instruction below to these notes')) {
+      const notes = /<notes>\n([\s\S]*?)\n<\/notes>/.exec(prompt)?.[1] ?? ''
+      const asked = JSON.parse(prompt.slice(prompt.lastIndexOf('\n') + 1)) as string
+      return this.stream(`${notes}\n- Edited ${prompt.includes('<transcript>') ? 'with' : 'without'} the transcript: ${asked}.`, onToken, signal)
+    }
     // a title from the notes, for a meeting with a generic one
     if (prompt.startsWith('Now give this meeting a title')) return this.stream('Launch plan and release notes', onToken, signal)
     // who was there, as the prompt says: shown, so a note written again for new people can be told apart

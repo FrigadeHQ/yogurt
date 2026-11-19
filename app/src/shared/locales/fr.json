@@ -754,5 +754,12 @@
   "Continue transcription": "Continuer la transcription",
   "Transcribe again": "Transcrire à nouveau",
   "Stop transcription": "Arrêter la transcription",
-  "Audio is unavailable.": "L’audio n’est pas disponible."
+  "Audio is unavailable.": "L’audio n’est pas disponible.",
+  "Edit or regenerate summary": "Modifier ou régénérer le résumé",
+  "Edit summary": "Modifier le résumé",
+  "Edit using the transcript too": "Modifier en utilisant aussi la transcription",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "Plus lent, et dépend du modèle de notes : une longue réunion peut ne pas y tenir et est alors lue par parties.",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "« Régénérer » remplace vos modifications du résumé. « Modifier » les conserve.",
+  "Summary edited": "Résumé modifié",
+  "The summary changed since, so it wasn't undone.": "Le résumé a été modifié depuis, la modification n’a donc pas été annulée."
 }

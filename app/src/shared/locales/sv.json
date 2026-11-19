@@ -738,5 +738,12 @@
   "Continue transcription": "Fortsätt transkribera",
   "Transcribe again": "Transkribera igen",
   "Stop transcription": "Stoppa transkribering",
-  "Audio is unavailable.": "Ljudet är inte tillgängligt."
+  "Audio is unavailable.": "Ljudet är inte tillgängligt.",
+  "Edit or regenerate summary": "Redigera eller skapa sammanfattningen igen",
+  "Edit summary": "Redigera sammanfattning",
+  "Edit using the transcript too": "Använd även transkriptionen vid redigering",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "Långsammare och beror på anteckningsmodellen: ett långt möte kanske inte får plats och läses då i delar.",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "”Skapa igen” ersätter dina ändringar i sammanfattningen. ”Redigera” behåller dem.",
+  "Summary edited": "Sammanfattning redigerad",
+  "The summary changed since, so it wasn't undone.": "Sammanfattningen har ändrats sedan dess, så redigeringen ångrades inte."
 }
