@@ -74,6 +74,13 @@ export function hookConversations(p: Deps) {
     return chips.length === 1 && chips[0].kind === 'meeting' && scope?.length === 1 ? scope[0] : undefined
   }
 
+  /** the meetings an answer was about: those it cites, else all it was given (an answer saying nothing fits cites none) */
+  const followOn = (t: ConversationTurn | undefined) => {
+    if (!t) return undefined
+    const cited = new Set(citedIn(t.answer)), used = t.sources.filter((s) => cited.has(s.n))
+    return [...new Set((used.length ? used : t.sources).map((s) => s.meetingId))]
+  }
+
   /** the sources that fit the room left, best first; a single one too big is cut */
   async function fit(llm: Awaited<ReturnType<NotesModel['llm']>>, items: Item[], question: string, history: History, spelling: string): Promise<{ items: Item[]; history: History }> {
     const total = llm.contextSize - ANSWER_TOKENS - MARGIN_TOKENS
@@ -144,7 +151,7 @@ export function hookConversations(p: Deps) {
       p.library.startTurn(turn.id)
       turn.status = 'answering'; turn.step = { kind: 'searching' }; later()
       try {
-        const got = await retrieve(p, question, { now: now(), scope, context: done.at(-1)?.question })
+        const got = await retrieve(p, question, { now: now(), scope, context: done.at(-1)?.question, follow: followOn(done.at(-1)) })
         if (p.model.needsLoad?.()) { turn.step = { kind: 'loading' }; later() }
         const llm = await p.model.llm(signal)
         // the names of every meeting found, spelled right

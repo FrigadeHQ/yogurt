@@ -102,6 +102,18 @@ describe('conversations across meetings', () => {
     expect(t.chats.list()).toHaveLength(1)
   })
 
+  it('a follow-up that names no meeting stays on the meetings the answer before used', async () => {
+    const t = await rig()
+    const wedding = t.store.createMeeting({ title: 'Wedding plans', startedAt: now - 3_600_000, endedAt: now, eventId: null, app: null, attendees: [{ name: 'Dee Ray', email: null }], state: 'done' })
+    t.store.addSegments([{ meetingId: wedding.id, track: 'them', startMs: 1000, endMs: 2000, text: 'The tasting went really well.', speaker: 'Dee Ray' }])
+    await t.deps.indexer.schedule()
+    const first = t.chats.ask(null, 'What did Tarun say about the price?')
+    await first.done
+    await t.chats.ask(first.id, "that's the call! how did you think it went?").done
+    expect(t.prompts[1]).toContain('Meeting: Pricing call')
+    expect(t.prompts[1]).not.toContain('Wedding plans')
+  })
+
   it('rename and delete; the list is newest first', async () => {
     const t = await rig()
     const a = t.chats.ask(null, 'First?'); await a.done
