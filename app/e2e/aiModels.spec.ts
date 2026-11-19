@@ -39,7 +39,7 @@ test('Settings → AI models: summaries from your own server, Ask from an agent 
     const notes = page.getByTestId('ai-task-notes')
     await expect(page.getByTestId('ai-models')).toBeVisible()
     // this computer first; the agent apps found; no server until one is saved
-    await expect(notes.locator('option')).toHaveText(['Yogurt AI on this Mac', 'Hermes', 'Codex'])
+    await expect(notes.locator('option')).toHaveText(['Yogurt AI on this Mac', 'Hermes', 'Codex', 'Claude Code'])
     await expect(page.getByTestId('ai-models-elsewhere')).toHaveCount(0)
 
     await page.getByTestId('ai-server-url').fill(server.url)
@@ -48,7 +48,7 @@ test('Settings → AI models: summaries from your own server, Ask from an agent 
     await expect(page.getByTestId('ai-server-status')).toHaveText('Connected')
     await expect(page.getByTestId('ai-server-model')).toHaveValue('test-model')
     await page.getByTestId('ai-server-save').click()
-    await expect(notes.locator('option')).toHaveText(['Yogurt AI on this Mac', 'Your server · test-model', 'Hermes', 'Codex'])
+    await expect(notes.locator('option')).toHaveText(['Yogurt AI on this Mac', 'Your server · test-model', 'Hermes', 'Codex', 'Claude Code'])
     await expect(page.getByTestId('ai-server-key')).toHaveValue('')
     await expect(page.getByTestId('ai-server-key')).toHaveAttribute('placeholder', 'Saved')
     expect(readFileSync(join(userData, 'settings.json'), 'utf8')).not.toContain('secret-key')

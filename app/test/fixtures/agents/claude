@@ -1,0 +1,15 @@
+#!/usr/bin/env node
+// A stand-in for `claude -p --output-format stream-json --include-partial-messages` in tests, no modules (it runs as
+// CommonJS or ESM): the prompt on stdin, the answer as text deltas, then a result. FAKE_AGENT_FAIL=1: a usage limit,
+// as a result with is_error. YOGURT_FAKE_AGENT_LOG: each prompt and the arguments are appended there.
+const send = (m) => process.stdout.write(JSON.stringify(m) + '\n')
+let prompt = ''
+process.stdin.on('data', (d) => { prompt += d })
+process.stdin.on('end', () => {
+  if (process.env.YOGURT_FAKE_AGENT_LOG) process.getBuiltinModule('node:fs').appendFileSync(process.env.YOGURT_FAKE_AGENT_LOG, JSON.stringify({ agent: 'claude', cwd: process.cwd(), args: process.argv.slice(2), prompt }) + '\n')
+  send({ type: 'system', subtype: 'init', tools: [], mcp_servers: [] })
+  if (process.env.FAKE_AGENT_FAIL === '1') { send({ type: 'result', subtype: 'success', is_error: true, result: 'Claude usage limit reached.' }); process.exit(1) }
+  const text = prompt.includes('</question>') ? 'Claude says: the site goes live on Tuesday.' : '## Claude notes\n- The site goes live on **Tuesday**.'
+  for (const piece of text.match(/\S+\s*/g)) send({ type: 'stream_event', event: { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: piece } } })
+  send({ type: 'result', subtype: 'success', is_error: false, result: text })
+})

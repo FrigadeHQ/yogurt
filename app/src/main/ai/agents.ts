@@ -15,7 +15,9 @@ type Run = (o: { binary: string; prompt: string; cwd: string; env: NodeJS.Proces
 /** a process's stdout line by line; stderr's last words kept for the error */
 function lines(binary: string, args: string[], o: { input?: string; cwd: string; env: NodeJS.ProcessEnv; signal?: AbortSignal }, onLine: (line: string, write: (s: string) => void) => void) {
   // npm installs on Windows are .cmd shims, which only start through the shell; the arguments are Yogurt's own
-  const child = spawn(binary, args, { cwd: o.cwd, env: o.env, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, shell: /\.(cmd|bat)$/i.test(binary), signal: o.signal })
+  const shell = /\.(cmd|bat)$/i.test(binary)
+  // through the shell an empty argument would vanish
+  const child = spawn(binary, shell ? args.map((a) => (a === '' ? '""' : a)) : args, { cwd: o.cwd, env: o.env, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, shell, signal: o.signal })
   let err = ''
   child.stderr.on('data', (d: Buffer) => { err = (err + d.toString()).slice(-600) })
   const write = (s: string) => { if (child.stdin.writable) child.stdin.write(s) }
@@ -91,8 +93,26 @@ const hermes: Run = async ({ binary, prompt, cwd, env, signal, onToken }) => {
   return out
 }
 
-const RUNS: Record<AgentId, Run> = { hermes, codex }
-const BINARY: Record<AgentId, string> = { hermes: 'hermes', codex: 'codex' }
+/** Claude Code: `claude -p` with no tools and no MCP servers, nothing saved; the answer streamed as it is written */
+const claude: Run = async ({ binary, prompt, cwd, env, signal, onToken }) => {
+  let out = '', failed = ''
+  const args = ['-p', '--tools', '', '--strict-mcp-config', '--no-session-persistence', '--disable-slash-commands', '--output-format', 'stream-json', '--include-partial-messages', '--verbose']
+  const run = lines(binary, args, { input: prompt, cwd, env, signal }, (line) => {
+    let e: { type?: string; subtype?: string; is_error?: boolean; result?: string; event?: { type?: string; delta?: { type?: string; text?: string } } }
+    try { e = JSON.parse(line) } catch { return }
+    const text = e.type === 'stream_event' && e.event?.type === 'content_block_delta' && e.event.delta?.type === 'text_delta' ? e.event.delta.text : undefined
+    if (text) {
+      const piece = out ? text : text.trimStart()
+      if (piece) { out += piece; onToken(piece) }
+    } else if (e.type === 'result' && (e.is_error || (e.subtype && e.subtype !== 'success'))) failed ||= e.result ?? e.subtype ?? 'failed'
+  })
+  await run.done.catch((err) => { if (!failed) throw err })
+  if (failed && !out && !signal?.aborted) throw new Error(`Claude Code: ${String(failed).slice(0, 300)}`)
+  return out
+}
+
+const RUNS: Record<AgentId, Run> = { hermes, codex, claude }
+const BINARY: Record<AgentId, string> = { hermes: 'hermes', codex: 'codex', claude: 'claude' }
 
 /** earlier turns (a title follows on from its notes) as one prompt: an agent takes one message at a time */
 export function asOne(prompt: string, before: string[] = []): string {

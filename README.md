@@ -131,7 +131,7 @@ Meeting data stays local; Yogurt goes online for model downloads and update chec
 
 <br>
 
-> Transcription uses Whisper through whisper.cpp, with large-v3-turbo or a smaller model depending on your computer. On supported Macs, Apple SpeechAnalyzer supplies live words while Whisper produces the saved transcript. Summaries and answers use a local open-weight model from the Gemma 4, gpt-oss or Qwen3 families, chosen for your hardware and run through llama.cpp. In **Settings → AI models** you can pick, per task, your own OpenAI-compatible server or an AI agent app on your computer (Hermes or Codex) instead; meeting text then goes there. The app uses Electron and needs no account.
+> Transcription uses Whisper through whisper.cpp, with large-v3-turbo or a smaller model depending on your computer. On supported Macs, Apple SpeechAnalyzer supplies live words while Whisper produces the saved transcript. Summaries and answers use a local open-weight model from the Gemma 4, gpt-oss or Qwen3 families, chosen for your hardware and run through llama.cpp. In **Settings → AI models** you can pick, per task, your own OpenAI-compatible server or an AI agent app on your computer (Hermes, Codex or Claude Code) instead; meeting text then goes there. The app uses Electron and needs no account.
 
 </details>
 

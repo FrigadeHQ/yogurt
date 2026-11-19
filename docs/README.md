@@ -39,7 +39,7 @@ If you pick [another AI model](#ai-models) for a task, that task's meeting text 
 Yogurt's own model on your computer writes summaries and titles, answers Ask, and suggests folders. In **Settings → AI models** you can pick another one for each of these:
 
 - **Your server:** any OpenAI-compatible server, like LM Studio, Ollama, or a hosted one. Enter its address, a key if it needs one, and the model (**Test connection** lists them), then **Save**. The key is kept with your system's keychain and is never shown again. **Context, in tokens** is how much the server's model reads at once.
-- **An AI agent app** on your computer: Hermes or Codex. Each appears once Yogurt finds it, and uses its own sign-in and model. Yogurt runs it in an empty folder, turns down every tool it asks to use, and only reads its answer.
+- **An AI agent app** on your computer: Hermes, Codex or Claude Code. Each appears once Yogurt finds it, and uses its own sign-in and model. Yogurt runs it in an empty folder, turns down every tool it asks to use, and only reads its answer.
 
 If the one you picked fails before it writes anything, Yogurt's own model answers instead, when the question fits it. Settings says where meeting text goes while any task uses something else.
 

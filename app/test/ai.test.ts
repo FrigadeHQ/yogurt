@@ -159,6 +159,17 @@ describe('agent apps', () => {
     await expect(agents.llm('codex')!.chat('q', () => {})).rejects.toThrow("Codex: You've hit your usage limit")
     await expect(agents.llm('hermes')!.chat('q', () => {})).rejects.toThrow(/hermes stopped|Hermes stopped/)
   })
+  it.skipIf(!unix)('asks Claude Code with no tools and no MCP servers, streamed, and says what it said when it fails', async () => {
+    const log = join(temp(), 'log.jsonl')
+    vi.stubEnv('YOGURT_FAKE_AGENT_LOG', log)
+    const agents = createAgents({ dirs: [AGENTS_DIR] })
+    const tokens: string[] = []
+    expect(await agents.llm('claude')!.chat('<question>When?</question>', (t) => tokens.push(t))).toBe('Claude says: the site goes live on Tuesday.')
+    expect(tokens.length).toBeGreaterThan(1)
+    expect(JSON.parse(readFileSync(log, 'utf8').trim()).args).toEqual(['-p', '--tools', '', '--strict-mcp-config', '--no-session-persistence', '--disable-slash-commands', '--output-format', 'stream-json', '--include-partial-messages', '--verbose'])
+    vi.stubEnv('FAKE_AGENT_FAIL', '1')
+    await expect(agents.llm('claude')!.chat('q', () => {})).rejects.toThrow('Claude Code: Claude usage limit reached.')
+  })
   it('is never found where it is not', () => {
     const agents = createAgents({ dirs: [temp()] })
     expect(agents.found('hermes')).toBe(false)
