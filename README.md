@@ -13,6 +13,10 @@
 </p>
 
 <p align="center">
+  Or on a Mac with <a href="https://brew.sh">Homebrew</a>: <code>brew install --cask frigadehq/yogurt/yogurt</code>
+</p>
+
+<p align="center">
   <img src="docs/assets/yogurt-screenshot.webp" width="1074" alt="Yogurt showing the Summary of a launch planning meeting: the plan, next steps by person, and your own reminders">
 </p>
 
