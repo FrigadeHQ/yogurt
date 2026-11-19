@@ -40,7 +40,7 @@ async function record(app: ElectronApplication, page: Page) {
   return widget
 }
 
-test('the widget is a compact horizontal recorder with one live wave and no external shadow', async () => {
+test('the widget is a compact horizontal recorder with one live wave and no external shadow', { tag: '@everywhere' }, async () => {
   const { app, page } = await launch()
   try {
     expect((await snap(app)).visible).toBe(false)
@@ -66,7 +66,7 @@ test('the widget is a compact horizontal recorder with one live wave and no exte
   } finally { await app.close() }
 })
 
-test('Finish closes the floating recorder and prepares a completion notification', async () => {
+test('Finish closes the floating recorder and prepares a completion notification', { tag: '@everywhere' }, async () => {
   const { app, page } = await launch()
   try {
     const w = await record(app, page)
@@ -84,7 +84,7 @@ test('Finish closes the floating recorder and prepares a completion notification
   } finally { await app.close() }
 })
 
-test('Pause hides the recorder and preview; Resume in the meeting restores its placed position', async () => {
+test('Pause hides the recorder and preview; Resume in the meeting restores its placed position', { tag: '@everywhere' }, async () => {
   const { app, page } = await launch()
   try {
     const w = await record(app, page)
@@ -113,7 +113,7 @@ test('Pause hides the recorder and preview; Resume in the meeting restores its p
   } finally { await app.close() }
 })
 
-test('a failed Resume stays paused and hidden until a successful retry in the meeting', async () => {
+test('a failed Resume stays paused and hidden until a successful retry in the meeting', { tag: '@everywhere' }, async () => {
   const { app, page } = await launch()
   try {
     const w = await record(app, page)
@@ -143,7 +143,7 @@ test('a failed Resume stays paused and hidden until a successful retry in the me
   } finally { await app.close() }
 })
 
-test('clicking the widget opens the note', async () => {
+test('clicking the widget opens the note', { tag: '@everywhere' }, async () => {
   const { app, page } = await launch()
   try {
     const w = await record(app, page)
@@ -159,7 +159,7 @@ test('clicking the widget opens the note', async () => {
   } finally { await app.close() }
 })
 
-test('closing the foreground window reveals the recorder and its click reopens that meeting', async () => {
+test('closing the foreground window reveals the recorder and its click reopens that meeting', { tag: '@everywhere' }, async () => {
   const { app, page } = await launch()
   try {
     const w = await record(app, page)
@@ -187,7 +187,7 @@ test('closing the foreground window reveals the recorder and its click reopens t
   } finally { await app.close() }
 })
 
-test('the recorder hides when the main window is foregrounded and returns when it is backgrounded', async () => {
+test('the recorder hides when the main window is foregrounded and returns when it is backgrounded', { tag: '@everywhere' }, async () => {
   const { app, page } = await launch()
   try {
     await record(app, page)
@@ -212,7 +212,7 @@ test('the recorder hides when the main window is foregrounded and returns when i
   } finally { await app.close() }
 })
 
-test('a helper that dies is restarted with a hiccup note; a crash loop (a third crash within two minutes) stops the meeting and keeps the notes', async () => {
+test('a helper that dies is restarted with a hiccup note; a crash loop (a third crash within two minutes) stops the meeting and keeps the notes', { tag: '@everywhere' }, async () => {
   const { app, page } = await launch()
   try {
     const w = await record(app, page)
@@ -236,16 +236,25 @@ test('a helper that dies is restarted with a hiccup note; a crash loop (a third 
   } finally { await app.close() }
 })
 
-test('hints retain both unavailable recording inputs', async () => {
+test('hints retain both unavailable recording inputs', { tag: '@everywhere' }, async () => {
   const { app, page } = await launch()
   try {
     const w = await record(app, page)
     const before = (await snap(app)).bounds!
+    // The words name what this computer has: a Mac's System Settings, Windows' microphone access, Linux's sound settings.
+    const os = await page.evaluate(() => window.yogurt.platform as 'darwin' | 'win32' | 'linux')
+    const noSettings = "Yogurt can't hear the call audio on this computer."
+    const words = {
+      darwin: { audio: "Yogurt can't hear the call audio. Allow it in System Settings.", both: "Yogurt can't hear your microphone or the call. Turn on microphone and call audio in System Settings." },
+      win32: { audio: noSettings, both: "Yogurt can't hear your mic. Turn on microphone access for desktop apps in Windows Settings." },
+      linux: { audio: noSettings, both: "Yogurt can't hear your mic. Check your sound settings." },
+    }[os]
+    const { audio, both } = words
     await fake(app, 'warn', 'no-system-audio')
     const preview = await windowOf(app, '#widget')
-    await expect(preview.getByTestId('widget-note')).toHaveText("Yogurt can't hear the call audio. Allow it in System Settings.")
+    await expect(preview.getByTestId('widget-note')).toHaveText(audio)
     await fake(app, 'warn', 'no-mic')
-    await expect(preview.getByTestId('widget-note')).toContainText("Yogurt can't hear your microphone or the call.")
+    await expect(preview.getByTestId('widget-note')).toHaveText(both)
     // Warnings expand the recorder without changing its saved pill bounds.
     expect((await snap(app)).bounds).toEqual(before)
     await w.mouse.move(0, 0)
@@ -256,11 +265,11 @@ test('hints retain both unavailable recording inputs', async () => {
     await expect(preview.getByTestId('widget')).toHaveCount(0)
     expect((await snap(app)).visible).toBe(false)
     expect((await snap(app)).bounds).toEqual(before)
-    await expect(page.getByTestId('rec-hint')).toContainText("Yogurt can't hear your microphone or the call.")
+    await expect(page.getByTestId('rec-hint')).toContainText(both)
   } finally { await app.close() }
 })
 
-test('with reduced motion the meter stays three static dots', async () => {
+test('with reduced motion the meter stays three static dots', { tag: '@everywhere' }, async () => {
   const { app, page } = await launch()
   try {
     const w = await record(app, page)
@@ -275,7 +284,7 @@ test('with reduced motion the meter stays three static dots', async () => {
   } finally { await app.close() }
 })
 
-test('the card and the widget speak the interface language, like the main window', async () => {
+test('the card and the widget speak the interface language, like the main window', { tag: '@everywhere' }, async () => {
   // Hebrew reads right to left, so the page's direction shows the language took even before its table exists
   const { app, page } = await launch({ language: 'he' })
   try {
@@ -293,7 +302,7 @@ test('the card and the widget speak the interface language, like the main window
 })
 
 
-test('keyboard Enter and Space open the meeting from the widget', async () => {
+test('keyboard Enter and Space open the meeting from the widget', { tag: '@everywhere' }, async () => {
   const { app, page } = await launch()
   try {
     const w = await record(app, page)
@@ -305,7 +314,7 @@ test('keyboard Enter and Space open the meeting from the widget', async () => {
   } finally { await app.close() }
 })
 
-test('hover stays stationary and pointer-down movement drags immediately without opening the note', async () => {
+test('hover stays stationary and pointer-down movement drags immediately without opening the note', { tag: '@everywhere' }, async () => {
   const { app, page } = await launch()
   try {
     const w = await record(app, page)
@@ -336,7 +345,7 @@ test('hover stays stationary and pointer-down movement drags immediately without
   } finally { await app.close() }
 })
 
-test('pointer movement below the drag threshold still opens the note without moving the recorder', async () => {
+test('pointer movement below the drag threshold still opens the note without moving the recorder', { tag: '@everywhere' }, async () => {
   const { app, page } = await launch()
   try {
     const w = await record(app, page)
@@ -352,7 +361,7 @@ test('pointer movement below the drag threshold still opens the note without mov
   } finally { await app.close() }
 })
 
-test('holding the pill does not open the note and a held press can still drag', async () => {
+test('holding the pill does not open the note and a held press can still drag', { tag: '@everywhere' }, async () => {
   const { app, page } = await launch()
   try {
     const w = await record(app, page)
@@ -375,7 +384,7 @@ test('holding the pill does not open the note and a held press can still drag', 
   } finally { await app.close() }
 })
 
-test('hover transcript shows a readable conversation and keeps your place when new speech arrives', async ({}, testInfo) => {
+test('hover transcript shows a readable conversation and keeps your place when new speech arrives', { tag: '@everywhere' }, async ({}, testInfo) => {
   const { app, page } = await launch()
   try {
     const w = await record(app, page)
@@ -453,7 +462,7 @@ test('hover transcript shows a readable conversation and keeps your place when n
   } finally { await app.close() }
 })
 
-test('hover groups speaker runs and keeps live words stable through updates and a final line', async ({}, testInfo) => {
+test('hover groups speaker runs and keeps live words stable through updates and a final line', { tag: '@everywhere' }, async ({}, testInfo) => {
   const { app, page } = await launch()
   try {
     const w = await record(app, page)
@@ -498,8 +507,13 @@ test('hover groups speaker runs and keeps live words stable through updates and 
     await preview.screenshot({ path: testInfo.outputPath('conversation-tall.png') })
     await log.evaluate(el => { el.scrollTop = 0; el.dispatchEvent(new Event('scroll')) })
     await w.mouse.move(0, 0)
-    await preview.waitForTimeout(220)
-    await w.getByTestId('widget-time').hover()
+    // Well inside the 480 ms close grace. Raw moves, not locator.hover(): its stability wait can outlast the grace on a
+    // loaded runner, letting the card close and reopen, which would reset the place this test is checking.
+    await preview.waitForTimeout(100)
+    const time = (await w.getByTestId('widget-time').boundingBox())!
+    await w.mouse.move(time.x + time.width / 2, time.y + time.height / 2)
+    await preview.waitForTimeout(50)
+    await expect(w.getByTestId('widget')).toHaveAttribute('data-open', 'true')
     expect(preview.isClosed()).toBe(false)
     expect(await log.evaluate(el => el.scrollTop)).toBe(0)
     await preview.getByTestId('widget-preview-latest').click()

@@ -3,6 +3,8 @@ type Floating = { setAlwaysOnTop(on: boolean, level: 'floating'): void; setVisib
 /**
  * Keeps a small window (the widget, the "Take notes?" card) above other apps, full-screen calls included.
  * skipTransformProcessType: otherwise Electron turns the whole app into a menu-bar-only one and the Dock icon goes.
+ * On Linux only the focusable:false window is above full-screen calls: it is override-redirect, so the window manager
+ * never places it (measured on Plasma 6, XWayland). The flags above are the Mac's and do nothing there.
  */
 export function floatOverFullScreen(w: Floating): void {
   w.setAlwaysOnTop(true, 'floating')

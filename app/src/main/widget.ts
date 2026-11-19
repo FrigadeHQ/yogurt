@@ -37,6 +37,8 @@ function createWindow(os = 'darwin'): BrowserWindow {
     type: floatingType(os, 'panel'),
     // CSS owns the outline; macOS corner clipping cuts through its border.
     frame: false, transparent: true, roundedCorners: false, hasShadow: false, resizable: false, movable: false, minimizable: false, maximizable: false, fullscreenable: false,
+    // focusable:false also makes the Linux window override-redirect: the window manager never places it, which is what
+    // keeps it above full-screen calls there (the Mac's panel and visibleOnFullScreen do the same job).
     skipTaskbar: true, focusable: false, acceptFirstMouse: true, show: false,
     webPreferences: { preload: join(__dirname, '../preload/index.cjs'), sandbox: false, backgroundThrottling: false },
   })
