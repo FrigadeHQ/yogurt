@@ -329,7 +329,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
     void window.yogurt.notes.writeAgain(id, note)
   }
   const hasSummary = !!notes.enhanced?.trim()
-  const transcribing=transcriptionBusy(m.transcriptionState)
+  const transcribing=transcriptionBusy(m.transcriptionState)||!!m.liveTranscriptFinishing
   const runTranscript=async(again=false)=>{if(!await saveAll())return;try{const started=await window.yogurt.transcript.run(id,again);if(started)setPrimary('transcript')}catch{toasts.add({title:t("Yogurt couldn't transcribe this file.")})}}
   const transcriptReason=recording||m.stopSavePending?t('Available after recording'):transcribing?t('Transcribing…'):summarizing?t('Summarizing…'):!hasAudio?t('Audio is unavailable.'):undefined
   const generation = summaryAction({ hasSummary, hasContent: hasTranscript || !!notes.mine.trim(), recording, busy: summarizing, downloading: !!(setup?.notesDownloading || setup?.notesError), trashed })
@@ -389,7 +389,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                   <Mic size={14} strokeWidth={1.75} aria-hidden="true" />{starting ? t('Starting…') : t('Start recording')}
                 </button>}
               </div>
-              {transcribing&&<TranscriptionControl state={m.transcriptionState!} onStop={()=>void window.yogurt.transcript.stop(id).catch(()=>toasts.add({title:t("Yogurt couldn't transcribe this file.")}))}/>}
+              {m.liveTranscriptFinishing?<span role="status" className="note-finishing">{t('Transcribing…')}</span>:transcribing&&<TranscriptionControl state={m.transcriptionState!} onStop={()=>void window.yogurt.transcript.stop(id).catch(()=>toasts.add({title:t("Yogurt couldn't transcribe this file.")}))}/>}
               <ShareMenu id={id} shown={shown} status={notes.status} hasEnhanced={notes.enhanced != null} beforeUse={saveAll} />
             </div>
           </div>

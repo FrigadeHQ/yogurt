@@ -22,7 +22,7 @@ export type DeleteRecordingResult = 'deleted' | 'missing' | 'recording' | 'not-t
 export type Theme = 'light' | 'dark' | 'system'
 export type AppVisibility = 'both' | 'menu-bar' | 'dock'
 /** The capture has stopped, but its final database state may still need an explicit retry. */
-export type MeetingView = Meeting & { stopSavePending?: true; paused?: true }
+export type MeetingView = Meeting & { stopSavePending?: true; paused?: true; liveTranscriptFinishing?: true }
 export type MeetingCard = StoredMeetingCard & { paused?: true }
 
 /** What the window sees of the app: window.yogurt (the preload bridge, contextIsolation on) */
