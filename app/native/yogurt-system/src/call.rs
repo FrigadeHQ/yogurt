@@ -26,6 +26,16 @@ pub fn kind(id: &str) -> Kind {
 /// the controls only a call window has: the calendar and chat views have none
 pub const CALL_CONTROLS: &[&str] = &["leave", "leave call", "hang up", "end call", "mute mic", "unmute mic", "close participants pane"];
 
+/// A button's label without the shortcut it can carry: "Leave (Ctrl+Shift+H)" is "leave", as on the Mac (#83)
+fn control_label(s: &str) -> String {
+    let s = s.trim();
+    let s = match (s.ends_with(')'), s.rfind('(')) {
+        (true, Some(i)) => &s[..i],
+        _ => s,
+    };
+    s.trim().to_ascii_lowercase()
+}
+
 /// Whether a tree has a call control: the calendar and chat views have no Leave or Mute, the call window always does
 pub fn is_call_tree(tree: &Value) -> bool {
     fn walk(n: &Value) -> bool {
@@ -34,7 +44,7 @@ pub fn is_call_tree(tree: &Value) -> bool {
         if matches!(role, "button" | "push button" | "toggle button" | "menu item") {
             for key in ["t", "d"] {
                 if let Some(s) = o.get(key).and_then(Value::as_str) {
-                    if CALL_CONTROLS.contains(&s.trim().to_ascii_lowercase().as_str()) {
+                    if CALL_CONTROLS.contains(&control_label(s).as_str()) {
                         return true;
                     }
                 }
@@ -110,5 +120,15 @@ mod tests {
         ] });
         assert!(!is_call_tree(&calendar));
         assert!(!is_call_tree(&json!({})));
+    }
+
+    #[test]
+    fn a_control_label_can_carry_its_shortcut() {
+        // Teams on Windows names its buttons with the shortcut, as the Mac reader already allows (#83)
+        let call = json!({ "r": "frame", "k": [{ "r": "button", "t": "Leave (Ctrl+Shift+H)" }] });
+        assert!(is_call_tree(&call));
+        let muted = json!({ "r": "frame", "k": [{ "r": "toggle button", "t": "Unmute mic (Ctrl+Shift+M)" }] });
+        assert!(is_call_tree(&muted));
+        assert!(!is_call_tree(&json!({ "r": "frame", "k": [{ "r": "button", "t": "Leave chat (Ctrl+Shift+L)" }] })));
     }
 }
