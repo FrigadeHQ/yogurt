@@ -1,4 +1,4 @@
-import { sitePage } from './site-page.mjs'
+import { pageHeader, sitePage } from './site-page.mjs'
 
 const shortDate = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
 const fullDate = new Intl.DateTimeFormat('en-US', { dateStyle: 'long', timeZone: 'UTC' })
@@ -10,12 +10,12 @@ function escape(text) {
 
 const githubReleases = 'https://github.com/FrigadeHQ/yogurt/releases'
 function githubLink(version) {
-  return `<a class="quiet-link" href="${githubReleases}/tag/${encodeURIComponent(version)}" target="_blank" rel="noopener noreferrer" aria-label="View ${escape(version)} on GitHub"><span class="link-label">View on GitHub</span><span aria-hidden="true">↗</span></a>`
+  return `<a class="quiet-link" href="${githubReleases}/tag/${encodeURIComponent(version)}" target="_blank" rel="noopener noreferrer" aria-label="View ${escape(version)} on GitHub"><span class="link-label">View on GitHub</span><span class="link-arrow" aria-hidden="true">↗</span></a>`
 }
 
 const activityCard = `<div class="activity-board"><a class="oss-card oss-calendar updates-activity" href="${githubReleases}" target="_blank" rel="noopener noreferrer"
   aria-label="{{releases}} {{releaseNoun}}, {{weekSummary}}. View releases on GitHub (opens in a new tab).">
-  <div class="oss-stat"><strong>{{releases}} {{releaseNoun}}</strong><small>{{weekSummary}}</small></div>
+  <div class="oss-stat"><strong class="link-label">{{releases}} {{releaseNoun}}</strong><small>{{weekSummary}}</small></div>
   <div class="oss-week" aria-hidden="true">{{bars}}</div>
   <span class="card-arrow" aria-hidden="true"><svg class="oss-arrow" fill="none" viewBox="0 0 16 16">
     <path d="M4 12 12 4M5 4h7v7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.4"/>
@@ -49,10 +49,10 @@ export function updatesPage(releases) {
     i = end
   }
   const archive = batches.length ? `<section id="earlier" aria-label="Earlier releases">${batches.join('')}</section>` : ''
-  const fallback = archive ? '<div class="archive-end"><a href="?all=1#earlier">View all releases</a></div><p class="archive-status" role="status" aria-live="polite" aria-atomic="true"></p>' : ''
+  const fallback = archive ? '<div class="archive-end"><a class="link-label" href="?all=1#earlier">View all releases</a></div><p class="archive-status" role="status" aria-live="polite" aria-atomic="true"></p>' : ''
   const description = 'What’s new in Yogurt, release by release.'
-  const body = `<main id="main" class="updates-page" tabindex="-1"><header class="hero"><div class="hero-copy"><h1>Updates</h1><p>${description}</p></div></header>
+  const body = `<main id="main" class="updates-page reading-page" tabindex="-1">${pageHeader('Updates')}
     <div class="updates-column">${releases.length ? activityCard : ''}
-    <a class="skip skip-history" href="#footer">Skip release history</a><div class="faq-cards release-stack">${cards.slice(0, 3).join('')}${archive}</div>${fallback}</div></main>`
+    <a class="skip skip-history" href="#footer"><span class="link-label">Skip release history</span></a><div class="faq-cards release-stack">${cards.slice(0, 3).join('')}${archive}</div>${fallback}</div></main>`
   return sitePage({ path: '/updates', title: 'Updates · Yogurt', description, body, modules: ['updates'] })
 }

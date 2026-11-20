@@ -47,6 +47,7 @@ if(typeof document!=='undefined'){
       for(const platform of Object.values(platforms)){
         const link=document.createElement('a'),name=document.createElement('strong'),requirements=document.createElement('span')
         link.href=release+platform.file
+        name.className='link-label'
         name.textContent=platform.name;requirements.textContent=platform.requirements.join(' · ')
         link.append(name,requirements);list.append(link)
       }

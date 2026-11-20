@@ -3,7 +3,7 @@ const header = shell.querySelector('.site-header')
 const wordmark = header.querySelector('.wordmark')
 const nav = header.querySelector('nav')
 const toggle = nav.querySelector('.theme-toggle')
-const hero = document.querySelector('.hero')
+const hero = document.querySelector('.hero, .page-header')
 const [left, middle, right] = shell.querySelector('.nav-surface').children
 const reduced = matchMedia('(prefers-reduced-motion: reduce)')
 let geometry, position = 0, velocity = 0, target = 0, frame = 0, lastTime = 0

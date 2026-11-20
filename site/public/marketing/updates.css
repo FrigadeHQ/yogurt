@@ -1,6 +1,5 @@
 .updates-column {
-  width: min(var(--content-width), 760px);
-  margin: 0 auto clamp(64px, 8vw, 128px);
+  margin-block-end: var(--reading-section-gap);
 }
 .updates-activity {
   margin: 0 0 20px;
@@ -24,17 +23,13 @@
   text-align: start;
 }
 .release-heading { order: -1; overflow-wrap: anywhere; }
-.release-meta { flex: none; font-size: 12px; font-weight: 400; color: var(--reading); white-space: nowrap; }
+.release-meta { flex: none; font-size: var(--caption-size); font-weight: 400; color: var(--reading); white-space: nowrap; }
 .release-stack > .release-card h2 { flex-direction: column; gap: 4px; }
-.release-stack > .release-card .release-heading {
-  order: 0;
-  font-size: 24px;
-  font-weight: 600;
-  line-height: 1.22;
-  letter-spacing: -.03em;
-}
-.release-card ul { margin: 0; padding: 0 20px 18px 36px; color: var(--ink); font-size: 15px; line-height: 1.55; }
+.release-stack > .release-card .release-heading { order: 0; }
+.release-card ul { margin: 0; padding: 0 20px var(--paragraph-gap) 36px; }
+.release-card li { text-wrap: pretty; }
 .release-card li + li { margin-top: 4px; }
+.release-card .faq-answer p, .archive-end a { font-size: var(--ui-size); }
 .release-card li::marker { color: var(--reading); font-size: .75em; }
 .release-card strong { font-weight: 600; color: var(--ink); }
 .release-batch { display: flow-root; }
@@ -44,15 +39,13 @@
 .release-stack details[data-instant]::details-content, .release-stack details[data-instant] .faq-answer { transition: none; }
 .archive-end { position: relative; min-height: 1px; text-align: center; overflow-anchor: none; }
 .updates-page ~ .site-footer { overflow-anchor: none; }
-.archive-end a { display: inline-block; margin-top: 12px; color: var(--reading); font-size: 14px; }
+.archive-end a { display: inline-block; margin-top: 12px; color: var(--reading); }
 .auto-load a:not(:focus), .archive-status {
   position: absolute; width: 1px; height: 1px; margin: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
 }
 @media (max-width: 760px) {
   .updates-activity strong { font-size: 18px; }
-  .release-meta { font-size: 11px; }
-  .release-stack > .release-card .release-heading { font-size: 21px; }
-  .release-card ul { padding: 0 16px 16px 32px; font-size: 14px; }
+  .release-card ul { padding-inline: 32px 16px; }
 }
 @media (max-width: 360px) {
   .release-card ul { padding-inline: 24px 10px; }

@@ -8,11 +8,15 @@ export function sitePage({ path, title, description, body, modules }) {
   const fields = {
     Path: path, Home: home ? '' : '/', Title: title, Description: description, Content: body,
     Hero: home ? 'data-hero-entry="pending"' : '',
-    Body: home ? 'data-background="ribbon" data-demo="transcript" data-letter="plain" data-motion="flow" data-source="sample"' : '',
-    Styles: home ? '' : '<link rel="stylesheet" href="/marketing/updates.css"/>',
+    Body: home ? 'data-background="ribbon" data-demo="transcript" data-letter="plain" data-motion="flow" data-source="sample"' : 'class="reading-shell"',
+    Styles: home ? '' : `<link rel="preload" as="font" type="font/ttf" href="/marketing/assets/bricolage-grotesque.ttf" crossorigin/><link rel="stylesheet" href="/marketing${path}.css"/>`,
     Modules: modules.map(name => `<script type="module" src="/marketing/${name}.mjs"></script>`).join('\n'),
   }
   return content('shell.html').replace(/\{\{page(\w+)\}\}/g, (_, key) => fields[key])
+}
+
+export function pageHeader(title) {
+  return `<header class="page-header"><h1>${title}</h1></header>`
 }
 
 export function homePage() {
