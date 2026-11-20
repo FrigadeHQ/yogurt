@@ -23,9 +23,8 @@ test('first run asks one thing at a time, then home; the next launch asks nothin
     await page.getByTestId('intro-next').click()
     await expect(step).toHaveAttribute('data-step', 'record')
     await expect(page.getByRole('img', { name: 'Step 2 of 5', exact: true })).toBeVisible()
-    // one Allow asks for the mic and the call audio, one after the other
-    for (const screen of ['record', 'calendar', 'notifications']) {
-      await expect(step).toHaveAttribute('data-step', screen)
+    for (const kind of ['mic', 'systemAudio', 'calendar', 'notifications']) {
+      await expect(step).toHaveAttribute('data-kind', kind)
       await expect(page.getByTestId('step-reason')).not.toBeEmpty()
       await expect(page.getByTestId('step-later')).toHaveText('Not now')
       await page.getByTestId('step-allow').click()
@@ -228,8 +227,8 @@ test('the first run never asks about music, even with a player running', async (
     const page = await app.firstWindow()
     await page.getByTestId('intro-next').click()
     const step = page.getByTestId('onboarding-step')
-    for (const kind of ['record', 'calendar', 'notifications', 'accessibility']) {
-      await expect(step).toHaveAttribute('data-step', kind)
+    for (const kind of ['mic', 'systemAudio', 'calendar', 'notifications', 'accessibility']) {
+      await expect(step).toHaveAttribute('data-kind', kind)
       // the next question is ready for the keyboard
       await expect(page.getByTestId('step-allow')).toBeFocused()
       await page.getByTestId(kind === 'accessibility' ? 'step-later' : 'step-allow').click()
@@ -279,7 +278,7 @@ test('names from calls: optional, asked with the Mac\'s own prompt once, then on
     const page = await app.firstWindow()
     await page.getByTestId('intro-next').click()
     await expect(page.getByTestId('onboarding-step')).toHaveAttribute('data-step', 'accessibility')
-    await expect(page.getByTestId('step-reason')).toHaveText('Yogurt uses names shown by supported call apps to label speakers in your transcript.')
+    await expect(page.getByTestId('step-reason')).toHaveText('With Accessibility access, Yogurt reads speaker names from supported call windows and adds them to the transcript.')
     await page.getByTestId('step-allow').click()
     await expect(page.getByTestId('settings-guide')).toBeVisible()
     await page.getByTestId('step-later').click()

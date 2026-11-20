@@ -174,18 +174,23 @@ test('every permission step leads with what it gives, Allow asks the Mac, and Ac
     await page.getByTestId('intro-next').click()
     const step = page.getByTestId('onboarding-step')
     await expect(step).toHaveAttribute('data-step', 'record')
-    await expect(page.getByTestId('step-title')).toHaveText('Hear the whole call')
+    await expect(page.getByTestId('step-title')).toHaveText('Microphone')
+    await expect(page.getByTestId('step-reason')).toHaveText('Allow microphone access to transcribe your voice.')
     // the picture: you through the mic, the others through the Mac's sound
     await expect(page.getByTestId('record-art')).toContainText('You')
     await expect(page.getByTestId('record-art')).toContainText('Everyone else')
-    for (const screen of ['record', 'calendar', 'notifications']) {
-      await expect(step).toHaveAttribute('data-step', screen)
+    await page.getByTestId('step-allow').click()
+    await expect(step).toHaveAttribute('data-kind', 'systemAudio')
+    await expect(page.getByTestId('step-title')).toHaveText('Call audio')
+    await expect(page.getByTestId('step-reason')).toHaveText('The permission may mention your screen. Only sound is recorded to transcribe the other speakers.')
+    expect(await fake(app, 'permissions')).toMatchObject({ mic: 'granted', systemAudio: 'unknown' })
+    for (const kind of ['systemAudio', 'calendar', 'notifications']) {
+      await expect(step).toHaveAttribute('data-kind', kind)
       await expect(page.getByTestId('step-title')).not.toHaveText(/^Can Yogurt/)
       await expect(page.getByTestId('step-later')).toHaveText('Not now')
       await expect(page.getByTestId('step-allow')).toHaveText('Allow')
       await page.getByTestId('step-allow').click()
     }
-    // one Allow asked the Mac for both
     expect(await fake(app, 'permissions')).toMatchObject({ mic: 'granted', systemAudio: 'granted' })
     await expect(step).toHaveAttribute('data-step', 'accessibility')
     await expect(page.getByTestId('step-title')).toHaveText('See who said what')

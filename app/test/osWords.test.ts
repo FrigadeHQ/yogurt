@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { screenCopy } from '../src/renderer/src/permissionCopy'
 import { forOs } from '../src/shared/platform'
 // @ts-expect-error plain JS script
 import { i18nKeys } from '../scripts/i18n-keys.mjs'
@@ -35,7 +36,6 @@ describe('Mac text', () => {
     'Saved on this Mac',
     'This conversation is removed from this Mac for good. Your meetings stay as they are.',
     'Uses the microphone your Mac is set to',
-    "Yogurt hears you through your microphone, and everyone else through your Mac's sound.",
     'Yogurt needs a Mac with at least 8 GB of memory.',
     "Your Mac's sound",
     '{count} meetings, with their notes, transcripts and recordings, are removed from this Mac for good.',
@@ -55,4 +55,15 @@ describe('Mac text', () => {
       'Show Yogurt in the notification area', 'Show Yogurt in the tray', 'Show in File Explorer', 'Show in Files',
     ]) expect(keys).toContain(k)
   })
+})
+
+it('names the Accessibility permission only on platforms that request it', () => {
+  try {
+    for (const os of ['darwin', 'win32', 'linux']) {
+      vi.stubGlobal('window', { yogurt: { os } })
+      const text = screenCopy('accessibility').text
+      expect(text).toContain('reads speaker names from supported call windows')
+      expect(text.includes('Accessibility')).toBe(os === 'darwin')
+    }
+  } finally { vi.unstubAllGlobals() }
 })
