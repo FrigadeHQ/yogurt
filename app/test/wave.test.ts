@@ -5,13 +5,24 @@ describe('microphone meter', () => {
   it('keeps silence quiet and makes ordinary speech visible without using call audio', () => {
     expect(micLevel({ me: 0, them: 1 })).toBe(0)
     expect(micLevel({ me: .15, them: 1 })).toBe(0)
-    const speech = [-40, -25, -12].map(db => micLevel({ me: (db + 60) / 60, them: 0 }))
-    expect(speech[0]).toBeGreaterThan(.25)
-    expect(speech[1]).toBeGreaterThan(.6)
-    expect(speech[2]).toBe(1)
+    const speech = [-45, -42, -25, -12].map(db => micLevel({ me: (db + 60) / 60, them: 0 }))
+    expect(speech[0]).toBeCloseTo(.65, 2)
+    expect(speech[1]).toBeCloseTo(.75, 2)
+    expect(speech[2]).toBeCloseTo(.95, 2)
+    expect(speech[3]).toBe(1)
     expect(micLevel({ me: Infinity, them: 0 })).toBe(0)
     expect(micLevel({ me: -1, them: 0 })).toBe(0)
     expect(micLevel({ me: 2, them: 0 })).toBe(1)
+  })
+  it('shows a quiet 100 ms syllable on both meters without lifting silence', () => {
+    const wave = new Wave()
+    wave.target = micLevel({ me: .30, them: .79 })
+    wave.step(100)
+    for (const [bars, height] of [[3, 14], [5, 16]] as const) {
+      const plan = barPlan({ bars, level: wave.level, paused: false, reduced: false })
+      expect(3 + Math.round(Math.max(...plan.heights) * (height - 3))).toBe(bars === 3 ? 10 : 11)
+    }
+    expect(micLevel({ me: .1, them: .79 })).toBe(0)
   })
   it('attacks in 60ms and releases in 220ms without a scrolling delay', () => {
     const w = new Wave()
