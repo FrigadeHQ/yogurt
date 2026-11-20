@@ -281,23 +281,42 @@ func axCopy(_ e: AXUIElement, depth: Int, maxDepth: Int, budget: inout Int, zoom
 /** the windows of a call app that hold the call */
 let callControls: Set<String> = ["leave", "leave call", "hang up", "end call", "mute mic", "unmute mic", "close participants pane"]
 
-/// Whether a window has a button that only a call has, looking at no more than `budget` elements
+/// Whether one element is a control only a call has: by its label ("Leave", "Leave (⌘⇧H)") or, in Teams, its page id
+func isCallControl(_ e: AXUIElement) -> Bool {
+  if axText(axAttr(e, "AXDOMIdentifier")) == "hangup-button" { return true }
+  for key in [kAXDescriptionAttribute, kAXTitleAttribute] as [String] {
+    // a label can carry its shortcut: "Leave (⌘⇧H)"
+    if let s = axText(axAttr(e, key)) {
+      let plain = s.replacingOccurrences(of: #"\s*\([^)]*\)\s*$"#, with: "", options: .regularExpression).trimmingCharacters(in: .whitespaces).lowercased()
+      if callControls.contains(plain) { return true }
+    }
+  }
+  return false
+}
+
+/// What the last look for call controls found, for the log when no window is a call (#111)
+var lastControlLook = ""
+
+/// Whether a window has a button that only a call has. A Teams meeting window is a whole web page: its Leave button sits
+/// thousands of elements in, past any walk that stays cheap (#111). Chromium can search its own page for buttons in one
+/// call, so that comes first; a walk of at most `budget` elements is the fallback.
 func hasCallControl(_ w: AXUIElement, budget: Int = 1500) -> Bool {
+  let predicate: [String: Any] = ["AXSearchKey": "AXButtonSearchKey", "AXResultsLimit": 500, "AXDirection": "AXDirectionNext", "AXImmediateDescendantsOnly": false, "AXVisibleOnly": false]
+  var found: AnyObject?
+  if AXUIElementCopyParameterizedAttributeValue(w, "AXUIElementsForSearchPredicate" as CFString, predicate as CFTypeRef, &found) == .success, let buttons = found as? [AXUIElement] {
+    if buttons.contains(where: isCallControl) { lastControlLook = "search found it"; return true }
+    lastControlLook = "search saw buttons, none a call control"
+  } else {
+    lastControlLook = "search unavailable"
+  }
   var left = budget, queue = [w]
   while !queue.isEmpty && left > 0 {
     let e = queue.removeFirst(); left -= 1
     let role = axText(axAttr(e, kAXRoleAttribute)) ?? ""
-    if role == "AXButton" || role == "AXMenuItem" || role == "AXCheckBox" {
-      for key in [kAXDescriptionAttribute, kAXTitleAttribute] as [String] {
-        // a label can carry its shortcut: "Leave (⌘⇧H)"
-        if let s = axText(axAttr(e, key)) {
-          let plain = s.replacingOccurrences(of: #"\s*\([^)]*\)\s*$"#, with: "", options: .regularExpression).trimmingCharacters(in: .whitespaces).lowercased()
-          if callControls.contains(plain) { return true }
-        }
-      }
-    }
+    if (role == "AXButton" || role == "AXMenuItem" || role == "AXCheckBox") && isCallControl(e) { return true }
     queue.append(contentsOf: (axAttr(e, kAXChildrenAttribute) as? [AXUIElement]) ?? [])
   }
+  lastControlLook += left <= 0 ? "; walk stopped at \(budget) elements" : "; walk saw the whole window"
   return false
 }
 
@@ -340,6 +359,7 @@ func watchCalls(every: Int, ids: [String]) {
       line(["t": t, "error": "not-trusted"])
     } else {
       // the frontmost of the apps asked about that shows a call, else the first one that does
+      lastControlLook = ""
       let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
       let running = ids.compactMap { NSRunningApplication.runningApplications(withBundleIdentifier: $0).first }
         .sorted { a, _ in a.processIdentifier == front }
@@ -363,7 +383,8 @@ func watchCalls(every: Int, ids: [String]) {
         }
         line(["t": t, "app": id, "windows": out])
       } else {
-        line(["t": t, "error": running.isEmpty ? "not-running" : "no-call-window"])
+        // which windows were looked at and how, so a log can say why a call was missed (#111)
+        line(["t": t, "error": running.isEmpty ? "not-running" : lastControlLook.isEmpty ? "no-call-window" : "no-call-window (\(lastControlLook))"])
       }
     }
     // a slow app (a big page) is read less often, so the reading never takes much of the Mac

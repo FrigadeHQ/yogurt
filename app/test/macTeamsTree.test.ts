@@ -16,4 +16,13 @@ describe('call-watch on the Teams desktop app (#111)', () => {
     expect(ask).toBeLessThan(look)
     expect(swift).toMatch(/func askTree[\s\S]*?hasPrefix\("com\.microsoft\.teams"\)/)
   })
+  it("finds the Leave button deep in Teams' page: Chromium's own button search first, Teams' hangup-button id too (#111)", () => {
+    const look = swift.slice(swift.indexOf('func hasCallControl'))
+    expect(look.indexOf('AXUIElementsForSearchPredicate')).toBeGreaterThan(-1)
+    expect(look.indexOf('AXUIElementsForSearchPredicate')).toBeLessThan(look.indexOf('queue.removeFirst'))
+    expect(swift).toMatch(/AXDOMIdentifier"\)\) == "hangup-button"/)
+  })
+  it('says in the log why no window was a call', () => {
+    expect(swift).toContain('"no-call-window (\\(lastControlLook))"')
+  })
 })
