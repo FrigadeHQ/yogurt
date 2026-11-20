@@ -118,6 +118,11 @@ test('the underline slides on pointer tab changes without moving the reading pan
       for (const tab of [transcript, notes, page.getByTestId('note-summary-tab')]) {
         await tab.hover()
         if (process.env.YOGURT_UI_REVIEW !== 'before') expect(await tab.locator('svg, svg path').evaluateAll(els => els.every(el => getComputedStyle(el).animationName === 'none'))).toBe(true)
+        if (process.env.YOGURT_UI_REVIEW !== 'before') {
+          await expect(tab).toHaveCSS('padding-inline-start', '4px')
+          await expect(tab).toHaveCSS('padding-inline-end', '4px')
+          await expect(tab).toHaveCSS('column-gap', '4px')
+        }
         await tab.click()
         await expect(pane).toHaveCSS('animation-name', 'none')
         await expect(pane).toHaveCSS('transform', 'none')

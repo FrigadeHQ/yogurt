@@ -9,7 +9,7 @@ import { LoadingContent } from '../components/LoadingContent'
 import { motion, useReducedMotion } from '../motion'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useScrollMemory } from '../useScrollMemory'
-import { AudioLines, Lock, RotateCcw, Trash2, TextAlignStart, TriangleAlert } from 'lucide-react'
+import { AudioLines, Lock, RotateCcw, Trash2, List, PencilLine, TriangleAlert } from 'lucide-react'
 import type { MeetingView, NoteSaveResult, NoteSide, NoteView, SetupState, WidgetView } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
 import { osWords } from '../keys'
@@ -22,7 +22,7 @@ import { Transcript } from '../components/Transcript'
 import { Ask } from '../components/Chat'
 import { LevelBars } from '../components/LevelBars'
 import { RecordingTime } from '../components/RecordingTime'
-import { Mic, Pause, Play, Sparkles, Loader } from '../components/Icons'
+import { Mic, Pause, Play, Loader } from '../components/Icons'
 import { ShareMenu } from '../components/ShareMenu'
 import { NoteMenu, summaryAction } from '../components/NoteMenu'
 import { DeleteNote } from '../components/DeleteNote'
@@ -410,12 +410,12 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
             <button ref={notesButton} id="note-notes-tab" data-testid="note-notes-tab" role="tab" aria-selected={primary === 'notes' && shown === 'mine'} aria-controls="note-notes-panel"
               data-version={shown} tabIndex={primary === 'notes' && shown === 'mine' ? 0 : -1} onKeyDown={primaryKey}
               onClick={(e) => pickTab('notes', 'mine', e.detail > 0)}>
-              <TextAlignStart size={14} strokeWidth={1.75} aria-hidden="true" />{t('My notes')}
+              <PencilLine size={14} strokeWidth={1.75} aria-hidden="true" />{t('My notes')}
             </button>
             {hasEnhanced && <button ref={summaryButton} id="note-summary-tab" data-testid="note-summary-tab" role="tab" aria-selected={primary === 'notes' && shown === 'enhanced'} aria-controls="note-notes-panel"
               tabIndex={primary === 'notes' && shown === 'enhanced' ? 0 : -1} onKeyDown={primaryKey}
               onClick={(e) => pickTab('notes', 'enhanced', e.detail > 0)}>
-              <Sparkles size={14} strokeWidth={1.75} aria-hidden="true" />{t('Summary')}
+              <List size={14} strokeWidth={1.75} aria-hidden="true" />{t('Summary')}
             </button>}
             </div>
             {primary === 'transcript' && <div ref={setTranscriptToolbar} className="note-primary-tools" />}
