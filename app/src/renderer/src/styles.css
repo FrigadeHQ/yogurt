@@ -375,7 +375,8 @@ html.widget { --pill:#232326;--pill-ink:#F7F7FA;--accent:#B780FF;--pill-accent:v
 /* words not final yet: lighter, each new one fading in, three soft dots after them; once final they deepen in place */
 .live-words { color: var(--muted); }
 .live-word { animation: motion-fade var(--dur-base) var(--ease-out) backwards; }
-.live-dots { display: inline-flex; align-items: center; gap: 3px; margin-inline-start: 7px; height: 1em; vertical-align: -0.1em; }
+/* zero height, so the dots never make their line taller than a line without them */
+.live-dots { display: inline-flex; align-items: center; gap: 3px; margin-inline-start: 7px; height: 0; vertical-align: 0.4em; }
 .live-dots i { width: 4px; height: 4px; border-radius: 999px; background: var(--muted); animation: live-dot 1.2s ease-in-out infinite; }
 .live-dots i:nth-child(2) { animation-delay: 0.2s; }
 .live-dots i:nth-child(3) { animation-delay: 0.4s; }
