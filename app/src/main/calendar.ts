@@ -8,7 +8,7 @@ import { noteOwnEmail } from './vocab'
 import { ownAddress } from '../shared/people'
 
 /** One meeting on the calendar, times in ms */
-export type CalEvent = { id: string; title: string; start: number; end: number; attendees: Person[]; url: string | null; calendar?: CalendarSource; aliases?: string[]; ownEmail?: string | null }
+export type CalEvent = { id: string; title: string; start: number; end: number; attendees: Person[]; url: string | null; calendar?: CalendarSource; aliases?: string[]; ownEmail?: string | null; declined?: boolean }
 export type CalendarSource = { id: string; name: string; source: string; color?: string }
 export const eventIds = (event: CalEvent): string[] => [event.id, ...(event.aliases ?? [])]
 export const matchesEvent = (event: CalEvent, id: string | null): boolean => !!id && eventIds(event).includes(id)
@@ -143,26 +143,27 @@ export function parseEvents(raw: unknown, hidden: string[] = []): CalEvent[] {
     const key = identity ? JSON.stringify([identity, start, end]) : id
     const copies = groups.get(key) ?? []
     copies.push({
-      id, ...(ownEmail ? { ownEmail } : {}), title: str(r.title) ?? '', start, end, attendees,
+      id, ...(ownEmail ? { ownEmail } : {}), ...(r.declined === true ? { declined: true } : {}), title: str(r.title) ?? '', start, end, attendees,
       url: meetingLink(str(r.url)) ?? meetingLink(str(r.location)) ?? meetingLink(str(r.notes)),
       ...(calendarId ? { calendar: { id: calendarId, name: str(r.calendar) ?? '', source: str(r.calendarSource) ?? '' } } : {}),
     })
     groups.set(key, copies)
   }
   return [...groups.values()].flatMap((copies) => {
-    const event = copies.find((e) => !e.calendar || !hidden.includes(e.calendar.id))
+    const visible = copies.filter((e) => !e.calendar || !hidden.includes(e.calendar.id))
+    const [event] = visible
     if (!event) return []
     const aliases = [...new Set(copies.map((e) => e.id))].filter((id) => id !== event.id)
-    return [{ ...event, ...(aliases.length ? { aliases } : {}) }]
+    return [{ ...event, ...(aliases.length ? { aliases } : {}), ...(visible.some(copy => copy.declined) ? { declined: true } : {}) }]
   })
 }
 
 /** Events between two times. No Calendar access, or a helper that fails: none, never a crash. */
-export async function upcoming(fromMs: number, toMs: number, keep?: 'link-event' | ((event: CalEvent) => boolean)): Promise<CalEvent[]> {
+export async function upcoming(fromMs: number, toMs: number, keep?: 'link-event' | ((event: CalEvent) => boolean), { fullRange = false } = {}): Promise<CalEvent[]> {
   if (await refreshCalendarStatus() !== 'granted') return []
   try {
     const fromMac = !links || (alongside && macStatus === 'granted')
-    const mac = fromMac ? await helper(['events', new Date(fromMs).toISOString(), new Date(toMs).toISOString()]) : []
+    const mac = fromMac ? await helper(['events', new Date(fromMs).toISOString(), new Date(toMs).toISOString(), ...(fullRange ? ['--full-range'] : [])]) : []
     const raw = [...(links ? await links.events(fromMs, toMs) : []), ...(Array.isArray(mac) ? mac : [])]
     const selection = calendarSelection()
     const events = parseEvents(raw, selection.hiddenCalendarIds)

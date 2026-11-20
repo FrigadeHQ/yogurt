@@ -402,8 +402,9 @@ case "events":
   let found = store.events(matching: store.predicateForEvents(withStart: from, end: to, calendars: nil))
     .filter { !$0.isAllDay && $0.status != .canceled }
     .sorted { $0.startDate < $1.startDate }
-    .prefix(200)
-  out(found.map { e in
+  // A week of hidden calendars can fill the usual 200 rows before the next visible meeting.
+  let events = args.dropFirst(3).contains("--full-range") ? found[...] : found.prefix(200)
+  out(events.map { e in
     var o: [String: Any] = [
       "id": (e.eventIdentifier ?? e.title ?? "event") + ":" + iso.string(from: e.startDate),
       "title": e.title ?? "", "start": iso.string(from: e.startDate), "end": iso.string(from: e.endDate), "calendar": e.calendar.title,
@@ -414,7 +415,10 @@ case "events":
     if let n = e.notes, !n.isEmpty { o["notes"] = String(n.prefix(2000)) }
     if let u = e.url { o["url"] = u.absoluteString }
     // the person using this Mac, apart: their address says which company they are with (Yogurt spells it right)
-    if let me = (e.attendees ?? []).first(where: { $0.isCurrentUser }), me.url.absoluteString.hasPrefix("mailto:") { o["me"] = String(me.url.absoluteString.dropFirst(7)) }
+    if let me = e.attendees?.first(where: { $0.isCurrentUser }) {
+      if me.url.absoluteString.hasPrefix("mailto:") { o["me"] = String(me.url.absoluteString.dropFirst(7)) }
+      if me.participantStatus == .declined { o["declined"] = true }
+    }
     // everyone but the person using this Mac
     o["attendees"] = (e.attendees ?? []).filter { !$0.isCurrentUser }.prefix(50).map { a -> [String: Any] in
       let mail = a.url.absoluteString.hasPrefix("mailto:") ? String(a.url.absoluteString.dropFirst(7)) : nil

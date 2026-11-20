@@ -27,10 +27,7 @@ extraResources:
   - from: resources/vad
     to: vad
   # the Mac's menu bar icon (tray.ts reads it from Resources; @2x is picked up next to it)
-  - from: resources/tray.png
-    to: tray.png
-  - from: resources/tray@2x.png
-    to: tray@2x.png
+  - { from: resources, to: ., filter: ["tray.png", "tray@2x.png", "tray-titled.png", "tray-titled@2x.png"] }
   # licenses of things bundled or downloaded: fonts, whisper.cpp, Silero VAD, libopus, the native recorders' crates,
   # whisper-server's headers, animate-ui and the CUDA runtime
   - from: resources/licenses

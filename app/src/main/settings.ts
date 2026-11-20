@@ -18,6 +18,8 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   openAtLogin?: boolean
   /** the native menu bar icon; on unless turned off */
   showInMenuBar?: boolean
+  /** Show a meeting title beside the icon or in its tooltip. Defaults on. */
+  showNextMeeting?: boolean
   /** the Dock icon; on unless turned off */
   showInDock?: boolean
   /** Legacy flag, ignored: it may have come from a different app bundle. Removed after a confirmed post. */

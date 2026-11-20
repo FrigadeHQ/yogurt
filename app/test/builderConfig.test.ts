@@ -16,6 +16,17 @@ it('Windows and Linux builds have fixed file names, like the Mac one', () => {
   expect(config).toContain('artifactName: Yogurt-linux-${arch}.${ext}')
 })
 
+it('ships the compact and titled Mac tray templates at both display scales', () => {
+  for (const scale of [1, 2]) {
+    for (const [name, width] of [['tray', 22], ['tray-titled', 23]] as const) {
+      const file = name + (scale === 2 ? '@2x' : '') + '.png'
+      expect(config).toContain('"' + file + '"')
+      const png = readFileSync(join(__dirname, '../resources', file))
+      expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([width * scale, 22 * scale])
+    }
+  }
+})
+
 it("only Windows and Linux carry the colour tray icons (the Mac's package keeps its own files)", () => {
   const block = (name: string) => config.match(new RegExp(`^${name}:\\n((?:  .*\\n|\\n)*)`, 'm'))?.[1] ?? ''
   for (const os of ['win', 'linux']) expect(block(os)).toContain('filter: ["tray-color*.png", "tray-recording*.png"]')

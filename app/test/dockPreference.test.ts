@@ -12,7 +12,7 @@ const dirs: string[] = []
 afterEach(() => { dirs.splice(0).forEach((dir) => rmSync(dir, { recursive: true, force: true })); handlers.clear(); vi.restoreAllMocks() })
 
 const hook = (file: string, setDockVisible: (...args: any[]) => any, setTrayVisible: (...args: any[]) => any, os = 'darwin') => {
-  const deps = { file, os, permissions: {} as Parameters<typeof hookPreferences>[0]['permissions'], ask: false, setLogin: vi.fn(), loginOn: () => false, macName: () => '', relaunch: () => false, setTrayVisible, setDockVisible }
+  const deps = { setShowNextMeeting: vi.fn(), file, os, permissions: {} as Parameters<typeof hookPreferences>[0]['permissions'], ask: false, setLogin: vi.fn(), loginOn: () => false, macName: () => '', relaunch: () => false, setTrayVisible, setDockVisible }
   hookPreferences(deps)
   return deps
 }

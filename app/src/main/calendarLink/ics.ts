@@ -11,7 +11,7 @@ export type RawEvent = {
   id: string; externalId: string; title: string; start: string; end: string
   attendees: Array<{ name: string | null; email: string | null }>
   url: string | null; location: string | null; notes: string | null
-  calendarId: string; calendar: string; calendarSource: string; me: string | null
+  calendarId: string; calendar: string; calendarSource: string; me: string | null; declined?: boolean
 }
 
 /** at most this many occurrences of one event are walked, so a feed with a years-long daily event stays quick */
@@ -92,11 +92,13 @@ export function icsFeed(text: string, link: LinkRef) {
       const s = start.toJSDate().getTime(), e = end.toJSDate().getTime()
       if (!(s < toMs && e > fromMs)) return
       const uid = item.uid
+      const declined = me && item.component.getAllProperties('attendee').some(p =>
+        email(p.getFirstValue()) === me && String(p.getParameter('partstat')).toUpperCase() === 'DECLINED')
       out.push({
         id: `${uid}|${new Date(s).toISOString()}`, externalId: uid, title: item.summary ?? '',
         start: new Date(s).toISOString(), end: new Date(e).toISOString(), attendees: people(item.component, me),
         url: prop(item.component, 'url') ?? prop(item.component, 'x-google-conference'), location: item.location || null, notes: item.description || null,
-        calendarId: link.id, calendar: link.name, calendarSource: 'Calendar link', me,
+        calendarId: link.id, calendar: link.name, calendarSource: 'Calendar link', me, ...(declined ? { declined: true } : {}),
       })
     }
     for (const ev of items) {

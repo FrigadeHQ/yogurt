@@ -41,6 +41,7 @@ import { hookPreferences, onboardingShowing } from './preferences'
 import { loginItemOn, openedAtLogin, setLoginItem, syncLoginItem } from './loginItem'
 import { createMedia } from './media'
 import { createTray, linuxTrayHost } from './tray'
+import { trayWindowEnd } from './trayMenu'
 import { SetupController } from './setup'
 import { fakeMeasure, measureSpeed, speedClipPath, speedStore } from './asr/speedCheck'
 import { vadModelPath, whisperServerPath } from './asr/server'
@@ -113,9 +114,7 @@ let win: BrowserWindow | undefined
 let allowQuit = false
 let presentMain = (_foreground = false) => {}
 let updateMainMenu = () => {}
-let setTrayVisible = (_on: boolean) => {}
-/** whether the tray icon is there to reopen Yogurt from (Windows and Linux minimise on close without it) */
-let trayShown = () => true
+let menuBar: ReturnType<typeof createTray> | undefined
 /** test runs: no window on screen, never takes focus from what the person is doing */
 const BACKGROUND = process.env.YOGURT_BACKGROUND === '1'
 // an AI app's yogurt-mcp starting Yogurt while it was still opening (--hidden) brings no window forward
@@ -139,7 +138,7 @@ function createWindow() {
     webPreferences: { preload: join(__dirname, '../preload/index.cjs'), sandbox: false, ...(BACKGROUND ? { backgroundThrottling: false } : {}) },
   })
   presentMain = keepMainWindow(win, { background: BACKGROUND, canClose: () => allowQuit, activate: () => app.focus({ steal: true }),
-    closeTo: () => closeAction(process.platform, trayShown()), glass: process.platform === 'darwin', lift: process.platform === 'darwin' })
+    closeTo: () => closeAction(process.platform, menuBar?.shown() ?? true), glass: process.platform === 'darwin', lift: process.platform === 'darwin' })
   if (process.platform !== 'darwin') {
     win.setMenuBarVisibility(false)
     // the window buttons follow light and dark mode
@@ -259,8 +258,8 @@ let relaunched = 0
 /** fake mode: how many times Yogurt would have restarted to install a new version */
 let updateRestarts = 0
 
-async function readCalendar(from: number, to: number, keep?: Parameters<typeof upcoming>[2]): Promise<CalEvent[]> {
-  const events = await upcoming(from, to, keep)
+async function readCalendar(...range: Parameters<typeof upcoming>): Promise<CalEvent[]> {
+  const events = await upcoming(...range)
   refreshEventSnapshots(events)
   return events
 }
@@ -403,8 +402,9 @@ function startDetection() {
   ipcMain.handle('meetings:set-paused', (_e, id: unknown, paused: unknown) => pauseRecording(id, paused))
   ipcMain.handle('meetings:retry-stop-save', (_e, id: unknown) => isId(id) && retryStopSave(id))
   // the menu bar: open, new note or stop, quit; Yogurt stays there with its window closed
+  const preferences = loadSettings(join(userDataDir(), 'settings.json'))
   const tray = createTray({
-    show: !BACKGROUND, visible: loadSettings(join(userDataDir(), 'settings.json')).showInMenuBar !== false,
+    show: !BACKGROUND, visible: preferences.showInMenuBar, showNextMeeting: preferences.showNextMeeting,
     open: () => { presented++; showMain() },
     newNote: () => { if (!activeMeeting()) begin({ title: '', event: null, app: null }) },
     stop: (id) => { stopMeeting(id) },
@@ -412,7 +412,11 @@ function startDetection() {
     ask: askFromMenu, settings: () => goTo('/settings'),
     openNote: (id) => { const note = storeRef?.meeting(id); if (note && note.trashedAt == null) goTo(`/note/${id}`) },
     recent: () => storeRef?.meetingCards({ limit: 5 }) ?? [],
-    events: comingUp, now,
+    events: () => {
+      const at = now()
+      return readCalendar(at, trayWindowEnd(at), undefined, { fullRange: true })
+    },
+    now,
     elapsed: widget.elapsed,
     os: platform,
     host: process.platform === 'linux' && !BACKGROUND ? linuxTrayHost : undefined,
@@ -427,8 +431,7 @@ function startDetection() {
     },
   })
   refreshCalendarConsumers = () => { signals.invalidateCalendar(); void tray.refreshCalendar() }
-  setTrayVisible = tray.setVisible
-  trayShown = tray.shown
+  menuBar = tray
   // cheap, and only while Yogurt runs; more often while recording, so the end of a quiet call is noticed promptly
   let timer: NodeJS.Timeout | undefined
   const watchLoop = () => { timer = setTimeout(() => { void watcher.tick().catch((e) => console.error('detect failed', e)).finally(watchLoop) }, watchEveryMs(!!activeMeeting())) }
@@ -507,7 +510,8 @@ app.whenReady().then(() => {
     // fake mode asks the first-run questions only when a test sets the permissions
     ask: !isFake() || !!process.env.YOGURT_FAKE_PERMISSIONS,
     setLogin: (on) => { if (!isFake()) setLoginItem(on) },
-    setTrayVisible: (on) => setTrayVisible(on),
+    setTrayVisible: (on) => menuBar?.setVisible(on),
+    setShowNextMeeting: (on) => menuBar?.setShowNextMeeting(on),
     setDockVisible: (on) => setDockVisible(on, win),
     loginOn: (saved) => (isFake() ? !!saved : loginItemOn(saved)),
     macName,
