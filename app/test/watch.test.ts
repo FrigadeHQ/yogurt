@@ -36,6 +36,44 @@ beforeEach(() => {
 })
 
 describe('start cards', () => {
+  // A real call: Zoom lets go of the mic for a few seconds when someone switches headsets or toggles mute, and the
+  // calendar event can end while the call goes on. None of that is a new call: one offer per call, never a stream of them.
+  it('a mic blip in the middle of a call neither takes the card down nor offers again', async () => {
+    reading = { micApps: [zoom], events: [] }
+    await w.tick()
+    for (const gap of [3_000, 20_000, 90_000]) {
+      reading = { micApps: [], events: [] }; clock += gap; await w.tick()
+      reading = { micApps: [zoom], events: [] }; clock += 3_000; await w.tick()
+    }
+    expect(log).toEqual(['offer:app:us.zoom.xos'])
+  })
+  it('a closed card stays closed through mic blips for the rest of that call', async () => {
+    reading = { micApps: [zoom], events: [] }
+    await w.tick()
+    w.dismiss('app:us.zoom.xos')
+    for (let i = 0; i < 4; i++) {
+      reading = { micApps: [], events: [] }; clock += 10_000; await w.tick()
+      reading = { micApps: [zoom], events: [] }; clock += 3_000; await w.tick()
+    }
+    expect(log.filter((l) => l.startsWith('offer'))).toHaveLength(1)
+  })
+  it('the calendar event ending while the call goes on is not a new call', async () => {
+    const e = ev({ end: clock + 30 * MIN })
+    reading = { micApps: [zoom], events: [e] }
+    await w.tick()
+    clock += 60 * MIN
+    reading = { micApps: [zoom], events: [] }
+    await w.tick(); clock += 3_000; await w.tick()
+    expect(log.filter((l) => l.startsWith('offer'))).toEqual([`offer:event:e1:${e.start}`])
+  })
+  it('two minutes off the mic ends the call: the next one gets its own offer', async () => {
+    reading = { micApps: [zoom], events: [] }
+    await w.tick()
+    w.dismiss('app:us.zoom.xos')
+    reading = { micApps: [], events: [] }; await w.tick(); clock += 2 * MIN; await w.tick()
+    reading = { micApps: [zoom], events: [] }; await w.tick()
+    expect(log.filter((l) => l.startsWith('offer'))).toHaveLength(2)
+  })
   it('offers nothing while the first run is still being set up, then offers the call once it is done', async () => {
     let ready = false
     const x = new Watcher({ read: async () => reading, now: () => clock, active: () => active, bindApp: (_id, app) => (active = { ...active!, app }),
@@ -56,7 +94,7 @@ describe('start cards', () => {
     reading = { micApps: [zoom], events: [] }
     await w.tick()
     reading = { micApps: [], events: [] }
-    await w.tick()
+    await w.tick(); clock += 2 * MIN; await w.tick()
     reading = { micApps: [zoom], events: [] }
     await w.tick()
     expect(log).toEqual(['offer:app:us.zoom.xos', 'hide', 'offer:app:us.zoom.xos'])
@@ -68,7 +106,7 @@ describe('start cards', () => {
     await w.tick(); await w.tick()
     expect(log).toEqual(['offer:app:us.zoom.xos'])
     reading = { micApps: [], events: [] }
-    await w.tick()
+    await w.tick(); clock += 2 * MIN; await w.tick()
     expect(w.dismissed.size).toBe(0)
     reading = { micApps: [zoom], events: [] }
     await w.tick()
@@ -90,7 +128,7 @@ describe('start cards', () => {
     expect(log.filter((l) => l.startsWith('offer'))).toEqual([])
     // the call ends, and a new one starts later
     reading = { micApps: [], events: [] }
-    await w.tick()
+    await w.tick(); clock += 2 * MIN; await w.tick()
     reading = { micApps: [zoom], events: [] }
     await w.tick()
     expect(log.filter((l) => l.startsWith('offer'))).toEqual(['offer:app:us.zoom.xos'])

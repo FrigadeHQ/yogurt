@@ -29,6 +29,9 @@ export type WatchDeps = {
 const SNOOZE = 5 * 60_000
 
 /** Looks at the signals each tick: offers notes when a call starts; when it ends, stops the recording (or asks, with that setting off). Never starts anything itself. */
+/** how long a call app must be off the mic before its call is over and the next one is offered again */
+export const NEW_CALL_MS = 2 * 60_000
+
 export class Watcher {
   readonly dismissed = new Set<string>()
   private shown: string | null = null // key of the start card, or 'stop'
@@ -40,6 +43,13 @@ export class Watcher {
   private idleCall: { app: string; at: number } | null = null
   /** a recording was going at the last look */
   private wasRecording = false
+  /**
+   * The calls already offered, by app, with when the app last held the mic. Zoom lets go of the mic for a moment when a
+   * headset changes or someone toggles mute, and the calendar event can end while the call goes on: none of that is a
+   * new call. A call is over only after NEW_CALL_MS off the mic, so each call gets one offer, never a stream of them.
+   */
+  private calls = new Map<string, number>()
+  private shownApp: string | null = null
 
   constructor(private d: WatchDeps) {}
 
@@ -73,18 +83,29 @@ export class Watcher {
     this.rec = null
     // the recording just ended while its call app still holds the mic (Finish in Yogurt, then Zoom closes a few seconds
     // later): that call is done, as if its card were closed. It is forgiven once the app lets go of the mic, as below.
-    if (justStopped) for (let p = decide(s, now, this.dismissed); p; p = decide(s, now, this.dismissed)) this.dismissed.add(p.key)
+    if (justStopped) for (let p = decide(s, now, this.dismissed); p; p = decide(s, now, this.dismissed)) { this.dismissed.add(p.key); this.calls.set(p.app ?? p.key, now) }
     this.idleMic = new Set(s.micApps.flatMap((m) => callAppName(m.bundleId, s.runningApps) ?? []))
     const call = decide(s, now, new Set())
     this.idleCall = call?.app ? { app: call.app, at: now } : null
-    // a call app that let go of the mic is a new call next time
+    for (const a of this.idleMic) if (this.calls.has(a)) this.calls.set(a, now)
+    for (const [a, last] of this.calls) if (now - last >= NEW_CALL_MS) this.calls.delete(a)
+    // a call app whose call is over (off the mic long enough) is a new call next time
     for (const k of [...this.dismissed]) {
-      if (k.startsWith('app:') && !s.micApps.some((m) => callAppName(k.slice(4)) === callAppName(m.bundleId, s.runningApps))) this.dismissed.delete(k)
+      const app = k.startsWith('app:') ? callAppName(k.slice(4)) : undefined
+      if (app !== undefined && !this.idleMic.has(app ?? '') && !this.calls.has(app ?? '')) this.dismissed.delete(k)
     }
-    const p = this.d.ready && !this.d.ready() ? null : decide(s, now, this.dismissed)
-    if (!p) { if (this.shown) { this.shown = null; this.d.hide() } return }
+    let p = this.d.ready && !this.d.ready() ? null : decide(s, now, this.dismissed)
+    // this call was offered already: under another key (its event ended) or after a moment off the mic
+    if (p && this.calls.has(p.app ?? p.key) && this.shown !== p.key) p = null
+    if (!p) {
+      // a card stays up through a blip; it goes when its call is over
+      if (this.shown && !(this.shownApp && this.calls.has(this.shownApp))) { this.shown = null; this.shownApp = null; this.d.hide() }
+      return
+    }
     if (this.shown === p.key) return
     this.shown = p.key
+    this.shownApp = p.app ?? p.key
+    this.calls.set(p.app ?? p.key, now)
     console.info(`CALL offer app=${p.app} mic=${s.micApps.filter(m => callAppName(m.bundleId, s.runningApps) === p.app).map(m => m.bundleId).join(',')}`)
     this.d.offer(p)
   }
