@@ -14,6 +14,9 @@ test('recording controls stay in the header and Ask lives in the footer with sta
     await expect(page.getByTestId('note-notes-tab')).toHaveAttribute('aria-selected', 'true')
     await page.getByTestId('note-transcript-toggle').click()
     const header = page.locator('.note-header'), controls = header.getByTestId('note-state')
+    await expect(header.getByTestId('note-elapsed')).toHaveAccessibleName('Recorded time')
+    await expect(header.getByTestId('note-elapsed')).toBeVisible()
+    await expect(controls.locator('time, canvas')).toHaveCount(0)
     await expect(controls).toHaveAccessibleName('Recording')
     await expect(controls.getByTestId('note-pause')).toBeVisible()
     await expect(controls.getByTestId('note-stop')).toBeVisible()
@@ -22,6 +25,7 @@ test('recording controls stay in the header and Ask lives in the footer with sta
     await expect(controls.getByTestId('note-stop')).toHaveCSS('border-top-width', '0px')
     await expect(header.getByTestId('chat-open')).toHaveCount(0)
     await expect(page.locator('.note-footer').getByTestId('chat-open')).toContainText('⌘J')
+    await expect(header.getByTestId('note-elapsed')).toMatchAriaSnapshot(String.raw`- timer "Recorded time": /^(?:\d+:)?\d+:\d{2}$/`)
     const brand = (await page.locator('.workspace-brand').boundingBox())!
     const footer = (await page.locator('.note-footer-bar').boundingBox())!
     const content = (await page.locator('.workspace-content').boundingBox())!

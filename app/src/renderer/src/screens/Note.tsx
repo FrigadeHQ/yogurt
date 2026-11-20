@@ -386,12 +386,12 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
               <FolderChip meetingId={id} onNew={() => setNamingFolder(true)} suggestion={folderSuggestion} />
             </div>
             <div data-testid={recording ? 'rec-bar' : 'note-bar'} className="note-header-actions">
+              {recording && !finishing && <span className="note-recording-status">
+                <LevelBars height={14} bars={3} testId="note-wave" paused={!!m.paused} className="text-muted" />
+                <RecordingTime view={recorder} />
+              </span>}
               <div data-testid="note-state" data-state={m.state} data-paused={!!m.paused} className="note-recording-group" data-recording={recording && !finishing} role="group" aria-label={recording ? m.paused ? t('Paused') : t('Recording') : t('Meeting controls')}>
                 {recording && !finishing && <>
-                  <span className="note-recording-status">
-                    <LevelBars height={14} bars={3} testId="note-wave" paused={!!m.paused} className="text-muted" />
-                    <RecordingTime view={recorder} />
-                  </span>
                   <button data-testid="note-pause" disabled={pausing} onClick={() => { void togglePause() }}
                     aria-label={m.paused ? t('Resume recording') : t('Pause recording')} title={m.paused ? t('Resume recording') : t('Pause recording')} className="note-record-action note-pause-action">
                     <Swap show={m.paused ? 'play' : 'pause'} options={{ pause: <Pause size={14} fill="currentColor" strokeWidth={0} />, play: <Play size={14} fill="currentColor" strokeWidth={0} /> }} />

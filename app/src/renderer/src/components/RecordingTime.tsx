@@ -14,5 +14,5 @@ export function RecordingTime({ view, testId = 'note-elapsed', className = 'note
     const timer = setInterval(tick, 250)
     return () => clearInterval(timer)
   }, [view])
-  return <time data-testid={testId} className={className} aria-label={t('Recorded time')}>{time}</time>
+  return <time role="timer" data-testid={testId} className={className} aria-label={t('Recorded time')}>{time}</time>
 }
