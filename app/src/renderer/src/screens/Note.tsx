@@ -23,6 +23,7 @@ import { Transcript } from '../components/Transcript'
 import { Ask } from '../components/Chat'
 import { LevelBars } from '../components/LevelBars'
 import { RecordingTime } from '../components/RecordingTime'
+import { RecordingAction } from '../components/RecordingAction'
 import { Mic, Pause, Play } from '../components/Icons'
 import { ShareMenu } from '../components/ShareMenu'
 import { NoteMenu, summaryAction } from '../components/NoteMenu'
@@ -40,6 +41,8 @@ import { RecordingHint } from '../components/RecordingHint'
 import { FolderChip, FolderPicker, type FolderSuggestion } from '../components/FolderPicker'
 import { FolderName } from '../components/FolderDialogs'
 import { Swap, SwapText } from '../components/Swap'
+
+const RECORDING_CONTROL_TREATMENT: 'neutral-icons' | 'accent-icons' | 'word' = 'neutral-icons'
 
 /** A revision is dirty until main acknowledges it; failed text also remains there across navigation/reload. */
 function useAutosave(id: string, side: NoteSide, text: string, saved?: NoteSaveResult) {
@@ -393,15 +396,15 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                 <LevelBars height={14} bars={3} testId="note-wave" paused={!!m.paused} className="text-muted" />
                 <RecordingTime view={recorder} />
               </span>}
-              <div data-testid="note-state" data-state={m.state} data-paused={!!m.paused} className="note-recording-group" data-recording={recording && !finishing} role="group" aria-label={recording ? m.paused ? t('Paused') : t('Recording') : t('Meeting controls')}>
+              <div data-testid="note-state" data-state={m.state} data-paused={!!m.paused} className="note-recording-group" data-treatment={RECORDING_CONTROL_TREATMENT} data-recording={recording && !finishing} role="group" aria-label={recording ? m.paused ? t('Paused') : t('Recording') : t('Meeting controls')}>
                 {recording && !finishing && <>
-                  <button data-testid="note-pause" disabled={pausing} onClick={() => { void togglePause() }}
-                    aria-label={m.paused ? t('Resume recording') : t('Pause recording')} title={m.paused ? t('Resume recording') : t('Pause recording')} className="note-record-action note-pause-action">
+                  <RecordingAction data-testid="note-pause" disabled={pausing} onClick={() => { void togglePause() }}
+                    label={m.paused ? t('Resume recording') : t('Pause recording')} className="note-record-action note-pause-action">
                     <Swap show={m.paused ? 'play' : 'pause'} options={{ pause: <Pause size={14} fill="currentColor" strokeWidth={0} />, play: <Play size={14} fill="currentColor" strokeWidth={0} /> }} />
-                  </button>
-                  <button data-testid="note-stop" onClick={(e) => { requestFinish(true); picked.current = true; setView('mine'); setFinishing(true); setTabPointer(e.detail > 0); window.yogurt.meetings.stop(id) }} aria-label={t('Stop recording')} title={t('Stop recording')} className="note-record-action note-finish-action primary">
-                    {t('Stop')}
-                  </button>
+                  </RecordingAction>
+                  <RecordingAction data-testid="note-stop" onClick={(e) => { requestFinish(true); picked.current = true; setView('mine'); setFinishing(true); setTabPointer(e.detail > 0); window.yogurt.meetings.stop(id) }} label={t('Stop recording')} className="note-record-action note-finish-action">
+                    <span className="note-stop-label">{t('Stop')}</span>
+                  </RecordingAction>
                 </>}
                 {finishing && <span data-testid="note-finishing" role="status" className="note-finishing">{t('Stopping…')}</span>}
                 {!finishing && (summaryPending || (!transcribing && m.source !== 'audio-file')) && (m.state === 'stopped' || m.state === 'done') && !m.stopSavePending && !trashed && <button data-testid="note-resume" disabled={starting && !summaryPending} onClick={() => { if (summaryPending) void window.yogurt.notes.stop(id).catch(console.error); else void resumeRecording() }}

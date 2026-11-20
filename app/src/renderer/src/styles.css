@@ -589,8 +589,13 @@ input::selection, textarea::selection, .note-prose ::selection { background: var
 .note-recording-group[data-recording=true] .note-record-action:last-child { border-start-end-radius:6px;border-end-end-radius:6px; }
 .note-recording-group[data-recording=true] .note-record-action:hover:not(:disabled) { background:var(--control-hover);color:var(--ink); }
 .note-recording-group[data-recording=true] .note-record-action:active:not(:disabled) { background:var(--control-pressed); }
-.note-recording-group[data-recording=true] .note-finish-action { --note-stop-icon:var(--accent);color:var(--ink); }
-.note-finish-action::before { content:"";width:8px;height:8px;border-radius:2px;background:var(--note-stop-icon); }
+.note-recording-group[data-recording=true] .note-finish-action { width:30px;padding:0; }
+.note-finish-action::before { content:"";width:8px;height:8px;border-radius:2px;background:currentColor; }
+.note-stop-label { display:none; }
+.note-recording-group:is([data-treatment=accent-icons],[data-treatment=word]) .note-finish-action::before { background:var(--accent); }
+.note-recording-group[data-treatment=word] .note-finish-action { width:auto;padding-inline:12px;color:var(--ink); }
+.note-recording-group[data-treatment=word] .note-stop-label { display:inline; }
+@media (forced-colors:active) { .note-recording-group[data-treatment] .note-finish-action::before { forced-color-adjust:none;background:ButtonText; } }
 .note-finishing { display:flex;align-items:center;height:30px;padding-inline:10px;border:1px solid var(--line);border-radius:6px;color:var(--muted);font-size:12px; }
 .workspace .note-record-action:focus-visible { outline-offset:-2px; }
 
