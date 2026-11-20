@@ -685,6 +685,8 @@
   "Yogurt couldn't finish deleting this note.": "Yogurt ei voinut viimeistellä tämän muistiinpanon poistamista.",
   "Yogurt couldn't save this folder.": "Yogurt ei voinut tallentaa tätä kansiota.",
   "Your edits to the summary will be replaced.": "Yhteenvetoon tekemäsi muutokset korvataan.",
+  "Show floating recording pill": "Näytä kelluva tallennuspalkki",
+  "Show Yogurt in the menu bar to hide the pill.": "Voit piilottaa tallennuspalkin näyttämällä Yogurtin valikkorivillä.",
   "Show Yogurt in": "Yogurtin sijainti",
   "Show the next meeting": "Näytä seuraava kokous",
   "Menu bar and Dock": "Valikkorivi ja Dock",

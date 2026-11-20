@@ -235,6 +235,13 @@ describe('backup file', { timeout: 20_000 }, () => {
     expect(readdirSync(dest)).toEqual(['Yogurt backup.zip'])
   })
 
+  it.each([false, true])('round-trips the recording pill preference (%s) in the archive', async showRecordingPill => {
+    const out = join(tmp(), 'backup.zip')
+    await exportBackup({ db: fresh().db, meetingsDir: tmp(), out, appVersion: '1', showRecordingPill })
+    const result = await importBackup({ db: fresh().db, meetingsDir: tmp(), zip: out })
+    expect(result).toEqual({ ok: true, added: 0, skipped: 0, showRecordingPill })
+  })
+
   it('successfully replaces the same backup path with a complete, importable archive', async () => {
     const s = fresh(), dest = tmp(), out = join(dest, 'Yogurt backup.zip'), recordings = tmp()
     const first = fill(s, 'First meeting', 'first')

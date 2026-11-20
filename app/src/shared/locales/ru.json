@@ -707,6 +707,8 @@
   "Yogurt couldn't finish deleting this note.": "Yogurt не смог до конца удалить эту заметку.",
   "Yogurt couldn't save this folder.": "Yogurt не смог сохранить эту папку.",
   "Your edits to the summary will be replaced.": "Ваши правки в сводке будут заменены.",
+  "Show floating recording pill": "Показывать плавающую панель записи",
+  "Show Yogurt in the menu bar to hide the pill.": "Чтобы скрыть панель записи, включите отображение Yogurt в строке меню.",
   "Show Yogurt in": "Показывать Yogurt в",
   "Show the next meeting": "Показывать следующую встречу",
   "Menu bar and Dock": "Строка меню и Dock",

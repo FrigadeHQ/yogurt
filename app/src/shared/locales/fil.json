@@ -679,6 +679,8 @@
   "Yogurt couldn't finish deleting this note.": "Hindi natapos ng Yogurt ang pag-delete sa note na ito.",
   "Yogurt couldn't save this folder.": "Hindi ma-save ng Yogurt ang folder na ito.",
   "Your edits to the summary will be replaced.": "Papalitan ang mga edit mo sa buod.",
+  "Show floating recording pill": "Ipakita ang lumulutang na recording bar",
+  "Show Yogurt in the menu bar to hide the pill.": "Ipakita ang Yogurt sa menu bar para itago ang recording bar.",
   "Show Yogurt in": "Ipakita ang Yogurt sa",
   "Show the next meeting": "Ipakita ang susunod na pulong",
   "Menu bar and Dock": "Menu bar at Dock",

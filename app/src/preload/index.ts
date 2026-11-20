@@ -246,6 +246,7 @@ const api: YogurtApi = {
     setTheme: (v) => ipcRenderer.invoke('settings:theme', v),
     setShowInMenuBar: (on) => ipcRenderer.invoke('settings:menu-bar', on),
     setShowNextMeeting: (on) => ipcRenderer.invoke('settings:next-meeting', on),
+    setShowRecordingPill: (on) => ipcRenderer.invoke('settings:recording-pill', on),
     setAppVisibility: (choice) => ipcRenderer.invoke('settings:visibility', choice),
     setOpenAtLogin: (on) => ipcRenderer.invoke('settings:login', on),
     setName: (name) => ipcRenderer.invoke('settings:name', name),

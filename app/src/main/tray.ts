@@ -36,7 +36,7 @@ export const linuxTrayHost = (): Promise<boolean> => new Promise((done) => {
  * Yogurt in the menu bar (the notification area on Windows, the tray on Linux): it keeps running there with its window closed, so it still notices calls.
  * The menu says what is recording. Tests run without it on screen (show: false) and read the menu through items().
  */
-export function createTray(d: { show: boolean; visible?: boolean; showNextMeeting?: boolean; open(): void; newNote(): void; stop(id: string): void
+export function createTray(d: { show: boolean; visible?: boolean; showNextMeeting?: boolean; showRecordingPill?(): boolean; open(): void; newNote(): void; stop(id: string): void
   pause(id: string, paused: boolean): void; ask(): void; settings(): void; openNote(id: string): void
   events(): Promise<CalEvent[]>; event(event: CalEvent, join: boolean): void | Promise<void>
   recent(): { id: string; title: string; startedAt: number }[]; elapsed(): number; now?: () => number
@@ -54,6 +54,7 @@ export function createTray(d: { show: boolean; visible?: boolean; showNextMeetin
   let tray: Tray | undefined
   let items: TrayItem[] = []
   let events: CalEvent[] = []
+  let fallingBehindId: string | undefined
   const now = d.now ?? Date.now
   const recordEvent = async (eventId: string, join: boolean) => {
     const candidates = (await d.events()).filter(e => matchesEvent(e, eventId))
@@ -108,7 +109,9 @@ export function createTray(d: { show: boolean; visible?: boolean; showNextMeetin
     if (tray && m && !paused) clock ??= setInterval(updateLook, 1000).unref()
     else { clearInterval(clock); clock = undefined }
     const at = now()
-    items = trayItems(m ? { id: m.id, title: m.title, paused } : null, showNextMeeting ? nextTrayEvent(events, at) : undefined, d.recent(), at, os, systemTrayTime)
+    if (m?.id !== fallingBehindId) fallingBehindId = undefined
+    const fallingBehind = !!m && fallingBehindId === m.id && d.showRecordingPill?.() === false
+    items = trayItems(m ? { id: m.id, title: m.title, paused, fallingBehind } : null, showNextMeeting ? nextTrayEvent(events, at) : undefined, d.recent(), at, os, systemTrayTime)
     if (!tray) return
     tray.setContextMenu(Menu.buildFromTemplate(template(items)))
     updateLook()
@@ -157,10 +160,16 @@ export function createTray(d: { show: boolean; visible?: boolean; showNextMeetin
   app.on('will-quit', () => { clearInterval(clock); clearTimeout(calendar); clearTimeout(boundary); powerMonitor.off('resume', tick) })
   onMeetingChange(refresh)
   onLanguage(refresh)
-  onRecordingEvent((e) => { if (e.t === 'paused') refresh() })
+  onRecordingEvent((e) => {
+    if (e.t === 'paused') refresh()
+    if (e.t === 'warn' && e.code === 'falling-behind' && !fallingBehindId) {
+      fallingBehindId = activeMeeting()?.id
+      if (fallingBehindId && d.showRecordingPill?.() === false) refresh()
+    }
+  })
   return {
     setVisible, setShowNextMeeting: (on: boolean) => { showNextMeeting = on; refresh() },
-    refreshCalendar, items: () => { refresh(); return items.map((i) => i.label) },
+    refresh, refreshCalendar, items: () => { refresh(); return items.map((i) => i.label) },
     click: (id: TrayItem['id']) => act(id, items.find(i => i.id === id)?.eventId),
     /** whether the person can see the icon (on in Settings, and a tray to show it in): closing hides the window only then */
     shown: () => visible && hosted,

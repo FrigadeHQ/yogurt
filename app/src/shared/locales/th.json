@@ -637,6 +637,8 @@
   "Yogurt couldn't finish deleting this note.": "Yogurt ลบโน้ตนี้ไม่เสร็จ",
   "Yogurt couldn't save this folder.": "Yogurt บันทึกโฟลเดอร์นี้ไม่ได้",
   "Your edits to the summary will be replaced.": "การแก้ไขในสรุปจะถูกแทนที่",
+  "Show floating recording pill": "แสดงแถบบันทึกเสียงแบบลอย",
+  "Show Yogurt in the menu bar to hide the pill.": "แสดง Yogurt ในแถบเมนูเพื่อซ่อนแถบบันทึกเสียง",
   "Show Yogurt in": "แสดง Yogurt ใน",
   "Show the next meeting": "แสดงการประชุมถัดไป",
   "Menu bar and Dock": "แถบเมนูและ Dock",

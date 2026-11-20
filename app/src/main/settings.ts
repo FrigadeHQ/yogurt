@@ -20,6 +20,8 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   showInMenuBar?: boolean
   /** Show a meeting title beside the icon or in its tooltip. Defaults on. */
   showNextMeeting?: boolean
+  /** the floating recording control; on by default */
+  showRecordingPill?: boolean
   /** the Dock icon; on unless turned off */
   showInDock?: boolean
   /** Legacy flag, ignored: it may have come from a different app bundle. Removed after a confirmed post. */
@@ -68,11 +70,12 @@ export const keepsRecording = (s: Settings, endedAt: number | null): boolean =>
 export const autoUpdateOn = (s: Settings): boolean => s.autoUpdate !== false
 
 /** The Dock icon and the menu bar icon, as the person sees them: at least one stays visible, so the app always has an entry point. */
-export type Visibility = { showInMenuBar: boolean; showInDock: boolean }
-/** A hand-edited file with both icons off restores the Dock. */
-export function visibilityOf(s: Settings): Visibility {
+export type Visibility = { showInMenuBar: boolean; showInDock: boolean; showRecordingPill: boolean }
+/** Restore the Dock if both entry points are hidden. Only the Mac menu bar can replace the recording pill. */
+export function visibilityOf(s: Settings, os: string = process.platform): Visibility {
   const showInMenuBar = s.showInMenuBar !== false
-  return { showInMenuBar, showInDock: !showInMenuBar || s.showInDock !== false }
+  return { showInMenuBar, showInDock: !showInMenuBar || s.showInDock !== false,
+    showRecordingPill: os !== 'darwin' || !showInMenuBar || s.showRecordingPill !== false }
 }
 
 export function loadSettings(path: string): Settings {

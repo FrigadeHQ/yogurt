@@ -23,6 +23,7 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
   relaunch(): boolean
   /** fake mode: a slow start, so tests see the launch screen */
   slowStartMs?: number
+  recordingPillChanged?(on: boolean): void
   /** the spoken language changed: the meeting being recorded follows it where it can */
   onSpoken?: (v: Spoken) => void
   /** the permissions this computer has (supportedKinds in platform.ts); a Mac has them all */
@@ -55,11 +56,11 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
   ipcMain.handle('permissions:open', (_e, k: unknown) => { if (isKind(k)) return d.permissions.openSettings(k) })
   ipcMain.handle('settings:get', () => {
     const s = loadSettings(d.file)
-    const visible = visibilityOf(s)
+    const visible = visibilityOf(s, os)
     // what the Mac says, so a change in System Settings shows here
     // locale: every window (main, card, widget) shows the interface language
     // language: the one picked ('' is the Mac's); locale: the one in use; systemLocale: the Mac's, for the picker
-    return { theme: s.theme ?? 'system', openAtLogin: d.loginOn(s.openAtLogin), showInMenuBar: visible.showInMenuBar, showNextMeeting: s.showNextMeeting !== false, appVisibility: !visible.showInMenuBar ? 'dock' : visible.showInDock ? 'both' : 'menu-bar', language: isLocale(s.language) ? s.language : '', locale: localeOf(s, systemLocale()), systemLocale: systemLocale(), myName: s.myName?.trim() || d.macName(), macName: d.macName(), stopWhenCallEnds: stopsWhenCallEnds(s), recordingReminder: recordingReminderOn(s), keepRecordings: s.keepRecordings !== false, jargon: cleanJargon(s.jargon), spoken: spokenSetting(s), summaryLanguage: summaryLanguageSetting(s) }
+    return { theme: s.theme ?? 'system', openAtLogin: d.loginOn(s.openAtLogin), showInMenuBar: visible.showInMenuBar, showNextMeeting: s.showNextMeeting !== false, showRecordingPill: visible.showRecordingPill, appVisibility: !visible.showInMenuBar ? 'dock' : visible.showInDock ? 'both' : 'menu-bar', language: isLocale(s.language) ? s.language : '', locale: localeOf(s, systemLocale()), systemLocale: systemLocale(), myName: s.myName?.trim() || d.macName(), macName: d.macName(), stopWhenCallEnds: stopsWhenCallEnds(s), recordingReminder: recordingReminderOn(s), keepRecordings: s.keepRecordings !== false, jargon: cleanJargon(s.jargon), spoken: spokenSetting(s), summaryLanguage: summaryLanguageSetting(s) }
   })
   // what the person is called in meetings (who "You" is when naming voices); blank: the Mac's full name again
   ipcMain.handle('settings:name', (_e, v: unknown) => {
@@ -121,14 +122,30 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
     updateSettings(d.file, { showNextMeeting: on ? undefined : false })
     d.setShowNextMeeting(on)
   })
+  const setRecordingPill = (on: boolean) => {
+    const settings = loadSettings(d.file)
+    const visible = visibilityOf({ ...settings, showRecordingPill: on }, os).showRecordingPill
+    if ((settings.showRecordingPill !== false) === visible) return
+    updateSettings(d.file, { showRecordingPill: visible ? undefined : false })
+    d.recordingPillChanged?.(visible)
+  }
+  ipcMain.handle('settings:recording-pill', (_e, on: unknown) => {
+    if (os === 'darwin' && typeof on === 'boolean') setRecordingPill(on)
+  })
   ipcMain.handle('settings:visibility', (_e, choice: unknown) => {
     if (os !== 'darwin' || (choice !== 'both' && choice !== 'menu-bar' && choice !== 'dock')) return
     const menuBar = choice !== 'dock', dock = choice !== 'menu-bar'
     // Show the kept entry points before saving or hiding either one.
     if (menuBar) d.setTrayVisible(true)
     if (dock) d.setDockVisible(true)
-    updateSettings(d.file, { showInMenuBar: menuBar ? undefined : false, showInDock: dock ? undefined : false })
-    if (!menuBar) d.setTrayVisible(false)
+    updateSettings(d.file, {
+      showInMenuBar: menuBar ? undefined : false, showInDock: dock ? undefined : false,
+      ...(!menuBar && { showRecordingPill: undefined }),
+    })
+    if (!menuBar) {
+      d.recordingPillChanged?.(true)
+      d.setTrayVisible(false)
+    }
     if (!dock) d.setDockVisible(false)
   })
   ipcMain.handle('settings:login', (_e, on: unknown) => {
@@ -136,5 +153,6 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
     updateSettings(d.file, { openAtLogin: yes })
     d.setLogin(yes)
   })
+  return { setRecordingPill }
 }
 

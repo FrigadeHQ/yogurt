@@ -71,7 +71,7 @@ it('shows the kept icon before hiding the other in all nine choice transitions',
       expect(order).toEqual(calls)
       expect([menuBar, dock]).toEqual(expected)
       expect(handlers.get('settings:get')!().appVisibility).toBe(choice)
-      expect(visibilityOf(loadSettings(file))).toEqual({ showInMenuBar: expected[0], showInDock: expected[1] })
+      expect(visibilityOf(loadSettings(file))).toEqual({ showInMenuBar: expected[0], showInDock: expected[1], showRecordingPill: true })
       expect(loadSettings(file).openAtLogin).toBe(true)
     }
   }
@@ -117,5 +117,51 @@ it('reads legacy booleans without a migration and retains the both-off startup h
     expect(loadSettings(file).showInMenuBar).toBe(menuBar)
     expect(loadSettings(file).showInDock).toBe(dock)
   }
-  expect(visibilityOf({ showInMenuBar: false, showInDock: false })).toEqual({ showInMenuBar: false, showInDock: true })
+  expect(visibilityOf({ showInMenuBar: false, showInDock: false })).toEqual({ showInMenuBar: false, showInDock: true, showRecordingPill: true })
+})
+
+it('restores the pill before removing the recording indicator, and guards Dock only at the IPC', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'recording-indicators-')); dirs.push(dir)
+  const file = join(dir, 'settings.json')
+  const changes: string[] = []
+  const dock = vi.fn()
+  const deps = hook(file, dock, on => changes.push(`tray:${on}`))
+  const prefs = hookPreferences({ ...deps, recordingPillChanged: on => changes.push(`pill:${on}`) })
+  const get = () => handlers.get('settings:get')!().showRecordingPill
+  const pill = (on: unknown) => handlers.get('settings:recording-pill')!(null, on)
+  expect(get()).toBe(true)
+  pill(false)
+  expect(loadSettings(file)).toEqual({ showRecordingPill: false })
+  expect(get()).toBe(false)
+  handlers.get('settings:next-meeting')!(null, false)
+  expect(get()).toBe(false)
+  for (const bad of [null, 0, 'false']) pill(bad)
+  expect(changes).toEqual(['pill:false'])
+  handlers.get('settings:visibility')!(null, 'dock')
+  expect(changes.slice(-2)).toEqual(['pill:true', 'tray:false'])
+  expect(loadSettings(file)).toEqual({ showInMenuBar: false, showNextMeeting: false })
+  pill(false)
+  prefs.setRecordingPill(false) // an imported preference also respects Dock only
+  expect(get()).toBe(true)
+  handlers.get('settings:visibility')!(null, 'both')
+  expect(get()).toBe(true)
+  prefs.setRecordingPill(false)
+  expect(loadSettings(file)).toEqual({ showRecordingPill: false, showNextMeeting: false })
+  handlers.get('settings:next-meeting')!(null, true)
+  expect(get()).toBe(false)
+  pill(true)
+  expect(get()).toBe(true)
+})
+
+it.each(['win32', 'linux'])('keeps the pill on for imported and hand-edited settings on %s', os => {
+  const dir = mkdtempSync(join(tmpdir(), 'recording-pill-platform-')); dirs.push(dir)
+  const file = join(dir, 'settings.json')
+  updateSettings(file, { showRecordingPill: false })
+  const deps = hook(file, vi.fn(), vi.fn(), os)
+  const prefs = hookPreferences(deps)
+  handlers.get('settings:recording-pill')!(null, false)
+  expect(handlers.get('settings:get')!().showRecordingPill).toBe(true)
+  prefs.setRecordingPill(false)
+  expect(loadSettings(file).showRecordingPill).toBeUndefined()
+  expect(visibilityOf({ showInMenuBar: false, showRecordingPill: false }, 'darwin').showRecordingPill).toBe(true)
 })

@@ -59,6 +59,7 @@ vi.mock('../src/main/meeting', () => ({
 const send = (channel: string, ...args: unknown[]) => state.handlers.get(channel)!({ sender: win.webContents }, ...args)
 let win: any
 const open = vi.fn()
+let showRecordingPill = true
 let widget: ReturnType<typeof import('../src/main/widget').createWidget>
 beforeEach(async () => {
   vi.useFakeTimers()
@@ -68,7 +69,8 @@ beforeEach(async () => {
   state.notifications.length = 0; state.fake = false; state.stopPending = false; state.supported = true
   state.finished.mockReset().mockResolvedValue(); open.mockReset()
   const { createWidget } = await import('../src/main/widget')
-  widget = createWidget({ open, stop: vi.fn(), foreground: () => false })
+  showRecordingPill = true
+  widget = createWidget({ open, stop: vi.fn(), foreground: () => false, showRecordingPill: () => showRecordingPill })
   state.start!({ id: 'meeting', title: 'Review', startedAt: 0 })
   win = state.windows[0]
 })
@@ -369,4 +371,22 @@ describe('hidden, the recorder does no work (the audit: its 4/s clock and meter 
     w.visibilityChanged()
     expect(win3.webContents.setBackgroundThrottling).toHaveBeenLastCalledWith(false)
   })
+})
+
+it('hides an expanded pill immediately and keeps the note recording and warning active', () => {
+  const show = vi.spyOn(win, 'showInactive')
+  const hide = vi.spyOn(win, 'hide')
+  send('widget:surface', { x: 0, y: 0, width: 310, height: 200, radius: 10 })
+  expect(show).toHaveBeenCalled()
+  show.mockClear()
+  showRecordingPill = false; widget.visibilityChanged()
+  expect(hide).toHaveBeenCalled()
+  state.recording!({ t: 'warn', code: 'falling-behind' })
+  expect(widget.snapshot()).toMatchObject({ visible: false, view: { kind: 'recording', note: { text: 'Yogurt is falling behind. Some lines may be missing.' } } })
+  expect(win.webContents.send).toHaveBeenCalledWith('widget:reset')
+  expect(show).not.toHaveBeenCalled()
+  expect(state.notifications).toHaveLength(0)
+  showRecordingPill = true; widget.visibilityChanged()
+  expect(widget.snapshot().visible).toBe(true)
+  expect(show).toHaveBeenCalledOnce()
 })

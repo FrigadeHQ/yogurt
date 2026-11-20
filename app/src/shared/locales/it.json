@@ -698,6 +698,8 @@
   "Yogurt couldn't finish deleting this note.": "Yogurt non è riuscito a completare l’eliminazione di questa nota.",
   "Yogurt couldn't save this folder.": "Yogurt non è riuscito a salvare questa cartella.",
   "Your edits to the summary will be replaced.": "Le tue modifiche al riepilogo verranno sostituite.",
+  "Show floating recording pill": "Mostra la barra di registrazione mobile",
+  "Show Yogurt in the menu bar to hide the pill.": "Mostra Yogurt nella barra dei menu per nascondere la barra di registrazione.",
   "Show Yogurt in": "Mostra Yogurt in",
   "Show the next meeting": "Mostra la prossima riunione",
   "Menu bar and Dock": "Barra dei menu e Dock",

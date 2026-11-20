@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
-const state = vi.hoisted(() => ({ meeting: null as null | { id: string; title: string }, paused: false, change: () => {}, recording: (_e: { t: string }) => {}, language: () => {}, trays: [] as any[] }))
+const state = vi.hoisted(() => ({ meeting: null as null | { id: string; title: string }, paused: false, change: () => {}, recording: (_e: { t: string; code?: string }) => {}, language: () => {}, trays: [] as any[] }))
 vi.mock('electron', () => ({
   app: { quit: vi.fn(), on: vi.fn(), getSystemLocale: vi.fn(() => 'en-US') },
   systemPreferences: { getUserDefault: vi.fn(() => false) },
@@ -281,4 +281,31 @@ it('uses the system region for a dated event and honors the Mac clock override',
     region.mockReturnValue('en-US')
     vi.mocked(systemPreferences.getUserDefault).mockReset()
   }
+})
+
+it('keeps the recording warning available when the pill is hidden, through pause and until stop', () => {
+  let pill = true
+  const tray = createTray({ show: true, showNextMeeting: false, showRecordingPill: () => pill, ...actions() })
+  state.meeting = { id: 'first', title: 'Review' }; state.change()
+  const warning = 'Yogurt is falling behind. Some lines may be missing.'
+  state.recording({ t: 'warn', code: 'falling-behind' })
+  expect(tray.items()).not.toContain(warning)
+  pill = false; tray.refresh()
+  const menu = () => state.trays[0].setContextMenu.mock.lastCall[0] as { label: string; enabled: boolean }[]
+  expect(menu()[1]).toMatchObject({ label: warning, enabled: false })
+  for (const showNext of [true, false]) {
+    tray.setShowNextMeeting(showNext)
+    expect(tray.items()).toContain(warning)
+    expect(state.trays[0].setTitle.mock.lastCall[0]).toBe('12:03')
+  }
+  state.paused = true; state.recording({ t: 'paused' })
+  expect(tray.items()).toContain(warning)
+  state.paused = false; state.recording({ t: 'paused' })
+  expect(tray.items()).toContain(warning)
+  state.meeting = null; state.change()
+  expect(tray.items()).not.toContain(warning)
+  state.meeting = { id: 'first', title: 'Review' }; state.change()
+  expect(tray.items()).not.toContain(warning)
+  state.recording({ t: 'warn', code: 'falling-behind' })
+  expect(menu()[1]).toMatchObject({ label: warning, enabled: false })
 })

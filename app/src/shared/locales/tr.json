@@ -667,6 +667,8 @@
   "Yogurt couldn't finish deleting this note.": "Yogurt bu notu silmeyi bitiremedi.",
   "Yogurt couldn't save this folder.": "Yogurt bu klasörü kaydedemedi.",
   "Your edits to the summary will be replaced.": "Özette yaptığınız düzenlemeler değiştirilecek.",
+  "Show floating recording pill": "Kayan kayıt çubuğunu göster",
+  "Show Yogurt in the menu bar to hide the pill.": "Kayıt çubuğunu gizlemek için Yogurt’u menü çubuğunda gösterin.",
   "Show Yogurt in": "Yogurt’u göster",
   "Show the next meeting": "Sonraki toplantıyı göster",
   "Menu bar and Dock": "Menü çubuğu ve Dock",

@@ -119,6 +119,14 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
     await window.yogurt.settings.setShowInMenuBar(!prefs.showInMenuBar)
     setPrefs(await window.yogurt.settings.get())
   }
+  const recordingPill = () => {
+    if (!prefs?.showInMenuBar || general.busy) return
+    const on = !prefs.showRecordingPill
+    void general.save(async () => {
+      await window.yogurt.settings.setShowRecordingPill(on)
+      setPrefs(await window.yogurt.settings.get())
+    }, 'recording-pill-retry')
+  }
   const visibility = async (choice: AppVisibility) => {
     await window.yogurt.settings.setAppVisibility(choice)
     setPrefs(await window.yogurt.settings.get())
@@ -182,6 +190,15 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
               await window.yogurt.settings.setShowNextMeeting(on)
               setPrefs(p => p && { ...p, showNextMeeting: on })
             }} />
+            {onMac() && <div className="settings-row">
+              <div className="settings-row-copy">
+                <label htmlFor="recording-pill-toggle" className="settings-label">{t('Show floating recording pill')}</label>
+                {prefs && !prefs.showInMenuBar && <p id="recording-pill-reason" className="settings-description">{t('Show Yogurt in the menu bar to hide the pill.')}</p>}
+              </div>
+              <button id="recording-pill-toggle" data-testid="recording-pill-toggle" role="switch" disabled={general.busy} aria-checked={prefs?.showRecordingPill ?? true}
+                aria-disabled={!prefs?.showInMenuBar} aria-describedby={prefs && !prefs.showInMenuBar ? 'recording-pill-reason' : undefined}
+                className="settings-toggle" onClick={recordingPill}><span className="settings-toggle-knob" /></button>
+            </div>}
             <div className="settings-row">
               <div className="settings-row-copy">
                 <p className="settings-label">{t('Stop recording when the call ends')}</p>
@@ -224,7 +241,7 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
             <Jargon />
           </div>
 
-          <Backup />
+          <Backup onImported={() => { void window.yogurt.settings.get().then(setPrefs) }} />
 
           <AiApps />
 
@@ -371,7 +388,7 @@ export function PermissionRow({ kind, status, onAsk }: { kind: PermissionKind; s
 type Said = { kind: 'exported'; count: number } | { kind: 'imported'; added: number; skipped: number } | { kind: 'error'; text: string; meetingId?: string }
 
 /** every meeting to one file, and back: for a new Mac or after reinstalling */
-function Backup() {
+function Backup({ onImported }: { onImported(): void }) {
   const [recording, setRecording] = useState(false)
   const [busy, setBusy] = useState<'export' | 'import' | null>(null)
   const [said, setSaid] = useState<Said | null>(null)
@@ -394,7 +411,7 @@ function Backup() {
   const importAll = async () => {
     setBusy('import'); setSaid(null)
     const r = await window.yogurt.backup.import().catch(() => ({ ok: false, error: 'failed' } as const)).finally(() => setBusy(null))
-    if (r.ok) { setSaid({ kind: 'imported', added: r.added, skipped: r.skipped }); return }
+    if (r.ok) { onImported(); setSaid({ kind: 'imported', added: r.added, skipped: r.skipped }); return }
     const text = {
       cancelled: '', recording: t('You can import once the recording stops.'),
       newer: t('This backup is from a newer Yogurt. Update Yogurt, then try again.'),

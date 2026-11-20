@@ -667,6 +667,8 @@
   "Yogurt couldn't finish deleting this note.": "A Yogurt nem tudta befejezni a jegyzet törlését.",
   "Yogurt couldn't save this folder.": "A Yogurt nem tudta menteni ezt a mappát.",
   "Your edits to the summary will be replaced.": "Az összefoglalón végzett módosításaid lecserélődnek.",
+  "Show floating recording pill": "Lebegő felvételi sáv megjelenítése",
+  "Show Yogurt in the menu bar to hide the pill.": "A felvételi sáv elrejtéséhez jelenítse meg a Yogurtot a menüsoron.",
   "Show Yogurt in": "Yogurt megjelenítése",
   "Show the next meeting": "A következő megbeszélés megjelenítése",
   "Menu bar and Dock": "Menüsáv és Dock",

@@ -637,6 +637,8 @@
   "Yogurt couldn't finish deleting this note.": "Yogurtはこのノートの削除を完了できませんでした。",
   "Yogurt couldn't save this folder.": "Yogurtはこのフォルダを保存できませんでした。",
   "Your edits to the summary will be replaced.": "要約に加えた編集は置き換えられます。",
+  "Show floating recording pill": "フローティング録音バーを表示",
+  "Show Yogurt in the menu bar to hide the pill.": "録音バーを隠すには、メニューバーにYogurtを表示してください。",
   "Show Yogurt in": "Yogurtの表示場所",
   "Show the next meeting": "次の会議を表示",
   "Menu bar and Dock": "メニューバーとDock",

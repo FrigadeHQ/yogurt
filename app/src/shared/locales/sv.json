@@ -679,6 +679,8 @@
   "Yogurt couldn't finish deleting this note.": "Yogurt kunde inte radera klart anteckningen.",
   "Yogurt couldn't save this folder.": "Yogurt kunde inte spara mappen.",
   "Your edits to the summary will be replaced.": "Dina ändringar i sammanfattningen ersätts.",
+  "Show floating recording pill": "Visa flytande inspelningsfält",
+  "Show Yogurt in the menu bar to hide the pill.": "Visa Yogurt i menyraden för att dölja inspelningsfältet.",
   "Show Yogurt in": "Visa Yogurt i",
   "Show the next meeting": "Visa nästa möte",
   "Menu bar and Dock": "Menyrad och Dock",

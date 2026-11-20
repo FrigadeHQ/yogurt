@@ -3,7 +3,7 @@ import { dayLabel, daysAgo } from '../shared/dates'
 import { formatElapsed } from '../shared/wave'
 import type { CalEvent } from './calendar'
 
-export type TrayItem = { id: 'status' | 'open' | 'new' | 'stop' | 'pause' | 'ask' | 'next' | 'record' | 'join' | 'recent' | 'settings' | 'quit' | 'sep' | `note:${string}`; label: string; enabled: boolean; eventId?: string; accelerator?: string; submenu?: TrayItem[] }
+export type TrayItem = { id: 'status' | 'warning' | 'open' | 'new' | 'stop' | 'pause' | 'ask' | 'next' | 'record' | 'join' | 'recent' | 'settings' | 'quit' | 'sep' | `note:${string}`; label: string; enabled: boolean; eventId?: string; accelerator?: string; submenu?: TrayItem[] }
 type Recent = { id: string; title: string; startedAt: number }
 
 /** Include the full seventh local date so next week's meeting can be seen all day. */
@@ -52,7 +52,7 @@ export function trayTitle(active: { elapsedMs: number; paused: boolean } | null,
 }
 
 /** Keep native and hidden-test menus identical; only the native icon is optional. */
-export function trayItems(active: { id?: string; title: string; paused?: boolean } | null, next?: CalEvent, recent: Recent[] = [], now = Date.now(), os = 'darwin', clock = formatTrayTime): TrayItem[] {
+export function trayItems(active: { id?: string; title: string; paused?: boolean; fallingBehind?: boolean } | null, next?: CalEvent, recent: Recent[] = [], now = Date.now(), os = 'darwin', clock = formatTrayTime): TrayItem[] {
   const sep: TrayItem = { id: 'sep', label: '', enabled: true }
   const open: TrayItem = { id: 'open', label: t('Open Yogurt'), enabled: true }
   const ask: TrayItem = { id: 'ask', label: t('Ask Yogurt'), enabled: true }
@@ -75,6 +75,7 @@ export function trayItems(active: { id?: string; title: string; paused?: boolean
   }
   return [
     { id: 'status', label: active.paused ? t('Paused · {title}', { title: active.title }) : t('Recording · {title}', { title: active.title }), enabled: false },
+    ...(active.fallingBehind ? [{ id: 'warning' as const, label: t('Yogurt is falling behind. Some lines may be missing.'), enabled: false }] : []),
     { id: 'pause', label: active.paused ? t('Resume recording') : t('Pause recording'), enabled: true },
     { id: 'stop', label: t('Stop recording'), enabled: true }, sep,
     ask, open, history, settings, sep, quit,

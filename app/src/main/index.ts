@@ -127,6 +127,7 @@ function openExternally(url: string) {
 }
 
 let updateWidgetVisibility = () => {}
+let recordingPillChanged = (_on: boolean) => {}
 let sendWidgetTranscript = (_channel: string, _value: unknown) => {}
 function createWindow() {
   win = new BrowserWindow({
@@ -321,7 +322,11 @@ function startDetection() {
     open: (id) => goTo(`/note/${id}`),
     os: process.platform,
   })
+  const preferences = loadSettings(join(userDataDir(), 'settings.json'))
+  const visibility = visibilityOf(preferences, platform)
+  let showRecordingPill = visibility.showRecordingPill
   const widget = createWidget({
+    showRecordingPill: () => showRecordingPill,
     os: platform, windowOs: process.platform,
     open: (id) => goTo(`/note/${id}`),
     stop: (id) => { stopMeeting(id) },
@@ -402,9 +407,9 @@ function startDetection() {
   ipcMain.handle('meetings:set-paused', (_e, id: unknown, paused: unknown) => pauseRecording(id, paused))
   ipcMain.handle('meetings:retry-stop-save', (_e, id: unknown) => isId(id) && retryStopSave(id))
   // the menu bar: open, new note or stop, quit; Yogurt stays there with its window closed
-  const preferences = loadSettings(join(userDataDir(), 'settings.json'))
   const tray = createTray({
-    show: !BACKGROUND, visible: preferences.showInMenuBar, showNextMeeting: preferences.showNextMeeting,
+    show: !BACKGROUND, visible: visibility.showInMenuBar, showNextMeeting: preferences.showNextMeeting,
+    showRecordingPill: () => showRecordingPill,
     open: () => { presented++; showMain() },
     newNote: () => { if (!activeMeeting()) begin({ title: '', event: null, app: null }) },
     stop: (id) => { stopMeeting(id) },
@@ -427,6 +432,11 @@ function startDetection() {
   })
   refreshCalendarConsumers = () => { signals.invalidateCalendar(); void tray.refreshCalendar() }
   menuBar = tray
+  recordingPillChanged = (on) => {
+    showRecordingPill = on
+    widget.visibilityChanged()
+    tray.refresh()
+  }
   // cheap, and only while Yogurt runs; more often while recording, so the end of a quiet call is noticed promptly
   let timer: NodeJS.Timeout | undefined
   const watchLoop = () => { timer = setTimeout(() => { void watcher.tick().catch((e) => console.error('detect failed', e)).finally(watchLoop) }, watchEveryMs(!!activeMeeting())) }
@@ -474,9 +484,14 @@ app.whenReady().then(() => {
   // Local Electron launches need the same Dock icon as the packaged application.
   if (!app.isPackaged && process.platform === 'darwin') app.dock?.setIcon(join(__dirname, '../../build/icon.png'))
   const settings = loadSettings(join(userDataDir(), 'settings.json'))
-  // a settings file edited by hand can leave no visible entry point: heal it before the window shows
-  const visible = visibilityOf(settings)
-  if (visible.showInDock && settings.showInDock === false) updateSettings(join(userDataDir(), 'settings.json'), { showInDock: undefined })
+  // Repair conflicting saved choices before the first window or recording.
+  const visible = visibilityOf(settings, platform)
+  if ((visible.showInDock && settings.showInDock === false) || (visible.showRecordingPill && settings.showRecordingPill === false)) {
+    updateSettings(join(userDataDir(), 'settings.json'), {
+      ...(visible.showInDock && { showInDock: undefined }),
+      ...(visible.showRecordingPill && { showRecordingPill: undefined }),
+    })
+  }
   setDockVisible(visible.showInDock)
   // the theme picked in Settings; the system's when none
   nativeTheme.themeSource = settings.theme ?? 'system'
@@ -499,7 +514,8 @@ app.whenReady().then(() => {
       : sealed.startsWith('b:') ? Buffer.from(sealed.slice(2), 'base64').toString() : sealed.replace(/^p:/, '')),
   }) : null
   if (calendarLinks) setCalendarLinkSource(calendarLinks, { alongside: !caps.calendarLink })
-  hookPreferences({
+  const preferences = hookPreferences({
+    recordingPillChanged: on => recordingPillChanged(on),
     file: join(userDataDir(), 'settings.json'), permissions, kinds: supportedKinds(caps), os: platform,
     ...(calendarLinks && caps.calendarLink ? { calendarLinked: () => calendarLinks.status() === 'granted' } : {}),
     // fake mode asks the first-run questions only when a test sets the permissions
@@ -808,7 +824,8 @@ app.whenReady().then(() => {
   hookShare({ store, window: () => win })
   hookFolders({ store, changed: () => { win?.webContents.send('folders:changed'); folderSuggestions.refresh() } })
   // every meeting to one file and back; what an import adds shows up on home
-  hookBackup({ db: store.db, meetingsDir: join(userDataDir(), 'meetings'), window: () => win, recording: () => !!activeMeeting() || !!resumingId,
+  hookBackup({ getRecordingPill: () => visibilityOf(loadSettings(settingsFile), platform).showRecordingPill,
+    setRecordingPill: preferences.setRecordingPill, db: store.db, meetingsDir: join(userDataDir(), 'meetings'), window: () => win, recording: () => !!activeMeeting() || !!resumingId,
     changed: () => { win?.webContents.send('meetings:changed'); win?.webContents.send('conversations:list', conversations.list()); void indexer.refresh(); folderSuggestions.refresh() },
     beforeExport: () => { notes.retryDrafts(); return notes.pendingDraftId() } })
   void hookMcp({

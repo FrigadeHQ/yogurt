@@ -735,6 +735,8 @@
   "Yogurt couldn't finish deleting this note.": "تعذّر على Yogurt إكمال حذف هذه الملاحظة.",
   "Yogurt couldn't save this folder.": "تعذّر على Yogurt حفظ هذا المجلد.",
   "Your edits to the summary will be replaced.": "سيتم استبدال تعديلاتك على الملخص.",
+  "Show floating recording pill": "إظهار شريط التسجيل العائم",
+  "Show Yogurt in the menu bar to hide the pill.": "أظهر Yogurt في شريط القوائم لإخفاء شريط التسجيل.",
   "Show Yogurt in": "إظهار Yogurt في",
   "Show the next meeting": "إظهار الاجتماع القادم",
   "Menu bar and Dock": "شريط القوائم وDock",

@@ -17,12 +17,12 @@ vi.mock('../src/main/backup', () => ({
   exportBackup: vi.fn(async () => ({ meetings: 2 })),
   importBackup: vi.fn(async () => ({ ok: true, added: 2, skipped: 0 })),
 }))
-const changed = vi.fn()
+const changed = vi.fn(), setRecordingPill = vi.fn()
 const beforeExport = vi.fn<() => string | undefined>(() => undefined)
 let recording = false
 beforeEach(() => {
   vi.resetAllMocks(); handlers.clear(); recording = false
-  hookBackup({ db: {} as never, meetingsDir: '/meetings', window: () => undefined, recording: () => recording, changed, beforeExport })
+  hookBackup({ db: {} as never, meetingsDir: '/meetings', window: () => undefined, recording: () => recording, getRecordingPill: () => false, setRecordingPill, changed, beforeExport })
 })
 const call = (channel: string) => handlers.get(channel)!()
 
@@ -42,6 +42,19 @@ describe('backup IPC results', () => {
     expect(await call('backup:export')).toEqual({ ok: true, meetings: 2 })
     expect(await call('backup:import')).toEqual({ ok: true, added: 2, skipped: 0 })
     expect(changed).toHaveBeenCalledOnce()
+    expect(exportBackup).toHaveBeenCalledWith(expect.objectContaining({ showRecordingPill: false }))
+    expect(setRecordingPill).toHaveBeenCalledExactlyOnceWith(true) // older backup
+  })
+  it('restores the pill choice even when every meeting already exists', async () => {
+    vi.mocked(importBackup).mockResolvedValueOnce({ ok: true, added: 0, skipped: 2, showRecordingPill: false })
+    await call('backup:import')
+    expect(setRecordingPill).toHaveBeenCalledExactlyOnceWith(false)
+    expect(changed).not.toHaveBeenCalled()
+  })
+  it('refreshes committed notes even if restoring the preference fails and the import must be retried', async () => {
+    setRecordingPill.mockImplementationOnce(() => { throw new Error('settings unavailable') })
+    expect(await call('backup:import')).toEqual({ ok: false, error: 'failed' })
+    expect(changed).toHaveBeenCalledOnce()
   })
   it('turns dialog rejection into a visible failure result', async () => {
     vi.mocked(dialog.showSaveDialog).mockRejectedValueOnce(new Error('dialog failed'))
@@ -55,6 +68,7 @@ describe('backup IPC results', () => {
     vi.mocked(importBackup).mockRejectedValueOnce(new Error('cannot prepare import'))
     expect(await call('backup:import')).toEqual({ ok: false, error: 'failed' })
     expect(changed).not.toHaveBeenCalled()
+    expect(setRecordingPill).not.toHaveBeenCalled()
   })
   it('preserves a committed import result if notifying a closed window fails', async () => {
     changed.mockImplementationOnce(() => { throw new Error('window closed') })

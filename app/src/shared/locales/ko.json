@@ -637,6 +637,8 @@
   "Yogurt couldn't finish deleting this note.": "Yogurt가 이 노트 삭제를 마치지 못했어요.",
   "Yogurt couldn't save this folder.": "Yogurt가 이 폴더를 저장하지 못했어요.",
   "Your edits to the summary will be replaced.": "요약에서 수정한 내용은 바뀌어요.",
+  "Show floating recording pill": "플로팅 녹음 막대 표시",
+  "Show Yogurt in the menu bar to hide the pill.": "녹음 막대를 숨기려면 메뉴 막대에 Yogurt를 표시하세요.",
   "Show Yogurt in": "Yogurt 표시 위치",
   "Show the next meeting": "다음 회의 표시",
   "Menu bar and Dock": "메뉴 막대 및 Dock",

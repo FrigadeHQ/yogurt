@@ -679,6 +679,8 @@
   "Yogurt couldn't finish deleting this note.": "Yogurt kunne ikke slette dette notatet helt.",
   "Yogurt couldn't save this folder.": "Yogurt kunne ikke lagre denne mappen.",
   "Your edits to the summary will be replaced.": "Endringene dine i sammendraget blir erstattet.",
+  "Show floating recording pill": "Vis flytende opptakslinje",
+  "Show Yogurt in the menu bar to hide the pill.": "Vis Yogurt i menylinjen for å skjule opptakslinjen.",
   "Show Yogurt in": "Vis Yogurt i",
   "Show the next meeting": "Vis neste møte",
   "Menu bar and Dock": "Menylinje og Dock",

@@ -637,6 +637,8 @@
   "Yogurt couldn't finish deleting this note.": "Yogurt 未能刪除完這則筆記。",
   "Yogurt couldn't save this folder.": "Yogurt 無法儲存這個資料夾。",
   "Your edits to the summary will be replaced.": "你對摘要的修改將被取代。",
+  "Show floating recording pill": "顯示浮動錄音列",
+  "Show Yogurt in the menu bar to hide the pill.": "若要隱藏錄音列，請在選單列中顯示 Yogurt。",
   "Show Yogurt in": "Yogurt 顯示位置",
   "Show the next meeting": "顯示下一場會議",
   "Menu bar and Dock": "選單列與 Dock",

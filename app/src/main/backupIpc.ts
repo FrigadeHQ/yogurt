@@ -12,7 +12,7 @@ const today = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-$
  * Backup in Settings. The window only says export or import; the file always comes from the Mac's own save or open
  * panel (tests name it with YOGURT_BACKUP_PATH), and Show in Finder shows only the file just written.
  */
-export function hookBackup(d: { db: DatabaseSync; meetingsDir: string; window: () => BrowserWindow | undefined; recording: () => boolean; changed: () => void; beforeExport: () => string | undefined }) {
+export function hookBackup(d: { db: DatabaseSync; meetingsDir: string; window: () => BrowserWindow | undefined; recording: () => boolean; getRecordingPill(): boolean; setRecordingPill(on: boolean): void; changed: () => void; beforeExport: () => string | undefined }) {
   let last: string | undefined
   const fakePath = () => (isFake() ? process.env.YOGURT_BACKUP_PATH : undefined)
   ipcMain.handle('backup:status', () => ({ recording: d.recording() }))
@@ -32,7 +32,7 @@ export function hookBackup(d: { db: DatabaseSync; meetingsDir: string; window: (
       if (d.recording()) return { ok: false, error: 'recording' }
       unsaved = d.beforeExport()
       if (unsaved) return { ok: false, error: 'unsaved', meetingId: unsaved }
-      const r = await exportBackup({ db: d.db, meetingsDir: d.meetingsDir, out: path, appVersion: app.getVersion() })
+      const r = await exportBackup({ db: d.db, meetingsDir: d.meetingsDir, out: path, appVersion: app.getVersion(), showRecordingPill: d.getRecordingPill() })
       last = path
       return { ok: true, meetings: r.meetings }
     } catch (e) {
@@ -57,6 +57,7 @@ export function hookBackup(d: { db: DatabaseSync; meetingsDir: string; window: (
       if (r.ok && r.added) {
         try { d.changed() } catch (e) { console.warn('backup imported; window refresh failed', e) }
       }
+      if (r.ok) d.setRecordingPill(r.showRecordingPill !== false)
       return r
     } catch (e) {
       console.error('backup import failed', e)

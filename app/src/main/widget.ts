@@ -55,7 +55,7 @@ const broadcast = (channel: string, v: unknown) => { for (const w of BrowserWind
  * The recording-only pill grows into its transcript and warning. Finished
  * meetings use a native notification; paused meetings keep no floating surface.
  */
-export function createWidget(d: { open(meetingId: string): void; stop(meetingId: string): void; foreground(): boolean; os?: string
+export function createWidget(d: { open(meetingId: string): void; stop(meetingId: string): void; foreground(): boolean; showRecordingPill?(): boolean; os?: string
   /** the computer the windows are made for (a Mac's panel, a tool window elsewhere) */
   windowOs?: string }) {
   const model = new WidgetModel(d.os)
@@ -107,7 +107,7 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
 
   const visibilityChanged = () => {
     const view = model.view(Date.now())
-    shown = view?.kind === 'recording' && !view.paused && !d.foreground()
+    shown = view?.kind === 'recording' && !view.paused && !d.foreground() && d.showRecordingPill?.() !== false
     if (!shown) { clearTimeout(pointerTimer); pressed = false; win?.webContents.send('widget:reset') }
     hitTest(); poll()
     if (!win || win.isDestroyed()) return
