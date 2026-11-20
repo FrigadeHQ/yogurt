@@ -7,6 +7,29 @@ import { fileURLToPath } from 'node:url'
 import { verifyWalkthroughFrames } from './walkthrough-frames.mjs'
 import assert from 'node:assert/strict'
 
+// Freeze the real fixture at the same beat as its dark WebP, keeping the shared app CSS.
+function lightPoster() {
+  const source = document.documentElement
+  const copy = source.cloneNode(true)
+  copy.dataset.marketingTheme = 'light'
+  copy.style.colorScheme = 'light'
+  copy.querySelectorAll('script, .marketing-cursor').forEach(node => node.remove())
+  copy.querySelector('link[rel=stylesheet]').setAttribute('href', '/marketing/app/renderer.css')
+  copy.querySelector('meta[http-equiv="Content-Security-Policy"]').content =
+    "default-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'"
+  for (const node of copy.querySelectorAll('body, #root')) node.style.colorScheme = 'light'
+  const canvases = source.querySelectorAll('canvas')
+  copy.querySelectorAll('canvas').forEach((canvas, index) => {
+    const mask = document.createElement('span')
+    mask.className = canvas.className
+    mask.style.cssText = canvas.style.cssText
+    mask.style.background = 'currentColor'
+    mask.style.mask = 'url(' + canvases[index].toDataURL() + ') center / 100% 100% no-repeat'
+    canvas.replaceWith(mask)
+  })
+  return '<!doctype html>\n' + copy.outerHTML + '\n'
+}
+
 const site = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const origin = process.env.SITE_URL || 'http://127.0.0.1:43933'
 assert(['127.0.0.1', 'localhost'].includes(new URL(origin).hostname), 'Export only the local fictional site.')
@@ -73,7 +96,7 @@ try {
   const { verifyFaqClearance } = await import('./faq-clearance.test.mjs')
   await verifyFaqClearance(call, origin)
   await call('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'light'},{name:'prefers-reduced-motion',value:'reduce'}]})
-  const images={}
+  const images={}, posters={}
   const {createHash}=await import('node:crypto')
   for (const [name,width,height] of [['desktop',1000,608],['phone',600,912]]) {
     const phone=name==='phone'
@@ -114,6 +137,11 @@ try {
         const bytes=await sharp(png).webp({quality:90}).toBuffer()
         await fs.writeFile(path.join(site,'public/marketing/stills',file),bytes)
         images[file]={bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')}
+        const scene = phone ? 'phone' : beat === 'arrival' ? 'arrival' : 'answer'
+        const poster = 'hero-light-' + scene + '.html'
+        const markup = await evaluate('(' + lightPoster.toString() + ')()')
+        await fs.writeFile(path.join(site, 'public/marketing/stills', poster), markup)
+        posters[poster] = {bytes:Buffer.byteLength(markup),sha256:createHash('sha256').update(markup).digest('hex')}
       }
     }
   }
@@ -139,7 +167,7 @@ try {
   }
 
   const manifest=JSON.parse(await fs.readFile(path.join(site,'public/marketing/app/manifest.json'),'utf8'))
-  await fs.writeFile(path.join(site,'public/marketing/stills/manifest.json'),JSON.stringify({appCommit:manifest.appCommit,bundleSha256:manifest.files['renderer.js'].sha256,bundleCssSha256:manifest.files['renderer.css'].sha256,generatedAt:new Date().toISOString(),images},null,2)+'\n')
+  await fs.writeFile(path.join(site,'public/marketing/stills/manifest.json'),JSON.stringify({appCommit:manifest.appCommit,bundleSha256:manifest.files['renderer.js'].sha256,bundleCssSha256:manifest.files['renderer.css'].sha256,generatedAt:new Date().toISOString(),images,posters},null,2)+'\n')
 
 } finally {
   socket?.close(); chrome.kill()

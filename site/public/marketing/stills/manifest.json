@@ -64,5 +64,19 @@
       "bytes": 12762,
       "sha256": "dd7de3e3e92dc1bda8bf52fa9b77c6dba8a2d0e3ebe5aa7929671d8efba82b1e"
     }
+  },
+  "posters": {
+    "hero-light-answer.html": {
+      "bytes": 46251,
+      "sha256": "232d26c607629101e9af70fb7a228ad224772c24e62afc191c4ddc0015423169"
+    },
+    "hero-light-arrival.html": {
+      "bytes": 42181,
+      "sha256": "7331f44e37791cf1996bb35489425bce482ee8873443db5b6263435f570c888f"
+    },
+    "hero-light-phone.html": {
+      "bytes": 46414,
+      "sha256": "5606911d2f2c7e53289080dd3a064db10981cd803d05d1ff9306ec33ecfd3d10"
+    }
   }
 }

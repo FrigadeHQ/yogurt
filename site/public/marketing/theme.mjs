@@ -7,10 +7,12 @@ try{const saved=localStorage.getItem('yogurt-theme');if(saved==='light'||saved==
 export function syncFrameTheme(frame){
   const frameRoot=frame.contentDocument?.documentElement;
   if(!frameRoot)return;
-  // Preserve the original dark hero on the light page; fragments follow the page.
-  const theme=frame.classList.contains('hero-renderer')?'dark':root.dataset.theme;
+  const theme=root.dataset.theme;
   frameRoot.dataset.marketingTheme=theme;
   frameRoot.style.colorScheme=theme;
+  if(frame.classList.contains('hero-renderer')){
+    for(const node of frame.contentDocument.querySelectorAll('body, #root'))node.style.colorScheme=theme;
+  }
 }
 
 function render(){
