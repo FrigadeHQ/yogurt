@@ -1006,7 +1006,7 @@ body[data-demo=transcript] .hero-listening-widget{top:-52px;right:22px;bottom:au
 .site-footer .made-by img{filter:brightness(0) invert(1);opacity:1}
 .site-footer .made-by {font-size:var(--ui-size)}
 @media (hover: hover) { .site-footer .made-by:hover img{filter:brightness(0) invert(1);opacity:1} }
-.site-footer .footer-bottom{font-size:var(--caption-size);padding:16px 0 20px;border-top:1px solid #ffffff26}
+.site-footer .footer-bottom{flex-wrap:wrap;font-size:var(--caption-size);padding:16px 0 20px;border-top:1px solid #ffffff26}
 .link-label {
   position: relative;
   inline-size: fit-content;

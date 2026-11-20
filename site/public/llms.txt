@@ -1,0 +1,34 @@
+# Yogurt
+
+> Yogurt is a free, open-source desktop app for private AI meeting notes. It records your calls without adding a bot to the meeting, transcribes them on your computer and writes a summary. It is an alternative to Granola, made by Frigade and released under the MIT license.
+
+Yogurt runs on macOS 14.4 or newer (Apple silicon), Windows 10 version 2004 or newer (x64) and Linux (Ubuntu 22.04 or newer, x64 AppImage). It needs at least 8 GB of memory. It is free and needs no account.
+
+How it works: Yogurt records your microphone and the sound playing on your computer. Speech is transcribed with whisper.cpp and, on supported Macs, Apple SpeechAnalyzer. A local open-weight model running through llama.cpp writes the summary and answers questions. Audio, transcripts and AI processing stay on your computer; Yogurt goes online to download models and check for updates. No bot joins the call, so people on the call should be told it is being recorded.
+
+What it does: live transcripts; meeting summaries that include your own notes; speaker names from Zoom, Teams and Meet; a multi-language mode that transcribes 99 languages; questions across meetings with links to the source; folders and search; copy and Markdown export; and an optional local MCP server that lets apps on your computer read your notes, transcripts, saved audio and each meeting's calendar details.
+
+## Website
+
+- [Yogurt](https://yogurt.so/): what Yogurt is, a demo, and downloads for Mac, Windows and Linux
+- [Updates](https://yogurt.so/updates): every release with what changed, in plain words
+
+## Download
+
+- [Mac](https://github.com/FrigadeHQ/yogurt/releases/latest/download/Yogurt-mac-arm64.dmg): Apple silicon, macOS 14.4 or newer. With Homebrew: `brew install --cask frigadehq/yogurt/yogurt`
+- [Windows](https://github.com/FrigadeHQ/yogurt/releases/latest/download/Yogurt-windows-x64.exe): Windows 10 version 2004 or newer, x64
+- [Linux](https://github.com/FrigadeHQ/yogurt/releases/latest/download/Yogurt-linux-x86_64.AppImage): AppImage for Ubuntu 22.04 or newer, x64
+- [All releases](https://github.com/FrigadeHQ/yogurt/releases)
+
+## Source and documentation
+
+- [Source code](https://github.com/FrigadeHQ/yogurt): the full app, MIT licensed
+- [README](https://github.com/FrigadeHQ/yogurt/blob/main/README.md): features, how it works, where data is stored, and FAQ
+- [Help](https://github.com/FrigadeHQ/yogurt/blob/main/docs/README.md): using Yogurt
+- [Build and run locally](https://github.com/FrigadeHQ/yogurt/blob/main/docs/building.md): setting up the app, running tests and building an installer
+- [License](https://github.com/FrigadeHQ/yogurt/blob/main/LICENSE): MIT
+
+## Optional
+
+- [Report a problem or ask for a feature](https://github.com/FrigadeHQ/yogurt/issues)
+- [Frigade](https://frigade.com/): the company that makes Yogurt
