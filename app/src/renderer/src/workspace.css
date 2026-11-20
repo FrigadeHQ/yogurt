@@ -456,7 +456,7 @@ body:has(.chat-panel[open]) .app-toast-viewport:dir(rtl) { --toast-x:440px; }
 .ask-box { position:relative;min-width:0;border:1px solid var(--line);border-radius:12px;background:var(--float);box-shadow:var(--shadow-soft); }
 @media (prefers-reduced-motion:reduce) { .orb-material::before,.orb-material::after { animation:none; } .ask-send { transition:none;transform:none!important; } }
 /* Composers are never lit; a short tapered flare invites typing instead. */
-.ask-tracer { position:absolute;inset:-1px;width:calc(100% + 2px);height:calc(100% + 2px);overflow:visible;pointer-events:none;opacity:0;fill:none;stroke:var(--primary);stroke-width:3;stroke-linecap:round;filter:drop-shadow(0 0 4px color-mix(in srgb,var(--primary) 70%,transparent)) drop-shadow(0 0 10px color-mix(in srgb,var(--primary) 35%,transparent)); }
+.ask-tracer { position:absolute;inset:-1px;width:calc(100% + 2px);height:calc(100% + 2px);overflow:visible;pointer-events:none;opacity:0;fill:none;stroke:var(--primary);stroke-width:1.5;stroke-linecap:round; }
 .ask-tracer rect { stroke-dasharray:1.05 98.95; }
 @media (prefers-reduced-motion:reduce) { .ask-tracer { display:none; } }
 .ask-field { padding:12px; }

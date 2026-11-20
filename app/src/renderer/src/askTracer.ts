@@ -1,6 +1,7 @@
 import { createTracerSchedule, TRACER_LAP_MS } from '../../shared/askTracer'
 
 /** One unhurried lap: eases in as the composer settles and eases out before it fades. */
+const TRACER_PEAK_OPACITY = 0.24
 const TRACER_EASING = 'cubic-bezier(.37,0,.63,1)'
 
 /** Decorative SVG only: input, focus and submission stay with the composer. */
@@ -35,7 +36,7 @@ export function attachAskTracer(box: HTMLFormElement) {
   const play = () => {
     stop()
     const timing = { duration: TRACER_LAP_MS, easing: 'linear' }
-    animations = [svg.animate([{ opacity: 0 }, { opacity: 1, offset: .2 }, { opacity: 1, offset: .8 }, { opacity: 0 }], timing),
+    animations = [svg.animate([{ opacity: 0 }, { opacity: TRACER_PEAK_OPACITY, offset: .2 }, { opacity: TRACER_PEAK_OPACITY, offset: .8 }, { opacity: 0 }], timing),
       ...segments.map((segment, i) => segment.animate([{ strokeDashoffset: String(-i), easing: TRACER_EASING }, { strokeDashoffset: String(-i - 100) }], timing))]
   }
   // A pointer resting where the panel opened isn't hovering; only movement inside the box counts.
