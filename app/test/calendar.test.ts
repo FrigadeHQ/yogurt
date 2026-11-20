@@ -105,6 +105,21 @@ describe('upcoming', () => {
     } finally { rmSync(dir, { recursive: true, force: true }) }
   })
 
+  it.each([true, false])('includes enabled events for manual linking with the call-link filter set to %s', async hideEventsWithoutCallLink => {
+    const base = { start: '2026-11-03T18:00:00Z', end: '2026-11-03T19:00:00Z', calendarId: 'work' }
+    const rows = [
+      { ...base, id: 'call', url: 'https://meet.google.com/abc-defg-hij' },
+      { ...base, id: 'linked' }, { ...base, id: 'busy' },
+      { ...base, id: 'hidden-linked', calendarId: 'hidden' }, { ...base, id: 'hidden-call', calendarId: 'hidden', url: 'https://zoom.us/j/123456789' },
+    ]
+    setHelper(async args => args[0] === 'calendar-status' ? { status: 'granted' } : rows)
+    setCalendarSelection(() => ({ hideEventsWithoutCallLink, hiddenCalendarIds: ['hidden'] }))
+    const ids = (events: { id: string }[]) => events.map(e => e.id)
+    expect(ids(await upcoming(0, 1e12, 'link-event'))).toEqual(['call', 'linked', 'busy'])
+    expect(ids(await upcoming(0, 1e12, e => e.id.endsWith('linked')))).toEqual(hideEventsWithoutCallLink ? ['call', 'linked'] : ['call', 'linked', 'busy'])
+    expect(ids(await upcoming(0, 1e12))).toEqual(hideEventsWithoutCallLink ? ['call'] : ['call', 'linked', 'busy'])
+  })
+
   it('keeps noted events by alias only when requested and never restores excluded calendars', async () => {
     const row = { id: 'original', externalId: 'event', calendarId: 'work', start: '2026-11-03T18:00:00Z', end: '2026-11-03T19:00:00Z', url: 'https://example.com/document' }
     setHelper(async args => args[0] === 'calendar-status' ? { status: 'granted' } : [row, { ...row, id: 'alias' }])

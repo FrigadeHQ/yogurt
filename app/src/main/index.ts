@@ -259,7 +259,7 @@ let relaunched = 0
 /** fake mode: how many times Yogurt would have restarted to install a new version */
 let updateRestarts = 0
 
-async function readCalendar(from: number, to: number, keep?: (event: CalEvent) => boolean): Promise<CalEvent[]> {
+async function readCalendar(from: number, to: number, keep?: Parameters<typeof upcoming>[2]): Promise<CalEvent[]> {
   const events = await upcoming(from, to, keep)
   refreshEventSnapshots(events)
   return events
@@ -273,10 +273,10 @@ async function comingUp(): Promise<CalEvent[]> {
 }
 
 /** The events on the day of this time, earliest first */
-async function eventsOn(at: number): Promise<CalEvent[]> {
+async function eventsOn(at: number, purpose?: 'link-event'): Promise<CalEvent[]> {
   const from = new Date(at); from.setHours(0, 0, 0, 0)
   const to = new Date(from); to.setDate(to.getDate() + 1)
-  return (await readCalendar(from.getTime(), to.getTime(), event => eventIds(event).some(id => !!storeRef?.meetingForEvent(id)))).sort((a, b) => a.start - b.start)
+  return (await readCalendar(from.getTime(), to.getTime(), purpose ?? (event => eventIds(event).some(id => !!storeRef?.meetingForEvent(id))))).sort((a, b) => a.start - b.start)
 }
 
 /** the Mac's full name: who "You" is unless Settings says otherwise (fake mode: a fixed one) */
@@ -946,7 +946,7 @@ app.whenReady().then(() => {
     if (typeof eventId !== 'string') return
     const at = day ?? m.eventStartedAt ?? m.startedAt
     if (typeof at !== 'number' || !Number.isFinite(at) || !Number.isFinite(new Date(at).getTime())) throw new Error('Invalid calendar day')
-    const event = (await eventsOn(at)).find((e) => matchesEvent(e, eventId))
+    const event = (await eventsOn(at, 'link-event')).find((e) => matchesEvent(e, eventId))
     if (!event) throw new Error('Calendar event unavailable')
     if (linkEvent(m.id, event)) notes.applyPeople(m.id)
   })
@@ -1024,9 +1024,9 @@ app.whenReady().then(() => {
     win?.webContents.send('calendar:changed')
     return true
   })
-  ipcMain.handle('calendar:day', async (_e, at: unknown) => {
+  ipcMain.handle('calendar:day', async (_e, at: unknown, purpose?: unknown) => {
     if (typeof at !== 'number' || !Number.isFinite(at) || !Number.isFinite(new Date(at).getTime())) return { status: 'error', events: [] }
-    const events = (await eventsOn(at)).map((event) => {
+    const events = (await eventsOn(at, purpose === 'link-event' ? 'link-event' : undefined)).map((event) => {
       const meeting = eventIds(event).map((id) => store.meetingForEvent(id)).find(Boolean)
       const note = meeting && withStopState(meeting)
       return { ...event, attendees: resolvePeople(store.db, event.attendees), ...(note ? { note: { id: note.id, state: note.state, ...(note.source ? { source: note.source } : {}) } } : {}) }

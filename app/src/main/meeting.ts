@@ -196,7 +196,7 @@ export function setAttendees(id: string, people: unknown): Meeting | undefined {
     const name = tidy(p?.name, TITLE_MAX)
     return name ? [{ name, email: tidy(p?.email, TITLE_MAX) || null }] : []
   })
-  return update(id, { attendees })
+  return update(id, { attendees, keepAttendees: true })
 }
 
 /** The note belongs to this calendar event: its title and people */
@@ -204,7 +204,12 @@ export function linkEvent(id: string, event: CalEvent): Meeting | undefined {
   const meeting = store?.meeting(id)
   if (!store || !meeting) return undefined
   if (meeting.state === 'prepared') store.markPrepared(id, event.end)
-  return update(id, { eventId: event.id, eventStartedAt: event.start, eventEndedAt: event.end, eventTitle: event.title, ownEmail: event.ownEmail ?? null, eventCalendarName: event.calendar?.name ?? null, eventCalendarSource: event.calendar?.source ?? null, title: event.title || meeting.title, ...(event.title ? { titleSource: 'calendar' as const } : {}), attendees: event.attendees })
+  return update(id, {
+    eventId: event.id, eventStartedAt: event.start, eventEndedAt: event.end, eventTitle: event.title,
+    ownEmail: event.ownEmail ?? null, eventCalendarName: event.calendar?.name ?? null, eventCalendarSource: event.calendar?.source ?? null,
+    ...(event.title && meeting.titleSource !== 'user' ? { title: event.title, titleSource: 'calendar' } : {}),
+    ...(meeting.keepAttendees ? {} : { attendees: event.attendees }),
+  })
 }
 
 /** Reading a calendar updates its snapshot, never the person's title, attendees or notes. */

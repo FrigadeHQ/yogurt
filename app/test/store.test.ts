@@ -486,7 +486,7 @@ it('migrates old meetings with nullable snapshot columns and preserves them acro
       expect(schema.find(c => c.name === name)).toMatchObject({ notnull: 0, dflt_value: null })
       expect(row[name]).toBeNull()
     }
-    expect(migrated.meeting('old')).toMatchObject({ title: 'My old note', startedAt: 50, eventId: 'event', eventStartedAt: 100 })
+    expect(migrated.meeting('old')).toMatchObject({ title: 'My old note', keepAttendees: true, attendees: [], startedAt: 50, eventId: 'event', eventStartedAt: 100 })
     expect(migrated.meeting('old')).not.toHaveProperty('eventEndedAt')
     migrated.rememberEvent({ id: 'event', title: 'Event', start: 100, end: 200, attendees: [], url: null, calendar: { id: 'work', name: 'Work', source: 'Calendar' } })
   } finally { migrated.close() }

@@ -304,6 +304,37 @@ describe('meeting lifecycle', () => {
     expect(store.meeting(m.id)).toMatchObject({ eventId: 'e1', eventStartedAt: event.start, title: 'Design review' })
     expect(unlinkEvent(m.id)?.eventStartedAt).toBeUndefined()
   })
+  it.each(['generic', 'auto', 'calendar', 'imported'] as const)('adopts the event title on a %s title, including on relink', titleSource => {
+    const m = store.createMeeting({ title: 'Earlier title', titleSource, startedAt: 1, endedAt: 2, eventId: null, app: null, attendees: [], state: 'done' })
+    expect(linkEvent(m.id, { ...event, title: '' })).toMatchObject({ title: m.title, titleSource })
+    expect(linkEvent(m.id, event)).toMatchObject({ title: event.title, titleSource: 'calendar', eventTitle: event.title })
+    const next = { ...event, id: 'new', title: 'New event', attendees: [] }
+    expect(linkEvent(m.id, next)).toMatchObject({ title: next.title, titleSource: 'calendar', eventTitle: next.title, attendees: [] })
+    expect(unlinkEvent(m.id)).toMatchObject({ title: next.title, titleSource: 'calendar' })
+  })
+  it('keeps a manually named note through linking, relinking and unlinking', () => {
+    const m = startMeeting({ title: 'Meeting', event: null, app: null })
+    renameMeeting(m.id, 'Therapy')
+    const title = { title: 'Therapy', titleSource: 'user' }
+    expect(linkEvent(m.id, event)).toMatchObject({ ...title, eventTitle: event.title, eventId: event.id })
+    expect(linkEvent(m.id, { ...event, id: 'busy', title: 'Eric Busy' })).toMatchObject({ ...title, eventTitle: 'Eric Busy', eventId: 'busy' })
+    expect(unlinkEvent(m.id)).toMatchObject({ ...title, eventId: null })
+    expect(store.meeting(m.id)).not.toHaveProperty('eventTitle')
+  })
+  it('keeps a manually edited attendee list, including an intentional empty list', () => {
+    const m = startMeeting({ title: 'Meeting', event: null, app: null })
+    const guests = [{ name: 'Bo', email: null }]
+    setAttendees(m.id, guests)
+    expect(linkEvent(m.id, event)?.attendees).toEqual(guests)
+    setAttendees(m.id, [])
+    expect(unlinkEvent(m.id)?.attendees).toEqual([])
+    expect(linkEvent(m.id, { ...event, id: 'other' })?.attendees).toEqual([])
+  })
+  it.each([null, 'old@example.com'])('preserves a person renamed on this note (%s)', email => {
+    const m = prepareMeeting({ ...event, attendees: [{ name: 'Old', email }] })
+    expect(store.renameAttendee(m.id, 0, 'Preferred name')).toBe(true)
+    expect(linkEvent(m.id, { ...event, id: 'other' })?.attendees).toEqual([{ name: 'Preferred name', email }])
+  })
   it('relinking an empty prepared note uses the new event end for cleanup', () => {
     const day = 86_400_000, now = Date.now()
     const m = prepareMeeting({ ...event, start: now - 3 * day, end: now - 3 * day + 1000 })
@@ -363,12 +394,12 @@ it('calendar reads refresh active snapshots without changing manual edits or not
   } finally { off() }
 })
 
-it('links an uploaded note to the exact event time, title and people without changing its audio timeline', () => {
+it('links an uploaded note to the event time and people while keeping its title and audio timeline', () => {
   const startedAt = +new Date(2026, 10, 16, 9, 15), durationMs = 45 * 60_000
   const imported = store.createMeeting({ source: 'audio-file', title: 'Planning audio', titleSource: 'user', startedAt, endedAt: startedAt + durationMs, durationMs, state: 'done', eventId: null, app: null, attendees: [] })
   store.setNotes(imported.id, { mine: 'Keep my notes.', enhanced: 'Keep this summary.' })
   const invite = { id: 'sample-event', title: 'Project planning', start: +new Date(2026, 10, 16, 9), end: +new Date(2026, 10, 16, 10), attendees: [{ name: 'Alex', email: 'alex@example.com' }], url: null }
   linkEvent(imported.id, invite)
-  expect(store.meeting(imported.id)).toMatchObject({ source: 'audio-file', startedAt, durationMs, endedAt: startedAt + durationMs, eventId: invite.id, eventStartedAt: invite.start, eventEndedAt: invite.end, title: invite.title, titleSource: 'calendar', attendees: invite.attendees })
+  expect(store.meeting(imported.id)).toMatchObject({ source: 'audio-file', startedAt, durationMs, endedAt: startedAt + durationMs, eventId: invite.id, eventStartedAt: invite.start, eventEndedAt: invite.end, title: imported.title, titleSource: 'user', eventTitle: invite.title, attendees: invite.attendees })
   expect(store.notes(imported.id)).toMatchObject({ mine: 'Keep my notes.', enhanced: 'Keep this summary.' })
 })

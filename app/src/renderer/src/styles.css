@@ -765,6 +765,11 @@ html:not(.widget) button:focus-visible, html:not(.widget) input:focus-visible { 
 :is(.line-who,.widget-preview-speaker)[data-folder-color] { color:var(--folder-ink); }
 
 /* Calendar linking lives in the date popover; attendee editing stays in People. */
+.note-date-anchor { min-width:0;max-width:min(100%, 17rem); }
+.note-date-chip { max-width:100%;white-space:nowrap; }
+.note-date-chip>svg { flex:none; }
+.note-date-chip-dot { width:6px;height:6px;border-radius:50%;flex:none; }
+.note-date-chip-name { min-width:0;overflow:hidden;text-overflow:ellipsis; }
 .note-date-card { --note-date-ms:var(--dur-base);--note-date-ease:var(--ease-out); }
 .note-date-swap { position:relative;overflow:hidden; }
 .note-date-retiring { position:absolute;inset:0 0 auto;pointer-events:none; }
@@ -796,8 +801,8 @@ html:not(.widget) button:focus-visible, html:not(.widget) input:focus-visible { 
 @media (prefers-reduced-motion:reduce) { .note-date-reveal { transition:none; } }
 
 .note-date-identity { min-width:0;flex:1; }
-.note-date-identity>strong,.note-date-time,.note-date-calendar { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
-.note-date-identity>strong { font-size:14px;font-weight:600;line-height:21px; }
+.note-date-time,.note-date-calendar { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.note-date-identity>strong { display:block;overflow-wrap:anywhere;font-size:14px;font-weight:600;line-height:21px; }
 .note-date-time { font-size:12px;line-height:18px;color:var(--written);margin-top:3px; }
 .note-date-calendar { min-height:16px;font-size:11px;line-height:16px;color:var(--muted);margin-top:3px; }
 .note-date-event-toggle>svg { flex:none;margin-top:4px;color:var(--muted);transition:transform var(--note-date-ms) var(--note-date-ease); }
@@ -812,7 +817,8 @@ html:not(.widget) button:focus-visible, html:not(.widget) input:focus-visible { 
 .note-date-link>svg { flex:none; }
 .note-date-link small { display:block;margin-top:3px;font-size:11px;overflow:hidden;text-overflow:ellipsis; }
 .note-date-events { max-height:240px;overflow-y:auto;overscroll-behavior:contain; }
-.note-date-events>p { padding:12px 8px;font-size:12px;color:var(--muted); }
+.note-date-events:has(>.note-date-event) { margin:-8px; }
+.note-date-events>p { font-size:12px;color:var(--muted); }
 .note-date-event { display:flex;align-items:center;gap:8px;width:100%;padding:8px;border-radius:6px;text-align:start; }
 .note-date-event>span { flex:1;min-width:0; }
 .note-date-event strong,.note-date-event small { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }

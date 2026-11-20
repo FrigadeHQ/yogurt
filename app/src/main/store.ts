@@ -35,6 +35,8 @@ export type Meeting = {
   language: string | null
   /** where the title came from: only a generic or auto one is replaced by a title from the notes */
   titleSource: TitleSource
+  /** Preserve the saved list on calendar links after a manual edit or an import without edit history. */
+  keepAttendees?: boolean
   /** Recorded duration when pauses or resumed sessions make wall duration inaccurate. */
   durationMs?: number
   /** Some recorded audio still needs a saved transcript, including earlier sessions. */
@@ -61,6 +63,7 @@ const toMeeting = (r: Row): Meeting => ({
   id: String(r.id), title: String(r.title), startedAt: Number(r.started_at), endedAt: r.ended_at == null ? null : Number(r.ended_at),
   eventId: r.event_id == null ? null : String(r.event_id), app: r.app == null ? null : String(r.app),
   attendees: JSON.parse(String(r.attendees)), state: r.state as Meeting['state'], language: r.language == null ? null : String(r.language),
+  ...(r.keep_attendees ? { keepAttendees: true } : {}),
   titleSource: (r.title_source ?? 'user') as TitleSource,
   ...(r.source == null ? {} : { source: String(r.source) }),
   ...(r.source_id == null ? {} : { sourceId: String(r.source_id) }),
@@ -227,6 +230,8 @@ export class Store {
     if (!meetingCols.includes('duration_ms')) this.db.exec('ALTER TABLE meetings ADD COLUMN duration_ms INTEGER')
     if (!meetingCols.includes('language')) this.db.exec('ALTER TABLE meetings ADD COLUMN language TEXT')
     if (!meetingCols.includes('trashed_at')) this.db.exec('ALTER TABLE meetings ADD COLUMN trashed_at INTEGER')
+    // Existing notes and older backups have no attendee edit history, including lists cleared by hand.
+    if (!meetingCols.includes('keep_attendees')) this.db.exec('ALTER TABLE meetings ADD COLUMN keep_attendees INTEGER NOT NULL DEFAULT 1')
     if (!meetingCols.includes('title_source')) {
       // meetings from before: worked out from the title and the event, as a new one would be
       this.db.exec("ALTER TABLE meetings ADD COLUMN title_source TEXT NOT NULL DEFAULT 'user'")
@@ -298,6 +303,7 @@ export class Store {
         this.db.prepare('UPDATE meetings SET attendees = ? WHERE id = ?').run(JSON.stringify(people), id)
         this.db.prepare('UPDATE notes SET written_with = ? WHERE meeting_id = ? AND written_with = ?').run(attendeeMembership(people), id, previous)
       }
+      this.db.prepare('UPDATE meetings SET keep_attendees = 1 WHERE id = ?').run(id)
       this.db.exec('RELEASE rename_person')
       return true
     } catch (e) { this.db.exec('ROLLBACK TO rename_person; RELEASE rename_person'); throw e }
@@ -316,18 +322,22 @@ export class Store {
     const ownEmail = m.eventId ? ownAddress(m.ownEmail) : null
     this.rememberOwnEmail(ownEmail)
     const titleSource = m.titleSource ?? sourceOf(m.title, m.eventId)
-    this.db.prepare('INSERT INTO meetings (id, title, started_at, ended_at, event_id, app, attendees, state, language, title_source, duration_ms, event_started_at, event_ended_at, event_title, event_calendar_name, event_calendar_source, source, transcription_pending, own_email) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      .run(id, m.title, m.startedAt, m.endedAt, m.eventId, m.app, JSON.stringify(m.attendees), m.state, language, titleSource, m.durationMs ?? null, m.eventStartedAt ?? null, m.eventEndedAt ?? null, m.eventTitle ?? null, m.eventCalendarName ?? null, m.eventCalendarSource ?? null, m.source ?? null, Number(!!m.transcriptionPending), ownEmail)
+    this.db.prepare('INSERT INTO meetings (id, title, started_at, ended_at, event_id, app, attendees, state, language, title_source, duration_ms, event_started_at, event_ended_at, event_title, event_calendar_name, event_calendar_source, source, transcription_pending, own_email, keep_attendees) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(id, m.title, m.startedAt, m.endedAt, m.eventId, m.app, JSON.stringify(m.attendees), m.state, language, titleSource, m.durationMs ?? null, m.eventStartedAt ?? null, m.eventEndedAt ?? null, m.eventTitle ?? null, m.eventCalendarName ?? null, m.eventCalendarSource ?? null, m.source ?? null, Number(!!m.transcriptionPending), ownEmail, Number(!!m.keepAttendees))
     rememberPeople(this.db, m.attendees)
     return this.meeting(id)!
   }
   updateMeeting(id: string, patch: Partial<Omit<Meeting, 'id'>>) {
     if (patch.ownEmail) this.rememberOwnEmail(patch.ownEmail)
     if (patch.attendees) rememberPeople(this.db, patch.attendees)
-    const col: Record<string, string> = { title: 'title', startedAt: 'started_at', endedAt: 'ended_at', eventId: 'event_id', eventStartedAt: 'event_started_at', eventEndedAt: 'event_ended_at', eventTitle: 'event_title', eventCalendarName: 'event_calendar_name', eventCalendarSource: 'event_calendar_source', ownEmail: 'own_email', app: 'app', attendees: 'attendees', state: 'state', language: 'language', titleSource: 'title_source', durationMs: 'duration_ms', transcriptionPending: 'transcription_pending', transcriptionState: 'transcription_state', transcriptionAgain: 'transcription_again' }
+    const col: Record<string, string> = { title: 'title', startedAt: 'started_at', endedAt: 'ended_at', eventId: 'event_id', eventStartedAt: 'event_started_at', eventEndedAt: 'event_ended_at', eventTitle: 'event_title', eventCalendarName: 'event_calendar_name', eventCalendarSource: 'event_calendar_source', ownEmail: 'own_email', app: 'app', attendees: 'attendees', keepAttendees: 'keep_attendees', state: 'state', language: 'language', titleSource: 'title_source', durationMs: 'duration_ms', transcriptionPending: 'transcription_pending', transcriptionState: 'transcription_state', transcriptionAgain: 'transcription_again' }
     const keys = Object.keys(patch).filter((k) => k in col && (patch as Row)[k] !== undefined)
     if (!keys.length) return
-    const vals = keys.map((k) => (k === 'attendees' ? JSON.stringify(patch.attendees) : (k === 'transcriptionPending' || k === 'transcriptionAgain') ? Number(k === 'transcriptionPending' ? patch.transcriptionPending : patch.transcriptionAgain) : (patch as Row)[k]) as string | number | null)
+    const vals = keys.map(k => {
+      const value = (patch as Row)[k]
+      if (k === 'attendees') return JSON.stringify(value)
+      return typeof value === 'boolean' ? Number(value) : value as string | number | null
+    })
     this.db.prepare(`UPDATE meetings SET ${keys.map((k) => `${col[k]} = ?`).join(', ')} WHERE id = ?`).run(...vals, id)
   }
   /** Refresh every note still linked to this occurrence, including alternate calendar IDs. */

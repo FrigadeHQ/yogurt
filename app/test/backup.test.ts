@@ -48,6 +48,13 @@ function fill(s: Store, title: string, word: string) {
 }
 
 describe('backup merge', () => {
+  it('preserves even an empty attendee list restored from before edit history was recorded', () => {
+    const from = fresh(), into = fresh()
+    const note = from.createMeeting({ ...base, title: 'Old note', startedAt: 1000, attendees: [] })
+    from.db.exec('ALTER TABLE meetings DROP COLUMN keep_attendees')
+    mergeBackup(into.db, from.db)
+    expect(into.meeting(note.id)).toMatchObject({ attendees: [], keepAttendees: true })
+  })
   it('a backup from when voices had letters: its lines of the other side come in as Them', () => {
     const from = fresh(), into = fresh()
     const m = fill(from, 'Old', 'letters')

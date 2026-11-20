@@ -158,14 +158,15 @@ export function parseEvents(raw: unknown, hidden: string[] = []): CalEvent[] {
 }
 
 /** Events between two times. No Calendar access, or a helper that fails: none, never a crash. */
-export async function upcoming(fromMs: number, toMs: number, keep?: (event: CalEvent) => boolean): Promise<CalEvent[]> {
+export async function upcoming(fromMs: number, toMs: number, keep?: 'link-event' | ((event: CalEvent) => boolean)): Promise<CalEvent[]> {
   if (await refreshCalendarStatus() !== 'granted') return []
   try {
     const fromMac = !links || (alongside && macStatus === 'granted')
     const mac = fromMac ? await helper(['events', new Date(fromMs).toISOString(), new Date(toMs).toISOString()]) : []
     const raw = [...(links ? await links.events(fromMs, toMs) : []), ...(Array.isArray(mac) ? mac : [])]
     const selection = calendarSelection()
-    return parseEvents(raw, selection.hiddenCalendarIds).filter(event =>
-      selection.hideEventsWithoutCallLink !== true || event.url !== null || keep?.(event))
+    const events = parseEvents(raw, selection.hiddenCalendarIds)
+    if (keep === 'link-event' || selection.hideEventsWithoutCallLink !== true) return events
+    return events.filter(event => event.url !== null || keep?.(event))
   } catch { status = 'error'; return [] }
 }
