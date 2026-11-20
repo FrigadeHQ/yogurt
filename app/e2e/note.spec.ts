@@ -375,7 +375,7 @@ test('the recording header keeps status, time and actions while Transcript and A
   } finally { await app.close() }
 })
 
-test('Finish in the note header stops the meeting and hides the widget', async () => {
+test('Stop in the note header stops the meeting and hides the widget', async () => {
   const { app, page } = await launch()
   try {
     const id = await record(app, page)

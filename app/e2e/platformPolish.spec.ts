@@ -46,7 +46,7 @@ for (const platform of ['win32', 'linux']) {
       expect(await fake(app, 'tray')).toEqual(expect.arrayContaining(['Start recording', 'Open Yogurt', 'Settings…', 'Quit Yogurt']))
       expect(await fake(app, 'trayAccelerators')).toEqual({ 'Settings…': 'Ctrl+,' })
       await fake(app, 'trayClick', 'new')
-      await expect.poll(() => fake(app, 'tray')).toContain('Finish recording')
+      await expect.poll(() => fake(app, 'tray')).toContain('Stop recording')
       // no music player is paused off a Mac (capabilities.mediaPause)
       expect(((await fake(app, 'main')) as { mediaCalls: string[][] }).mediaCalls).toEqual([])
       await fake(app, 'trayClick', 'stop')

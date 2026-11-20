@@ -184,10 +184,10 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
             }} />
             <div className="settings-row">
               <div className="settings-row-copy">
-                <p className="settings-label">{t('Finish recording when the call ends')}</p>
+                <p className="settings-label">{t('Stop recording when the call ends')}</p>
                 <p className="settings-description">{t('Automatically end the recording a few seconds after you hang up.')}</p>
               </div>
-              <button data-testid="autostop-toggle" disabled={!prefs || general.busy} role="switch" aria-checked={!!prefs?.stopWhenCallEnds} aria-label={t('Finish recording when the call ends')} onClick={autoStop}
+              <button data-testid="autostop-toggle" disabled={!prefs || general.busy} role="switch" aria-checked={!!prefs?.stopWhenCallEnds} aria-label={t('Stop recording when the call ends')} onClick={autoStop}
                 className="settings-toggle">
                 <span className="settings-toggle-knob" />
               </button>

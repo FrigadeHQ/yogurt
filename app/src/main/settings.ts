@@ -58,7 +58,7 @@ export const spokenSetting = (s: Settings): Spoken => spokenOf(s.spoken)
 
 export const summaryLanguageSetting = (s: Settings): string => isLocale(s.summaryLanguage) ? s.summaryLanguage : ''
 
-/** "Finish recording when the call ends": on by default */
+/** "Stop recording when the call ends": on by default */
 export const stopsWhenCallEnds = (s: Settings): boolean => s.stopWhenCallEnds !== false
 export const recordingReminderOn = (s: Settings): boolean => s.recordingReminder !== false
 /** Old recordings stay, even if their summaries are saved or rewritten after opting out. */

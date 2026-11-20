@@ -6,7 +6,7 @@ import { join } from 'node:path'
 const main = join(import.meta.dirname, '../out/main/index.js')
 const zoom = { bundleId: 'us.zoom.xos', name: 'zoom.us' }
 
-/** askFirst: "Finish recording when the call ends" off, so the end of a call asks (autoStop.spec.ts has it on) */
+/** askFirst: "Stop recording when the call ends" off, so the end of a call asks (autoStop.spec.ts has it on) */
 async function launch(o: { askFirst?: boolean; background?: boolean } = {}) {
   const userData = mkdtempSync(join(tmpdir(), 'yogurt-e2e-'))
   if (o.askFirst) writeFileSync(join(userData, 'settings.json'), JSON.stringify({ stopWhenCallEnds: false }))

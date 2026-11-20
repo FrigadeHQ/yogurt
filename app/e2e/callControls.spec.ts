@@ -39,7 +39,7 @@ test('paused recording controls fit the minimum window and keep focus inside eac
     for (const button of await buttons.all()) {
       expect(await button.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
     }
-    await expect(page.getByTestId('note-stop')).toHaveText('Finish')
+    await expect(page.getByTestId('note-stop')).toHaveText('Stop')
     await page.getByTestId('note-pause').click()
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-paused', 'false')
     await expect(page.getByTestId('note-wave')).toBeVisible()

@@ -119,7 +119,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
     { id: 'theme-system', synonyms: ['theme', 'appearance', 'mode', 'system'], label: osWords({ mac: t('Match my Mac'), windows: t('Match Windows'), linux: t('Match my system') }), group: t('Appearance'), Icon: Monitor, run: () => settingsAction(() => window.yogurt.settings.setTheme('system')) },
     ...(prefs ? [
       { id: 'login', label: prefs.openAtLogin ? t('Turn off open at login') : t('Open Yogurt at login'), group: t('Settings'), Icon: LogIn, run: () => settingsAction(() => window.yogurt.settings.setOpenAtLogin(!prefs.openAtLogin)) },
-      { id: 'auto-stop', label: prefs.stopWhenCallEnds ? t('Keep recording when the call ends') : t('Finish recording when the call ends'), group: t('Settings'), Icon: AudioLines, run: () => settingsAction(() => window.yogurt.settings.setStopWhenCallEnds(!prefs.stopWhenCallEnds)) },
+      { id: 'auto-stop', label: prefs.stopWhenCallEnds ? t('Keep recording when the call ends') : t('Stop recording when the call ends'), group: t('Settings'), Icon: AudioLines, run: () => settingsAction(() => window.yogurt.settings.setStopWhenCallEnds(!prefs.stopWhenCallEnds)) },
     ] : []),
   ].filter((c) => !c.id.startsWith('theme-') || !!prefs)
   const suggestions = matchSearchPeople(typed, people, chosenPeople, searchOptions).suggestions.slice(0, 5)

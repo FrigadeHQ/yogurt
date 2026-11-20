@@ -107,7 +107,7 @@ test('a finished note resumes after reopening, preserves original data, confirms
   } finally { await app.close() }
 })
 
-test('Finish offers Stop summary and Generate summary before recording resumes', async () => {
+test('Stop offers Stop summary and Generate summary before recording resumes', async () => {
   const profile = mkdtempSync(join(tmpdir(), 'yogurt-resume-writing-'))
   const { app, page } = await launch(profile, { YOGURT_FAKE_LLM_MS: '120' })
   try {

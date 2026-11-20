@@ -98,7 +98,7 @@ it('drops a pending request when navigation unmounts the note, including when re
   expect(resume).not.toHaveBeenCalled()
 })
 
-it('waits through Finish before the summary starts and still asks before replacing an edited summary', async () => {
+it('waits through Stop before the summary starts and still asks before replacing an edited summary', async () => {
   meeting.state = 'recording'; notes.status = 'idle'; requested = undefined
   await render(); await render()
   ;(find(tree, 'note-stop')!.props.onClick as (e: { detail: number }) => void)({ detail: 0 })

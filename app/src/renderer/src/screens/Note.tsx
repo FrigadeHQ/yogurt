@@ -364,7 +364,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   return (
     <LoadingContent onReady={()=>document.dispatchEvent(new CustomEvent('audio-upload-note-ready',{detail:id}))} pending={false} skeleton={<Loading layout="note" />} className="loading-note-frame"><div data-testid="note" className="document-main relative flex h-full bg-bg">
       {resumeConfirm && <Modal testId="resume-confirm" role="alertdialog" title={t('Record more in this note?')}
-        description={t('Your notes, transcript, and previous audio are kept. Your edited summary will be replaced when you finish recording.')}
+        description={t('Your notes, transcript, and previous audio are kept. Your edited summary will be replaced when you stop recording.')}
         onCancel={() => setResumeConfirm(false)}>
         <div className="modal-actions">
           <button data-testid="resume-yes" onClick={() => void resumeRecording(true)} className="modal-button primary">{t('Resume recording')}</button>
@@ -396,11 +396,11 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                     aria-label={m.paused ? t('Resume recording') : t('Pause recording')} title={m.paused ? t('Resume recording') : t('Pause recording')} className="note-record-action note-pause-action">
                     <Swap show={m.paused ? 'play' : 'pause'} options={{ pause: <Pause size={14} fill="currentColor" strokeWidth={0} />, play: <Play size={14} fill="currentColor" strokeWidth={0} /> }} />
                   </button>
-                  <button data-testid="note-stop" onClick={(e) => { requestFinish(true); picked.current = true; setView('mine'); setFinishing(true); setTabPointer(e.detail > 0); window.yogurt.meetings.stop(id) }} aria-label={t('Finish recording')} title={t('Finish recording')} className="note-record-action note-finish-action primary">
-                    {t('Finish')}
+                  <button data-testid="note-stop" onClick={(e) => { requestFinish(true); picked.current = true; setView('mine'); setFinishing(true); setTabPointer(e.detail > 0); window.yogurt.meetings.stop(id) }} aria-label={t('Stop recording')} title={t('Stop recording')} className="note-record-action note-finish-action primary">
+                    {t('Stop')}
                   </button>
                 </>}
-                {finishing && <span data-testid="note-finishing" role="status" className="note-finishing">{t('Finishing…')}</span>}
+                {finishing && <span data-testid="note-finishing" role="status" className="note-finishing">{t('Stopping…')}</span>}
                 {!transcribing && !finishing && (m.source !== 'audio-file' || summarizing) && (m.state === 'stopped' || m.state === 'done') && !m.stopSavePending && !trashed && <button data-testid="note-resume" disabled={starting} aria-busy={summarizing} data-processing={summarizing} onClick={() => { if (summarizing) void window.yogurt.notes.stop(id).catch(console.error); else void resumeRecording() }}
                   aria-label={summarizing ? t('Stop summary') : t('Resume recording')} className="workspace-button note-resume-action" title={summarizing ? t('Stop summary') : t('Resume recording in this note')}>
                   <Swap show={summarizing ? 'busy' : 'mic'} options={{ mic: <Mic size={14} />, busy: <span className="summary-stop-icon"><Loader size={14} /><span className="summary-stop-square" /></span> }} />

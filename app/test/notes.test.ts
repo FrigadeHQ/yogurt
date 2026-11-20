@@ -178,7 +178,7 @@ describe('hookNotes', () => {
     release(); await s.notes.written(s.m.id)
   })
 
-  it('resume cancels obsolete generation without replacing the prior summary and next Finish writes combined notes', async () => {
+  it('resume cancels obsolete generation without replacing the prior summary and next Stop writes combined notes', async () => {
     let release!: () => void
     const load = new Promise<void>((resolve) => { release = resolve })
     const s = setup({ load })

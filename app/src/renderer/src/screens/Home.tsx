@@ -44,7 +44,7 @@ export function Home({ open, openFolder, agendaJump }: { open: (id: string) => v
     <div className="native-library" ref={past.setRoot} tabIndex={-1}>
       <h1>{t('Your meetings')}</h1>
       {past.failed && !!past.cards?.length && <InlineError testId="meetings-read-error" retry={past.retry} />}
-      <LoadingContent pending={!past.cards && !past.failed} testId="meetings-loading" skeleton={<MeetingListLoading />} className="library-load">{!past.cards?.length ? <LibraryEmpty testId="past-empty" icon={<FileText size={28} strokeWidth={1.5} aria-hidden="true" />} title={t('Your notes will show up here')} description={t('Yogurt writes a summary after you finish recording.')} retry={past.failed ? past.retry : undefined} /> : <PastNotes cards={past.cards ?? []} day={day} more={past.more} sentinel={past.setSentinel} onOpen={open} openFolder={openFolder} />}</LoadingContent>
+      <LoadingContent pending={!past.cards && !past.failed} testId="meetings-loading" skeleton={<MeetingListLoading />} className="library-load">{!past.cards?.length ? <LibraryEmpty testId="past-empty" icon={<FileText size={28} strokeWidth={1.5} aria-hidden="true" />} title={t('Your notes will show up here')} description={t('Your summary appears after you stop recording.')} retry={past.failed ? past.retry : undefined} /> : <PastNotes cards={past.cards ?? []} day={day} more={past.more} sentinel={past.setSentinel} onOpen={open} openFolder={openFolder} />}</LoadingContent>
     </div>
     {calendar && <Agenda revision={calendarRevision} recording={recording} onStart={start} onOpen={open} jumpTo={agendaJump} />}
   </div>
