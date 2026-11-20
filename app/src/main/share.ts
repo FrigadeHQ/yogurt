@@ -1,10 +1,11 @@
-import { app, clipboard, ClipboardItem, dialog, ipcMain, type BrowserWindow } from 'electron'
+import { app, clipboard, ClipboardItem, dialog, ipcMain, ShareMenu, type BrowserWindow } from 'electron'
 import { mkdtemp, rename, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileNameFor, toClipboard, toMarkdownFile, transcriptClipboard } from '../shared/exportNotes'
 import type { Store } from './store'
 import { isFake } from './paths'
 import { t } from '../shared/i18n'
+import { projectWebsite } from '../shared/project'
 
 type Side = 'mine' | 'enhanced'
 /** the notes on the side shown, falling back to the person's own when the enhanced ones are not there */
@@ -18,6 +19,19 @@ function notesOf(store: Pick<Store, 'notes'>, id: string, side: unknown): string
  * and the file goes where the save dialog says, never to a path the window made up.
  */
 export function hookShare(d: { store: Pick<Store, 'meeting' | 'notes' | 'segments'>; window: () => BrowserWindow | undefined }) {
+  ipcMain.handle('share:app-link', (event, x: unknown, y: unknown) => {
+    const win = d.window()
+    if (process.platform !== 'darwin' || !win || win.isDestroyed() || win.webContents !== event.sender || event.senderFrame !== event.sender.mainFrame) return false
+    if (typeof x !== 'number' || typeof y !== 'number' || !Number.isFinite(x) || !Number.isFinite(y)) return false
+    const zoom = event.sender.getZoomFactor()
+    const [width, height] = win.getContentSize()
+    new ShareMenu({ urls: [projectWebsite] }).popup({
+      window: win,
+      x: Math.max(0, Math.min(width - 1, Math.round(x * zoom))),
+      y: Math.max(0, Math.min(height - 1, Math.round(y * zoom))),
+    })
+    return true
+  })
   ipcMain.handle('share:copy', async (_e, id: unknown, what: unknown, side: unknown): Promise<'copied' | 'nothing' | 'failed'> => {
     if (typeof id !== 'string' || (what !== 'notes' && what !== 'transcript')) return 'nothing'
     const data = what === 'transcript'

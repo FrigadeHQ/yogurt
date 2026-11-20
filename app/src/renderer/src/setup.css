@@ -47,6 +47,8 @@
 .settings-backup { padding:20px; }
 .settings-backup>.settings-description { margin:0; }
 .settings-backup-actions { display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px; }
+.settings-about-actions { justify-content:space-between; }
+.settings-about-actions .workspace-button { font-size:13px; }
 .settings-backup-status { display:flex;flex-wrap:wrap;align-items:center;gap:5px 10px;margin-top:12px;font-size:12px;line-height:18px; }
 .settings-jargon-field { position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:5px;min-height:34px;margin-top:11px;padding:4px 5px;border:1px solid var(--line);border-radius:6px;background:var(--bg);cursor:text;transition:border-color var(--dur-micro) ease,box-shadow var(--dur-micro) ease; }
 .settings-jargon-field:has([data-focus-ring]) { border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft); }

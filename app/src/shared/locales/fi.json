@@ -1,4 +1,10 @@
 {
+  "About Yogurt": "Tietoja Yogurtista",
+  "Like Yogurt? Sharing it or starring it on GitHub helps us keep building it.": "Pidätkö Yogurtista? Kun jaat sen tai annat sille tähden GitHubissa, autat meitä jatkamaan sen kehittämistä.",
+  "Copy link": "Kopioi linkki",
+  "Share…": "Jaa…",
+  "View on GitHub": "Näytä GitHubissa",
+  "Yogurt couldn't open the share menu.": "Yogurt ei voinut avata jakovalikkoa.",
   "Open in transcript": "Avaa litteroinnissa",
   "Open note": "Avaa muistiinpano",
   "Other people": "Muut henkilöt",

@@ -134,6 +134,7 @@ const api: YogurtApi = {
     },
   },
   share: {
+    appLink: (x, y) => ipcRenderer.invoke('share:app-link', x, y),
     copy: (id, what, side) => ipcRenderer.invoke('share:copy', id, what, side),
     save: (id, side) => ipcRenderer.invoke('share:save', id, side),
   },

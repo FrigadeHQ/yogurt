@@ -1,3 +1,4 @@
+import { AboutYogurt } from '../components/AboutYogurt'
 import { LoadingContent } from '../components/LoadingContent'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Check, ChevronDown, Copy, Download, ExternalLink, Globe, Lock, Upload, FileText } from 'lucide-react'
@@ -167,6 +168,7 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
           <AiApps />
 
           <Updates />
+          <AboutYogurt />
 
           <h2 className="settings-section-heading">{t('Keyboard shortcuts')}</h2>
           <dl data-testid="settings-shortcuts" className="settings-group settings-shortcuts">

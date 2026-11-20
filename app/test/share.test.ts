@@ -6,10 +6,13 @@ import { join } from 'node:path'
 
 const handlers = new Map<string, (...a: unknown[]) => unknown>()
 const written: Array<Record<string, string>> = []
+const shareMenus: unknown[] = []
+const popup = vi.fn()
 const state = { clipboardFails: false, dialog: { canceled: false, filePath: '/tmp/x.md' } as { canceled: boolean; filePath?: string } }
 vi.mock('electron', () => ({
   app: { getPath: () => '/docs' },
   ipcMain: { handle: (c: string, f: (...a: unknown[]) => unknown) => { handlers.set(c, f) } },
+  ShareMenu: class { constructor(item: unknown) { shareMenus.push(item) } popup = popup },
   ClipboardItem: class { constructor(public items: Record<string, string>) {} },
   clipboard: { write: async (items: Array<{ items: Record<string, string> }>) => { if (state.clipboardFails) throw new Error('no'); written.push(items[0].items) } },
   dialog: { showSaveDialog: async () => state.dialog },
@@ -39,6 +42,44 @@ beforeEach(() => {
   hookShare({ store: store as never, window: () => undefined })
 })
 afterEach(() => rmSync(dir, { recursive: true, force: true }))
+
+describe('share:app-link', () => {
+  const sender = { mainFrame: {}, getZoomFactor: () => 1.5 }
+  const event = { sender, senderFrame: sender.mainFrame }
+  const window = { webContents: sender, isDestroyed: () => false, getContentSize: () => [600, 400] }
+  beforeEach(() => {
+    shareMenus.length = 0
+    hookShare({ store: store as never, window: () => window as never })
+  })
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('hands only the public site to the Mac menu and anchors it to the invoking window', () => {
+    vi.stubGlobal('process', Object.create(process, { platform: { value: 'darwin' } }))
+    const open = handlers.get('share:app-link')!
+    expect(open(event, 20.5, 42, 'unrelated renderer data')).toBe(true)
+    expect(shareMenus).toEqual([{ urls: ['https://yogurt.so'] }])
+    expect(popup).toHaveBeenCalledWith({ window, x: 31, y: 63 })
+    expect(open(event, -3, 501)).toBe(true)
+    expect(popup).toHaveBeenLastCalledWith({ window, x: 0, y: 399 })
+  })
+
+  it('ignores other windows, subframes, and invalid positions', () => {
+    vi.stubGlobal('process', Object.create(process, { platform: { value: 'darwin' } }))
+    const open = handlers.get('share:app-link')!
+    expect(open({ ...event, sender: {} }, 1, 2)).toBe(false)
+    expect(open({ ...event, senderFrame: {} }, 1, 2)).toBe(false)
+    expect(open(event, NaN, 2)).toBe(false)
+    expect(open(event, 1, Infinity)).toBe(false)
+    expect(open(event, '1', 2)).toBe(false)
+    expect(shareMenus).toHaveLength(0)
+  })
+
+  it.each(['win32', 'linux'])('does not construct a native menu on %s', platform => {
+    vi.stubGlobal('process', Object.create(process, { platform: { value: platform } }))
+    expect(handlers.get('share:app-link')!(event, 0, 0)).toBe(false)
+    expect(shareMenus).toHaveLength(0)
+  })
+})
 
 describe('share:copy', () => {
   it('copies the enhanced notes when there are some, the person\'s own when there are not', async () => {

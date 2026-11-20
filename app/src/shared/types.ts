@@ -147,8 +147,9 @@ export type YogurtApi = {
     /** status, the draft as it is written, and the saved notes; returns the way to stop listening */
     onChange(cb: (v: NoteView) => void): () => void
   }
-  /** copying and exporting a meeting's notes or transcript; `side` is the notes shown (the person's own or the enhanced ones) */
   share: {
+    /** opens the Mac share menu for the public Yogurt website, anchored in renderer CSS pixels */
+    appLink(x: number, y: number): Promise<boolean>
     /** puts the notes or the transcript on the clipboard as text and HTML; nothing: there was nothing to copy */
     copy(meetingId: string, what: 'notes' | 'transcript', side: 'mine' | 'enhanced'): Promise<'copied' | 'nothing' | 'failed'>
     /** asks where to save a Markdown file, then writes it */
