@@ -588,9 +588,8 @@ input::selection, textarea::selection, .note-prose ::selection { background: var
 .note-recording-group[data-recording=true] .note-record-action:last-child { border-start-end-radius:6px;border-end-end-radius:6px; }
 .note-recording-group[data-recording=true] .note-record-action:hover:not(:disabled) { background:var(--control-hover);color:var(--ink); }
 .note-recording-group[data-recording=true] .note-record-action:active:not(:disabled) { background:var(--control-pressed); }
-.note-recording-group[data-recording=true] .note-finish-action { height:30px;margin-block:-1px;margin-inline-end:-1px;min-width:68px;background:var(--primary);color:#FFFFFF; }
-.note-recording-group[data-recording=true] .note-finish-action:hover:not(:disabled),.note-recording-group[data-recording=true] .note-finish-action:active:not(:disabled) { background:var(--primary-hover);color:#FFFFFF; }
-.note-recording-group[data-recording=true] .note-finish-action:focus-visible { outline-color:#FFFFFF;outline-offset:-3px; }
+.note-recording-group[data-recording=true] .note-finish-action { --note-stop-icon:var(--accent);color:var(--ink); }
+.note-finish-action::before { content:"";width:8px;height:8px;border-radius:2px;background:var(--note-stop-icon); }
 .note-finishing { display:flex;align-items:center;height:30px;padding-inline:10px;border:1px solid var(--line);border-radius:6px;color:var(--muted);font-size:12px; }
 .workspace .note-record-action:focus-visible { outline-offset:-2px; }
 

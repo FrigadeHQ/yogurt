@@ -43,14 +43,14 @@ test('recording controls stay in the header and Ask lives in the footer with sta
           gap: bar.top - reading.bottom, masked: [el, el.parentElement!].some(node => getComputedStyle(node).maskImage !== 'none') }
       })
       expect(edges).toEqual({ left: 0, right: 0, bottom: 0, gap: 0, masked: false })
-      const finishStyle = await page.getByTestId('note-stop').evaluate(el => ({ background: getComputedStyle(el).backgroundColor, color: getComputedStyle(el).color }))
-      expect(finishStyle.background).not.toBe(await page.getByTestId('note-pause').evaluate(el => getComputedStyle(el).backgroundColor))
-      expect(finishStyle.color).not.toBe(finishStyle.background)
+      const stopStyle = await page.getByTestId('note-stop').evaluate(el => ({ background: getComputedStyle(el).backgroundColor, color: getComputedStyle(el).color }))
+      expect(stopStyle.background).toBe(await page.getByTestId('note-pause').evaluate(el => getComputedStyle(el).backgroundColor))
+      expect(stopStyle.color).not.toBe(stopStyle.background)
       const groupBox = (await controls.boundingBox())!, capBox = (await page.getByTestId('note-stop').boundingBox())!
-      expect(capBox.y).toBe(groupBox.y)
-      expect(capBox.height).toBe(groupBox.height)
+      expect(capBox.y).toBe(groupBox.y + 1)
+      expect(capBox.height).toBe(groupBox.height - 2)
       const rtl = await controls.evaluate(el => getComputedStyle(el).direction === 'rtl')
-      expect(rtl ? capBox.x : capBox.x + capBox.width).toBe(rtl ? groupBox.x : groupBox.x + groupBox.width)
+      expect(rtl ? capBox.x : capBox.x + capBox.width).toBe(rtl ? groupBox.x + 1 : groupBox.x + groupBox.width - 1)
       for (const dir of ['ltr', 'rtl']) {
         await page.evaluate((direction) => document.documentElement.dir = direction, dir)
         await page.setViewportSize({ width: 720, height: 520 })
