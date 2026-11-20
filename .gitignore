@@ -34,11 +34,6 @@ output/
 *.dmg
 
 # marketing site
-site/node_modules/
-site/.next/
-site/next-env.d.ts
-site/*.tsbuildinfo
-site/.vercel/
 
 # local credentials
 .env
@@ -48,5 +43,3 @@ site/.vercel/
 *.p8
 
 # written by next dev
-site/AGENTS.md
-site/CLAUDE.md
