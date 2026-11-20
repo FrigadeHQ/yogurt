@@ -44,7 +44,13 @@ test('first-run notification stands alone and help stays in a bounded disclosure
     if (!before) {
       await expect(page.getByTestId('notice-art').locator('img')).toBeVisible()
       await expect(page.locator('.ob-desk')).toHaveCount(0)
-      expect(await page.locator('.ob-prompt-countdown').evaluate(el => el.getAnimations().length)).toBe(0)
+      await expect(page.locator('.ob-prompt-countdown')).toHaveCount(0)
+      const illustration = page.locator('.ob-stage-art')
+      for (const reducedMotion of ['no-preference', 'reduce'] as const) {
+        await page.emulateMedia({ reducedMotion })
+        await expect(illustration).toHaveCSS('animation-name', 'none')
+        expect(await illustration.evaluate(el => el.getAnimations({ subtree: true }).length)).toBe(0)
+      }
     }
     for (const colorScheme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme })

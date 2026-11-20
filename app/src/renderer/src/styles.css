@@ -179,7 +179,7 @@ body {
 
 /* The recorder floats inside a transparent native window. */
 html.widget, html.widget body, html.widget #root { background: transparent; }
-html.widget { --pill:#232326;--pill-ink:#F7F7FA;--accent:#B780FF;--pill-accent:var(--accent);--widget-line:#48484D; }
+html.widget, .widget-pill[data-illustration] { --pill:#232326;--pill-ink:#F7F7FA;--accent:#B780FF;--pill-accent:var(--accent);--widget-line:#48484D; }
 .widget-pill {
   background: var(--pill);
   border:1px solid var(--widget-line);
@@ -192,6 +192,10 @@ html.widget { --pill:#232326;--pill-ink:#F7F7FA;--accent:#B780FF;--pill-accent:v
 .widget-morph[data-open=true] { cursor:grab; }
 .widget-details { position:absolute;left:0;top:0;z-index:2; }
 .widget-details>* { position:absolute;left:0;top:0;margin:0; }
+/* The resting recorder in the first-run call. Only the native window morphs on hover. */
+.widget-pill[data-illustration] { width:max-content;border-radius:10px;color:var(--pill-ink);direction:ltr; }
+.widget-pill[data-illustration] .widget-details { position:static;display:flex;align-items:center;gap:12px;height:40px;padding:0 12px; }
+.widget-pill[data-illustration] .widget-details>* { position:static; }
 .widget-time { white-space:nowrap;font-size:10px;font-weight:500;font-variant-numeric:tabular-nums;line-height:15px;opacity:.8; }
 .widget-preview { position:absolute;left:0;top:52px;display:flex;flex-direction:column;padding:0 4px 12px 12px;color:var(--pill-ink);font-size:14px;line-height:21px;transform-origin:50% 0;cursor:default; }
 /* closed: the transcript stays mounted but unpainted (hidden once the close has played, its live dots paused); the meter repaints only itself */

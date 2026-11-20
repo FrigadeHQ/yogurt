@@ -1,9 +1,12 @@
-import { AudioLines, CalendarDays, Check, Lock, Mic, Plus, X } from 'lucide-react'
+import { AudioLines, CalendarDays, Check, Mic, PhoneOff, Plus, Video, X } from 'lucide-react'
 import type { PermissionKind } from '../../../shared/types'
 import type { ScreenId } from '../../../shared/onboarding'
 import { Logo } from './Logo'
 import { t } from '../../../shared/i18n'
-import { osWords } from '../keys'
+import { RecordingPill } from './RecordingPill'
+import rayPhoto from '../assets/onboarding/ray.webp'
+import lincolnPhoto from '../assets/onboarding/lincoln.webp'
+import mayaPhoto from '../assets/onboarding/maya.webp'
 import macIcon from '../../../../build/icon.png'
 
 /*
@@ -15,31 +18,26 @@ import macIcon from '../../../../build/icon.png'
 
 const d = (i: number) => ({ ['--i' as string]: i })
 
-/** W1: the conversation written down and kept on this Mac. */
-export function WelcomeArt() {
-  return (
-    <div className="ob-scene ob-conversation">
-      <div className="ob-card">
-        <div className="ob-card-head"><AudioLines size={14} strokeWidth={2} />{t('Transcript')}</div>
-        <div className="ob-chat">
-          <Bubble i={0} who="Ann" text={t('The site goes live on Tuesday.')} />
-          <Bubble i={1} me text={t('Great. Who is writing the copy?')} />
-          <Bubble i={2} who="Bo" text={t("I'll send a draft by Friday.")} />
-        </div>
-      </div>
-      <span className="ob-chip"><Lock size={11} strokeWidth={2.25} />{osWords({ mac: t('Saved on this Mac'), other: t('Saved on this computer') })}</span>
+const ray = { name: 'Ray', photo: rayPhoto, width: 600, height: 556 }
+const maya = { name: 'Maya', photo: mayaPhoto, width: 308, height: 308 }
+
+function CallWindow({ welcome = false }: { welcome?: boolean }) {
+  const you = { name: t('You'), photo: lincolnPhoto, width: 600, height: 556 }
+  const people = welcome ? [ray, you] : [ray, you, maya]
+  return <div className="ob-call">
+    <div className="ob-call-grid">
+      {people.map(person => <div key={person.photo} className="ob-tile" data-talking={person === ray}>
+        <img src={person.photo} width={person.width} height={person.height} alt="" />
+        <span className="ob-tile-name">{person.name}</span>
+      </div>)}
     </div>
-  )
+    <div className="ob-call-controls"><Mic size={13} /><Video size={14} /><PhoneOff size={13} /></div>
+    {welcome && <RecordingPill illustration time="0:24" />}
+  </div>
 }
 
-/** One line of a call, as the transcript shows it: the other side at the start under their name, yours at the end */
-function Bubble({ i, who, text, me }: { i: number; who?: string; text: string; me?: boolean }) {
-  return (
-    <div className={me ? 'ob-turn ob-turn-me' : 'ob-turn'} style={d(i)}>
-      {who && <span className="ob-turn-who">{who}</span>}
-      <span className={me ? 'ob-bubble ob-bubble-me' : 'ob-bubble'}>{text}</span>
-    </div>
-  )
+export function WelcomeArt() {
+  return <div className="ob-scene ob-conversation"><CallWindow welcome /></div>
 }
 
 /** The picture of one permission screen; on: what is turned on so far */
@@ -97,17 +95,16 @@ function CalendarArt() {
   )
 }
 
-/** The notification alone, with its countdown held while the person reads the first run. */
+/** A still example of the reminder that appears when a call starts. */
 function NoticeArt() {
   return (
     <div className="ob-scene ob-notice">
-        <div className="ob-prompt" data-testid="notice-art">
-          <span className="ob-prompt-countdown" />
-            <img src={macIcon} alt="" className="ob-prompt-icon" />
-            <span className="ob-prompt-copy"><span className="ob-prompt-label">{t('Take notes?')}</span><span className="ob-prompt-title">{t('{app} call', { app: 'Zoom' })}</span></span>
-            <span className="ob-prompt-button">{t('Start recording')}</span>
-            <X size={13} className="ob-prompt-close" />
-        </div>
+      <div className="ob-prompt" data-testid="notice-art">
+        <img src={macIcon} alt="" className="ob-prompt-icon" />
+        <span className="ob-prompt-copy"><span className="ob-prompt-label">{t('Take notes?')}</span><span className="ob-prompt-title">{t('{app} call', { app: 'Zoom' })}</span></span>
+        <span className="ob-prompt-button">{t('Start recording')}</span>
+        <X size={13} className="ob-prompt-close" />
+      </div>
     </div>
   )
 }
@@ -115,22 +112,19 @@ function NoticeArt() {
 /** Why Accessibility: the names the call shows, and the same lines turning from Them into those names */
 export function SpeakerNamesArt() {
   const lines: { who?: string; text: string }[] = [
-    { who: 'Chris', text: t('Sure. The site goes live on Tuesday.') },
-    { text: t('Great. Who is writing the copy?') },
-    { who: 'Jenny', text: t("I'll send a draft by Friday.") },
+    { who: ray.name, text: t("I'll send a draft by Friday.") },
+    { text: t("I'll review it that afternoon.") },
+    { who: maya.name, text: t('Then I can get the final copy ready for Tuesday.') },
   ]
   return (
     <div data-testid="speaker-names-art" className="ob-scene ob-names">
-      <div className="ob-call">
-        {['Chris', 'Jenny', t('You')].map((n, i) => <span key={n} className="ob-tile" data-talking={i === 0}><span className="ob-tile-face">{n.slice(0, 1)}</span><span className="ob-tile-name">{n}</span></span>)}
-      </div>
-      <div className="ob-card ob-chat ob-names-chat">
-        {lines.map((l, i) => l.who ? (
-          <div key={i} className="ob-turn">
-            <span className="ob-turn-who ob-swap" style={d(i)}><span className="ob-swap-from">{t('Them')}</span><span className="ob-swap-to">{l.who}</span></span>
-            <span className="ob-bubble">{l.text}</span>
-          </div>
-        ) : <div key={i} className="ob-turn ob-turn-me"><span className="ob-bubble ob-bubble-me">{l.text}</span></div>)}
+      <CallWindow />
+      <div className="ob-card ob-transcript">
+        {lines.map((line, i) => <p key={i} className="ob-turn">
+          {line.who ? <b className="ob-swap" style={d(i)}><span className="ob-swap-from">{t('Them')}</span><span className="ob-swap-to">{line.who}</span></b>
+            : <b>{t('You')}</b>}
+          {line.text}
+        </p>)}
       </div>
     </div>
   )
