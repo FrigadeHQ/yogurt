@@ -137,7 +137,8 @@ test('turning retention off leaves older recordings even when their summaries ar
   try {
     const id = await fake<string>(app, 'bigMeeting', 4)
     await page.getByTestId('settings-open').click()
-    await expect(page.getByText("When off, new meetings' audio is deleted once the summary is saved.")).toBeVisible()
+    // inside the setting itself: the loading view shows the same words for a moment
+    await expect(page.getByTestId('recording-setting').getByText("When off, new meetings' audio is deleted once the summary is saved.")).toBeVisible()
     await page.getByTestId('keep-recordings-toggle').click()
     await expect(page.getByTestId('keep-recordings-toggle')).toHaveAttribute('aria-checked', 'false')
     await page.evaluate(id => window.yogurt.notes.writeAgain(id), id)
