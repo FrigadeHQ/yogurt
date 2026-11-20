@@ -1,4 +1,5 @@
 import ICAL from 'ical.js'
+import { parseEvents } from '../src/main/calendar'
 import { describe, expect, it, vi } from 'vitest'
 import { icsEvents, icsFeed, icsName } from '../src/main/calendarLink/ics'
 
@@ -146,4 +147,26 @@ END:VEVENT`
     expect(parse).toHaveBeenCalledTimes(1)
     parse.mockRestore()
   })
+})
+
+it('marks a decline only when the feed identifies the attendee as its owner', () => {
+  const text = (owner: string, respondent: string) => `BEGIN:VCALENDAR
+VERSION:2.0
+X-WR-CALNAME:${owner}
+BEGIN:VEVENT
+UID:meeting
+DTSTART:20261118T100000Z
+DTEND:20261118T103000Z
+SUMMARY:Weekly sync
+ATTENDEE;PARTSTAT=DECLINED:mailto:${respondent}
+END:VEVENT
+END:VCALENDAR`
+  for (const [owner, attendee, declined] of [
+    ['owner@example.com', 'owner@example.com', true],
+    ['owner@example.com', 'guest@example.com', false],
+    ['Shared calendar', 'guest@example.com', false],
+  ] as const) {
+    const raw = icsEvents(text(owner, attendee), at('2026-11-18T00:00:00Z'), at('2026-11-19T00:00:00Z'), link)
+    expect(parseEvents(raw)[0].declined === true).toBe(declined)
+  }
 })

@@ -18,7 +18,7 @@ const isKind = (k: unknown): k is PermissionKind => PERMISSION_KINDS.includes(k 
 let firstRunShowing = false
 export const onboardingShowing = (): boolean => firstRunShowing
 
-export function hookPreferences(d: { file: string; permissions: Permissions; ask: boolean; setLogin(on: boolean): void; setTrayVisible(on: boolean): void; setDockVisible(on: boolean): void; loginOn(saved: boolean | undefined): boolean; /** the Mac's full name */ macName(): string
+export function hookPreferences(d: { file: string; permissions: Permissions; ask: boolean; setLogin(on: boolean): void; setTrayVisible(on: boolean): void; setShowNextMeeting(on: boolean): void; setDockVisible(on: boolean): void; loginOn(saved: boolean | undefined): boolean; /** the Mac's full name */ macName(): string
   /** quit and open again, for a permission the Mac applies only then; false when it can't now (recording) */
   relaunch(): boolean
   /** fake mode: a slow start, so tests see the launch screen */
@@ -59,7 +59,7 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
     // what the Mac says, so a change in System Settings shows here
     // locale: every window (main, card, widget) shows the interface language
     // language: the one picked ('' is the Mac's); locale: the one in use; systemLocale: the Mac's, for the picker
-    return { theme: s.theme ?? 'system', openAtLogin: d.loginOn(s.openAtLogin), showInMenuBar: s.showInMenuBar !== false, appVisibility: !visible.showInMenuBar ? 'dock' : visible.showInDock ? 'both' : 'menu-bar', language: isLocale(s.language) ? s.language : '', locale: localeOf(s, systemLocale()), systemLocale: systemLocale(), myName: s.myName?.trim() || d.macName(), macName: d.macName(), stopWhenCallEnds: stopsWhenCallEnds(s), recordingReminder: recordingReminderOn(s), keepRecordings: s.keepRecordings !== false, jargon: cleanJargon(s.jargon), spoken: spokenSetting(s), summaryLanguage: summaryLanguageSetting(s) }
+    return { theme: s.theme ?? 'system', openAtLogin: d.loginOn(s.openAtLogin), showInMenuBar: visible.showInMenuBar, showNextMeeting: s.showNextMeeting !== false, appVisibility: !visible.showInMenuBar ? 'dock' : visible.showInDock ? 'both' : 'menu-bar', language: isLocale(s.language) ? s.language : '', locale: localeOf(s, systemLocale()), systemLocale: systemLocale(), myName: s.myName?.trim() || d.macName(), macName: d.macName(), stopWhenCallEnds: stopsWhenCallEnds(s), recordingReminder: recordingReminderOn(s), keepRecordings: s.keepRecordings !== false, jargon: cleanJargon(s.jargon), spoken: spokenSetting(s), summaryLanguage: summaryLanguageSetting(s) }
   })
   // what the person is called in meetings (who "You" is when naming voices); blank: the Mac's full name again
   ipcMain.handle('settings:name', (_e, v: unknown) => {
@@ -115,6 +115,11 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
     if (os === 'darwin' || typeof on !== 'boolean') return
     updateSettings(d.file, { showInMenuBar: on ? undefined : false })
     d.setTrayVisible(on)
+  })
+  ipcMain.handle('settings:next-meeting', (_e, on: unknown) => {
+    if (typeof on !== 'boolean') return
+    updateSettings(d.file, { showNextMeeting: on ? undefined : false })
+    d.setShowNextMeeting(on)
   })
   ipcMain.handle('settings:visibility', (_e, choice: unknown) => {
     if (os !== 'darwin' || (choice !== 'both' && choice !== 'menu-bar' && choice !== 'dock')) return

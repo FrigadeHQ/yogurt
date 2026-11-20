@@ -14,7 +14,7 @@ it.each(['win32', 'linux'])('%s tray defaults on, persists changes and rejects n
   const dir = mkdtempSync(join(tmpdir(), 'yogurt-menu-pref-')); dirs.push(dir)
   const file = join(dir, 'settings.json')
   const setTrayVisible = vi.fn()
-  const deps = { file, os, permissions: {} as Parameters<typeof hookPreferences>[0]['permissions'], ask: false, setLogin: vi.fn(), loginOn: () => false, macName: () => '', relaunch: () => false, setTrayVisible, setDockVisible: vi.fn() }
+  const deps = { setShowNextMeeting: vi.fn(), file, os, permissions: {} as Parameters<typeof hookPreferences>[0]['permissions'], ask: false, setLogin: vi.fn(), loginOn: () => false, macName: () => '', relaunch: () => false, setTrayVisible, setDockVisible: vi.fn() }
   hookPreferences(deps)
   const get = () => handlers.get('settings:get')!()
   const set = (value: unknown) => handlers.get('settings:menu-bar')!(null, value)
@@ -39,7 +39,7 @@ it.each(['win32', 'linux'])('%s tray defaults on, persists changes and rejects n
 it('keeps recordings by default and persists only a valid retention preference', () => {
   const dir = mkdtempSync(join(tmpdir(), 'yogurt-audio-pref-')); dirs.push(dir)
   const file = join(dir, 'settings.json')
-  const deps = { file, permissions: {} as Parameters<typeof hookPreferences>[0]['permissions'], ask: false, setLogin: vi.fn(), loginOn: () => false, macName: () => 'Dana', relaunch: () => false, setTrayVisible: vi.fn(), setDockVisible: vi.fn() }
+  const deps = { setShowNextMeeting: vi.fn(), file, permissions: {} as Parameters<typeof hookPreferences>[0]['permissions'], ask: false, setLogin: vi.fn(), loginOn: () => false, macName: () => '', relaunch: () => false, setTrayVisible: vi.fn(), setDockVisible: vi.fn() }
   hookPreferences(deps)
   const get = () => handlers.get('settings:get')!().keepRecordings
   const set = (on: unknown) => handlers.get('settings:keep-recordings')!(null, on)
@@ -58,4 +58,27 @@ it('keeps recordings by default and persists only a valid retention preference',
   expect(loadSettings(file).recordingsOffAt).toBeUndefined()
   now.mockReturnValue(4000); set(false)
   expect(loadSettings(file).recordingsOffAt).toBe(4000)
+})
+
+it('shows meeting titles by default, preserves the opt-out across visibility changes and validates the switch', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'menu-meeting-pref-')); dirs.push(dir)
+  const file = join(dir, 'settings.json'), changed = vi.fn()
+  const deps = { file, os: 'darwin', permissions: {} as Parameters<typeof hookPreferences>[0]['permissions'], ask: false, setLogin: vi.fn(),
+    loginOn: () => false, macName: () => '', relaunch: () => false, setTrayVisible: vi.fn(), setDockVisible: vi.fn(), setShowNextMeeting: changed }
+  hookPreferences(deps)
+  const get = () => handlers.get('settings:get')!()
+  const set = (value: unknown) => handlers.get('settings:next-meeting')!(null, value)
+  expect(get().showNextMeeting).toBe(true)
+  set(false)
+  for (const choice of ['dock', 'menu-bar', 'both']) {
+    handlers.get('settings:visibility')!(null, choice)
+    expect(get()).toMatchObject({ showNextMeeting: false, showInMenuBar: choice !== 'dock' })
+  }
+  hookPreferences(deps)
+  for (const invalid of [undefined, null, 0, 'true']) set(invalid)
+  expect(get().showNextMeeting).toBe(false)
+  expect(changed.mock.calls).toEqual([[false]])
+  set(true)
+  expect(loadSettings(file).showNextMeeting).toBeUndefined()
+  expect(changed).toHaveBeenLastCalledWith(true)
 })

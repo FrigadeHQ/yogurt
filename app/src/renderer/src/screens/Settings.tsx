@@ -18,6 +18,16 @@ import { CalendarSettings } from '../components/CalendarSettings'
 import { supportedKinds, settingsPage } from '../../../shared/platform'
 import { Swap, SwapText } from '../components/Swap'
 
+export function NextMeetingSetting({ visible, on, onChange }: { visible: boolean; on: boolean; onChange(on: boolean): void }) {
+  if (!visible) return null
+  return <div className="settings-row">
+    <label htmlFor="settings-next-meeting" className="settings-label settings-row-copy">{t('Show the next meeting')}</label>
+    <button id="settings-next-meeting" role="switch" aria-checked={on} onClick={() => onChange(!on)} className="settings-toggle">
+      <span className="settings-toggle-knob" />
+    </button>
+  </div>
+}
+
 const THEMES = () => [['system', osWords({ mac: t('Match my Mac'), windows: t('Match Windows'), linux: t('Match my system') })], ['light', t('Light')], ['dark', t('Dark')]] as const
 // each computer's own words for starting at login and its icon's place: the menu bar, the notification area, the tray
 const loginLabel = () => osWords({ mac: t('Open Yogurt when your Mac starts'), windows: t('Open Yogurt when Windows starts'), linux: t('Open Yogurt when you log in') })
@@ -62,7 +72,7 @@ function useSettingSave(actionId: string, refresh: () => void) {
 /** focus: the setting requested by the entry point */
 export function Settings({ revision = 0, focus }: { revision?: number; focus?: string }) {
   const [perms, setPerms] = useState<PermissionStatus>()
-  const [prefs, setPrefs] = useState<{ theme: Theme; openAtLogin: boolean; showInMenuBar: boolean; appVisibility: AppVisibility; myName: string; macName: string; stopWhenCallEnds: boolean; recordingReminder: boolean; keepRecordings: boolean }>()
+  const [prefs, setPrefs] = useState<Awaited<ReturnType<typeof window.yogurt.settings.get>>>()
   const [name, setName] = useState('')
   const [generalReady, setGeneralReady] = useState(false)
   const scroll = useScrollMemory<HTMLDivElement>('settings', !!prefs && !!perms)
@@ -168,6 +178,10 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
               <button data-testid="menu-bar-toggle" role="switch" aria-checked={!!prefs?.showInMenuBar} aria-label={trayLabel()} onClick={menuBar}
                 className="settings-toggle"><span className="settings-toggle-knob" /></button>
             </div>}
+            <NextMeetingSetting visible={!!prefs?.showInMenuBar} on={prefs?.showNextMeeting ?? true} onChange={async on => {
+              await window.yogurt.settings.setShowNextMeeting(on)
+              setPrefs(p => p && { ...p, showNextMeeting: on })
+            }} />
             <div className="settings-row">
               <div className="settings-row-copy">
                 <p className="settings-label">{t('Finish recording when the call ends')}</p>
