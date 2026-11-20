@@ -214,6 +214,8 @@
   "Language": "Kieli",
   "Latest": "Uusimmat",
   "Let AI apps read your meetings": "Anna tekoälysovellusten lukea kokouksiasi",
+  "Let AI apps make changes": "Anna tekoälysovellusten tehdä muutoksia",
+  "They can file and rename meetings, edit notes, start and stop recording, and bring in meetings from other notes apps. Nothing is deleted for good: removed meetings go to the Trash.": "Ne voivat järjestää kokouksia kansioihin ja nimetä niitä uudelleen, muokata muistiinpanoja, aloittaa ja lopettaa nauhoituksen sekä tuoda kokouksia muista muistiinpanosovelluksista. Mitään ei poisteta lopullisesti: poistetut kokoukset menevät roskakoriin.",
   "Let everyone know you're recording.": "Kerro kaikille, että tallennat.",
   "Light": "Vaalea",
   "Light theme": "Vaalea teema",

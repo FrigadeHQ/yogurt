@@ -214,6 +214,8 @@
   "Language": "Dil",
   "Latest": "En yeni",
   "Let AI apps read your meetings": "Yapay zekâ uygulamaları toplantılarınızı okuyabilsin",
+  "Let AI apps make changes": "Yapay zekâ uygulamaları değişiklik yapabilsin",
+  "They can file and rename meetings, edit notes, start and stop recording, and bring in meetings from other notes apps. Nothing is deleted for good: removed meetings go to the Trash.": "Toplantıları klasörlere koyup yeniden adlandırabilir, notları düzenleyebilir, kaydı başlatıp durdurabilir ve başka not uygulamalarından toplantı aktarabilirler. Hiçbir şey kalıcı olarak silinmez: kaldırılan toplantılar Çöp Sepeti’ne gider.",
   "Let everyone know you're recording.": "Kayıt yaptığınızı herkese bildirin.",
   "Light": "Açık",
   "Light theme": "Açık tema",

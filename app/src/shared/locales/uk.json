@@ -218,6 +218,8 @@
   "Language": "Мова",
   "Latest": "Останні",
   "Let AI apps read your meetings": "Дозволити ШІ-програмам читати ваші зустрічі",
+  "Let AI apps make changes": "Дозволити ШІ-програмам вносити зміни",
+  "They can file and rename meetings, edit notes, start and stop recording, and bring in meetings from other notes apps. Nothing is deleted for good: removed meetings go to the Trash.": "Вони можуть розкладати зустрічі по папках і перейменовувати їх, редагувати нотатки, починати й зупиняти запис, а також переносити зустрічі з інших програм для нотаток. Нічого не видаляється назавжди: вилучені зустрічі потрапляють у Кошик.",
   "Let everyone know you're recording.": "Повідомте всім, що ви ведете запис.",
   "Light": "Світлий",
   "Light theme": "Світла тема",

@@ -214,6 +214,8 @@
   "Language": "Wika",
   "Latest": "Pinakabago",
   "Let AI apps read your meetings": "Hayaang basahin ng mga AI app ang mga meeting mo",
+  "Let AI apps make changes": "Hayaang gumawa ng mga pagbabago ang mga AI app",
+  "They can file and rename meetings, edit notes, start and stop recording, and bring in meetings from other notes apps. Nothing is deleted for good: removed meetings go to the Trash.": "Puwede nilang ilagay sa folder at palitan ang pangalan ng mga meeting, i-edit ang mga note, simulan at ihinto ang pagre-record, at magdala ng mga meeting mula sa ibang notes app. Walang nabubura nang tuluyan: napupunta sa Trash ang mga inalis na meeting.",
   "Let everyone know you're recording.": "Ipaalam sa lahat na nagre-record ka.",
   "Light": "Light",
   "Light theme": "Maliwanag na tema",

@@ -229,6 +229,30 @@ it.each([false, true])('retries the last requested AI access setting (reopen Set
   } finally { view.unmount() }
 })
 
+it('offers letting AI apps make changes only once they can read, off until turned on', async () => {
+  const { Settings } = await import('../src/renderer/src/screens/Settings')
+  let saved = { enabled: false, changes: false, command: 'test', clients: [] as string[] }
+  const setChanges = vi.fn(async (changes: boolean) => (saved = { ...saved, changes }))
+  vi.stubGlobal('window', { yogurt: { capabilities: {}, mcp: { status: async () => saved, onClients: () => () => {}, set: vi.fn(), setChanges } } })
+  const panel = find(renderer(() => Settings({}))(), 'AiApps')
+  const mount = async () => {
+    const render = renderer(() => (panel.type as Function)(panel.props))
+    render()
+    vi.mocked(useEffect).mock.calls.map(([effect]) => effect())
+    await Promise.resolve()
+    return render
+  }
+  let render = await mount()
+  expect(() => find(render(), 'ai-apps-changes-toggle')).toThrow('Missing')
+  saved = { ...saved, enabled: true }
+  render = await mount()
+  const toggle = () => find(render(), 'ai-apps-changes-toggle').props
+  expect(toggle()['aria-checked']).toBe(false)
+  await toggle().onClick()
+  expect(setChanges).toHaveBeenCalledWith(true)
+  expect(toggle()['aria-checked']).toBe(true)
+})
+
 it('opens a command-search question as a draft when recording prevents an answer', async () => {
   vi.stubGlobal('document', { activeElement: null })
   vi.stubGlobal('HTMLButtonElement', class {})

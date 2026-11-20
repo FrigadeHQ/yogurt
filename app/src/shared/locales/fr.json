@@ -216,6 +216,8 @@
   "Language": "Langue",
   "Latest": "Plus récent",
   "Let AI apps read your meetings": "Autoriser les apps d’IA à lire vos réunions",
+  "Let AI apps make changes": "Autoriser les apps d’IA à faire des modifications",
+  "They can file and rename meetings, edit notes, start and stop recording, and bring in meetings from other notes apps. Nothing is deleted for good: removed meetings go to the Trash.": "Elles peuvent classer et renommer les réunions, modifier les notes, lancer et arrêter l’enregistrement, et importer des réunions d’autres apps de notes. Rien n’est supprimé définitivement : les réunions retirées vont dans la Corbeille.",
   "Let everyone know you're recording.": "Prévenez tout le monde que vous enregistrez.",
   "Light": "Clair",
   "Light theme": "Thème clair",
