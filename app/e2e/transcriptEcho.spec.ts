@@ -12,7 +12,7 @@ test('the mic copy of the call (an echo) is simply left out of the transcript, w
     const page = await app.firstWindow()
     await expect(page.getByTestId('home')).toBeVisible()
     const id = await app.evaluate(() => (globalThis as any).__fake__.bigMeeting(1)) as string
-    db = new DatabaseSync(join(userData, 'yogurt.db'))
+    db = new DatabaseSync(join(userData, 'yogurt.db'), { timeout: 5000 })
     db.prepare('DELETE FROM segments WHERE meeting_id=?').run(id)
     const add = db.prepare('INSERT INTO segments(meeting_id,track,start_ms,end_ms,text,speaker,hidden) VALUES(?,?,?,?,?,?,?)')
     for (const [i, hidden] of [false, true, true, false, true].entries()) add.run(id, hidden ? 'me' : 'them', i * 3000, i * 3000 + 1000, `Speech ${i}`, null, Number(hidden))

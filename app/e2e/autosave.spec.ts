@@ -16,7 +16,7 @@ async function launch(env: Record<string, string> = {}) {
   await page.getByTestId('past-note').click()
   await expect(page.getByTestId('note-enhanced')).toBeVisible()
   const id = (await page.evaluate(() => window.yogurt.nav.current())).slice('/note/'.length)
-  const db = new DatabaseSync(join(userData, 'yogurt.db'))
+  const db = new DatabaseSync(join(userData, 'yogurt.db'), { timeout: 5000 })
   return { app, page, db, id }
 }
 const failWrites = (db: DatabaseSync) => db.exec("CREATE TRIGGER test_note_write_failure BEFORE INSERT ON notes BEGIN SELECT RAISE(FAIL, 'test note write failure'); END")

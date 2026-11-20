@@ -23,7 +23,7 @@ async function launch() {
   await page.getByTestId('past-note').click()
   await expect(page.getByTestId('note-enhanced')).toBeVisible()
   const id = (await page.evaluate(() => window.yogurt.nav.current())).slice('/note/'.length)
-  const db = new DatabaseSync(join(userData, 'yogurt.db'))
+  const db = new DatabaseSync(join(userData, 'yogurt.db'), { timeout: 5000 })
   return { app, page, id, db, out }
 }
 const fail = (db: DatabaseSync) => db.exec("CREATE TRIGGER test_rewrite_failure BEFORE INSERT ON notes BEGIN SELECT RAISE(FAIL, 'rewrite save failed'); END")

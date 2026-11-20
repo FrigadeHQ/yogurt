@@ -36,7 +36,7 @@ async function prepareCalendarNote(page: Page, title: string) {
 
 test('meeting rows show captured duration, excluding gaps, only after recording finishes', async () => {
   const { app, page, userData } = await launch()
-  const db = new DatabaseSync(join(userData, 'yogurt.db'))
+  const db = new DatabaseSync(join(userData, 'yogurt.db'), { timeout: 5000 })
   try {
     await fake(app, 'manyMeetings', 6)
     db.prepare("UPDATE meetings SET duration_ms = ?, ended_at = started_at + ? WHERE title = 'Budget review'").run(32 * 60_000, 2 * 24 * 60 * 60_000)
