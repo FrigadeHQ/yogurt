@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bootHoldMs, BOOT, finishSetupPercent, firstRunPlan, isEssential, missing, nudge, screensOf, viaSystemSettings } from '../src/shared/onboarding'
+import { bootHoldMs, BOOT, firstRunPlan, isEssential, missing, nudge, screensOf, viaSystemSettings } from '../src/shared/onboarding'
 import { capabilities, supportedKinds } from '../src/shared/platform'
 import type { PermissionStatus } from '../src/shared/types'
 
@@ -105,16 +105,15 @@ describe('a computer without a calendar (Windows)', () => {
     const plan = firstRunPlan({ ask: true, welcomed: false, introSeen: false, status: { ...all('unknown'), accessibility: 'granted' }, kinds })
     expect(screensOf(plan.steps).map((s) => s.id)).toEqual(['record', 'notifications'])
   })
-  it('Finish setup leaves it out of the list and the progress', () => {
+  it('Finish setup leaves it out of the list', () => {
     const st: PermissionStatus = { ...all('granted'), calendar: 'unknown' }
     expect(missing(st, kinds)).toEqual([])
     expect(nudge(st, [], kinds)).toEqual([])
-    expect(finishSetupPercent(st, kinds)).toBe(100)
   })
   it('a Mac is unchanged: its own list is the default', () => {
     const st: PermissionStatus = { ...all('granted'), accessibility: 'unknown' }
     expect(missing(st, supportedKinds(capabilities('darwin'))).map((m) => m.kind)).toEqual(['accessibility'])
-    expect(finishSetupPercent(st, supportedKinds(capabilities('darwin')))).toBe(finishSetupPercent(st))
+    expect(missing(st, supportedKinds(capabilities('darwin')))).toEqual(missing(st))
   })
 })
 
@@ -124,7 +123,7 @@ describe('a Linux computer with names from calls', () => {
     const plan = firstRunPlan({ ask: true, welcomed: false, introSeen: false, status: all('unknown'), kinds })
     expect(screensOf(plan.steps).map((s) => s.id)).toEqual(['record', 'notifications', 'accessibility'])
     // AT-SPI asks nothing, so the permission reads granted without a prompt
-    expect(finishSetupPercent({ ...all('granted'), calendar: 'unknown' }, kinds)).toBe(100)
+    expect(missing({ ...all('granted'), calendar: 'unknown' }, kinds)).toEqual([])
   })
 })
 
