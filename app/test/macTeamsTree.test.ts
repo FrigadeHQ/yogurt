@@ -25,4 +25,10 @@ describe('call-watch on the Teams desktop app (#111)', () => {
   it('says in the log why no window was a call', () => {
     expect(swift).toContain('"no-call-window (\\(lastControlLook))"')
   })
+  it("asks Chrome for the Meet page the way screen readers do, and turns that off when the watch ends", () => {
+    const ask = swift.slice(swift.indexOf('func askTree'), swift.indexOf('func resetTrees'))
+    expect(ask).toContain('"AXEnhancedUserInterface" as CFString, kCFBooleanTrue')
+    expect(swift).toMatch(/readDataToEndOfFile\(\); DispatchQueue\.main\.sync \{ resetTrees\(\) \}; exit\(0\)/)
+  })
 })
+

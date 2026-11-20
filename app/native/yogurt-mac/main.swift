@@ -226,7 +226,21 @@ func askTree(_ app: AXUIElement, _ r: NSRunningApplication, force: Bool = false)
   guard let id = r.bundleIdentifier, chromium.contains(id), !askedTree.contains(r.processIdentifier) else { return }
   guard force || id.hasPrefix("com.microsoft.teams") else { return }
   AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+  // Chrome itself (not Electron) can ignore AXManualAccessibility and show only its tabs and toolbar, never the Meet
+  // page: a Meet call read 0 names that way. Screen readers ask with AXEnhancedUserInterface, which Chrome honours. It
+  // can slow window animations in that app, so it is turned back off when the watch ends (resetTrees).
+  if !id.hasPrefix("com.microsoft.teams") {
+    AXUIElementSetAttributeValue(app, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue)
+    enhanced.append(r.processIdentifier)
+  }
   askedTree.insert(r.processIdentifier)
+}
+
+/// the browsers asked with AXEnhancedUserInterface, to turn it back off when the watch ends
+var enhanced: [pid_t] = []
+func resetTrees() {
+  for pid in enhanced { AXUIElementSetAttributeValue(AXUIElementCreateApplication(pid), "AXEnhancedUserInterface" as CFString, kCFBooleanFalse) }
+  enhanced = []
 }
 
 func axAttr(_ e: AXUIElement, _ name: String) -> AnyObject? {
@@ -347,7 +361,7 @@ func callWindows(_ app: AXUIElement, _ id: String) -> [AXUIElement] {
 
 func watchCalls(every: Int, ids: [String]) {
   // Yogurt closes stdin to stop the watch (and a crashed Yogurt closes it too)
-  DispatchQueue.global().async { _ = FileHandle.standardInput.readDataToEndOfFile(); exit(0) }
+  DispatchQueue.global().async { _ = FileHandle.standardInput.readDataToEndOfFile(); DispatchQueue.main.sync { resetTrees() }; exit(0) }
   let line = { (v: [String: Any]) in
     guard let d = try? JSONSerialization.data(withJSONObject: v) else { return }
     FileHandle.standardOutput.write(d); FileHandle.standardOutput.write("\n".data(using: .utf8)!)
