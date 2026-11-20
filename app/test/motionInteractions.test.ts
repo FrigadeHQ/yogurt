@@ -119,6 +119,28 @@ function watchRetryToast() {
   return vi.spyOn(toasts, 'add').mockReturnValue('test-toast')
 }
 
+it.each([
+  ['darwin', true, 'Appears while you record with Yogurt in the background.'],
+  ['darwin', false, 'Show Yogurt in the menu bar to hide the pill.'],
+  ['win32', true, null], ['linux', true, null],
+])('describes the pill switch on %s with menu bar visibility %s', async (os, showInMenuBar, description) => {
+  const { Settings } = await import('../src/renderer/src/screens/Settings')
+  const settings = { get: async () => ({ showInMenuBar, showRecordingPill: true }) }
+  vi.stubGlobal('window', { yogurt: { os, settings, capabilities: {} } })
+  const draw = renderer(() => Settings({ revision: 17 }))
+  draw()
+  vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.includes(17))![0]()
+  await Promise.resolve()
+  const tree = draw()
+  if (description === null) {
+    expect(() => find(tree, 'recording-pill-toggle')).toThrow()
+  } else {
+    const toggle = find(tree, 'recording-pill-toggle')
+    expect(find(tree, toggle.props['aria-describedby']).props.children).toBe(description)
+    expect(toggle.props['aria-disabled']).toBe(!showInMenuBar)
+  }
+})
+
 it('gives a library read failure a quiet message and keeps its working retry', async () => {
   const { LibraryEmpty } = await import('../src/renderer/src/screens/Home')
   const props = { testId: 'past-empty', title: 'Your notes will show up here', description: 'Record a meeting.', icon: null }

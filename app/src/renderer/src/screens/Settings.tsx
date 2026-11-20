@@ -21,8 +21,15 @@ import { Swap, SwapText } from '../components/Swap'
 export function NextMeetingSetting({ visible, on, onChange }: { visible: boolean; on: boolean; onChange(on: boolean): void }) {
   if (!visible) return null
   return <div className="settings-row">
-    <label htmlFor="settings-next-meeting" className="settings-label settings-row-copy">{t('Show the next meeting')}</label>
-    <button id="settings-next-meeting" role="switch" aria-checked={on} onClick={() => onChange(!on)} className="settings-toggle">
+    <div className="settings-row-copy">
+      <label htmlFor="settings-next-meeting" className="settings-label">{t('Show the next meeting')}</label>
+      <p id="next-meeting-description" className="settings-description">{osWords({
+        mac: t('Beside the Yogurt icon in the menu bar.'),
+        windows: t('In the tooltip of the Yogurt icon in the notification area.'),
+        linux: t('In the tooltip of the Yogurt icon in the tray.'),
+      })}</p>
+    </div>
+    <button id="settings-next-meeting" role="switch" aria-checked={on} aria-describedby="next-meeting-description" onClick={() => onChange(!on)} className="settings-toggle">
       <span className="settings-toggle-knob" />
     </button>
   </div>
@@ -193,10 +200,12 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
             {onMac() && <div className="settings-row">
               <div className="settings-row-copy">
                 <label htmlFor="recording-pill-toggle" className="settings-label">{t('Show floating recording pill')}</label>
-                {prefs && !prefs.showInMenuBar && <p id="recording-pill-reason" className="settings-description">{t('Show Yogurt in the menu bar to hide the pill.')}</p>}
+                <p id="recording-pill-description" className="settings-description">{prefs?.showInMenuBar === false
+                  ? t('Show Yogurt in the menu bar to hide the pill.')
+                  : t('Appears while you record with Yogurt in the background.')}</p>
               </div>
               <button id="recording-pill-toggle" data-testid="recording-pill-toggle" role="switch" disabled={general.busy} aria-checked={prefs?.showRecordingPill ?? true}
-                aria-disabled={!prefs?.showInMenuBar} aria-describedby={prefs && !prefs.showInMenuBar ? 'recording-pill-reason' : undefined}
+                aria-disabled={!prefs?.showInMenuBar} aria-describedby="recording-pill-description"
                 className="settings-toggle" onClick={recordingPill}><span className="settings-toggle-knob" /></button>
             </div>}
             <div className="settings-row">

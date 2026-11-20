@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { NextMeetingSetting, PermissionRow } from '../src/renderer/src/screens/Settings'
@@ -49,13 +49,22 @@ describe('permission action hierarchy', () => {
   })
 })
 
-it('shows the next meeting switch only when the menu bar or tray is selected', () => {
+afterEach(() => { vi.unstubAllGlobals() })
+
+it.each([
+  ['darwin', 'Beside the Yogurt icon in the menu bar.'],
+  ['win32', 'In the tooltip of the Yogurt icon in the notification area.'],
+  ['linux', 'In the tooltip of the Yogurt icon in the tray.'],
+])('shows the next meeting switch and its location only when the icon is visible on %s', (os, description) => {
+  vi.stubGlobal('window', { yogurt: { os } })
   for (const visible of [false, true]) for (const on of [false, true]) {
     const html = renderToStaticMarkup(createElement(NextMeetingSetting, { visible, on, onChange() {} }))
     if (!visible) expect(html).toBe('')
     else {
       expect(html).toContain('for="settings-next-meeting"')
       expect(html).toContain('Show the next meeting')
+      expect(action(html)).toContain('aria-describedby="next-meeting-description"')
+      expect(html).toContain(`<p id="next-meeting-description" class="settings-description">${description}</p>`)
       expect(html).toContain(`id="settings-next-meeting" role="switch" aria-checked="${on}"`)
     }
   }
