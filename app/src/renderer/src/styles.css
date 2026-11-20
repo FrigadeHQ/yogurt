@@ -708,15 +708,12 @@ input::selection, textarea::selection, .note-prose ::selection { background: var
 .transcript-inline [data-testid="transcript"] { padding-inline:var(--transcript-inset);padding-top:22px; }
 [data-testid="transcript-panel"] [data-testid="transcript"] { padding-bottom:max(16px,var(--playback-inset));scroll-padding-bottom:var(--playback-inset); }
 .transcript-player-dock { position:absolute;inset-inline:max(16px, calc((100% - 412px)/2));bottom:12px;z-index:1;clip-path:inset(-16px -16px -12px); }
-.transcript-player { padding:5px 8px;border:1px solid var(--line);border-radius:22px;background:color-mix(in srgb,var(--float) 96%,transparent);backdrop-filter:blur(12px);box-shadow:0 2px 8px #0000000D;opacity:1;transform:translateY(0);transition:opacity var(--dur-micro) var(--ease-out),transform var(--dur-player-return) var(--ease-player-return); }
+.transcript-player { padding:5px 8px;border:1px solid var(--line);border-radius:22px;background:var(--float);box-shadow:0 2px 8px #0000000D;opacity:1;transform:translateY(0);transition:opacity var(--dur-micro) var(--ease-out),transform var(--dur-player-return) var(--ease-player-return); }
 .transcript-player-dock[data-hidden=true] .transcript-player { opacity:0;transform:translateY(calc(100% + 12px));pointer-events:none;transition:transform var(--dur-player-duck) var(--ease-player-duck),opacity calc(var(--dur-player-duck)/4) linear calc(var(--dur-player-duck)*.75); }
 @media (prefers-reduced-motion: reduce) {
   .transcript-player,.transcript-player-dock[data-hidden=true] .transcript-player { transform:none;transition:opacity var(--dur-micro) var(--ease-out); }
 }
 [data-testid="transcript-panel"] [data-testid="transcript-follow"] { bottom:calc(var(--playback-inset) + 8px); }
-@media (prefers-reduced-transparency:reduce),(prefers-contrast:more) {
-  .transcript-player { background:var(--float);backdrop-filter:none; }
-}
 
 html:not(.widget) .bg-accent { background-color:var(--primary); }
 html:not(.widget) button:focus-visible, html:not(.widget) input:focus-visible { outline-color:var(--focus); }
@@ -1000,3 +997,36 @@ html:not(.widget) button:focus-visible, html:not(.widget) input:focus-visible { 
 .audio-upload-submit-icon { position:absolute;inset:0;display:flex;align-items:center;justify-content:center; }
 .audio-upload-date-picker .audio-upload-month button:focus-visible { outline:none; }
 .transcription-notice-slot:empty { display:none; }
+
+/* Floating surfaces keep their solid theme fills until the display permits transparency. */
+@supports (backdrop-filter:blur(1px)) and (background:color-mix(in srgb,white,transparent)) {
+  @media (prefers-reduced-transparency:no-preference) and (prefers-contrast:no-preference) and (forced-colors:none) {
+    :root.main-window {
+      --floating-blur:22px;
+      --floating-saturation:106.5%;
+      --floating-tint:91.5%;
+      --floating-edge-alpha:11%;
+      --floating-fill:color-mix(in srgb,var(--float) var(--floating-tint),transparent);
+      --floating-edge:color-mix(in srgb,var(--ink) var(--floating-edge-alpha),transparent);
+    }
+    @media (prefers-color-scheme:dark) {
+      :root.main-window { --floating-tint:95%; }
+    }
+    :root.main-window :is(
+      .search-panel,.menu-entry,.ask-picker,.app-modal,.editor-toolbar,.transcript-player,
+      .meeting-selection-bar,.app-toast,.finish-setup,.settings-jargon-suggest,.chat-morph-surface,
+      .citation-mass,[role=tooltip],aside[data-testid=transcript-panel]
+    ) {
+      background:var(--floating-fill);
+      border-color:var(--floating-edge);
+      backdrop-filter:blur(var(--floating-blur)) saturate(var(--floating-saturation));
+    }
+    :root.main-window .citation-edge { border-color:var(--floating-edge); }
+    :root.main-window .agenda-inspector-arrow {
+      background:var(--floating-fill);
+      border-color:var(--floating-edge);
+    }
+    /* A resting clip would prevent the player from sampling the transcript beneath it. */
+    :root.main-window .transcript-player-dock:not([data-hidden=true]) { clip-path:none; }
+  }
+}

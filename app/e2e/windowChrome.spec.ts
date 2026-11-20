@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-test('glass is limited to chrome, with solid reading surfaces and a reduced-transparency fallback', async ({}, info) => {
+test('native glass stays in the window chrome, with solid reading surfaces and a reduced-transparency fallback', async ({}, info) => {
   const app = await electron.launch({ args: [join(import.meta.dirname, '../out/main/index.js')], env: {
     ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: mkdtempSync(join(tmpdir(), 'yogurt-glass-')),
   } })

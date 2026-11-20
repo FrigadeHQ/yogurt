@@ -2,6 +2,7 @@ import { _electron as electron, expect, test, type ElectronApplication, type Pag
 import { existsSync, mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { backgroundPixel } from './backgroundPixel'
 
 const main = join(import.meta.dirname, '../out/main/index.js')
 
@@ -128,15 +129,14 @@ test('toasts follow appearance; the latest deletion can be undone from the keybo
   try {
     await withMeetings(app, page)
     for (const theme of ['light', 'dark'] as const) {
-      await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' })
+      await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce', forcedColors: 'none' })
       await del(page, 'Weekly sync')
       const toast = page.getByTestId('trash-toast')
-      const shade = await toast.evaluate(el => {
-        const style = getComputedStyle(el)
-        return { background: Number(style.backgroundColor.match(/\d+/)![0]), text: Number(style.color.match(/\d+/)![0]) }
-      })
-      if (theme === 'dark') { expect(shade.background).toBeLessThan(80); expect(shade.text).toBeGreaterThan(180) }
-      else { expect(shade.background).toBeGreaterThan(220); expect(shade.text).toBeLessThan(80) }
+      const [red, , , alpha] = await toast.evaluate(backgroundPixel)
+      if (theme === 'dark') expect(red).toBeLessThan(80)
+      else expect(red).toBeGreaterThan(220)
+      expect(alpha).toBeGreaterThan(230)
+      await expect(toast).toHaveCSS('color', theme === 'dark' ? 'rgb(231, 230, 235)' : 'rgb(41, 41, 44)')
       await page.getByTestId('trash-undo').focus()
       await page.keyboard.press('Enter')
       await expect(toast).toHaveCount(0)

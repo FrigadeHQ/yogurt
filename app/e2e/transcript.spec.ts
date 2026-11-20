@@ -312,6 +312,9 @@ test('the transcript scrolls behind its pill and the final line can clear the co
     await expect(page.getByTestId('player-toggle')).toHaveAttribute('aria-label', 'Pause')
     await page.getByTestId('player-speed').click()
     await expect(page.getByTestId('player-speed')).toHaveText('1.5×')
+    await page.emulateMedia({ contrast: 'more' })
+    await expect(player).toHaveCSS('backdrop-filter', 'none')
+    await expect(player).toHaveCSS('background-color', /^rgb\(/)
   } finally { await app.close() }
 })
 /** replaces a track's stand-in file: seconds of silence, or bytes that are not audio, or nothing */
