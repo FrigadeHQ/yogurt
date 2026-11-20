@@ -56,6 +56,15 @@ test('recording controls stay in the header and Ask lives in the footer with sta
         await page.setViewportSize({ width: 720, height: 520 })
         await expect.poll(() => page.evaluate(() => innerWidth)).toBe(720)
         await expect(page.getByTestId('workspace')).toHaveClass(/sidebar-collapsed/)
+        const gaps = await page.getByTestId('rec-bar').evaluate(bar => {
+          const digits = document.createRange()
+          digits.selectNodeContents(bar.querySelector('time')!)
+          const [left, middle, right] = [bar.querySelector('canvas')!.getBoundingClientRect(),
+            digits.getBoundingClientRect(), bar.querySelector('[data-testid="note-state"]')!.getBoundingClientRect()]
+            .sort((a, b) => a.left - b.left)
+          return [Math.round(middle.left - left.right), Math.round(right.left - middle.right)]
+        })
+        expect(gaps).toEqual([8, 8])
         const targets = [page.getByTestId('note-pause'), page.getByTestId('note-stop'), page.getByTestId('chat-open'), page.getByTestId('note-transcript-toggle'), page.getByTestId('note-notes-tab')]
         const width = await page.evaluate(() => innerWidth)
         for (const target of targets) {

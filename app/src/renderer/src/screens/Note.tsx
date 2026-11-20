@@ -392,29 +392,31 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
               <FolderChip meetingId={id} onNew={() => setNamingFolder(true)} suggestion={folderSuggestion} />
             </div>
             <div data-testid={recording ? 'rec-bar' : 'note-bar'} className="note-header-actions">
-              {recording && !finishing && <span className="note-recording-status">
-                <LevelBars height={14} bars={3} testId="note-wave" paused={!!m.paused} className="text-muted" />
-                <RecordingTime view={recorder} />
-              </span>}
-              <div data-testid="note-state" data-state={m.state} data-paused={!!m.paused} className="note-recording-group" data-treatment={RECORDING_CONTROL_TREATMENT} data-recording={recording && !finishing} role="group" aria-label={recording ? m.paused ? t('Paused') : t('Recording') : t('Meeting controls')}>
+              <div className="note-recorder-controls">
                 {recording && !finishing && <>
-                  <RecordingAction data-testid="note-pause" disabled={pausing} onClick={() => { void togglePause() }}
-                    label={m.paused ? t('Resume recording') : t('Pause recording')} className="note-record-action note-pause-action">
-                    <Swap show={m.paused ? 'play' : 'pause'} options={{ pause: <Pause size={14} fill="currentColor" strokeWidth={0} />, play: <Play size={14} fill="currentColor" strokeWidth={0} /> }} />
-                  </RecordingAction>
-                  <RecordingAction data-testid="note-stop" onClick={(e) => { requestFinish(true); picked.current = true; setView('mine'); setFinishing(true); setTabPointer(e.detail > 0); window.yogurt.meetings.stop(id) }} label={t('Stop recording')} className="note-record-action note-finish-action">
-                    <span className="note-stop-label">{t('Stop')}</span>
-                  </RecordingAction>
+                  <LevelBars height={14} bars={3} testId="note-wave" paused={!!m.paused} className="text-muted" />
+                  <RecordingTime view={recorder} />
                 </>}
-                {finishing && <span data-testid="note-finishing" role="status" className="note-finishing">{t('Stopping…')}</span>}
-                {!finishing && (summaryPending || (!transcribing && m.source !== 'audio-file')) && (m.state === 'stopped' || m.state === 'done') && !m.stopSavePending && !trashed && <button data-testid="note-resume" disabled={starting && !summaryPending} onClick={() => { if (summaryPending) void window.yogurt.notes.stop(id).catch(console.error); else void resumeRecording() }}
-                  aria-label={resumeLabel} className="workspace-button note-resume-action" title={summaryPending ? resumeLabel : t('Resume recording in this note')}>
-                  {!summaryPending && <Mic size={14} aria-hidden="true" />}
-                  <SwapText text={starting && !summaryPending ? t('Preparing…') : resumeLabel} />
-                </button>}
-                {m.state === 'prepared' && !trashed && <button data-testid="note-start" disabled={starting} onClick={() => { void startPrepared() }} className="note-record-action primary">
-                  <Mic size={14} strokeWidth={1.75} aria-hidden="true" />{starting ? t('Starting…') : t('Start recording')}
-                </button>}
+                <div data-testid="note-state" data-state={m.state} data-paused={!!m.paused} className="note-recording-group" data-treatment={RECORDING_CONTROL_TREATMENT} data-recording={recording && !finishing} role="group" aria-label={recording ? m.paused ? t('Paused') : t('Recording') : t('Meeting controls')}>
+                  {recording && !finishing && <>
+                    <RecordingAction data-testid="note-pause" disabled={pausing} onClick={() => { void togglePause() }}
+                      label={m.paused ? t('Resume recording') : t('Pause recording')} className="note-record-action note-pause-action">
+                      <Swap show={m.paused ? 'play' : 'pause'} options={{ pause: <Pause size={14} fill="currentColor" strokeWidth={0} />, play: <Play size={14} fill="currentColor" strokeWidth={0} /> }} />
+                    </RecordingAction>
+                    <RecordingAction data-testid="note-stop" onClick={(e) => { requestFinish(true); picked.current = true; setView('mine'); setFinishing(true); setTabPointer(e.detail > 0); window.yogurt.meetings.stop(id) }} label={t('Stop recording')} className="note-record-action note-finish-action">
+                      <span className="note-stop-label">{t('Stop')}</span>
+                    </RecordingAction>
+                  </>}
+                  {finishing && <span data-testid="note-finishing" role="status" className="note-finishing">{t('Stopping…')}</span>}
+                  {!finishing && (summaryPending || (!transcribing && m.source !== 'audio-file')) && (m.state === 'stopped' || m.state === 'done') && !m.stopSavePending && !trashed && <button data-testid="note-resume" disabled={starting && !summaryPending} onClick={() => { if (summaryPending) void window.yogurt.notes.stop(id).catch(console.error); else void resumeRecording() }}
+                    aria-label={resumeLabel} className="workspace-button note-resume-action" title={summaryPending ? resumeLabel : t('Resume recording in this note')}>
+                    {!summaryPending && <Mic size={14} aria-hidden="true" />}
+                    <SwapText text={starting && !summaryPending ? t('Preparing…') : resumeLabel} />
+                  </button>}
+                  {m.state === 'prepared' && !trashed && <button data-testid="note-start" disabled={starting} onClick={() => { void startPrepared() }} className="note-record-action primary">
+                    <Mic size={14} strokeWidth={1.75} aria-hidden="true" />{starting ? t('Starting…') : t('Start recording')}
+                  </button>}
+                </div>
               </div>
               {transcribing&&<TranscriptionControl state={m.transcriptionState!} onStop={()=>void window.yogurt.transcript.stop(id).catch(()=>toasts.add({title:t("Yogurt couldn't transcribe this file.")}))}/>}
               <ShareMenu id={id} shown={shown} status={notes.status} hasEnhanced={notes.enhanced != null} beforeUse={saveAll} />
