@@ -37,5 +37,11 @@ export function barPlan(p: { reduced: boolean; paused: boolean; level: number; b
 export const frameKey = (plan: { heights: number[]; alpha: number[] }, span: number): string =>
   plan.heights.map((v) => Math.round(v * span)).join() + '|' + Math.round(plan.alpha[0] * 100)
 
-/** Capture maps -60..0 dBFS to 0..1; show -51..-12 dBFS across the meter's range. */
-export const micLevel = (lv: { me: number; them: number }): number => Number.isFinite(lv.me) ? Math.max(0, Math.min(1, (lv.me - .15) / .65)) : 0
+const METER_GAIN = 10
+
+/** Capture already measures dBFS. Give quiet speech more travel while retaining headroom for louder speech. */
+export function micLevel({ me }: { me: number; them: number }): number {
+  if (!Number.isFinite(me)) return 0
+  const level = Math.max(0, Math.min(1, (me - .15) / .65)) // −51 to −12 dBFS
+  return METER_GAIN * level / (1 + (METER_GAIN - 1) * level)
+}
