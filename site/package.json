@@ -4,12 +4,12 @@
   "license": "MIT",
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/stars-snapshot.mjs && next build",
+    "build": "node scripts/stars-snapshot.mjs && next build && node scripts/submit-indexnow.mjs",
     "start": "next start",
     "site:bundle": "node scripts/bundle.mjs",
     "site:stars": "node scripts/stars-snapshot.mjs --save",
     "site:stills": "node scripts/stills.mjs",
-    "test": "node renderer/timeline.test.mjs && node scripts/ribbon-geometry.test.mjs && node scripts/hero-entry.test.mjs && node scripts/headline.test.mjs && node scripts/theme.test.mjs && node scripts/hero-theme.test.mjs && node scripts/stars.test.mjs && node scripts/walkthrough.test.mjs && node scripts/features.test.mjs && node scripts/navigation.test.mjs && node scripts/updates.test.mjs && node scripts/llms.test.mjs && node scripts/home-metadata.test.mjs"
+    "test": "node renderer/timeline.test.mjs && node scripts/ribbon-geometry.test.mjs && node scripts/hero-entry.test.mjs && node scripts/headline.test.mjs && node scripts/theme.test.mjs && node scripts/hero-theme.test.mjs && node scripts/stars.test.mjs && node scripts/walkthrough.test.mjs && node scripts/features.test.mjs && node scripts/navigation.test.mjs && node scripts/updates.test.mjs && node scripts/llms.test.mjs && node scripts/home-metadata.test.mjs && node scripts/indexnow.test.mjs"
   },
   "dependencies": {
     "next": "16.4.5",
