@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
+import faq from '../content/faq.json' with { type: 'json' }
+import releases from '../content/updates.json' with { type: 'json' }
+import { fullGuide } from './llms-full.mjs'
 import { platforms, release } from '../public/marketing/downloads.mjs'
 
 const guide = readFileSync(new URL('../public/llms.txt', import.meta.url), 'utf8')
@@ -28,6 +31,15 @@ for (const target of targets) {
   }
   assert(exists, 'Unknown llms.txt destination: ' + target)
 }
+const full = fullGuide()
+assert(guide.split('## Optional')[1].includes('https://yogurt.so/llms-full.txt'))
+for (const { question, answer } of faq) assert(full.includes((question + '\n' + answer).replaceAll('\u00a0', ' ')))
+assert.deepEqual([...full.matchAll(/^https:\/\/yogurt\.so\/updates#(.+)$/gm)].map(m => m[1]), releases.slice(0, 5).map(row => row.version))
+for (const row of releases.slice(0, 5)) {
+  assert(full.includes(row.headline))
+  for (const line of row.changes) assert(full.includes('- ' + line))
+}
+
 if (process.argv.includes('--live')) {
   await Promise.all([...new Set(targets)].map(async target => {
     const response = await fetch(target, {method: 'HEAD', signal: AbortSignal.timeout(20000)})

@@ -30,5 +30,6 @@ What it does: live transcripts; meeting summaries that include your own notes; s
 
 ## Optional
 
+- [Full text guide](https://yogurt.so/llms-full.txt): features, frequently asked questions and the latest five releases
 - [Report a problem or ask for a feature](https://github.com/FrigadeHQ/yogurt/issues)
 - [Frigade](https://frigade.com/): the company that makes Yogurt
