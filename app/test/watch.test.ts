@@ -66,6 +66,26 @@ describe('start cards', () => {
     await w.tick(); clock += 3_000; await w.tick()
     expect(log.filter((l) => l.startsWith('offer'))).toEqual([`offer:event:e1:${e.start}`])
   })
+  it('after a recording ends, the call app coming back is a new call: back-to-back meetings each get an offer', async () => {
+    reading = { micApps: [zoom], events: [] }
+    await w.tick()
+    active = meeting(); await w.tick()
+    active = null; w.cleared(); await w.tick()
+    reading = { micApps: [], events: [] }; clock += 3_000; await w.tick()
+    reading = { micApps: [zoom], events: [] }; clock += 3_000; await w.tick()
+    expect(log.filter((l) => l.startsWith('offer'))).toEqual(['offer:app:us.zoom.xos', 'offer:app:us.zoom.xos'])
+  })
+  it('a different calendar meeting starting on the same app is a new call', async () => {
+    const first = ev({ id: 'e1', start: clock, end: clock + 30 * MIN })
+    reading = { micApps: [zoom], events: [first] }
+    await w.tick()
+    w.dismiss(`event:e1:${first.start}`)
+    clock += 31 * MIN
+    const next = ev({ id: 'e2', title: 'Next', start: clock - MIN, end: clock + 30 * MIN })
+    reading = { micApps: [zoom], events: [next] }
+    await w.tick()
+    expect(log.filter((l) => l.startsWith('offer'))).toEqual([`offer:event:e1:${first.start}`, `offer:event:e2:${next.start}`])
+  })
   it('two minutes off the mic ends the call: the next one gets its own offer', async () => {
     reading = { micApps: [zoom], events: [] }
     await w.tick()
