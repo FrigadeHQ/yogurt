@@ -58,9 +58,9 @@ describe('the MCP server', () => {
   it('lists its tools, all of them only reading', async () => {
     const { mcp } = setup()
     const r = await mcp.handle({ jsonrpc: '2.0', id: 3, method: 'tools/list' }) as { result: { tools: Array<{ name: string; annotations: { readOnlyHint: boolean } }> } }
-    expect(r.result.tools.map((t) => t.name)).toEqual(['list_meetings', 'get_meeting', 'get_transcript', 'search', 'get_audio'])
+    expect(r.result.tools.map((t) => t.name)).toEqual(['list_folders', 'list_meetings', 'get_meeting', 'get_transcript', 'search', 'get_audio'])
     expect(r.result.tools.every((t) => t.annotations.readOnlyHint)).toBe(true)
-    expect(MCP_TOOLS).toHaveLength(5)
+    expect(MCP_TOOLS).toHaveLength(6)
   })
   it("tells other apps' models about the Mac on a Mac, and about Ogg files on Windows and Linux", async () => {
     const audioText = async (platform?: string) => {
@@ -188,3 +188,32 @@ describe('the MCP socket', () => {
     await server.close()
   })
 })
+
+describe('folders in the MCP server', () => {
+  it('lists the folders, names each meeting\'s folders, and narrows list_meetings and search to a folder by id or name', async () => {
+    const { store, mcp, older, newer } = setup()
+    const finance = store.createFolder('Finance')
+    store.createFolder('Hiring')
+    store.addToFolder(finance.id, older.id)
+
+    const folders = await json(mcp, 'list_folders')
+    expect(folders).toEqual([{ id: finance.id, name: 'Finance', meetings: 1 }, expect.objectContaining({ name: 'Hiring', meetings: 0 })])
+
+    expect((await json(mcp, 'get_meeting', { id: older.id })).folders).toEqual([{ id: finance.id, name: 'Finance' }])
+    expect((await json(mcp, 'get_meeting', { id: newer.id })).folders).toEqual([])
+
+    expect((await json(mcp, 'list_meetings', { folder: finance.id })).map((m: { id: string }) => m.id)).toEqual([older.id])
+    expect((await json(mcp, 'list_meetings', { folder: 'finance' })).map((m: { id: string }) => m.id)).toEqual([older.id])
+    expect((await json(mcp, 'list_meetings', { folder: 'Hiring' }))).toEqual([])
+    expect((await json(mcp, 'search', { query: 'travel', folder: 'Hiring' }))).toEqual([])
+    expect((await json(mcp, 'search', { query: 'travel', folder: 'Finance' })).map((h: { meeting_id: string }) => h.meeting_id)).toEqual([older.id])
+  })
+  it('an unknown folder says which folders there are', async () => {
+    const { store, mcp } = setup()
+    store.createFolder('Finance')
+    const r = await call(mcp, 'list_meetings', { folder: 'Sales' })
+    expect(r.isError).toBe(true)
+    expect(r.text).toContain('Finance')
+  })
+})
+

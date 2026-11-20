@@ -10,7 +10,7 @@ import type { Meeting, Store } from '../store'
 
 type Track = 'me' | 'them'
 export type McpDeps = {
-  store: Pick<Store, 'meeting' | 'meetings' | 'segments' | 'notes' | 'search'>
+  store: Pick<Store, 'meeting' | 'meetings' | 'segments' | 'notes' | 'search' | 'folders' | 'foldersOf' | 'folderMeetingIds'>
   enabled: () => boolean
   /** the person using Yogurt, by name: "You" means nothing to another app */
   me: () => string
@@ -26,17 +26,20 @@ export type Mcp = { handle(msg: unknown): Promise<object | null> }
 const VERSIONS = ['2025-06-18', '2025-03-26', '2024-11-05']
 
 const id = { type: 'string', description: 'The meeting id, from list_meetings or search' }
+const folder = { type: 'string', description: 'Only meetings in this folder: its id or name, from list_folders' }
 const readOnly = { readOnlyHint: true, destructiveHint: false, openWorldHint: false }
 /** The tools, in this computer's words: a Mac records AAC in .m4a, Windows and Linux Ogg Opus (a backup can bring either) */
 export const mcpTools = (platform: string) => [
-  { name: 'list_meetings', description: 'Meetings recorded in Yogurt, newest first: id, title, start and end (ISO times), people invited (attendees: name and email from the calendar), call app. Optional query finds meetings by words in their title, transcript or notes.',
-    inputSchema: { type: 'object', properties: { query: { type: 'string' }, limit: { type: 'number', description: 'Most to return (default 20, at most 100)' }, before: { type: 'string', description: 'Only meetings that started before this ISO time, to page back' } } } },
+  { name: 'list_folders', description: 'The folders the person files meetings in: id, name and how many meetings each holds. Pass a folder to list_meetings or search to read only its meetings.',
+    inputSchema: { type: 'object', properties: {} } },
+  { name: 'list_meetings', description: 'Meetings recorded in Yogurt, newest first: id, title, start and end (ISO times), people invited (attendees: name and email from the calendar), call app, and the folders it is in. Optional query finds meetings by words in their title, transcript or notes; optional folder keeps only that folder\'s meetings.',
+    inputSchema: { type: 'object', properties: { query: { type: 'string' }, folder, limit: { type: 'number', description: 'Most to return (default 20, at most 100)' }, before: { type: 'string', description: 'Only meetings that started before this ISO time, to page back' } } } },
   { name: 'get_meeting', description: "One meeting: its details, its attendees with their emails, the calendar event it is linked to (calendar_event: title, start, end, calendar; null when none), the notes the person typed (myNotes) and Yogurt's written summary (Markdown).",
     inputSchema: { type: 'object', properties: { id }, required: ['id'] } },
   { name: 'get_transcript', description: 'What was said in a meeting, line by line with who said it. format "text" (default): "[mm:ss] Name: words" lines. format "lines": JSON with start_ms, end_ms, speaker, is_me and text. "Them" is the other side of the call when the call app gave no name.',
     inputSchema: { type: 'object', properties: { id, format: { type: 'string', enum: ['text', 'lines'] } }, required: ['id'] } },
   { name: 'search', description: 'Finds words across every meeting (titles, transcripts, notes): meeting id, title, start and a snippet with the matched words in **bold**.',
-    inputSchema: { type: 'object', properties: { query: { type: 'string' }, limit: { type: 'number', description: 'Most meetings to return (default 20, at most 100)' } }, required: ['query'] } },
+    inputSchema: { type: 'object', properties: { query: { type: 'string' }, folder, limit: { type: 'number', description: 'Most meetings to return (default 20, at most 100)' } }, required: ['query'] } },
   { name: 'get_audio', description: platform === 'darwin'
     ? "A meeting's recording as files on this Mac: one per side (track me: the person's microphone; them: the other side of the call), AAC in .m4a. Gives paths, which apps on this Mac can open."
     : "A meeting's recording as files on this computer: one per side (track me: the person's microphone; them: the other side of the call), Ogg Opus in .ogg (AAC in .m4a for a meeting recorded on a Mac). Gives paths, which apps on this computer can open.",
@@ -56,7 +59,17 @@ export function createMcp(d: McpDeps): Mcp {
   const listed = mcpTools(d.platform ?? 'darwin')
   // the calendar's people with their emails (null when the calendar gave none): another app can write to them or match them
   const summary = (m: Meeting) => ({ id: m.id, title: m.title, start: iso(m.startedAt), end: iso(m.endedAt), people: m.attendees.map((a) => a.name),
-    attendees: m.attendees.map((a) => ({ name: a.name, email: a.email ?? null })), app: m.app, recording: m.state === 'recording' })
+    attendees: m.attendees.map((a) => ({ name: a.name, email: a.email ?? null })), app: m.app, recording: m.state === 'recording',
+    folders: d.store.foldersOf(m.id).map((f) => ({ id: f.id, name: f.name })) })
+  /** a folder by id or name (any case); an unknown one names the folders there are */
+  const folderOf = (v: unknown) => {
+    const want = text(v)
+    if (!want) return undefined
+    const all = d.store.folders()
+    const f = all.find((x) => x.id === want) ?? all.find((x) => x.name.toLowerCase() === want.toLowerCase())
+    if (!f) throw new Refusal(`No folder ${JSON.stringify(want)}. The folders are: ${all.map((x) => x.name).join(', ') || 'none yet'}.`)
+    return f
+  }
   /** the calendar event the meeting is linked to, as last read (it stays without calendar access); null for none */
   const calendarEvent = (m: Meeting) => (m.eventId
     ? { title: m.eventTitle ?? null, start: iso(m.eventStartedAt ?? null), end: iso(m.eventEndedAt ?? null), calendar: m.eventCalendarName ?? null }
@@ -70,13 +83,19 @@ export function createMcp(d: McpDeps): Mcp {
   const who = (speaker: string | null, track: Track) => (speaker === AUDIO_SPEAKER ? 'Audio' : track === 'me' || speaker === 'me' ? d.me() || 'You' : speaker || 'Them')
 
   const tools: Record<string, (a: Record<string, unknown>) => Promise<string>> = {
+    async list_folders() {
+      return JSON.stringify(d.store.folders().map((f) => ({ id: f.id, name: f.name, meetings: f.count })), null, 2)
+    },
     async list_meetings(a) {
       const limit = limitOf(a.limit)
       const q = text(a.query)
+      const f = folderOf(a.folder)
       const before = text(a.before) ? Date.parse(String(a.before)) : undefined
       const found = q
-        ? d.store.search(q, limit).map((h) => d.store.meeting(h.meetingId)).filter((m): m is Meeting => !!m && (before == null || m.startedAt < before))
-        : d.store.meetings({ before: Number.isNaN(before) ? undefined : before, limit })
+        ? d.store.search(q, limit, f?.id).map((h) => d.store.meeting(h.meetingId)).filter((m): m is Meeting => !!m && (before == null || m.startedAt < before))
+        : f
+          ? d.store.folderMeetingIds(f.id).map((mid) => d.store.meeting(mid)).filter((m): m is Meeting => !!m && (before == null || Number.isNaN(before) || m.startedAt < before)).slice(0, limit)
+          : d.store.meetings({ before: Number.isNaN(before) ? undefined : before, limit })
       return JSON.stringify(found.map(summary), null, 2)
     },
     async get_meeting(a) {
@@ -93,7 +112,7 @@ export function createMcp(d: McpDeps): Mcp {
     async search(a) {
       const q = text(a.query)
       if (!q) throw new Refusal('search needs a query.')
-      return JSON.stringify(d.store.search(q, limitOf(a.limit)).flatMap((h) => {
+      return JSON.stringify(d.store.search(q, limitOf(a.limit), folderOf(a.folder)?.id).flatMap((h) => {
         const m = d.store.meeting(h.meetingId)
         return m ? [{ meeting_id: m.id, title: m.title, start: iso(m.startedAt), snippet: h.parts.map((p) => (p.hit ? `**${p.text}**` : p.text)).join('') || h.snippet }] : []
       }), null, 2)
