@@ -236,7 +236,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
             </span>}
           </div>}
         </div>
-        <ul ref={list} id="search-results" role="listbox" aria-label={t('Results')} aria-busy={running || !settled} className="min-h-0 flex-1 overflow-y-auto [overflow-anchor:none] px-2 pb-2">
+        <ul ref={list} id="search-results" role="listbox" aria-label={t('Results')} aria-busy={running || !settled} className="min-h-0 flex-1 overflow-y-auto [overflow-anchor:none] px-2 pb-2 scroll-pb-2">
           {rows.map((row, i) => {
             const previous = rows[i - 1]
             if (row.kind === 'ask') return <Fragment key="ask">
