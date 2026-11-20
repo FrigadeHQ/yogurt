@@ -111,15 +111,7 @@ document.addEventListener('visibilitychange',syncStatusPulse)
 reduce.addEventListener('change',syncStatusPulse)
 
 const nav = document.querySelector('.nav-stars')
-const releaseCount = section.querySelector('.oss-calendar .oss-figure')
-const releaseLink = section.querySelector('.oss-latest')
-const version = releaseLink.querySelector('.release-version strong')
-const built = {
-  capturedAt: section.dataset.capturedAt,
-  count: total,
-  releases: Number(releaseCount.textContent.replaceAll(',', '')),
-  latest: { tag: version.textContent, published: age.dateTime },
-}
+const built = { capturedAt: section.dataset.capturedAt, count: total }
 let nextCheck = 0
 let lastSummary = built
 async function refresh() {
@@ -143,11 +135,6 @@ async function refresh() {
     nav.setAttribute('aria-label', 'Yogurt on GitHub, ' + label + ' stars')
     section.querySelector('.oss-history').setAttribute('aria-label', label + ' GitHub stars. View on GitHub')
   }
-  releaseCount.textContent = format.format(data.releases)
-  version.textContent = data.latest.tag
-  releaseLink.href = 'https://github.com/FrigadeHQ/yogurt/releases/tag/' + encodeURIComponent(data.latest.tag)
-  age.dateTime = data.latest.published
-  update()
 }
 function beginRefresh() {
   refresh()

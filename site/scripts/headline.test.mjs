@@ -1,3 +1,4 @@
+import { homePage } from './site-page.mjs'
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 import vm from 'node:vm'
@@ -36,7 +37,7 @@ for(const mode of ['normal','reduced','static','unsupported']){
 }
 
 const css=readFileSync(new URL('../public/marketing/headline.css',import.meta.url),'utf8')
-const html=readFileSync(new URL('../content/home.html',import.meta.url),'utf8')
+const html=homePage()
 assert(html.includes('href="/marketing/headline.css"'))
 assert(css.includes('--ai-base:#6F00FF'))
 assert(css.includes('--ai-highlight:#8B5CF6'))

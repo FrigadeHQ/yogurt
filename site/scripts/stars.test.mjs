@@ -1,3 +1,4 @@
+import { homePage } from './site-page.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { getActivity, refreshActivity, renderActivity, validSnapshot } from './activity.mjs'
@@ -63,12 +64,13 @@ const partial = await refreshActivity(
 )
 assert.deepEqual(partial.history, fresh.history)
 assert.equal(partial.count, 3)
-const html = renderActivity(load('../content/home.html'), fresh)
+const notes = releases.map(row => ({ version: row.tag_name, published: row.published_at })).reverse()
+const html = renderActivity(homePage(), fresh, notes)
 assert(!html.includes('{{'))
 assert(html.includes('Yogurt on GitHub, 2 stars'))
-assert(html.includes('releases/tag/v1.2'))
+assert(html.includes('href="/updates#v1.2"'))
 assert.equal((html.match(/class="week-day"/g) || []).length, 7)
-assert(html.includes('aria-label="2 releases in seven days"'))
+assert(html.includes('aria-label="2 published Nov 12'))
 assert(!html.includes('in 7 days'))
 function chartVertices(page) {
   return page.match(/<polyline class="chart-line" points="([^"]+)"/)[1]
@@ -78,9 +80,9 @@ assert.doesNotMatch(html, /class="chart-dot"|point-overlay/)
 assert.equal(chartVertices(html), '0.00,45.00 510.00,0.00')
 assert.ok(html.includes('d="M' + chartVertices(html).replaceAll(' ', 'L') + 'L510 90L0 90Z"'))
 const single = {...fresh, count: 1, history: fresh.history.slice(0, 1)}
-assert.equal(chartVertices(renderActivity(load('../content/home.html'), single)), '510.00,0.00')
+assert.equal(chartVertices(renderActivity(homePage(), single, notes)), '510.00,0.00')
 const fewer = {...fresh, count: 1}
-assert.match(chartVertices(renderActivity(load('../content/home.html'), fewer)), /510\.00,45\.00$/)
+assert.match(chartVertices(renderActivity(homePage(), fewer, notes)), /510\.00,45\.00$/)
 assert(!load('../public/marketing/activity.mjs').includes('api.github.com'))
 console.log('Published releases, UTC days, paginated dated stars, deduplication and outage fallbacks passed.')
 
@@ -97,6 +99,9 @@ function chartPage(reduced = false) {
   const number = { ...element(), textContent: '134', parentElement: element() },
     age = { ...element(), dateTime: '2026-11-01T00:00:00Z' }
   const object = { '.release-version strong': {textContent:'v1.2'}, '.oss-calendar .oss-figure': {textContent:'3'}, '.stat-value': number, '[data-latest-age]': age }
+  // The nav already contains the published total. Tile playback must never write to it.
+  const navCount = { get textContent() { return '134' }, set textContent(value) { assert.fail('Tile wrote ' + value + ' to the nav') } }
+  object['.nav-stars'] = { ...element(), querySelector: () => navCount }
   object['.chart-line'] = { points: [{ x: 0, y: 90 }, { x: 255, y: 22.5 }, { x: 510, y: 0 }] }
   object['.star-chart'] = { viewBox: { baseVal: { width: 510, height: 90 } } }
   const query = (s) => (object[s] ??= Object.assign(element(), { querySelector: query, animate: animation }))
@@ -206,7 +211,7 @@ assert.equal(still.clip(), 'scaleX(1)')
 assert.equal(still.timing(), undefined)
 console.log('Chart line draw, a count that never changes while it draws, and reduced-motion rest passed.')
 
-const template=load('../content/home.html')
+const template=homePage()
 const featureSection=template.match(/<section aria-labelledby="features-title"[\s\S]*?<\/section>/)[0]
 assert.doesNotMatch(featureSection, /<a\b|<iframe\b/)
 for(const tag of template.match(/<a\b[^>]*>/g)){
@@ -219,29 +224,25 @@ for(const tag of template.match(/<a\b[^>]*>/g)){
 }
 
 const { refreshSummary, hour } = await import('../public/marketing/stars-data.mjs')
-const built = { capturedAt: times[1], count: 12, releases: 1, latest: {tag:'v1.1',published:times[1]} }
-const nextRelease = {tag_name:'v1.2',published_at:times[2]}
-const rows = [nextRelease, releases[1], {...nextRelease,prerelease:true}, {...nextRelease,draft:true}]
+const built = { capturedAt: times[1], count: 12 }
 let stored = null, calls = 0
 const storage = {getItem: () => stored, setItem: (_, value) => { stored = value }}
-const live = await refreshSummary(built, {storage, now:1000, getJSON:async url=>{
+const getJSON = async url => {
+  assert.equal(url, 'https://api.github.com/repos/FrigadeHQ/yogurt')
   calls++
-  return url.endsWith('per_page=100') ? rows : {stargazers_count:11}
-}})
-assert.deepEqual(live, {...built, count:11, releases:2, latest:{tag:'v1.2',published:times[2]}})
-assert.equal(calls,2)
+  return {stargazers_count:11}
+}
+const live = await refreshSummary(built, {storage, now:1000, getJSON})
+assert.deepEqual(live, {...built, count:11})
+assert.equal(calls,1)
 const unavailable=async()=>{throw Error('403')}
 assert.deepEqual(await refreshSummary(built,{storage,now:2000,getJSON:()=>assert.fail('cached')}),live)
 assert.deepEqual(await refreshSummary(built,{storage,now:1000+hour,getJSON:unavailable}),live)
 const newerBuild={...built,capturedAt:times[2],count:15}
 assert.deepEqual(await refreshSummary(newerBuild,{storage,now:2000+hour,getJSON:unavailable}),newerBuild)
 assert.deepEqual(await refreshSummary(built,{getJSON:unavailable}),built)
-const oldRelease=await refreshSummary(built,{getJSON:async url=>url.endsWith('per_page=100')?[releases[0]]:{stargazers_count:19}})
-assert.deepEqual(oldRelease,{...built,count:19})
-const partialList = await refreshSummary(built,{getJSON:async url=>url.endsWith('per_page=100')?Array(100).fill(nextRelease):{}})
-assert.equal(partialList.releases,built.releases)
-assert.equal(partialList.latest.tag,'v1.2')
-const large = await refreshSummary({...built,releases:101},{getJSON:async url=>url.endsWith('/releases/latest')?nextRelease:{}})
-assert.equal(large.latest.tag,'v1.2')
-assert.equal(large.releases,101)
-console.log('Hourly browser refresh, newer data, newer deployments, partial lists and rate-limit fallback passed.')
+const legacy = {builtAt:built.capturedAt, at:1000, data:{count:19, releases:999, latest:{tag:'v9',published:times[2]}}}
+stored = JSON.stringify(legacy)
+assert.deepEqual(await refreshSummary(built,{storage,now:2000,getJSON}), {...built,count:19})
+assert.equal(calls,1)
+console.log('Hourly star refresh, legacy cache, newer deployments and rate-limit fallback passed.')

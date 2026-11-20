@@ -1,16 +1,8 @@
-import {readFileSync} from 'node:fs'
-import {join} from 'node:path'
-import {renderActivity,validSnapshot} from '../scripts/activity.mjs'
-import baked from '../content/activity.json'
+import { homePage } from '../scripts/site-page.mjs'
+import { siteResponse } from './site-response'
 
 export const dynamic = 'force-static'
 
 export function GET() {
-  let activity = baked
-  try {
-    const cached = JSON.parse(readFileSync(join(process.cwd(), '.next/cache/activity.json'), 'utf8'))
-    if (validSnapshot(cached)) activity = cached
-  } catch { /* The checked-in snapshot also serves local dev and a cold build. */ }
-  const html = readFileSync(join(process.cwd(), 'content/home.html'), 'utf8')
-  return new Response(renderActivity(html,activity), {headers:{'Content-Type':'text/html; charset=utf-8'}})
+  return siteResponse(homePage())
 }

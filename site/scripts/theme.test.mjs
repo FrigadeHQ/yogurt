@@ -1,8 +1,9 @@
+import { homePage } from './site-page.mjs'
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 
-const html=readFileSync(new URL('../content/home.html',import.meta.url),'utf8');
+const html=homePage();
 const bootstrap=html.match(/<script>\s*(\(function\(\)[\s\S]*?)<\/script>/)[1];
 const script=readFileSync(new URL('../public/marketing/theme.mjs',import.meta.url),'utf8').replace('export function','function');
 assert.ok(html.indexOf(bootstrap)<html.indexOf('href="/marketing/site.css"'));
