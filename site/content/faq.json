@@ -1,0 +1,32 @@
+[
+  {
+    "id": "faq-computer",
+    "question": "What kind of computer do I\u00a0need?",
+    "answer": "A Mac with Apple silicon and macOS 14.4 or newer, a 64-bit PC with Windows 10 (version 2004) or newer, or a 64-bit Linux computer with Ubuntu 22.04 or newer. Each needs at least 8 GB of memory. If your computer is too slow, Yogurt tells you during setup. On Windows and Linux, you connect your calendar with a private calendar\u00a0link."
+  },
+  {
+    "id": "faq-meetings",
+    "question": "Does Yogurt join my\u00a0meetings?",
+    "answer": "No. Yogurt records your microphone and the sound playing on your computer. No bot joins the call, so let the other people on the call know you’re\u00a0recording."
+  },
+  {
+    "id": "faq-recordings",
+    "question": "Are recordings saved?",
+    "answer": "Yes. Your recordings, transcripts, and notes are saved locally on your\u00a0computer."
+  },
+  {
+    "id": "faq-free",
+    "question": "Is Yogurt free?",
+    "answer": "Yes. Yogurt is free and open source under the MIT\u00a0license."
+  },
+  {
+    "id": "faq-languages",
+    "question": "Which languages does Yogurt\u00a0understand?",
+    "answer": "Yogurt transcribes 99 languages. English is the default and the fastest. For meetings in other languages, pick Multi-language in Settings, or from the language menu in a note, even during a call. In Multi-language mode, everyone can speak their own language, and Yogurt keeps up when someone switches languages mid-meeting. Summaries are written in the meeting’s main language, or one you\u00a0choose."
+  },
+  {
+    "id": "faq-offline",
+    "question": "Does Yogurt work\u00a0offline?",
+    "answer": "Yes. After a one-time download of the AI models, transcription and summaries run locally on your\u00a0computer."
+  }
+]
