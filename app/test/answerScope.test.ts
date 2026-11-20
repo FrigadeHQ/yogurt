@@ -1,7 +1,8 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { AnswerScope } from '../src/renderer/src/components/AskContext'
+import { WorkspaceFolders } from '../src/renderer/src/folders'
+import { AnswerScope, AskContext, ContextIcon } from '../src/renderer/src/components/AskContext'
 import { AskConversation } from '../src/renderer/src/components/AskConversation'
 import type { ContextTarget } from '../src/shared/askContext'
 import type { ConversationTurn, ConversationView } from '../src/shared/types'
@@ -9,6 +10,17 @@ import type { ConversationTurn, ConversationView } from '../src/shared/types'
 const folder: ContextTarget = { kind: 'folder', id: 'planning', title: 'Planning' }
 const meeting: ContextTarget = { kind: 'meeting', id: 'release', title: 'Release review' }
 afterEach(() => vi.unstubAllGlobals())
+
+it('shows the current folder icon and color in the picker and the selected scope', () => {
+  const saved = { id: folder.id, name: folder.title, icon: 'flag' as const, color: 'teal' as const, count: 0, createdAt: 1 }
+  for (const child of [createElement(ContextIcon, { target: folder }), createElement(AskContext, { chips: [folder] })]) {
+    const html = renderToStaticMarkup(createElement(WorkspaceFolders.Provider, { value: [saved] }, child))
+    expect(html).toContain('data-folder-icon="flag"')
+    expect(html).toContain('data-folder-color="teal"')
+    const missing = renderToStaticMarkup(createElement(WorkspaceFolders.Provider, { value: [] }, child))
+    expect(missing).toContain('data-folder-icon="folder"')
+  }
+})
 
 it.each([
   [[], 'Searched all meetings'],

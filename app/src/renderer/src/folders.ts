@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { createContext, useEffect, useState } from 'react'
 import type { Folder } from '../../shared/types'
+
+export const WorkspaceFolders = createContext<Folder[] | undefined>(undefined)
 
 /** what a dragged meeting row carries: its id, under a type only Yogurt's own rows use */
 export const MEETING_DRAG = 'application/x-yogurt-meeting'

@@ -8,10 +8,10 @@ export const meeting = {
   language: 'english', titleSource: 'user', attendees: ['Kara Moore', 'Ray Mones', 'Lincoln Park', 'Charlotte Goode'].map(name => ({ name })),
 }
 export const folders = [
-  { id: 'launch', name: 'Launch', color: 'violet' },
-  { id: 'hiring', name: 'Hiring', color: 'teal' },
-  { id: 'customer-calls', name: 'Customer calls', color: 'amber' },
-].map((folder,position)=>({...folder,icon:'folder',createdAt:meeting.startedAt,position}))
+  { id: 'launch', name: 'Launch', color: 'violet', icon: 'rocket' },
+  { id: 'hiring', name: 'Hiring', color: 'teal', icon: 'users' },
+  { id: 'customer-calls', name: 'Customer calls', color: 'amber', icon: 'message' },
+].map((folder,position)=>({...folder,createdAt:meeting.startedAt,position}))
 const notes = { meetingId: meeting.id, mine, enhanced: null, edited: false, status: 'idle', draft: '', peopleChanged: false, saves: { mine: { revision: 0, status: 'saved' }, enhanced: { revision: 0, status: 'saved' } } }
 export const sources = [{ n:1, meetingId:meeting.id, title:meeting.title, startedAt:meeting.startedAt, atMs:721500,
   excerpt:'Ray Mones: Support has the checklist. We can publish Tuesday.\nLincoln Park: I’ll send the announcement on Wednesday morning.',

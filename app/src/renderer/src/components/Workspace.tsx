@@ -1,3 +1,4 @@
+import { WorkspaceFolders } from '../folders'
 import { AudioUploadHost } from './AudioUpload'
 import { toasts } from './TrashToast'
 import { askDestination } from '../../../shared/askContext'
@@ -115,7 +116,7 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
       </button>}
       <div id="workspace-actions" className="workspace-toolbar-actions" />
       </header>
-      {children}
+      <WorkspaceFolders value={folders}>{children}</WorkspaceFolders>
       <AudioUploadHost />
 
     </div>

@@ -443,8 +443,7 @@ html.widget { --pill:#232326;--pill-ink:#F7F7FA;--accent:#B780FF;--pill-accent:v
 .search-filter>button:focus-visible { outline:2px solid var(--focus);outline-offset:2px; }
 .command-section { padding:12px 12px 4px;font-size:var(--text-xs);line-height:16px;font-weight:500;color:var(--muted); }
 .command-row { display:flex;align-items:center;gap:10px;min-height:40px;padding:8px 12px;border-radius:7px;font-size:var(--text-sm);line-height:20px;font-weight:500;cursor:default; }
-.search-row>svg,.search-row>.folder-glyph { flex:none;width:16px;height:16px;color:var(--muted); }
-.search-filter>.folder-glyph { color:var(--muted); }
+.search-row>svg { flex:none;width:16px;height:16px;color:var(--muted); }
 .command-label { min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
 .search-meeting { display:flex;align-items:center;gap:10px;min-height:48px;padding:8px 12px;border-radius:7px;cursor:default; }
 .search-metadata { flex:none;max-width:35%;color:var(--muted);font-size:var(--text-xs);line-height:18px;text-align:end;font-variant-numeric:tabular-nums; }
