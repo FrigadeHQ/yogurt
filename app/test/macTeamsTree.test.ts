@@ -35,6 +35,8 @@ describe('call-watch on the Teams desktop app (#111)', () => {
     const windows = swift.slice(swift.indexOf('func callWindows'), swift.indexOf('func watchCalls'))
     expect(windows).toContain('browserTitle(id)')
     expect(windows).toContain('kAXFocusedWindowAttribute')
+    expect(windows).toContain('meetTabTitle = title')
+    expect(swift.slice(swift.indexOf('func watchCalls'))).toContain('meetTabTitle.isEmpty ? axTitle : meetTabTitle')
     expect(swift).toMatch(/for w in wins\.prefix\(4\) \{ AXUIElementSetAttributeValue\(w, "AXManualAccessibility"/)
   })
 })

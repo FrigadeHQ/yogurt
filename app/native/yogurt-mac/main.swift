@@ -334,7 +334,11 @@ func hasCallControl(_ w: AXUIElement, budget: Int = 1500) -> Bool {
   return false
 }
 
+/// Set when a browser window was chosen by its tab title, because the accessibility title does not say Meet (Ardia's is "Ardia").
+var meetTabTitle = ""
+
 func callWindows(_ app: AXUIElement, _ id: String) -> [AXUIElement] {
+  meetTabTitle = ""
   let all = (axAttr(app, kAXWindowsAttribute) as? [AXUIElement]) ?? []
   if id == "us.zoom.xos" {
     return all.filter { w in
@@ -362,6 +366,7 @@ func callWindows(_ app: AXUIElement, _ id: String) -> [AXUIElement] {
   // belongs to the focused window (#123)
   guard let title = browserTitle(id), title.range(of: #"\bMeet\b"#, options: .regularExpression) != nil,
         let w = axAttr(app, kAXFocusedWindowAttribute), CFGetTypeID(w) == AXUIElementGetTypeID() else { return [] }
+  meetTabTitle = title
   return [w as! AXUIElement]
 }
 
@@ -402,7 +407,10 @@ func watchCalls(every: Int, ids: [String]) {
         var budget = zoom ? 1500 : 4000
         let out = wins.prefix(4).map { w -> [String: Any] in
           var o: [String: Any] = ["tree": axCopy(w, depth: 0, maxDepth: zoom ? 14 : 40, budget: &budget, zoom: zoom)]
-          if let x = axText(axAttr(w, kAXTitleAttribute)) { o["title"] = x }
+          // The parser skips a window whose title does not say Meet. Ardia's accessibility title is the app name, so the tab title is what gets written.
+          let axTitle = axText(axAttr(w, kAXTitleAttribute)) ?? ""
+          let title = axTitle.range(of: #"\bMeet\b"#, options: .regularExpression) != nil || meetTabTitle.isEmpty ? axTitle : meetTabTitle
+          if !title.isEmpty { o["title"] = title }
           if let x = axText(axAttr(w, kAXIdentifierAttribute)) { o["id"] = x }
           return o
         }
