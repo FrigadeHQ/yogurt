@@ -1,3 +1,4 @@
+import { loadWindowState, placeWindow, saveWindowState } from './windowState'
 import { trustSystemCertificates } from './systemCerts'
 import { createSavedTranscriptions } from './savedTranscription'
 import { transcriptionBusy } from '../shared/transcription'
@@ -18,7 +19,7 @@ import { isAppRoute } from '../shared/routes'
 import { resumesNote } from '../shared/agendaNote'
 import { relaunchOptions, stripAppImageEnv } from './relaunch'
 import { capabilities, micListHelper, platformOf, supportedKinds } from '../shared/platform'
-import { app, BrowserWindow, dialog, ipcMain, nativeTheme, Notification, protocol, safeStorage, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, nativeTheme, Notification, protocol, safeStorage, screen, shell } from 'electron'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import { basename, join } from 'node:path'
@@ -130,8 +131,13 @@ let updateWidgetVisibility = () => {}
 let recordingPillChanged = (_on: boolean) => {}
 let sendWidgetTranscript = (_channel: string, _value: unknown) => {}
 function createWindow() {
+  // the size and place it was left at (windowState.ts); test runs (fake mode) always start at the default, so one
+  // test's resize never carries into the next
+  const remember = !isFake()
+  const stateFile = join(userDataDir(), 'window.json')
+  const place = placeWindow(remember ? loadWindowState(stateFile) : null, screen.getAllDisplays().map((d) => d.workArea), { width: 1100, height: 760, minWidth: 720, minHeight: 520 })
   win = new BrowserWindow({
-    width: 1100, height: 760, minWidth: 720, minHeight: 520,
+    x: place.x, y: place.y, width: place.width, height: place.height, minWidth: 720, minHeight: 520,
     title: 'Yogurt',
     ...windowChrome(process.platform, nativeTheme.shouldUseDarkColors),
     show: false,
@@ -146,6 +152,16 @@ function createWindow() {
     const recolor = () => { if (win && !win.isDestroyed()) { win.setTitleBarOverlay(titleBarOverlay(nativeTheme.shouldUseDarkColors)); win.setBackgroundColor(titleBarOverlay(nativeTheme.shouldUseDarkColors).color) } }
     nativeTheme.on('updated', recolor)
     win.on('closed', () => nativeTheme.off('updated', recolor))
+  }
+  if (place.maximized) win.maximize()
+  if (remember) {
+    // saved a moment after a move or resize settles, and whenever the window is hidden or closed
+    const w = win
+    let timer: NodeJS.Timeout | undefined
+    const save = () => { clearTimeout(timer); if (!w.isDestroyed() && !w.isFullScreen()) saveWindowState(stateFile, { ...w.getNormalBounds(), maximized: w.isMaximized() }) }
+    const later = () => { clearTimeout(timer); timer = setTimeout(save, 500) }
+    w.on('resize', later); w.on('move', later)
+    w.on('hide', save); w.on('close', save)
   }
   win.webContents.setWindowOpenHandler(({ url }) => { openExternally(url); return { action: 'deny' } })
   win.webContents.on('will-navigate', (e, url) => {
