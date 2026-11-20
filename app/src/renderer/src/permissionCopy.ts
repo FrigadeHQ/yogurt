@@ -1,6 +1,6 @@
 import { AudioLines, Bell, CalendarDays, Mic, Users, type LucideIcon } from 'lucide-react'
 import type { PermissionKind } from '../../shared/types'
-import type { ScreenId } from '../../shared/onboarding'
+import { osWords } from './keys'
 import { t } from '../../shared/i18n'
 
 /**
@@ -26,7 +26,10 @@ export const permissionCopy = (k: PermissionKind): { icon: LucideIcon; name: str
       pane: t('Notifications'), where: t('In Notifications, click Yogurt, then turn on Allow notifications.'),
     }
     case 'accessibility': return {
-      icon: Users, name: t('Names from your calls'), reason: t('Yogurt uses names shown by supported call apps to label speakers in your transcript.'),
+      icon: Users, name: t('Names from your calls'), reason: osWords({
+        mac: t('With Accessibility access, Yogurt reads speaker names from supported call windows and adds them to the transcript.'),
+        other: t('Yogurt reads speaker names from supported call windows and adds them to the transcript.'),
+      }),
       pane: t('Accessibility'), where: t('In Accessibility, find Yogurt and turn it on.'),
     }
   }
@@ -44,13 +47,14 @@ export function finishSetupReason(k: PermissionKind): string {
 }
 
 /** The first run's screens: a short headline and one sentence on why it matters */
-export const screenCopy = (id: 'welcome' | ScreenId | 'ready'): { title: string; text: string } => {
+export const screenCopy = (id: 'welcome' | PermissionKind | 'ready'): { title: string; text: string } => {
   switch (id) {
     case 'welcome': return { title: t('Take note.'), text: t('Yogurt records calls without joining them and writes summaries on your computer afterward.') }
-    case 'record': return { title: t('Hear the whole call'), text: t("Yogurt hears you through your microphone, and everyone else through your Mac's sound.") }
+    case 'mic': return { title: t('Microphone'), text: t('Allow microphone access to transcribe your voice.') }
+    case 'systemAudio': return { title: t('Call audio'), text: t('The permission may mention your screen. Only sound is recorded to transcribe the other speakers.') }
     case 'calendar': return { title: t('Your calendar'), text: t("You can use calendar events to add meeting titles and attendees to your notes.") }
     case 'notifications': return { title: t('Recording reminders'), text: t('You can get a reminder when Yogurt detects a call.') }
-    case 'accessibility': return { title: t('See who said what'), text: t('Yogurt uses names shown by supported call apps to label speakers in your transcript.') }
+    case 'accessibility': return { title: t('See who said what'), text: permissionCopy('accessibility').reason }
     case 'ready': return { title: t('Almost ready'), text: t('Yogurt is setting up transcription on your computer.') }
   }
 }
