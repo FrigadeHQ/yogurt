@@ -575,8 +575,8 @@ input::selection, textarea::selection, .note-prose ::selection { background: var
 .note-footer-bar:not(:first-child) { margin-top:8px; }
 @media (prefers-contrast:more) { .note-footer { --note-footer-line:var(--line); } }
 .note-status { min-width:0; }
-.note-footer-bar>.chat-trigger { flex-shrink:0; }
-.chat-trigger kbd { margin-inline-start:8px;font-family:inherit;font-size:11px;font-weight:400;color:var(--muted); }
+.note-footer-bar>.chat-trigger { flex-shrink:0;padding-inline:8px 12px; }
+.chat-trigger kbd { margin-inline-start:6px;font-family:inherit;font-size:11px;font-weight:400;color:var(--muted); }
 .note-footer>[data-testid=note-stop-unsaved] { max-width:min(760px,calc(100% - 48px));margin-inline:auto; }
 .note-record-hint { display:flex;align-items:flex-start;justify-content:center;gap:7px;max-width:760px;margin:8px auto 0;padding-inline:24px;font-size:12px;line-height:18px;color:var(--written); }
 .note-record-hint>svg { margin-top:2px; }

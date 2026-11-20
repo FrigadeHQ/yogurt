@@ -549,9 +549,10 @@ body:has(.chat-panel[open]) .app-toast-viewport:dir(rtl) { --toast-x:440px; }
 .ask-actions-menu.player-audio-menu { min-width:0; }
 .ask-actions-menu [role=menuitem] { display:flex;align-items:center;gap:8px;cursor:default; }
 .ask-actions-menu [data-highlighted] { background:var(--card);outline:none; }
-.chat-panel .ask-conversation-head { height:44px;padding-inline:16px 12px; }
-.chat-panel .ask-thread { padding:16px 12px; }
-.chat-panel .ask-composer { padding:0 12px 12px;overflow:visible; }
+.chat-panel { --chat-inset:12px; }
+.chat-panel .ask-conversation-head { height:44px;padding-inline:var(--chat-inset); }
+.chat-panel .ask-thread { padding:var(--chat-inset); }
+.chat-panel .ask-composer { padding:0 var(--chat-inset) var(--chat-inset);overflow:visible; }
 @container (max-width:520px) { .ask-page { padding-inline:18px; } }
 @keyframes ask-fade { from { opacity:0; } to { opacity:1; } }
 @media (prefers-reduced-motion:reduce) { .ask-toolbar-button { transition:none; } }
