@@ -168,7 +168,7 @@ test('menu bar: shows recording, and Yogurt keeps running with its window closed
     const page = await app.firstWindow()
     await expect(page.getByTestId('home')).toBeVisible()
     await fake(app, 'calendarEvents', [])
-    await expect.poll(() => fake(app, 'tray')).toEqual(['Start recording', 'Ask Yogurt', 'Recent', '', 'Open Yogurt', 'Settings…', '', 'Quit Yogurt'])
+    await expect.poll(() => fake(app, 'tray')).toEqual(['New recording', 'Ask Yogurt', 'Recent', '', 'Open Yogurt', 'Settings…', '', 'Quit Yogurt'])
     await fake(app, 'trayClick', 'new')
     await expect(page.getByTestId('note')).toBeVisible({ timeout: 15_000 })
     await expect.poll(() => fake(app, 'tray')).toEqual([expect.stringMatching(/^Recording · /), 'Pause recording', 'Stop recording', '', 'Ask Yogurt', 'Open Yogurt', 'Recent', 'Settings…', '', 'Quit Yogurt'])
@@ -177,7 +177,7 @@ test('menu bar: shows recording, and Yogurt keeps running with its window closed
     await fake(app, 'trayClick', 'pause')
     await expect.poll(() => fake(app, 'tray')).toContain('Pause recording')
     await fake(app, 'trayClick', 'stop')
-    await expect.poll(() => fake(app, 'tray')).toEqual(['Start recording', 'Ask Yogurt', 'Recent', '', 'Open Yogurt', 'Settings…', '', 'Quit Yogurt'])
+    await expect.poll(() => fake(app, 'tray')).toEqual(['New recording', 'Ask Yogurt', 'Recent', '', 'Open Yogurt', 'Settings…', '', 'Quit Yogurt'])
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().forEach((w) => w.close()))
     await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().filter(w => w.isVisible()).length)).toBe(0)
     // the main window again (not the widget or the card)
@@ -217,7 +217,7 @@ test('the dock icon and a second launch bring back a closed main window with the
     await expect.poll(mainCount).toBe(1)
     expect(settingsOf(dir).showInMenuBar).toBe(false)
     await fake(app, 'trayClick', 'stop')
-    await expect.poll(() => fake(app, 'tray')).toContain('Start recording')
+    await expect.poll(() => fake(app, 'tray')).toContain('New recording')
   } finally { await app.close() }
 })
 
@@ -408,17 +408,20 @@ test('settings permission statuses and actions stay consistent without claiming 
   } finally { await app.close() }
 })
 
-test('menu bar: next event prepares its note, Ask uses note context, Recent and Settings navigate', async () => {
+test('menu bar: the meeting heading is informational, Join records its prepared note, Ask and Recent use the note', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'yogurt-e2e-'))
   const app = await launch(dir)
   try {
     const page = await app.firstWindow()
     await expect(page.getByTestId('home')).toBeVisible()
     const now = Date.now()
-    await fake(app, 'calendarEvents', [{ id: 'tray-event', title: 'Launch planning', start: new Date(now - 60000).toISOString(), end: new Date(now + 3600000).toISOString(), attendees: [{ name: 'Dana', email: 'dana@example.com' }], url: 'https://meet.google.com/abc-defg-hij' }])
+    const event = { id: 'tray-event', title: 'Launch planning', start: new Date(now - 60000).toISOString(), end: new Date(now + 3600000).toISOString(), attendees: [{ name: 'Organizer', email: null }] }
+    await fake(app, 'calendarEvents', [{ ...event, url: 'https://meet.google.com/abc-defg-hij' }])
     await expect.poll(() => fake(app, 'tray')).toContain('Now · Launch planning')
     await expect.poll(() => fake(app, 'tray')).toContain('Join and record')
     await fake(app, 'trayClick', 'next')
+    await expect(page.getByTestId('home')).toBeVisible()
+    await page.evaluate(day => window.yogurt.meetings.prepare('tray-event', day), now)
     await expect(page.getByTestId('note-title')).toHaveText('Launch planning')
     await expect(page.getByTestId('note-start')).toBeVisible()
     const route = await page.evaluate(() => window.yogurt.nav.current())
@@ -432,6 +435,12 @@ test('menu bar: next event prepares its note, Ask uses note context, Recent and 
     await fake(app, 'trayClick', 'join')
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
     expect(await page.evaluate(() => window.yogurt.nav.current())).toBe(route)
+    await fake(app, 'trayClick', 'stop')
+    await fake(app, 'calendarEvents', [{ ...event, id: 'review', title: 'Design review' }])
+    await expect.poll(() => fake(app, 'tray')).toContain('Record Design review')
+    await fake(app, 'trayClick', 'record')
+    await expect(page.getByTestId('note-title')).toHaveText('Design review')
+    await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
     await fake(app, 'trayClick', 'stop')
     await page.getByTestId('nav-home').click()
     await fake(app, 'trayClick', 'ask')

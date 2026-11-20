@@ -8,6 +8,7 @@ afterEach(() => vi.useRealTimers())
 it('idle has recording, Ask, disabled empty Recent and navigation in the approved order', () => {
   const items = trayItems(null)
   expect(items.map(i => i.id)).toEqual(['new', 'ask', 'recent', 'sep', 'open', 'settings', 'sep', 'quit'])
+  expect(items[0]).toMatchObject({ label: 'New recording', enabled: true })
   expect(items.find(i => i.id === 'recent')).toMatchObject({ enabled: false, submenu: [] })
   expect(items.find(i => i.id === 'settings')?.accelerator).toBe('Command+,')
 })
@@ -16,11 +17,21 @@ it('picks an ongoing meeting first and offers Join for a same-day call', () => {
   expect(nextTrayEvent([personal], now)).toBeUndefined()
   expect(nextTrayEvent([{ ...event, end: now }], now)).toBeUndefined()
   expect(nextTrayEvent([event, { ...event, id: 'live', start: now - 1000 }], now)?.id).toBe('live')
-  expect(trayItems(null, event).slice(0, 2).map(i => i.id)).toEqual(['next', 'join'])
-  expect(trayItems(null, event)[0].label).toBe('Launch planning · 2:00 PM')
-  const live = { ...event, start: now - 1000, url: null, attendees: [{ name: 'Dana', email: 'dana@example.com' }] }
-  expect(trayItems(null, live)[0].label).toBe('Now · Launch planning')
-  expect(trayItems(null, live).some(i => i.id === 'join')).toBe(false)
+  const menu = trayItems(null, event)
+  expect(menu.slice(0, 4).map(i => i.id)).toEqual(['next', 'sep', 'join', 'new'])
+  expect(menu[0]).toMatchObject({ label: 'Launch planning · 2:00 PM', enabled: false })
+  expect(menu[2]).toMatchObject({ label: 'Join and record', enabled: true, eventId: event.id })
+})
+
+it('offers a named recording without a call link, before and during the meeting', () => {
+  for (const start of [event.start, now - 1000]) {
+    const menu = trayItems(null, { ...event, start, url: '  ' })
+    expect(menu.slice(0, 4).map(i => i.id)).toEqual(['next', 'sep', 'record', 'new'])
+    expect(menu[0]).toMatchObject({ label: start > now ? 'Launch planning · 2:00 PM' : 'Now · Launch planning', enabled: false })
+    expect(menu[2]).toMatchObject({ label: 'Record Launch planning', enabled: true, eventId: event.id })
+  }
+  setLanguage('ja')
+  expect(trayItems(null, { ...event, url: null })[2].label).toBe('「Launch planning」を録音')
 })
 it('recording has pause and Stop; paused has Resume; neither shows next meeting or Start', () => {
   for (const paused of [false, true]) {
@@ -105,7 +116,7 @@ describe('idle meeting title', () => {
     }
     const menu = trayItems(null, next, [], at)
     expect(menu[0]).toMatchObject({ id: 'next', label: 'Quarterly review · Nov 20 9:00 AM', enabled: false })
-    expect(menu.some(item => item.id === 'join')).toBe(false)
+    expect(menu.slice(0, 3).map(i => i.id)).toEqual(['next', 'sep', 'new'])
     expect(trayTitle(null, { ...monday, title: 'W'.repeat(40) }, at)).toBe('W'.repeat(21) + '… · Nov 23 2:00 PM')
   })
 
@@ -113,7 +124,7 @@ describe('idle meeting title', () => {
     const at = new Date(2026, 10, 20, 0, 5).getTime()
     const overnight = { ...event, start: at - 15 * min, end: at + 5 * min }
     expect(trayTitle(null, nextTrayEvent([overnight], at), at)).toBe('Now · Launch planning')
-    expect(trayItems(null, overnight, [], at)[0].enabled).toBe(true)
+    expect(trayItems(null, overnight, [], at)[2]).toMatchObject({ id: 'join', enabled: true })
   })
 
   it('uses regional date order and a 24-hour clock', () => {

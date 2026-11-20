@@ -3,7 +3,7 @@ import { dayLabel, daysAgo } from '../shared/dates'
 import { formatElapsed } from '../shared/wave'
 import type { CalEvent } from './calendar'
 
-export type TrayItem = { id: 'status' | 'open' | 'new' | 'stop' | 'pause' | 'ask' | 'next' | 'join' | 'recent' | 'settings' | 'quit' | 'sep' | `note:${string}`; label: string; enabled: boolean; accelerator?: string; submenu?: TrayItem[] }
+export type TrayItem = { id: 'status' | 'open' | 'new' | 'stop' | 'pause' | 'ask' | 'next' | 'record' | 'join' | 'recent' | 'settings' | 'quit' | 'sep' | `note:${string}`; label: string; enabled: boolean; eventId?: string; accelerator?: string; submenu?: TrayItem[] }
 type Recent = { id: string; title: string; startedAt: number }
 
 /** Include the full seventh local date so next week's meeting can be seen all day. */
@@ -60,12 +60,19 @@ export function trayItems(active: { id?: string; title: string; paused?: boolean
   const quit: TrayItem = { id: 'quit', label: t('Quit Yogurt'), enabled: true }
   const history: TrayItem = { id: 'recent', label: t('Recent'), enabled: recent.length > 0, submenu: [...recent].sort((a, b) => b.startedAt - a.startedAt).slice(0, 5)
     .map(m => ({ id: `note:${m.id}`, label: `${m.title || t('Untitled meeting')} · ${dayLabel(m.startedAt)}`, enabled: true })) }
-  const laterDay = !!next && next.start > now && daysAgo(next.start, now) !== 0
-  if (!active) return [
-    ...(next ? [{ id: 'next' as const, label: next.start <= now ? t('Now · {title}', { title: next.title || t('Meeting') }) : `${next.title || t('Meeting')} · ${clock(next.start, laterDay)}`, enabled: !laterDay },
-      ...(!laterDay && next.url?.trim() ? [{ id: 'join' as const, label: t('Join and record'), enabled: true }] : [])] : []),
-    { id: 'new', label: t('Start recording'), enabled: true }, ask, history, sep, open, settings, sep, quit,
-  ]
+  if (!active) {
+    const meeting: TrayItem[] = []
+    if (next) {
+      const title = next.title.trim() || t('Meeting')
+      const laterDay = next.start > now && daysAgo(next.start, now) !== 0
+      const label = next.start <= now ? t('Now · {title}', { title }) : `${title} · ${clock(next.start, laterDay)}`
+      meeting.push({ id: 'next', label, enabled: false }, sep)
+      if (!laterDay) meeting.push(next.url?.trim()
+        ? { id: 'join', label: t('Join and record'), enabled: true, eventId: next.id }
+        : { id: 'record', label: t('Record {title}', { title }), enabled: true, eventId: next.id })
+    }
+    return [...meeting, { id: 'new', label: t('New recording'), enabled: true }, ask, history, sep, open, settings, sep, quit]
+  }
   return [
     { id: 'status', label: active.paused ? t('Paused · {title}', { title: active.title }) : t('Recording · {title}', { title: active.title }), enabled: false },
     { id: 'pause', label: active.paused ? t('Resume recording') : t('Pause recording'), enabled: true },

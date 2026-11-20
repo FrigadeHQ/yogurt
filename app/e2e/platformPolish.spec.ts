@@ -43,14 +43,14 @@ for (const platform of ['win32', 'linux']) {
     try {
       const page = await app.firstWindow()
       await expect(page.getByTestId('home')).toBeVisible({ timeout: 15_000 })
-      expect(await fake(app, 'tray')).toEqual(expect.arrayContaining(['Start recording', 'Open Yogurt', 'Settings…', 'Quit Yogurt']))
+      expect(await fake(app, 'tray')).toEqual(expect.arrayContaining(['New recording', 'Open Yogurt', 'Settings…', 'Quit Yogurt']))
       expect(await fake(app, 'trayAccelerators')).toEqual({ 'Settings…': 'Ctrl+,' })
       await fake(app, 'trayClick', 'new')
       await expect.poll(() => fake(app, 'tray')).toContain('Stop recording')
       // no music player is paused off a Mac (capabilities.mediaPause)
       expect(((await fake(app, 'main')) as { mediaCalls: string[][] }).mediaCalls).toEqual([])
       await fake(app, 'trayClick', 'stop')
-      await expect.poll(() => fake(app, 'tray')).toContain('Start recording')
+      await expect.poll(() => fake(app, 'tray')).toContain('New recording')
     } finally { await app.close() }
   })
 }

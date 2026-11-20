@@ -657,6 +657,7 @@
   "Keep audio recordings after meetings": "الاحتفاظ بالتسجيلات الصوتية بعد الاجتماعات",
   "Recording deleted": "تم حذف التسجيل",
   "When off, new meetings' audio is deleted once the summary is saved.": "عند إيقافه، يُحذف صوت الاجتماعات الجديدة بعد حفظ الملخص.",
+  "Record {title}": "تسجيل {title}",
   "New recording": "تسجيل جديد",
   "Hide events without a call link": "إخفاء الأحداث التي ليس لها رابط مكالمة",
   "Keep your agenda and reminders focused on calls.": "ركّز جدولك وتذكيراتك على المكالمات.",

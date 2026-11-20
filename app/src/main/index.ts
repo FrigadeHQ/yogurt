@@ -420,14 +420,9 @@ function startDetection() {
     elapsed: widget.elapsed,
     os: platform,
     host: process.platform === 'linux' && !BACKGROUND ? linuxTrayHost : undefined,
-    event: async (event, join) => {
-      const current = (await comingUp()).find(e => matchesEvent(e, event.id))
-      if (!current) return
-      if (join) {
-        if (activeMeeting() || !current.url?.trim()) return
-        begin({ title: current.title, event: current, app: null })
-        openExternally(current.url.trim())
-      } else { const note = prepareMeeting(current); goTo(`/note/${note.id}`) }
+    event: (event, join) => {
+      begin({ title: event.title, event, app: null })
+      if (join && event.url) openExternally(event.url.trim())
     },
   })
   refreshCalendarConsumers = () => { signals.invalidateCalendar(); void tray.refreshCalendar() }

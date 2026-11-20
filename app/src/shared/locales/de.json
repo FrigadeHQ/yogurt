@@ -604,6 +604,7 @@
   "Keep audio recordings after meetings": "Audioaufnahmen nach Meetings behalten",
   "Recording deleted": "Aufnahme gelöscht",
   "When off, new meetings' audio is deleted once the summary is saved.": "Wenn aus, wird Audio neuer Meetings nach Speichern der Zusammenfassung gelöscht.",
+  "Record {title}": "{title} aufnehmen",
   "New recording": "Neue Aufnahme",
   "Hide events without a call link": "Termine ohne Anruflink ausblenden",
   "Keep your agenda and reminders focused on calls.": "Konzentriere dich in Agenda und Erinnerungen auf Anrufe.",

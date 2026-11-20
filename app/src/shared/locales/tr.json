@@ -595,6 +595,7 @@
   "Keep audio recordings after meetings": "Toplantılardan sonra ses kayıtlarını sakla",
   "Recording deleted": "Kayıt silindi",
   "When off, new meetings' audio is deleted once the summary is saved.": "Kapalıyken yeni toplantıların sesi özet kaydedilince silinir.",
+  "Record {title}": "“{title}” kaydını başlat",
   "New recording": "Yeni kayıt",
   "Hide events without a call link": "Arama bağlantısı olmayan etkinlikleri gizle",
   "Keep your agenda and reminders focused on calls.": "Ajandanızı ve hatırlatıcılarınızı aramalara odaklayın.",

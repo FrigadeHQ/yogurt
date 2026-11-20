@@ -595,6 +595,7 @@
   "Keep audio recordings after meetings": "Hangfelvételek megőrzése a megbeszélések után",
   "Recording deleted": "Felvétel törölve",
   "When off, new meetings' audio is deleted once the summary is saved.": "Kikapcsolva az új megbeszélések hangja az összefoglaló mentése után törlődik.",
+  "Record {title}": "{title} rögzítése",
   "New recording": "Új felvétel",
   "Hide events without a call link": "Híváshivatkozás nélküli események elrejtése",
   "Keep your agenda and reminders focused on calls.": "A napirendben és az emlékeztetőkben a hívásokra összpontosítson.",

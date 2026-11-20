@@ -565,6 +565,7 @@
   "Keep audio recordings after meetings": "会議後も録音を保存",
   "Recording deleted": "録音を削除しました",
   "When off, new meetings' audio is deleted once the summary is saved.": "オフにすると、新しい会議の音声は要約の保存後に削除されます。",
+  "Record {title}": "「{title}」を録音",
   "New recording": "新規録音",
   "Hide events without a call link": "通話リンクのない予定を非表示",
   "Keep your agenda and reminders focused on calls.": "予定とリマインダーを通話中心に整理します。",

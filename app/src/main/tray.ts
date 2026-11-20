@@ -7,7 +7,7 @@ import { formatTrayTime, hasTrayHost, nextTrayEvent, trayItems, trayLook, type T
 import { daysAgo } from '../shared/dates'
 import { onLanguage } from '../shared/i18n'
 import { onRecordingEvent, recordingPaused } from './capture'
-import type { CalEvent } from './calendar'
+import { matchesEvent, type CalEvent } from './calendar'
 
 function systemTrayTime(start: number, dated: boolean): string {
   let hour12: boolean | undefined
@@ -38,7 +38,7 @@ export const linuxTrayHost = (): Promise<boolean> => new Promise((done) => {
  */
 export function createTray(d: { show: boolean; visible?: boolean; showNextMeeting?: boolean; open(): void; newNote(): void; stop(id: string): void
   pause(id: string, paused: boolean): void; ask(): void; settings(): void; openNote(id: string): void
-  events(): Promise<CalEvent[]>; event(event: CalEvent, join: boolean): Promise<void>
+  events(): Promise<CalEvent[]>; event(event: CalEvent, join: boolean): void | Promise<void>
   recent(): { id: string; title: string; startedAt: number }[]; elapsed(): number; now?: () => number
   /** the computer: a Mac's template icon and timer title, a colour icon elsewhere */
   os?: string
@@ -55,16 +55,21 @@ export function createTray(d: { show: boolean; visible?: boolean; showNextMeetin
   let items: TrayItem[] = []
   let events: CalEvent[] = []
   const now = d.now ?? Date.now
-  const act = (id: TrayItem['id']) => {
+  const recordEvent = async (eventId: string, join: boolean) => {
+    const candidates = (await d.events()).filter(e => matchesEvent(e, eventId))
+    const at = now(), event = nextTrayEvent(candidates, at)
+    if (!event || !showNextMeeting || activeMeeting() || (join && !event.url?.trim())) return
+    if (event.start <= at || daysAgo(event.start, at) === 0) return d.event(event, join)
+  }
+  const act = (id: TrayItem['id'], eventId?: string) => {
     const m = activeMeeting()
     if (id === 'open') d.open()
     else if (id === 'new' && !m) d.newNote()
     else if (id === 'ask') d.ask()
     else if (id === 'settings') d.settings()
     else if (id.startsWith('note:')) d.openNote(id.slice(5))
-    else if ((id === 'next' || id === 'join') && !m && showNextMeeting) {
-      const at = now(), event = nextTrayEvent(events, at)
-      if (event && (event.start <= at || daysAgo(event.start, at) === 0)) void d.event(event, id === 'join').catch(error => console.error('Menu bar event action failed', error))
+    else if ((id === 'record' || id === 'join') && eventId && !m && showNextMeeting) {
+      void recordEvent(eventId, id === 'join').catch(error => console.error('Menu bar event action failed', error))
     }
     else if (id === 'pause' && m) d.pause(m.id, !recordingPaused(m.id))
     else if (id === 'stop' && m) d.stop(m.id)
@@ -96,7 +101,7 @@ export function createTray(d: { show: boolean; visible?: boolean; showNextMeetin
     if (l.tooltip !== lastTooltip) { tray.setToolTip(l.tooltip); lastTooltip = l.tooltip }
   }
   const template = (list: TrayItem[]): MenuItemConstructorOptions[] => list.map(i => i.id === 'sep' ? { type: 'separator' }
-    : { label: i.label, enabled: i.enabled, accelerator: i.accelerator, ...(i.submenu ? { submenu: template(i.submenu) } : { click: () => act(i.id) }) })
+    : { label: i.label, enabled: i.enabled, accelerator: i.accelerator, ...(i.submenu ? { submenu: template(i.submenu) } : { click: () => act(i.id, i.eventId) }) })
   const refresh = () => {
     const m = activeMeeting()
     const paused = !!m && recordingPaused(m.id)
@@ -155,7 +160,8 @@ export function createTray(d: { show: boolean; visible?: boolean; showNextMeetin
   onRecordingEvent((e) => { if (e.t === 'paused') refresh() })
   return {
     setVisible, setShowNextMeeting: (on: boolean) => { showNextMeeting = on; refresh() },
-    refreshCalendar, items: () => { refresh(); return items.map((i) => i.label) }, click: act,
+    refreshCalendar, items: () => { refresh(); return items.map((i) => i.label) },
+    click: (id: TrayItem['id']) => act(id, items.find(i => i.id === id)?.eventId),
     /** whether the person can see the icon (on in Settings, and a tray to show it in): closing hides the window only then */
     shown: () => visible && hosted,
     /** for tests: each item's shortcut */

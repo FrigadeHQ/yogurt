@@ -94,13 +94,34 @@ it('refreshes calendar targets without letting an older read overwrite a newer o
   let finish!: (events: typeof event[]) => void
   d.events.mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
   const old = tray.refreshCalendar()
-  d.events.mockResolvedValueOnce([event]); await tray.refreshCalendar()
+  d.events.mockResolvedValue([event]); await tray.refreshCalendar()
   finish([]); await old
   expect(tray.items()[0]).toBe('Now · Next call')
-  tray.click('next'); expect(d.event).toHaveBeenLastCalledWith(event, false)
-  tray.click('join'); expect(d.event).toHaveBeenLastCalledWith(event, true)
+  tray.click('next')
+  expect(d.event).not.toHaveBeenCalled()
+  tray.click('join')
+  await vi.waitFor(() => expect(d.event).toHaveBeenCalledWith(event, true))
   state.meeting = { id: 'm1', title: 'Standup' }; state.change()
-  tray.click('join'); expect(d.event).toHaveBeenCalledTimes(2)
+  tray.click('join'); expect(d.event).toHaveBeenCalledOnce()
+})
+
+it('records the event named in the menu and ignores a stale click after it disappears', async () => {
+  const d = actions(), at = Date.now()
+  const event = { id: 'review', title: 'Review', start: at, end: at + 3_600_000, url: null, attendees: [{ name: 'Guest', email: null }] }
+  d.events.mockResolvedValue([event])
+  const tray = createTray({ show: true, ...d })
+  await tray.refreshCalendar()
+  const menu = state.trays[0].setContextMenu.mock.lastCall[0] as { label?: string; click(): void }[]
+  const record = menu.find(item => item.label === 'Record Review')!
+  record.click()
+  await vi.waitFor(() => expect(d.event).toHaveBeenCalledWith(event, false))
+  expect(d.newNote).not.toHaveBeenCalled()
+
+  d.events.mockResolvedValue([{ ...event, id: 'planning', title: 'Planning' }])
+  await tray.refreshCalendar()
+  record.click()
+  await Promise.resolve()
+  expect(d.event).toHaveBeenCalledTimes(1)
 })
 
 it('Windows and Linux: a colour icon that turns to the recording one, the time in the tooltip, and a click opens Yogurt', () => {

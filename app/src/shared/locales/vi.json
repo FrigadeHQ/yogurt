@@ -565,6 +565,7 @@
   "Keep audio recordings after meetings": "Giữ bản ghi âm sau cuộc họp",
   "Recording deleted": "Đã xóa bản ghi",
   "When off, new meetings' audio is deleted once the summary is saved.": "Khi tắt, âm thanh cuộc họp mới sẽ bị xóa sau khi lưu tóm tắt.",
+  "Record {title}": "Ghi âm {title}",
   "New recording": "Bản ghi mới",
   "Hide events without a call link": "Ẩn sự kiện không có liên kết cuộc gọi",
   "Keep your agenda and reminders focused on calls.": "Tập trung lịch trình và lời nhắc vào các cuộc gọi.",

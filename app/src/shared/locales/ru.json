@@ -630,6 +630,7 @@
   "Keep audio recordings after meetings": "Хранить аудиозаписи после встреч",
   "Recording deleted": "Запись удалена",
   "When off, new meetings' audio is deleted once the summary is saved.": "Если выключено, аудио новых встреч удаляется после сохранения сводки.",
+  "Record {title}": "Записать «{title}»",
   "New recording": "Новая запись",
   "Hide events without a call link": "Скрывать события без ссылки на звонок",
   "Keep your agenda and reminders focused on calls.": "Сосредоточьтесь на звонках в расписании и напоминаниях.",

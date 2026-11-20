@@ -565,6 +565,7 @@
   "Keep audio recordings after meetings": "เก็บเสียงบันทึกหลังประชุม",
   "Recording deleted": "ลบเสียงบันทึกแล้ว",
   "When off, new meetings' audio is deleted once the summary is saved.": "เมื่อปิด เสียงของการประชุมใหม่จะถูกลบหลังบันทึกสรุปแล้ว",
+  "Record {title}": "บันทึก {title}",
   "New recording": "การบันทึกใหม่",
   "Hide events without a call link": "ซ่อนกิจกรรมที่ไม่มีลิงก์การโทร",
   "Keep your agenda and reminders focused on calls.": "เน้นการโทรในกำหนดการและการแจ้งเตือนของคุณ",

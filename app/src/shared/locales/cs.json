@@ -634,6 +634,7 @@
   "Keep audio recordings after meetings": "Ponechat zvukové nahrávky po schůzkách",
   "Recording deleted": "Nahrávka smazána",
   "When off, new meetings' audio is deleted once the summary is saved.": "Při vypnutí se zvuk nových schůzek smaže po uložení shrnutí.",
+  "Record {title}": "Nahrát {title}",
   "New recording": "Nová nahrávka",
   "Hide events without a call link": "Skrýt události bez odkazu na hovor",
   "Keep your agenda and reminders focused on calls.": "Zaměřte svůj program a připomínky na hovory.",

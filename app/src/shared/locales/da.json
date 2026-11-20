@@ -604,6 +604,7 @@
   "Keep audio recordings after meetings": "Behold lydoptagelser efter møder",
   "Recording deleted": "Optagelse slettet",
   "When off, new meetings' audio is deleted once the summary is saved.": "Når slået fra, slettes nye møders lyd, når resuméet er gemt.",
+  "Record {title}": "Optag {title}",
   "New recording": "Ny optagelse",
   "Hide events without a call link": "Skjul begivenheder uden opkaldslink",
   "Keep your agenda and reminders focused on calls.": "Hold fokus på opkald i din dagsorden og dine påmindelser.",

@@ -595,6 +595,7 @@
   "Keep audio recordings after meetings": "মিটিংয়ের পরে অডিও রেকর্ডিং রাখুন",
   "Recording deleted": "রেকর্ডিং মোছা হয়েছে",
   "When off, new meetings' audio is deleted once the summary is saved.": "বন্ধ থাকলে সারাংশ সেভের পর নতুন মিটিংয়ের অডিও মুছবে।",
+  "Record {title}": "{title} রেকর্ড করুন",
   "New recording": "নতুন রেকর্ডিং",
   "Hide events without a call link": "কলের লিঙ্ক ছাড়া ইভেন্ট লুকান",
   "Keep your agenda and reminders focused on calls.": "আপনার সময়সূচি ও রিমাইন্ডারে কলগুলোকে প্রাধান্য দিন।",

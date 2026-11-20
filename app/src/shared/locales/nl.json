@@ -604,6 +604,7 @@
   "Keep audio recordings after meetings": "Audio-opnamen na vergaderingen bewaren",
   "Recording deleted": "Opname verwijderd",
   "When off, new meetings' audio is deleted once the summary is saved.": "Indien uit, wordt audio van nieuwe vergaderingen gewist zodra de samenvatting is opgeslagen.",
+  "Record {title}": "{title} opnemen",
   "New recording": "Nieuwe opname",
   "Hide events without a call link": "Afspraken zonder gesprekslink verbergen",
   "Keep your agenda and reminders focused on calls.": "Richt je agenda en herinneringen op gesprekken.",

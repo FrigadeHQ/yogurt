@@ -565,6 +565,7 @@
   "Keep audio recordings after meetings": "Simpan rekaman audio setelah rapat",
   "Recording deleted": "Rekaman dihapus",
   "When off, new meetings' audio is deleted once the summary is saved.": "Jika dimatikan, audio rapat baru dihapus setelah ringkasan tersimpan.",
+  "Record {title}": "Rekam {title}",
   "New recording": "Rekaman baru",
   "Hide events without a call link": "Sembunyikan acara tanpa tautan panggilan",
   "Keep your agenda and reminders focused on calls.": "Fokuskan agenda dan pengingat Anda pada panggilan.",

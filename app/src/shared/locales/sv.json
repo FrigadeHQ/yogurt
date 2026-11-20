@@ -607,6 +607,7 @@
   "Keep audio recordings after meetings": "Behåll ljudinspelningar efter möten",
   "Recording deleted": "Inspelning raderad",
   "When off, new meetings' audio is deleted once the summary is saved.": "När avstängt raderas nya mötens ljud när sammanfattningen har sparats.",
+  "Record {title}": "Spela in {title}",
   "New recording": "Ny inspelning",
   "Hide events without a call link": "Dölj händelser utan samtalslänk",
   "Keep your agenda and reminders focused on calls.": "Fokusera din agenda och dina påminnelser på samtal.",

@@ -607,6 +607,7 @@
   "Keep audio recordings after meetings": "Säilytä äänitallenteet kokousten jälkeen",
   "Recording deleted": "Tallenne poistettu",
   "When off, new meetings' audio is deleted once the summary is saved.": "Pois päältä uusien kokousten ääni poistetaan yhteenvedon tallennuttua.",
+  "Record {title}": "Tallenna {title}",
   "New recording": "Uusi tallennus",
   "Hide events without a call link": "Piilota tapahtumat ilman puhelulinkkiä",
   "Keep your agenda and reminders focused on calls.": "Keskity puheluihin päiväohjelmassa ja muistutuksissa.",

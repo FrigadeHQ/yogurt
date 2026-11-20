@@ -614,6 +614,7 @@
   "Keep audio recordings after meetings": "שמירת הקלטות שמע אחרי פגישות",
   "Recording deleted": "ההקלטה נמחקה",
   "When off, new meetings' audio is deleted once the summary is saved.": "כשכבוי, השמע של פגישות חדשות נמחק לאחר שמירת הסיכום.",
+  "Record {title}": "הקלטת {title}",
   "New recording": "הקלטה חדשה",
   "Hide events without a call link": "הסתרת אירועים ללא קישור לשיחה",
   "Keep your agenda and reminders focused on calls.": "מקדו את סדר היום והתזכורות בשיחות.",

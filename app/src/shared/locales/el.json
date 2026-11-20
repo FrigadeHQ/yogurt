@@ -607,6 +607,7 @@
   "Keep audio recordings after meetings": "Διατήρηση ηχογραφήσεων μετά τις συναντήσεις",
   "Recording deleted": "Η ηχογράφηση διαγράφηκε",
   "When off, new meetings' audio is deleted once the summary is saved.": "Αν κλείσει, ο ήχος νέων συναντήσεων διαγράφεται μόλις σωθεί η σύνοψη.",
+  "Record {title}": "Ηχογράφηση «{title}»",
   "New recording": "Νέα ηχογράφηση",
   "Hide events without a call link": "Απόκρυψη συμβάντων χωρίς σύνδεσμο κλήσης",
   "Keep your agenda and reminders focused on calls.": "Εστιάστε το πρόγραμμά σας και τις υπενθυμίσεις στις κλήσεις.",

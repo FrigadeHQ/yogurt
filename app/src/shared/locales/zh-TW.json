@@ -565,6 +565,7 @@
   "Keep audio recordings after meetings": "會後保留錄音",
   "Recording deleted": "錄音已刪除",
   "When off, new meetings' audio is deleted once the summary is saved.": "關閉後，新會議的音訊將在摘要儲存後刪除。",
+  "Record {title}": "錄製「{title}」",
   "New recording": "新增錄音",
   "Hide events without a call link": "隱藏沒有通話連結的行程",
   "Keep your agenda and reminders focused on calls.": "讓行程與提醒專注於通話。",

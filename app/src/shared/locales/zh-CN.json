@@ -565,6 +565,7 @@
   "Keep audio recordings after meetings": "会后保留录音",
   "Recording deleted": "录音已删除",
   "When off, new meetings' audio is deleted once the summary is saved.": "关闭后，新会议的音频将在摘要保存后删除。",
+  "Record {title}": "录制“{title}”",
   "New recording": "新建录音",
   "Hide events without a call link": "隐藏没有通话链接的日程",
   "Keep your agenda and reminders focused on calls.": "让日程和提醒专注于通话。",

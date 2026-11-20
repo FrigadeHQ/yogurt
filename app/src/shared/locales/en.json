@@ -133,6 +133,7 @@
   "Recording deleted": "Recording deleted",
   "When off, new meetings' audio is deleted once the summary is saved.": "When off, new meetings' audio is deleted once the summary is saved.",
   "Settings": "Settings",
+  "Record {title}": "Record {title}",
   "New recording": "New recording",
   "Hide events without a call link": "Hide events without a call link",
   "Keep your agenda and reminders focused on calls.": "Keep your agenda and reminders focused on calls.",
