@@ -30,5 +30,12 @@ describe('call-watch on the Teams desktop app (#111)', () => {
     expect(ask).toContain('"AXEnhancedUserInterface" as CFString, kCFBooleanTrue')
     expect(swift).toMatch(/readDataToEndOfFile\(\); DispatchQueue\.main\.sync \{ resetTrees\(\) \}; exit\(0\)/)
   })
+  it("reads a Meet tab in a browser whose window title is only the browser's name, and asks the window itself for the page (#123)", () => {
+    expect(swift).toMatch(/"com\.ardia\.browser", "com\.microsoft\.edgemac", "com\.brave\.Browser", "com\.apple\.Safari"\]\.contains\(id\)/)
+    const windows = swift.slice(swift.indexOf('func callWindows'), swift.indexOf('func watchCalls'))
+    expect(windows).toContain('browserTitle(id)')
+    expect(windows).toContain('kAXFocusedWindowAttribute')
+    expect(swift).toMatch(/for w in wins\.prefix\(4\) \{ AXUIElementSetAttributeValue\(w, "AXManualAccessibility"/)
+  })
 })
 

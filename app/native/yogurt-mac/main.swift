@@ -200,7 +200,7 @@ func browserTitle(_ id: String) -> String? {
     return axText(axAttr(window as! AXUIElement, kAXTitleAttribute))
   }
   let safari = id == "com.apple.Safari"
-  guard ["com.google.Chrome", "company.thebrowser.Browser", "com.microsoft.edgemac", "com.brave.Browser", "com.apple.Safari"].contains(id),
+  guard ["com.google.Chrome", "company.thebrowser.Browser", "com.ardia.browser", "com.microsoft.edgemac", "com.brave.Browser", "com.apple.Safari"].contains(id),
         !NSRunningApplication.runningApplications(withBundleIdentifier: id).isEmpty else { return nil }
   let src = "tell application id \"\(id)\" to get " + (safari ? "name of current tab of front window" : "title of active tab of front window")
   var err: NSDictionary?
@@ -356,7 +356,13 @@ func callWindows(_ app: AXUIElement, _ id: String) -> [AXUIElement] {
     }
   }
   // a browser: only windows whose front tab is a Meet call
-  return all.filter { w in (axText(axAttr(w, kAXTitleAttribute)) ?? "").range(of: #"\bMeet\b"#, options: .regularExpression) != nil }
+  let meet = all.filter { w in (axText(axAttr(w, kAXTitleAttribute)) ?? "").range(of: #"\bMeet\b"#, options: .regularExpression) != nil }
+  if !meet.isEmpty || !chromium.contains(id) { return meet }
+  // Ardia names its windows "Ardia": the Meet words are only in the tab title, which AppleScript reads, and the tab
+  // belongs to the focused window (#123)
+  guard let title = browserTitle(id), title.range(of: #"\bMeet\b"#, options: .regularExpression) != nil,
+        let w = axAttr(app, kAXFocusedWindowAttribute), CFGetTypeID(w) == AXUIElementGetTypeID() else { return [] }
+  return [w as! AXUIElement]
 }
 
 func watchCalls(every: Int, ids: [String]) {
@@ -387,6 +393,11 @@ func watchCalls(every: Int, ids: [String]) {
       }
       if let (target, app, wins) = found, let id = target.bundleIdentifier {
         askTree(app, target, force: true)
+        // Asking the whole browser can still leave only its tabs and sidebar; asking the window itself makes it build
+        // the page (tested on a live Meet call in Ardia, #123). It is one cheap call, so every reading asks again.
+        if chromium.contains(id) && !id.hasPrefix("com.microsoft.teams") {
+          for w in wins.prefix(4) { AXUIElementSetAttributeValue(w, "AXManualAccessibility" as CFString, kCFBooleanTrue) }
+        }
         let zoom = id == "us.zoom.xos"
         var budget = zoom ? 1500 : 4000
         let out = wins.prefix(4).map { w -> [String: Any] in
