@@ -1,5 +1,42 @@
 [
   {
+    "version": "v0.3.52",
+    "published": "2026-11-20T01:12:30Z",
+    "headline": "Download models on work networks with custom certificates",
+    "changes": [
+      "Setup now trusts the same certificates as your computer."
+    ]
+  },
+  {
+    "version": "v0.3.51",
+    "published": "2026-11-20T00:08:08Z",
+    "headline": "Ask how a meeting went",
+    "changes": [
+      "Ask reads the summary and keeps follow-ups on that meeting.",
+      "Writing notes after long calls no longer freezes 24 GB Macs.",
+      "Install Yogurt on a Mac with Homebrew."
+    ]
+  },
+  {
+    "version": "v0.3.50",
+    "published": "2026-11-19T19:50:49Z",
+    "headline": "See call names again in Teams on Mac and Windows",
+    "changes": [
+      "Code Integrity on Windows now lets the speech engine run.",
+      "Each linked calendar has its own row in Settings.",
+      "The stop prompt closes when recording ends."
+    ]
+  },
+  {
+    "version": "v0.3.49",
+    "published": "2026-11-19T17:45:03Z",
+    "headline": "See where an Ask answer came from",
+    "changes": [
+      "Hover over a highlighted sentence to see its source.",
+      "Meet no longer lists chat messages or page text as names."
+    ]
+  },
+  {
     "version": "v0.3.48",
     "published": "2026-11-19T00:28:51Z",
     "headline": "Turn an audio file into a meeting note",
