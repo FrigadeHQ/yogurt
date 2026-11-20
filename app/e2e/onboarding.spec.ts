@@ -261,8 +261,9 @@ test('"Not now" everywhere: home lists what is missing, essentials first, and ca
     await expect(page.getByTestId('home')).toBeVisible({ timeout: 15_000 })
     await page.getByTestId('finish-setup-open').click()
     const items = page.getByTestId('finish-setup-item')
-    await expect(page.getByTestId('finish-setup-remaining')).toHaveText('4 left')
-    await expect(page.getByTestId('finish-setup-progress')).toHaveCount(0)
+    await expect(page.getByTestId('finish-setup-open')).toHaveAccessibleName('Finish setup')
+    await expect(page.getByTestId('finish-setup-open').locator('circle')).toBeVisible()
+    await expect(page.getByTestId('finish-setup').getByRole('heading', { name: 'Optional setup' })).toBeVisible()
     await expect(items).toHaveCount(4)
     await expect(page.locator('[data-testid="finish-setup-item"][data-kind="calendar"]')).toHaveCount(0)
     await expect(items.nth(0)).toHaveAttribute('data-kind', 'mic')
@@ -303,7 +304,6 @@ test('"Not now" everywhere: home lists what is missing, essentials first, and ca
     // a Mac prompt: Turn on asks, and the row goes
     await items.nth(0).getByTestId('finish-setup-fix').click()
     await expect(items).toHaveCount(3)
-    await expect(page.getByTestId('finish-setup-remaining')).toHaveText('3 left')
     expect((await fake(app, 'permissions') as Record<string, string>).mic).toBe('granted')
     // System Settings: the guide in a dialog, closed by itself once it is on
     await page.locator('[data-testid="finish-setup-item"][data-kind="accessibility"]').getByTestId('finish-setup-fix').click()

@@ -128,9 +128,6 @@
 /* The checklist uses the same row geometry and hover as its sidebar neighbours. */
 .finish-setup { z-index:80;position:fixed;inset:auto;margin:0;width:340px;max-width:calc(100vw - 24px);max-height:calc(100vh - 160px);overflow-y:auto;border:1px solid var(--line);border-radius:6px;background:var(--float);color:var(--ink);box-shadow:var(--shadow);padding:0; }
 .setup-checklist-trigger>span { flex:1; }
-.setup-checklist-trigger small { flex:none;font-variant-numeric:tabular-nums; }
-.setup-checklist-trigger .setup-progress { width:16px;height:16px;transform:rotate(-90deg);color:var(--accent); }
-.setup-progress-track { color:var(--line); }
 .settings-calendar-dot { flex:none;width:10px;height:10px;border-radius:50%;background:var(--muted); }
 .settings-calendar-choice { cursor:pointer; }
 /* Calendar options close the list as their own module, divided from the calendars above */

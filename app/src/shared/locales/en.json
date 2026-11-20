@@ -86,10 +86,7 @@
     "one": "and {count} more",
     "other": "and {count} more"
   },
-  "{count} left": {
-    "one": "{count} left",
-    "other": "{count} left"
-  },
+  "Optional setup": "Optional setup",
   "Downloading AI": "Downloading AI",
   "Downloading AI · {percent}": "Downloading AI · {percent}",
   "AI download stopped": "AI download stopped",

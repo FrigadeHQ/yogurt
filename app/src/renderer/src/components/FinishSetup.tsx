@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Ellipsis, X } from 'lucide-react'
+import { Ellipsis, SlidersHorizontal, X } from 'lucide-react'
 import { Menu } from '@base-ui/react/menu'
 import type { MissingPermission } from '../../../shared/types'
-import { finishSetupReason, finishSetupRemaining, permissionCopy } from '../permissionCopy'
+import { finishSetupReason, permissionCopy } from '../permissionCopy'
 import { TurnOn } from './TurnOn'
 import { t } from '../../../shared/i18n'
-import { finishSetupPercent, missing } from '../../../shared/onboarding'
+import { missing } from '../../../shared/onboarding'
 import { supportedKinds } from '../../../shared/platform'
 import { toasts } from './TrashToast'
 
@@ -19,7 +19,6 @@ const kinds = () => supportedKinds(window.yogurt.capabilities)
 
 export function FinishSetup({ collapsed = false }: { collapsed?: boolean }) {
   const [open, setOpen] = useState(false)
-  const [percent, setPercent] = useState(0)
   const trigger = useRef<HTMLButtonElement>(null)
   const panel = useRef<HTMLDialogElement>(null)
   const menu = useRef<HTMLDivElement>(null)
@@ -30,11 +29,13 @@ export function FinishSetup({ collapsed = false }: { collapsed?: boolean }) {
   const reload = useCallback(() => {
     if (hiding.current) return
     const revision = readRevision.current
-    const read = Promise.all([window.yogurt.permissions.status(), panel.current?.open ? null : window.yogurt.onboarding.nudge()])
-    void read.then(([status, nudge]) => {
-      const next = nudge ?? missing(status, kinds())
+    const read = panel.current?.open
+      ? window.yogurt.permissions.status().then(status => missing(status, kinds()))
+      : window.yogurt.onboarding.nudge()
+    void read.then(next => {
       if (revision !== readRevision.current) return
-      setPercent(finishSetupPercent(status, kinds())); setItems(next); if (!next.length) setOpen(false)
+      setItems(next)
+      if (!next.length) setOpen(false)
     }, () => {})
   }, [])
   useEffect(() => {
@@ -70,7 +71,7 @@ export function FinishSetup({ collapsed = false }: { collapsed?: boolean }) {
       if (hiding.current) return
       const revision = readRevision.current
       void window.yogurt.permissions.status().then((s) => {
-        if (revision === readRevision.current) { setPercent(finishSetupPercent(s, kinds())); setItems(missing(s, kinds())); setOpen(true) }
+        if (revision === readRevision.current) { setItems(missing(s, kinds())); setOpen(true) }
       }, () => {})
     }
     window.addEventListener('yogurt:finish-setup', show)
@@ -102,18 +103,20 @@ export function FinishSetup({ collapsed = false }: { collapsed?: boolean }) {
     return () => { el.close(); window.removeEventListener('resize', position); document.removeEventListener('pointerdown', away); document.removeEventListener('keydown', key) }
   }, [open, !!items.length, close, collapsed])
   if (!items.length) return null
-  const remaining = finishSetupRemaining(items.length)
+  const essential = items.some(item => item.essential)
+  const title = essential ? t('Finish setup') : t('Optional setup')
   return (
     <>
-    <button ref={trigger} data-testid="finish-setup-open" data-sidebar="menu-button" aria-label={`${t('Finish setup')}, ${remaining}`} title={collapsed ? `${t('Finish setup')}, ${remaining}` : undefined} className="setup-checklist-trigger workspace-nav" aria-haspopup="dialog" aria-expanded={open}
+    <button ref={trigger} data-testid="finish-setup-open" data-sidebar="menu-button" aria-label={title} title={collapsed ? title : undefined} className="setup-checklist-trigger workspace-nav" aria-haspopup="dialog" aria-expanded={open}
       onClick={() => { reload(); setOpen((v) => !v) }}>
-      <svg className="setup-progress" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="2.5" className="setup-progress-track" /><circle cx="8" cy="8" r="5.5" pathLength="100" stroke="currentColor" strokeWidth="2.5" strokeDasharray="100" strokeDashoffset={100 - percent} strokeLinecap="round" /></svg>
-      <span>{t('Finish setup')}</span><small data-testid="finish-setup-remaining">{remaining}</small>
+      {essential ? <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3" fill="var(--accent)" /></svg>
+        : <SlidersHorizontal size={16} strokeWidth={1.75} aria-hidden="true" />}
+      <span>{title}</span>
     </button>
-    {open && createPortal(<dialog ref={panel} data-testid="finish-setup" aria-label={t('Finish setup')} className="finish-setup"
+    {open && createPortal(<dialog ref={panel} data-testid="finish-setup" aria-label={title} className="finish-setup"
       onCancel={(e) => { e.preventDefault(); close() }} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); close() } }}>
       <div className="finish-setup-header">
-        <h2>{t('Finish setup')}</h2>
+        <h2>{title}</h2>
         <div className="finish-setup-controls">
           <Menu.Root modal={false}>
             <Menu.Trigger data-testid="finish-setup-more" aria-label={t('More')} title={t('More')} className="ghost-btn workspace-icon no-drag"><Ellipsis size={14} aria-hidden="true" /></Menu.Trigger>
@@ -131,10 +134,11 @@ export function FinishSetup({ collapsed = false }: { collapsed?: boolean }) {
         </div>
       </div>
       <ul>
-        {items.map((m) => {
+        {items.map((m, index) => {
           const c = permissionCopy(m.kind)
           return (
             <li key={m.kind} data-testid="finish-setup-item" data-kind={m.kind} data-essential={m.essential} className="finish-setup-item">
+              {!m.essential && items[index - 1]?.essential && <h3 className="col-span-2 text-xs text-muted">{t('Optional setup')}</h3>}
               <div className="finish-setup-copy"><p title={c.name}>{m.kind === 'accessibility' ? t('Accessibility') : c.name}</p>
                 <p id={`finish-setup-detail-${m.kind}`} data-testid="finish-setup-detail" className="finish-setup-detail">{finishSetupReason(m.kind)}</p>
               </div>

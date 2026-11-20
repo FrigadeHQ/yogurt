@@ -191,6 +191,8 @@ test('permission help starts collapsed and uses the same secondary action in onb
       if (surface === 'onboarding') {
         await page.getByTestId('step-later').click()
         await expect(page.getByTestId('home')).toBeVisible()
+        await expect(page.getByTestId('finish-setup-open')).toHaveAccessibleName('Optional setup')
+        await expect(page.getByTestId('finish-setup-open').locator('circle')).toHaveCount(0)
         await page.getByTestId('finish-setup-open').click()
         await page.locator('[data-testid="finish-setup-item"][data-kind="accessibility"]').getByTestId('finish-setup-fix').click()
       } else {

@@ -43,11 +43,6 @@ export type Missing = { kind: PermissionKind; status: Access; essential: boolean
 /** Calendar connection lives in the Meetings agenda instead of this checklist. */
 export const FINISH_SETUP_KINDS = PERMISSION_KINDS.filter(k => k !== 'calendar')
 const finishKinds = (kinds: readonly PermissionKind[]) => FINISH_SETUP_KINDS.filter((k) => kinds.includes(k))
-/** Managed permissions are not tasks this person can complete; asked notifications finish that setup step. */
-export function finishSetupPercent(st: PermissionStatus, kinds: readonly PermissionKind[] = PERMISSION_KINDS): number {
-  const applicable = finishKinds(kinds).filter(k => st[k] !== 'restricted')
-  return applicable.length ? Math.round(applicable.filter(k => !open(st[k])).length * 100 / applicable.length) : 100
-}
 /** what is still off after the first run, the essential ones first */
 export function missing(st: PermissionStatus, kinds: readonly PermissionKind[] = PERMISSION_KINDS): Missing[] {
   const list = finishKinds(kinds).filter((k) => open(st[k])).map((kind) => ({ kind, status: st[kind], essential: isEssential(kind) }))

@@ -58,5 +58,3 @@ export const screenCopy = (id: 'welcome' | PermissionKind | 'ready'): { title: s
     case 'ready': return { title: t('Almost ready'), text: t('Yogurt is setting up transcription on your computer.') }
   }
 }
-
-export const finishSetupRemaining = (count: number) => t('{count} left', { count })
