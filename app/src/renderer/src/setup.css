@@ -255,9 +255,9 @@
 .ob-lane-who { font-size:13px;line-height:18px;font-weight:600;color:var(--ink); }
 .ob-lane-from { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;line-height:15px;color:var(--muted); }
 .ob-wave { display:flex;align-items:center;gap:2.5px;height:26px; }
-.ob-wave i { width:2.5px;height:3px;border-radius:2px;background:var(--control-pressed);transition:height 360ms cubic-bezier(.23,1,.32,1),background-color 300ms ease; }
-.ob-lane[data-on=true] .ob-wave i { height:calc(var(--h) * 24px);background:var(--accent);animation:ob-wave 900ms ease-in-out infinite alternate;animation-delay:calc(var(--j) * -110ms); }
-@keyframes ob-wave { from { transform:scaleY(.3); } to { transform:scaleY(1); } }
+.ob-wave i { width:2.5px;height:24px;border-radius:2px;background:var(--control-pressed);transform:scaleY(.125);transition:background-color 300ms ease; }
+.ob-lane[data-on=true] .ob-wave i { transform:scaleY(var(--h));background:var(--accent);animation:ob-wave 900ms ease-in-out infinite alternate;animation-delay:calc(var(--j) * -110ms); }
+@keyframes ob-wave { from { transform:scaleY(calc(var(--h) * .3)); } to { transform:scaleY(var(--h)); } }
 .ob-lane-state { display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--control);color:transparent;transition:background-color 300ms ease,color 300ms ease; }
 .ob-lane[data-on=true] .ob-lane-state { background:var(--accent-soft);color:var(--accent); }
 
@@ -329,11 +329,12 @@
 .ob-settings-minus { width:8px;height:1.5px;margin-inline-start:12px;border-radius:1px;background:currentColor; }
 .ob-switch { position:relative;flex:none;width:26px;height:15px;border-radius:8px;background:var(--control-pressed); }
 .ob-switch::after { content:'';position:absolute;inset-block-start:2px;inset-inline-start:2px;width:11px;height:11px;border-radius:50%;background:#fff;box-shadow:0 1px 2px #0003; }
-.ob-switch-on { animation:ob-switch-bg 3.6s ease infinite; }
+.ob-switch-on { --knob-travel:11px;animation:ob-switch-bg 3.6s ease infinite; }
+[dir=rtl] .ob-switch-on { --knob-travel:-11px; }
 .ob-switch-on::after { animation:ob-switch-knob 3.6s ease infinite; }
 @keyframes ob-row { 0%,25% { background:transparent; } 35%,88% { background:var(--accent-soft); } 100% { background:transparent; } }
 @keyframes ob-switch-bg { 0%,35% { background:var(--control-pressed); } 45%,90% { background:var(--accent); } 100% { background:var(--control-pressed); } }
-@keyframes ob-switch-knob { 0%,35% { inset-inline-start:2px; } 45%,90% { inset-inline-start:13px; } 100% { inset-inline-start:2px; } }
+@keyframes ob-switch-knob { 0%,35%,100% { transform:translateX(0); } 45%,90% { transform:translateX(var(--knob-travel)); } }
 
 /* a wide stage draws the picture larger, so it fills its room the way a product shot would */
 @container (min-width: 520px) { .ob-scene,.ob-settings { zoom:1.22; } }
@@ -374,7 +375,7 @@
   .ob-swap-from { animation:none;opacity:0; }
   .ob-swap-to { animation:none;opacity:1;filter:none; }
   .ob-switch-on { animation:none;background:var(--accent); }
-  .ob-switch-on::after { animation:none;inset-inline-start:13px; }
+  .ob-switch-on::after { animation:none;transform:translateX(var(--knob-travel)); }
   .ob-settings-yogurt { background:var(--accent-soft); }
 }
 
