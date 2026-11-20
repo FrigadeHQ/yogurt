@@ -45,20 +45,21 @@ export function historyFromDates(dates) {
     })
   return points
 }
-export async function getActivity(saved, request, now = new Date()) {
-  async function pages(endpoint, accept) {
-    const rows = []
-    for (let page = 1; ; page++) {
-      const batch = await request(api + '/' + endpoint + '?per_page=100&page=' + page, accept)
-      if (!Array.isArray(batch)) throw Error('Incomplete page')
-      rows.push(...batch)
-      if (batch.length < 100) return rows
-    }
+export async function githubPages(request, endpoint, accept) {
+  const rows = []
+  for (let page = 1; ; page++) {
+    const batch = await request(api + '/' + endpoint + '?per_page=100&page=' + page, accept)
+    if (!Array.isArray(batch)) throw Error('Incomplete page')
+    rows.push(...batch)
+    if (batch.length < 100) return rows
   }
+}
+
+export async function getActivity(saved, request, now = new Date(), releaseRows) {
   const repo = await request(api)
   if (!Number.isSafeInteger(repo.stargazers_count) || repo.stargazers_count < 1)
     throw Error('Invalid star count')
-  const releases = (await pages('releases'))
+  const releases = (releaseRows ?? await githubPages(request, 'releases'))
     .filter(stableRelease)
     .sort((a, b) => Date.parse(b.published_at) - Date.parse(a.published_at))
   if (!releases.length) throw Error('No published releases')
@@ -76,7 +77,7 @@ export async function getActivity(saved, request, now = new Date()) {
     !(now - Date.parse(historyCapturedAt) < day)
   ) {
     try {
-      const stars = await pages('stargazers', 'application/vnd.github.star+json')
+      const stars = await githubPages(request, 'stargazers', 'application/vnd.github.star+json')
       const dates = new Map()
       for (const row of stars) {
         if (!row.user?.id || !timestamp(row.starred_at)) throw Error('Invalid star timestamp')
@@ -163,9 +164,9 @@ export function renderActivity(html, data, releases) {
   })
 }
 
-export async function refreshActivity(saved, request, now) {
+export async function refreshActivity(saved, request, now, releaseRows) {
   try {
-    return await getActivity(saved, request, now)
+    return await getActivity(saved, request, now, releaseRows)
   } catch (error) {
     if (!validSnapshot(saved)) throw error
     console.warn('Using saved project activity from ' + saved.capturedAt + ' (' + error.message + ').')

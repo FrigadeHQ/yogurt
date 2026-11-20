@@ -5,7 +5,14 @@ import { homePage } from './site-page.mjs'
 import { renderActivity } from './activity.mjs'
 import { updatesPage } from './updates.mjs'
 
-const releases = JSON.parse(readFileSync(new URL('../content/updates.json', import.meta.url)))
+import releases from './release-history.mjs'
+import written from '../content/updates.json' with { type: 'json' }
+
+// These are editorial constraints. Published notes keep their complete bullets.
+for (const row of written) {
+  assert.match(row.version, /^v\d+\.\d+\.\d+$/)
+  assert(row.changes.every(line => line.length <= 62))
+}
 // A newer GitHub snapshot cannot advertise a release with no page in this build.
 const snapshot = { ...JSON.parse(readFileSync(new URL('../content/activity.json', import.meta.url))),
   latest: { tag: 'v99.0.0', published: '2099-01-01T00:00:00Z' }, releases: 999999, week: Array(7).fill(0) }
@@ -60,11 +67,10 @@ assert.equal(cards.length, releases.length)
 assert.equal(new Set(releases.map(r => r.version)).size, releases.length)
 for (const [i, card] of cards.entries()) {
   const row = releases[i]
-  assert.match(row.version, /^v\d+\.\d+\.\d+$/)
+  assert.match(row.version, /^v[\w.-]+$/)
   assert.equal(new Date(row.published).toISOString().slice(0, 19), row.published.slice(0, 19))
   if (i) assert(releases[i-1].published >= row.published)
   assert(row.headline.length && row.changes.length)
-  assert(row.changes.every(line => line.length <= 62))
   assert(card.startsWith(`<details class="release-card" id="${row.version}"${i < 3 ? ' open' : ''}>`))
   assert(card.includes(`<span class="release-meta">${row.version} · <time`))
   assert.equal(card.match(/<a\b/g)?.length, 1)

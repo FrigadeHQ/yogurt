@@ -5,7 +5,7 @@ const fullDate = new Intl.DateTimeFormat('en-US', { dateStyle: 'long', timeZone:
 const uiLabels = /\b(Go to that day|Show earlier lines|Restart Yogurt|New recording|Take notes|Add another calendar|Regenerate summary|Summary language|Menu bar only|Multi-language|Update ready|Delete audio|Suggested|AI apps|Settings|Restart|Later|Manage|Reload|People|Ask|Enter|Trash|Latest)\b/g
 
 function escape(text) {
-  return text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;')
+  return text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll('{', '&#123;')
 }
 
 const githubReleases = 'https://github.com/FrigadeHQ/yogurt/releases'

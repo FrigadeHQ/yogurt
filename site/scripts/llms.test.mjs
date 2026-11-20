@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import faq from '../content/faq.json' with { type: 'json' }
-import releases from '../content/updates.json' with { type: 'json' }
+import releases from './release-history.mjs'
 import { fullGuide } from './llms-full.mjs'
 import { platforms, release } from '../public/marketing/downloads.mjs'
 

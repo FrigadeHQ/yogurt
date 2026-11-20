@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { faqCards, homeStructuredData } from './home-metadata.mjs'
-import releases from '../content/updates.json' with { type: 'json' }
+import releases from './release-history.mjs'
 
 const content = name => readFileSync(join(process.cwd(), 'content', name), 'utf8')
 

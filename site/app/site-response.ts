@@ -2,7 +2,7 @@ import {readFileSync} from 'node:fs'
 import {join} from 'node:path'
 import {renderActivity,validSnapshot} from '../scripts/activity.mjs'
 import baked from '../content/activity.json'
-import releases from '../content/updates.json'
+import releases from '../scripts/release-history.mjs'
 
 export function siteResponse(html: string) {
   let activity = baked

@@ -1,0 +1,37 @@
+[
+  {
+    "tag_name": "v0.3.53",
+    "published_at": "2026-11-20T03:29:19Z",
+    "body": "- When you link a note to a calendar event, the picker now shows which calendar each event comes from, handy if you keep a work and a personal one.\n- A linked note's pill now names the meeting it belongs to, so you can tell at a glance what it's attached to.\n\n**Full Changelog**: https://github.com/FrigadeHQ/yogurt/compare/v0.3.52...v0.3.53\n",
+    "prerelease": false,
+    "draft": false
+  },
+  {
+    "tag_name": "v0.3.52",
+    "published_at": "2026-11-20T01:12:30Z",
+    "body": "- Yogurt now trusts the same certificates as your computer. On work networks that inspect secure traffic with their own certificate, the first-run model downloads no longer fail (#115).\n\n**Full Changelog**: https://github.com/FrigadeHQ/yogurt/compare/v0.3.51...v0.3.52\n",
+    "prerelease": false,
+    "draft": false
+  },
+  {
+    "tag_name": "v0.3.51",
+    "published_at": "2026-11-20T00:08:08Z",
+    "body": "- Ask is better at \"how did it go?\" questions. It now reads the meeting's summary and its key moments, gives an honest read of how things went, and keeps follow-up questions on the same meeting instead of wandering off to another one.\n- Macs with 24 GB of memory now get a notes model that leaves room for everything else, so writing notes after a long call no longer freezes the Mac.\n- Yogurt is now on Homebrew, through our own tap: `brew install --cask frigadehq/yogurt/yogurt` (#12).\n\n**Full Changelog**: https://github.com/FrigadeHQ/yogurt/compare/v0.3.50...v0.3.51\n",
+    "prerelease": false,
+    "draft": false
+  },
+  {
+    "tag_name": "v0.3.50",
+    "published_at": "2026-11-19T19:50:49Z",
+    "body": "- Teams calls get their names back. On Windows, Yogurt now recognises the Leave button even when Teams adds its shortcut to the label (#83), and on a Mac it asks the Teams app for its window contents before looking for the call (#111).\n- Every program and library in the Windows app is now signed, so PCs with Code Integrity turned on no longer block the speech engine during setup (#99).\n- Adding a calendar by link opens right in Settings, and each linked calendar has its own row.\n- The \"Stop recording?\" card is now the same compact card as the start offer, closes once the recording ends, and no longer shows up while a recording is still starting.\n\n**Full Changelog**: https://github.com/FrigadeHQ/yogurt/compare/v0.3.49...v0.3.50\n",
+    "prerelease": false,
+    "draft": false
+  },
+  {
+    "tag_name": "v0.3.49",
+    "published_at": "2026-11-19T17:45:03Z",
+    "body": "- Google Meet names are tidier: Yogurt no longer mistakes page text such as \"reCAPTCHA\" and \"Upgrade\", or messages in the chat panel, for people on the call.\n- In Ask, a cited sentence is now a soft highlight. Hover it to see the part of the meeting it came from.\n\n**Full Changelog**: https://github.com/FrigadeHQ/yogurt/compare/v0.3.48...v0.3.49\n",
+    "prerelease": false,
+    "draft": false
+  }
+]

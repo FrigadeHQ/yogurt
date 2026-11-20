@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import releases from '../content/updates.json' with { type: 'json' }
+import releases from './release-history.mjs'
 import { homePage } from './site-page.mjs'
 import { homeStructuredData } from './home-metadata.mjs'
 import { updatesPage } from './updates.mjs'
