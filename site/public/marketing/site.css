@@ -1403,6 +1403,7 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
 }
 .site-header nav .nav-download {
   display: inline-flex;
+  border-radius: var(--nav-download-radius, 8px);
 }
 .hero .hero-copy {
   width: var(--content-width);

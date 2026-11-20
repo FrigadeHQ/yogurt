@@ -19,6 +19,7 @@ function paint() {
   left.style.transform = `translate(${endX}px, ${top}px) scale(${scale})`
   middle.style.transform = `translate(${seam - 2}px, ${top}px) scale(${width - 2 * seam + 4}, ${scale})`
   right.style.transform = `translate(${width - seam}px, ${top}px) scale(${scale})`
+  nav.style.setProperty('--nav-download-radius', (8 + (geometry.downloadRadius - 8) * position) + 'px')
   const dy = (pillTop + (pillHeight - height) / 2) * position
   wordmark.style.transform = `translate(${logoShift * position}px, ${dy}px)`
   nav.style.transform = `translate(${navShift * position}px, ${dy}px)`
@@ -64,14 +65,17 @@ function measure() {
   const { left, right, height } = header.getBoundingClientRect()
   const width = shell.clientWidth
   const phone = matchMedia('(max-width: 760px)').matches
-  const pad = phone ? 10 : 14
   // The theme toggle is absolutely positioned just before the links.
   const controlsWidth = nav.offsetWidth - Math.min(0, toggle.offsetLeft)
-  const pillWidth = Math.min(width - 8, 2 * pad + wordmark.offsetWidth + (phone ? 12 : 26) + controlsWidth)
+  const pillHeight = phone ? 48 : 52
+  const downloadHeight = nav.querySelector('.nav-download').offsetHeight
+  const rightPad = (pillHeight - downloadHeight) / 2
+  const leftPad = phone ? 12 : 16
+  const pillWidth = Math.min(width - 8, leftPad + wordmark.offsetWidth + (phone ? 12 : 26) + controlsWidth + rightPad)
   const inset = (width - pillWidth) / 2
   geometry = {
-    width, height, inset, pillTop: phone ? 8 : 10, pillHeight: phone ? 48 : 52,
-    logoShift: inset + pad - left, navShift: width - inset - pad - right,
+    width, height, inset, pillTop: phone ? 8 : 10, pillHeight, downloadRadius: downloadHeight / 2,
+    logoShift: inset + leftPad - left, navShift: width - inset - rightPad - right,
     threshold: hero.getBoundingClientRect().bottom + scrollY - height,
   }
   update(true)

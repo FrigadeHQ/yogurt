@@ -7,7 +7,8 @@ for (const width of [1280, 390, 320]) {
   const phone = width < 761, height = phone ? 72 : 80
   const wordmark = { offsetWidth: phone ? 92 : 108, style: {} }
   const toggle = { offsetLeft: -44 }
-  const nav = { offsetWidth: 130, style: {}, querySelector: () => toggle }
+  const download = { offsetHeight: phone ? 32 : 36 }
+  const nav = { offsetWidth: 130, style: { setProperty(k, v) { this[k] = v } }, querySelector: selector => selector === '.theme-toggle' ? toggle : download }
   const header = {
     getBoundingClientRect: () => ({ left: 16, right: width - 16, height }),
     querySelector: selector => selector === 'nav' ? nav : wordmark,
@@ -44,12 +45,20 @@ for (const width of [1280, 390, 320]) {
   reduced = true
   motionChange()
   const compact = wordmark.style.transform
+  const x = el => parseFloat(el.style.transform.slice('translate('.length))
+  const pillLeft = x(surface.children[0])
+  const rightPad = width - pillLeft - (width - 16 + x(nav))
+  const leftPad = 16 + x(wordmark) - pillLeft
+  assert.equal(rightPad, ((phone ? 48 : 52) - download.offsetHeight) / 2)
+  assert.equal(leftPad, phone ? 12 : 16)
+  assert.equal(nav.style['--nav-download-radius'], download.offsetHeight / 2 + 'px')
   assert.notEqual(compact, original)
   assert(!frame, 'enabling reduced motion finishes the current morph')
   move(1000 - height - 5)
   assert.equal(wordmark.style.transform, compact, 'nearby scroll jitter keeps the same state')
   move(0)
   assert.equal(wordmark.style.transform, original)
+  assert.equal(nav.style['--nav-download-radius'], '8px')
   assert(!frame, 'reduced motion changes states immediately')
 }
 console.log('Sticky navigation threshold, reversal, settling and reduced motion passed at desktop and phone widths.')
