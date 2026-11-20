@@ -27,9 +27,13 @@ for (const theme of ['light', 'dark'] as const) test(`split metadata popovers st
     await page.getByTestId('note-date').click()
     const date = page.getByTestId('note-date-card')
     await expect(date.getByTestId('note-date-event')).toHaveCount(1)
-    const textStarts = await date.locator('h3, .note-date-event strong, .note-date-event small').evaluateAll(lines =>
-      lines.map(line => line.getBoundingClientRect().left))
-    expect(Math.max(...textStarts) - Math.min(...textStarts)).toBeLessThan(1)
+    // the view swap keeps a fading copy of the old view for a moment: measure the settled view only
+    await expect(date.locator('.note-date-retiring')).toHaveCount(0)
+    await date.evaluate(el => Promise.all(el.getAnimations({ subtree: true }).map(a => a.finished.catch(() => {}))))
+    const lines = await date.locator(':is(h3, .note-date-event strong, .note-date-event small):not(.note-date-retiring *)').evaluateAll(els =>
+      els.map(el => ({ text: (el.textContent ?? '').slice(0, 40), left: Math.round(el.getBoundingClientRect().left * 10) / 10 })))
+    const textStarts = lines.map(l => l.left)
+    expect(Math.max(...textStarts) - Math.min(...textStarts), JSON.stringify(lines)).toBeLessThan(1)
     await expect(date.getByTestId('note-date-events-toggle')).toHaveCount(0)
     await expect(date.getByTestId('people-list')).toHaveCount(0)
     await expect(date.getByRole('link')).toHaveCount(0)
