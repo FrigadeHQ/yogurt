@@ -53,7 +53,7 @@ export function captureMeetingRows(root: HTMLElement, next: MeetingCard[], pendi
     const copy = el.cloneNode(true) as HTMLElement
     // Exit copies are decoration, never a second focus target, drag source or test locator.
     for (const node of [copy, ...copy.querySelectorAll<HTMLElement>('*')]) {
-      for (const attr of ['id', 'data-testid', 'data-meeting-id', 'data-row-id', 'data-row-heading']) node.removeAttribute(attr)
+      for (const attr of ['id', 'data-testid', 'data-meeting-id', 'data-row-id', 'data-row-heading', 'data-focus-ring', 'data-quiet-focus']) node.removeAttribute(attr)
       node.removeAttribute('draggable')
     }
     copy.inert = true

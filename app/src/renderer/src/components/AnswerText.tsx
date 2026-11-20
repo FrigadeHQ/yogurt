@@ -1,3 +1,4 @@
+import { visibleFocus } from '../focusNavigation'
 import { Fragment, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Popover } from '@base-ui/react/popover'
 import type { LibrarySource } from '../../../shared/types'
@@ -43,7 +44,7 @@ export function AnswerText({ md, live, sources, onSource }: {
     }
   }, [doc, open, triggerId])
   const ctx: Ctx = { intent, live, at: { n: 0 }, id, sources, pinned, focus: (element) => {
-    if (!element.matches(':focus-visible')) return
+    if (!element.matches(visibleFocus)) return
     if (suppressed.current === element.id) { suppressed.current = null; return }
     intent.focus(element)
   }, blur: () => { suppressed.current = null },

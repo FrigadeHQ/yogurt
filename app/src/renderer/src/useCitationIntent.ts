@@ -1,3 +1,4 @@
+import { visibleFocus } from './focusNavigation'
 import { useEffect, useRef } from 'react'
 import { citationHover } from './citationHover'
 
@@ -49,7 +50,7 @@ export function useCitationIntent(options: Options) {
     }
     const focused = () => {
       const active = document.activeElement
-      return !!active && (popup()?.contains(active) || active.id === current.current.triggerId && active.matches(':focus-visible'))
+      return !!active && (popup()?.contains(active) || active.id === current.current.triggerId && active.matches(visibleFocus))
     }
     const closeHover = () => { if (current.current.open && !current.current.pinned) { popup(); current.current.close() } }
     const valid = (element: HTMLElement) => !s.buttons && performance.now() >= s.scrollUntil && !selectionIn(element) && s.suppressed !== element.id

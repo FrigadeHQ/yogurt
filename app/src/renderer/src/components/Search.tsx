@@ -1,3 +1,4 @@
+import { useDialogFocus } from '../useDialogFocus'
 import { Dialog } from '@animate-ui/react/primitives/base-ui/dialog'
 import { MotionPopup } from './MotionPopup'
 import { motion } from '../motion'
@@ -82,9 +83,8 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
     return () => clearTimeout(timer)
   }, [q, scope, peopleKey, people, searchOptions.language, searchOptions.locale])
 
-  // focus goes back where it was when search closes: read during the first render, before the input takes it
-  const [before] = useState(() => document.activeElement as HTMLElement | null)
-  useEffect(() => () => { seq.current++; if (before?.isConnected) before.focus({ preventScroll: true }) }, [before])
+  const { popupRef } = useDialogFocus()
+  useEffect(() => () => { seq.current++ }, [])
   const input = useRef<HTMLInputElement>(null)
   const highlight = useRef<HTMLDivElement>(null)
   const syncHighlight = () => { if (highlight.current && input.current) highlight.current.scrollLeft = input.current.scrollLeft }
@@ -203,7 +203,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
     <Dialog.Root open={open} onOpenChange={setOpen}>
     <Dialog.Portal keepMounted>
       <Dialog.Backdrop className="search-backdrop no-drag fixed inset-0 z-[100]" transition={{ ease: motion.out, duration: motion.micro / 1000 }} exitTransition={{ ease: motion.out, duration: motion.micro / 1000 }} />
-      <MotionPopup initialFocus={input} finalFocus={() => before} data-testid="search" role="dialog" aria-modal="true" aria-label={t('Search and commands')} onKeyDown={onKeyDown}
+      <MotionPopup ref={popupRef} initialFocus={input} finalFocus={false} data-testid="search" role="dialog" aria-modal="true" aria-label={t('Search and commands')} onKeyDown={onKeyDown}
         // a click anywhere in the panel keeps typing, arrows and Esc in the search box
         onMouseDown={(e) => { if (e.target !== input.current) { e.preventDefault(); input.current?.focus() } }}
         className="search-panel flex max-h-[74vh] w-full max-w-[640px] flex-col overflow-hidden rounded-2xl border border-line bg-float">

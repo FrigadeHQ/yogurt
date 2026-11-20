@@ -49,7 +49,7 @@
 .settings-backup-actions { display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px; }
 .settings-backup-status { display:flex;flex-wrap:wrap;align-items:center;gap:5px 10px;margin-top:12px;font-size:12px;line-height:18px; }
 .settings-jargon-field { position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:5px;min-height:34px;margin-top:11px;padding:4px 5px;border:1px solid var(--line);border-radius:6px;background:var(--bg);cursor:text;transition:border-color var(--dur-micro) ease,box-shadow var(--dur-micro) ease; }
-.settings-jargon-field:focus-within { border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft); }
+.settings-jargon-field:has([data-focus-ring]) { border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft); }
 .settings-jargon-input { flex:1;min-width:150px;height:24px;padding-inline:5px;background:transparent;color:var(--ink);font-size:13px;outline:none; }
 .settings-jargon-input:focus-visible { outline:none; }
 .settings-jargon-input::placeholder { color:var(--muted); }

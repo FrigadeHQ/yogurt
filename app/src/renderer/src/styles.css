@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant focus-visible (&:is([data-focus-ring],:focus-visible:where(:not([data-quiet-focus]))));
 
 /* Brand type is bundled. Utility text follows macOS for a crisp native rhythm. */
 @font-face {
@@ -232,16 +233,16 @@ html.widget { --pill:#232326;--pill-ink:#F7F7FA;--accent:#B780FF;--pill-accent:v
 .note-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .person-remove { opacity: 0; }
 .person-row:hover { background: color-mix(in srgb, var(--line) 45%, transparent); }
-/* keyboard focus shows a row's actions; the focus the card takes when it opens doesn't, so only the hovered row shows them */
-.person-row:hover .person-remove, .person-row:has(:focus-visible) .person-remove { opacity: 1; }
+/* The card may focus a name on open. Always reveal an action that receives focus itself. */
+.person-row:hover .person-remove, .person-row:has([data-focus-ring]) .person-remove, .person-remove:focus { opacity: 1; }
 .menu-entry { transform-origin:var(--transform-origin, top right); }
 /* Menus share the floating surface in each theme. */
 .menu-entry[role="menu"] { color:var(--ink);border-color:var(--line);border-radius:9px;padding:5px;background:var(--float);box-shadow:var(--shadow); }
 .menu-entry[role="menu"] :is([role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"]) { min-height:32px;border-radius:5px;padding:6px 9px;font-size:12px;line-height:20px; }
 .menu-entry[role="menu"] :is([role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"]):hover:not(:disabled) { background:var(--control-hover); }
-.menu-entry[role="menu"] :is([role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"]):focus-visible { outline:none;background:var(--selected); }
+.menu-entry[role="menu"] :is([role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"])[data-focus-ring] { outline:none;background:var(--selected); }
 .menu-entry[role="menu"] :is([data-testid="note-delete"], .folder-picker-new) { margin-top: 4px; border-top: 1px solid var(--line); border-radius: 0 0 5px 5px; padding-top: 10px; }
-.people-add-field:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.people-add-field:has([data-focus-ring]) { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
 .people-add-field input:focus-visible { outline: none; }
 .menu-entry[data-anchor="start"] { transform-origin: top left; }
 [dir="rtl"] .menu-entry[data-anchor="start"] { transform-origin: top right; }
@@ -408,7 +409,7 @@ html.widget { --pill:#232326;--pill-ink:#F7F7FA;--accent:#B780FF;--pill-accent:v
 [dir="rtl"] .scrubber::-webkit-slider-runnable-track { background: linear-gradient(to left, var(--accent) var(--fill), var(--line) var(--fill)); }
 .scrubber::-webkit-slider-thumb { -webkit-appearance: none; width: 11px; height: 11px; margin-top: -4px; border-radius: 999px; background: var(--accent); box-shadow: 0 0 0 3px var(--float); }
 .scrubber:focus-visible { outline: none; }
-.scrubber:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--float), 0 0 0 5px var(--accent); }
+.scrubber[data-focus-ring]::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--float), 0 0 0 5px var(--accent); }
 @media (prefers-reduced-motion: reduce) {
   .line-in, .name-in { animation:motion-fade var(--dur-micro) var(--ease-out); }
 }
@@ -729,7 +730,7 @@ html:not(.widget) button:focus-visible, html:not(.widget) input:focus-visible { 
 .app-modal[data-testid=shortcuts-dialog] .modal-copy { flex:none;padding:22px 24px 18px; }
 .shortcuts-close { position:absolute;inset-inline-end:16px;top:18px; }
 .shortcuts-search { display:flex;align-items:center;gap:10px;margin:0 24px 12px;padding:9px 11px;border:1px solid var(--line);border-radius:7px;color:var(--muted); }
-.shortcuts-search:focus-within { border-color:var(--accent); }
+.shortcuts-search:has([data-focus-ring]) { border-color:var(--accent); }
 .shortcuts-search input { width:100%;min-width:0;background:transparent;color:var(--ink);font-size:13px;outline:none; }
 .shortcuts-list { flex:1;min-height:0;overflow-y:auto;padding:0 24px 22px; }
 .shortcuts-list section+section { margin-top:20px; }
@@ -921,8 +922,8 @@ html:not(.widget) button:focus-visible, html:not(.widget) input:focus-visible { 
 .summary-stop-square { width:10px;height:10px;border-radius:2px;background:currentColor;opacity:0; }
 .note-resume-action[data-processing=true] { cursor:pointer;box-shadow:0 1px 2px #0000000A; }
 .note-resume-action[data-processing=true]:hover { background:var(--control-hover); }
-.note-resume-action:is(:hover,:focus-visible) .summary-stop-icon>svg { opacity:0; }
-.note-resume-action:is(:hover,:focus-visible) .summary-stop-square { opacity:1; }
+.note-resume-action:is(:hover,:focus) .summary-stop-icon>svg { opacity:0; }
+.note-resume-action:is(:hover,:focus) .summary-stop-square { opacity:1; }
 .summary-stopped { display:flex;flex-direction:column;align-items:flex-start;gap:8px;color:var(--muted);font-size:13px; }
 @media (prefers-reduced-motion:reduce) { .summary-stop-icon>* { transition:none; } }
 
@@ -988,7 +989,7 @@ html:not(.widget) button:focus-visible, html:not(.widget) input:focus-visible { 
 .audio-upload-month button:disabled { opacity:.25;cursor:default; }
 .audio-upload-month button[data-outside=true] { opacity:.45; }
 .audio-upload-month button:disabled:hover b { background:transparent; }
-.audio-upload-month button:focus-visible b { outline:2px solid var(--focus);outline-offset:1px; }
+.audio-upload-month button[data-focus-ring] b { outline:2px solid var(--focus);outline-offset:1px; }
 .audio-upload-date-row .audio-upload-time { width:88px;min-width:0;height:32px;padding:0 8px;border:0;border-inline-start:1px solid var(--line);border-radius:0;background:transparent;flex:none;color:var(--ink);font-size:12px;font-variant-numeric:tabular-nums; }
 .audio-upload-date:focus-visible,.audio-upload-time:focus-visible { outline:2px solid var(--focus);outline-offset:-2px; }
 .audio-upload-time:hover:not(:disabled) { background:var(--control-hover); }
@@ -1031,3 +1032,7 @@ html:not(.widget) button:focus-visible, html:not(.widget) input:focus-visible { 
     :root.main-window .transcript-player-dock:not([data-hidden=true]) { clip-path:none; }
   }
 }
+
+/* Native and library focus returns can follow Escape or a click inside a different surface. */
+[data-quiet-focus]:focus-visible { outline-style:none !important; }
+:where([data-focus-ring]:not(:focus-visible)) { outline:2px solid var(--focus);outline-offset:2px; }

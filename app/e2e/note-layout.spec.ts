@@ -151,6 +151,7 @@ test('people added and removed by hand are saved, and the notes are written agai
     await page.mouse.move(0, 0)
     await expect(card.getByTestId('people-remove')).toHaveCSS('opacity', '0')
     await card.getByTestId('people-remove').focus()
+    await expect(card.getByTestId('people-remove')).toHaveCSS('outline-style', 'none')
     await expect(card.getByTestId('people-remove')).toHaveCSS('opacity', '1')
     await expect(page.getByTestId('note-attendees-summary')).toHaveText('Maya')
     expect((await page.evaluate((id) => window.yogurt.meetings.get(id), id))?.attendees).toEqual([{ name: 'Maya Chen', email: 'maya@example.com' }])

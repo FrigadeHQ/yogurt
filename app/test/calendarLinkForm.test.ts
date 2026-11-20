@@ -2,6 +2,7 @@ import {useState,useEffect,useRef,type ReactNode,type ReactElement} from 'react'
 import {afterEach,expect,it,vi} from 'vitest'
 import {CalendarLinkForm} from '../src/renderer/src/components/CalendarLinkForm'
 import {CalendarSettings} from '../src/renderer/src/components/CalendarSettings'
+import {capabilities} from '../src/shared/platform'
 import {calendarAddress} from '../src/shared/calendarLink'
 import {LOCALES,setLanguage,t} from '../src/shared/i18n'
 
@@ -78,6 +79,7 @@ it.each([false,true])('restores Add focus after collapse and retains the mounted
  vi.stubGlobal('window',{yogurt:{capabilities:{calendarLink:link},calendar:{list:async()=>view}},addEventListener:vi.fn(),removeEventListener:vi.fn()})
  const h=harness(CalendarSettings);await Promise.resolve();h.run()
  h.get('calendar-link-add').props.onClick();h.run();expect(h.get('calendar-link-add').props['aria-expanded']).toBe(true)
+ expect(h.type(CalendarLinkForm).props.autoFocus).toBe(true)
  h.type(CalendarLinkForm).props.onCancel();h.run()
  expect(h.get('calendar-link-add').props['aria-expanded']).toBe(false);expect(h.focus).toHaveBeenCalledWith({preventScroll:true})
  expect(h.type(CalendarLinkForm)).toBeDefined();expect(h.all().find(e=>e.props.id==='settings-calendar-add')!.props.inert).toBe(true)
@@ -85,14 +87,30 @@ it.each([false,true])('restores Add focus after collapse and retains the mounted
  h.type(CalendarLinkForm).props.onBusyChange(true);h.run();h.type(CalendarLinkForm).props.onConnected();h.run();expect(h.focus).not.toHaveBeenCalled()
  h.type(CalendarLinkForm).props.onBusyChange(false);h.run();expect(h.focus).toHaveBeenCalledWith({preventScroll:true})
 })
-it('opens the first link form on link-only platforms, but does not reopen it after Cancel',async()=>{
- const view={status:'notDetermined',calendars:[],hideEventsWithoutCallLink:false}
- vi.stubGlobal('window',{yogurt:{capabilities:{calendarLink:true},calendar:{list:async()=>view}},addEventListener:vi.fn(),removeEventListener:vi.fn()})
- const h=harness(CalendarSettings);await Promise.resolve();h.run();h.run()
- expect(h.get('calendar-link-add').props['aria-expanded']).toBe(true)
- h.type(CalendarLinkForm).props.onCancel();h.run();h.run()
- expect(h.get('calendar-link-add').props['aria-expanded']).toBe(false)
- expect(h.focus).toHaveBeenCalledWith({preventScroll:true})
+it.each(['win32', 'linux'])('keeps focus on Meetings when an empty calendar form appears in Settings on %s', async platform => {
+ const view = { status: 'notDetermined', calendars: [], hideEventsWithoutCallLink: false }
+ vi.stubGlobal('window', { yogurt: { capabilities: capabilities(platform), calendar: { list: async () => view } }, addEventListener: vi.fn(), removeEventListener: vi.fn() })
+ let connect = false
+ const settings = harness(() => CalendarSettings({ connect }))
+ await Promise.resolve()
+ settings.run()
+ settings.run()
+ expect(settings.get('calendar-link-add').props['aria-expanded']).toBe(true)
+ const form = harness(() => CalendarLinkForm(settings.type(CalendarLinkForm).props))
+ expect(form.focus).not.toHaveBeenCalled()
+ expect(settings.focus).not.toHaveBeenCalled()
+
+ // An explicit Connect calendar request can arrive while the empty form is already open.
+ connect = true
+ settings.run()
+ settings.run()
+ form.run()
+ expect(form.focus).toHaveBeenCalledExactlyOnceWith({ preventScroll: true })
+ settings.type(CalendarLinkForm).props.onCancel()
+ settings.run()
+ settings.run()
+ expect(settings.get('calendar-link-add').props['aria-expanded']).toBe(false)
+ expect(settings.focus).toHaveBeenCalledWith({ preventScroll: true })
 })
 it('translates the shorter instruction, validation and privacy line in all locales',()=>{
  for(const {id} of LOCALES){setLanguage(id);for(const key of ['Copy the private iCal address from your calendar settings.','Enter an https:// or webcal:// calendar address.', 'The address stays on this computer.','Add a calendar by link',"Calendars from the Mac's Calendar app appear above automatically."]){expect(t(key).trim()).not.toBe('');if(id!=='en')expect(t(key)).not.toBe(key)}}

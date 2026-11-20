@@ -22,7 +22,7 @@ const loginLabel = () => osWords({ mac: t('Open Yogurt when your Mac starts'), w
 const trayLabel = () => window.yogurt.os === 'win32' ? t('Show Yogurt in the notification area') : t('Show Yogurt in the tray')
 
 /** Settings, kept small: what Yogurt may use, your name, open at login, stop when the call ends, light or dark, a backup and updates. Nothing technical. */
-/** focus: the setting a toast's Settings button opens, recordings or notes-model */
+/** focus: the setting requested by the entry point */
 export function Settings({ revision = 0, focus }: { revision?: number; focus?: string }) {
   const [perms, setPerms] = useState<PermissionStatus>()
   const [prefs, setPrefs] = useState<{ theme: Theme; openAtLogin: boolean; showInMenuBar: boolean; appVisibility: AppVisibility; myName: string; macName: string; stopWhenCallEnds: boolean; recordingReminder: boolean; keepRecordings: boolean }>()
@@ -152,7 +152,7 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
             {supportedKinds(window.yogurt.capabilities).map((k) => <PermissionRow key={k} kind={k} status={perms?.[k]} onAsk={() => void window.yogurt.permissions.request(k).then(reload)} />)}
           </ul></LoadingContent>
 
-          {window.yogurt.capabilities.calendar && <CalendarSettings />}
+          {window.yogurt.capabilities.calendar && <CalendarSettings connect={focus === 'calendar'} />}
 
           <h2 className="settings-section-heading">{t('Language')}</h2>
           <div data-testid="settings-language" className="settings-group">

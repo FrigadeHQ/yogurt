@@ -1,6 +1,7 @@
 import { RendererGuard, RendererFailureTest } from './components/RendererGuard'
 import { installNoteLifecycle } from './noteLifecycle'
 import { installRendererErrors } from './rendererErrors'
+import { installFocusNavigation } from './focusNavigation'
 import { installScrollActivity } from './scrollActivity'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -18,7 +19,7 @@ document.documentElement.classList.toggle('main-window', Which === App)
 // Windows and Linux: the system's window buttons over the top right, no traffic lights (workspace.css)
 if (window.yogurt.platform !== 'darwin') document.documentElement.dataset.chrome = 'overlay'
 installRendererErrors()
-if (Which === App) { installScrollActivity(document); installNoteLifecycle() }
+if (Which === App) { installFocusNavigation(document); installScrollActivity(document); installNoteLifecycle() }
 // everything re-renders in a newly picked language, in every window at once
 function Page() { useLanguage(); return <Which /> }
 const render = () => createRoot(document.getElementById('root')!).render(<StrictMode><RendererGuard><RendererFailureTest><Page /></RendererFailureTest></RendererGuard></StrictMode>)

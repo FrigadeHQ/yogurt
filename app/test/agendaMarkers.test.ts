@@ -103,7 +103,7 @@ it('fades only ended, non-recording events, leaving row focus outlines at full s
   expect(css.split(/\r?\n/).filter(line => line.includes('[data-faded=true]'))).toEqual([
     '.agenda-event[data-faded=true] :is(.agenda-time,.agenda-title,.agenda-marker) { color:var(--ink);opacity:.65; }',
   ])
-  expect(css).toContain(':is(.native-meeting-row,.ask-history-row,.agenda-event):is(:focus-visible,:has(:focus-visible)) { outline:2px solid var(--focus);outline-offset:-2px; }')
+  expect(css).toContain(':is(.native-meeting-row,.ask-history-row,.agenda-event):is([data-focus-ring],:has([data-focus-ring])) { outline:2px solid var(--focus);outline-offset:-2px; }')
 })
 
 it('shows people on live and recording rows without a Take notes action', () => {

@@ -510,7 +510,7 @@ function Title({ id, title, editing, onEdit }: { id: string; title: string; edit
     <input data-testid="note-title-input" aria-label={t('Title')} autoFocus value={draft} maxLength={200}
       onFocus={(e) => e.currentTarget.select()} onChange={(e) => setDraft(e.target.value)} onBlur={done}
       onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); else if (e.key === 'Escape') { cancelled.current = true; e.currentTarget.blur() } }}
-      className={`${cls} -mx-1 rounded-lg bg-transparent px-1 outline-none ring-1 ring-line focus:ring-accent`} />
+      className={`${cls} -mx-1 rounded-lg bg-transparent px-1 outline-none ring-1 ring-line focus-visible:ring-accent`} />
   )
 }
 

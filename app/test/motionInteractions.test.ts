@@ -1,5 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from 'react'
+import { useDialogFocus } from '../src/renderer/src/useDialogFocus'
 import { Search } from '../src/renderer/src/components/Search'
 import { Ask } from '../src/renderer/src/components/Chat'
 import { AskContext, scopeLabel } from '../src/renderer/src/components/AskContext'
@@ -33,6 +34,36 @@ function renderer(component: () => ReactNode) {
     return component()
   }
 }
+
+it.each([false, true])('returns through a replaced dialog to the original opener (visible %s)', async keyboard => {
+  class Target {
+    isConnected = true
+    focus = vi.fn()
+    constructor(readonly dialog: Target | null = null) {}
+    matches() { return keyboard }
+    closest() { return this.dialog }
+  }
+  vi.stubGlobal('HTMLElement', Target)
+  const opener = new Target(), palette = new Target(), field = new Target(palette), help = new Target()
+  const doc = { activeElement: opener, body: new Target(), documentElement: new Target() }
+  vi.stubGlobal('document', doc)
+  function mount(popup: Target) {
+    renderer(() => { useDialogFocus().popupRef(popup as unknown as HTMLDivElement); return null })()
+    return vi.mocked(useEffect).mock.calls.at(-1)![0]() as () => void
+  }
+  const closePalette = mount(palette)
+  doc.activeElement = field
+  const closeHelp = mount(help)
+  field.isConnected = false
+  doc.activeElement = new Target(help)
+  closePalette()
+  await Promise.resolve()
+  expect(opener.focus).not.toHaveBeenCalled()
+  doc.activeElement = doc.body
+  closeHelp()
+  await Promise.resolve()
+  expect(opener.focus).toHaveBeenCalledExactlyOnceWith({ preventScroll: true, focusVisible: keyboard })
+})
 
 it.each([
   { sidebarMotion: false, reduced: false },

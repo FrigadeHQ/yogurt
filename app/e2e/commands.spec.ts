@@ -12,6 +12,51 @@ async function launch(env: Record<string, string> = {}) {
   return { app, page }
 }
 
+test('@everywhere search returns focus with the same ring the opener had', async () => {
+  const { app, page } = await launch({ YOGURT_BACKGROUND: process.env.YOGURT_BACKGROUND ?? '1' })
+  try {
+    const opener = page.getByTestId('nav-home'), search = page.getByTestId('search')
+    await opener.click()
+    for (const keyboard of [false, true]) {
+      if (keyboard) {
+        await page.keyboard.press('Tab')
+        await page.keyboard.press('Shift+Tab')
+        await expect(opener).toBeFocused()
+        await expect(opener).toHaveCSS('outline-style', 'solid')
+      }
+      await page.keyboard.press('ControlOrMeta+k')
+      await expect(page.getByTestId('search-input')).toBeFocused()
+      await page.keyboard.type('meet')
+      await page.keyboard.press('ArrowDown')
+      await page.keyboard.press('Escape')
+      await expect(search).toHaveCount(0)
+      await expect(opener).toBeFocused()
+      await expect(opener).toHaveCSS('outline-style', keyboard ? 'solid' : 'none')
+    }
+    await opener.click()
+    await page.keyboard.press('ControlOrMeta+k')
+    await page.getByTestId('search-input').fill('settings')
+    await expect(page.getByTestId('command-settings')).toHaveAttribute('aria-selected', 'true')
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('settings')).toBeVisible()
+    await expect(search).toHaveCount(0)
+    if (await page.evaluate(() => window.yogurt.capabilities.calendarLink)) {
+      await expect(page.getByTestId('calendar-link-add')).toHaveAttribute('aria-expanded', 'true')
+      await expect(page.getByTestId('calendar-link-input')).not.toBeFocused()
+    }
+    await expect(opener).toBeFocused()
+    await expect(opener).toHaveCSS('outline-style', 'none')
+
+    // A shortcut from an unfocused page must not pick the first sidebar button.
+    await opener.evaluate(el => (el as HTMLElement).blur())
+    await page.keyboard.press('ControlOrMeta+k')
+    await expect(page.getByTestId('search-input')).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(search).toHaveCount(0)
+    await expect.poll(() => page.evaluate(() => document.activeElement === document.body)).toBe(true)
+  } finally { await app.close() }
+})
+
 test('a future date command opens Meetings on that agenda day and its week', async () => {
   const { app, page } = await launch()
   try {
@@ -518,6 +563,8 @@ test('typing keeps the palette frame steady and replaces meeting and command res
 test('shortcut help opens from the palette and its footer, is searchable, and closes with Escape', async () => {
   const { app, page } = await launch()
   try {
+    const opener = page.getByTestId('nav-home')
+    await opener.click()
     await page.keyboard.press('Meta+k')
     await page.getByTestId('search-input').fill('shortcuts')
     await expect(page.getByTestId('command-shortcuts')).toBeVisible()
@@ -530,6 +577,8 @@ test('shortcut help opens from the palette and its footer, is searchable, and cl
     await expect(help).toContainText('⌘]')
     await page.keyboard.press('Escape')
     await expect(help).toHaveCount(0)
+    await expect(opener).toBeFocused()
+    await expect(opener).toHaveCSS('outline-style', 'none')
     await page.keyboard.press('Meta+k')
     await page.getByTestId('search-shortcuts').click()
     await expect(help).toBeVisible()

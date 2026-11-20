@@ -1053,7 +1053,7 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('calendar:connect', async () => {
     // a calendar link is pasted in Settings' calendars: the same form as the first run's
-    if (calendarLinks && caps.calendarLink) { goTo('/settings'); return refreshCalendarStatus() }
+    if (calendarLinks && caps.calendarLink) { goTo('/settings/calendar'); return refreshCalendarStatus() }
     const was = await refreshCalendarStatus()
     if (was === 'notDetermined') return requestCalendarAccess()
     if (was === 'denied') {

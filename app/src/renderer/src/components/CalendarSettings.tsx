@@ -7,22 +7,27 @@ import { t } from '../../../shared/i18n'
 
 let expanded = false
 
-export function CalendarSettings() {
+export function CalendarSettings({ connect = false }: { connect?: boolean } = {}) {
   // Windows and Linux: calendars are pasted calendar links, connected and removed here (and in the first run)
   const link = !!globalThis.window?.yogurt?.capabilities?.calendarLink
   const [view, setView] = useState<Awaited<ReturnType<typeof window.yogurt.calendar.list>>>()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(false)
   const [open, setOpen] = useState(expanded || link)
-  const [adding, setAdding] = useState(false)
+  const [form, setForm] = useState<'closed' | 'automatic' | 'requested'>('closed')
+  const adding = form !== 'closed'
   const addButton = useRef<HTMLButtonElement>(null), restoreFocus = useRef(false)
-  const closeForm = () => { restoreFocus.current = true; setAdding(false) }
+  const closeForm = () => { restoreFocus.current = true; setForm('closed') }
   useEffect(() => {
     if (!adding && !busy && restoreFocus.current) { restoreFocus.current = false; addButton.current?.focus({ preventScroll: true }) }
   }, [adding, busy])
   useEffect(() => {
-    if (link && view && view.status !== 'error' && !view.calendars.length) setAdding(true)
+    // Offer the empty-state form without taking focus from navigation or a Settings deep link.
+    if (link && view && view.status !== 'error' && !view.calendars.length) setForm(current => current === 'closed' ? 'automatic' : current)
   }, [link, view?.status, view?.calendars.length])
+  useEffect(() => {
+    if (connect) { setOpen(true); setForm('requested') }
+  }, [connect])
   const reload = useCallback(() => {
     void window.yogurt.calendar.list().then(setView, () => setView({ status: 'error', calendars: [], hideEventsWithoutCallLink: false }))
   }, [])
@@ -82,14 +87,14 @@ export function CalendarSettings() {
         {view && view.status !== 'error' && <div className="settings-calendar-add">
           <button ref={addButton} type="button" data-testid="calendar-link-add" className="settings-row settings-disclosure"
             aria-expanded={adding} aria-controls="settings-calendar-add" disabled={busy}
-            onClick={() => { if (adding) closeForm(); else setAdding(true) }}>
+            onClick={() => { if (adding) closeForm(); else setForm('requested') }}>
             <span className="settings-row-copy"><span className="settings-label">{t('Add a calendar by link')}</span>
               {!link && <span className="settings-description block">{t("Calendars from the Mac's Calendar app appear above automatically.")}</span>}
             </span><ChevronDown size={16} aria-hidden="true" />
           </button>
           <div id="settings-calendar-add" className="accordion" data-open={adding} inert={!adding || undefined} aria-hidden={!adding}>
             <div><div className="settings-calendar-link">
-              <CalendarLinkForm only={link ? undefined : 'other'} autoFocus={adding} onCancel={closeForm} onBusyChange={setBusy}
+              <CalendarLinkForm only={link ? undefined : 'other'} autoFocus={form === 'requested'} onCancel={closeForm} onBusyChange={setBusy}
                 onConnected={() => { closeForm(); reload() }} />
             </div></div>
           </div>

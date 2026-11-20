@@ -237,6 +237,7 @@ export class NoteDateBody extends Component<{ view: string; children: ReactNode 
     const copy = body.cloneNode(true) as HTMLDivElement
     copy.inert = true; copy.setAttribute('aria-hidden', 'true')
     copy.querySelectorAll('[id],[data-testid],[autofocus]').forEach(node => { node.removeAttribute('id'); node.removeAttribute('data-testid'); node.removeAttribute('autofocus') })
+    copy.querySelectorAll('[data-focus-ring],[data-quiet-focus]').forEach(node => { node.removeAttribute('data-focus-ring'); node.removeAttribute('data-quiet-focus') })
     copy.classList.add('note-date-retiring')
     return { height: shell.getBoundingClientRect().height, copy }
   }

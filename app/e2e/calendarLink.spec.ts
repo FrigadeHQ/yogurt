@@ -30,6 +30,7 @@ test('@everywhere on win32: the agenda sends you to Settings, a calendar link co
     const form = page.getByTestId('calendar-link-form')
     await expect(form).toBeVisible()
     await expect(page.getByTestId('calendar-link-add')).toContainText('Add a calendar by link')
+    await expect(form.getByTestId('calendar-link-input')).toBeFocused()
     await expect(page.getByText("Calendars from the Mac's Calendar app appear above automatically.", { exact: true })).toHaveCount(0)
     await expect(form.getByTestId('calendar-link-open')).toHaveAttribute('href', /calendar\.google\.com/)
     await form.getByTestId('calendar-link-provider-outlook').click()

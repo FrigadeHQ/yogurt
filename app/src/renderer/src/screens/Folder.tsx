@@ -44,5 +44,5 @@ function FolderTitle({ folder }: { folder: FolderRow }) {
   return <h1><input data-testid="folder-title-input" aria-label={t('Folder name')} autoFocus value={draft} maxLength={200}
     onFocus={(e) => e.currentTarget.select()} onChange={(e) => setDraft(e.target.value)} onBlur={done}
     onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); else if (e.key === 'Escape') { cancelled.current = true; e.currentTarget.blur() } }}
-    className="-mx-1 w-full rounded-lg bg-transparent px-1 outline-none ring-1 ring-line focus:ring-accent" /></h1>
+    className="-mx-1 w-full rounded-lg bg-transparent px-1 outline-none ring-1 ring-line focus-visible:ring-accent" /></h1>
 }
