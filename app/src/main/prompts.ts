@@ -15,7 +15,9 @@ function createCard(kind: PromptView['kind'], os = 'darwin'): BrowserWindow {
   const { workArea } = screen.getPrimaryDisplay()
   const width = 381, height = 60
   const background = () => nativeTheme.shouldUseDarkColors ? '#29292B' : '#FFFFFF'
-  const type = floatingType(os)
+  // A Mac: the Take notes card is a non-activating panel like the widget, so clicking it (its X included) never makes
+  // Yogurt the active app and brings its window forward. The stop card takes keyboard focus, so it stays a plain window.
+  const type = floatingType(os, kind === 'start' ? 'panel' : undefined)
   const w = new BrowserWindow({
     ...(type ? { type } : {}),
     width, height, x: workArea.x + workArea.width - width - 16, y: workArea.y + 12,

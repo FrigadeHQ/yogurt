@@ -41,9 +41,12 @@ it('gives both prompts the same compact frame and top-right placement', () => {
   prompts.askStop({id:'meeting',title:'Design review'} as any)
   expect(state.windows[1].options).toMatchObject({width:381,height:60,x:803,y:12,focusable:true})
 })
-it("a Mac's card is a plain window, as before; Windows and Linux make it a tool window that never takes focus", async () => {
+it("a Mac's Take notes card is a non-activating panel, so its X never brings Yogurt forward; Windows and Linux make it a tool window that never takes focus", async () => {
   prompts.offer({key:'call',app:'Zoom',title:''} as any)
-  expect(state.windows[0].options.type).toBeUndefined()
+  expect(state.windows[0].options.type).toBe('panel')
+  prompts.askStop({id:'meeting',title:'Design review'} as any)
+  // the stop card takes keyboard focus for its buttons, so it stays a plain window
+  expect(state.windows.at(-1).options.type).toBeUndefined()
   prompts.hide()
   const { createPrompts } = await import('../src/main/prompts')
   const pc = createPrompts({windowVisible:()=>true,takeNotes:vi.fn(),stop:vi.fn(),dismissed:vi.fn(),keepGoing:vi.fn(),dismissStop:vi.fn(),open:vi.fn(),os:'win32'})
