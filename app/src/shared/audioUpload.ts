@@ -29,10 +29,10 @@ export function uploadDateTime(date: string, time: string, original: number): nu
   if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time)) return
   const at = uploadStartedAt(date, original)
   if (at == null) return
-  if (time === uploadTime(original)) return at
+  if (time === uploadTime(original)) return uploadTime(at) === time ? at : undefined
   const [hours, minutes] = time.split(':').map(Number), value = new Date(at)
   value.setHours(hours, minutes, 0, 0)
-  return +value
+  return uploadTime(+value) === time ? +value : undefined
 }
 
 export function uploadDayAllowed(at:number,now=Date.now()) {

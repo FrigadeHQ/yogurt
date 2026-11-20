@@ -1,6 +1,7 @@
+import { InlineError } from '../components/InlineError'
 import { changeMeetingRows, readMeetingRows, useMeetingRowMotion } from '../meetingRowMotion'
 import { LoadingContent } from '../components/LoadingContent'
-import { MeetingListLoading } from './Home'
+import { LibraryEmpty, MeetingListLoading } from './Home'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { RotateCcw, Trash2 } from 'lucide-react'
@@ -21,6 +22,7 @@ import { useMyName } from '../components/People'
  */
 export function Trash({ open }: { open: (id: string) => void }) {
   const me = useMyName()
+  const [failed, setFailed] = useState(false)
   const [cards, setCards] = useState<MeetingCard[]>()
   const scroll = useScrollMemory<HTMLDivElement>('trash', !!cards)
   const animateRows = useMeetingRowMotion(scroll, 'trash')
@@ -33,8 +35,8 @@ export function Trash({ open }: { open: (id: string) => void }) {
     const mine = ++sequence.current
     void readMeetingRows(() => window.yogurt.meetings.trashed()).then(cards => {
       if (mine !== sequence.current) return
-      animateRows(cards); setCards(cards)
-    })
+      setFailed(false); animateRows(cards); setCards(cards)
+    }).catch(() => { if (mine === sequence.current) setFailed(true) })
   }, [animateRows])
   useEffect(() => {
     reload()
@@ -46,10 +48,8 @@ export function Trash({ open }: { open: (id: string) => void }) {
     <div className="native-library" ref={scroll}>
       <h1>{t('Trash')}</h1>
       <p className="trash-note">{t('Meetings in the Trash are deleted for good after {count} days, with their recordings.', { count: TRASH_DAYS })}</p>
-      <LoadingContent pending={!cards} testId="meetings-loading" skeleton={<MeetingListLoading grouped={false} />} className="library-load">{!cards?.length ? <section data-testid="trash-none" className="library-empty empty-state"><div className="empty-state-content">
-        <div className="empty-tile"><Trash2 size={28} strokeWidth={1.5} aria-hidden="true" /></div><h2>{t('The Trash is empty')}</h2>
-        <p>{t('Deleted meetings stay here for a while, so you can bring them back.')}</p>
-      </div></section> : <ul aria-label={t('Deleted meetings')}>
+      {failed && !!cards?.length && <InlineError testId="meetings-read-error" retry={reload} />}
+      <LoadingContent pending={!cards && !failed} testId="meetings-loading" skeleton={<MeetingListLoading grouped={false} />} className="library-load">{!cards?.length ? <LibraryEmpty testId="trash-none" icon={<Trash2 size={28} strokeWidth={1.5} aria-hidden="true" />} title={t('The Trash is empty')} description={t('Deleted meetings stay here for a while, so you can bring them back.')} retry={failed ? reload : undefined} /> : <ul aria-label={t('Deleted meetings')}>
         {cards?.map((c) => <li key={c.id} data-row-id={c.id} data-testid="trash-row" className="native-meeting-row trash-row row-swap" tabIndex={0} title={dayLabel(c.startedAt)}>
           <PastCard c={c} onOpen={open} me={me} fixed />
           <div className="trash-actions row-swap-actions"><button data-testid="trash-restore" title={t('Restore')} className="ghost-btn workspace-icon" onClick={() => void changeMeetingRows('restore', [c.id], () => window.yogurt.meetings.restore(c.id))} aria-label={t('Restore')}>

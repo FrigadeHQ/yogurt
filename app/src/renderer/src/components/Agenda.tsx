@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { InlineError } from './InlineError'
 import { ScrollFade } from './ScrollFade'
 import { LoadingContent } from './LoadingContent'
 import { LevelBars } from './LevelBars'
@@ -20,7 +21,7 @@ type Actions = {
   onStart: (id: string) => Promise<void>
   onOpen: (id: string) => void
 }
-type Day = { at: number; status: CalendarStatus; events: AgendaEvent[] }
+type Day = { at: number; status: CalendarStatus; events: AgendaEvent[]; unavailable?: string[] }
 
 type Inspection = { at: number; id: string; pointer: boolean }
 let lastView: { selected: number; week: number } | undefined
@@ -96,7 +97,10 @@ export function Agenda({ revision, recording, onStart, onOpen, jumpTo }: Actions
   const calendar = loaded?.at === selected ? loaded : days.current.get(selected)
   const scrollKey = `agenda/${selected}`
   const scroll = useScrollMemory<HTMLDivElement>(scrollKey, !!calendar)
+  const narrowScroll = useScrollMemory<HTMLElement>(scrollKey + '/narrow', !!calendar)
   useEffect(() => { lastView = { selected, week: weekAnchor } }, [selected, weekAnchor])
+  const unavailable = calendar?.unavailable?.length ? calendar.unavailable : calendar?.status === 'error' ? [t('Calendar')] : []
+  const failedCalendar = unavailable.length ? t("Can't read {calendar}", { calendar: new Intl.ListFormat(language()).format(unavailable) }) : undefined
   const events = calendar?.events ?? []
   const primary = pickNext(events, now)
   const defaultEvent = relativeDay === 0 ? events.find(e => e.id === primary) ?? events.find(e => e.start > now) ?? events.at(-1) : events[0]
@@ -111,15 +115,17 @@ export function Agenda({ revision, recording, onStart, onOpen, jumpTo }: Actions
     const jumping = lastJump.current !== jump
     lastJump.current = jump
     // Restore manual reading positions; only a fresh day or Today explicitly jumps to the next meeting.
-    if (!jumping && rememberedScroll(scrollKey) !== undefined) return
+    const narrow = narrowScroll.current && getComputedStyle(narrowScroll.current).overflowY === 'auto'
+    const viewport = narrow ? narrowScroll.current! : scroll.current
+    if (!jumping && rememberedScroll(narrow ? scrollKey + '/narrow' : scrollKey) !== undefined) return
     const row = scroll.current.querySelector<HTMLElement>('[data-agenda-default="true"]')
-    if (row) scroll.current.scrollTop += row.getBoundingClientRect().top - scroll.current.getBoundingClientRect().top - 16
+    if (row) viewport.scrollTop += row.getBoundingClientRect().top - viewport.getBoundingClientRect().top - 16
   }, [calendar, defaultEvent, selected, jump, scrollKey, scroll])
   const step = (offset: -1 | 1) => {
     const next = stepAgendaDay(selected, weekAnchor, offset)
     setSelected(next.selected); setWeekAnchor(next.weekAnchor); setInspected(undefined)
   }
-  return <aside className="native-agenda" aria-label={t('Agenda')}>
+  return <aside ref={narrowScroll} className="native-agenda" aria-label={t('Agenda')}>
     <div className="agenda-header">
       <h2>{t('Agenda')}</h2>
       <button className="workspace-button" onClick={() => { const at = shiftDay(Date.now(), 0); setSelected(at); setWeekAnchor(at); setInspected(undefined); setJump(n => n + 1) }}>{t('Today')}</button>
@@ -140,16 +146,24 @@ export function Agenda({ revision, recording, onStart, onOpen, jumpTo }: Actions
     <div className="agenda-day"><h3>{relativeDay === 0 ? t('Today') : relativeDay === -1 ? t('Tomorrow') : chosen.toLocaleDateString(language(), { weekday: 'long' })}</h3><span>{chosen.toLocaleDateString(language(), { month: 'short', day: 'numeric' })}</span></div>
     <ScrollFade enabled={!!calendar}><div ref={scroll} className="agenda-scroll" data-testid="agenda-scroll">
     <LoadingContent key={selected} pending={!calendar} skeleton={<div className="agenda-events">{[0, 1].map(n => <Event key={n} loading event={{ id: String(n), title: '', url: null, start: selected, end: selected, attendees: [] }} me="" now={now} near={false} initial={false} selected={false} onInspect={() => {}} />)}</div>}>
-    {calendar && (calendar.status !== 'granted' ? <section className="agenda-status" data-testid={calendar.status === 'error' ? 'calendar-error' : 'calendar-off'}>
+    {calendar && (calendar.status !== 'granted' && calendar.status !== 'error' ? <section className="agenda-status" data-testid="calendar-off">
         <CalendarDays size={22} aria-hidden="true" />
-        <h3>{calendar.status === 'error' ? t("Yogurt couldn't read your calendar") : calendar.status === 'denied' ? t('Calendar access is off') : t('See your meetings here')}</h3>
-        <p>{calendar.status === 'error' ? t('Try reading the calendars on this Mac again.') : (window.yogurt.capabilities.calendarLink ? t('Connect a calendar to see your meetings.') : t('Connect the calendars on this Mac to see your upcoming meetings.'))}</p>
-        <button className="workspace-button" onClick={calendar.status === 'error' ? () => void load() : connect}>{calendar.status === 'error' ? t('Try again') : calendar.status === 'denied' ? t('Open System Settings') : t('Connect calendar')}</button>
+        <h3>{calendar.status === 'denied' ? t('Calendar access is off') : t('See your meetings here')}</h3>
+        <p>{window.yogurt.capabilities.calendarLink ? t('Connect a calendar to see your meetings.') : t('Connect the calendars on this Mac to see your upcoming meetings.')}</p>
+        <button className="workspace-button" onClick={connect}>{calendar.status === 'denied' ? t('Open System Settings') : t('Connect calendar')}</button>
       </section>
-      : <div data-testid="coming-up" className="agenda-events">
-        {calendar.events.length === 0 ? <div className="agenda-status"><CalendarDays size={18} strokeWidth={1.75} aria-hidden="true" /><h3>{t('No meetings')}</h3></div>
+      : <>
+        {failedCalendar && calendar.events.length > 0 && <InlineError testId="calendar-error" retry={() => void load()}>
+          <span>{failedCalendar}</span>
+        </InlineError>}
+        <div data-testid="coming-up" className="agenda-events">
+        {calendar.events.length === 0 ? <div className="agenda-status" data-testid={failedCalendar ? 'calendar-error' : undefined} role={failedCalendar ? 'alert' : undefined}>
+          <CalendarDays size={18} strokeWidth={1.75} aria-hidden="true" />
+          <h3>{failedCalendar ?? t('No meetings')}</h3>
+          {failedCalendar && <button type="button" className="workspace-button" onClick={() => void load()}>{t('Try again')}</button>}
+        </div>
           : calendar.events.map((event) => <Event key={event.id} event={event} me={me} now={now} near={event.id === primary} initial={event.id === defaultEvent?.id} selected={event.id === detail?.id} onInspect={(button, pointer) => { opener.current = button; setInspected({ at: selected, id: event.id, pointer }) }} recording={recording} />)}
-      </div>)}
+      </div></>)}
     </LoadingContent></div></ScrollFade>
     {calendar?.status === 'granted' && shownDetail && <EventDetails motionProps={presence.props} key={shownDetail.id} event={shownDetail} recording={recording} onStart={onStart} now={now} onOpen={onOpen} onClose={closeDetails} opener={opener.current} />}
   </aside>

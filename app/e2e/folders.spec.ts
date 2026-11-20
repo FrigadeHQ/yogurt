@@ -258,6 +258,11 @@ for (const input of ['pointer', 'keyboard'] as const) test(`the suggested row na
     await page.getByTestId('nav-home').click()
     const row = page.getByTestId('past-note').filter({ hasText: 'Customer call with Acme' })
     await expect(row.getByTestId('folder-suggestion')).toBeVisible()
+    for (const action of ['cancel', 'confirm']) {
+      const target = row.getByTestId('folder-suggestion-' + action)
+      await expect(target).toHaveCSS('width', '24px')
+      await expect(target).toHaveCSS('height', '24px')
+    }
     await page.evaluate(() => window.yogurt.folders.create('Alpha'))
     if (input === 'keyboard') {
       await row.getByTestId('note-folders').focus()

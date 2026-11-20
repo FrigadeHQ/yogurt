@@ -1,3 +1,4 @@
+import { InlineError, ReadError } from './InlineError'
 import {transcriptReplacement} from '../../../shared/transcriptReplacement'
 import { citationTargetIndex } from '../../../shared/citations'
 import { SPEAKER_COLORS } from '../../../shared/speakerColors'
@@ -46,11 +47,13 @@ function useLines(id: string,replacing:boolean) {
     load();return()=>{active=false;off()}
   },[id,replacing])
   const [lines, setLines] = useState<Line[]>([])
+  const [failed, setFailed] = useState(false)
+  const retry = useRef<() => void>(() => {})
   const [loaded, setLoaded] = useState(false)
   const live = useRef(new Set<string>())
   useEffect(() => {
     let active = true,epoch=0
-    setLoaded(false); setLines([]); live.current = new Set()
+    setFailed(false); setLoaded(false); setLines([]); live.current = new Set()
     const add = (more: Line[], arriving: boolean) => setLines((cur) => {
       const seen = new Set(cur.map(key))
       const fresh = more.filter((l) => l.meetingId === id && !seen.has(key(l)))
@@ -58,22 +61,30 @@ function useLines(id: string,replacing:boolean) {
       return fresh.length ? [...cur, ...fresh].sort((a, b) => a.startMs - b.startMs) : cur
     })
     const off = window.yogurt.transcript.onSegment((l) => add([l], true))
-    void window.yogurt.transcript.get(id, { hidden: true }).then((saved) => { if (active&&epoch===0) { add(saved, false); setLoaded(true) } })
-    // names settled after the meeting, or lines hidden or shown again: the saved lines replace the ones shown
-    const offSpeakers = window.yogurt.transcript.onSpeakers((m) => {
-      if (m !== id) return
-      const requestEpoch=epoch
-      void window.yogurt.transcript.get(id, { hidden: true }).then((saved) => setLines((cur) => {
-        if(!active||requestEpoch!==epoch)return cur
-        const fresh = new Map(saved.map((l) => [key(l), l]))
-        const have = new Set(cur.map(key))
-        return [...cur.map((l) => fresh.get(key(l)) ?? l), ...saved.filter((l) => !have.has(key(l)))].sort((a, b) => a.startMs - b.startMs)
-      }))
+    const load = (replace = false) => {
+      const request = ++epoch
+      retry.current = () => load(replace)
+      void window.yogurt.transcript.get(id, { hidden: true }).then(saved => {
+        if (!active || request !== epoch) return
+        setFailed(false); setLoaded(true)
+        if (replace) setLines(saved)
+        else setLines(cur => {
+          const fresh = new Map(saved.map(l => [key(l), l]))
+          const have = new Set(cur.map(key))
+          return [...cur.map(l => fresh.get(key(l)) ?? l), ...saved.filter(l => !have.has(key(l)))].sort((a, b) => a.startMs - b.startMs)
+        })
+      }, () => { if (active && request === epoch) setFailed(true) })
+    }
+    load()
+    const offSpeakers = window.yogurt.transcript.onSpeakers(m => { if (m === id) load() })
+    const offReplaced = window.yogurt.transcript.onReplaced?.(changed => {
+      if (changed !== id) return
+      if (draftRef.current.length) setLines(draftRef.current)
+      load(true)
     })
-    const offReplaced=window.yogurt.transcript.onReplaced?.(changed=>{if(changed===id){epoch++;setLoaded(true);if(draftRef.current.length)setLines(draftRef.current);void window.yogurt.transcript.get(id,{hidden:true}).then(saved=>{if(active)setLines(saved)})}})
     return () => { active = false; off(); offSpeakers();offReplaced?.() }
   }, [id])
-  return { lines, draft, live, loaded }
+  return { lines, draft, live, loaded, failed, retry }
 }
 
 /**
@@ -173,9 +184,9 @@ export function Transcript({ id, notice, processing=false, replacing=false, reco
   /** a line to show and mark (an answer's source): ms into the meeting; seq: each time it is asked for */
   focus?: { ms: number; match?: string; seq: number }
 }) {
-  const { lines:savedLines, draft, live, loaded } = useLines(id,replacing)
+  const { lines:savedLines, draft, live, loaded, failed, retry } = useLines(id,replacing)
   const allLines=useMemo(()=>replacing?transcriptReplacement(savedLines,draft):savedLines,[savedLines,draft,replacing])
-  const loadingPhase = useLoadingState(!loaded)
+  const loadingPhase = useLoadingState(!loaded && !failed)
   const { live: liveSaid, previewed } = useLive(id, recording)
   // the mic's copy of the call (hidden as an echo) never shows
   const timeline = useMemo(() => echoRuns(withLive(allLines, liveSaid)).filter(run => !run.echo), [allLines, liveSaid])
@@ -386,11 +397,13 @@ export function Transcript({ id, notice, processing=false, replacing=false, reco
       className={inline ? 'transcript-inline' : 'chat-in pointer-events-auto absolute inset-x-0 bottom-1 z-20 mx-auto flex h-[min(44vh,480px)] w-[min(720px,calc(100%-48px))] flex-col rounded-xl border border-line bg-float shadow-[var(--shadow)]'}>
       <TranscriptFind key={id} lines={lines} list={list} active={active} playbackInset={playbackInset} beforeScroll={() => visibility.current?.programmatic()} onFinding={find} toolbar={toolbar} onClose={!inline ? onClose : undefined} />
       <div className="transcript-scroll-wrap relative flex min-h-0 flex-1 flex-col">
-        <ScrollFade enabled={active && loaded}><ol data-loaded={loaded} data-loading-phase={loadingPhase} data-testid="transcript" data-replacing={replacing&&processing} ref={list} onScroll={onScroll} onWheel={theirs} onTouchStart={theirs} onPointerDown={theirs} onKeyDownCapture={theirs} onKeyDown={onKeyDown} className="loading-content transcript-loading-content flex flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4 pt-2 text-sm leading-[1.55]">
+        <ScrollFade enabled={active && loaded}><ol id="transcript-lines" data-loaded={loaded} data-loading-phase={loadingPhase} data-testid="transcript" data-replacing={replacing&&processing} ref={list} onScroll={onScroll} onWheel={theirs} onTouchStart={theirs} onPointerDown={theirs} onKeyDownCapture={theirs} onKeyDown={onKeyDown} className="loading-content transcript-loading-content flex flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4 pt-2 text-sm leading-[1.55]">
           {notice&&<li className="transcription-notice-slot">{notice}</li>}
           {processing&&!replacing&&timeline.length===0&&<li className="transcription-placeholder" aria-hidden="true"><p className="turn-head"><span className="loading-bar" style={{width:42}}/></p><p className="bubble bubble-them"><span className="loading-bar" style={{width:180}}/></p></li>}
-          {loadingPhase !== 'ready' && timeline.length===0 && <li className="loading-placeholder"><Loading layout="transcript" /></li>}
-          {loaded && !processing && allLines.length === 0 && liveSaid.length === 0 && <li data-testid="transcript-empty" className="note-empty empty-state"><div className="empty-state-content"><div className="empty-tile"><AudioLines size={28} strokeWidth={1.5} aria-hidden="true" /></div>{t('Nothing heard yet.')}</div></li>}
+          {failed && (timeline.length || processing || playable || notice ? <li><InlineError testId="transcript-read-error" retry={() => retry.current()} /></li>
+            : <li className="flex flex-1"><ReadError testId="transcript-read-error" retry={() => retry.current()} /></li>)}
+          {!failed && loadingPhase !== 'ready' && timeline.length===0 && <li className="loading-placeholder"><Loading layout="transcript" /></li>}
+          {!failed && loaded && !processing && allLines.length === 0 && liveSaid.length === 0 && <li data-testid="transcript-empty" className="note-empty empty-state"><div className="empty-state-content"><div className="empty-tile"><AudioLines size={28} strokeWidth={1.5} aria-hidden="true" /></div>{t('Nothing heard yet.')}</div></li>}
           {drawn.earlier > 0 && <li className="flex justify-center"><button data-testid="transcript-earlier" onClick={() => { visibility.current?.programmatic(); stick.current = false; setShowAll(true) }} className="ghost-btn">{t('Show earlier lines')}</button></li>}
           {drawn.runs.map(run => <Fragment key={run.k}>
             {turns(run.lines).map((turn) => {
@@ -434,7 +447,12 @@ export function Transcript({ id, notice, processing=false, replacing=false, reco
           </button>
         )}
       </div>
-      {active && playable && <div ref={playbackDock} className="transcript-player-dock"><Player ref={player} id={id} tracks={tracks} onTime={onTime} onPlaying={setAudioOn} onBusy={on => visibility.current?.pin(on)} /></div>}
+      {active && playable && <div ref={playbackDock} className="transcript-player-dock"><Player ref={player} id={id} tracks={tracks} openTranscript={drawn.runs.length ? () => {
+        const row = rowOf(drawn.runs[0].k)
+        visibility.current?.programmatic()
+        row?.focus({ preventScroll: true })
+        row?.scrollIntoView({ block: 'center' })
+      } : undefined} onTime={onTime} onPlaying={setAudioOn} onBusy={on => visibility.current?.pin(on)} /></div>}
     </Surface>
   )
 }

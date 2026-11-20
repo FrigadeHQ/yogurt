@@ -81,7 +81,7 @@
 .call-prompt-countdown { position:absolute;inset:0 0 auto;height:2px;background:var(--accent);transform-origin:left;pointer-events:none;animation:call-countdown 12s linear forwards; }
 .call-prompt[data-paused=true] .call-prompt-countdown { animation-play-state:paused; }
 @keyframes call-countdown { to { transform:scaleX(0); } }
-@media (prefers-reduced-motion:reduce) { .call-prompt-countdown { animation-timing-function:steps(12,end); } }
+@media (prefers-reduced-motion:reduce) { .call-prompt-countdown { animation:none;display:none; } }
 .call-prompt button:focus-visible { outline:2px solid var(--focus);outline-offset:2px; }
 
 @container (max-width:600px) {
@@ -349,6 +349,12 @@
 }
 @media (prefers-reduced-motion: reduce) { .ob-download-blob .finish-band { animation:none !important; } }
 
+
+@media (max-width: 600px) {
+  .ob { grid-template-columns:minmax(0,1fr); }
+  .ob-stage { display:none; }
+  .ob-actions { flex-wrap:wrap; }
+}
 
 @media (max-width: 880px) {
   .ob-side { padding-inline:32px; }

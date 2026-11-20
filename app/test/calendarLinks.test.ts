@@ -62,6 +62,39 @@ describe('calendar links (Windows and Linux): a private calendar address, kept o
     expect((await r.links.events(...day)).map((e) => e.title)).toEqual(['Standup'])
     expect(r.fetched).toHaveLength(2)
   })
+  it('distinguishes an unavailable cold feed from a successfully read empty day', async () => {
+    const r = rig(() => ics('Work'))
+    const added = await r.links.add('https://example.com/work.ics')
+    if (!added.ok) throw new Error('fixture did not connect')
+    const cold = createCalendarLinks({ file: r.file, get: async () => { throw new Error('offline') }, open: () => 'https://example.com/work.ics', seal: s => s })
+    const unavailable: string[] = []
+    const events = await cold.events(...day, unavailable)
+    expect(events).toEqual([])
+    expect(unavailable).toEqual(['Work'])
+  })
+  it('keeps cached and healthy meetings, skips hidden feeds, and clears the warning on recovery', async () => {
+    let offline = false
+    const r = rig(url => {
+      const name = url.endsWith('work.ics') ? 'Work' : 'Team'
+      if (offline && name === 'Work') throw new Error('offline')
+      return ics(name).replace('SUMMARY:Standup', 'SUMMARY:' + name)
+    })
+    const work = await r.links.add('https://example.com/work.ics')
+    await r.links.add('https://example.com/team.ics')
+    if (!work.ok) throw new Error('fixture did not connect')
+    r.tick(5 * 60_000 + 1)
+    offline = true
+    const unavailable: string[] = []
+    expect((await r.links.events(...day, unavailable)).map(e => e.title).sort()).toEqual(['Team', 'Work'])
+    expect(unavailable).toEqual(['Work'])
+    const hidden: string[] = []
+    expect((await r.links.events(...day, hidden, [work.id])).map(e => e.title)).toEqual(['Team'])
+    expect(hidden).toEqual([])
+    offline = false
+    const recovered: string[] = []
+    expect(await r.links.events(...day, recovered)).toHaveLength(2)
+    expect(recovered).toEqual([])
+  })
   it('reading the calendar again and again (call detection, the agenda) reuses the parsed feed until it is fetched again', async () => {
     const r = rig(() => ics('Team'))
     await r.links.add('https://calendar.google.com/calendar/ical/team/private-x/basic.ics')

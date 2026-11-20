@@ -1,3 +1,4 @@
+import { InlineError } from './InlineError'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { LibrarySource } from '../../../shared/types'
@@ -15,6 +16,7 @@ export function Ask({ id, recording, anchor, onSource }: { id: string; recording
   const [conversationId, setConversationId] = useState<string>()
   const [conversationVersion, setConversationVersion] = useState(0)
   const [error, setError] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   const [narrow, setNarrow] = useState(() => window.matchMedia('(max-width: 999px)').matches)
   const trigger = useRef<HTMLButtonElement>(null)
   const panel = useRef<HTMLDialogElement>(null)
@@ -33,9 +35,10 @@ export function Ask({ id, recording, anchor, onSource }: { id: string; recording
   useEffect(() => {
     if (!open || conversationId) return
     let active = true
+    setError(false)
     void window.yogurt.conversations.current([{ kind: 'meeting', id }]).then(cid => { if (active) setConversationId(cid) }).catch(() => { if (active) setError(true) })
     return () => { active = false }
-  }, [open, id, conversationId])
+  }, [open, id, conversationId, attempt])
   // Ask grows out of its button and folds back into it. Only the empty surface resizes; the chat stays at its final size,
   // cropped to the surface so none of it shows outside, and the button and the surface trade places where they meet.
   const morph = (expand: boolean, animate = true) => {
@@ -118,7 +121,9 @@ export function Ask({ id, recording, anchor, onSource }: { id: string; recording
     onCancel={event => { event.preventDefault(); close() }}>
     <div ref={surface} className="chat-morph-surface" aria-hidden="true" />
     <div ref={contents} className="chat-panel-contents">
-      {error && <p role="alert">{t("Yogurt couldn't answer that.")}</p>}
+      {error && <InlineError testId="chat-open-error"><span>{t("Couldn't load this conversation.")}</span>
+        <button className="workspace-button" onClick={() => setAttempt(n => n + 1)}>{t('Try again')}</button>
+      </InlineError>}
       <AskConversation key={`${id}/${conversationVersion}`} id={conversationId ?? ''} pendingDraftKey={`meeting/${id}`} loadError={error} panel recording={recording} onSelect={next => { setConversationId(next); setConversationVersion(version => version + 1) }} onClose={() => close()}
         onExpand={conversationId ? () => { rememberScrollPositions(); close(false); window.yogurt.nav.go(`/chat/${conversationId}`) } : undefined}
         onDeleted={() => { close(false); setConversationId(undefined); window.yogurt.nav.go('/chat') }}

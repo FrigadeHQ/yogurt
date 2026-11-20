@@ -245,7 +245,7 @@ export type YogurtApi = {
     /** not asked yet: asks; turned off: opens the Mac's settings */
     connect(): Promise<CalendarStatus>
     /** the events on the day of this time, earliest first (none without Calendar access) */
-    day(at: number, purpose?: 'link-event'): Promise<{ status: CalendarStatus; events: AgendaEvent[] }>
+    day(at: number, purpose?: 'link-event'): Promise<{ status: CalendarStatus; events: AgendaEvent[]; unavailable?: string[] }>
     /** Windows and Linux: the calendar links connected (never their addresses) */
     links(): Promise<CalendarLinkInfo[]>
     /** connect a private calendar address; why not when it can't be */

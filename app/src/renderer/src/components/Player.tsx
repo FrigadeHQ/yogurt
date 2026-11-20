@@ -23,9 +23,9 @@ const DRIFT_S = 0.08
  * `onTime` gets the spot while it plays and when it is moved (paused too, so the line stays marked where it stopped),
  * with `seek` for an explicit move, and null once the meeting or panel changes; `onPlaying` whether any side is playing.
  */
-type PlayerProps = { id: string; tracks: Track[]; ref?: Ref<PlayerHandle>; onTime?: (ms: number | null, seek?: boolean) => void; onPlaying?: (on: boolean) => void; onBusy?: (on: boolean) => void }
+type PlayerProps = { id: string; tracks: Track[]; openTranscript?: () => void; ref?: Ref<PlayerHandle>; onTime?: (ms: number | null, seek?: boolean) => void; onPlaying?: (on: boolean) => void; onBusy?: (on: boolean) => void }
 export function Player(props: PlayerProps) { return props.tracks.length ? <MeetingPlayer key={props.id} {...props} /> : null }
-function MeetingPlayer({ id, tracks, ref, onTime, onPlaying, onBusy }: PlayerProps) {
+function MeetingPlayer({ id, tracks, openTranscript, ref, onTime, onPlaying, onBusy }: PlayerProps) {
   const [confirm, setConfirm] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [deleted, setDeleted] = useState(false)
@@ -34,6 +34,7 @@ function MeetingPlayer({ id, tracks, ref, onTime, onPlaying, onBusy }: PlayerPro
   const owned = useRef(new Set<HTMLAudioElement>())
   /** tracks that could not be read: dropped, and the other plays on */
   const [broken, setBroken] = useState<Track[]>([])
+  const restoring = useRef(new Set<Track>())
   const pendingPlayFrom = useRef<number | undefined>(undefined)
   const shown = tracks.filter((tr) => !broken.includes(tr))
   const [playing, setPlaying] = useState(false)
@@ -112,52 +113,73 @@ function MeetingPlayer({ id, tracks, ref, onTime, onPlaying, onBusy }: PlayerPro
     setBroken((b) => (b.includes(tr) ? b : [...b, tr]))
   }
 
+  const retry = () => {
+    restoring.current = new Set(broken)
+    setBroken([])
+  }
   const rateText = t('{rate}×', { rate: new Intl.NumberFormat(language()).format(rate) })
   const fill = duration ? (time / duration) * 100 : 0
   const note = broken.length === 0 ? null : shown.length === 0 ? t("This recording can't be played.") : t("Part of this recording can't be played.")
   if (deleted) return null
+  const more = (
+    <Menu.Root modal={false} onOpenChange={setMenuOpen}>
+      <Menu.Trigger ref={menuButton} data-testid="recording-menu" aria-label={t('More')} title={t('More')}
+        className="ghost-btn workspace-icon ms-auto"><Ellipsis size={17} aria-hidden="true" /></Menu.Trigger>
+      <Menu.Portal>
+        <Menu.Positioner side="top" align="end" sideOffset={6} className="ask-menu-positioner">
+          <Menu.Popup className="menu-entry ask-actions-menu player-audio-menu" aria-label={t('More')} finalFocus={confirm ? false : menuButton} onKeyDown={e => { if (e.key === 'Escape') e.stopPropagation() }}>
+            <Menu.Item data-testid="recording-delete" className="text-danger" onClick={() => { pause(); menuButton.current?.focus(); setConfirm(true) }}>
+              <Trash2 size={14} aria-hidden="true" />{t('Delete audio')}
+            </Menu.Item>
+          </Menu.Popup>
+        </Menu.Positioner>
+      </Menu.Portal>
+    </Menu.Root>
+  )
   return (
     <div data-testid="player" className="transcript-player text-xs text-muted">
       {shown.map((tr) => (
         <audio key={tr} data-testid={`player-audio-${tr}`} data-track={tr} preload="metadata" src={`yogurt-audio://${id}/${tr}`}
           ref={(a) => { if (a) { els.current[tr] = a; owned.current.add(a) } else delete els.current[tr] }}
-          onLoadedMetadata={() => { setDuration(Math.max(0, ...all().map(lenOf))); if (pendingPlayFrom.current !== undefined) playFrom(pendingPlayFrom.current) }}
+          onLoadedMetadata={e => {
+            const track = e.currentTarget
+            if (restoring.current.delete(tr)) {
+              const other = all().find(a => a !== track && !a.paused)
+              track.currentTime = Math.min(other?.currentTime ?? time, lenOf(track) || time)
+              if (other) start(track)
+            }
+            setDuration(Math.max(0, ...all().map(lenOf)))
+            if (pendingPlayFrom.current !== undefined) playFrom(pendingPlayFrom.current)
+          }}
           onTimeUpdate={(e) => tick(e.currentTarget)}
           onPlay={changed} onPause={changed}
           onEnded={(e) => { if (e.currentTarget === lead()) pause(); changed() }}
           onError={(e) => { failed(tr, e.currentTarget); changed() }} />
       ))}
-      {note && <p data-testid="player-note" role="status" className={shown.length ? 'px-1.5 pb-1.5' : 'px-1.5 py-1'}>{note}</p>}
-      <div className="flex items-center gap-2">
-        {shown.length > 0 && <>
-          <button data-testid="player-toggle" aria-label={playing ? t('Pause') : t('Play')} onClick={() => (playing ? pause() : play())}
-            className="player-btn flex size-[26px] shrink-0 items-center justify-center rounded-full bg-accent text-accent-ink">
-            <Swap show={playing ? 'pause' : 'play'} options={{ play: <Play size={13} fill="currentColor" strokeWidth={0} className="ms-0.5" />, pause: <Pause size={13} fill="currentColor" strokeWidth={0} /> }} />
-          </button>
-          <span className="w-9 shrink-0 text-end tabular-nums">{clock(time * 1000)}</span>
-          <input data-testid="player-scrubber" type="range" min={0} max={duration || 0} step={0.1} value={Math.min(time, duration || 0)} aria-label={t('Position')}
-            onChange={(e) => seek(Number(e.target.value))} className="scrubber min-w-0 flex-1" style={{ ['--fill' as string]: `${fill}%` }} />
-          <span className="w-9 shrink-0 tabular-nums">{clock(duration * 1000)}</span>
-          <button data-testid="player-speed" aria-label={t('Playback speed {rate}', { rate: rateText })}
-            onClick={() => setRate((r) => RATES[(RATES.indexOf(r) + 1) % RATES.length])}
-            className="ghost-btn tabular-nums">
-            {rateText}
-          </button>
-        </>}
-          <Menu.Root modal={false} onOpenChange={setMenuOpen}>
-            <Menu.Trigger ref={menuButton} data-testid="recording-menu" aria-label={t('More')} title={t('More')}
-              className="ghost-btn workspace-icon ms-auto"><Ellipsis size={17} aria-hidden="true" /></Menu.Trigger>
-            <Menu.Portal>
-              <Menu.Positioner side="top" align="end" sideOffset={6} className="ask-menu-positioner">
-                <Menu.Popup className="menu-entry ask-actions-menu player-audio-menu" aria-label={t('More')} finalFocus={confirm ? false : menuButton} onKeyDown={e => { if (e.key === 'Escape') e.stopPropagation() }}>
-                  <Menu.Item data-testid="recording-delete" className="text-danger" onClick={() => { pause(); menuButton.current?.focus(); setConfirm(true) }}>
-                    <Trash2 size={14} aria-hidden="true" />{t('Delete audio')}
-                  </Menu.Item>
-                </Menu.Popup>
-              </Menu.Positioner>
-            </Menu.Portal>
-          </Menu.Root>
-      </div>
+      {note && <InlineError testId="player-error" className="player-read-error">
+        <span data-testid="player-note">{note}</span>
+        <div className="inline-error-actions">
+          {shown.length === 0 && openTranscript && <a href="#transcript-lines" className="text-action" data-testid="player-open-transcript" onClick={e => { e.preventDefault(); openTranscript() }}>{t('Open in transcript')}</a>}
+          <button type="button" className="workspace-button" data-testid="player-retry" onClick={retry}>{t('Try again')}</button>
+          {shown.length === 0 && more}
+        </div>
+      </InlineError>}
+      {shown.length > 0 && <div className="flex items-center gap-2">
+        <button data-testid="player-toggle" aria-label={playing ? t('Pause') : t('Play')} onClick={() => (playing ? pause() : play())}
+          className="player-btn flex size-[26px] shrink-0 items-center justify-center rounded-full bg-accent text-accent-ink">
+          <Swap show={playing ? 'pause' : 'play'} options={{ play: <Play size={13} fill="currentColor" strokeWidth={0} className="ms-0.5" />, pause: <Pause size={13} fill="currentColor" strokeWidth={0} /> }} />
+        </button>
+        <span className="w-9 shrink-0 text-end tabular-nums">{clock(time * 1000)}</span>
+        <input data-testid="player-scrubber" type="range" min={0} max={duration || 0} step={0.1} value={Math.min(time, duration || 0)} aria-label={t('Position')}
+          onChange={(e) => seek(Number(e.target.value))} className="scrubber min-w-0 flex-1" style={{ ['--fill' as string]: `${fill}%` }} />
+        <span className="w-9 shrink-0 tabular-nums">{clock(duration * 1000)}</span>
+        <button data-testid="player-speed" aria-label={t('Playback speed {rate}', { rate: rateText })}
+          onClick={() => setRate((r) => RATES[(RATES.indexOf(r) + 1) % RATES.length])}
+          className="ghost-btn tabular-nums">
+          {rateText}
+        </button>
+        {more}
+      </div>}
       {confirm && <DeleteRecording id={id} onCancel={() => { setConfirm(false); menuButton.current?.focus() }} onDeleted={() => {
         for (const a of owned.current) { a.pause(); a.removeAttribute('src'); a.load() }
         setConfirm(false); setDeleted(true); setPlaying(false); onTimeRef.current?.(null); onPlayingRef.current?.(false)

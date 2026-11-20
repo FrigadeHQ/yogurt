@@ -18,6 +18,13 @@ type Shown = { ids: string[]; bulk?: boolean; error?: string; /** the note it wa
 let show: ((s: Shown) => void) | undefined
 export const toasts = Toast.createToastManager<{ testId?: string; actionTestId?: string }>()
 
+/** A failed action can be retried or dismissed without obscuring the working screen. */
+export function retryToast(id: string, title: string, actionTestId: string, retry: () => Promise<void>, testId = id) {
+  toasts.add({ id, title, timeout: 0, data: { testId, actionTestId },
+    actionProps: { children: t('Try again'), onClick: retry },
+  })
+}
+
 /** Confirm manual audio deletion without changing the retention preference. */
 export async function recordingDeletedToast() {
   const prefs = await window.yogurt.settings.get().catch(() => undefined)
@@ -115,12 +122,13 @@ export function TrashToast({ go }: { go: (route: string) => void }) {
 function ToastList() {
   const reduced = useReducedMotion()
   const { toasts: shown } = Toast.useToastManager<{ testId?: string; actionTestId?: string }>()
+  const front = shown.find(item => item.transitionStatus !== 'ending')
   return shown.map(item => <Toast.Root key={item.id} toast={item} className="app-toast" transition={{ duration: (reduced ? motion.micro : motion.surface) / 1000, ease: motion.softCurve }} exitTransition={{ duration: (reduced ? motion.micro : motion.base) / 1000, ease: motion.out }} swipeDirection={['down', 'right']}
     data-kind={item.data?.testId} data-testid={item.transitionStatus === 'ending' ? undefined : item.data?.testId ?? 'app-toast'}>
     <Toast.Content className="app-toast-content" transition={{ duration: motion.micro / 1000, ease: motion.out }}>
       <Toast.Title className="app-toast-title" />
       {item.actionProps && <Toast.Action className="workspace-button" data-testid={item.data?.actionTestId} />}
-      <Toast.Close className="ghost-btn workspace-icon" aria-label={t('Close')}><X size={14} aria-hidden="true" /></Toast.Close>
+      <Toast.Close {...(item === front && { 'aria-hidden': false })} className="ghost-btn workspace-icon" aria-label={t('Close')}><X size={14} aria-hidden="true" /></Toast.Close>
     </Toast.Content>
   </Toast.Root>)
 }

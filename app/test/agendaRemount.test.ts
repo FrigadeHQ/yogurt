@@ -43,3 +43,27 @@ it('renders the last day and its people immediately on remount, refreshes quietl
   expect(render()).toContain('agenda-skeleton')
   expect(render()).not.toContain('Example meeting')
 })
+
+it.each([false, true])('places an offline feed according to whether healthy events remain (%s)', async hasEvents => {
+  const event: AgendaEvent = { id: 'healthy', title: 'Design review', start: Date.now(), end: Date.now()+60000, attendees: [], url: null }
+  vi.stubGlobal('window', { addEventListener() {}, removeEventListener() {}, matchMedia: () => ({ matches: true }), yogurt: {
+    calendar: { day: async () => ({ status: 'granted', unavailable: ['Team calendar'], events: hasEvents ? [event] : [] }), onChange: () => () => {} },
+    meetings: { onChange: () => () => {} },
+  } })
+  const render = () => {
+    vi.mocked(useEffect).mockClear()
+    return renderToStaticMarkup(createElement(Agenda, { revision: 0, onStart: async () => {}, onOpen() {} }))
+  }
+  render()
+  const cleanup = vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.length === 3 && typeof deps[0] === 'function')![0]()
+  try {
+    await vi.waitFor(() => {
+      const html = render()
+      expect(html).toMatch(hasEvents ? /class="inline-error[^"]*"/ : /class="agenda-status[^"]*"[^>]*data-testid="calendar-error"/)
+      expect(html).toMatch(/<button[^>]*class="workspace-button"[^>]*>Try again<\/button>/)
+      expect(html.includes('Design review')).toBe(hasEvents)
+      expect(html).not.toContain('agenda-error-tile')
+      expect(html).not.toContain('lucide-triangle-alert')
+    })
+  } finally { cleanup?.() }
+})

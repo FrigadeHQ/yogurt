@@ -62,6 +62,7 @@ export function CalendarSettings({ connect = false }: { connect?: boolean } = {}
     : !selected.length ? t('No calendars selected.')
     : selected.length === 1 ? [selected[0].name, selected[0].source].filter(Boolean).join(' · ')
     : `${selected[0].name} ${t('and {count} more', { count: selected.length - 1 })}`
+  const readFailed = view?.status === 'error' || sys === 'error'
   return <section data-testid="calendar-settings">
     <h2 className="settings-section-heading">{t('Calendars')}</h2>
     <div className="settings-group">
@@ -73,9 +74,9 @@ export function CalendarSettings({ connect = false }: { connect?: boolean } = {}
         <ChevronDown size={16} aria-hidden="true" />
       </button>
       <div id="settings-calendar-list" className="accordion" data-open={open} inert={!open || undefined}><div className="settings-calendar-list">
-        <LoadingContent pending={!view} skeleton={<Loading layout="calendars" />}>{view && <>{!link && sys !== 'granted' && <div className="settings-row">
-            <p className="settings-description settings-row-copy">{sys === 'error' ? t("Yogurt couldn't read your calendars.") : t('Allow calendar access to choose your calendars.')}</p>
-            <button className="workspace-button" onClick={() => { if (sys === 'error') reload(); else void window.yogurt.calendar.connect().then(reload) }}>{sys === 'error' ? t('Try again') : t('Connect calendar')}</button>
+        <LoadingContent pending={!view} skeleton={<Loading layout="calendars" />}>{view && <>{(view.status === 'error' || !link && sys !== 'granted') && <div className="settings-row">
+            <p className="settings-description settings-row-copy">{readFailed ? t("Yogurt couldn't read your calendars.") : t('Allow calendar access to choose your calendars.')}</p>
+            <button className="workspace-button" onClick={() => { if (readFailed) reload(); else void window.yogurt.calendar.connect().then(reload) }}>{readFailed ? t('Try again') : t('Connect calendar')}</button>
           </div>}
           {!link && sys === 'granted' && !view.calendars.some((c) => !c.link) && <p className="settings-row settings-description">{t('No calendars found on this Mac.')}</p>}
           {view.calendars.map((c) => <label key={c.id} data-testid="calendar-choice" className="settings-row settings-calendar-choice">

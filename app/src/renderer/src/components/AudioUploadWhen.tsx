@@ -2,12 +2,26 @@ import {useEffect,useRef,useState} from 'react'
 import {Popover} from '@base-ui/react/popover'
 import {CalendarDays,ChevronLeft,ChevronRight} from 'lucide-react'
 import {language,t} from '../../../shared/i18n'
-import {noteDateLabel,timeOf} from '../../../shared/dates'
-import {uploadClock,stepUploadClock,uploadDayAllowed} from '../../../shared/audioUpload'
+import {noteDateLabel} from '../../../shared/dates'
+import {uploadDate,uploadDateTime,uploadTime,uploadDayAllowed,stepUploadClock} from '../../../shared/audioUpload'
 import {weekDates,shiftDay} from '../agenda'
 
 export function AudioUploadWhen({at,durationMs,onChange,disabled=false}:{at:number;durationMs:number;onChange:(at:number)=>void;disabled?:boolean}) {
   const [open,setOpen]=useState(false),row=useRef<HTMLDivElement>(null)
+  const [invalid, setInvalid] = useState(false)
+  const input = useRef<HTMLInputElement>(null)
+  const time = uploadTime(at)
+  useEffect(() => {
+    if (input.current?.validity.customError) return
+    if (input.current) input.current.value = time
+    setInvalid(false)
+  }, [time])
+  const validate = (field: HTMLInputElement, showError: boolean) => {
+    const next = uploadDateTime(uploadDate(at), field.value, at)
+    field.setCustomValidity(next === undefined ? t('Enter a valid start time.') : '')
+    setInvalid(next === undefined && showError)
+    return next
+  }
   const [month,setMonth]=useState(()=>new Date(at).setDate(1))
   const date=new Date(at),shown=new Date(month),today=new Date()
   const first=new Date(shown.getFullYear(),shown.getMonth(),1)
@@ -15,9 +29,34 @@ export function AudioUploadWhen({at,durationMs,onChange,disabled=false}:{at:numb
   const days=Array.from({length:42},(_,i)=>shiftDay(start,i))
   const nextMonth=(step:number)=>+new Date(shown.getFullYear(),shown.getMonth()+step,1)
   const monthName=(value:number)=>new Date(value).toLocaleDateString(language(),{month:'long',year:'numeric'})
-  const choose=(day:number)=>{const next=new Date(at),picked=new Date(day);next.setFullYear(picked.getFullYear(),picked.getMonth(),picked.getDate());if(uploadDayAllowed(+next)){onChange(+next);setOpen(false)}}
+  const choose = (day: number) => {
+    if (!uploadDayAllowed(day)) return
+    const field = input.current
+    const next = uploadDateTime(uploadDate(day), field?.value ?? time, at)
+    if (field) {
+      field.setCustomValidity(next === undefined ? t('Enter a valid start time.') : '')
+      setInvalid(next === undefined)
+    }
+    // An incomplete or nonexistent local time must be corrected before the date can be submitted.
+    onChange(next ?? day)
+    setOpen(false)
+  }
   return <Popover.Root open={open&&!disabled} onOpenChange={value=>{setOpen(value);if(value)setMonth(new Date(at).setDate(1))}}>
-    <div ref={row} className="audio-upload-date-row"><Popover.Trigger type="button" disabled={disabled} data-dialog-focus className="note-chip audio-upload-date" data-testid="audio-upload-date"><CalendarDays size={14}/><span>{noteDateLabel(at)}</span></Popover.Trigger><Clock at={at} onChange={onChange} disabled={disabled}/><small>{t('{count} min',{count:Math.ceil(durationMs/60000)})}</small></div>
+    <div ref={row} className="audio-upload-date-row"><Popover.Trigger type="button" disabled={disabled} data-dialog-focus className="note-chip audio-upload-date" data-testid="audio-upload-date"><CalendarDays size={14}/><span>{noteDateLabel(at)}</span></Popover.Trigger><input id="upload-start-time" ref={input} className="audio-upload-time" type="time" required disabled={disabled}
+      aria-label={t('Start time')} defaultValue={time} aria-invalid={invalid || undefined} aria-describedby={invalid ? 'upload-time-error' : undefined}
+      onChange={e => { const next = validate(e.currentTarget, invalid); if (next !== undefined && next !== at) onChange(next) }}
+      onBlur={e => validate(e.currentTarget, true)} onInvalid={e => { e.preventDefault(); setInvalid(true); e.currentTarget.focus() }}
+      onKeyDown={e => {
+        if (e.key === 'Escape') {
+          e.preventDefault(); e.stopPropagation()
+          e.currentTarget.value = time; validate(e.currentTarget, false)
+        } else if (e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown') && e.currentTarget.validity.valid) {
+          e.preventDefault()
+          onChange(stepUploadClock(at, e.key === 'ArrowUp' ? 60 : -60))
+        }
+      }}
+    /><small>{t('{count} min',{count:Math.ceil(durationMs/60000)})}</small></div>
+    {invalid && <span id="upload-time-error" role="alert" className="upload-time-error">{t('Enter a valid start time.')}</span>}
     <Popover.Portal>
       <Popover.Positioner anchor={row} side="bottom" align="start" sideOffset={8} collisionPadding={12} collisionAvoidance={{side:'shift',align:'shift',fallbackAxisSide:'none'}} positionMethod="fixed" className="audio-upload-date-positioner">
         <Popover.Popup className="people-card menu-entry audio-upload-date-picker" data-testid="audio-upload-picker" aria-label={t('Date')} initialFocus={()=>document.querySelector<HTMLElement>('[data-upload-day][aria-pressed=true]')}>
@@ -33,18 +72,4 @@ export function AudioUploadWhen({at,durationMs,onChange,disabled=false}:{at:numb
       </Popover.Positioner>
     </Popover.Portal>
   </Popover.Root>
-}
-function Clock({at,onChange,disabled}:{at:number;onChange:(at:number)=>void;disabled:boolean}) {
-  const original=timeOf(at),[value,setValue]=useState(original)
-  useEffect(()=>setValue(original),[original])
-  const commit=()=>{const next=uploadClock(value,at,language());setValue(next==null?original:timeOf(next));if(next!=null)onChange(next)}
-  return <input className="audio-upload-time" disabled={disabled} type="text" aria-label={t('Start time')} aria-keyshortcuts="ArrowUp ArrowDown Shift+ArrowUp Shift+ArrowDown" value={value} onChange={e=>setValue(e.target.value)} onFocus={e=>e.target.select()} onBlur={commit} onKeyDown={e=>{
-    if(e.key==='Enter'){e.preventDefault();commit()}
-    else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();setValue(original);e.currentTarget.select()}
-    else if(e.key==='ArrowUp'||e.key==='ArrowDown'){
-      e.preventDefault()
-      const next=stepUploadClock(uploadClock(value,at,language())??at,(e.key==='ArrowUp'?1:-1)*(e.shiftKey?60:1))
-      setValue(timeOf(next));onChange(next)
-    }
-  }}/>
 }

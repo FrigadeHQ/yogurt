@@ -1,9 +1,11 @@
 import { usePopoverPresence } from '../motion'
+import { retryToast, toasts } from './TrashToast'
 import { Copy } from './Icons'
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Check, CircleAlert, FileDown, ChevronDown } from 'lucide-react'
 import { t } from '../../../shared/i18n'
 import { command, onMac } from '../keys'
+import { flushOpenNotes } from '../noteAutosave'
 import { shareTarget } from '../../../shared/exportNotes'
 import type { NoteStatus } from '../../../shared/types'
 
@@ -38,11 +40,29 @@ export function ShareMenu({ id, shown, status, hasEnhanced, beforeUse }: { id: s
     say(r === 'failed' ? t("Couldn't copy. Try again.") : r === 'nothing' ? t('Nothing to copy yet') : what === 'notes' && fellBack ? t('Copied your notes') : t('Copied'),
       r === 'failed' ? 'error' : r === 'nothing' ? 'notice' : 'copied')
   }, [id, shown, status, hasEnhanced, beforeUse, say])
-  const save = async () => {
+  const exporting = useRef(false)
+  const save = async (retry = false) => {
+    if (exporting.current) return
+    const toastId = 'share-export-error-' + id
+    toasts.close(toastId)
+    const failed = (message: string) => retryToast(toastId, message, 'share-export-retry', () => save(true), 'share-export-error')
+    setSaid(undefined)
     if (writing) { say(t('Still generating your summary')); return }
-    if (!await beforeUse()) { say(t("Couldn't save your latest changes. Try again before exporting."), 'error'); return }
-    const r = await window.yogurt.share.save(id, side)
-    if (r === 'saved') say(fellBack ? t('Saved your notes') : t('Saved'), 'saved'); else if (r === 'failed') say(t("Couldn't save the file"), 'error')
+    exporting.current = true
+    try {
+      if (!await beforeUse() || (retry && !await flushOpenNotes())) { failed(t("Couldn't save your latest changes. Try again before exporting.")); return }
+      if (retry && side === 'enhanced') {
+        const current = await window.yogurt.notes.get(id)
+        if (shareTarget(side, current.status, current.enhanced != null).writing) {
+          failed(t('Still generating your summary'))
+          return
+        }
+      }
+      const r = await window.yogurt.share.save(id, side)
+      if (r === 'saved') say(fellBack ? t('Saved your notes') : t('Saved'), 'saved')
+      else if (r === 'failed') failed(t("Couldn't save the file"))
+    } catch { failed(t("Couldn't save the file")) }
+    finally { exporting.current = false }
   }
   const run = (fn: () => void) => { setOpen(false); button.current?.focus(); fn() }
 

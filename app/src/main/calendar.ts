@@ -1,6 +1,7 @@
 import { execFile, type ChildProcess } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { t } from '../shared/i18n'
 import { helperFile } from '../shared/platform'
 import type { Person } from './store'
 import type { Settings } from './settings'
@@ -71,7 +72,7 @@ export const setCalendarSupported = (on: boolean) => { supported = on; if (!on) 
  * Windows and Linux: the calendar comes from calendar links (calendarLink/), which answer what the Mac helper answers
  * here (status, calendars, events in its shape), so the rest of Yogurt never knows the difference. null: the helper.
  */
-export type CalendarLinkSource = { status(): 'granted' | 'notDetermined'; calendars(): Promise<CalendarSource[]>; events(fromMs: number, toMs: number): Promise<unknown[]> }
+export type CalendarLinkSource = { status(): 'granted' | 'notDetermined'; calendars(): Promise<CalendarSource[]>; events(fromMs: number, toMs: number, unavailable?: string[], hidden?: string[]): Promise<unknown[]> }
 let links: CalendarLinkSource | null = null
 /** a Mac: links are added next to the Mac's own calendars (Settings), never instead of them */
 let alongside = false
@@ -158,13 +159,18 @@ export function parseEvents(raw: unknown, hidden: string[] = []): CalEvent[] {
 }
 
 /** Events between two times. No Calendar access, or a helper that fails: none, never a crash. */
-export async function upcoming(fromMs: number, toMs: number, keep?: 'link-event' | ((event: CalEvent) => boolean)): Promise<CalEvent[]> {
+export async function upcoming(fromMs: number, toMs: number, keep?: 'link-event' | ((event: CalEvent) => boolean), unavailable?: string[]): Promise<CalEvent[]> {
   if (await refreshCalendarStatus() !== 'granted') return []
   try {
     const fromMac = !links || (alongside && macStatus === 'granted')
-    const mac = fromMac ? await helper(['events', new Date(fromMs).toISOString(), new Date(toMs).toISOString()]) : []
-    const raw = [...(links ? await links.events(fromMs, toMs) : []), ...(Array.isArray(mac) ? mac : [])]
+    const mac = fromMac ? await helper(['events', new Date(fromMs).toISOString(), new Date(toMs).toISOString()]).catch(() => {
+      macStatus = 'error'
+      status = overall(macStatus)
+      return []
+    }) : []
+    if (alongside && macStatus === 'error' && links?.status() === 'granted') unavailable?.push(t('Calendar'))
     const selection = calendarSelection()
+    const raw = [...(links ? await links.events(fromMs, toMs, unavailable, selection.hiddenCalendarIds) : []), ...(Array.isArray(mac) ? mac : [])]
     const events = parseEvents(raw, selection.hiddenCalendarIds)
     if (keep === 'link-event' || selection.hideEventsWithoutCallLink !== true) return events
     return events.filter(event => event.url !== null || keep?.(event))

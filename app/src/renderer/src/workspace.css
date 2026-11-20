@@ -183,6 +183,13 @@
 .empty-tile { width:64px;height:64px;margin:0 auto 16px;display:grid;place-items:center;border:1px solid var(--line);border-radius:14px;background:var(--float);color:var(--written);box-shadow:0 1px 2px #17171A0A,0 10px 28px -12px #2A1A4A24;position:relative; }
 .empty-tile::before { content:"";position:absolute;inset:5px;border:1px solid var(--line);border-radius:9px;opacity:.45;pointer-events:none; }
 @media (prefers-color-scheme:dark) { .empty-tile { box-shadow:0 1px 2px #00000033,0 14px 32px -10px #00000080; } }
+.agenda-status[role=alert] { display:grid;justify-items:start; }
+.agenda-status[role=alert] h3 { font-weight:400; }
+.agenda-status h3+.workspace-button { margin-top:8px; }
+/* Workspace routes sit beneath an absolute toolbar. Reserve its height on a standalone failure. */
+.workspace-content>.read-error,.workspace-content>.native-library:has(>.read-error) { height:100%;padding-top:52px; }
+.read-error .empty-state-content { display:grid;justify-items:center;gap:8px; }
+.read-error .empty-state-content>p { margin:0;color:var(--written);font-size:13px;font-weight:400;line-height:20px; }
 .library-empty h2 { font-size:17px;line-height:24px;font-weight:550;letter-spacing:-.3px; }
 .library-empty p { color:var(--muted);line-height:1.65;text-wrap:balance;margin:10px 0 20px; }
 .library-loading { color:var(--muted);font-size:12px;margin-top:25px; }
@@ -332,7 +339,7 @@
 ::highlight(citation-target) { background:color-mix(in srgb,var(--accent-soft) 70%,transparent); }
 [data-focused] { background:color-mix(in srgb,var(--accent-soft) 70%,transparent); }
 @container (max-width:700px) { .native-home { grid-template-columns:minmax(0,1fr) 235px; }.native-library { padding:24px 18px; }.native-agenda { padding-block:25px;--agenda-inset:15px; }.meeting-description strong { font-size:13px; }.meeting-meta { font-size:10px; } }
-@container (max-width:520px) { .native-home { grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) 200px; }.native-agenda {border-inline-start:0;border-top:1px solid var(--line); }.native-meeting-link { gap:8px; }.workspace-breadcrumb { gap:5px; }.workspace-parent,.workspace-parent-separator { display:none; } }
+@container (max-width:520px) { .native-home { grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) 200px; }.native-agenda { border-inline-start:0;border-top:1px solid var(--line);overflow-y:auto;overscroll-behavior:contain; }.agenda-scroll { flex:none;min-height:0;overflow:visible; }.native-meeting-link { gap:8px; }.workspace-breadcrumb { gap:5px; }.workspace-parent,.workspace-parent-separator { display:none; } }
 /* no calendar on this computer (Windows, Linux): the library takes the whole width */
 .native-home.no-agenda { grid-template-columns:minmax(0,1fr);grid-template-rows:none; }
 .workspace-assistant-dock { position:absolute;inset-inline:0;bottom:0;height:44px;display:flex;align-items:center;justify-content:flex-end;padding:0 18px;border-top:1px solid var(--line);background:var(--bg); }
@@ -408,7 +415,7 @@ body:has(.chat-panel[open]) .app-toast-viewport:dir(rtl) { --toast-x:440px; }
 .meeting-folder-proposal .note-folder-name { height:20px;padding:0;gap:5px;border-radius:9px;font:inherit; }
 .meeting-folder-proposal .note-folder-name:hover { background:transparent; }
 .meeting-folder-proposal .note-folder-actions { padding:0;border:0; }
-.meeting-folder-proposal .workspace-icon { width:20px;height:20px; }
+.meeting-folder-proposal .workspace-icon { width:24px;height:24px; }
 .meeting-folder-proposal button:focus-visible { outline:2px solid var(--accent);outline-offset:-2px; }
 .meeting-folder-proposal button:active { background:var(--control-pressed); }
 @container meeting-library (max-width:460px) {
@@ -454,7 +461,6 @@ body:has(.chat-panel[open]) .app-toast-viewport:dir(rtl) { --toast-x:440px; }
 .ask-question { width:fit-content;max-width:80%;margin:0;margin-inline-start:auto;white-space:pre-wrap;overflow-wrap:anywhere;border-radius:12px;background:var(--control);padding:8px 12px;font-size:14px;line-height:20px; }
 .ask-composer { flex:none;min-width:0;container-type:inline-size; }
 .ask-box { position:relative;min-width:0;border:1px solid var(--line);border-radius:12px;background:var(--float);box-shadow:var(--shadow-soft); }
-@media (prefers-reduced-motion:reduce) { .orb-material::before,.orb-material::after { animation:none; } .ask-send { transition:none;transform:none!important; } }
 /* Composers are never lit; a short tapered flare invites typing instead. */
 .ask-tracer { position:absolute;inset:-1px;width:calc(100% + 2px);height:calc(100% + 2px);overflow:visible;pointer-events:none;opacity:0;fill:none;stroke:var(--primary);stroke-width:3;stroke-linecap:round;filter:drop-shadow(0 0 4px color-mix(in srgb,var(--primary) 70%,transparent)) drop-shadow(0 0 10px color-mix(in srgb,var(--primary) 35%,transparent)); }
 .ask-tracer rect { stroke-dasharray:1.05 98.95; }
@@ -478,6 +484,7 @@ body:has(.chat-panel[open]) .app-toast-viewport:dir(rtl) { --toast-x:440px; }
 @keyframes orb-turn { from { transform:rotate(22deg); } to { transform:rotate(382deg); } }
 @keyframes orb-counter { from { transform:rotate(-28deg); } to { transform:rotate(-388deg); } }
 .ask-box:not([data-busy=true]) .ask-send:not(:disabled):is(:hover,[data-focus-ring]) { --orb-play:running;transform:scale(1.04); }
+@media (prefers-reduced-motion:reduce) { .orb-material::before,.orb-material::after { animation:none; } .ask-send { transition:none;transform:none!important; } }
 .ask-send:active:not(:disabled) { transform:scale(.94); }
 .ask-send:disabled { background:transparent;border-color:var(--line); }
 .ask-send:disabled::after,.ask-send:disabled .orb-material,.ask-box[data-busy=true] .orb-material { display:none; }
@@ -559,7 +566,7 @@ body:has(.chat-panel[open]) .app-toast-viewport:dir(rtl) { --toast-x:440px; }
 .note-folder-actions { display:flex;align-items:center;flex:none;padding:0 1px;border-inline-start:1px solid var(--line); }
 .note-folder-proposal,.meeting-folder-proposal { transition:opacity var(--dur-base) var(--ease-out),padding var(--dur-base) var(--ease-out),gap var(--dur-base) var(--ease-out); }
 .note-folder-actions { width:59px;overflow:hidden;transition:width var(--dur-base) var(--ease-out),opacity var(--dur-base) var(--ease-out),padding var(--dur-base) var(--ease-out),border-width var(--dur-base) var(--ease-out); }
-.meeting-folder-proposal .note-folder-actions { width:40px; }
+.meeting-folder-proposal .note-folder-actions { width:48px; }
 [data-phase=accepted] .note-folder-actions,[data-phase=settled] .note-folder-actions { width:0;opacity:0;padding:0;border-inline-start-width:0; }
 .meeting-folder-proposal:is([data-phase=accepted],[data-phase=settled]) { border-style:solid;padding-inline-end:7px;gap:0; }
 .note-folder-proposal[data-phase=dismissed],.meeting-folder-proposal[data-phase=dismissed] { opacity:0;pointer-events:none; }

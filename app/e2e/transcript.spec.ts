@@ -367,6 +367,9 @@ test('a side that ends early, is missing, or cannot be read: the other still pla
     await setTrack(app, id, 'me', 'garbage')
     await reopen(page).catch(() => {})
     await expect(page.getByTestId('player-note')).toHaveText("This recording can't be played.")
+    await expect(page.getByTestId('player-retry')).toBeEnabled()
+    await page.getByTestId('player-open-transcript').click()
+    await expect(page.getByTestId('transcript-line').first()).toBeFocused()
     await expect(page.getByTestId('player-toggle')).toHaveCount(0)
   } finally { await app.close() }
 })

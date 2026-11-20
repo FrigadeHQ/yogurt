@@ -18,7 +18,7 @@ function elements(node:ReactNode):ReactElement<any>[] {
 }
 function transcript(processing:boolean,hasLines:boolean,replacing=false) {
  const lines=hasLines?[{id:1,meetingId:'sample',track:'them',startMs:0,endMs:1000,text:'The draft is ready.'}]:[]
- const states:unknown[]=[[],lines,true,{},false,false,['them']]
+ const states:unknown[]=[[],lines,false,true,{},false,false,['them']]
  vi.mocked(useState).mockImplementation((initial?:unknown):[unknown,()=>void]=>[states.length?states.shift():typeof initial==='function'?initial():initial,()=>{}])
  return elements(Transcript({id:'sample',recording:false,processing,replacing})).map(e=>e.props.className)
 }

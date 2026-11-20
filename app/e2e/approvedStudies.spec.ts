@@ -126,7 +126,7 @@ test('approved compact call card shows the Dock icon and pausing countdown in bo
     }
     if (!before) {
       await prompt.emulateMedia({ reducedMotion: 'reduce' })
-      await expect(prompt.getByTestId('prompt-countdown')).toHaveCSS('animation-timing-function', 'steps(12)')
+      await expect(prompt.getByTestId('prompt-countdown')).toBeHidden()
     }
   } finally { await app.close() }
 })

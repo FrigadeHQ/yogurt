@@ -1,3 +1,4 @@
+import { ReadError } from './components/InlineError'
 import { LoadingContent } from './components/LoadingContent'
 import { MeetingListLoading } from './screens/Home'
 import { StartRecording } from './components/StartRecording'
@@ -17,10 +18,12 @@ import { ChatPage } from './screens/ChatPage'
 import { BootScreen } from './components/BootScreen'
 import { bootHoldMs } from '../../shared/onboarding'
 import { Folder } from './screens/Folder'
-import { useFolders } from './folders'
+import { useFolderRead } from './folders'
 import type { LibrarySource, MeetingView, OnboardingPlan, SetupState } from '../../shared/types'
 
 export function App() {
+  const [setupFailed, setSetupFailed] = useState(false)
+  const [setupAttempt, setSetupAttempt] = useState(0)
   const [setup, setSetup] = useState<SetupState>()
   // where the app was told to go, e.g. /note/<id>
   const [route, setRouteNow] = useState('')
@@ -75,10 +78,11 @@ export function App() {
     return off
   }, [])
   useEffect(() => {
-    const stop = window.yogurt.setup.onState(setSetup)
-    void window.yogurt.setup.state().then((s) => setSetup((cur) => cur ?? s))
-    return stop
-  }, [])
+    let active = true
+    const stop = window.yogurt.setup.onState(s => { setSetupFailed(false); setSetup(s) })
+    void window.yogurt.setup.state().then(s => { if (active) { setSetupFailed(false); setSetup(cur => cur ?? s) } }, () => { if (active) setSetupFailed(true) })
+    return () => { active = false; stop() }
+  }, [setupAttempt])
 
   // first run: the intro and the questions still to ask; nothing on later launches
   const [plan, setPlan] = useState<OnboardingPlan>()
@@ -121,7 +125,7 @@ export function App() {
   const openShortcuts = () => { setSearching(false); setShortcuts(true) }
   const [searching, setSearching] = useState(false)
   const [settingsRevision, setSettingsRevision] = useState(0)
-  const folders = useFolders()
+  const { folders, failed: foldersFailed, retry: retryFolders } = useFolderRead()
   const [suggestedFolders, setSuggestedFolders] = useState<Record<string, string>>({})
   const dismissFolderSuggestion = (id: string) => setSuggestedFolders((current) => {
     const next = { ...current }; delete next[id]; return next
@@ -171,7 +175,7 @@ export function App() {
   }
 
   // still starting, or checking what is on disk: the launch screen, so a finished install never flashes the first-run screen
-  if (!setup || !plan || holding) return <div data-testid="app-shell" className="h-full bg-bg"><TitleBar /><BootScreen /></div>
+  if (!setup || !plan || holding) return <div data-testid="app-shell" className="flex h-full flex-col bg-bg"><TitleBar />{!setup && setupFailed ? <ReadError testId="setup-read-error" retry={() => setSetupAttempt(n => n + 1)} /> : <BootScreen />}</div>
   const noteId = route.startsWith('/note/') ? route.slice(6) : null
   const settings = route === '/settings' || route.startsWith('/settings/')
   const trash = route === '/trash'
@@ -180,7 +184,7 @@ export function App() {
   const folder = folderId ? folders?.find((s) => s.id === folderId) : undefined
   const suggestedFolder = noteId ? folders?.find((s) => s.id === suggestedFolders[noteId]) : undefined
   // a folder's page waits for the list; a folder that is gone shows Meetings
-  const folderScreen = folderId && (folder ? <Folder key={folder.id} folder={folder} open={open} onStarted={(id) => setSuggestedFolders((current) => ({ ...current, [id]: folder.id }))} /> : !folders ? <div className="native-folder"><StartRecording /><div className="native-library"><LoadingContent pending testId="meetings-loading" skeleton={<><div className="folder-page-heading"><h1><span className="loading-bar" style={{ width: 140 }} /></h1></div><MeetingListLoading showFolders={false} /></>} /></div></div> : null)
+  const folderScreen = folderId && (folder ? <Folder key={folder.id} folder={folder} open={open} onStarted={(id) => setSuggestedFolders((current) => ({ ...current, [id]: folder.id }))} /> : foldersFailed ? <div className="native-library"><ReadError className="library-empty" testId="folder-list-error" retry={retryFolders} /></div> : !folders ? <div className="native-folder"><StartRecording /><div className="native-library"><LoadingContent pending testId="meetings-loading" skeleton={<><div className="folder-page-heading"><h1><span className="loading-bar" style={{ width: 140 }} /></h1></div><MeetingListLoading showFolders={false} /></>} /></div></div> : null)
   const screen = settings ? <Settings revision={settingsRevision} focus={route.startsWith('/settings/') ? route.slice('/settings/'.length) : undefined} /> : noteId ? <Note key={noteId} id={noteId} onSource={openSource} onTitleChange={setMeeting} at={jump?.id === noteId ? jump : undefined}
     onResumeRequested={resumeRequested ? () => { setResumeRequested(false); rememberRoute(route) } : undefined}
     folderSuggestion={suggestedFolder ? { folder: suggestedFolder, dismiss: () => dismissFolderSuggestion(noteId) } : undefined} />

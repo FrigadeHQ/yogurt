@@ -1,6 +1,6 @@
 import { _electron as electron, expect, test, type ElectronApplication } from '@playwright/test'
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
-import { mkdtempSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -69,8 +69,28 @@ test('an AI app on this Mac reads meetings through yogurt-mcp only once Settings
     expect(transcript.isError).toBe(false)
     expect(transcript.text).toMatch(/^\[\d\d:\d\d\] /)
 
-    // the app goes: Settings says so; turned off again, nothing is read
-    await toggle.click()
+    // Block the temporary write in this disposable profile while leaving the saved permission readable.
+    const tempSettings = join(userData, 'settings.json.tmp')
+    mkdirSync(tempSettings)
+    try {
+      await toggle.click()
+      const toast = page.getByTestId('ai-apps-retry-error')
+      await expect(toast).toHaveClass(/app-toast/)
+      await toast.getByRole('button', { name: 'Close' }).click()
+      await expect(toast).toHaveCount(0)
+      await expect(toggle).toHaveAttribute('aria-checked', 'true')
+      await toggle.click()
+      await expect(page.getByTestId('ai-apps-retry')).toBeVisible()
+      await expect(toggle).toHaveAttribute('aria-checked', 'true')
+      expect((await ai.tool('list_meetings')).isError).toBe(false)
+    } finally { rmdirSync(tempSettings) }
+    await page.getByTestId('nav-home').click()
+    await expect(page.getByTestId('home')).toBeVisible()
+    await page.getByTestId('settings-open').click()
+    await expect(toggle).toHaveAttribute('aria-checked', 'true')
+    await page.getByTestId('ai-apps-retry').click()
+    await expect(toggle).toHaveAttribute('aria-checked', 'false')
+    await expect(toggle).toBeEnabled()
     expect((await ai.tool('list_meetings')).isError).toBe(true)
     ai.close()
     await toggle.click()

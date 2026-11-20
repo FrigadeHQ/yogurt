@@ -259,8 +259,8 @@ let relaunched = 0
 /** fake mode: how many times Yogurt would have restarted to install a new version */
 let updateRestarts = 0
 
-async function readCalendar(from: number, to: number, keep?: Parameters<typeof upcoming>[2]): Promise<CalEvent[]> {
-  const events = await upcoming(from, to, keep)
+async function readCalendar(from: number, to: number, keep?: Parameters<typeof upcoming>[2], unavailable?: string[]): Promise<CalEvent[]> {
+  const events = await upcoming(from, to, keep, unavailable)
   refreshEventSnapshots(events)
   return events
 }
@@ -273,10 +273,10 @@ async function comingUp(): Promise<CalEvent[]> {
 }
 
 /** The events on the day of this time, earliest first */
-async function eventsOn(at: number, purpose?: 'link-event'): Promise<CalEvent[]> {
+async function eventsOn(at: number, purpose?: 'link-event', unavailable?: string[]): Promise<CalEvent[]> {
   const from = new Date(at); from.setHours(0, 0, 0, 0)
   const to = new Date(from); to.setDate(to.getDate() + 1)
-  return (await readCalendar(from.getTime(), to.getTime(), purpose ?? (event => eventIds(event).some(id => !!storeRef?.meetingForEvent(id))))).sort((a, b) => a.start - b.start)
+  return (await readCalendar(from.getTime(), to.getTime(), purpose ?? (event => eventIds(event).some(id => !!storeRef?.meetingForEvent(id))), unavailable)).sort((a, b) => a.start - b.start)
 }
 
 /** the Mac's full name: who "You" is unless Settings says otherwise (fake mode: a fixed one) */
@@ -1026,12 +1026,13 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('calendar:day', async (_e, at: unknown, purpose?: unknown) => {
     if (typeof at !== 'number' || !Number.isFinite(at) || !Number.isFinite(new Date(at).getTime())) return { status: 'error', events: [] }
-    const events = (await eventsOn(at, purpose === 'link-event' ? 'link-event' : undefined)).map((event) => {
+    const unavailable: string[] = []
+    const events = (await eventsOn(at, purpose === 'link-event' ? 'link-event' : undefined, unavailable)).map((event) => {
       const meeting = eventIds(event).map((id) => store.meetingForEvent(id)).find(Boolean)
       const note = meeting && withStopState(meeting)
       return { ...event, attendees: resolvePeople(store.db, event.attendees), ...(note ? { note: { id: note.id, state: note.state, ...(note.source ? { source: note.source } : {}) } } : {}) }
     })
-    return { status: calendarStatus(), events }
+    return { status: calendarStatus(), events, unavailable }
   })
   ipcMain.handle('calendar:coming-up', async () => {
     const events = (await comingUp()).map(event => ({ ...event, attendees: resolvePeople(store.db, event.attendees) }))

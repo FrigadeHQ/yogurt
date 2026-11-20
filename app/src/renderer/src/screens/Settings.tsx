@@ -1,4 +1,5 @@
 import { AboutYogurt } from '../components/AboutYogurt'
+import { retryToast, toasts } from '../components/TrashToast'
 import { LoadingContent } from '../components/LoadingContent'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Check, ChevronDown, Copy, Download, ExternalLink, Globe, Lock, Upload, FileText } from 'lucide-react'
@@ -22,6 +23,41 @@ const THEMES = () => [['system', osWords({ mac: t('Match my Mac'), windows: t('M
 const loginLabel = () => osWords({ mac: t('Open Yogurt when your Mac starts'), windows: t('Open Yogurt when Windows starts'), linux: t('Open Yogurt when you log in') })
 const trayLabel = () => window.yogurt.os === 'win32' ? t('Show Yogurt in the notification area') : t('Show Yogurt in the tray')
 
+const settingsRetried = new EventTarget()
+
+/** Keep the displayed value until main confirms the write. A retry repeats the requested value. */
+function useSettingSave(actionId: string, refresh: () => void) {
+  const [busy, setBusy] = useState(false)
+  const pending = useRef(new Set<string>())
+  const mounted = useRef(true)
+  // A toast survives navigation. Refresh the mounted panel if a previous instance retries.
+  useEffect(() => {
+    mounted.current = true
+    settingsRetried.addEventListener(actionId, refresh)
+    return () => {
+      mounted.current = false
+      settingsRetried.removeEventListener(actionId, refresh)
+    }
+  }, [actionId, refresh])
+  const save = async (write: () => Promise<void>, retryId = actionId, retry = false) => {
+    const id = retryId + '-error'
+    if (pending.current.has(id)) return
+    pending.current.add(id)
+    setBusy(true)
+    toasts.close(id)
+    try {
+      await write()
+      if (retry && !mounted.current) settingsRetried.dispatchEvent(new Event(actionId))
+    }
+    catch { retryToast(id, t("Couldn't save your changes"), retryId, () => save(write, retryId, true)) }
+    finally {
+      pending.current.delete(id)
+      setBusy(pending.current.size > 0)
+    }
+  }
+  return { save, busy }
+}
+
 /** Settings, kept small: what Yogurt may use, your name, open at login, stop when the call ends, light or dark, a backup and updates. Nothing technical. */
 /** focus: the setting requested by the entry point */
 export function Settings({ revision = 0, focus }: { revision?: number; focus?: string }) {
@@ -39,24 +75,34 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
     window.addEventListener('focus', reload)
     return () => window.removeEventListener('focus', reload)
   }, [reload])
-  const theme = (v: Theme) => { setPrefs((p) => p && { ...p, theme: v }); void window.yogurt.settings.setTheme(v) }
+  const refreshGeneral = useCallback(() => {
+    void window.yogurt.settings.get().then(p => { setPrefs(p); setName(p.myName) })
+  }, [])
+  const general = useSettingSave('settings-save-retry', refreshGeneral)
+  const theme = (v: Theme) => general.save(async () => {
+    await window.yogurt.settings.setTheme(v)
+    setPrefs(p => p && { ...p, theme: v })
+  }, 'settings-theme-retry')
   /** saved when they leave the field or press Return; blank goes back to the Mac's name */
   const saveName = () => {
     if (!prefs) return
     const clean = name.replace(/\s+/g, ' ').trim()
     const next = clean || prefs.macName
-    setName(next); setPrefs({ ...prefs, myName: next })
-    void window.yogurt.settings.setName(clean)
+    if (next === prefs.myName) { setName(next); return }
+    void general.save(async () => {
+      await window.yogurt.settings.setName(clean)
+      setName(next); setPrefs(p => p && { ...p, myName: next })
+    }, 'settings-name-retry')
   }
   const login = () => {
     if (!prefs) return
     const on = !prefs.openAtLogin
-    setPrefs({ ...prefs, openAtLogin: on }); void window.yogurt.settings.setOpenAtLogin(on)
+    void general.save(async () => { await window.yogurt.settings.setOpenAtLogin(on); setPrefs(p => p && { ...p, openAtLogin: on }) }, 'settings-login-retry')
   }
   const autoStop = () => {
     if (!prefs) return
     const on = !prefs.stopWhenCallEnds
-    setPrefs({ ...prefs, stopWhenCallEnds: on }); void window.yogurt.settings.setStopWhenCallEnds(on)
+    void general.save(async () => { await window.yogurt.settings.setStopWhenCallEnds(on); setPrefs(p => p && { ...p, stopWhenCallEnds: on }) }, 'settings-auto-stop-retry')
   }
   const menuBar = async () => {
     if (!prefs) return
@@ -80,7 +126,7 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
             <div className="settings-row">
               <label htmlFor="settings-theme" className="settings-label settings-row-copy">{t('Appearance')}</label>
               <span className="settings-select-wrap">
-                <select id="settings-theme" data-testid="settings-theme" value={prefs?.theme ?? 'system'} disabled={!prefs}
+                <select id="settings-theme" data-testid="settings-theme" value={prefs?.theme ?? 'system'} disabled={!prefs || general.busy}
                   onChange={(e) => theme(e.target.value as Theme)} className="settings-select">
                   {THEMES().map(([v, label]) => <option key={v} value={v}>{label}</option>)}
                 </select>
@@ -92,7 +138,7 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
                 <label htmlFor="settings-name" className="settings-label">{t('Your name')}</label>
                 <p className="settings-description">{t('Yogurt uses your name to identify you in calls.')}</p>
               </div>
-              <input id="settings-name" data-testid="settings-name" value={name} maxLength={80} autoComplete="name" spellCheck={false}
+              <input id="settings-name" data-testid="settings-name" disabled={general.busy} value={name} maxLength={80} autoComplete="name" spellCheck={false}
                 onChange={(e) => setName(e.target.value)} onBlur={saveName} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
                 className="settings-name-field" />
             </div>
@@ -101,7 +147,7 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
                 <p className="settings-label">{loginLabel()}</p>
                 <p className="settings-description">{t('It runs in the background, ready for your first call.')}</p>
               </div>
-              <button data-testid="login-toggle" role="switch" aria-checked={!!prefs?.openAtLogin} aria-label={loginLabel()} onClick={login}
+              <button data-testid="login-toggle" disabled={!prefs || general.busy} role="switch" aria-checked={!!prefs?.openAtLogin} aria-label={loginLabel()} onClick={login}
                 className="settings-toggle">
                 <span className="settings-toggle-knob" />
               </button>
@@ -127,7 +173,7 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
                 <p className="settings-label">{t('Finish recording when the call ends')}</p>
                 <p className="settings-description">{t('Automatically end the recording a few seconds after you hang up.')}</p>
               </div>
-              <button data-testid="autostop-toggle" role="switch" aria-checked={!!prefs?.stopWhenCallEnds} aria-label={t('Finish recording when the call ends')} onClick={autoStop}
+              <button data-testid="autostop-toggle" disabled={!prefs || general.busy} role="switch" aria-checked={!!prefs?.stopWhenCallEnds} aria-label={t('Finish recording when the call ends')} onClick={autoStop}
                 className="settings-toggle">
                 <span className="settings-toggle-knob" />
               </button>
@@ -137,10 +183,11 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
                 <p className="settings-label">{t('Recording reminder')}</p>
                 <p className="settings-description">{t('Show a brief reminder when recording starts.')}</p>
               </div>
-              <button data-testid="recording-reminder-toggle" role="switch" aria-checked={!!prefs?.recordingReminder} aria-label={t('Recording reminder')}
-                onClick={() => { if (!prefs) return; const on = !prefs.recordingReminder; setPrefs({ ...prefs, recordingReminder: on }); void window.yogurt.settings.setRecordingReminder(on) }}
+              <button data-testid="recording-reminder-toggle" disabled={!prefs || general.busy} role="switch" aria-checked={!!prefs?.recordingReminder} aria-label={t('Recording reminder')}
+                onClick={() => { if (!prefs) return; const on = !prefs.recordingReminder; void general.save(async () => { await window.yogurt.settings.setRecordingReminder(on); setPrefs(p => p && { ...p, recordingReminder: on }) }, 'recording-reminder-retry') }}
                 className="settings-toggle"><span className="settings-toggle-knob" /></button>
             </div>
+
             <RecordingSetting reveal={focus === 'recordings' && generalReady && !!perms} on={prefs?.keepRecordings ?? true} disabled={!prefs} onChange={async on => {
               await window.yogurt.settings.setKeepRecordings(on)
               setPrefs(p => p && { ...p, keepRecordings: on })
@@ -384,7 +431,8 @@ function AiApps() {
     void window.yogurt.mcp.status().then(setStatus)
     return window.yogurt.mcp.onClients((clients) => setStatus((s) => s && { ...s, clients }))
   }, [])
-  const toggle = () => { if (status) { setStatus({ ...status, enabled: !status.enabled }); void window.yogurt.mcp.set(!status.enabled).then(setStatus) } }
+  const change = useSettingSave('ai-apps-retry', useCallback(() => { void window.yogurt.mcp.status().then(setStatus) }, []))
+  const toggle = () => status && change.save(async () => { setStatus(await window.yogurt.mcp.set(!status.enabled)) })
   const copy = () => { if (status) void navigator.clipboard.writeText(status.command).then(() => setCopied(true)) }
   const on = !!status?.enabled
   return (
@@ -396,10 +444,11 @@ function AiApps() {
             <p className="settings-label">{t('Let AI apps read your meetings')}</p>
             <p className="settings-description">{osWords({ mac: t('Apps on this Mac can read your meetings, notes, transcripts and recordings. If an app uses an online AI, what it reads goes to that AI.'), other: t('Apps on this computer can read your meetings, notes, transcripts and recordings. If an app uses an online AI, what it reads goes to that AI.') })}</p>
           </div>
-          <button data-testid="ai-apps-toggle" role="switch" aria-checked={on} aria-label={t('Let AI apps read your meetings')} onClick={toggle} className="settings-toggle">
+          <button data-testid="ai-apps-toggle" disabled={change.busy} role="switch" aria-checked={on} aria-label={t('Let AI apps read your meetings')} onClick={toggle} className="settings-toggle">
             <span className="settings-toggle-knob" />
           </button>
         </div>
+
         {on && status &&
           <div className="settings-row">
             <div className="settings-row-copy">
@@ -429,7 +478,8 @@ function Updates() {
     void window.yogurt.updates.status().then(setStatus)
     return window.yogurt.updates.onStatus(setStatus)
   }, [])
-  const toggle = () => { if (status) { setStatus({ ...status, on: !status.on }); void window.yogurt.updates.set(!status.on).then(setStatus) } }
+  const change = useSettingSave('updates-save-retry', useCallback(() => { void window.yogurt.updates.status().then(setStatus) }, []))
+  const toggle = () => status && change.save(async () => { setStatus(await window.yogurt.updates.set(!status.on)) })
   const restart = () => void window.yogurt.updates.restart().then((ok) => setBlocked(!ok))
   const said = status?.available ? {
     idle: '', latest: t('Up to date'), checking: t('Checking for updates…'), error: t("Couldn't check for updates."),
@@ -445,10 +495,11 @@ function Updates() {
               <p className="settings-label">{t('Update Yogurt automatically')}</p>
               <p className="settings-description">{t('New versions download in the background and install when you quit.')}</p>
             </div>
-            <button data-testid="updates-toggle" role="switch" aria-checked={status.on} aria-label={t('Update Yogurt automatically')} onClick={toggle} className="settings-toggle">
+            <button data-testid="updates-toggle" disabled={change.busy} role="switch" aria-checked={status.on} aria-label={t('Update Yogurt automatically')} onClick={toggle} className="settings-toggle">
               <span className="settings-toggle-knob" />
             </button>
           </div>}
+
         <div className="settings-row">
           <div className="settings-row-copy" aria-live="polite">
             <p data-testid="updates-version" className="settings-label">{t('Version {version}', { version: status?.version ?? '' })}</p>

@@ -176,3 +176,25 @@ test('empty and failed copy feedback never signals success', async () => {
     await expect(copy).toHaveAttribute('data-state', 'idle')
   } finally { await app.close() }
 })
+
+test('a failed export stays visible and can be retried', async () => {
+  const { app, page } = await launch()
+  try {
+    await finished(app, page)
+    await app.evaluate(({ ipcMain }) => {
+      let calls = 0
+      ipcMain.removeHandler('share:save')
+      ipcMain.handle('share:save', () => ++calls <= 2 ? 'failed' : 'saved')
+    })
+    await page.getByTestId('share-button').click()
+    await page.getByTestId('share-export').click()
+    const toast = page.getByTestId('share-export-error')
+    await expect(toast).toHaveClass(/app-toast/)
+    await toast.getByRole('button', { name: 'Close' }).click()
+    await expect(toast).toHaveCount(0)
+    await page.getByTestId('share-button').click()
+    await page.getByTestId('share-export').click()
+    await toast.getByRole('button', { name: 'Try again' }).click()
+    await expect(page.getByTestId('share-said')).toHaveText('Saved')
+  } finally { await app.close() }
+})

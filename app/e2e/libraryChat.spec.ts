@@ -238,3 +238,25 @@ test('a meeting cited for several of its parts shows one mark, and an answer tha
     await expect(page.getByTestId('source-citation')).toHaveCount(0)
   } finally { await app.close() }
 })
+
+test('Ask retries a failed initial lookup', async () => {
+  const { app, page } = await launch()
+  try {
+    await app.evaluate(({ ipcMain }) => {
+      let first = true
+      ipcMain.removeHandler('conversations:current')
+      ipcMain.handle('conversations:current', () => {
+        if (first) { first = false; throw new Error('Offline fixture') }
+        return 'retry-demo'
+      })
+      ipcMain.removeHandler('conversations:get')
+      ipcMain.handle('conversations:get', () => ({ id: 'retry-demo', title: '', draft: '', chips: [], draftChips: [], firstChips: null, turns: [], waitsForMeeting: false, waitsForModel: false }))
+    })
+    await page.evaluate(() => window.yogurt.nav.go('/chat'))
+    const failure = page.getByTestId('chat-page-load-error')
+    await expect(failure).toContainText("Couldn't load this conversation.")
+    await failure.getByRole('button', { name: 'Try again' }).click()
+    await expect(failure).toHaveCount(0)
+    await expect(page.getByTestId('chat-page-input')).toBeEnabled()
+  } finally { await app.close() }
+})

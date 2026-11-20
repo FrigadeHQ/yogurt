@@ -652,3 +652,28 @@ test("a mouse's back and forward buttons move through pages like ⌘[ and ⌘]",
     await expect(page.getByTestId('chat-page')).toBeVisible()
   } finally { await app.close() }
 })
+
+test('the palette recovers from a rejected read', async () => {
+  const { app, page } = await launch({ YOGURT_BACKGROUND: process.env.YOGURT_BACKGROUND ?? '1' })
+  try {
+    const setAvailable = (available: boolean) => app.evaluate(({ ipcMain }, available) => {
+      ipcMain.removeHandler('search:query')
+      ipcMain.handle('search:query', (_event, q: string) => {
+        if (q !== 'Planning') return []
+        if (!available) throw new Error('Read failed')
+        return [{ meetingId: 'planning', title: 'Planning review', startedAt: 1, parts: [] }]
+      })
+    }, available)
+    await setAvailable(false)
+    await page.keyboard.press('ControlOrMeta+k')
+    await page.getByTestId('search-input').fill('Planning')
+    const retry = page.getByTestId('search-retry')
+    await expect(retry).toBeVisible()
+    await expect(page.getByTestId('search-result')).toHaveCount(0)
+    await setAvailable(true)
+    await retry.click()
+    await expect(page.getByTestId('search-result')).toContainText('Planning review')
+    await expect(page.getByTestId('search-retry')).toHaveCount(0)
+    await expect(page.getByRole('listbox')).toHaveAttribute('aria-busy', 'false')
+  } finally { await app.close() }
+})

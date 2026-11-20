@@ -1,3 +1,4 @@
+import { InlineError } from '../components/InlineError'
 import { useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { Popover } from '@base-ui/react/popover'
@@ -17,7 +18,10 @@ export function ChatPage({ id, go, openSource }: { id: string | null; go: (route
   const [list, setList] = useState<ConversationSummary[]>()
   const [current, setCurrent] = useState<string>()
   const [prepared, setPrepared] = useState<ConversationView>()
-  const [error, setError] = useState(false)
+  const [homeFailed, setHomeFailed] = useState(false)
+  const [listFailed, setListFailed] = useState(false)
+  const [listAttempt, setListAttempt] = useState(0)
+  const [failedTarget, setFailedTarget] = useState<{ id: string | null }>()
   const [recent, setRecent] = useState(false)
   const recentButton = useRef<HTMLButtonElement>(null)
   const [editing, setEditing] = useState<{ id: string; title: string; kind: 'rename' | 'delete' }>()
@@ -36,20 +40,22 @@ export function ChatPage({ id, go, openSource }: { id: string | null; go: (route
   useDay()
   useEffect(() => {
     let active = true
-    const off = window.yogurt.conversations.onList(setList)
-    void window.yogurt.conversations.list().then(l => { if (active) setList(cur => cur ?? l) }).catch(() => { if (active) setError(true) })
+    setListFailed(false)
+    const off = window.yogurt.conversations.onList(list => { setList(list); setListFailed(false) })
+    void window.yogurt.conversations.list().then(l => { if (active) setList(cur => cur ?? l) }).catch(() => { if (active) setListFailed(true) })
     return () => { active = false; off() }
-  }, [])
+  }, [listAttempt])
   useEffect(() => {
     if (id) return
     let active = true
-    setError(false)
-    void askHomeConversation(window.yogurt.conversations).then(cid => { if (active) setCurrent(cid) }).catch(() => { if (active) setError(true) })
+    setHomeFailed(false)
+    void askHomeConversation(window.yogurt.conversations).then(cid => { if (active) setCurrent(cid) }).catch(() => { if (active) setHomeFailed(true) })
     return () => { active = false }
   }, [id, revision])
   const selected = id ?? current
   const history = recentHistory(list ?? [], showAll ? Infinity : 30)
   const navigate = async (cid: string | null) => {
+    setFailedTarget(undefined)
     const request = ++navigation.current
     setRecent(false)
     // Capture the destination with its content, rather than fading into a loading skeleton.
@@ -59,10 +65,11 @@ export function ChatPage({ id, go, openSource }: { id: string | null; go: (route
     if (!view) throw new Error('Conversation not found')
     change(() => { setPrepared(view); setCurrent(target); go(cid ? `/chat/${cid}` : '/chat') })
   }
-  const open = (cid: string) => { void navigate(cid).catch(() => setError(true)) }
-  const back = () => {
-    void navigate(null).catch(() => setError(true))
+  const open = (cid: string | null) => {
+    const read = navigate(cid), request = navigation.current
+    void read.catch(() => { if (request === navigation.current) setFailedTarget({ id: cid }) })
   }
+  const back = () => open(null)
   const deleted = (cid: string) => {
     if (cid === selected) { setCurrent(undefined); setRevision(n => n + 1); setRecent(false); go('/chat') }
   }
@@ -81,7 +88,10 @@ export function ChatPage({ id, go, openSource }: { id: string | null; go: (route
           <Popover.Positioner side="bottom" align="end" sideOffset={8} collisionPadding={16} className="ask-recent-positioner">
             <Popover.Popup data-testid="chat-recent-list" className="menu-entry ask-history" aria-label={t('Conversations')}>
               <ScrollFade><div className="ask-history-scroll">
-              <LoadingContent pending={!list} skeleton={<Loading layout="history" />}>
+              {listFailed && <InlineError testId="chat-history-error"><span>{t("Couldn't load your conversations.")}</span>
+                <button className="workspace-button" onClick={() => setListAttempt(n => n + 1)}>{t('Try again')}</button>
+              </InlineError>}
+              <LoadingContent pending={!list && !listFailed} skeleton={<Loading layout="history" />}>
               {list && !history.groups.some(g => g.length) && <p className="ask-history-empty">{t('Your conversations will show up here.')}</p>}
               {[t('Today'), t('This week'), t('Earlier')].map((label, group) => !!history.groups[group].length && <section key={group}>
                 <h2>{label}</h2><ul>{history.groups[group].map(c => <li key={c.id} className="ask-history-row row-swap" onContextMenu={e => {
@@ -101,7 +111,9 @@ export function ChatPage({ id, go, openSource }: { id: string | null; go: (route
       </Popover.Root>
     </div>
     {editing && <ConversationDialog {...editing} onClose={() => { setEditing(undefined); recentButton.current?.focus({ preventScroll: true }) }} onDeleted={() => deleted(editing.id)} />}
-    {error && <p className="chat-error" role="alert">{t("Couldn't save your changes")}</p>}
-    <AskConversation key={selected ?? "home"} id={selected ?? ""} initial={prepared?.id === selected ? prepared : undefined} home={!id} onSelect={open} onDeleted={() => { if (selected) deleted(selected) }} onSource={openSource} />
+    {(failedTarget || (!id && homeFailed)) && <InlineError testId="chat-page-load-error"><span>{t("Couldn't load this conversation.")}</span>
+      <button className="workspace-button" onClick={() => failedTarget ? open(failedTarget.id) : setRevision(n => n + 1)}>{t('Try again')}</button>
+    </InlineError>}
+    <AskConversation key={selected ?? "home"} id={selected ?? ""} initial={prepared?.id === selected ? prepared : undefined} loadError={!id && homeFailed} home={!id} onSelect={open} onDeleted={() => { if (selected) deleted(selected) }} onSource={openSource} />
   </div>
 }

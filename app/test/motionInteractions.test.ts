@@ -8,6 +8,8 @@ import { AskConversation } from '../src/renderer/src/components/AskConversation'
 import type { ConversationView } from '../src/shared/types'
 import { Workspace } from '../src/renderer/src/components/Workspace'
 import { FoldersNav } from '../src/renderer/src/components/FoldersNav'
+import { toasts } from '../src/renderer/src/components/TrashToast'
+import { InlineError } from '../src/renderer/src/components/InlineError'
 import { Agenda } from '../src/renderer/src/components/Agenda'
 
 vi.mock('react', async original => ({
@@ -102,13 +104,108 @@ function find(node: ReactNode, testId: string): ReactElement<any> {
     if (Array.isArray(value)) return value.map(visit).find(Boolean)
     if (!value || typeof value !== 'object' || !('props' in value)) return
     const element = value as ReactElement<any>
-    if (element.props['data-testid'] === testId || element.props.id === testId || element.props['aria-label'] === testId || element.props.className === testId) return element
+    if ((typeof element.type === 'function' && element.type.name === testId) || element.props['data-testid'] === testId || element.props.id === testId || element.props['aria-label'] === testId || element.props.className === testId) return element
     return visit(element.props.children)
   }
   const result = visit(node)
   if (!result) throw new Error(`Missing ${testId}`)
   return result
 }
+
+
+afterEach(() => { vi.mocked(toasts.add).mockRestore?.() })
+
+function watchRetryToast() {
+  return vi.spyOn(toasts, 'add').mockReturnValue('test-toast')
+}
+
+it('gives a library read failure a quiet message and keeps its working retry', async () => {
+  const { LibraryEmpty } = await import('../src/renderer/src/screens/Home')
+  const props = { testId: 'past-empty', title: 'Your notes will show up here', description: 'Record a meeting.', icon: null }
+  const retry = vi.fn()
+  const normal = LibraryEmpty(props)
+  const error = LibraryEmpty({ ...props, retry })
+  const { ReadError } = await import('../src/renderer/src/components/InlineError')
+  expect(error.type).toBe(ReadError)
+  const failed = ReadError(error.props)
+  expect(find(normal, 'empty-tile')).toBeTruthy()
+  expect(failed.props.role).toBe('alert')
+  expect(() => find(failed, 'empty-tile')).toThrow()
+  find(failed, 'workspace-button').props.onClick()
+  expect(retry).toHaveBeenCalledOnce()
+})
+
+it('uses the standard secondary button for inline recovery', () => {
+  const retry = vi.fn()
+  const row = InlineError({ testId: 'read-error', retry })
+  const button = find(row, 'workspace-button')
+  expect(button.type).toBe('button')
+  button.props.onClick()
+  expect(retry).toHaveBeenCalledOnce()
+})
+
+it('keeps a failed preference actionable when another preference saves', async () => {
+  const { Settings } = await import('../src/renderer/src/screens/Settings')
+  const toast = watchRetryToast()
+  const close = vi.spyOn(toasts, 'close').mockImplementation(() => {})
+  const reminder = vi.fn().mockRejectedValueOnce(new Error('read only')).mockResolvedValue(undefined)
+  const settings = { get: async () => ({ myName: 'Meeting host', recordingReminder: true, theme: 'system' }), setRecordingReminder: reminder, setTheme: vi.fn().mockResolvedValue(undefined) }
+  vi.stubGlobal('window', { yogurt: { settings, capabilities: {} } })
+  try {
+    const draw = renderer(() => Settings({ revision: 17 }))
+    draw()
+    vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.includes(17))![0]()
+    await Promise.resolve()
+    find(draw(), 'recording-reminder-toggle').props.onClick()
+    await vi.waitFor(() => expect(toast).toHaveBeenCalled())
+    const failed = toast.mock.lastCall![0]
+    close.mockClear()
+    find(draw(), 'settings-theme').props.onChange({ target: { value: 'light' } })
+    await vi.waitFor(() => expect(settings.setTheme).toHaveBeenCalledWith('light'))
+    expect(close).not.toHaveBeenCalledWith(failed.id)
+    await (failed.actionProps!.onClick as Function)()
+    expect(reminder.mock.calls).toEqual([[false], [false]])
+  } finally { close.mockRestore() }
+})
+
+it.each([false, true])('retries the last requested AI access setting (reopen Settings: %s)', async reopen => {
+  const { Settings } = await import('../src/renderer/src/screens/Settings')
+  const toast = watchRetryToast()
+  let saved = { enabled: true, command: 'test', clients: [] }
+  let reject!: (reason: Error) => void
+  const set = vi.fn(async (enabled: boolean) => (saved = { ...saved, enabled }))
+    .mockImplementationOnce(() => new Promise((_, no) => { reject = no }))
+  vi.stubGlobal('window', { yogurt: { capabilities: {}, mcp: { status: async () => saved, onClients: () => () => {}, set } } })
+  const panel = find(renderer(() => Settings({}))(), 'AiApps')
+  const mount = async () => {
+    const render = renderer(() => (panel.type as Function)(panel.props))
+    render()
+    const cleanups = vi.mocked(useEffect).mock.calls.map(([effect]) => effect())
+    await Promise.resolve()
+    return { render, unmount: () => cleanups.forEach(cleanup => cleanup?.()) }
+  }
+  let view = await mount()
+  const toggle = () => find(view.render(), 'ai-apps-toggle').props
+  const pending = toggle().onClick()
+  expect(toggle()['aria-checked']).toBe(true)
+  expect(toggle().disabled).toBe(true)
+  reject(new Error('write failed'))
+  await pending
+  expect(toggle()['aria-checked']).toBe(true)
+  expect(() => find(view.render(), 'ai-apps-retry')).toThrow('Missing')
+  const notice = toast.mock.lastCall?.[0]
+  expect(notice).toMatchObject({ title: "Couldn't save your changes", timeout: 0, actionProps: { children: 'Try again' } })
+  if (reopen) {
+    view.unmount()
+    view = await mount()
+    expect(toggle()['aria-checked']).toBe(true)
+  }
+  try {
+    await (notice!.actionProps!.onClick as Function)()
+    expect(toggle()['aria-checked']).toBe(false)
+    expect(set.mock.calls).toEqual([[false], [false]])
+  } finally { view.unmount() }
+})
 
 it.each([true, false])('offers and runs the date command only with an agenda (calendar: %s)', async calendar => {
   vi.useFakeTimers()
@@ -178,6 +275,45 @@ it('jumps a mounted agenda to the day and week, closes details, and keeps arrows
   expect(find(arrival(), 'Tuesday, January 1').props['aria-pressed']).toBe(true)
   cleanup?.()
 })
+
+it.each(['dark', 'mode'])('executes the ranked result when Enter beats a slow search for %s', async term => {
+  vi.useFakeTimers()
+  vi.stubGlobal('document', { activeElement: null })
+  vi.stubGlobal('HTMLButtonElement', class {})
+  const meeting = { meetingId: 'm1', title: 'Dark mode planning', startedAt: 1, parts: [], confident: true }
+  const query = vi.fn(async () => { await new Promise(resolve => setTimeout(resolve, 300)); return [meeting] })
+  const setTheme = vi.fn().mockResolvedValue(undefined), onOpen = vi.fn()
+  vi.stubGlobal('window', { yogurt: { capabilities: {}, settings: { get: async () => ({ theme: 'light' }), setTheme }, search: { query } } })
+  const render = renderer(() => Search({ onOpen, onNavigate() {}, onSettingsChange() {}, onShortcuts() {}, onClose() {}, sidebarCollapsed: false, onToggleSidebar() {} }))
+  render()
+  vi.mocked(useEffect).mock.calls[1][0]()
+  await Promise.resolve()
+  find(render(), 'search-input').props.onChange({ target: { value: term } })
+  const tree = render()
+  vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.[0] === term && deps.length > 1)![0]()
+  find(tree, 'search').props.onKeyDown({ key: 'Enter', nativeEvent: {}, preventDefault() {} })
+  await vi.runAllTimersAsync()
+  if (term === 'dark') {
+    expect(setTheme).toHaveBeenCalledExactlyOnceWith('dark')
+    expect(onOpen).not.toHaveBeenCalled()
+  } else {
+    expect(onOpen).toHaveBeenCalledExactlyOnceWith('m1')
+    expect(setTheme).not.toHaveBeenCalled()
+  }
+})
+
+it('offers another read when a palette query fails', async () => {
+  vi.stubGlobal('document', { activeElement: null })
+  const query = vi.fn().mockRejectedValueOnce(new Error('read failed')).mockResolvedValue([])
+  vi.stubGlobal('window', { yogurt: { capabilities: { calendar: true }, search: { query } } })
+  const render = renderer(() => Search({ onOpen() {}, onNavigate() {}, onSettingsChange() {}, onShortcuts() {}, onClose() {}, sidebarCollapsed: false, onToggleSidebar() {} }))
+  render()
+  vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.length === 6)![0]()
+  await new Promise(resolve => setTimeout(resolve, 0))
+  await find(render(), 'search-retry').props.onClick()
+  expect(query).toHaveBeenCalledTimes(2)
+})
+
 
 it('keeps initial search results still, ignores stationary hover, and scrolls only for keyboard selection', async () => {
   const meetings = [{ meetingId: 'm1', title: 'Recent meeting', startedAt: 1000, parts: [] }]
@@ -435,6 +571,10 @@ it.each(['send', 'load', 'resolve'] as const)('keeps an early Enter through load
   }
   expect(find(tree, 'chat-input').props.readOnly).toBe(false)
   expect(find(tree, 'chat-input').props.value).toBe('Who owns the next step?')
+  if (failure === 'load') {
+    await find(tree, 'conversation-load-retry').props.onClick()
+    expect(get).toHaveBeenCalledTimes(2)
+  }
   if (failure === 'send') {
     expect(find(tree, 'chat-send').props.disabled).toBe(false)
     enter(tree)
@@ -628,6 +768,24 @@ it.each([false, true].flatMap(panel => [false, true].flatMap(inline => [
   },
 )
 
+it('retains an export error and reopens the file save action on retry', async () => {
+  vi.useFakeTimers()
+  const toast = watchRetryToast()
+  const { ShareMenu } = await import('../src/renderer/src/components/ShareMenu')
+  const save = vi.fn().mockResolvedValueOnce('failed').mockResolvedValueOnce('saved')
+  vi.stubGlobal('window', { yogurt: { share: { save } } })
+  const render = renderer(() => ShareMenu({ id: 'note', shown: 'mine', status: 'idle', hasEnhanced: false, beforeUse: async () => true }))
+  find(render(), 'share-button').props.onClick({ detail: 0 })
+  find(render(), 'share-export').props.onClick()
+  await vi.advanceTimersByTimeAsync(2100)
+  expect(() => find(render(), 'share-export-retry')).toThrow('Missing')
+  const notice = toast.mock.lastCall?.[0]
+  expect(notice).toMatchObject({ title: "Couldn't save the file", timeout: 0, actionProps: { children: 'Try again' } })
+  await (notice!.actionProps!.onClick as Function)()
+  expect(save.mock.calls).toEqual([['note', 'mine'], ['note', 'mine']])
+})
+
+
 it('collapses expanded results for a new search and each new button opening', async () => {
   const c = mentionComposer(false)
   c.targets.mockResolvedValue(Array.from({ length: 20 }, (_, i) => ({ kind: 'meeting', id: String(i), title: `Plan ${i}` })))
@@ -696,6 +854,31 @@ it.each(['picker', 'pill'])('clears saved and draft scope from the %s and keeps 
   expect(c.initial.firstChips).toEqual([scope[0]])
 })
 
+it('retries a failed player track while keeping the healthy track mounted', async () => {
+  const { Player } = await import('../src/renderer/src/components/Player')
+  const hook = vi.spyOn(await import('react'), 'useImperativeHandle').mockImplementation(() => {})
+  try {
+    const openTranscript = vi.fn()
+    const player = Player({ id: 'test', tracks: ['me', 'them'], openTranscript })!
+    const render = renderer(() => (player.type as Function)(player.props))
+    find(render(), 'player-audio-them').props.onError({ currentTarget: { error: { code: 2 } } })
+    expect(find(render(), 'player-audio-me').key).toBe('me')
+    find(render(), 'player-retry').props.onClick()
+    expect(find(render(), 'player-audio-them').key).toBe('them')
+    expect(find(render(), 'player-audio-me').key).toBe('me')
+    for (const track of ['me', 'them']) {
+      find(render(), 'player-audio-' + track).props.onError({ currentTarget: { error: { code: 4 } } })
+    }
+    const link = find(render(), 'player-open-transcript')
+    expect(link.type).toBe('a')
+    expect(link.props.href).toBe('#transcript-lines')
+    expect(find(render(), 'player-retry').props.className).toBe('workspace-button')
+    link.props.onClick({ preventDefault() {} })
+    expect(openTranscript).toHaveBeenCalledOnce()
+  } finally { hook.mockRestore() }
+})
+
+
 it('adds only pending scope after a chat starts and disables toggles during an answer', async () => {
   const c = mentionComposer(true)
   c.initial.firstChips = [...c.initial.chips]
@@ -761,6 +944,25 @@ it('keeps checked scope and reports failed removal without closing', async () =>
   expect(find(c.render(), 'chat-send-error').props.role).toBe('alert')
   expect(c.popup().open).toBe(true)
   expect(c.input().readOnly).toBe(false)
+})
+
+
+it('uses a required native clock and keeps incomplete times out of the upload', async () => {
+  const { AudioUploadWhen } = await import('../src/renderer/src/components/AudioUploadWhen')
+  const at = +new Date(2025, 0, 3, 8), onChange = vi.fn()
+  const fields = renderer(() => AudioUploadWhen({ at, durationMs: 60000, onChange }))
+  const render = () => find(fields(), 'Start time').props
+  expect(render()).toMatchObject({ type: 'time', required: true })
+  const field = { value: '', setCustomValidity: vi.fn() }
+  render().onChange({ currentTarget: field })
+  render().onBlur({ currentTarget: field })
+  expect(render()['aria-invalid']).toBe(true)
+  expect(find(fields(), 'upload-time-error').props.id).toBe(render()['aria-describedby'])
+  expect(onChange).not.toHaveBeenCalled()
+  field.value = '23:59'
+  render().onChange({ currentTarget: field })
+  expect(onChange).toHaveBeenLastCalledWith(+new Date(2025, 0, 3, 23, 59))
+  expect(render()['aria-invalid']).toBeUndefined()
 })
 
 

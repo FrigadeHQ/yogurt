@@ -114,3 +114,25 @@ test('@everywhere a Mac keeps its own calendar and can add a calendar link next 
     await expect(settings.getByTestId('calendar-link-remove')).toHaveCount(1)
   } finally { await app.close(); server.close() }
 })
+
+test('an unavailable source offers Retry without claiming the day is empty', async () => {
+  const app = await electron.launch({ args: [join(import.meta.dirname, '../out/main/index.js')], env: {
+    ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: mkdtempSync(join(tmpdir(), 'yogurt-feed-retry-')),
+  } })
+  try {
+    const page = await app.firstWindow()
+    const setUnavailable = (names: string[]) => app.evaluate(({ ipcMain }, unavailable) => {
+      ipcMain.removeHandler('calendar:day')
+      ipcMain.handle('calendar:day', () => ({ status: 'granted', events: [], unavailable }))
+    }, names)
+    await setUnavailable(['Team calendar'])
+    await page.reload()
+    const agenda = page.getByRole('complementary', { name: 'Agenda' })
+    await expect(agenda.getByRole('alert')).toContainText('Team calendar')
+    await expect(agenda.getByText('No meetings')).toHaveCount(0)
+    await setUnavailable([])
+    await agenda.getByRole('button', { name: 'Try again' }).click()
+    await expect(agenda.getByText('No meetings')).toBeVisible()
+    await expect(agenda.getByRole('alert')).toHaveCount(0)
+  } finally { await app.close() }
+})

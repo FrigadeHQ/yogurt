@@ -235,6 +235,15 @@ test('edits to the enhanced notes are saved; Write again asks first, then writes
     await page.getByTestId('note-write-again').click()
     await expect(page.getByTestId('note-regenerate')).toBeVisible()
     await expect(page.getByTestId('note-confirm')).toBeVisible()
+    const sizes = await page.locator('.note-prose').first().evaluate(prose => {
+      const sample = prose.cloneNode(false) as HTMLElement
+      sample.innerHTML = '<h2>Planning</h2><h3>Dates</h3>'
+      prose.parentElement!.append(sample)
+      const values = Array.from(sample.children, child => parseFloat(getComputedStyle(child).fontSize))
+      sample.remove()
+      return values
+    })
+    expect(sizes[0]).toBeGreaterThan(sizes[1])
     await expect(page.getByTestId('note-regenerate-input')).toHaveValue('')
     await page.getByTestId('note-regenerate-input').press('Enter')
     await expect(page.getByTestId('note-enhanced')).toHaveAttribute('data-status', 'writing', { timeout: 30_000 })

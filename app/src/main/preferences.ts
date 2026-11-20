@@ -81,8 +81,8 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
   })
   ipcMain.handle('settings:theme', (_e, v: unknown) => {
     if (v !== 'light' && v !== 'dark' && v !== 'system') return
-    nativeTheme.themeSource = v
     updateSettings(d.file, { theme: v === 'system' ? undefined : v })
+    nativeTheme.themeSource = v
   })
   // on is the default, so only off is written down
   ipcMain.handle('settings:auto-stop', (_e, on: unknown) => {

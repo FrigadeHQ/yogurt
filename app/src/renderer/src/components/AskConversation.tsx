@@ -1,3 +1,4 @@
+import { InlineError } from './InlineError'
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { Popover } from '@base-ui/react/popover'
@@ -38,6 +39,8 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
   const [text, setText] = useState((pendingDraftKey ? drafts.get(pendingDraftKey) : undefined) ?? drafts.get(id) ?? initial?.draft ?? '')
   const edited = useRef(false)
   const [error, setError] = useState(false)
+  const [readFailed, setReadFailed] = useState(false)
+  const retryRead = useRef<() => void>(() => {})
   const [sending, setSending] = useState(false)
   const pendingQuestion = useRef<string>(undefined)
   const [changing, setChanging] = useState(false)
@@ -84,6 +87,7 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
   const scroll = useScrollMemory<HTMLDivElement>(scrollKey, !!chat)
   const content = useRef<HTMLDivElement>(null)
   const follow = useFollowLatest(scroll, content, !!chat, rememberedScroll(scrollKey) === undefined)
+  const loadingChat = !chat && !error && !readFailed && !loadError
   const prefix = panel ? 'chat' : 'chat-page'
   useEffect(() => {
     if (!id) return
@@ -98,25 +102,28 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
         if (drafts.get(id) === pending) drafts.delete(id)
       }).catch(() => { if (active) setError(true) })
     }
-    const off = window.yogurt.conversations.onChange(v => { if (v.id === id) { revision++; setChat(v) } })
+    const off = window.yogurt.conversations.onChange(v => { if (v.id === id) { revision++; setReadFailed(false); setChat(v) } })
     const load = (first = false) => {
+      setReadFailed(false)
       const request = ++revision
       void window.yogurt.conversations.get(id).then(v => {
         if (!active) return
         if (!v) throw new Error('Conversation not found')
-        if (request === revision) setChat(v)
+        if (request !== revision) return
+        setChat(v)
         if (first) {
           if (!initial && !edited.current) setText(drafts.get(id) ?? v.draft)
         }
       }).catch(() => {
         if (active && request === revision) {
-          setError(true)
+          setReadFailed(true)
           if (pendingQuestion.current !== undefined) { pendingQuestion.current = undefined; setSending(false) }
         }
       })
     }
     const offMeetings = window.yogurt.meetings.onChange(() => load())
     const offFolders = window.yogurt.folders.onChange(() => load())
+    retryRead.current = () => load(true)
     load(true)
     return () => { active = false; off(); offMeetings(); offFolders() }
   }, [id])
@@ -214,7 +221,7 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
     }).catch(() => { saveText(q); setError(true) }).finally(() => setSending(false))
   }
   const send = (q: string) => {
-    if (!q.trim() || sending || changing || answering || loadError || (!chat && (!panel || error))) return
+    if (!q.trim() || sending || changing || answering || loadError || readFailed || (!chat && (!panel || error))) return
     keepTyping()
     follow.resume(); setSending(true); setError(false); setMention(undefined); setSelector(undefined)
     // Typing is available before the conversation loads; Enter must survive that handoff too.
@@ -293,7 +300,7 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
     <div className="ask-thread-wrap">
       <ScrollFade><div className={`ask-thread${panel ? " chat-history" : ""}${unsent ? ' ask-thread-empty' : ''}`} ref={scroll}>
         <div ref={content} className="ask-thread-content">
-        <LoadingContent pending={!chat && !error} skeleton={<Loading layout="chat" testId="chat-thread-loading" />}>
+        <LoadingContent pending={loadingChat} skeleton={<Loading layout="chat" testId="chat-thread-loading" />}>
         {!landing && turns.map(turn => <Turn key={turn.id} showCopy={turn === last} turn={turn} chat={chat!} panel={panel} onSource={onSource} onRetry={() => send(turn.question)} />)}
         {panel && suggestions}</LoadingContent>
         </div>
@@ -301,8 +308,11 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
       {follow.behind && <button className="workspace-button workspace-icon chat-latest" data-testid="chat-latest" aria-label={t('Back to latest')} onClick={follow.latest}><ArrowDown size={15} /></button>}
     </div>
     <div className={`ask-composer${panel ? ' chat-composer' : ''}`}>
+      {readFailed && <InlineError testId="conversation-read-error"><span>{t("Couldn't load this conversation.")}</span>
+        <button className="workspace-button" data-testid="conversation-load-retry" onClick={() => retryRead.current()}>{t('Try again')}</button>
+      </InlineError>}
       {error && <p data-testid={panel ? "chat-send-error" : "chat-page-error"} role="alert" className="chat-error">{t("Couldn't save your changes")}</p>}
-      <LoadingContent pending={!panel && !chat && !error} onReady={() => { if (chat) input.current?.focus({ preventScroll: true }) }} testId={landing ? "chat-loading" : undefined}><form ref={composer} className="ask-box" data-busy={busy || undefined} data-testid={`${prefix}-box`} onSubmit={e => { e.preventDefault(); send(text) }} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setMention(undefined) }}>
+      <LoadingContent pending={!panel && loadingChat} onReady={() => { if (chat) input.current?.focus({ preventScroll: true }) }} testId={landing ? "chat-loading" : undefined}><form ref={composer} className="ask-box" data-busy={busy || undefined} data-testid={`${prefix}-box`} onSubmit={e => { e.preventDefault(); send(text) }} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setMention(undefined) }}>
         <div className="ask-field">
         <textarea autoFocus={panel} ref={input} id={panel ? 'meeting-question' : 'library-question'} data-testid={`${prefix}-input`} rows={1} maxLength={4000}
           placeholder={landing ? undefined : panel ? t('Ask anything') : t('Ask about your meetings')} aria-label={panel ? t('Ask anything') : t('Ask about your meetings')} value={text} disabled={!panel && !chat} readOnly={sending || changing}
@@ -363,7 +373,7 @@ function Turn({ turn, chat, panel, showCopy, onSource, onRetry }: { showCopy: bo
       void navigator.clipboard.writeText(turn.answer).then(() => { setCopied(true); setFailed(false) }).catch(() => setFailed(true))
     }}><Swap show={copied ? 'done' : 'copy'} options={{ copy: <Copy size={13} />, done: <Check size={13} /> }} /><SwapText text={copied ? t('Copied') : t('Copy')} widest={t('Copied')} /></button>{turn.scope && <AnswerScope chips={turn.scope} />}<span role="status" className={failed ? 'text-danger' : 'sr-only'}>{failed ? t("Yogurt couldn't copy.") : copied ? t('Copied') : ''}</span></div>}
     {turn.status === 'stopped' && <p className="text-xs text-muted">{answer ? t('Stopped') : t('Stopped before answering')}</p>}
-    {turn.status === 'failed' && <p role="alert">{t("Yogurt couldn't answer that.")} <button className="ghost-btn" onClick={onRetry}>{t('Try again')}</button></p>}
+    {turn.status === 'failed' && <InlineError testId="chat-answer-error"><span>{t("Yogurt couldn't answer that.")}</span><button type="button" className="workspace-button" onClick={onRetry}>{t('Try again')}</button></InlineError>}
   </div>
 }
 
