@@ -1,5 +1,9 @@
-import { ChevronDown, FileText, Folder } from 'lucide-react'
+import { useContext } from 'react'
+import { WorkspaceFolders } from '../folders'
+import { ChevronDown, FileText } from 'lucide-react'
 import type { ContextTarget } from '../../../shared/askContext'
+import { DEFAULT_FOLDER_APPEARANCE } from '../../../shared/folderAppearance'
+import { FolderGlyph } from './FolderAppearance'
 import { tx } from '../i18n'
 import { t } from '../../../shared/i18n'
 
@@ -9,10 +13,16 @@ export const scopeLabel = (chips: ContextTarget[]) => ({
   others: chips.length > 1 ? t('and {count} others', { count: chips.length - 1 }) : '',
 })
 
+export function ContextIcon({ target }: { target: ContextTarget }) {
+  const folders = useContext(WorkspaceFolders)
+  if (target.kind === 'meeting') return <FileText size={14} aria-hidden="true" />
+  const folder = folders?.find(item => item.id === target.id)
+  return <FolderGlyph appearance={folder ?? DEFAULT_FOLDER_APPEARANCE} size={14} />
+}
+
 export function AskContext({ chips }: { chips: ContextTarget[] }) {
   const label = scopeLabel(chips)
-  const Icon = chips[0]?.kind === 'folder' ? Folder : FileText
-  return <>{!!chips.length && <Icon size={14} aria-hidden="true" />}<span className="ask-scope-label"><span className="ask-scope-name">{label.name}</span>
+  return <>{chips[0] && <ContextIcon target={chips[0]} />}<span className="ask-scope-label"><span className="ask-scope-name">{label.name}</span>
     {label.others && <span className="ask-scope-others">{` ${label.others}`}</span>}</span><ChevronDown size={12} aria-hidden="true" /></>
 }
 

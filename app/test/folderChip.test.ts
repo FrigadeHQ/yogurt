@@ -37,6 +37,14 @@ it('shows the filed chip when another folder was chosen', () => {
   expect(html).toContain('>Alpha</span>')
 })
 
+it('uses the named folder’s appearance on a multi-folder picker button', () => {
+  state.mine = [{ ...alpha, icon: 'star', color: 'amber' }, suggested]
+  const html = chip()
+  expect(html).toContain('>Alpha + 1</span>')
+  expect(html).toContain('data-folder-icon="star"')
+  expect(html).toContain('data-folder-color="amber"')
+})
+
 it('renders the row suggestion as a folder pill with three keyboard controls and smaller action icons', () => {
   const html = chip(true)
   expect(html).toContain('class="meeting-folder-pill meeting-folder-proposal"')

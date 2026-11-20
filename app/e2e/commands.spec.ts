@@ -369,10 +369,16 @@ test('the input stays icon-free, row icons and hints stay fixed, and the seconda
     await expect(input).toBeFocused()
     const glyphs = await page.locator('.search-row>svg, .search-row>.folder-glyph>svg').evaluateAll(icons => icons.map(icon => {
       const style = getComputedStyle(icon)
-      return [parseFloat(style.width), parseFloat(style.height), icon.getAttribute('stroke-width'), style.color]
+      const folder = icon.closest('.folder-glyph')
+      return { size: [parseFloat(style.width), parseFloat(style.height)], stroke: icon.getAttribute('stroke-width'), color: style.color, folderColor: folder && getComputedStyle(folder).color }
     }))
     expect(glyphs.length).toBeGreaterThan(0)
-    for (const glyph of glyphs) expect(glyph).toEqual([16, 16, '1.75', glyphs[0][3]])
+    const commandColor = glyphs.find(glyph => !glyph.folderColor)?.color
+    for (const glyph of glyphs) {
+      expect(glyph.size).toEqual([16, 16])
+      expect(glyph.stroke).toBe('1.75')
+      expect(glyph.color).toBe(glyph.folderColor ?? commandColor)
+    }
     const hints = await page.locator('.search-footer').textContent()
     for (const query of ['s', 'se', 'set', 'settings', 'why', 'why now?']) {
       await input.fill(query)

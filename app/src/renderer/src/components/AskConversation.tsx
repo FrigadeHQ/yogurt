@@ -2,7 +2,7 @@ import { InlineError } from './InlineError'
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { Popover } from '@base-ui/react/popover'
-import { ArrowDown, ArrowUp, Check, Ellipsis, FileText, Folder, Maximize2, Square, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Check, Ellipsis, Maximize2, Square, X } from 'lucide-react'
 import { attachContext, mentionAt, type ContextTarget } from '../../../shared/askContext'
 import type { AskStep, ConversationTurn, ConversationView, LibrarySource } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
@@ -18,7 +18,7 @@ import { ThinkingDots } from './ThinkingDots'
 import { ConversationActions } from './ConversationActions'
 import { ScrollFade } from './ScrollFade'
 import { rememberedScroll, useScrollMemory } from '../useScrollMemory'
-import { AnswerScope, AskContext, chipTitle } from './AskContext'
+import { AnswerScope, AskContext, chipTitle, ContextIcon } from './AskContext'
 import { useFollowLatest } from '../useFollowLatest'
 import { Swap, SwapText } from './Swap'
 import { attachAskTracer } from '../askTracer'
@@ -265,7 +265,7 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
   const targetRow = (c: ContextTarget, i: number) => <button type="button" role="option" tabIndex={-1} disabled={busy}
     aria-selected={selector ? inScope(c) : selected === i} data-active={selected === i || undefined} id={`${prefix}-context-${i}`} key={`${c.kind}:${c.id}`}
     onMouseDown={e => e.preventDefault()} onClick={() => toggle(c)}>
-    {c.kind === 'meeting' ? <FileText size={14} aria-hidden="true" /> : <Folder size={14} aria-hidden="true" />}<span>{chipTitle(c)}</span>
+    <ContextIcon target={c} /><span>{chipTitle(c)}</span>
     {inScope(c) ? <Check size={14} aria-hidden="true" /> : c.startedAt && <small>{dayLabel(c.startedAt)}</small>}
   </button>
   const results = <>

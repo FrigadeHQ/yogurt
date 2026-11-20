@@ -525,7 +525,7 @@ body:has(.chat-panel[open]) .app-toast-viewport:dir(rtl) { --toast-x:440px; }
 .ask-picker h3 { padding:7px 8px;font-size:11px;font-weight:550;color:var(--muted); }
 .ask-picker button:not(.text-action) { display:flex;align-items:center;gap:8px;width:100%;padding:8px;border-radius:5px;text-align:start;font-size:13px; }
 .ask-picker button:not(.text-action)[data-active=true],.ask-picker button:not(.text-action):hover:not(:disabled) { background:var(--card); }
-.ask-picker button:not(.text-action)>span { flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.ask-picker button:not(.text-action)>span:not(.folder-glyph) { flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 .ask-picker button:not(.text-action):active { background:var(--control-pressed); }
 .ask-picker button:not(.text-action)>svg { flex:none; }
 .ask-picker button:not(.text-action):disabled { opacity:.45; }

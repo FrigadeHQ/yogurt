@@ -153,7 +153,7 @@ export function FolderChip({ meetingId, onNew, suggestion: manualSuggestion, row
     const timer = setTimeout(finish, reduced ? motion.micro : motion.base)
     return () => clearTimeout(timer)
   }, [transition, reduced])
-  const appearance = proposed ?? (folders?.length === 1 ? folders[0] : undefined)
+  const appearance = proposed ?? folders?.[0]
   if (row && !proposed) return children
   const trigger = <button ref={chip} data-testid="note-folders" aria-haspopup="menu" aria-expanded={onChoose ? undefined : !!open} onClick={(e) => { if (onChoose && proposed) onChoose(proposed.id); else setOpen((o) => o ? false : e.detail > 0 ? 'pointer' : 'keyboard') }}
     title={proposed?.name ?? (folders?.map((s) => s.name).join(', ') || undefined)}
