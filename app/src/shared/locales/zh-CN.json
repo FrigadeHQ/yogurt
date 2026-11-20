@@ -208,6 +208,8 @@
   "Language": "语言",
   "Latest": "最新",
   "Let AI apps read your meetings": "允许 AI 应用读取你的会议",
+  "Let AI apps make changes": "允许 AI 应用进行更改",
+  "They can file and rename meetings, edit notes, start and stop recording, and bring in meetings from other notes apps. Nothing is deleted for good: removed meetings go to the Trash.": "它们可以把会议归入文件夹、重命名会议、编辑笔记、开始和停止录音，以及从其他笔记应用导入会议。不会永久删除任何内容：移除的会议会进入废纸篓。",
   "Let everyone know you're recording.": "请告知所有人你正在录音。",
   "Light": "浅色",
   "Light theme": "浅色主题",

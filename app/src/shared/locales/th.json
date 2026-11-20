@@ -208,6 +208,8 @@
   "Language": "ภาษา",
   "Latest": "ล่าสุด",
   "Let AI apps read your meetings": "ให้แอป AI อ่านการประชุมของคุณ",
+  "Let AI apps make changes": "ให้แอป AI ทำการเปลี่ยนแปลง",
+  "They can file and rename meetings, edit notes, start and stop recording, and bring in meetings from other notes apps. Nothing is deleted for good: removed meetings go to the Trash.": "แอปเหล่านี้จัดการประชุมลงโฟลเดอร์และเปลี่ยนชื่อ แก้ไขโน้ต เริ่มและหยุดบันทึกเสียง และนำการประชุมเข้ามาจากแอปโน้ตอื่นได้ ไม่มีอะไรถูกลบถาวร การประชุมที่ลบจะไปอยู่ในถังขยะ",
   "Let everyone know you're recording.": "แจ้งให้ทุกคนทราบว่าคุณกำลังบันทึก",
   "Light": "สว่าง",
   "Light theme": "ธีมสว่าง",

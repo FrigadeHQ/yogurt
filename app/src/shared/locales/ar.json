@@ -222,6 +222,8 @@
   "Language": "اللغة",
   "Latest": "الأحدث",
   "Let AI apps read your meetings": "السماح لتطبيقات الذكاء الاصطناعي بقراءة اجتماعاتك",
+  "Let AI apps make changes": "السماح لتطبيقات الذكاء الاصطناعي بإجراء تغييرات",
+  "They can file and rename meetings, edit notes, start and stop recording, and bring in meetings from other notes apps. Nothing is deleted for good: removed meetings go to the Trash.": "يمكنها تصنيف الاجتماعات في مجلدات وإعادة تسميتها، وتعديل الملاحظات، وبدء التسجيل وإيقافه، وجلب اجتماعات من تطبيقات ملاحظات أخرى. لا يُحذف شيء نهائيًا: تنتقل الاجتماعات المحذوفة إلى سلة المهملات.",
   "Let everyone know you're recording.": "أخبر الجميع أنك تسجّل.",
   "Light": "فاتح",
   "Light theme": "المظهر الفاتح",

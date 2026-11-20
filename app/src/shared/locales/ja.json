@@ -208,6 +208,8 @@
   "Language": "言語",
   "Latest": "最新",
   "Let AI apps read your meetings": "AIアプリにミーティングを読ませる",
+  "Let AI apps make changes": "AIアプリに変更を許可する",
+  "They can file and rename meetings, edit notes, start and stop recording, and bring in meetings from other notes apps. Nothing is deleted for good: removed meetings go to the Trash.": "ミーティングのフォルダ分けや名前の変更、メモの編集、録音の開始と停止、ほかのメモアプリからのミーティングの取り込みができます。完全に削除されることはありません。削除したミーティングはゴミ箱に移ります。",
   "Let everyone know you're recording.": "録音していることを全員に伝えましょう。",
   "Light": "ライト",
   "Light theme": "ライトテーマ",

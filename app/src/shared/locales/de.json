@@ -214,6 +214,8 @@
   "Language": "Sprache",
   "Latest": "Neueste",
   "Let AI apps read your meetings": "KI-Apps deine Meetings lesen lassen",
+  "Let AI apps make changes": "KI-Apps Änderungen vornehmen lassen",
+  "They can file and rename meetings, edit notes, start and stop recording, and bring in meetings from other notes apps. Nothing is deleted for good: removed meetings go to the Trash.": "Sie können Meetings in Ordner legen und umbenennen, Notizen bearbeiten, Aufnahmen starten und stoppen und Meetings aus anderen Notiz-Apps übernehmen. Nichts wird endgültig gelöscht: Entfernte Meetings landen im Papierkorb.",
   "Let everyone know you're recording.": "Sag allen Bescheid, dass du aufnimmst.",
   "Light": "Hell",
   "Light theme": "Helles Design",

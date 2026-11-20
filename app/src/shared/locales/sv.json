@@ -214,6 +214,8 @@
   "Language": "Språk",
   "Latest": "Senaste",
   "Let AI apps read your meetings": "Låt AI-appar läsa dina möten",
+  "Let AI apps make changes": "Låt AI-appar göra ändringar",
+  "They can file and rename meetings, edit notes, start and stop recording, and bring in meetings from other notes apps. Nothing is deleted for good: removed meetings go to the Trash.": "De kan lägga möten i mappar och byta namn på dem, redigera anteckningar, starta och stoppa inspelning och hämta in möten från andra anteckningsappar. Inget raderas för gott: borttagna möten hamnar i papperskorgen.",
   "Let everyone know you're recording.": "Berätta för alla att du spelar in.",
   "Light": "Ljust",
   "Light theme": "Ljust tema",
