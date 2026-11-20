@@ -2679,3 +2679,40 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
 @media (max-width:760px) {
   .activity-board .release-status time {inline-size:auto}
 }
+
+/* Soften the text alongside the pill, then return to sharp type below it. */
+.sticky-header::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: var(--nav-height);
+  pointer-events: none;
+  background: linear-gradient(to bottom, var(--page), transparent);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 180ms ease-out, visibility 0s 180ms;
+}
+@supports ((mask-image: linear-gradient(black, transparent)) or (-webkit-mask-image: linear-gradient(black, transparent))) {
+  .sticky-header::before {
+    background: var(--page);
+    background: color-mix(in srgb, var(--page) 78%, transparent);
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
+    --nav-fade: linear-gradient(to bottom, #000 0%, rgb(0 0 0 / 88%) 43%, rgb(0 0 0 / 44%) 73%, transparent 100%);
+    -webkit-mask-image: var(--nav-fade);
+    mask-image: var(--nav-fade);
+  }
+}
+.sticky-header[data-floating]::before {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+.sticky-header[data-floating] .nav-surface { filter: drop-shadow(0 2px 4px rgb(20 19 24 / 8%)); }
+:root[data-theme='dark'] .sticky-header[data-floating] .nav-surface { filter: drop-shadow(0 2px 4px rgb(0 0 0 / 30%)); }
+@media (prefers-reduced-motion: reduce) {
+  .sticky-header::before { transition: none; }
+}
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .sticky-header::before { display: none; }
+}

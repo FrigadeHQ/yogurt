@@ -24,6 +24,7 @@ function paint() {
   const dy = (pillTop + (pillHeight - height) / 2) * position
   wordmark.style.transform = `translate(${logoShift * position}px, ${dy}px)`
   nav.style.transform = `translate(${navShift * position}px, ${dy}px)`
+  shell.toggleAttribute('data-floating', position > 0.02)
 }
 
 function settle() {
