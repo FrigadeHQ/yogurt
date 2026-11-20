@@ -113,6 +113,8 @@ win:
   icon: build/icon.png
 nsis:
   oneClick: true
+  # carries on when an update's old uninstaller fails (#126)
+  include: build/installer.nsh
   perMachine: false
   # never true: uninstalling would delete every meeting, transcript and recording with the models
   deleteAppDataOnUninstall: false
