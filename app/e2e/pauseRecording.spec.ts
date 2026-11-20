@@ -11,7 +11,7 @@ test('Pause keeps the same note and frozen captured time; Resume continues and S
     const page = await app.firstWindow()
     page.setDefaultTimeout(5000)
     await expect(page.getByTestId('home')).toBeVisible()
-    await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
     const id = (await page.evaluate(() => window.yogurt.nav.current())).slice('/note/'.length)
     await page.getByTestId('note-notes-tab').click()

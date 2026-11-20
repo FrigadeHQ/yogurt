@@ -49,7 +49,7 @@ test('a finished note resumes after reopening, preserves original data, confirms
   const profile = mkdtempSync(join(tmpdir(), 'yogurt-resume-'))
   let { app, page } = await launch(profile)
   try {
-    await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
     const id = (await page.evaluate(() => window.yogurt.nav.current())).slice('/note/'.length)
     await page.evaluate((id) => window.yogurt.meetings.rename(id, 'Resume safety fixture'), id)
     await page.getByTestId('note-notes-tab').click()
@@ -111,7 +111,7 @@ test('Stop offers Stop summary and Generate summary before recording resumes', a
   const profile = mkdtempSync(join(tmpdir(), 'yogurt-resume-writing-'))
   const { app, page } = await launch(profile, { YOGURT_FAKE_LLM_MS: '120' })
   try {
-    await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
     const id = (await page.evaluate(() => window.yogurt.nav.current())).slice('/note/'.length)
     await page.getByTestId('note-notes-tab').click()
     await page.getByRole('textbox', { name: 'My notes', exact: true }).fill('First session manual note.')

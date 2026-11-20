@@ -15,7 +15,7 @@ test('paused recording controls fit the minimum window and keep focus inside eac
   const { app, page } = await launch()
   try {
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(720, 520))
-    await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
     await page.getByTestId('note-pause').click()
     await expect(page.getByTestId('rec-mic')).toHaveText('Recording paused')
     await page.keyboard.press('Tab')

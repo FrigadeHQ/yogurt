@@ -20,7 +20,7 @@ test('the spoken language picker: English only by default, Multi-language for th
   const a = await launch()
   const { app, page } = a
   try {
-    await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
     await expect(page.getByTestId('spoken-name')).toHaveText('English')
     // whisper is told English, nothing is detected
@@ -71,7 +71,7 @@ test('the spoken language picker: English only by default, Multi-language for th
   // after a relaunch the next recording starts in Multi-language
   const b = await launch(a.userData)
   try {
-    await b.page.getByRole('button', { name: 'Start recording', exact: true }).click()
+    await b.page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
     await expect(b.page.getByTestId('spoken-name')).toHaveText('Multi-language')
     await expect.poll(async () => (await languages(b.app)).length, { timeout: 30_000 }).toBeGreaterThan(0)
     expect(new Set(await languages(b.app))).toEqual(new Set(['auto']))

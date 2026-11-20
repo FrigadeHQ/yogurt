@@ -40,7 +40,7 @@ test('post-call navigation shows Transcript, My notes and Summary without hidden
 test('primary tabs preserve the editor and its latest text through pause, resume and Stop', async () => {
   const { app, page } = await launch()
   try {
-    await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
     const transcript = page.getByTestId('note-transcript-toggle'), notes = page.getByTestId('note-notes-tab')
     await expect(notes).toHaveAttribute('aria-selected', 'true')
     await expect(page.getByTestId('note-mine')).toBeVisible()
@@ -86,7 +86,7 @@ test('primary tabs preserve the editor and its latest text through pause, resume
 test('Stop opens and streams Summary; reopening keeps the completed summary', async () => {
   const { app, page } = await launch()
   try {
-    await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
     const id = (await page.evaluate(() => window.yogurt.nav.current())).slice('/note/'.length)
     await expect.poll(async () => (await page.evaluate((id) => window.yogurt.transcript.get(id), id)).length, { timeout: 20_000 }).toBeGreaterThan(0)
     await page.getByTestId('note-stop').click()
@@ -155,7 +155,7 @@ for (const reducedMotion of ['reduce', 'no-preference'] as const) for (const fro
     const { app, page } = await launch()
     try {
       await page.emulateMedia({ reducedMotion })
-      await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+      await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
       const id = (await page.evaluate(() => window.yogurt.nav.current())).slice('/note/'.length)
       await page.getByTestId('note-mine').fill('Keep the trial date on Friday.')
       if (from === 'transcript') await page.getByTestId('note-transcript-toggle').click()
@@ -192,7 +192,7 @@ test('choosing another tab cancels the pending Stop arrival', async () => {
   const { app, page } = await launch()
   try {
     await page.emulateMedia({ reducedMotion: 'no-preference' })
-    await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
     await page.getByTestId('note-transcript-toggle').click()
     await page.evaluate(() => {
       const observer = new MutationObserver(() => {

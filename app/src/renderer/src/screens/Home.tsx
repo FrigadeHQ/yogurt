@@ -38,20 +38,21 @@ export function Home({ open, openFolder, agendaJump }: { open: (id: string) => v
     if (r.error === 'gone') setCalendarRevision((revision) => revision + 1)
     toasts.add({ id: 'home-message', data: { testId: 'home-message' }, title: r.error === 'gone' ? t('That meeting is no longer on your calendar.') : t("Yogurt couldn't start the notes. Try again in a moment.") })
   }
+  const [emptyActions, setEmptyActions] = useState<HTMLDivElement | null>(null)
   const calendar = window.yogurt.capabilities.calendar
   return <div data-testid="home" className={calendar ? 'native-home' : 'native-home no-agenda'}>
-    <StartRecording testId="new-note" onGone={() => setCalendarRevision(revision => revision + 1)} />
+    <StartRecording testId="new-note" emptyActions={emptyActions} onGone={() => setCalendarRevision(revision => revision + 1)} />
     <div className="native-library" ref={past.setRoot} tabIndex={-1}>
       <h1>{t('Your meetings')}</h1>
       {past.failed && !!past.cards?.length && <InlineError testId="meetings-read-error" retry={past.retry} />}
-      <LoadingContent pending={!past.cards && !past.failed} testId="meetings-loading" skeleton={<MeetingListLoading />} className="library-load">{!past.cards?.length ? <LibraryEmpty testId="past-empty" icon={<FileText size={28} strokeWidth={1.5} aria-hidden="true" />} title={t('Your notes will show up here')} description={t('Your summary appears after you stop recording.')} retry={past.failed ? past.retry : undefined} /> : <PastNotes cards={past.cards ?? []} day={day} more={past.more} sentinel={past.setSentinel} onOpen={open} openFolder={openFolder} />}</LoadingContent>
+      <LoadingContent pending={!past.cards && !past.failed} testId="meetings-loading" skeleton={<MeetingListLoading />} className="library-load">{!past.cards?.length ? <LibraryEmpty testId="past-empty" icon={<FileText size={28} strokeWidth={1.5} aria-hidden="true" />} title={t('Your notes will show up here')} description={t('Your summary appears after you stop recording.')} retry={past.failed ? past.retry : undefined}><div ref={setEmptyActions} /></LibraryEmpty> : <PastNotes cards={past.cards ?? []} day={day} more={past.more} sentinel={past.setSentinel} onOpen={open} openFolder={openFolder} />}</LoadingContent>
     </div>
     {calendar && <Agenda revision={calendarRevision} recording={recording} onStart={start} onOpen={open} jumpTo={agendaJump} />}
   </div>
 }
 
-export function LibraryEmpty({ testId, icon, title, description, retry }: {
-  testId: string; icon: ReactNode; title: string; description: string; retry?: () => void
+export function LibraryEmpty({ testId, icon, title, description, retry, children }: {
+  testId: string; icon: ReactNode; title: string; description: string; retry?: () => void; children?: ReactNode
 }) {
   if (retry) return <ReadError testId="meetings-read-error" retry={retry} className="library-empty" />
   return <section data-testid={testId} className="library-empty empty-state">
@@ -59,6 +60,7 @@ export function LibraryEmpty({ testId, icon, title, description, retry }: {
       <div className="empty-tile">{icon}</div>
       <h2>{title}</h2>
       <p>{description}</p>
+      {children}
     </div>
   </section>
 }
