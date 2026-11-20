@@ -35,11 +35,16 @@ for (const card of [tile, latestTile]) {
 }
 const releaseIndex = 'https://github.com/FrigadeHQ/yogurt/releases'
 const activityCard = html.match(/<a class="oss-card oss-calendar updates-activity"[\s\S]*?<\/a>/)[0]
+for (const page of [home, html]) {
+  for (const [card] of page.matchAll(/<a\b[^>]*class="oss-card [^"]+"[\s\S]*?<\/a>/g)) {
+    assert.doesNotMatch(card, /class="[^"]*\blink-label\b/)
+  }
+}
 const totalLabel = releases.length.toLocaleString('en-US') + ' releases'
 const summary = activityCard.match(/<small>([^<]+)<\/small>/)[1]
 assert(summary.startsWith(weekCount + ' published '))
 assert(tile.includes(`aria-label="${summary}"`))
-assert(activityCard.includes(`<strong class="link-label">${totalLabel}</strong>`))
+assert(activityCard.includes(`<strong>${totalLabel}</strong>`))
 assert.match(activityCard, /<\/div>\s*<span class="card-arrow" aria-hidden="true"><svg class="oss-arrow"/)
 assert(activityCard.includes(`href="${releaseIndex}" target="_blank" rel="noopener noreferrer"`))
 assert(activityCard.includes(`aria-label="${totalLabel}, ${summary}. View releases on GitHub (opens in a new tab)."`))

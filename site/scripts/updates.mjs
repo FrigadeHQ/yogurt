@@ -15,7 +15,7 @@ function githubLink(version) {
 
 const activityCard = `<div class="activity-board"><a class="oss-card oss-calendar updates-activity" href="${githubReleases}" target="_blank" rel="noopener noreferrer"
   aria-label="{{releases}} {{releaseNoun}}, {{weekSummary}}. View releases on GitHub (opens in a new tab).">
-  <div class="oss-stat"><strong class="link-label">{{releases}} {{releaseNoun}}</strong><small>{{weekSummary}}</small></div>
+  <div class="oss-stat"><strong>{{releases}} {{releaseNoun}}</strong><small>{{weekSummary}}</small></div>
   <div class="oss-week" aria-hidden="true">{{bars}}</div>
   <span class="card-arrow" aria-hidden="true"><svg class="oss-arrow" fill="none" viewBox="0 0 16 16">
     <path d="M4 12 12 4M5 4h7v7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.4"/>
