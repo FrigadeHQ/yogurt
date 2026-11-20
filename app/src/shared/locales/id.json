@@ -651,7 +651,7 @@
   "Note for the summary": "Catatan untuk ringkasan",
   "Add a note, like shorter or in Spanish": "Catatan, misalnya lebih singkat atau bahasa Spanyol",
   "Waiting for Yogurt AI to download": "Menunggu unduhan Yogurt AI",
-  "Stop summary": "Hentikan ringkasan",
+  "Stop summarizing": "Hentikan peringkasan",
   "Summary stopped.": "Pembuatan ringkasan dihentikan.",
   "This window couldn't be displayed.": "Jendela ini tidak dapat ditampilkan.",
   "{current} of {count}": {

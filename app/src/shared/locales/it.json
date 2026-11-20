@@ -712,7 +712,7 @@
   "Note for the summary": "Istruzione per il riepilogo",
   "Add a note, like shorter or in Spanish": "Aggiungi una nota, come più breve o in spagnolo",
   "Waiting for Yogurt AI to download": "In attesa del download di Yogurt AI",
-  "Stop summary": "Interrompi riepilogo",
+  "Stop summarizing": "Interrompi la creazione del riepilogo",
   "Summary stopped.": "Riepilogo interrotto.",
   "This window couldn't be displayed.": "Non è stato possibile visualizzare questa finestra.",
   "{current} of {count}": {

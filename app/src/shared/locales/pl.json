@@ -729,7 +729,7 @@
   "Note for the summary": "Wskazówka do podsumowania",
   "Add a note, like shorter or in Spanish": "Dodaj wskazówkę, np. krócej lub po hiszpańsku",
   "Waiting for Yogurt AI to download": "Oczekiwanie na pobranie Yogurt AI",
-  "Stop summary": "Zatrzymaj podsumowanie",
+  "Stop summarizing": "Zatrzymaj tworzenie podsumowania",
   "Summary stopped.": "Podsumowanie zatrzymane.",
   "This window couldn't be displayed.": "Nie udało się wyświetlić tego okna.",
   "{current} of {count}": {

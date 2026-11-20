@@ -710,7 +710,7 @@
   "Note for the summary": "Instrucțiune pentru rezumat",
   "Add a note, like shorter or in Spanish": "Adaugă o notă, precum mai scurt sau în spaniolă",
   "Waiting for Yogurt AI to download": "Se așteaptă descărcarea Yogurt AI",
-  "Stop summary": "Oprește rezumatul",
+  "Stop summarizing": "Oprește rezumarea",
   "Summary stopped.": "Rezumatul a fost oprit.",
   "This window couldn't be displayed.": "Această fereastră nu a putut fi afișată.",
   "{current} of {count}": {

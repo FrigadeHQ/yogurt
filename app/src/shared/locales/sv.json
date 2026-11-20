@@ -693,7 +693,7 @@
   "Note for the summary": "Instruktion för sammanfattningen",
   "Add a note, like shorter or in Spanish": "Lägg till en notering, som kortare eller på spanska",
   "Waiting for Yogurt AI to download": "Väntar på nedladdning av Yogurt AI",
-  "Stop summary": "Stoppa sammanfattning",
+  "Stop summarizing": "Avbryt sammanfattningen",
   "Summary stopped.": "Sammanfattningen stoppades.",
   "This window couldn't be displayed.": "Det här fönstret kunde inte visas.",
   "{current} of {count}": {

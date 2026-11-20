@@ -693,7 +693,7 @@
   "Note for the summary": "Merknad til sammendraget",
   "Add a note, like shorter or in Spanish": "Legg til en merknad, som kortere eller på spansk",
   "Waiting for Yogurt AI to download": "Venter på nedlasting av Yogurt AI",
-  "Stop summary": "Stopp oppsummering",
+  "Stop summarizing": "Stopp oppsummeringen",
   "Summary stopped.": "Oppsummering stoppet.",
   "This window couldn't be displayed.": "Dette vinduet kunne ikke vises.",
   "{current} of {count}": {

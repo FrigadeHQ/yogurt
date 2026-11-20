@@ -721,7 +721,7 @@
   "Note for the summary": "Побажання до підсумку",
   "Add a note, like shorter or in Spanish": "Додайте побажання, як-от коротше чи іспанською",
   "Waiting for Yogurt AI to download": "Очікування завантаження Yogurt AI",
-  "Stop summary": "Зупинити підсумок",
+  "Stop summarizing": "Зупинити створення підсумку",
   "Summary stopped.": "Створення підсумку зупинено.",
   "This window couldn't be displayed.": "Не вдалося відобразити це вікно.",
   "{current} of {count}": {

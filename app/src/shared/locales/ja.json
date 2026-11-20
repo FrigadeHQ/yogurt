@@ -651,7 +651,7 @@
   "Note for the summary": "要約への指示",
   "Add a note, like shorter or in Spanish": "短めに、スペイン語で、などの指示を追加",
   "Waiting for Yogurt AI to download": "Yogurt AIのダウンロードを待機中",
-  "Stop summary": "要約を停止",
+  "Stop summarizing": "要約の作成を停止",
   "Summary stopped.": "要約を停止しました。",
   "This window couldn't be displayed.": "このウィンドウを表示できませんでした。",
   "{current} of {count}": {

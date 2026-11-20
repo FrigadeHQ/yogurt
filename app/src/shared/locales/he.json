@@ -703,7 +703,7 @@
   "Note for the summary": "הנחיה לסיכום",
   "Add a note, like shorter or in Spanish": "הוסיפו הנחיה, כמו קצר יותר או בספרדית",
   "Waiting for Yogurt AI to download": "ממתינים להורדת Yogurt AI",
-  "Stop summary": "עצירת הסיכום",
+  "Stop summarizing": "הפסקת כתיבת הסיכום",
   "Summary stopped.": "הסיכום נעצר.",
   "This window couldn't be displayed.": "לא ניתן היה להציג חלון זה.",
   "{current} of {count}": {

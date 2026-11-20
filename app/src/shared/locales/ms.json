@@ -651,7 +651,7 @@
   "Note for the summary": "Arahan untuk ringkasan",
   "Add a note, like shorter or in Spanish": "Tambah arahan, seperti lebih pendek atau bahasa Sepanyol",
   "Waiting for Yogurt AI to download": "Menunggu muat turun Yogurt AI",
-  "Stop summary": "Hentikan ringkasan",
+  "Stop summarizing": "Hentikan proses meringkaskan",
   "Summary stopped.": "Ringkasan dihentikan.",
   "This window couldn't be displayed.": "Tetingkap ini tidak dapat dipaparkan.",
   "{current} of {count}": {

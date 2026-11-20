@@ -724,7 +724,7 @@
   "Note for the summary": "Pokyn pro shrnutí",
   "Add a note, like shorter or in Spanish": "Přidejte pokyn, třeba kratší nebo španělsky",
   "Waiting for Yogurt AI to download": "Čekání na stažení Yogurt AI",
-  "Stop summary": "Zastavit shrnutí",
+  "Stop summarizing": "Zastavit vytváření souhrnu",
   "Summary stopped.": "Vytváření shrnutí zastaveno.",
   "This window couldn't be displayed.": "Toto okno se nepodařilo zobrazit.",
   "{current} of {count}": {

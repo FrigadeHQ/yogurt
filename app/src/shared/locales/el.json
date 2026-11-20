@@ -696,7 +696,7 @@
   "Note for the summary": "Οδηγία για τη σύνοψη",
   "Add a note, like shorter or in Spanish": "Προσθέστε οδηγία, π.χ. πιο σύντομα ή στα ισπανικά",
   "Waiting for Yogurt AI to download": "Αναμονή λήψης του Yogurt AI",
-  "Stop summary": "Διακοπή σύνοψης",
+  "Stop summarizing": "Διακοπή δημιουργίας σύνοψης",
   "Summary stopped.": "Η σύνοψη διακόπηκε.",
   "This window couldn't be displayed.": "Δεν ήταν δυνατή η εμφάνιση αυτού του παραθύρου.",
   "{current} of {count}": {

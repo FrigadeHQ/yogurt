@@ -681,7 +681,7 @@
   "Note for the summary": "सारांश के लिए निर्देश",
   "Add a note, like shorter or in Spanish": "निर्देश जोड़ें, जैसे छोटा या स्पेनिश में",
   "Waiting for Yogurt AI to download": "Yogurt AI डाउनलोड होने का इंतज़ार",
-  "Stop summary": "सारांश रोकें",
+  "Stop summarizing": "सारांश लिखना रोकें",
   "Summary stopped.": "सारांश बनाना रोक दिया गया।",
   "This window couldn't be displayed.": "यह विंडो दिखाई नहीं जा सकी।",
   "{current} of {count}": {

@@ -651,7 +651,7 @@
   "Note for the summary": "요약 지침",
   "Add a note, like shorter or in Spanish": "더 짧게, 스페인어로 등 지침 추가",
   "Waiting for Yogurt AI to download": "Yogurt AI 다운로드 대기 중",
-  "Stop summary": "요약 중지",
+  "Stop summarizing": "요약 작성 중지",
   "Summary stopped.": "요약이 중지되었습니다.",
   "This window couldn't be displayed.": "이 창을 표시할 수 없습니다.",
   "{current} of {count}": {

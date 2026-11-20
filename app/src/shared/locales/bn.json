@@ -681,7 +681,7 @@
   "Note for the summary": "সারাংশের নির্দেশনা",
   "Add a note, like shorter or in Spanish": "নির্দেশ দিন, যেমন ছোট বা স্প্যানিশে",
   "Waiting for Yogurt AI to download": "Yogurt AI ডাউনলোডের অপেক্ষায়",
-  "Stop summary": "সারসংক্ষেপ বন্ধ করুন",
+  "Stop summarizing": "সারাংশ লেখা বন্ধ করুন",
   "Summary stopped.": "সারসংক্ষেপ তৈরি বন্ধ হয়েছে।",
   "This window couldn't be displayed.": "এই উইন্ডোটি দেখানো যায়নি।",
   "{current} of {count}": {

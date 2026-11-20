@@ -651,7 +651,7 @@
   "Note for the summary": "摘要要求",
   "Add a note, like shorter or in Spanish": "添加要求，例如更简短或用西班牙语",
   "Waiting for Yogurt AI to download": "等待下载 Yogurt AI",
-  "Stop summary": "停止总结",
+  "Stop summarizing": "停止生成摘要",
   "Summary stopped.": "已停止总结。",
   "This window couldn't be displayed.": "无法显示此窗口。",
   "{current} of {count}": {

@@ -681,7 +681,7 @@
   "Note for the summary": "Utasítás az összefoglalóhoz",
   "Add a note, like shorter or in Spanish": "Adjon meg kérést, például rövidebben vagy spanyolul",
   "Waiting for Yogurt AI to download": "Várakozás a Yogurt AI letöltésére",
-  "Stop summary": "Összefoglalás leállítása",
+  "Stop summarizing": "Összefoglalás leállítása",
   "Summary stopped.": "Az összefoglalás leállt.",
   "This window couldn't be displayed.": "Ez az ablak nem jeleníthető meg.",
   "{current} of {count}": {

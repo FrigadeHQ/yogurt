@@ -693,7 +693,7 @@
   "Note for the summary": "Hinweis für die Zusammenfassung",
   "Add a note, like shorter or in Spanish": "Hinweis hinzufügen, etwa kürzer oder auf Spanisch",
   "Waiting for Yogurt AI to download": "Warten auf den Download von Yogurt AI",
-  "Stop summary": "Zusammenfassung stoppen",
+  "Stop summarizing": "Zusammenfassen stoppen",
   "Summary stopped.": "Zusammenfassung gestoppt.",
   "This window couldn't be displayed.": "Dieses Fenster konnte nicht angezeigt werden.",
   "{current} of {count}": {

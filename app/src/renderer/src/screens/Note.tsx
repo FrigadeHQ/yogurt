@@ -10,7 +10,7 @@ import { LoadingContent } from '../components/LoadingContent'
 import { motion, useReducedMotion } from '../motion'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useScrollMemory } from '../useScrollMemory'
-import { AudioLines, Lock, RotateCcw, Trash2, TextAlignStart } from 'lucide-react'
+import { Lock, RotateCcw, Trash2 } from 'lucide-react'
 import type { MeetingView, NoteSaveResult, NoteSide, NoteView, SetupState, WidgetView } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
 import { osWords } from '../keys'
@@ -23,7 +23,7 @@ import { Transcript } from '../components/Transcript'
 import { Ask } from '../components/Chat'
 import { LevelBars } from '../components/LevelBars'
 import { RecordingTime } from '../components/RecordingTime'
-import { Mic, Pause, Play, Sparkles, Loader } from '../components/Icons'
+import { Mic, Pause, Play } from '../components/Icons'
 import { ShareMenu } from '../components/ShareMenu'
 import { NoteMenu, summaryAction } from '../components/NoteMenu'
 import { DeleteNote } from '../components/DeleteNote'
@@ -83,7 +83,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   useEffect(() => { if (m) onTitleChange({ id: m.id, title: m.title }) }, [m?.id, m?.title, onTitleChange])
   const [retryingStop, setRetryingStop] = useState(false)
   const [starting, setStarting] = useState(false)
-  const [finishing, setFinishing] = useState(false)
+  const [stopRequested, setFinishing] = useState(false)
   const [startFailed, setStartFailed] = useState(false)
   const [resumeConfirm, setResumeConfirm] = useState(false)
   const [resumeFailed, setResumeFailed] = useState(false)
@@ -118,6 +118,8 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   const reducedMotion = useReducedMotion()
   const summaryState = useSummaryPresentation(notes, reducedMotion)
   const hasEnhanced = m?.id === id && m.state !== 'prepared' && m.state !== 'recording' && !!notes && notes.status !== 'idle'
+  const finishing = stopRequested && !hasEnhanced
+  const summaryPending = notes?.status === 'waiting' || notes?.status === 'writing'
   // Reduced motion selects Summary in the very render that first exposes its tab.
   const instantSummary = finishRequested && hasEnhanced && reducedMotion
   const view = instantSummary ? 'enhanced' : viewState
@@ -259,7 +261,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
     return () => resize.disconnect()
   }, [primary, view, m?.state, notes?.status])
 
-  const summarizing = finishing || notes?.status === 'waiting' || notes?.status === 'writing'
+  const summarizing = finishing || summaryPending
   const resumeHandled = useRef(false)
   useEffect(() => {
     if (!onResumeRequested) { resumeHandled.current = false; return }
@@ -280,6 +282,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   const trashed = m.trashedAt != null
   const minutes = m.endedAt ? Math.max(1, Math.round((m.durationMs ?? (m.endedAt - m.startedAt)) / 60_000)) : null
   const shown = hasEnhanced ? view : 'mine'
+  const resumeLabel = summaryPending ? t('Stop summarizing') : t('Resume recording')
 
   const pick = (v: 'mine' | 'enhanced') => { picked.current = true; setView(v); mineSave.flush(); enhancedSave.flush() }
   const pickPrimary = (next: 'transcript' | 'notes', pointer = false) => {
@@ -401,10 +404,10 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                   </button>
                 </>}
                 {finishing && <span data-testid="note-finishing" role="status" className="note-finishing">{t('Stopping…')}</span>}
-                {!transcribing && !finishing && (m.source !== 'audio-file' || summarizing) && (m.state === 'stopped' || m.state === 'done') && !m.stopSavePending && !trashed && <button data-testid="note-resume" disabled={starting} aria-busy={summarizing} data-processing={summarizing} onClick={() => { if (summarizing) void window.yogurt.notes.stop(id).catch(console.error); else void resumeRecording() }}
-                  aria-label={summarizing ? t('Stop summary') : t('Resume recording')} className="workspace-button note-resume-action" title={summarizing ? t('Stop summary') : t('Resume recording in this note')}>
-                  <Swap show={summarizing ? 'busy' : 'mic'} options={{ mic: <Mic size={14} />, busy: <span className="summary-stop-icon"><Loader size={14} /><span className="summary-stop-square" /></span> }} />
-                  <SwapText text={summarizing ? t('Summarizing…') : starting ? t('Preparing…') : t('Resume recording')} />
+                {!finishing && (summaryPending || (!transcribing && m.source !== 'audio-file')) && (m.state === 'stopped' || m.state === 'done') && !m.stopSavePending && !trashed && <button data-testid="note-resume" disabled={starting && !summaryPending} onClick={() => { if (summaryPending) void window.yogurt.notes.stop(id).catch(console.error); else void resumeRecording() }}
+                  aria-label={resumeLabel} className="workspace-button note-resume-action" title={summaryPending ? resumeLabel : t('Resume recording in this note')}>
+                  {!summaryPending && <Mic size={14} aria-hidden="true" />}
+                  <SwapText text={starting && !summaryPending ? t('Preparing…') : resumeLabel} />
                 </button>}
                 {m.state === 'prepared' && !trashed && <button data-testid="note-start" disabled={starting} onClick={() => { void startPrepared() }} className="note-record-action primary">
                   <Mic size={14} strokeWidth={1.75} aria-hidden="true" />{starting ? t('Starting…') : t('Start recording')}
@@ -426,19 +429,21 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
             <div role="tablist" aria-label={t('Meeting view')} className="contents">
             <button ref={transcriptButton} id="note-transcript-tab" data-testid="note-transcript-toggle" role="tab" aria-selected={primary === 'transcript'} aria-controls="note-transcript-panel"
               tabIndex={primary === 'transcript' ? 0 : -1} onKeyDown={primaryKey} onClick={(e) => pickTab('transcript', undefined, e.detail > 0)}>
-              <AudioLines size={14} strokeWidth={1.75} aria-hidden="true" />{t('Transcript')}
+              {t('Transcript')}
             </button>
             <button ref={notesButton} id="note-notes-tab" data-testid="note-notes-tab" role="tab" aria-selected={primary === 'notes' && shown === 'mine'} aria-controls="note-notes-panel"
               data-version={shown} tabIndex={primary === 'notes' && shown === 'mine' ? 0 : -1} onKeyDown={primaryKey}
               onClick={(e) => pickTab('notes', 'mine', e.detail > 0)}>
-              <TextAlignStart size={14} strokeWidth={1.75} aria-hidden="true" />{t('My notes')}
+              {t('My notes')}
             </button>
             {hasEnhanced && <button ref={summaryButton} id="note-summary-tab" data-testid="note-summary-tab" role="tab" aria-selected={primary === 'notes' && shown === 'enhanced'} aria-controls="note-notes-panel"
+              aria-describedby={summaryPending ? 'note-summary-phase' : undefined}
               tabIndex={primary === 'notes' && shown === 'enhanced' ? 0 : -1} onKeyDown={primaryKey}
               onClick={(e) => pickTab('notes', 'enhanced', e.detail > 0)}>
-              <Sparkles size={14} strokeWidth={1.75} aria-hidden="true" />{t('Summary')}
+              {t('Summary')}{summaryPending && <span className="summary-writing-mark" aria-hidden="true" />}
             </button>}
             </div>
+            {hasEnhanced && summaryPending && <span id="note-summary-phase" hidden>{notes.status === 'waiting' ? t('Preparing…') : t('Writing the summary')}</span>}
             {primary === 'transcript' && <div ref={setTranscriptToolbar} className="note-primary-tools" />}
             <span data-testid="note-tab-indicator" className="note-tab-indicator" aria-hidden="true" />
           </div>
