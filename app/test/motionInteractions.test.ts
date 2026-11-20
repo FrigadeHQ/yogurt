@@ -14,7 +14,7 @@ import { Agenda } from '../src/renderer/src/components/Agenda'
 
 vi.mock('react', async original => ({
   ...await original<typeof import('react')>(), useState: vi.fn(), useRef: vi.fn(), useEffect: vi.fn(), useLayoutEffect: vi.fn(),
-  useCallback: (callback: unknown) => callback,
+  useCallback: (callback: unknown) => callback, useContext: vi.fn(),
 }))
 vi.mock('motion/react', async original => ({ ...await original<typeof import('motion/react')>(), useDragControls: () => ({ start: vi.fn() }) }))
 vi.mock('react-dom', async original => ({ ...await original<typeof import('react-dom')>(), createPortal: (children: ReactNode) => children }))
@@ -205,6 +205,19 @@ it.each([false, true])('retries the last requested AI access setting (reopen Set
     expect(toggle()['aria-checked']).toBe(false)
     expect(set.mock.calls).toEqual([[false], [false]])
   } finally { view.unmount() }
+})
+
+it('opens a command-search question as a draft when recording prevents an answer', async () => {
+  vi.stubGlobal('document', { activeElement: null })
+  vi.stubGlobal('HTMLButtonElement', class {})
+  const draft = vi.fn().mockResolvedValue(undefined), onNavigate = vi.fn()
+  const conversations = { current: async () => 'draft-id', ask: async () => ({ waitsForMeeting: true }), draft }
+  vi.stubGlobal('window', { yogurt: { capabilities: { calendar: false }, conversations } })
+  const render = renderer(() => Search({ onOpen() {}, onNavigate, onSettingsChange() {}, onShortcuts() {}, onClose() {}, sidebarCollapsed: false, onToggleSidebar() {} }))
+  find(render(), 'search-input').props.onChange({ target: { value: 'What did we decide?' } })
+  find(render(), 'search').props.onKeyDown({ key: 'Enter', metaKey: true, nativeEvent: {}, preventDefault() {} })
+  await vi.waitFor(() => expect(onNavigate).toHaveBeenCalledExactlyOnceWith('/chat/draft-id'))
+  expect(draft).toHaveBeenCalledExactlyOnceWith('draft-id', 'What did we decide?')
 })
 
 it.each([true, false])('offers and runs the date command only with an agenda (calendar: %s)', async calendar => {
@@ -537,7 +550,7 @@ it.each(['send', 'load', 'resolve'] as const)('keeps an early Enter through load
   } })
   const render = renderer(() => AskConversation({ id, loadError, pendingDraftKey: `meeting/early-${failure}`, panel: true, onSelect() {}, onDeleted() {}, onSource() {} }))
   const flush = async () => { for (let i = 0; i < 5; i++) await Promise.resolve() }
-  const drain = () => vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.length === 2 && deps[1] === loadError)![0]()
+  const drain = () => vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.length === 3 && deps[1] === loadError && deps[2] === false)![0]()
   const enter = (tree: ReactNode) => find(tree, 'chat-input').props.onKeyDown({ key: 'Enter', nativeEvent: {}, preventDefault() {} })
   let tree = render()
   const focus = vi.fn()

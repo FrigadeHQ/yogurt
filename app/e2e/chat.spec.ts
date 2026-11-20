@@ -24,6 +24,40 @@ const windowOf = async (app: ElectronApplication, hash: string): Promise<Page> =
   throw new Error(`no ${hash} window`)
 }
 
+test('recording on a small Mac leaves Ask readable and explains when typing resumes', async () => {
+  const { app, page } = await launch({ YOGURT_FAKE_PLATFORM: 'darwin', YOGURT_FAKE_SMALL_MAC: '1' })
+  try {
+    await page.getByTestId('new-note').click()
+    await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
+    const id = await page.evaluate(async () => (await window.yogurt.nav.current()).slice('/note/'.length))
+    await page.keyboard.press('Meta+j')
+    const noteInput = page.getByTestId('chat-input')
+    await expect(noteInput).toBeFocused()
+    await expect(noteInput).toHaveAccessibleDescription('Available after recording')
+    await expect(noteInput).not.toBeEditable()
+    await expect(page.getByRole('tooltip')).toHaveText('Available after recording')
+    await page.getByTestId('chat-close').focus()
+    await noteInput.hover()
+    await expect(page.getByRole('tooltip')).toBeVisible()
+    await page.getByTestId('chat-close').click()
+    await page.getByTestId('nav-chat').click()
+    const homeInput = page.getByTestId('chat-page-input')
+    await expect(homeInput).toHaveAttribute('aria-disabled', 'true')
+    await page.keyboard.press('Meta+k')
+    await page.getByTestId('search-input').fill('What did we decide?')
+    await page.keyboard.press('Meta+Enter')
+    await expect(homeInput).toHaveValue('What did we decide?')
+    await expect(homeInput).not.toBeEditable()
+    await homeInput.press('Enter')
+    await expect(page.getByTestId('chat-page-turn')).toHaveCount(0)
+    await page.evaluate(id => window.yogurt.meetings.stop(id), id)
+    await expect(homeInput).toBeEditable()
+    await expect(homeInput).toHaveValue('What did we decide?')
+    await expect(page.getByTestId('chat-page-send')).toBeEnabled()
+    await expect(page.getByTestId('chat-page-turn')).toHaveCount(0)
+  } finally { await app.close() }
+})
+
 test('Ask opens one contained panel, keeps the note usable, and restores focus when closed', async () => {
   const { app, page } = await launch()
   try {

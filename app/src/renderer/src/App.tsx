@@ -18,12 +18,15 @@ import { ChatPage } from './screens/ChatPage'
 import { BootScreen } from './components/BootScreen'
 import { bootHoldMs } from '../../shared/onboarding'
 import { Folder } from './screens/Folder'
+import { AskRecordingWait, watchRecordingWait } from './askAvailability'
 import { useFolderRead } from './folders'
 import type { LibrarySource, MeetingView, OnboardingPlan, SetupState } from '../../shared/types'
 
 export function App() {
   const [setupFailed, setSetupFailed] = useState(false)
   const [setupAttempt, setSetupAttempt] = useState(0)
+  const [recordingWait, setRecordingWait] = useState<boolean>()
+  useEffect(() => watchRecordingWait(window.yogurt.conversations, setRecordingWait), [])
   const [setup, setSetup] = useState<SetupState>()
   // where the app was told to go, e.g. /note/<id>
   const [route, setRouteNow] = useState('')
@@ -191,13 +194,13 @@ export function App() {
     : chatId !== undefined ? <ChatPage id={chatId} go={go} openSource={openSource} />
     : trash ? <Trash open={open} /> : folderScreen || <Home open={open} openFolder={(id) => go(`/folder/${id}`)} agendaJump={agendaJump} />
   return (
-    <div data-testid="app-shell" className={`h-full text-ink ${ready ? 'bg-transparent' : 'bg-bg'}`}>
+    <AskRecordingWait value={recordingWait}><div data-testid="app-shell" className={`h-full text-ink ${ready ? 'bg-transparent' : 'bg-bg'}`}>
       {ready ? <Workspace route={route} meeting={meeting} folders={folders} go={go} back={history.current.length ? back : undefined} forward={future.current.length ? forward : undefined} search={() => setSearching(true)} collapsed={sidebarCollapsed} sidebarMotion={sidebarMotion} toggleSidebar={toggleSidebar}>{screen}</Workspace>
         : <><TitleBar />{setup.phase === 'checking' && firstRunDone ? <BootScreen /> : <Onboarding state={setup} plan={plan} onDone={() => setPlan({ intro: false, steps: [] })} />}</>}
       {ready && searching && <Search folder={folder} folders={folders} onOpen={open} onNavigate={go} onShortcuts={openShortcuts} onSettingsChange={() => setSettingsRevision((v) => v + 1)} onClose={() => setSearching(false)} sidebarCollapsed={sidebarCollapsed} onToggleSidebar={() => toggleSidebar()} />}
       {ready && shortcuts && <Shortcuts onClose={() => setShortcuts(false)} />}
       {ready && <TrashToast go={go} />}
-    </div>
+    </div></AskRecordingWait>
   )
 }
 

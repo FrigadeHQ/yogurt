@@ -730,6 +730,14 @@ app.whenReady().then(() => {
       clearTimeout(timer); resumingId = null; analysis.release(!started)
     }
   })
+  const waitsForMeeting = () => smallMac && !!activeMeeting()
+  const askUnavailable = () => platform === 'darwin' && waitsForMeeting()
+  ipcMain.handle('conversations:waits-for-meeting', askUnavailable)
+  if (platform === 'darwin' && smallMac) {
+    const changed = () => win?.webContents.send('conversations:recording-wait', askUnavailable())
+    onMeetingStart(changed)
+    onMeetingStop(changed)
+  }
   // Both Ask surfaces share saved conversations and the same recording-first model queue.
   const conversations = hookConversations({
     store, library, indexer, embedder, queue, model,
@@ -737,7 +745,7 @@ app.whenReady().then(() => {
       win?.webContents.send('conversations:changed', v)
       if (v.chips.length === 1 && v.chips[0].kind === 'meeting') win?.webContents.send('chat:changed', { ...v, meetingId: v.chips[0].id })
     }, sendList: (l) => win?.webContents.send('conversations:list', l),
-    waitsForMeeting: () => smallMac && !!activeMeeting(), waitsForModel: () => !setup.notesPath(),
+    waitsForMeeting, waitsForModel: () => !setup.notesPath(),
     // a meeting read in ahead during a recording only where reading ahead is allowed (32 GB and up; the fake Mac is big)
     warmAllowed: () => !activeMeeting() || (isFake() ? !smallMac : readAheadAllowed(os.totalmem())),
   })
@@ -766,7 +774,7 @@ app.whenReady().then(() => {
   // Compatibility bridge for older renderer clients; all storage and answers now use conversations.
   const meetingChat = (id: string) => library.current([{ kind: 'meeting', id }])
   ipcMain.handle('chat:get', (_e, id: unknown) => isId(id) && store.meeting(id) ? { ...conversations.view(meetingChat(id)), meetingId: id } : undefined)
-  ipcMain.handle('chat:ask', (_e, id: unknown, q: unknown) => { if (isId(id) && store.meeting(id) && typeof q === 'string') conversations.ask(meetingChat(id), q) })
+  ipcMain.handle('chat:ask', (_e, id: unknown, q: unknown) => { if (!askUnavailable() && isId(id) && store.meeting(id) && typeof q === 'string') conversations.ask(meetingChat(id), q) })
   ipcMain.on('chat:stop', (_e, id: unknown) => { if (isId(id) && store.meeting(id)) conversations.stop(meetingChat(id)) })
   ipcMain.handle('chat:clear', (_e, id: unknown) => { if (isId(id) && store.meeting(id)) {
     conversations.stop(meetingChat(id))
@@ -774,7 +782,11 @@ app.whenReady().then(() => {
   } })
   ipcMain.handle('conversations:list', () => conversations.list())
   ipcMain.handle('conversations:get', (_e, id: unknown) => (isId(id) ? conversations.view(id) ?? null : null))
-  ipcMain.handle('conversations:ask', (_e, id: unknown, q: unknown) => ((id === null || isId(id)) && typeof q === 'string' && q.trim() ? conversations.ask(id, q).id : null))
+  ipcMain.handle('conversations:ask', (_e, id: unknown, q: unknown) => {
+    if ((id !== null && !isId(id)) || typeof q !== 'string' || !q.trim()) return null
+    if (askUnavailable()) return { waitsForMeeting: true }
+    return conversations.ask(id, q).id
+  })
   ipcMain.on('conversations:stop', (_e, id: unknown) => { if (isId(id)) conversations.stop(id) })
   ipcMain.on('conversations:warm', (_e, id: unknown) => { if (isId(id)) conversations.warm(id) })
   ipcMain.handle('conversations:rename', (_e, id: unknown, title: unknown) => { if (isId(id) && typeof title === 'string') conversations.rename(id, title) })

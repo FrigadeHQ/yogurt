@@ -166,7 +166,8 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
       const id = await window.yogurt.conversations.current(scope ? [{ kind: 'folder', id: scope.id }] : [], true)
       const sent = await window.yogurt.conversations.ask(id, query)
       if (!sent) throw new Error('Question was not saved')
-      onNavigate(`/chat/${sent}`); setOpen(false)
+      if (typeof sent !== 'string') await window.yogurt.conversations.draft(id, query)
+      onNavigate(`/chat/${typeof sent === 'string' ? sent : id}`); setOpen(false)
     } catch { setError(true); setRunning(false) }
   }
   const onKeyDown = (e: React.KeyboardEvent) => {

@@ -216,6 +216,8 @@ export type YogurtApi = {
   }
   /** questions across every meeting, in saved conversations (the Chat page) */
   conversations: {
+    waitsForMeeting(): Promise<boolean>
+    onRecordingWait(cb: (waiting: boolean) => void): () => void
     /** newest first */
     list(): Promise<ConversationSummary[]>
     current(chips: ContextChip[], fresh?: boolean): Promise<string>
@@ -224,8 +226,8 @@ export type YogurtApi = {
     draft(id: string, text: string): Promise<void>
     targets(query: string): Promise<ContextTarget[]>
     get(id: string): Promise<ConversationView | null>
-    /** id null starts a new conversation; resolves to its id once the question is saved (null: nothing asked). The answer streams in through onChange */
-    ask(id: string | null, question: string): Promise<string | null>
+    /** id null starts a new conversation; resolves to its id once the question is saved (null for an invalid request), or the active recording wait. The answer streams in through onChange */
+    ask(id: string | null, question: string): Promise<string | null | { waitsForMeeting: true }>
     /** a conversation about one meeting opened: its meeting is read into the model ahead of a question */
     warm(id: string): void
     stop(id: string): void
