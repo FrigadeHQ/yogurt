@@ -33,12 +33,13 @@ for (const platform of ['win32', 'linux']) {
   })
 
   test(`@everywhere on ${platform}: the best speech model that keeps up is kept, and recording is ready`, async () => {
-    const { app: launching, profile } = launch({ YOGURT_FAKE_PLATFORM: platform, YOGURT_FAKE_RTF: 'whisper-large-v3-turbo-q5_0=0.9,whisper-small-q5_1=0.7' })
+    const { app: launching, profile } = launch({ YOGURT_FAKE_PLATFORM: platform, YOGURT_FAKE_RTF: 'whisper-large-v3-turbo-q5_0=0.9,whisper-small-q5_1=1.4' })
     const app = await launching
     try {
       const page = await app.firstWindow()
       await expect(page.getByTestId('home')).toBeVisible({ timeout: 15_000 })
-      expect(stored(profile)).toMatchObject({ model: 'whisper-base-q5_1', rtf: { 'whisper-large-v3-turbo-q5_0': 0.9, 'whisper-small-q5_1': 0.7, 'whisper-base-q5_1': 0.1 } })
+      // small may lag up to 1.25 times the clip (#107); slower than that, base is kept
+      expect(stored(profile)).toMatchObject({ model: 'whisper-base-q5_1', rtf: { 'whisper-large-v3-turbo-q5_0': 0.9, 'whisper-small-q5_1': 1.4, 'whisper-base-q5_1': 0.1 } })
     } finally { await app.close() }
   })
 }

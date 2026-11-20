@@ -75,6 +75,15 @@ describe('start cards', () => {
     reading = { micApps: [zoom], events: [] }; clock += 3_000; await w.tick()
     expect(log.filter((l) => l.startsWith('offer'))).toEqual(['offer:app:us.zoom.xos', 'offer:app:us.zoom.xos'])
   })
+  it('a recording started and stopped between two looks still closes its call', async () => {
+    reading = { micApps: [zoom], events: [] }
+    await w.tick()
+    // Take notes, then Stop, both before the next look
+    w.cleared(); w.cleared()
+    reading = { micApps: [], events: [] }; clock += 3_000; await w.tick()
+    reading = { micApps: [zoom], events: [] }; clock += 3_000; await w.tick()
+    expect(log.filter((l) => l.startsWith('offer'))).toEqual(['offer:app:us.zoom.xos', 'offer:app:us.zoom.xos'])
+  })
   it('a different calendar meeting starting on the same app is a new call', async () => {
     const first = ev({ id: 'e1', start: clock, end: clock + 30 * MIN })
     reading = { micApps: [zoom], events: [first] }

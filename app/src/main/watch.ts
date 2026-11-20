@@ -62,8 +62,9 @@ export class Watcher {
   keepGoing() { if (this.rec) this.rec.snoozeUntil = this.d.now() + SNOOZE; this.shown = null }
   /** Close: no more stop questions during this recording. */
   dismissStop() { if (this.rec) this.rec.snoozeUntil = Infinity; this.shown = null }
-  /** the card went away by an action, or a recording started or stopped (a resumed note is watched afresh) */
-  cleared() { this.shown = null; this.rec = null }
+  /** the card went away by an action, or a recording started or stopped (a resumed note is watched afresh); a recording
+   *  closes its call, even one too short for a look to see, so the next call gets its own offer */
+  cleared() { this.shown = null; this.rec = null; this.calls.clear() }
 
   /** someone is on a call now: recording, or a call app on the mic (card closed or never clicked) */
   onCall(): boolean { return !!this.d.active() || this.idleMic.size > 0 }
