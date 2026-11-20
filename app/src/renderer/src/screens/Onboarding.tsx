@@ -116,7 +116,7 @@ function CalendarLinkScreen({ state, progress, onNext }: { state: SetupState; pr
   return (
     <Layout
       testId="onboarding-step" step="calendar" kind="calendar" motionKey={connected ? 'calendar-done' : 'calendar'}
-      art={<ScreenArt id="calendar" on={connected ? ['calendar'] : []} />} progress={progress} state={state}
+      art={<ScreenArt kind="calendar" />} progress={progress} state={state}
       title={connected ? t('All set') : t('Connect your calendar')}
       text={connected ? t('{name} is connected. You can change this any time in Settings.', { name: connected }) : sc.text}
       actions={connected
@@ -130,21 +130,18 @@ function CalendarLinkScreen({ state, progress, onNext }: { state: SetupState; pr
 /** Recording permissions share one progress segment. Each native request needs its own Allow press. */
 function PermissionScreen({ screen, state, progress, onNext }: { screen: OnboardingScreen; state: SetupState; progress: Progress; onNext(): void }) {
   const [k, setK] = useState(0)
-  // what the picture shows as on: whatever this screen didn't need to ask, and whatever was turned on here
-  const [lit, setLit] = useState<PermissionKind[]>(() => screen.kinds.filter((x) => !screen.steps.some((s) => s.kind === x)))
   const [leaving, setLeaving] = useState(false)
   const step = screen.steps[k]
   const on = () => {
-    setLit((l) => [...l, step.kind])
     if (k + 1 < screen.steps.length) { setK(k + 1); return }
-    // a picture that shows what is on stays a moment, so the person sees it come alive
+    // Keep the existing transition out of the grouped recording step.
     if (screen.kinds.length > 1) { setLeaving(true); setTimeout(onNext, 700) } else onNext()
   }
-  return <Ask key={step.kind} screen={screen} step={step} lit={lit} leaving={leaving} state={state} progress={progress} onOn={on} onLater={onNext} />
+  return <Ask key={step.kind} screen={screen} step={step} leaving={leaving} state={state} progress={progress} onOn={on} onLater={onNext} />
 }
 
-function Ask({ screen, step, lit, leaving, state, progress, onOn, onLater }: {
-  screen: OnboardingScreen; step: OnboardingStep; lit: PermissionKind[]; leaving: boolean; state: SetupState; progress: Progress; onOn(): void; onLater(): void
+function Ask({ screen, step, leaving, state, progress, onOn, onLater }: {
+  screen: OnboardingScreen; step: OnboardingStep; leaving: boolean; state: SetupState; progress: Progress; onOn(): void; onLater(): void
 }) {
   const { kind } = step
   const c = permissionCopy(kind)
@@ -162,7 +159,7 @@ function Ask({ screen, step, lit, leaving, state, progress, onOn, onLater }: {
       : flow.phase === 'idle' && denied ? <p data-testid="step-access-status" role="status" className="ob-note">{t('This was turned off before, so only System Settings can turn it on. Yogurt shows you where.')}</p>
         : null
   // the picture changes only when there is a new thing to show: System Settings, or the screen's own drawing
-  const art = away ? <SettingsArt kind={kind} /> : <ScreenArt id={screen.id} on={back ? [...lit, kind] : lit} />
+  const art = away ? <SettingsArt kind={kind} /> : <ScreenArt kind={kind} />
   return (
     <Layout
       testId="onboarding-step" step={screen.id} kind={kind} motionKey={away ? `${screen.id}-away` : screen.id}

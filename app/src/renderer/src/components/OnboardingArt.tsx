@@ -1,6 +1,5 @@
-import { AudioLines, CalendarDays, Check, Mic, PhoneOff, Plus, Video, X } from 'lucide-react'
+import { AudioLines, CalendarDays, Mic, PhoneOff, Plus, Video, X } from 'lucide-react'
 import type { PermissionKind } from '../../../shared/types'
-import type { ScreenId } from '../../../shared/onboarding'
 import { Logo } from './Logo'
 import { t } from '../../../shared/i18n'
 import { RecordingPill } from './RecordingPill'
@@ -40,18 +39,19 @@ export function WelcomeArt() {
   return <div className="ob-scene ob-conversation"><CallWindow welcome /></div>
 }
 
-/** The picture of one permission screen; on: what is turned on so far */
-export function ScreenArt({ id, on }: { id: ScreenId; on: readonly PermissionKind[] }) {
-  switch (id) {
-    case 'record': return <RecordArt on={on} />
+/** The picture explains the current permission. Permission status is in the step text. */
+export function ScreenArt({ kind }: { kind: PermissionKind }) {
+  switch (kind) {
+    case 'mic':
+    case 'systemAudio': return <RecordArt active={kind} />
     case 'calendar': return <CalendarArt />
     case 'notifications': return <NoticeArt />
     case 'accessibility': return <SpeakerNamesArt />
   }
 }
 
-/** The two things Yogurt hears: you through the mic, everyone else through the Mac's sound. Each comes alive once it is on. */
-function RecordArt({ on }: { on: readonly PermissionKind[] }) {
+/** The five bars match the website’s per-speaker meter. Only the source being explained speaks. */
+function RecordArt({ active }: { active: 'mic' | 'systemAudio' }) {
   const lanes = [
     { kind: 'mic' as const, Icon: Mic, who: t('You'), from: t('Microphone') },
     { kind: 'systemAudio' as const, Icon: AudioLines, who: t('Everyone else'), from: t("Your Mac's sound") },
@@ -60,18 +60,17 @@ function RecordArt({ on }: { on: readonly PermissionKind[] }) {
     <div data-testid="record-art" className="ob-scene">
       <div className="ob-card ob-record">
         {lanes.map(({ kind, Icon, who, from }, i) => (
-          <div key={kind} className="ob-lane" data-on={on.includes(kind)} style={d(i)}>
+          <div key={kind} className="ob-lane" data-active={kind === active} data-channel={kind} style={d(i)}>
             <span className="ob-lane-icon"><Icon size={15} strokeWidth={1.9} /></span>
             <span className="ob-lane-copy"><span className="ob-lane-who">{who}</span><span className="ob-lane-from">{from}</span></span>
-            <span className="ob-wave">{WAVE.map((h, j) => <i key={j} style={{ ['--h' as string]: h, ['--j' as string]: j + i * 3 }} />)}</span>
-            <span className="ob-lane-state"><Check size={11} strokeWidth={3} /></span>
+            <span className="ob-wave">{[.54, .8, 1, .72, .42].map((peak, j) =>
+              <i key={j} style={{ ['--peak' as string]: peak, ['--lag' as string]: `${-j * 30}ms` }} />)}</span>
           </div>
         ))}
       </div>
     </div>
   )
 }
-const WAVE = [.35, .6, .9, .55, .75, 1, .65, .4, .8, .5, .95, .6, .3, .7, .45, .85, .5, .65]
 
 /** A day in the calendar, and the note that already knows the meeting's name and who's in it */
 function CalendarArt() {
