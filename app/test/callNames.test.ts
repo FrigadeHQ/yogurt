@@ -84,6 +84,9 @@ describe('watchIds: only the call app the meeting is in', () => {
     expect(watchIds(null)).toContain('us.zoom.xos')
     expect(watchIds(null)).toContain('org.mozilla.firefox')
     expect(watchIds(null)).toContain('teams-for-linux')
+    // Ardia, a Chromium browser on the Mac (#123): a hand-started recording reads its Meet tab too
+    expect(watchIds('Ardia')).toEqual(['com.ardia.browser'])
+    expect(watchIds(null)).toContain('com.ardia.browser')
   })
 })
 

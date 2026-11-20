@@ -24,6 +24,7 @@ const APPS: Record<string, { kind: CallKind; ids: string[] }> = {
   Webex: { kind: 'webex', ids: ['Cisco-Systems.Spark', 'com.cisco.webexmeetingsapp'] },
   Chrome: { kind: 'meet', ids: ['com.google.Chrome', 'chrome', 'google-chrome', 'chrome.exe'] },
   Arc: { kind: 'meet', ids: ['company.thebrowser.Browser', 'arc.exe'] },
+  Ardia: { kind: 'meet', ids: ['com.ardia.browser'] },
   Brave: { kind: 'meet', ids: ['com.brave.Browser', 'brave', 'brave.exe'] },
   Edge: { kind: 'meet', ids: ['com.microsoft.edgemac', 'msedge', 'com.microsoft.Edge', 'msedge.exe'] },
   Safari: { kind: 'meet', ids: ['com.apple.Safari'] },
