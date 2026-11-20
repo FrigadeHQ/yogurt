@@ -12,7 +12,7 @@ test('the level meter stops drawing while its window is hidden and once the room
   try {
     const page = await app.firstWindow()
     await expect(page.getByTestId('home')).toBeVisible()
-    await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
     const wave = page.getByTestId('note-wave')
     // the fake mic talks for its first 16.5 s
     await expect(wave).toHaveAttribute('data-live', '1')

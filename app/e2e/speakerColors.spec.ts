@@ -17,7 +17,7 @@ for (const theme of ['light', 'dark'] as const) test(`speaker colours agree acro
     await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' })
     const win = await app.browserWindow(page)
     await win.evaluate(w => w.setContentSize(1200, 850))
-    await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
     const id = await page.evaluate(async () => (await window.yogurt.nav.current()).slice('/note/'.length))
     db = new DatabaseSync(join(userData, 'yogurt.db'), { timeout: 5000 })

@@ -36,9 +36,9 @@ let meetingsChanged: () => void
 let widgetChanged: (view: WidgetView | null) => void
 let cleanups: (() => void)[]
 const flush = async () => { await Promise.resolve(); await Promise.resolve() }
-const render = () => {
+const render = (emptyActions?: HTMLElement) => {
   hooks.state = 0; hooks.ref = 0; hooks.effects = []; hooks.layout = []
-  return StartRecording({ onStarted: started, onGone: gone }) as ReactElement<Record<string, unknown>> | null
+  return StartRecording({ onStarted: started, onGone: gone, emptyActions }) as ReactElement<Record<string, unknown>> | null
 }
 const run = (effect: () => (() => void) | void) => { const cleanup = effect(); if (cleanup) cleanups.push(cleanup) }
 type Element = ReactElement<Record<string, unknown>>
@@ -79,6 +79,15 @@ it('keeps upload and the unattached action available outside the live/15-minute 
     expect(start).toHaveBeenLastCalledWith(null)
   }
 })
+it('starts an unattached recording from the empty library even during a calendar event', async () => {
+  await calendar([event('live')])
+  const tree = render(document.getElementById('empty')!)
+  const cta = find(tree, 'empty-start-recording')
+  expect(renderToStaticMarkup(cta.props.children as ReactNode)).toContain('Start recording')
+  await click(cta)
+  expect(start).toHaveBeenCalledExactlyOnceWith(null)
+})
+
 it('attaches the one live meeting and preserves its full title while CSS truncates the label', async () => {
   const live = { ...event('live'), title: 'Planning the next release and reviewing every open question '.repeat(4) }
   const tree = await calendar([event('soon', now + 8 * 60_000), live])

@@ -37,15 +37,17 @@ export function Home({ open, openFolder, agendaJump }: { open: (id: string) => v
     if (r.error === 'gone') setCalendarRevision((revision) => revision + 1)
     toasts.add({ id: 'home-message', data: { testId: 'home-message' }, title: r.error === 'gone' ? t('That meeting is no longer on your calendar.') : t("Yogurt couldn't start the notes. Try again in a moment.") })
   }
+  const [emptyActions, setEmptyActions] = useState<HTMLDivElement | null>(null)
   const noMeetings = past.cards?.length === 0
   const calendar = window.yogurt.capabilities.calendar
   return <div data-testid="home" className={calendar ? 'native-home' : 'native-home no-agenda'}>
-    <StartRecording testId="new-note" onGone={() => setCalendarRevision(revision => revision + 1)} />
+    <StartRecording testId="new-note" emptyActions={emptyActions} onGone={() => setCalendarRevision(revision => revision + 1)} />
     <div className="native-library" ref={past.setRoot} tabIndex={-1}>
       <h1>{t('Your meetings')}</h1>
       <LoadingContent pending={!past.cards} testId="meetings-loading" skeleton={<MeetingListLoading />} className="library-load">{noMeetings ? <section data-testid="past-empty" className="library-empty empty-state"><div className="empty-state-content">
         <div className="empty-tile"><FileText size={28} strokeWidth={1.5} aria-hidden="true" /></div><h2>{t('Your notes will show up here')}</h2>
         <p>{t('Yogurt writes a summary after you finish recording.')}</p>
+        <div ref={setEmptyActions} />
       </div></section> : <PastNotes cards={past.cards ?? []} day={day} more={past.more} sentinel={past.setSentinel} onOpen={open} openFolder={openFolder} />}</LoadingContent>
     </div>
     {calendar && <Agenda revision={calendarRevision} recording={recording} onStart={start} onOpen={open} jumpTo={agendaJump} />}

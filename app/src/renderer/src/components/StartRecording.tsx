@@ -15,7 +15,7 @@ import { personName } from './People'
 let lastRecording: boolean | undefined
 
 /** Start or resume from a library destination; main resolves the event's note. */
-export function StartRecording({ onStarted, onGone, testId = 'start-recording' }: { onStarted?: (id: string) => void; onGone?: () => void; testId?: string }) {
+export function StartRecording({ onStarted, onGone, emptyActions, testId = 'start-recording' }: { emptyActions?: HTMLElement | null; onStarted?: (id: string) => void; onGone?: () => void; testId?: string }) {
   const [actions, setActions] = useState<HTMLElement | null>(null)
   const [recording, setRecording] = useState(lastRecording)
   const [starting, setStarting] = useState(false)
@@ -83,6 +83,9 @@ export function StartRecording({ onStarted, onGone, testId = 'start-recording' }
   const content = <><Mic size={14} aria-hidden="true" /><span className="recording-label">{label}</span></>
   const button = { 'data-testid': testId, disabled: starting, title: label, className: 'workspace-button primary recording-main no-drag' }
   return createPortal(<Menu.Root modal={false} open={open} onOpenChange={setOpen}>
+    {emptyActions && createPortal(<button type="button" disabled={starting} data-testid="empty-start-recording" className="workspace-button" onClick={() => void start(null)}>
+      <Mic size={14} aria-hidden="true" />{t('Start recording')}
+    </button>, emptyActions)}
     <div ref={root} className="recording-split no-drag" data-split={true}>
       {live.length > 1 ? <Menu.Trigger {...button}>{content}</Menu.Trigger>
         : <button {...button} onClick={() => void start(live[0]?.id ?? null)}>{content}</button>}

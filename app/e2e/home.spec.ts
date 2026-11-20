@@ -204,9 +204,9 @@ test('no meetings yet: plain words and one button', async () => {
   try {
     const empty = page.getByTestId('past-empty')
     await expect(empty).toBeVisible()
-    await expect(empty.getByRole('button')).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'Start recording', exact: true })).toHaveCount(1)
-    await page.getByTestId('new-note').click()
+    await expect(empty.getByRole('button')).toHaveCount(1)
+    await expect(page.getByTestId('new-note')).toBeVisible()
+    await empty.getByRole('button', { name: 'Start recording', exact: true }).click()
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
   } finally { await app.close() }
 })
