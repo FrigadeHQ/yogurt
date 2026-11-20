@@ -616,7 +616,7 @@ input::selection, textarea::selection, .note-prose ::selection { background: var
 @media (prefers-reduced-motion:reduce) { [data-icon=Loader] { animation:none; } }
 
 .chat-latest { position:absolute;z-index:1;bottom:8px;inset-inline-start:calc(50% - 14px); }
-.chat-answer-actions { display:flex;align-items:center;gap:8px;margin-top:6px; }
+.chat-answer-actions { display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;line-height:18px;color:var(--muted); }
 /* Answer actions ease in, rising 2px, a beat after the answer finishes or on hover; they fade out in place. */
 .ask-turn .chat-answer-actions { opacity:0;transform:translateY(2px);transition:opacity var(--dur-base) ease,transform 0s linear var(--dur-base); }
 .ask-turn:is([data-show-copy],:hover,:focus-within) .chat-answer-actions { opacity:1;transform:none;transition:opacity var(--dur-surface) var(--ease-out) 60ms,transform var(--dur-surface) var(--ease-out) 60ms; }
@@ -624,9 +624,9 @@ input::selection, textarea::selection, .note-prose ::selection { background: var
 .ask-turn[data-show-copy] .chat-answer-actions { transition-delay:150ms; }
 @media (prefers-reduced-motion:reduce) { .ask-turn .chat-answer-actions,.ask-turn:is([data-show-copy],:hover,:focus-within) .chat-answer-actions { transform:none;transition:opacity var(--dur-micro) var(--ease-out); } }
 @media (hover:none) { .ask-turn .chat-answer-actions { opacity:1; } }
-.chat-answer-scope { display:flex;align-items:center;min-width:0;margin-inline-start:-5px;font-size:11px;line-height:16px;color:var(--muted);white-space:pre; }
-.chat-answer-scope::before { content:"·";flex:none;margin-inline-end:8px; }
-.chat-copy-action { margin-inline-start:-10px; }
+.chat-answer-scope { display:flex;align-items:center;min-width:0;overflow:hidden;white-space:pre; }
+.chat-answer-scope .ask-scope-name { white-space:nowrap; }
+.chat-copy-action { height:30px; }
 .chat-progress { display:flex;align-items:center;gap:9px;padding-block:5px;color:var(--muted);font-size:13px;line-height:20px; }
 .thinking-dots { width:18px;height:20px;flex:none;color:var(--accent); }
 /* a new wording of the step fades in, never slides */

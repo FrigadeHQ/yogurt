@@ -29,8 +29,11 @@ export function AskContext({ chips }: { chips: ContextTarget[] }) {
 
 export function AnswerScope({ chips }: { chips: ContextTarget[] }) {
   const label = scopeLabel(chips)
-  return <span className="chat-answer-scope" title={chips.length ? chips.map(chipTitle).join('\n') : label.name}>
-    {chips.length ? tx('Searched {name}', { name: <span className="ask-scope-label"><span className="ask-scope-name">{label.name}</span>
-      {label.others && <span className="ask-scope-others">{` ${label.others}`}</span>}</span> }) : t('Searched all meetings')}
-  </span>
+  return <>
+    <span aria-hidden="true">·</span>
+    <span className="chat-answer-scope" title={chips.length ? chips.map(chipTitle).join('\n') : label.name}>
+      {chips.length ? tx('Searched {name}', { name: <span className="ask-scope-label"><bdi className="ask-scope-name">{label.name}</bdi>
+        {label.others && <span className="ask-scope-others">{` ${label.others}`}</span>}</span> }) : <span className="ask-scope-name">{t('Searched all meetings')}</span>}
+    </span>
+  </>
 }
