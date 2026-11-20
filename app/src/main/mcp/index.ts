@@ -4,7 +4,7 @@ import { existsSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { helperFile } from '../../shared/platform'
 import type { Store } from '../store'
-import { createMcp } from './server'
+import { createMcp, type McpApp } from './server'
 import { helperCopyPath, installHelper, LAUNCH_FILE, launchCommand, mcpAddress, PIPE_FILE } from './paths'
 import { serveMcp } from './socket'
 
@@ -39,11 +39,15 @@ function copyHelper(profile: string): string | undefined {
 export async function hookMcp(d: {
   /** the profile folder: the socket (Mac, Linux) or the pipe's name (Windows) is there, for the helper */
   store: Store; profile: string; enabled: () => boolean; setEnabled: (on: boolean) => void; me: () => string; version: string
+  /** "Let AI apps make changes": off unless the person turned it on */
+  changesEnabled: () => boolean; setChangesEnabled: (on: boolean) => void
+  /** the app's own actions, for the tools that ask or change something */
+  app: McpApp
   audio: (id: string) => Promise<Array<{ track: 'me' | 'them'; path: string }>>
   /** Settings is told when apps come and go */
   send: (clients: string[]) => void
 }) {
-  const mcp = createMcp({ store: d.store, enabled: d.enabled, me: d.me, version: d.version, audio: d.audio, platform: process.platform })
+  const mcp = createMcp({ store: d.store, enabled: d.enabled, changesEnabled: d.changesEnabled, me: d.me, version: d.version, audio: d.audio, app: d.app, platform: process.platform })
   let server: Awaited<ReturnType<typeof serveMcp>> | undefined
   const address = mcpAddress(process.platform, d.profile, randomBytes(16).toString('hex'))
   try {
@@ -54,8 +58,9 @@ export async function hookMcp(d: {
   const launch = launchCommand(process.platform, app.isPackaged, process.execPath, process.env)
   if (launch) { try { writeWhole(join(d.profile, LAUNCH_FILE), launch) } catch (e) { console.error('mcp: could not record how to open Yogurt', e) } }
   const copy = copyHelper(d.profile)
-  const status = () => ({ enabled: d.enabled(), clients: server?.clients() ?? [], command: copy ?? mcpHelperPath() })
+  const status = () => ({ enabled: d.enabled(), changes: d.changesEnabled(), clients: server?.clients() ?? [], command: copy ?? mcpHelperPath() })
   ipcMain.handle('mcp:status', status)
   ipcMain.handle('mcp:set', (_e, on: unknown) => { d.setEnabled(on === true); return status() })
+  ipcMain.handle('mcp:set-changes', (_e, on: unknown) => { d.setChangesEnabled(on === true); return status() })
   return { close: () => server?.close() }
 }
