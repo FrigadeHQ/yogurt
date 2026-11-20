@@ -32,6 +32,8 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   axAsked?: boolean
   /** AI apps on this Mac (Claude, Cursor, …) may read meetings through MCP; off unless the person turned it on */
   aiApps?: boolean
+  /** those AI apps may also change meetings, notes and a few settings (never delete for good); off unless turned on */
+  aiAppChanges?: boolean
   /** a recording stops by itself when its call ends; on unless turned off (false: ask first) */
   stopWhenCallEnds?: boolean
   /** a quiet reminder to ask everyone before recording; on unless turned off */

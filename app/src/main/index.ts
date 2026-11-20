@@ -304,6 +304,9 @@ const fakeCallWatch: Watch = (ids, onLine) => {
 }
 const macName = () => (isFake() ? process.env.YOGURT_FAKE_FULL_NAME ?? 'Sam Rivera' : macFullName())
 
+/** starting and pausing a recording the way home and the widget do, for AI apps (set once detection starts) */
+let recordingControls: { start(o: { eventId?: string; title?: string }): Promise<StartResult>; pause(id: unknown, paused: unknown): boolean } | undefined
+
 /** fake mode's hooks reach the store and the notes through these */
 let storeRef: Store | undefined
 let indexerRef: { schedule(): Promise<unknown> } | undefined
@@ -370,23 +373,25 @@ function startDetection() {
     prompts.hide(); watcher.cleared(); goTo(`/note/${m.id}`, resume)
     return { id: m.id, ...(resume ? { resumeRequested: true as const } : {}), ...(alreadyRecording ? { alreadyRecording: true as const } : {}) }
   }
-  // home: Start notes for a calendar event (looked up here, never taken from the page), or New note with none
+  // home: Start notes for a calendar event (looked up here, never taken from the page), or New note with none; an AI
+  // app's start_recording the same way, with its own title if it gave one
   // gone: the event left the calendar since the page showed it (moved, cancelled); failed: anything else, in plain words on the page
-  ipcMain.handle('meetings:start', async (_e, eventId: unknown): Promise<StartResult> => {
+  const startNotes = async (o: { eventId?: string; title?: string }): Promise<StartResult> => {
     try {
       const cur = activeMeeting()
       if (cur) { goTo(`/note/${cur.id}`); return { id: cur.id, alreadyRecording: true } }
       let event: CalEvent | null = null
-      if (typeof eventId === 'string') {
-        event = (await comingUp()).find((e) => matchesEvent(e, eventId)) ?? null
+      if (o.eventId !== undefined) {
+        event = (await comingUp()).find((e) => matchesEvent(e, o.eventId!)) ?? null
         if (!event) return { error: 'gone' }
       }
-      return begin({ title: event?.title ?? '', event, app: null })
+      return begin({ title: o.title ?? event?.title ?? '', event, app: null })
     } catch (e) {
       console.error('start notes failed', e)
       return { error: 'failed' }
     }
-  })
+  }
+  ipcMain.handle('meetings:start', (_e, eventId: unknown) => startNotes(typeof eventId === 'string' ? { eventId } : {}))
   ipcMain.handle('meetings:prepare', async (_e, eventId: unknown, at: unknown): Promise<StartResult> => {
     if (typeof eventId !== 'string' || typeof at !== 'number' || !Number.isFinite(at) || !Number.isFinite(new Date(at).getTime())) return { error: 'gone' }
     try {
@@ -421,6 +426,7 @@ function startDetection() {
     return changed
   }
   ipcMain.handle('meetings:set-paused', (_e, id: unknown, paused: unknown) => pauseRecording(id, paused))
+  recordingControls = { start: startNotes, pause: pauseRecording }
   ipcMain.handle('meetings:retry-stop-save', (_e, id: unknown) => isId(id) && retryStopSave(id))
   // the menu bar: open, new note or stop, quit; Yogurt stays there with its window closed
   const tray = createTray({
@@ -839,15 +845,45 @@ app.whenReady().then(() => {
   // the mic picker under the note's bar: the mics, the chosen one, and switching while recording
   hookMics({ helper: micListHelper(process.platform) === 'system' || isFake() ? runHelper : audioHelper.run, settingsFile, send: (channel, payload) => win?.webContents.send(channel, payload) })
   hookShare({ store, window: () => win })
-  hookFolders({ store, changed: () => { win?.webContents.send('folders:changed'); folderSuggestions.refresh() } })
+  const foldersChanged = () => { win?.webContents.send('folders:changed'); folderSuggestions.refresh() }
+  hookFolders({ store, changed: foldersChanged })
   // every meeting to one file and back; what an import adds shows up on home
   hookBackup({ getRecordingPill: () => visibilityOf(loadSettings(settingsFile), platform).showRecordingPill,
     setRecordingPill: preferences.setRecordingPill, db: store.db, meetingsDir: join(userDataDir(), 'meetings'), window: () => win, recording: () => !!activeMeeting() || !!resumingId,
     changed: () => { win?.webContents.send('meetings:changed'); win?.webContents.send('conversations:list', conversations.list()); void indexer.refresh(); folderSuggestions.refresh() },
     beforeExport: () => { notes.retryDrafts(); return notes.pendingDraftId() } })
+  // AI apps change things only through the functions behind the app's own buttons
+  const noteSaved = (id: string, r: ReturnType<typeof notes.replace>) => { if (r === 'saved') win?.webContents.send('meetings:changed'); return r }
   void hookMcp({
     store, profile: userDataDir(), me, version: app.getVersion(),
     enabled: () => !!loadSettings(settingsFile).aiApps, setEnabled: (on) => { updateSettings(settingsFile, { aiApps: on || undefined }) },
+    changesEnabled: () => !!loadSettings(settingsFile).aiAppChanges, setChangesEnabled: (on) => { updateSettings(settingsFile, { aiAppChanges: on || undefined }) },
+    app: {
+      ask: (question, chips) => conversations.askOnce(question, chips),
+      comingUp: () => calendarComingUp(),
+      calendarDay: (at) => calendarDay(at),
+      settings: () => preferences.read(),
+      changed: (what) => { if (what === 'folders') foldersChanged(); else win?.webContents.send('meetings:changed') },
+      // a meeting from another notes app: on home, in the library for Ask, and offered a folder like any other
+      imported: (id) => { win?.webContents.send('meetings:changed'); void indexer.schedule(); folderSuggestions.schedule(id) },
+      rename: (id, title) => !!renameMeeting(id, title),
+      setAttendees: (id, people) => setPeople(id, people),
+      linkEvent: (id, eventId, day) => linkMeetingEvent(id, eventId, day).catch(() => false),
+      unlinkEvent: (id) => !!unlinkEvent(id),
+      trash: (id) => trashMeeting(id),
+      restore: (id) => restoreMeeting(id),
+      setMyNotes: (id, md) => noteSaved(id, notes.replace(id, 'mine', md)),
+      setSummary: (id, md) => noteSaved(id, notes.replace(id, 'enhanced', md)),
+      rewriteSummary: (id, instruction) => (['waiting', 'writing'].includes(notes.view(id).status) || !writeAgain(id, instruction) ? 'busy' : 'queued'),
+      notesReady: () => !!setup.notesPath(),
+      startRecording: (o) => recordingControls?.start(o) ?? Promise.resolve({ error: 'failed' as const }),
+      pauseRecording: (id, paused) => recordingControls?.pause(id, paused) ?? false,
+      stopRecording: (id) => { if (activeMeeting()?.id !== id) return false; stopMeeting(id); return true },
+      recording: () => activeMeeting(),
+      setJargon: (terms) => preferences.setJargon(terms),
+      setSpoken: (v) => preferences.setSpoken(v),
+      setSummaryLanguage: (v) => preferences.setSummaryLanguage(v),
+    },
     audio: async (id) => {
       await rejoined; await recordingSettled(id)
       return (['me', 'them'] as const).flatMap((track) => { const path = trackFile(meetingDir(id), track, audioKinds); return path ? [{ track, path }] : [] })
@@ -866,10 +902,14 @@ app.whenReady().then(() => {
   ipcMain.on('notes:flush-sync', (e, id: unknown, side: unknown, md: unknown, revision: unknown) => { e.returnValue = saveEdit(id, side, md, revision) })
   ipcMain.on('notes:kept-edits', (_e, id: unknown) => { if (known(id)) notes.keptEdits(id) })
   ipcMain.handle('notes:stop', (_e, id: unknown) => { if (known(id)) return notes.stop(id) })
-  ipcMain.handle('notes:write-again', (_e, id: unknown, note: unknown) => {
+  // "Write again", from the note or an AI app; false when it can't start now
+  const writeAgain = (id: unknown, note: unknown): boolean => {
     const instruction = rewriteNote(note)
-    if (known(id) && instruction !== undefined && !transcriptionBusy(store.meeting(id)?.transcriptionState)) void notes.writeAgain(id, instruction, true)
-  })
+    if (!known(id) || instruction === undefined || transcriptionBusy(store.meeting(id)?.transcriptionState)) return false
+    void notes.writeAgain(id, instruction, true)
+    return true
+  }
+  ipcMain.handle('notes:write-again', (_e, id: unknown, note: unknown) => { writeAgain(id, note) })
   app.on('will-quit', () => engine.dispose())
   // an earlier quit or crash may have left parts unjoined: try again now
   const rejoined = rejoinInterrupted(join(userDataDir(), 'meetings'), async dir => {
@@ -983,18 +1023,27 @@ app.whenReady().then(() => {
     void indexer.refresh()
     return true
   })
-  ipcMain.handle('meetings:set-attendees', (_e, id: unknown, people: unknown) => { if (isId(id) && setAttendees(id, people)) notes.applyPeople(id) })
-  ipcMain.handle('meetings:link-event', async (_e, id: unknown, eventId: unknown, day?: unknown) => {
+  const setPeople = (id: unknown, people: unknown): boolean => {
+    if (!isId(id) || !setAttendees(id, people)) return false
+    notes.applyPeople(id)
+    return true
+  }
+  ipcMain.handle('meetings:set-attendees', (_e, id: unknown, people: unknown) => { setPeople(id, people) })
+  /** true: linked (null unlinks); an event not on the calendar that day throws */
+  const linkMeetingEvent = async (id: unknown, eventId: unknown, day?: unknown): Promise<boolean> => {
     const m = isId(id) ? store.meeting(id) : undefined
-    if (!m) return
-    if (eventId === null) { unlinkEvent(m.id); return }
-    if (typeof eventId !== 'string') return
+    if (!m) return false
+    if (eventId === null) return !!unlinkEvent(m.id)
+    if (typeof eventId !== 'string') return false
     const at = day ?? m.eventStartedAt ?? m.startedAt
     if (typeof at !== 'number' || !Number.isFinite(at) || !Number.isFinite(new Date(at).getTime())) throw new Error('Invalid calendar day')
     const event = (await eventsOn(at, 'link-event')).find((e) => matchesEvent(e, eventId))
     if (!event) throw new Error('Calendar event unavailable')
-    if (linkEvent(m.id, event)) notes.applyPeople(m.id)
-  })
+    if (!linkEvent(m.id, event)) return false
+    notes.applyPeople(m.id)
+    return true
+  }
+  ipcMain.handle('meetings:link-event', async (_e, id: unknown, eventId: unknown, day?: unknown) => { await linkMeetingEvent(id, eventId, day) })
   // gone for good, audio too; never while it records
   const removeForGood = (id: unknown) => id === resumingId ? Promise.resolve('failed' as const) : isId(id) && stopSavePending(id) ? Promise.resolve('save-pending' as const) : deleteMeeting(id, {
     store, dirOf: meetingDir,
@@ -1010,19 +1059,22 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('meetings:delete', (_e, id: unknown) => removeForGood(id))
   // Delete in a list or a note: to the Trash, kept until restored or deleted for good there (30 days at most)
-  ipcMain.handle('meetings:trash', (_e, id: unknown) => id === resumingId ? 'failed' : isId(id) && stopSavePending(id) ? 'save-pending' : moveToTrash(id, {
+  const trashMeeting = (id: unknown) => id === resumingId ? 'failed' as const : isId(id) && stopSavePending(id) ? 'save-pending' as const : moveToTrash(id, {
     store,
     moved: (id) => {
       indexer.forget(id)
       win?.webContents.send('meetings:changed'); win?.webContents.send('folders:changed')
       if (route === `/note/${id}`) { route = ''; win?.webContents.send('nav:go', route) }
     },
-  }))
-  ipcMain.handle('meetings:restore', (_e, id: unknown) => {
-    if (!isId(id) || store.meeting(id)?.trashedAt == null) return
+  })
+  ipcMain.handle('meetings:trash', (_e, id: unknown) => trashMeeting(id))
+  const restoreMeeting = (id: unknown): boolean => {
+    if (!isId(id) || store.meeting(id)?.trashedAt == null) return false
     store.restoreMeeting(id); indexer.restored(id)
     win?.webContents.send('meetings:changed'); win?.webContents.send('folders:changed')
-  })
+    return true
+  }
+  ipcMain.handle('meetings:restore', (_e, id: unknown) => { restoreMeeting(id) })
   ipcMain.handle('meetings:trashed', () => store.trashed())
   ipcMain.handle('meetings:empty-trash', () => emptyTrash({ store, remove: removeForGood }))
   // a meeting in the Trash for 30 days goes for good: at launch, and twice a day for a Yogurt that stays open
@@ -1069,8 +1121,8 @@ app.whenReady().then(() => {
     win?.webContents.send('calendar:changed')
     return true
   })
-  ipcMain.handle('calendar:day', async (_e, at: unknown, purpose?: unknown) => {
-    if (typeof at !== 'number' || !Number.isFinite(at) || !Number.isFinite(new Date(at).getTime())) return { status: 'error', events: [] }
+  const calendarDay = async (at: unknown, purpose?: unknown) => {
+    if (typeof at !== 'number' || !Number.isFinite(at) || !Number.isFinite(new Date(at).getTime())) return { status: 'error' as const, events: [] }
     const unavailable: string[] = []
     const events = (await eventsOn(at, purpose === 'link-event' ? 'link-event' : undefined, unavailable)).map((event) => {
       const meeting = eventIds(event).map((id) => store.meetingForEvent(id)).find(Boolean)
@@ -1078,11 +1130,13 @@ app.whenReady().then(() => {
       return { ...event, attendees: resolvePeople(store.db, event.attendees), ...(note ? { note: { id: note.id, state: note.state, ...(note.source ? { source: note.source } : {}) } } : {}) }
     })
     return { status: calendarStatus(), events, unavailable }
-  })
-  ipcMain.handle('calendar:coming-up', async () => {
+  }
+  ipcMain.handle('calendar:day', (_e, at: unknown, purpose?: unknown) => calendarDay(at, purpose))
+  const calendarComingUp = async () => {
     const events = (await comingUp()).map(event => ({ ...event, attendees: resolvePeople(store.db, event.attendees) }))
     return { status: calendarStatus(), events }
-  })
+  }
+  ipcMain.handle('calendar:coming-up', calendarComingUp)
   // not asked yet: the Mac's own question; turned off: the Mac's settings, where only the person can turn it on
   ipcMain.handle('calendar:links', () => calendarLinks?.list() ?? [])
   ipcMain.handle('calendar:add-link', async (_e, url: unknown) => {
