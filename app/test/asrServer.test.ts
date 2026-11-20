@@ -188,6 +188,14 @@ describe.skipIf(process.platform === 'win32')('whisper server', () => {
     } finally { info.mockRestore() }
   })
 
+  it('says in the log which speech model it runs, and where (#107: a report could not tell)', async () => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {})
+    try {
+      await make(fakeBinary()).url()
+      expect(info.mock.calls.map((a) => a.join(' ')).some((l) => /^ASR whisper-server starts with \S+\.bin on the graphics card if it can$/.test(l))).toBe(true)
+    } finally { info.mockRestore() }
+  })
+
   it('never asks for more threads than the computer has', async () => {
     const bin = fakeBinary()
     await make(bin).url()

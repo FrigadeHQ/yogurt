@@ -130,6 +130,8 @@ export function createWhisperServer(o: Opts) {
     const args = ['-m', o.model, '--host', '127.0.0.1', '--port', String(port), '-t', String(o.threads ?? Math.min(4, availableParallelism())), '-bs', '5']
     if (o.vadModel) args.push('--vad', '-vm', o.vadModel)
     if (cpuOnly) args.push('-ng')
+    // which model goes in the log too: a report of poor transcripts needs to know if a smaller model was picked (#107)
+    console.info('ASR', `whisper-server starts with ${basename(o.model)} on ${cpuOnly ? 'the processor' : 'the graphics card if it can'}`)
     const p = spawn(o.binary, args, { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true })
     launches++
     child = p
