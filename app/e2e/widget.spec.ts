@@ -66,7 +66,7 @@ test('the widget is a compact horizontal recorder with one live wave and no exte
   } finally { await app.close() }
 })
 
-test('Finish closes the floating recorder and prepares a completion notification', async () => {
+test('Stop closes the floating recorder and prepares a completion notification', async () => {
   const { app, page } = await launch()
   try {
     const w = await record(app, page)

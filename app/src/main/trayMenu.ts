@@ -69,7 +69,7 @@ export function trayItems(active: { id?: string; title: string; paused?: boolean
   return [
     { id: 'status', label: active.paused ? t('Paused · {title}', { title: active.title }) : t('Recording · {title}', { title: active.title }), enabled: false },
     { id: 'pause', label: active.paused ? t('Resume recording') : t('Pause recording'), enabled: true },
-    { id: 'stop', label: t('Finish recording'), enabled: true }, sep,
+    { id: 'stop', label: t('Stop recording'), enabled: true }, sep,
     ask, open, history, settings, sep, quit,
   ]
 }

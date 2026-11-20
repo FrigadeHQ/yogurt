@@ -321,7 +321,7 @@ describe('restart after a crash', () => {
     expect(setRecordingPaused('paused-session', true)).toBe(false)
   })
 
-  it('a long pause stays on the audio timeline after a crash; Finish never restarts a paused helper', async () => {
+  it('a long pause stays on the audio timeline after a crash; Stop never restarts a paused helper', async () => {
     const clock = vi.spyOn(Date, 'now').mockReturnValue(100_000)
     const r = rig()
     try {

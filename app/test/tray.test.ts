@@ -52,7 +52,7 @@ it('starts hidden and keeps menu hooks working during recording and pause', () =
   tray.click('open'); tray.click('new')
   expect(d.open).toHaveBeenCalledOnce(); expect(d.newNote).toHaveBeenCalledOnce()
   state.meeting = { id: 'm1', title: 'Standup' }; state.change()
-  expect(tray.items()).toContain('Finish recording')
+  expect(tray.items()).toContain('Stop recording')
   tray.click('stop'); expect(d.stop).toHaveBeenCalledWith('m1')
   state.paused = true; state.recording({ t: 'paused' })
   expect(state.trays).toHaveLength(0)

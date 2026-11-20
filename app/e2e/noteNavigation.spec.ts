@@ -37,7 +37,7 @@ test('post-call navigation shows Transcript, My notes and Summary without hidden
   } finally { await app.close() }
 })
 
-test('primary tabs preserve the editor and its latest text through pause, resume and Finish', async () => {
+test('primary tabs preserve the editor and its latest text through pause, resume and Stop', async () => {
   const { app, page } = await launch()
   try {
     await page.getByRole('button', { name: 'Start recording', exact: true }).click()
@@ -83,7 +83,7 @@ test('primary tabs preserve the editor and its latest text through pause, resume
   } finally { await app.close() }
 })
 
-test('Finish opens and streams Summary; reopening keeps the completed summary', async () => {
+test('Stop opens and streams Summary; reopening keeps the completed summary', async () => {
   const { app, page } = await launch()
   try {
     await page.getByRole('button', { name: 'Start recording', exact: true }).click()
@@ -151,7 +151,7 @@ test('the underline slides on pointer tab changes without moving the reading pan
 })
 
 for (const reducedMotion of ['reduce', 'no-preference'] as const) for (const from of ['notes', 'transcript'] as const) {
-  test(`Finish reveals Summary before switching from ${from}; motion ${reducedMotion}`, async () => {
+  test(`Stop reveals Summary before switching from ${from}; motion ${reducedMotion}`, async () => {
     const { app, page } = await launch()
     try {
       await page.emulateMedia({ reducedMotion })
@@ -188,7 +188,7 @@ for (const reducedMotion of ['reduce', 'no-preference'] as const) for (const fro
   })
 }
 
-test('choosing another tab cancels the pending Finish arrival', async () => {
+test('choosing another tab cancels the pending Stop arrival', async () => {
   const { app, page } = await launch()
   try {
     await page.emulateMedia({ reducedMotion: 'no-preference' })

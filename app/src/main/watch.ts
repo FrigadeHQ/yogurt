@@ -20,7 +20,7 @@ export type WatchDeps = {
   silentMs?(): number
   /** stop the recording because its call ended (no question asked) */
   autoStop?(m: Meeting): void
-  /** the "Finish recording when the call ends" setting; off or missing: ask instead */
+  /** the "Stop recording when the call ends" setting; off or missing: ask instead */
   autoStopOn?(): boolean
   /** how long the call must be gone (CALL_GONE_MS unless fake mode says) */
   graceMs?: number

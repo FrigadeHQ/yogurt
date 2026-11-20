@@ -3,7 +3,7 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-test('Pause keeps the same note and frozen captured time; Resume continues and Finish writes notes', async () => {
+test('Pause keeps the same note and frozen captured time; Resume continues and Stop writes notes', async () => {
   const app = await electron.launch({ args: [join(import.meta.dirname, '../out/main/index.js')], env: {
     ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: mkdtempSync(join(tmpdir(), 'yogurt-pause-')),
   } })
@@ -33,16 +33,16 @@ test('Pause keeps the same note and frozen captured time; Resume continues and F
     await expect(page.getByRole('textbox', { name: 'My notes', exact: true })).toContainText('Keep the customer feedback')
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => !w.webContents.getURL().includes('#'))!.setSize(720, 520))
     const resume = page.getByRole('button', { name: 'Resume recording', exact: true })
-    const finish = page.getByRole('button', { name: 'Finish recording', exact: true })
+    const stop = page.getByRole('button', { name: 'Stop recording', exact: true })
     await expect(resume).toBeVisible()
-    await expect(finish).toBeVisible()
-    const a = (await resume.boundingBox())!, b = (await finish.boundingBox())!
+    await expect(stop).toBeVisible()
+    const a = (await resume.boundingBox())!, b = (await stop.boundingBox())!
     expect(a.x + a.width).toBeLessThanOrEqual(b.x)
     expect(b.x + b.width).toBeLessThanOrEqual(720)
     await resume.click()
     await expect(page.getByRole('button', { name: 'Pause recording', exact: true })).toBeVisible()
     await expect.poll(async () => (await page.evaluate(() => window.yogurt.widget.state()))!.elapsedMs).toBeGreaterThan(paused!.elapsedMs)
-    await finish.click()
+    await stop.click()
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', /^(stopped|done)$/)
     await expect.poll(async () => (await page.evaluate((id) => window.yogurt.notes.get(id), id)).status, { timeout: 30_000 }).toBe('done')
     expect((await page.evaluate((id) => window.yogurt.notes.get(id), id)).mine).toContain('Keep the customer feedback')

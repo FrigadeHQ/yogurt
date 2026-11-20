@@ -22,13 +22,13 @@ it('picks an ongoing meeting first and offers Join for a same-day call', () => {
   expect(trayItems(null, live)[0].label).toBe('Now · Launch planning')
   expect(trayItems(null, live).some(i => i.id === 'join')).toBe(false)
 })
-it('recording has pause and Finish; paused has Resume; neither shows next meeting or Start', () => {
+it('recording has pause and Stop; paused has Resume; neither shows next meeting or Start', () => {
   for (const paused of [false, true]) {
     const items = trayItems({ title: 'Standup', paused }, event)
     expect(items.map(i => i.id)).toEqual(['status', 'pause', 'stop', 'sep', 'ask', 'open', 'recent', 'settings', 'sep', 'quit'])
     expect(items[0]).toMatchObject({ enabled: false, label: `${paused ? 'Paused' : 'Recording'} · Standup` })
     expect(items[1].label).toBe(paused ? 'Resume recording' : 'Pause recording')
-    expect(items[2].label).toBe('Finish recording')
+    expect(items[2].label).toBe('Stop recording')
   }
 })
 it('Recent keeps the last five by start, with reusable dates and note targets', () => {
