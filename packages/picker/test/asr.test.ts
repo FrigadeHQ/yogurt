@@ -78,11 +78,12 @@ describe('pickBySpeed', () => {
   })
   // #107: base and tiny are very weak outside English. small may lag a little behind live rather than fall back to them:
   // whisper skips silence (VAD), so with both sides talking about half the time it still about keeps up over a meeting.
-  it('a model allowed to lag a little is kept up to twice the strict limit, before anything smaller', async () => {
+  it('a model allowed to lag a little is kept up to 1.25 times the clip\'s length, before anything smaller', async () => {
     const t = timed({ turbo: 4.4, small: 0.88, base: 0.3 })
     const lags = (m: { id: string }) => m.id === 'small'
     expect(await pickBySpeed(list, t.measure, { lagsOk: lags })).toEqual({ model: list[1], rtf: { turbo: 4.4, small: 0.88 } })
-    expect(LAGS_A_LITTLE_RTF).toBe(1)
+    expect(LAGS_A_LITTLE_RTF).toBe(1.25)
+    expect((await pickBySpeed(list, timed({ turbo: 4.4, small: 1.2, base: 0.3 }).measure, { lagsOk: lags })).model).toBe(list[1])
     // too slow even so: down the list as before
     expect((await pickBySpeed(list, timed({ turbo: 4.4, small: 1.4, base: 0.3 }).measure, { lagsOk: lags })).model).toBe(list[2])
   })

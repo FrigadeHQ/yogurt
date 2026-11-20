@@ -23,11 +23,11 @@ export function pickAsr(hw: Hardware, c: Catalog, opts: { exclude?: string[] } =
  */
 export const KEEPS_UP_RTF = 0.5
 /**
- * small may take up to the clip's length rather than fall back to base or tiny, which are very weak outside English
- * (#107). It lags a little behind live; whisper skips silence, so with each side talking about half the time it still
- * about keeps up over a meeting.
+ * small may take up to 1.25 times the clip's length rather than fall back to base or tiny, which are very weak outside
+ * English (#107). It lags behind live; whisper skips silence, so with each side talking about half the time a meeting's
+ * transcript ends at most about a quarter of its length after the meeting does.
  */
-export const LAGS_A_LITTLE_RTF = 1
+export const LAGS_A_LITTLE_RTF = 1.25
 /** part of the speed check's key: a change to how it picks measures every computer again, once */
 export const SPEED_CHECK_VERSION = 'v2'
 
