@@ -1376,7 +1376,7 @@ body[data-background=ribbon] .hero-copy{padding-bottom:70px}
 }
 .sticky-header[data-scrolled] .nav-surface i { border-color: var(--hairline); }
 .nav-surface i:first-child { border-right: 0; border-radius: 100% 0 0 100% / 50% 0 0 50%; clip-path: ellipse(100% 50% at right center); }
-.nav-surface i:nth-child(2) { width: 1px; border-inline: 0; }
+.nav-surface i:nth-child(2) { width: 100%; border-inline: 0; }
 .nav-surface i:last-child { border-left: 0; border-radius: 0 100% 100% 0 / 0 50% 50% 0; clip-path: ellipse(100% 50% at left center); }
 .sticky-header :is(a, button, summary, .mobile-download-list) { pointer-events: auto; }
 .site-header {

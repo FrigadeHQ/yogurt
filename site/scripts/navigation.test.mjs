@@ -3,7 +3,21 @@ import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
 const source = readFileSync(new URL('../public/marketing/navigation.mjs', import.meta.url), 'utf8')
-for (const width of [1280, 390, 320]) {
+const sheet = readFileSync(new URL('../public/marketing/site.css', import.meta.url), 'utf8')
+assert.match(sheet, /\.nav-surface i:nth-child\(2\)\s*\{\s*width:\s*100%/)
+
+function checkJoin(parts, width) {
+  const values = part => part.style.transform.match(/-?[\d.]+/g).map(Number)
+  const [left, , scaleX] = values(parts[1])
+  const [rightCap] = values(parts[2])
+  for (const dpr of [0.9, 1, 1.25, 1.5, 1.8, 2, 2.625]) {
+    const paintedRight = left + Math.round(width * dpr) / dpr * scaleX
+    const overlap = paintedRight - rightCap
+    assert(overlap > 0.5 && overlap < 3.5, `center strip join at ${width}px and ${dpr}x: ${overlap}px`)
+  }
+}
+
+for (const width of [1441, 1280, 761, 760, 390, 320]) {
   const phone = width < 761, height = phone ? 72 : 80
   const wordmark = { offsetWidth: phone ? 92 : 108, style: {} }
   const toggle = { offsetLeft: -44 }
@@ -29,7 +43,13 @@ for (const width of [1280, 390, 320]) {
   const hero = { getBoundingClientRect: () => ({ bottom: 1000 - context.scrollY }) }
   vm.runInNewContext(source, context)
   const original = wordmark.style.transform
-  const advance = () => { const next = frame; frame = null; next(now += 16) }
+  const advance = () => {
+    const next = frame
+    frame = null
+    next(now += 16)
+    checkJoin(surface.children, width)
+  }
+  checkJoin(surface.children, width)
   const move = y => { context.scrollY = y; scroll() }
   move(1000 - height - 1)
   assert(!frame, 'the full header stays still over the app')
@@ -44,6 +64,7 @@ for (const width of [1280, 390, 320]) {
   advance()
   reduced = true
   motionChange()
+  checkJoin(surface.children, width)
   const compact = wordmark.style.transform
   const x = el => parseFloat(el.style.transform.slice('translate('.length))
   const pillLeft = x(surface.children[0])

@@ -17,7 +17,8 @@ function paint() {
   const seam = endX + surfaceHeight / 2
   // Cover both antialiased joins so the page cannot show through the pill.
   left.style.transform = `translate(${endX}px, ${top}px) scale(${scale})`
-  middle.style.transform = `translate(${seam - 2}px, ${top}px) scale(${width - 2 * seam + 4}, ${scale})`
+  // Shrink a full-width strip. Zoom rounding on a one-pixel strip gets magnified across the bar.
+  middle.style.transform = `translate(${seam - 2}px, ${top}px) scale(${(width - 2 * seam + 4) / width}, ${scale})`
   right.style.transform = `translate(${width - seam}px, ${top}px) scale(${scale})`
   nav.style.setProperty('--nav-download-radius', (8 + (geometry.downloadRadius - 8) * position) + 'px')
   const dy = (pillTop + (pillHeight - height) / 2) * position
