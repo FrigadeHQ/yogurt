@@ -255,6 +255,31 @@ describe('stops by itself when the call ends', () => {
     reading = { micApps: [], events: [] }; clock += 30_000; await w.tick()
     expect(log).toEqual(['stop'])
   })
+  // #100: Join and record is plainly a call. It starts with no call app (the browser or Zoom opens after), so it would
+  // count as started by hand; once its call app has been on the mic and the call ends, it stops by itself like a card start.
+  it('Join and record stops by itself once its call has ended, like a recording started from the card', async () => {
+    active = meeting({ app: null })
+    w.joined('m1')
+    reading = { micApps: [], events: [] }; await w.tick()
+    reading = { micApps: [zoom], events: [] }; clock += 3_000; await w.tick()
+    expect(active!.app).toBe('Zoom')
+    reading = { micApps: [], events: [] }; clock += 5_000; await w.tick()
+    expect(log).toEqual(['auto:m1'])
+  })
+  it('Join and record whose call never reached the mic is not stopped', async () => {
+    active = meeting({ app: null })
+    w.joined('m1')
+    reading = { micApps: [], events: [] }
+    await w.tick(); clock += 10 * MIN; await w.tick()
+    expect(log.filter((l) => l.startsWith('auto'))).toEqual([])
+  })
+  it('New note and the agenda stay started by hand: asked, never stopped by itself', async () => {
+    active = meeting({ app: null })
+    reading = { micApps: [], events: [] }; await w.tick()
+    reading = { micApps: [zoom], events: [] }; clock += 3_000; await w.tick()
+    reading = { micApps: [], events: [] }; clock += 31_000; await w.tick()
+    expect(log.filter((l) => l.startsWith('auto'))).toEqual([])
+  })
   it('a recording started by hand with no call is never stopped', async () => {
     active = meeting({ app: null })
     reading = { micApps: [], events: [] }

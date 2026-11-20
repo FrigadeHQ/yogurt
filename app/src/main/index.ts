@@ -426,7 +426,8 @@ function startDetection() {
     os: platform,
     host: process.platform === 'linux' && !BACKGROUND ? linuxTrayHost : undefined,
     event: (event, join) => {
-      begin({ title: event.title, event, app: null })
+      const m = begin({ title: event.title, event, app: null })
+      if (join && m) watcher.joined(m.id)
       if (join && event.url) openExternally(event.url.trim())
     },
   })

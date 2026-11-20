@@ -53,6 +53,9 @@ export class Watcher {
 
   constructor(private d: WatchDeps) {}
 
+  /** recordings started with Join and record: plainly a call, so it may stop by itself once that call has ended (#100) */
+  private joins = new Set<string>()
+  joined(meetingId: string) { this.joins.add(meetingId) }
   /** the person closed the start card */
   dismiss(key: string) { this.dismissed.add(key); this.shown = null }
   /** "Keep going": ask again in a while, not every tick */
@@ -112,8 +115,9 @@ export class Watcher {
 
   private recording(m: Meeting, s: Signals, now: number) {
     const starting = this.rec?.id !== m.id
-    // started by hand (no call app yet: New note, the agenda): never stopped by itself, only asked about
-    const byHand = starting ? !m.app : this.rec!.byHand
+    // started by hand (no call app yet: New note, the agenda): never stopped by itself, only asked about. Join and record
+    // starts with no app too, but it is a call: like a card start it stops once its call app was on the mic and has gone
+    const byHand = starting ? !m.app && !this.joins.has(m.id) : this.rec!.byHand
     const recent = starting && this.idleCall && now - this.idleCall.at <= 6000 ? this.idleCall.app : null
     const observed = decide({ ...s, recording: false }, now, new Set())?.app ?? null
     if (!m.app && (observed || recent)) {
