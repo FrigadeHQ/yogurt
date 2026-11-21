@@ -148,7 +148,7 @@ it('moves the sidebar and page together with the original timing and child layou
   expect(css).toContain('.workspace-sidebar-inner { display:flex;flex-direction:column;height:100%;min-height:0; }')
   expect(css).not.toContain('.sidebar-collapsed .workspace-sidebar-inner')
   expect(css).toContain('.workspace[data-sidebar-motion=true] .workspace-toolbar { transition:padding-inline-start 200ms cubic-bezier(.22,1,.36,1); }')
-  expect(css).toContain('.workspace[data-sidebar-motion=true] .workspace-folder-label { transition:height 200ms cubic-bezier(.22,1,.36,1),margin 200ms cubic-bezier(.22,1,.36,1),opacity 120ms ease; }')
+  expect(css).toMatch(/@media \(prefers-reduced-motion:reduce\)\s*\{\s*\.accordion\.workspace-folder-panel,\.accordion\.workspace-folder-panel>\* \{ transition:none;/)
   const styles = readFileSync(new URL('../src/renderer/src/styles.css', import.meta.url), 'utf8')
   for (const animation of ['icon-lift', 'icon-write', 'icon-turn']) expect(css + styles).not.toContain(animation)
 })

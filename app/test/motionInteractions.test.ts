@@ -102,6 +102,70 @@ it.each([
     expect(render().props.transition).toEqual(reorder)
   }
 })
+it('remembers the folders disclosure and opens a newly created folder even from a closed section', () => {
+  const stored = new Map<string, string>()
+  vi.stubGlobal('window', { localStorage: { getItem: (key: string) => stored.get(key), setItem: (key: string, value: string) => stored.set(key, value) } })
+  const go = vi.fn()
+  const mount = () => renderer(() => FoldersNav({ folders: [], route: '', sidebarMotion: false, go }))
+  let render = mount()
+  const toggle = () => find(render(), 'workspace-folders-toggle').props
+  const panel = () => find(render(), toggle()['aria-controls']).props
+  expect(toggle()['aria-expanded']).toBe(true)
+  expect(find(render(), 'workspace-folder-header').props['data-empty']).toBe(true)
+  toggle().onClick()
+  render = mount()
+  expect(toggle()['aria-expanded']).toBe(false)
+  expect(panel().inert).toBe(true)
+  const create = () => find(render(), 'folder-create').props.onClick()
+  create()
+  find(render(), 'FolderName').props.onDone()
+  expect(toggle()['aria-expanded']).toBe(false)
+  expect(go).not.toHaveBeenCalled()
+  create()
+  find(render(), 'FolderName').props.onDone({ id: 'new' })
+  expect(go).toHaveBeenCalledExactlyOnceWith('/folder/new')
+  render = mount()
+  expect(toggle()['aria-expanded']).toBe(true)
+  expect(panel().inert).toBe(false)
+})
+
+it.each([0, 1, 99, 100, 1234])('shows the capped count and describes the full count for a folder with %i meetings', count => {
+  vi.stubGlobal('window', { matchMedia: () => ({ matches: true }) })
+  const folders = [{ id: 'f', name: 'Planning', count, icon: 'folder' as const, color: 'default' as const, createdAt: 1 }]
+  const nav = renderer(() => FoldersNav({ folders, route: '/folder/f', sidebarMotion: false, go() {} }))()
+  const item = find(nav, 'folder-reorder-list').props.children[0]
+  const row = renderer(() => item.type(item.props))()
+  expect(find(row, 'sidebar-folder-open').props).toMatchObject({ 'aria-current': 'page', 'aria-label': 'Planning',
+    'aria-description': count === 1 ? '1 meeting' : `${count.toLocaleString('en-US')} meetings` })
+  expect(find(row, 'sidebar-folder-count').props.children.props).toMatchObject({ dir: 'ltr', children: count > 99 ? '99+' : count })
+  expect(find(row, 'sidebar-folder-more').props['aria-haspopup']).toBe('menu')
+})
+
+it.each(['button', 'right-click', 'keyboard'])('opens the same folder actions via %s', method => {
+  vi.stubGlobal('window', { matchMedia: () => ({ matches: true }) })
+  vi.stubGlobal('getComputedStyle', () => ({ direction: 'ltr' }))
+  const folders = [{ id: 'f', name: 'Planning', count: 1, icon: 'folder' as const, color: 'default' as const, createdAt: 1 }]
+  const nav = renderer(() => FoldersNav({ folders, route: '', sidebarMotion: false, go() {} }))()
+  const item = find(nav, 'folder-reorder-list').props.children[0]
+  const render = renderer(() => item.type(item.props))
+  const row = find(render(), 'sidebar-folder')
+  row.props.ref.current = { getBoundingClientRect: () => ({ left: 10, bottom: 70, width: 188 }) }
+  const opener = find(row, 'sidebar-folder-open').props
+  if (method === 'button') {
+    const more = find(row, 'sidebar-folder-more')
+    expect(more.type).toBe('button')
+    expect(more.props.tabIndex).not.toBe(-1)
+    more.props.onClick()
+  } else if (method === 'right-click') opener.onContextMenu({ preventDefault() {} })
+  else opener.onKeyDown({ key: 'F10', shiftKey: true, preventDefault() {} })
+  const result = render()
+  expect(find(result, 'sidebar-folder-more').props['aria-expanded']).toBe(true)
+  const menu = find(result, 'sidebar-folder-menu')
+  for (const action of ['appearance', 'rename', 'up', 'down', 'delete']) {
+    expect(find(menu, 'sidebar-folder-' + action).props.role).toBe('menuitem')
+  }
+})
+
 function find(node: ReactNode, testId: string): ReactElement<any> {
   const visit = (value: ReactNode): ReactElement<any> | undefined => {
     if (Array.isArray(value)) return value.map(visit).find(Boolean)

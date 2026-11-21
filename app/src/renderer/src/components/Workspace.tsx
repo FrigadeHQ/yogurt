@@ -84,7 +84,6 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
       <div className="workspace-sidebar-body">
         <button className="workspace-search no-drag" data-testid="search-open" aria-label={t('Search')} title={`${t('Search')} (${keys('⌘K')})`} onClick={search}><Search className="flex-none" size={16} aria-hidden="true" /><span>{t('Search')}</span><kbd>{keys('⌘K')}</kbd></button>
         <nav aria-label={t('Workspace')}>{links.map(nav)}</nav>
-        <div className="workspace-folder-label">{t('Your workspace')}</div>
         <FoldersNav collapsed={collapsed} sidebarMotion={sidebarMotion} folders={folders} route={route} go={go} />
       </div>
       <div className="workspace-sidebar-footer">

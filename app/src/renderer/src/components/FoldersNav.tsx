@@ -1,7 +1,7 @@
 import { Loading } from './Loading'
 import { LoadingContent } from './LoadingContent'
 import { useEffect, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type RefObject } from 'react'
-import { ArrowDown, ArrowUp, Ellipsis, Palette, Pencil, Plus, Trash2 } from './Icons'
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Ellipsis, Palette, Pencil, Plus, Trash2 } from './Icons'
 import { Reorder, useDragControls } from 'motion/react'
 import { useReducedMotion, usePopoverPresence } from '../motion'
 import type { Folder } from '../../../shared/types'
@@ -12,11 +12,17 @@ import { draggedMeetings } from '../meetingSelection'
 import { DeleteFolder, FolderName, FolderAppearanceDialog } from './FolderDialogs'
 import { toasts } from './TrashToast'
 
-/**
- * The sidebar's folders: each opens its page, takes a meeting row dropped on it, and has a small menu to rename or
- * delete it; New folder at the end.
- */
+const sectionOpenKey = 'sidebar.foldersOpen'
+
 export function FoldersNav({ folders, route, go, collapsed = false, sidebarMotion }: { collapsed?: boolean; sidebarMotion: boolean; folders?: Folder[]; route: string; go: (route: string) => void }) {
+  const [expanded, setExpanded] = useState(() => {
+    try { return window.localStorage.getItem(sectionOpenKey) !== 'false' } catch { return true }
+  })
+  const setSectionOpen = (open: boolean) => {
+    setExpanded(open)
+    try { window.localStorage.setItem(sectionOpenKey, String(open)) } catch { /* Still works for this visit. */ }
+  }
+  const Caret = expanded ? ChevronDown : ChevronRight
   const [naming, setNaming] = useState<{ folder?: Folder }>()
   const [appearance, setAppearance] = useState<Folder>()
   const [deleting, setDeleting] = useState<Folder>()
@@ -47,23 +53,38 @@ export function FoldersNav({ folders, route, go, collapsed = false, sidebarMotio
   }
   return <>
     <nav aria-label={t('Folders')} data-testid="sidebar-folders">
-      <LoadingContent pending={!folders} skeleton={<Loading layout="folders" testId="folders-loading" />}>
-      <Reorder.Group as="div" ref={group} axis="y" values={ids} className="workspace-folder-list" data-testid="folder-reorder-list"
-        onReorder={next => { latest.current = next; setOrder(next) }}>
-        {ids.map((id, i) => {
-          const s = folders!.find(f => f.id === id)!
-          return <FolderItem key={s.id} folder={s} collapsed={collapsed} sidebarMotion={sidebarMotion} current={route === `/folder/${s.id}`} go={go}
-            constraints={group} reorderable={!busy && ids.length > 1} onDragStart={() => { dragging.current = true }} onDragEnd={() => void save(latest.current)}
-            moveUp={!busy && i > 0 ? () => move(id, -1) : undefined} moveDown={!busy && i < ids.length - 1 ? () => move(id, 1) : undefined}
-            onAppearance={() => setAppearance(s)} onRename={() => setNaming({ folder: s })} onDelete={() => setDeleting(s)} />
-        })}
-      </Reorder.Group></LoadingContent>
-      <button data-testid="folder-create" data-sidebar="menu-button" aria-label={t('New folder')} title={collapsed ? t('New folder') : undefined} className="workspace-nav workspace-folder-new" onClick={() => setNaming({})}>
-        <Plus size={16} aria-hidden="true" /><span>{t('New folder')}</span>
-      </button>
+      <div className="workspace-folder-header" data-empty={folders?.length === 0}>
+        <button type="button" className="workspace-folder-toggle" data-testid="workspace-folders-toggle"
+          aria-label={t('Your workspace')} title={collapsed ? t('Your workspace') : undefined} aria-expanded={expanded}
+          aria-controls="workspace-folder-panel" onClick={() => setSectionOpen(!expanded)}>
+          <span>{t('Your workspace')}</span><Caret size={12} aria-hidden="true" className={expanded ? undefined : 'rtl:-scale-x-100'} />
+        </button>
+        <button type="button" data-testid="folder-create" className="ghost-btn workspace-icon workspace-folder-new"
+          aria-label={t('New folder')} title={t('New folder')} onClick={() => setNaming({})}><Plus size={14} aria-hidden="true" /></button>
+      </div>
+      <div id="workspace-folder-panel" className="accordion workspace-folder-panel" data-open={expanded} inert={!expanded}>
+        <LoadingContent pending={!folders} skeleton={<Loading layout="folders" testId="folders-loading" />}>
+          <Reorder.Group as="div" ref={group} axis="y" values={ids} className="workspace-folder-list" data-testid="folder-reorder-list"
+            onReorder={next => { latest.current = next; setOrder(next) }}>
+            {ids.map((id, i) => {
+              const s = folders!.find(f => f.id === id)!
+              return <FolderItem key={s.id} folder={s} collapsed={collapsed} sidebarMotion={sidebarMotion} current={route === `/folder/${s.id}`} go={go}
+                constraints={group} reorderable={!busy && ids.length > 1} onDragStart={() => { dragging.current = true }} onDragEnd={() => void save(latest.current)}
+                moveUp={!busy && i > 0 ? () => move(id, -1) : undefined} moveDown={!busy && i < ids.length - 1 ? () => move(id, 1) : undefined}
+                onAppearance={() => setAppearance(s)} onRename={() => setNaming({ folder: s })} onDelete={() => setDeleting(s)} />
+            })}
+          </Reorder.Group>
+        </LoadingContent>
+      </div>
     </nav>
     {appearance && <FolderAppearanceDialog folder={appearance} onDone={() => setAppearance(undefined)} />}
-    {naming && <FolderName folder={naming.folder} onDone={(made) => { setNaming(undefined); if (made) go(`/folder/${made.id}`) }} />}
+    {naming && <FolderName folder={naming.folder} onDone={made => {
+      setNaming(undefined)
+      if (made) {
+        if (!expanded) setSectionOpen(true)
+        go(`/folder/${made.id}`)
+      }
+    }} />}
     {deleting && <DeleteFolder folder={deleting} onDone={(gone) => {
       setDeleting(undefined)
       if (gone && route === `/folder/${deleting.id}`) go('')
@@ -117,7 +138,7 @@ function FolderItem({ folder, collapsed, sidebarMotion, current, go, onRename, o
     transition={instant ? { duration: 0 } : { type: 'spring', stiffness: 520, damping: 42 }}
     onDragStart={() => { dragged.current = true; setMoving(true); setMenu(undefined); onDragStart() }}
     onDragEnd={() => { setMoving(false); onDragEnd() }}>
-    <button ref={open} className="workspace-nav" data-sidebar="menu-button" aria-label={folder.name} title={collapsed ? folder.name : undefined} data-testid="sidebar-folder-open" data-drop={drop} aria-current={current ? 'page' : undefined}
+    <button ref={open} className="workspace-nav" data-sidebar="menu-button" aria-label={folder.name} aria-description={t('{count} meetings', { count: folder.count })} title={collapsed ? folder.name : undefined} data-testid="sidebar-folder-open" data-drop={drop} aria-current={current ? 'page' : undefined}
       aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
       onPointerDown={e => { dragged.current = false; if (reorderable && e.button === 0) controls.start(e, { distanceThreshold: 4 }) }}
       onClick={e => { if (dragged.current && e.detail) { dragged.current = false; return } go(`/folder/${folder.id}`) }}
@@ -135,7 +156,7 @@ function FolderItem({ folder, collapsed, sidebarMotion, current, go, onRename, o
         }
       }}>
       <FolderGlyph appearance={folder} /><span>{folder.name}</span>
-      <small data-testid="sidebar-folder-count" aria-label={t('{count} meetings', { count: folder.count })}>{folder.count}</small>
+      <small data-testid="sidebar-folder-count" aria-hidden="true"><bdi dir="ltr">{folder.count > 99 ? '99+' : folder.count}</bdi></small>
     </button>
     <button ref={more} data-testid="sidebar-folder-more" className="ghost-btn workspace-icon workspace-folder-more" aria-haspopup="menu" aria-expanded={!!menu}
       aria-label={t('More for “{name}”', { name: folder.name })} title={t('More')} onClick={() => (menu ? setMenu(undefined) : openMenu(true))}>
