@@ -656,7 +656,7 @@ body:has(.chat-panel[open]) .app-toast-viewport:dir(rtl) { --toast-x:440px; }
 .workspace-corner { display:flex;align-items:center;min-height:var(--workspace-footer-height);border-top:1px solid var(--line);margin-top:9px;margin-inline:calc(-1 * var(--sidebar-inset));padding-inline:calc(var(--sidebar-inset) + var(--nav-inset) - 6px); }
 .sidebar-collapsed .workspace-corner { padding-inline:11px; }
 .workspace-icon.corner-trigger { position:relative;color:var(--ink);width:28px;height:28px;flex:none;display:grid;place-items:center; }
-.corner-brand { display:block;color:color-mix(in srgb,var(--primary),var(--accent));translate:0 .5px; }
+.corner-brand { display:block;translate:0 .5px; }
 .corner-mark { display:inline-block;flex:none;width:15px;height:15px;background:currentColor;color:var(--muted); }
 .corner-mark.github { mask:url('./assets/github-black.svg') center / contain no-repeat; }
 .corner-mark.discord { mask:url('./assets/discord.svg') center / contain no-repeat; }

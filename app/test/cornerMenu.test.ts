@@ -18,12 +18,10 @@ function nodes(node: ReactNode): ReactElement<Record<string, any>>[] {
 function render(recording = false) {
   cursor = 0
   tree = CornerMenu({ section: '/settings', recording, go, shortcuts })
-  // Run the notice effect after this render, as React does when the menu or update state changes.
-  vi.mocked(useEffect).mock.calls.at(-1)![0]()
 }
 const props = (id: string) => nodes(tree).find(n => n.props['data-testid'] === id)?.props
 const root = () => nodes(tree).find(n => n.type === Menu.Root)!.props
-function mount() { render(); return vi.mocked(useEffect).mock.calls[0][0]() }
+function mount() { render(); return vi.mocked(useEffect).mock.lastCall![0]() }
 beforeEach(() => {
   vi.clearAllMocks(); values = []; cursor = 0
   vi.mocked(useState).mockImplementation(((initial: unknown) => {
@@ -37,7 +35,7 @@ beforeEach(() => {
   }) as typeof useRef)
   restart.mockResolvedValue(true)
   const store = new Map<string, string>()
-  vi.stubGlobal('localStorage', { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v) })
+  vi.stubGlobal('localStorage', { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v), removeItem: (k: string) => store.delete(k) })
   vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn(), yogurt: { updates: {
     status: () => new Promise<UpdateStatus>(resolve => { initial = resolve }),
     onStatus: (fn: typeof notify) => { notify = fn; return off }, restart,
@@ -80,17 +78,17 @@ it('uses the approved eight rows and appends the downloaded version nearest the 
   expect(go.mock.calls).toEqual([['/settings'],['/trash']]); expect(shortcuts).toHaveBeenCalledOnce()
 })
 
-it('only offers restart for ready, respects an earlier dismissal of the badge, and ignores stale reads', async () => {
+it('only offers restart after a download, including after Later, and ignores stale reads', async () => {
   const cleanup = mount()
   for (const state of ['checking','idle','latest','error','downloading'] as const) {
     notify({ ...ready, state }); render()
     expect(props('update-restart')).toBeUndefined()
   }
   root().onOpenChange(true); render(); root().onOpenChange(false); render()
-  expect(props('corner-notice-dot')).toBeUndefined()
+  expect(props('update-restart')).toBeUndefined()
   notify(ready); initial({ ...ready, state: 'idle' }); await Promise.resolve(); render()
   expect(props('corner-notice-dot')).toBeDefined()
-  notify({ ...ready, dismissed: true }); render(); expect(props('corner-notice-dot')).toBeUndefined()
+  notify({ ...ready, dismissed: true }); render(); expect(props('corner-notice-dot')).toBeDefined()
   expect(props('update-restart')).toBeDefined()
   cleanup?.(); notify({ ...ready, state: 'error' }); render()
   expect(props('update-restart')).toBeDefined(); expect(off).toHaveBeenCalledOnce()
@@ -136,30 +134,51 @@ it('remembers a changelog release across remounts and only flags a newer stable 
   expect(JSON.stringify(news().children)).toContain('"New"')
 })
 
-it('clears each notice when shown, keeping New until the changelog is opened', async () => {
-  mount(); notify({ ...ready, next: undefined, state: 'idle' }); render()
-  const dot = () => props('corner-notice-dot')
+it('marks only a downloaded update, through menu opens and restarts until the target version actually runs', async () => {
+  const installed = { ...ready, next: undefined, state: 'latest' as const }
   const news = () => nodes(tree).find(n => n.props.href === cornerLinks.news)!.props
-  const open = (value: boolean) => { root().onOpenChange(value); render() }
-  expect(dot()).toBeDefined()
-  open(true); open(false)
-  expect(dot()).toBeUndefined()
-  expect(JSON.stringify(news().children)).toContain('"New"')
+  function expectDots(unread: boolean, waiting: boolean) {
+    expect(!!props('corner-notice-dot')).toBe(waiting)
+    expect(nodes(news().children).some(n => n.props.className === 'corner-row-dot')).toBe(false)
+    expect(nodes(news().children).some(n => n.props.children === 'New')).toBe(unread)
+    expect(nodes(props('update-restart')?.children).some(n => n.props.className === 'corner-row-dot')).toBe(waiting)
+  }
+  mount(); notify(installed); render()
+  expectDots(true, false)
+  root().onOpenChange(true); render(); expectDots(true, false)
+  await news().onClick(); render(); expectDots(false, false)
+  notify(ready); render(); expectDots(true, true)
+  root().onOpenChange(false); render(); expectDots(true, true)
+  root().onOpenChange(true); render(); expectDots(true, true)
+  await news().onClick(); render(); expectDots(false, true)
+  props('update-restart')!.onClick(); await Promise.resolve(); render()
+  expect(root().open).toBe(false); expectDots(false, true)
 
-  // A new release and a downloaded update for that same release are separate reasons to badge the corner button.
-  notify({ ...ready, state: 'downloading' }); render()
-  expect(dot()).toBeDefined()
-  open(true); open(false)
-  notify(ready); render()
-  expect(dot()).toBeDefined()
-  open(true)
-  expect(props('update-restart')).toBeDefined()
-  notify({ ...ready, next: '0.3.11' }); render()
-  open(false)
-  expect(dot()).toBeUndefined()
-  values = []; render(); notify({ ...ready, next: '0.3.11' }); render()
-  expect(dot()).toBeUndefined()
-  expect(JSON.stringify(news().children)).toContain('"New"')
-  await news().onClick(); render()
-  expect(JSON.stringify(news().children)).not.toContain('"New"')
+  // The old process can reopen before the updater finishes checking its cache.
+  values = []; mount(); notify(installed); render()
+  expectDots(false, true)
+  expect(props('update-restart')!.disabled).toBe(true)
+  notify({ ...ready, dismissed: true }); render()
+  expectDots(false, true)
+  expect(props('update-restart')!.disabled).toBe(false)
+  notify({ ...installed, version: ready.next! }); render(); expectDots(false, false)
+  notify({ ...ready, version: ready.next!, next: '0.3.11' }); render(); expectDots(true, true)
+  notify({ ...installed, version: '0.3.11' }); render(); expectDots(true, false)
+  await news().onClick(); render(); expectDots(false, false)
+})
+
+it('enables pointer highlighting on movement or entry completion', () => {
+  mount()
+  for (const moved of [true, false]) {
+    root().onOpenChange(true); render()
+    props('corner-menu')!.onPointerMove({ movementX: 0, movementY: 0 }); render()
+    expect(root().highlightItemOnHover).toBe(false)
+    expect(props('corner-menu')!['data-suppress-hover']).toBe(true)
+    if (moved) props('corner-menu')!.onPointerMove({ movementX: 1, movementY: 0 })
+    else root().onOpenChangeComplete(true)
+    render()
+    expect(root().highlightItemOnHover).toBe(true)
+    expect(props('corner-menu')!['data-suppress-hover']).toBeUndefined()
+    root().onOpenChange(false); render()
+  }
 })
