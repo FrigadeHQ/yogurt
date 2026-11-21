@@ -88,6 +88,7 @@ public struct SyncConfig: Sendable {
 public final class SyncEngine: SyncEngineProtocol {
     public static let unrecognised = "This computer doesn't recognise this iPhone any more. Pair again."
     public static let localNetwork = "Allow Local Network for Yogurt in Settings to reach your computer."
+    public static let updateNeeded = "Update Yogurt on your iPhone or computer so they can sync again."
     static func syncFailed(_ name: String) -> String { "Couldn't sync with \(name) just now. Trying again soon." }
 
     public private(set) var status: ConnectionStatus
@@ -294,6 +295,14 @@ public final class SyncEngine: SyncEngineProtocol {
                 return
             }
             log.notice("connect failed: \(String(describing: error), privacy: .public)")
+            // the two speak different versions of sync: no retry helps until one is updated (tried again next time
+            // Yogurt comes to the front)
+            if error as? SyncError == .remote("schema") {
+                refused = true
+                offlineTimer?.cancel()
+                status = .error(Self.updateNeeded)
+                return
+            }
             if error as? SyncError == .unrecognised {
                 refusals += 1
                 if refusals >= 2 {

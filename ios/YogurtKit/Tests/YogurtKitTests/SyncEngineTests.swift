@@ -251,6 +251,16 @@ import Testing
         #expect(rig.network.opens == tries)
     }
 
+    @Test func aComputerOnAnotherVersionSaysToUpdate() async throws {
+        let rig = try Rig()
+        rig.network.openError = .remote("schema")
+        rig.engine.setForeground(true)
+        #expect(await eventually { rig.engine.status == .error(SyncEngine.updateNeeded) })
+        let tries = rig.network.opens
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(rig.network.opens == tries)
+    }
+
     @Test func oneRefusalThatWasReallyADropDoesNotSayPairAgain() async throws {
         let rig = try Rig()
         rig.network.openError = .unrecognised
