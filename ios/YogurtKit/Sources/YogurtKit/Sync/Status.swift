@@ -29,6 +29,19 @@ public enum ConnectionStatus: Sendable, Hashable {
         }
     }
 
+    /// The same, without the computer's name, for when the full one doesn't fit beside Home's buttons.
+    public func shortLabel(now: Date) -> String {
+        switch self {
+        case .notPaired: "This iPhone only"
+        case .searching: "Looking…"
+        case .connecting: "Connecting…"
+        case .connected(_, nil): "Synced just now"
+        case .offline(_, let last?): "Offline · synced \(relativeTime(last, now: now))"
+        case .offline(_, nil): "Offline · not synced yet"
+        case .connected, .error: label(now: now)
+        }
+    }
+
     /// The paired computer's name, when the status knows it.
     public var computerName: String? {
         switch self {

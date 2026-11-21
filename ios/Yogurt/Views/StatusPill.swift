@@ -16,17 +16,17 @@ struct StatusPill: View {
                 }
                 // refreshed every minute so "last synced 2 h ago" stays true
                 TimelineView(.periodic(from: .now, by: 60)) { context in
-                    Text(status.label(now: context.date))
-                        .font(.footnote.weight(.medium))
-                        .foregroundStyle(isError ? Theme.danger : Theme.ink)
-                        // a problem gets two lines, so the person can read what to do
-                        .lineLimit(isError ? 2 : 1)
-                        .minimumScaleFactor(0.85)
-                        .contentTransition(.opacity)
+                    // the whole sentence on one line when it fits beside Home's buttons, else without the computer's
+                    // name, else on two lines; never cut off. A problem always gets two, so it can be read.
+                    ViewThatFits(in: .horizontal) {
+                        if !isError { line(status.label(now: context.date)).lineLimit(1).fixedSize() }
+                        if !isError { line(status.shortLabel(now: context.date)).lineLimit(1).fixedSize() }
+                        line(status.label(now: context.date)).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
             .padding(.leading, 11).padding(.trailing, 13)
-            .padding(.vertical, isError ? 6 : 0)
+            .padding(.vertical, 6)
             .frame(minHeight: 32)
             .background(isError ? Theme.dangerSoft : Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.line.opacity(isError ? 0 : 1), lineWidth: 0.5))
@@ -36,6 +36,13 @@ struct StatusPill: View {
         .accessibilityLabel(status.label)
         .accessibilityHint(S.settings)
         .accessibilityIdentifier("status-pill")
+    }
+
+    private func line(_ text: String) -> some View {
+        Text(text)
+            .font(.footnote.weight(.medium))
+            .foregroundStyle(isError ? Theme.danger : Theme.ink)
+            .contentTransition(.opacity)
     }
 
     private var busy: Bool {

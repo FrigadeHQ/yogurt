@@ -16,6 +16,17 @@ import Testing
         #expect(ConnectionStatus.error("Pair again.").label(now: now) == "Pair again.")
     }
 
+    @Test func shortLabelsForANarrowScreenKeepWhatMatters() {
+        #expect(ConnectionStatus.notPaired.shortLabel(now: now) == "This iPhone only")
+        #expect(ConnectionStatus.searching.shortLabel(now: now) == "Looking…")
+        #expect(ConnectionStatus.connecting("A long computer name").shortLabel(now: now) == "Connecting…")
+        #expect(ConnectionStatus.connected("A long computer name", syncing: nil).shortLabel(now: now) == "Synced just now")
+        #expect(ConnectionStatus.connected("MacBook", syncing: 12).shortLabel(now: now) == "Syncing 12 meetings…")
+        #expect(ConnectionStatus.offline("MacBook", lastSync: now.addingTimeInterval(-7200)).shortLabel(now: now) == "Offline · synced 2 h ago")
+        #expect(ConnectionStatus.offline("MacBook", lastSync: nil).shortLabel(now: now) == "Offline · not synced yet")
+        #expect(ConnectionStatus.error("Pair again.").shortLabel(now: now) == "Pair again.")
+    }
+
     @Test func offlineSaysWhenItLastSynced() {
         func offline(_ ago: TimeInterval?) -> String {
             ConnectionStatus.offline("MacBook", lastSync: ago.map { now.addingTimeInterval(-$0) }).label(now: now)
