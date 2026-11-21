@@ -52,7 +52,7 @@ struct SettingsView: View {
                 ToolbarItem(placement: .confirmationAction) { Button(S.done) { dismiss() } }
             }
             .confirmationDialog(S.unpairTitle(name ?? S.computer.lowercased()), isPresented: $confirmUnpair, titleVisibility: .visible) {
-                Button(S.unpair, role: .destructive) { model.engine.unpair(); dismiss() }
+                Button(S.unpair, role: .destructive) { model.engine.unpair(); AskSession.shared.clear(); dismiss() }
                 Button(S.cancel, role: .cancel) {}
             } message: {
                 let unsent = model.store.unsentEdits()

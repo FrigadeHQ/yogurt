@@ -56,6 +56,9 @@ final class AskSession {
 
     func turns(_ key: String) -> [Turn] { conversations[key] ?? [] }
 
+    /// Unpaired: the computer's answers and excerpts don't stay on screen.
+    func clear() { conversations = [:] }
+
     var busy: Bool { conversations.values.contains { $0.contains { if case .answering = $0.state { true } else { false } } } }
 
     /// Apple's model can answer here. DEBUG -previewNoAppleIntelligence YES shows the screen without it.
@@ -93,7 +96,10 @@ final class AskSession {
     }
 
     private func answer(_ turn: Turn, model: AppModel) async throws -> AskAnswer {
-        if case .connected = model.engine.status {
+        // a recording made here that the computer doesn't have yet: only this iPhone can answer about it
+        let notSent = Set(model.store.localRecordings().filter { $0.uploadedAt == nil }.map(\.id))
+        let phoneOnly = turn.scope?.meetingIds.map { !$0.isEmpty && $0.allSatisfy(notSent.contains) } ?? false
+        if case .connected = model.engine.status, !phoneOnly {
             do {
                 return AskAnswer(remote: try await model.engine.ask(turn.question, scope: turn.scope))
             } catch {
