@@ -35,6 +35,12 @@ test('@everywhere on win32: the agenda sends you to Settings, a calendar link co
     await expect(page.getByText("Calendars from the Mac's Calendar app appear above automatically.", { exact: true })).toHaveCount(0)
     await expect(form.getByTestId('calendar-link-open')).toHaveAttribute('href', /calendar\.google\.com/)
     await form.getByTestId('calendar-link-provider-outlook').click()
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme })
+      const selected = form.getByRole('tab', { selected: true })
+      await expect(selected).toHaveCSS('background-color', 'rgb(111, 0, 255)')
+      await expect(selected).toHaveCSS('color', 'rgb(255, 255, 255)')
+    }
     await expect(form.getByTestId('calendar-link-open')).toHaveAttribute('href', /outlook\.office\.com/)
     // a page that isn't a calendar says so, and nothing is connected
     await form.getByTestId('calendar-link-input').fill(`${base}/page`)
