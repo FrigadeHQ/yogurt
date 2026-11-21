@@ -11,6 +11,7 @@ export function createSavedTranscriptions(d: {
   draft?: (id:string) => void
   changed: (id: string,replaced?:boolean) => void; summarize: (id: string) => void
 }) {
+  d.store.settleParkedTranscriptions()
   let running: { id:string; abort:AbortController; stopped:boolean } | undefined
   let draining=false, quitting=false
   const set=(id:string,state:TranscriptionState)=>{if(d.store.meeting(id)){d.store.updateMeeting(id,{transcriptionState:state});d.changed(id)}}

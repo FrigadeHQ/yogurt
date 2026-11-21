@@ -344,7 +344,12 @@ function finishSession(id: string, s: Session, audioDone: () => Promise<void> = 
   s.store ??= store
   s.done ??= audioDone().then(() => s.pipeline?.finish()).then(() => {
     if (!s.replacement) sweepEcho(id, s)
-    if (!s.replacement && s.complete?.()) s.store?.updateMeeting(id, { transcriptionPending: false })
+    if (!s.replacement && s.complete?.()) {
+      // the saved-recording queue may have parked this meeting while its live transcript was still finishing (a quit or
+      // another recording was under way): the transcript is whole now, so nothing is left waiting
+      const parked = ['queued', 'waiting-model', 'waiting-recording'].includes(s.store?.meeting?.(id)?.transcriptionState ?? '')
+      s.store?.updateMeeting(id, { transcriptionPending: false, ...(parked ? { transcriptionState: 'done' as const } : {}) })
+    }
   }).catch((e) => { s.failed = true; console.error('finishing the transcript failed', e) }).finally(() => {
     // the meeting's main language is kept with it, for notes written later (after a restart too)
     const lang = meetingLanguage(id)
