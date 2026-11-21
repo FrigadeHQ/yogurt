@@ -38,7 +38,7 @@ describe('companion change log', () => {
     expect(rec('folderMembers')).toEqual({ folderId: f.id, meetingIds: [m.id] })
     expect(rec('people')).toEqual({ email: 'ada@example.com', displayName: null })
     // nothing new: nothing after the cursor
-    expect(changesSince(store, cursor, 100)).toEqual({ changes: [], cursor, more: false })
+    expect(changesSince(store, cursor, 100)).toMatchObject({ changes: [], cursor, more: false })
     store.removeFromFolder(f.id, m.id)
     const after = changesSince(store, cursor, 100)
     expect(keys(after.changes)).toEqual([`folderMembers:${f.id}`])
@@ -56,6 +56,58 @@ describe('companion change log', () => {
     expect(two.changes).toHaveLength(1)
     expect(two.more).toBe(false)
     expect(two.changes.map((c) => (c.record as { title: string }).title)).toEqual(['Plum'])
+  })
+
+  it('clamps limit to 1..500 and stops a page early past about 1 MB, always with at least one change', () => {
+    const since = head()
+    const long = 'word '.repeat(60_000) // ~300 KB per transcript
+    for (let i = 0; i < 5; i++) {
+      const m = store.createMeeting({ ...base, title: `Long ${i}`, startedAt: 1000 + i })
+      store.addSegments([{ meetingId: m.id, track: 'them', startMs: 0, endMs: 1, text: long, speaker: null }])
+    }
+    const all: Change[] = []
+    let cursor = since, more = true, pages = 0
+    while (more) {
+      const page = changesSince(store, cursor, 500)
+      expect(page.changes.length).toBeGreaterThan(0)
+      expect(JSON.stringify(page.changes).length < 1_100_000 || page.changes.length === 1).toBe(true)
+      all.push(...page.changes); cursor = page.cursor; more = page.more; pages++
+    }
+    expect(pages).toBeGreaterThan(1)
+    expect(all.filter((c) => c.entity === 'segments')).toHaveLength(5)
+    expect(changesSince(store, since, 0).changes).toHaveLength(1)
+    expect(changesSince(store, since, Number.NaN).changes).toHaveLength(1)
+    expect(changesSince(store, since, 10_000).changes.length).toBeLessThanOrEqual(500)
+  })
+
+  it('gives the log an epoch that stays the same across opens', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'yogurt-companion-'))
+    try {
+      const a = openStore(join(dir, 'yogurt.db'))
+      const epoch = changesSince(a, 0, 10).epoch
+      expect(epoch).toMatch(/^[0-9a-f-]{36}$/)
+      a.close()
+      const b = openStore(join(dir, 'yogurt.db'))
+      expect(changesSince(b, 0, 10).epoch).toBe(epoch)
+      b.close()
+      expect(changesSince(store, 0, 10).epoch).not.toBe(epoch)
+    } finally { rmSync(dir, { recursive: true, force: true }) }
+  })
+
+  it('triggers are made again under a new version, so their columns can change', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'yogurt-companion-'))
+    try {
+      const a = openStore(join(dir, 'yogurt.db'))
+      a.db.exec('DROP TRIGGER companion_meetings_au')
+      a.db.prepare("UPDATE companion_meta SET value = '0' WHERE key = 'triggers'").run()
+      a.close()
+      const b = openStore(join(dir, 'yogurt.db'))
+      const m = b.createMeeting({ ...base, title: 'Kiwi', startedAt: 1000 })
+      const since = changesSince(b, 0, 500).cursor
+      b.updateMeeting(m.id, { title: 'Kiwi two' })
+      expect(keys(changesSince(b, since, 10).changes)).toEqual([`meeting:${m.id}`])
+      b.close()
+    } finally { rmSync(dir, { recursive: true, force: true }) }
   })
 
   it('what was there before the log existed is sent from the start', () => {
@@ -109,6 +161,23 @@ describe('companion ops', () => {
     // sent again (a retry): not added twice
     expect(applyOp(store, op, deps())).toEqual({ applied: true, merged: true })
     expect(store.notes(m.id).mine).toBe('desk edit\n\n## From your iPhone\n\nphone edit')
+  })
+
+  it('a short phone text found inside the desktop notes is still added', () => {
+    const m = store.createMeeting({ ...base, title: 'Grape', startedAt: 1000 })
+    store.setNotes(m.id, { mine: 'book' })
+    expect(applyOp(store, { kind: 'setMine', meetingId: m.id, text: 'ok', baseHash: notesHash('older') }, deps())).toEqual({ applied: true, merged: true })
+    expect(store.notes(m.id).mine).toBe('book' + FROM_IPHONE + 'ok')
+  })
+
+  it('setMine with the text the desktop already has writes nothing', () => {
+    const m = store.createMeeting({ ...base, title: 'Grape', startedAt: 1000 })
+    store.setNotes(m.id, { mine: 'same' })
+    const since = head()
+    let writes = 0
+    expect(applyOp(store, { kind: 'setMine', meetingId: m.id, text: 'same', baseHash: notesHash('older') }, { ...deps(), notesRewrite: () => { writes++ } })).toEqual({ applied: true })
+    expect(writes).toBe(0)
+    expect(changesSince(store, since, 10).changes).toEqual([])
   })
 
   it('notesHash is sha256 of the NFC text', () => {

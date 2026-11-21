@@ -18,6 +18,9 @@ import { moveToTrash } from '../trash'
  * - folderMembers [folder id]: { folderId, meetingIds }: trashed meetings stay listed (a restore puts them back).
  * - people [email]: { email, displayName }: a name the person gave someone, null for none.
  * A thing that no longer exists comes as { entity, id, deleted: true }, a meeting deleted for good from the Trash too.
+ *
+ * pull replies { changes, cursor, more, epoch }: epoch is a random id made once per log (companion_meta). A phone whose
+ * kept epoch differs (this Mac's database was replaced or started afresh) drops its cursor and pulls from 0.
  */
 export type Entity = 'meeting' | 'notes' | 'segments' | 'folder' | 'folderMembers' | 'people'
 export type Change = { entity: Entity; id: string; deleted?: true; record?: object }
@@ -65,16 +68,29 @@ function record(store: Store, entity: Entity, id: string): object | undefined {
   }
 }
 
-/** The changes after `since`, oldest first, at most `limit`; cursor is the `since` for the next pull. */
-export function changesSince(store: Store, since: number, limit: number): { changes: Change[]; cursor: number; more: boolean } {
-  const rows = store.db.prepare('SELECT seq, entity, entity_id FROM companion_changes WHERE seq > ? ORDER BY seq LIMIT ?').all(since, limit + 1)
-  const page = rows.slice(0, limit)
-  const changes = page.map((r): Change => {
+/** At most this many changes in one pull, and about this many bytes of records (one huge transcript still goes alone) */
+export const PAGE_MAX = 500
+export const PAGE_BYTES = 1_000_000
+
+/**
+ * The changes after `since`, oldest first, at most `limit` (clamped to 1..PAGE_MAX) and about PAGE_BYTES; cursor is
+ * the `since` for the next pull. epoch names this log: when it differs from the one the phone kept, it pulls from 0.
+ */
+export function changesSince(store: Store, since: number, limit: number): { changes: Change[]; cursor: number; more: boolean; epoch: string } {
+  const max = Math.min(PAGE_MAX, Math.max(1, Math.floor(limit) || 1))
+  const epoch = String(store.db.prepare("SELECT value FROM companion_meta WHERE key = 'epoch'").get()?.value)
+  const rows = store.db.prepare('SELECT seq, entity, entity_id FROM companion_changes WHERE seq > ? ORDER BY seq LIMIT ?').all(since, max + 1)
+  const changes: Change[] = []
+  let cursor = since, bytes = 0
+  for (const r of rows.slice(0, max)) {
     const entity = String(r.entity) as Entity, id = String(r.entity_id)
     const rec = record(store, entity, id)
-    return rec ? { entity, id, record: rec } : { entity, id, deleted: true }
-  })
-  return { changes, cursor: page.length ? Number(page.at(-1)!.seq) : since, more: rows.length > limit }
+    const change: Change = rec ? { entity, id, record: rec } : { entity, id, deleted: true }
+    const size = Buffer.byteLength(JSON.stringify(change))
+    if (changes.length && bytes + size > PAGE_BYTES) break
+    changes.push(change); bytes += size; cursor = Number(r.seq)
+  }
+  return { changes, cursor, more: rows.some((r) => Number(r.seq) > cursor), epoch }
 }
 
 /** An edit from the phone, through the same functions the desktop's own UI uses. Throws 'gone', 'recording' or 'bad-op'. */
@@ -85,12 +101,16 @@ export function applyOp(store: Store, op: Op, deps: OpDeps): { applied: true; me
     case 'setMine': {
       if (typeof op.text !== 'string') throw new Error('bad-op')
       const desk = store.notes(op.meetingId).mine
-      if (op.baseHash === notesHash(desk) || notesHash(op.text) === notesHash(desk)) {
+      // the same text: nothing to write, and no change to echo back to the phone
+      if (notesHash(op.text) === notesHash(desk)) return { applied: true }
+      if (op.baseHash === notesHash(desk)) {
         deps.notesRewrite(op.meetingId, op.text)
         return { applied: true }
       }
-      // both sides changed: the desktop's text stays, the phone's goes under it (once, however often it is sent)
-      if (op.text.trim() && !desk.normalize('NFC').includes(op.text.normalize('NFC'))) deps.notesRewrite(op.meetingId, desk.trim() ? desk.trimEnd() + FROM_IPHONE + op.text : op.text)
+      // both sides changed: the desktop's text stays, the phone's goes under it. Only its own block counts as already
+      // there (a retry); a short phone text inside the desktop's words ("ok" in "book") is still added.
+      const block = FROM_IPHONE + op.text
+      if (op.text.trim() && !desk.normalize('NFC').includes(block.normalize('NFC'))) deps.notesRewrite(op.meetingId, desk.trim() ? desk.trimEnd() + block : op.text)
       return { applied: true, merged: true }
     }
     case 'rename':

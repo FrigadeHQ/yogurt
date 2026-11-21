@@ -168,21 +168,36 @@ const COMPANION_SOURCES: Array<{ table: string; entity: string; id: string; upda
   { table: 'folder_meetings', entity: 'folderMembers', id: 'folder_id', update: 'folder_id, meeting_id' },
   { table: 'people', entity: 'people', id: 'email', update: 'display_name' },
 ]
+/** Raise when the triggers change: a database with an older set gets them made again. */
+const COMPANION_TRIGGERS = 1
 function companionTables(db: DatabaseSync) {
-  const fresh = !db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'companion_changes'").get()
-  db.exec(`CREATE TABLE IF NOT EXISTS companion_changes (seq INTEGER PRIMARY KEY AUTOINCREMENT, entity TEXT NOT NULL, entity_id TEXT NOT NULL, at INTEGER NOT NULL);
-    CREATE UNIQUE INDEX IF NOT EXISTS companion_changes_entity ON companion_changes(entity, entity_id);
-    CREATE TABLE IF NOT EXISTS companion_devices (id TEXT PRIMARY KEY, name TEXT NOT NULL, public_key TEXT NOT NULL, paired_at INTEGER NOT NULL, last_seen INTEGER);`)
-  // delete then insert, not OR REPLACE: an upsert outside a trigger overrides its conflict policy
-  const log = (entity: string, id: string) => `DELETE FROM companion_changes WHERE entity = '${entity}' AND entity_id = ${id};
-    INSERT INTO companion_changes (entity, entity_id, at) VALUES ('${entity}', ${id}, CAST(unixepoch('subsec') * 1000 AS INTEGER));`
-  for (const s of COMPANION_SOURCES) {
-    db.exec(`CREATE TRIGGER IF NOT EXISTS companion_${s.table}_ai AFTER INSERT ON ${s.table} BEGIN ${log(s.entity, `new.${s.id}`)} END;
-      CREATE TRIGGER IF NOT EXISTS companion_${s.table}_ad AFTER DELETE ON ${s.table} BEGIN ${log(s.entity, `old.${s.id}`)} END;
-      CREATE TRIGGER IF NOT EXISTS companion_${s.table}_au AFTER UPDATE OF ${s.update} ON ${s.table} BEGIN ${log(s.entity, `old.${s.id}`)} ${log(s.entity, `new.${s.id}`)} END;`)
-  }
-  // a database from before the log: everything in it is new to a phone
-  if (fresh) for (const s of COMPANION_SOURCES) db.exec(`INSERT OR IGNORE INTO companion_changes (entity, entity_id, at) SELECT DISTINCT '${s.entity}', ${s.id}, 0 FROM ${s.table}`)
+  // one transaction: a crash between making the log and filling it would leave old history out for good
+  db.exec('BEGIN')
+  try {
+    const fresh = !db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'companion_changes'").get()
+    db.exec(`CREATE TABLE IF NOT EXISTS companion_changes (seq INTEGER PRIMARY KEY AUTOINCREMENT, entity TEXT NOT NULL, entity_id TEXT NOT NULL, at INTEGER NOT NULL);
+      CREATE UNIQUE INDEX IF NOT EXISTS companion_changes_entity ON companion_changes(entity, entity_id);
+      CREATE TABLE IF NOT EXISTS companion_devices (id TEXT PRIMARY KEY, name TEXT NOT NULL, public_key TEXT NOT NULL, paired_at INTEGER NOT NULL, last_seen INTEGER);
+      CREATE TABLE IF NOT EXISTS companion_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);`)
+    // the epoch names this log: a phone seeing a new one starts again from 0 (its seq numbers mean nothing here)
+    db.prepare(`INSERT ${fresh ? 'OR REPLACE' : 'OR IGNORE'} INTO companion_meta (key, value) VALUES ('epoch', ?)`).run(randomUUID())
+    const version = db.prepare("SELECT value FROM companion_meta WHERE key = 'triggers'").get()?.value
+    if (fresh || Number(version) !== COMPANION_TRIGGERS) {
+      for (const r of db.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'companion\\_%' ESCAPE '\\'").all()) db.exec(`DROP TRIGGER "${String(r.name)}"`)
+      // delete then insert, not OR REPLACE: an upsert outside a trigger overrides its conflict policy
+      const log = (entity: string, id: string) => `DELETE FROM companion_changes WHERE entity = '${entity}' AND entity_id = ${id};
+        INSERT INTO companion_changes (entity, entity_id, at) VALUES ('${entity}', ${id}, CAST(unixepoch('subsec') * 1000 AS INTEGER));`
+      for (const s of COMPANION_SOURCES) {
+        db.exec(`CREATE TRIGGER companion_${s.table}_ai AFTER INSERT ON ${s.table} BEGIN ${log(s.entity, `new.${s.id}`)} END;
+          CREATE TRIGGER companion_${s.table}_ad AFTER DELETE ON ${s.table} BEGIN ${log(s.entity, `old.${s.id}`)} END;
+          CREATE TRIGGER companion_${s.table}_au AFTER UPDATE OF ${s.update} ON ${s.table} BEGIN ${log(s.entity, `old.${s.id}`)} ${log(s.entity, `new.${s.id}`)} END;`)
+      }
+      db.prepare("INSERT OR REPLACE INTO companion_meta (key, value) VALUES ('triggers', ?)").run(String(COMPANION_TRIGGERS))
+    }
+    // a database from before the log: everything in it is new to a phone
+    if (fresh) for (const s of COMPANION_SOURCES) db.exec(`INSERT OR IGNORE INTO companion_changes (entity, entity_id, at) SELECT DISTINCT '${s.entity}', ${s.id}, 0 FROM ${s.table}`)
+    db.exec('COMMIT')
+  } catch (e) { db.exec('ROLLBACK'); throw e }
 }
 
 /** Meetings, transcripts and notes in one SQLite file, with full-text search. */
