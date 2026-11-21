@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Checkbox } from './Checkbox'
 import { ChevronDown } from './Icons'
 import { Loading } from './Loading'
 import { LoadingContent } from './LoadingContent'
@@ -82,7 +83,7 @@ export function CalendarSettings({ connect = false }: { connect?: boolean } = {}
           {view.calendars.map((c) => <label key={c.id} data-testid="calendar-choice" className="settings-row settings-calendar-choice">
             <span className="settings-calendar-dot" style={{ backgroundColor: c.color }} aria-hidden="true" />
             <span className="settings-row-copy"><span className="settings-label">{c.name}</span><span className="settings-description block">{c.source}</span></span>
-            <input type="checkbox" checked={c.enabled} disabled={busy} onChange={(e) => void choose(c.id, e.target.checked)} />
+            <Checkbox checked={c.enabled} disabled={busy} onChange={(e) => void choose(c.id, e.target.checked)} />
             {c.link && <button type="button" data-testid="calendar-link-remove" className="workspace-button shrink-0" disabled={busy} onClick={(e) => { e.preventDefault(); void removeLink(c.id) }}>{t('Remove')}</button>}
           </label>)}</>}</LoadingContent>
         {view && view.status !== 'error' && <div className="settings-calendar-add">

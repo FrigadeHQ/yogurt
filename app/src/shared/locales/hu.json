@@ -651,6 +651,7 @@
   "You can back up meetings, notes, transcripts and saved audio in one file.": "Egy fájlba mentheted a megbeszéléseket, jegyzeteket, átiratokat és megőrzött hangot.",
   "You can get a reminder when Yogurt detects a call.": "Kérhetsz emlékeztetőt, amikor a Yogurt hívást észlel.",
   "Add meetings": "Megbeszélések hozzáadása",
+  "Add meetings to {folder}": "Megbeszélések hozzáadása a következő mappához: {folder}",
   "New note": "Új jegyzet",
   "In this folder": "Ebben a mappában",
   "Notes and recordings started here are saved in this folder.": "Az itt elkezdett jegyzetek és felvételek ebbe a mappába kerülnek.",

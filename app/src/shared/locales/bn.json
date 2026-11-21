@@ -651,6 +651,7 @@
   "You can back up meetings, notes, transcripts and saved audio in one file.": "মিটিং, নোট, প্রতিলিপি ও রাখা অডিও একটি ফাইলে ব্যাকআপ নিতে পারেন।",
   "You can get a reminder when Yogurt detects a call.": "Yogurt কল শনাক্ত করলে অনুস্মারক পেতে পারেন।",
   "Add meetings": "মিটিং যোগ করুন",
+  "Add meetings to {folder}": "{folder}-এ মিটিং যোগ করুন",
   "New note": "নতুন নোট",
   "In this folder": "এই ফোল্ডারে আছে",
   "Notes and recordings started here are saved in this folder.": "এখানে শুরু করা নোট ও রেকর্ডিং এই ফোল্ডারে সংরক্ষিত হয়।",

@@ -1,6 +1,7 @@
 import {useState,useEffect,useRef,type ReactNode,type ReactElement} from 'react'
 import {afterEach,expect,it,vi} from 'vitest'
 import {CalendarLinkForm} from '../src/renderer/src/components/CalendarLinkForm'
+import {Checkbox} from '../src/renderer/src/components/Checkbox'
 import {CalendarSettings} from '../src/renderer/src/components/CalendarSettings'
 import {capabilities} from '../src/shared/platform'
 import {calendarAddress} from '../src/shared/calendarLink'
@@ -124,7 +125,7 @@ it.each([false,true])('keeps per-calendar controls without a bulk disconnect (li
  expect(h.get('calendar-disconnect')).toBeUndefined();expect(h.get('calendar-disconnect-all')).toBeUndefined()
  expect(h.all().some(e=>e.props.children==='Add a calendar by link')).toBe(true)
  expect(h.all().some(e=>e.props.children==="Calendars from the Mac's Calendar app appear above automatically.")).toBe(!link)
- h.type('input').props.onChange({target:{checked:false}});await Promise.resolve();h.run()
+ h.type(Checkbox).props.onChange({target:{checked:false}});await Promise.resolve();h.run()
  expect(setEnabled).toHaveBeenCalledWith('link:sample',false);expect(removeLink).not.toHaveBeenCalled()
  h.get('calendar-link-remove').props.onClick({preventDefault(){}});await Promise.resolve();h.run()
  expect(removeLink).toHaveBeenCalledWith('link:sample');expect(setEnabled).toHaveBeenCalledTimes(1)

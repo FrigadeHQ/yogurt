@@ -663,6 +663,7 @@
   "You can back up meetings, notes, transcripts and saved audio in one file.": "Du kannst Meetings, Notizen, Transkripte und gespeichertes Audio in einer Datei sichern.",
   "You can get a reminder when Yogurt detects a call.": "Du kannst dich erinnern lassen, wenn Yogurt einen Anruf erkennt.",
   "Add meetings": "Meetings hinzufügen",
+  "Add meetings to {folder}": "Besprechungen zu {folder} hinzufügen",
   "New note": "Neue Notiz",
   "In this folder": "In diesem Ordner",
   "Notes and recordings started here are saved in this folder.": "Notizen und Aufnahmen, die du hier beginnst, werden in diesem Ordner gespeichert.",

@@ -1,6 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { isValidElement, type ReactNode, type ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { Checkbox } from '../src/renderer/src/components/Checkbox'
 import { AddMeetingsDialog } from '../src/renderer/src/components/AddMeetingsDialog'
 import type { Folder, FolderMeetingChoice } from '../src/shared/types'
 
@@ -30,18 +31,19 @@ it('keeps selections across searches and a failed save, and skips meetings alrea
   const addMany = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true)
   const onChange = () => () => {}
   vi.stubGlobal('window', { yogurt: { folders: { meetingChoices: async () => rows, addMany, onChange }, meetings: { onChange } } })
-  const choices = () => controls(render()).filter(el => el.props.type === 'checkbox')
+  const choices = () => controls(render()).filter(el => el.type === Checkbox)
   const search = () => controls(render()).find(el => el.props['data-dialog-focus'])!
   const confirm = () => controls(render()).find(el => el.type === 'button' && el.props.className === 'modal-button primary')!
   const refresh = async () => { render(); hooks.load(); await Promise.resolve() }
   const save = async () => { (confirm().props.onClick as () => void)(); await Promise.resolve() }
   await refresh()
+  expect(render().props.title).toBe('Add meetings to Reviews')
   expect(choices()).toHaveLength(0)
   expect(confirm().props.disabled).toBe(true)
   rows = [{ id: '0', title: 'A'.repeat(200), startedAt: 0, inFolder: true }]
   await refresh()
   expect(choices()[0].props).toMatchObject({ checked: true, disabled: true, tabIndex: -1 })
-  expect(renderToStaticMarkup(controls(render()).find(el => el.props.className === 'folder-meeting-choice settings-calendar-choice')!.props.children as ReactNode)).toContain(rows[0].title)
+  expect(renderToStaticMarkup(controls(render()).find(el => el.props.className === 'folder-meeting-choice')!.props.children as ReactNode)).toContain(rows[0].title)
   rows.push(...Array.from({ length: 199 }, (_, i) => ({ id: String(i + 1), title: 'Review ' + (i + 1), startedAt: i, inFolder: false })))
   await refresh()
   expect(choices()).toHaveLength(200)
