@@ -16,6 +16,7 @@ export function Shortcuts({ onClose }: { onClose(): void }) {
   const [query, setQuery] = useState('')
   const groups = [
     [t('General'), appShortcuts()],
+    [t('Folders'), pc([[t('New note'), '⌘N']])],
     [t('Search and commands'), [[t('Navigate'), '↑ ↓'], [t('Select'), '↵'], [t('Close'), 'esc']]],
     [t('Transcript'), [[t('Navigate'), '↑ ↓ ↖ ↘'], [t('Play'), '↵ / ␣']]],
     [t('Edit'), pc([[t('Undo'), '⌘Z'], [t('Redo'), '⇧⌘Z'], [t('Cut'), '⌘X'], [t('Copy'), '⌘C'], [t('Paste'), '⌘V'], [t('Paste and Match Style'), '⌥⇧⌘V'], [t('Select All'), '⌘A'], [t('Bold'), '⌘B'], [t('Italic'), '⌘I'], [t('Text formatting'), '⌥F10']])],
