@@ -31,6 +31,10 @@ it("only Windows and Linux carry the colour tray icons (the Mac's package keeps 
   const block = (name: string) => config.match(new RegExp(`^${name}:\\n((?:  .*\\n|\\n)*)`, 'm'))?.[1] ?? ''
   for (const os of ['win', 'linux']) expect(block(os)).toContain('filter: ["tray-color*.png", "tray-recording*.png"]')
   expect(config.split(/^win:$/m)[0]).not.toContain('tray-color')
+  for (const state of ['color', 'recording']) for (const theme of ['', '-dark']) for (const [scale, size] of [['', 16], ['@2x', 32]] as const) {
+    const png = readFileSync(join(__dirname, '../resources', `tray-${state}${theme}${scale}.png`))
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([size, size])
+  }
 })
 
 it("only Windows and Linux carry the speed check's clip: a Mac never times its speech model", () => {
