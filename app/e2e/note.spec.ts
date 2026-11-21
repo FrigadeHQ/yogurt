@@ -75,7 +75,7 @@ test('Stop ends recording when its metadata cannot save, and Retry saves without
     await page.getByTestId('past-note').click()
     await expect.poll(() => page.getByTestId('trash-toast').evaluate((toast) => {
       const footer = document.querySelector('.note-footer')!.getBoundingClientRect()
-      return footer.top - toast.getBoundingClientRect().bottom
+      return toast.getBoundingClientRect().top - footer.bottom
     })).toBeGreaterThanOrEqual(12)
     await page.getByTestId('note-stop-retry').click()
     await expect(page.getByTestId('note-stop-unsaved')).toBeVisible()
