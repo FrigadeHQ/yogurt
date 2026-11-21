@@ -72,16 +72,6 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   const retryNotes = useRef<() => void>(() => {})
   const retryRead = () => { if (meetingReadFailed) retryMeeting.current(); if (notesReadFailed) retryNotes.current() }
   const [m, setM] = useState<MeetingView>()
-  const [footer, setFooter] = useState<HTMLElement | null>(null)
-  useLayoutEffect(() => {
-    if (!footer) return
-    const position = () => document.body.style.setProperty('--note-footer-height', `${innerHeight - footer.getBoundingClientRect().top + 16}px`)
-    position()
-    const observer = new ResizeObserver(position)
-    observer.observe(footer)
-    window.addEventListener('resize', position)
-    return () => { observer.disconnect(); window.removeEventListener('resize', position); document.body.style.removeProperty('--note-footer-height') }
-  }, [footer])
   useEffect(() => { if (m) onTitleChange({ id: m.id, title: m.title }) }, [m?.id, m?.title, onTitleChange])
   const [retryingStop, setRetryingStop] = useState(false)
   const [starting, setStarting] = useState(false)
@@ -473,7 +463,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
           </section>}
           </div>
         </div>
-        <footer ref={setFooter} className="note-footer">
+        <footer className="note-footer">
             {m.stopSavePending && (
               <InlineError testId="note-stop-unsaved" className="mt-5">
                 <span>{t("Recording stopped. Yogurt couldn't save when it ended. Keep Yogurt open and try again.")}</span>
