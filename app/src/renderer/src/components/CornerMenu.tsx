@@ -23,7 +23,7 @@ function saveVersion(key: string, version: string | null) {
   } catch { /* still remembered for this session */ }
 }
 
-export function CornerMenu({ section, recording, go, shortcuts }: { section: string; recording: boolean; go(route: string): void; shortcuts(): void }) {
+export function CornerMenu({ visible, section, recording, go, shortcuts }: { visible: boolean; section: string; recording: boolean; go(route: string): void; shortcuts(): void }) {
   const [{ status, downloaded }, setUpdate] = useState<{ status?: UpdateStatus; downloaded?: string | null }>({})
   const [seen, setSeen] = useState(() => readVersion(seenKey))
   const [open, setOpen] = useState(false)
@@ -33,6 +33,8 @@ export function CornerMenu({ section, recording, go, shortcuts }: { section: str
   const restarting = useRef(false)
   const button = useRef<HTMLButtonElement>(null)
   const destination = useRef<'shortcuts' | 'settings' | 'trash' | null>(null)
+  // A native shortcut or a narrow resize can hide the trigger while its portalled menu is open.
+  useEffect(() => { if (!visible) setOpen(false) }, [visible])
   useEffect(() => {
     let active = true, updated = false
     let waiting = readVersion(downloadedKey)
@@ -98,7 +100,7 @@ export function CornerMenu({ section, recording, go, shortcuts }: { section: str
   const rowDot = <span className="corner-row-dot" aria-hidden="true" />
   return <DirectionProvider direction={dirOf(language())}>
     <div className="workspace-corner">
-      <Menu.Root modal={false} open={open} highlightItemOnHover={!entering} onOpenChangeComplete={finishTransition} onOpenChange={next => {
+      <Menu.Root modal={false} open={visible && open} highlightItemOnHover={!entering} onOpenChangeComplete={finishTransition} onOpenChange={next => {
         setOpen(next)
         setEntering(next)
         if (next) { destination.current = null; setFailed(false) }

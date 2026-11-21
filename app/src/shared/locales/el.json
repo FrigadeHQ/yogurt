@@ -97,7 +97,7 @@
   "Close Window": "Κλείσιμο παραθύρου",
   "Code": "Κώδικας",
   "Coffee": "Καφές",
-  "Collapse sidebar": "Σύμπτυξη πλαϊνής στήλης",
+  "Hide sidebar": "Απόκρυψη πλαϊνής στήλης",
   "Color": "Χρώμα",
   "Connect calendar": "Σύνδεση ημερολογίου",
   "Connect the calendars on this Mac to see your upcoming meetings.": "Συνδέστε τα ημερολόγια αυτού του Mac για να βλέπετε τις επόμενες συσκέψεις σας.",
@@ -156,7 +156,7 @@
   "Everyone else": "Όλοι οι άλλοι",
   "Everything stays on your Mac.": "Όλα μένουν στο Mac σας.",
   "Everything stays on your computer.": "Όλα μένουν στον υπολογιστή σας.",
-  "Expand sidebar": "Ανάπτυξη πλαϊνής στήλης",
+  "Show sidebar": "Εμφάνιση πλαϊνής στήλης",
   "Exported {count} meetings": {
     "one": "Εξήχθη {count} σύσκεψη",
     "other": "Εξήχθησαν {count} συσκέψεις"
@@ -486,7 +486,6 @@
   "Your name": "Το όνομά σας",
   "Your notes will show up here": "Οι σημειώσεις σας θα εμφανίζονται εδώ",
   "Your notes, transcript, and previous audio are kept. Your edited summary will be replaced when you stop recording.": "Οι σημειώσεις, η απομαγνητοφώνηση και ο προηγούμενος ήχος διατηρούνται. Η επεξεργασμένη σύνοψή σας θα αντικατασταθεί όταν διακόψετε την ηχογράφηση.",
-  "Your workspace": "Ο χώρος εργασίας σας",
   "Zoom": "Ζουμ",
   "Zoom In": "Μεγέθυνση",
   "Zoom Out": "Σμίκρυνση",

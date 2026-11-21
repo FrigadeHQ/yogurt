@@ -158,10 +158,15 @@ test('keeps update and AI download controls visible available in their respectiv
         const corner = document.querySelector('[data-testid="corner-menu-button"]')!.getBoundingClientRect()
         const ai = document.querySelector('[data-testid="notes-setup-open"]')!.getBoundingClientRect()
         const action = document.querySelector('#workspace-actions button')!.getBoundingClientRect()
-        return corner.width >= 28 && corner.top > ai.bottom && ai.width >= 44 && ai.right <= action.left && action.right <= innerWidth
+        const hidden = !!document.querySelector('.sidebar-collapsed')
+        return corner.width >= 28 && (hidden ? corner.right <= 0 : corner.top > ai.bottom) && ai.width >= 44 && ai.right <= action.left && action.right <= innerWidth
       })).toBe(true)
     }
     await page.emulateMedia({ reducedMotion: 'reduce' })
+    const badge = page.getByTestId('corner-notice-dot')
+    await expect(badge).not.toBeInViewport()
+    await page.getByTestId('sidebar-expand').press('ArrowDown')
+    await expect(page.getByTestId('corner-menu-button').getByTestId('corner-notice-dot')).toBeInViewport()
     await page.getByTestId('corner-menu-button').click()
     await expect(page.getByTestId('corner-menu')).toHaveCSS('transform', 'none')
     await page.keyboard.press('Escape')
@@ -180,9 +185,12 @@ test('keeps update and AI download controls visible available in their respectiv
       for (const collapsed of [false, true]) {
         const toggle = page.locator('.workspace-sidebar-toggle')
         if (await toggle.getAttribute('aria-expanded') !== String(!collapsed)) await toggle.click()
-        await expect.poll(() => page.evaluate(() => {
-          const controls = [...document.querySelectorAll<HTMLElement>('[data-testid="corner-menu-button"], [data-testid="notes-setup-open"], [data-testid="recording-return"], [data-testid="trash-empty"], .workspace-sidebar-toggle')]
-          return controls.length === 5 && controls.every((control, index) => {
+        const corner = page.getByTestId('corner-menu-button')
+        if (collapsed) await expect(corner).not.toBeInViewport()
+        else await expect(corner).toBeInViewport()
+        await expect.poll(() => page.evaluate((collapsed) => {
+          const controls = [...document.querySelectorAll<HTMLElement>('#workspace-sidebar:not([inert]) [data-testid="corner-menu-button"], [data-testid="notes-setup-open"], [data-testid="recording-return"], [data-testid="trash-empty"], .workspace-sidebar-toggle')]
+          return controls.length === (collapsed ? 4 : 5) && controls.every((control, index) => {
             const box = control.getBoundingClientRect()
             return box.width >= (control.matches('.workspace-sidebar-toggle, .corner-trigger') ? 28 : 44)
               && box.x >= 0 && box.right <= innerWidth
@@ -192,7 +200,7 @@ test('keeps update and AI download controls visible available in their respectiv
                 return box.right <= rect.x || box.x >= rect.right || box.bottom <= rect.y || box.y >= rect.bottom
               })
           })
-        })).toBe(true)
+        }, collapsed)).toBe(true)
       }
     }
   } finally { await app.close() }

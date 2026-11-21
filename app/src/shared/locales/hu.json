@@ -97,7 +97,7 @@
   "Close Window": "Ablak bezárása",
   "Code": "Kód",
   "Coffee": "Kávé",
-  "Collapse sidebar": "Oldalsáv összecsukása",
+  "Hide sidebar": "Oldalsáv elrejtése",
   "Color": "Szín",
   "Connect calendar": "Naptár csatlakoztatása",
   "Connect the calendars on this Mac to see your upcoming meetings.": "Csatlakoztasd a Mac naptárait, hogy lásd a közelgő megbeszéléseidet.",
@@ -156,7 +156,7 @@
   "Everyone else": "Mindenki más",
   "Everything stays on your Mac.": "Minden a Maceden marad.",
   "Everything stays on your computer.": "Minden a számítógépeden marad.",
-  "Expand sidebar": "Oldalsáv kibontása",
+  "Show sidebar": "Oldalsáv megjelenítése",
   "Exported {count} meetings": {
     "one": "{count} megbeszélés exportálva",
     "other": "{count} megbeszélés exportálva"
@@ -486,7 +486,6 @@
   "Your name": "A neved",
   "Your notes will show up here": "A jegyzeteid itt jelennek meg",
   "Your notes, transcript, and previous audio are kept. Your edited summary will be replaced when you stop recording.": "A jegyzeteid, az átirat és a korábbi hang megmarad. A szerkesztett összefoglalód lecserélődik, amikor leállítod a felvételt.",
-  "Your workspace": "A munkaterületed",
   "Zoom": "Méretezés",
   "Zoom In": "Nagyítás",
   "Zoom Out": "Kicsinyítés",

@@ -97,7 +97,7 @@
   "Close Window": "উইন্ডো বন্ধ করুন",
   "Code": "কোড",
   "Coffee": "কফি",
-  "Collapse sidebar": "সাইডবার ছোট করুন",
+  "Hide sidebar": "সাইডবার লুকান",
   "Color": "রং",
   "Connect calendar": "ক্যালেন্ডার যুক্ত করুন",
   "Connect the calendars on this Mac to see your upcoming meetings.": "আসন্ন মিটিং দেখতে এই Mac-এর ক্যালেন্ডার যুক্ত করুন।",
@@ -156,7 +156,7 @@
   "Everyone else": "বাকি সবাই",
   "Everything stays on your Mac.": "সবকিছু আপনার Mac-এই থাকে।",
   "Everything stays on your computer.": "সবকিছু আপনার কম্পিউটারেই থাকে।",
-  "Expand sidebar": "সাইডবার বড় করুন",
+  "Show sidebar": "সাইডবার দেখান",
   "Exported {count} meetings": {
     "one": "{count}টি মিটিং এক্সপোর্ট হয়েছে",
     "other": "{count}টি মিটিং এক্সপোর্ট হয়েছে"
@@ -486,7 +486,6 @@
   "Your name": "আপনার নাম",
   "Your notes will show up here": "আপনার নোট এখানে দেখাবে",
   "Your notes, transcript, and previous audio are kept. Your edited summary will be replaced when you stop recording.": "আপনার নোট, ট্রান্সক্রিপ্ট ও আগের অডিও রাখা হবে। রেকর্ডিং থামালে আপনার সম্পাদিত সারাংশ বদলে যাবে।",
-  "Your workspace": "আপনার ওয়ার্কস্পেস",
   "Zoom": "জুম",
   "Zoom In": "জুম ইন",
   "Zoom Out": "জুম আউট",
