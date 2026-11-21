@@ -1,4 +1,5 @@
 export const WAVE_PERIOD = 900
+export const REST_OPACITY = .45
 export const RISE = 300, FALL = 520
 export const SPEECH_PACKET_TIMEOUT = 300
 export type SpeechAnchor = { at: number; phase: number; drive: number; speaking: boolean }
@@ -22,7 +23,7 @@ export function speechSample(previous: SpeechAnchor, input: { me: number; them: 
   return { ...speechAt(previous, now), at: now, speaking: db >= -44.4 || (held && db > -49.2) }
 }
 
-export function speechBars({ drive, phase }: ReturnType<typeof speechAt>, reduced: boolean) {
+export function speechBars({ drive, phase }: ReturnType<typeof speechAt>, reduced: boolean, restOpacity = REST_OPACITY) {
   const energy = drive * drive * (3 - 2 * drive)
   // The captured crest is 48 px tall and the trough 14 px. Our 3 px resting stub supplies part of that trough.
   const heights = Array.from({ length: 5 }, (_, i) => {
@@ -30,7 +31,7 @@ export function speechBars({ drive, phase }: ReturnType<typeof speechAt>, reduce
     const hump = (1 + Math.cos(2 * Math.PI * angle)) / 2
     return .70 * energy * (.11 + .89 * hump)
   })
-  return { heights, alpha: heights.map(() => .45 + .55 * energy) }
+  return { heights, alpha: heights.map(() => restOpacity + (1 - restOpacity) * energy) }
 }
 
 /** Latest possible rest time, for static, reduced-motion renderers if the input stream stops. */
