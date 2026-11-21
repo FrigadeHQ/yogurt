@@ -15,7 +15,7 @@ Yogurt records your microphone and call audio, then transcribes and summarizes o
 
 ## Why
 
-Our conversations are our business. We want our meeting notes on our own computers, with no account to create. That's why we built Yogurt to record, transcribe and summarize locally. It goes online only to download models and check for updates.
+Our conversations should be our own business. Good notes shouldn't need third-party servers or an account. That's why we built Yogurt to record, transcribe and summarize on your computer. It goes online only to download models and check for updates.
 
 ## Download
 
