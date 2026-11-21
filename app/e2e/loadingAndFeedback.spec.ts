@@ -115,8 +115,9 @@ test('Undo stays in its window corner across pages and above the modal backdrop'
     await expectCorner()
     await page.screenshot({ path: testInfo.outputPath('toast-below-chat.png') })
     await page.getByTestId('chat-close').click()
-    await expectCorner()
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(w => !w.isDestroyed())!.setSize(820, 740))
+    await expect(page.getByTestId('chat-open')).toHaveAttribute('aria-expanded', 'false')
+    await expectCorner()
     await page.getByTestId('chat-open').click()
     await expect(page.getByTestId('chat-panel')).toHaveAttribute('aria-modal', 'true')
     await expect.poll(async () => {

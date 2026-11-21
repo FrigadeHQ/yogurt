@@ -685,14 +685,16 @@ it.each([[false, false], [true, false], [false, true], [true, true]])('clips the
   const shell = node(to, { left: '-1px', top: '-1px', width: `${to.width}px`, height: `${to.height}px`, borderRadius: '12px', opacity: '1' })
   const body = node(to, { opacity: '1' })
   const input = { focus: vi.fn() }
-  const dialog = { ...node(to, { opacity: '1' }), style: { setProperty() {} }, show() {}, showModal() {}, close() {}, querySelector: () => input }
+  const dialog = { ...node(to, { opacity: '1' }), style: { setProperty() {} }, show: vi.fn(), showModal: vi.fn(), close() {}, querySelector: () => input }
   const anchor = { getBoundingClientRect: () => to } as HTMLElement
-  vi.stubGlobal('window', { matchMedia: (query: string) => ({ matches: query.includes('max-width') ? narrow : reduced }), addEventListener() {}, removeEventListener() {} })
+  const viewport = { matches: narrow, addEventListener: vi.fn() }
+  vi.stubGlobal('window', { matchMedia: (query: string) => query.includes('max-width') ? viewport : { matches: reduced }, addEventListener() {}, removeEventListener() {} })
   vi.stubGlobal('innerHeight', 800)
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
   vi.stubGlobal('getComputedStyle', (element: { computed: Record<string, string> }) => element.computed)
   const render = renderer(() => Ask({ id: 'morph', recording: false, anchor, onSource() {} }))
   let tree = render()
+  for (const [effect] of vi.mocked(useEffect).mock.calls) effect()
   find(tree, 'chat-open').props.ref.current = button
   find(tree, 'chat-open').props.onClick()
   tree = render()
@@ -704,7 +706,7 @@ it.each([[false, false], [true, false], [false, true], [true, true]])('clips the
   const conversation = find(surface, 'AskConversation')
   expect(surface.props['aria-hidden']).toBeUndefined()
   expect(conversation.props).toMatchObject({ id: '', panel: true, pendingDraftKey: 'meeting/morph' })
-  vi.mocked(useLayoutEffect).mock.lastCall![0]()
+  const dispose = vi.mocked(useLayoutEffect).mock.lastCall![0]() as () => void
   expect(input.focus).toHaveBeenCalledWith({ preventScroll: true })
   const view = renderer(() => AskConversation(conversation.props))()
   expect(find(view, 'chat-suggestions')).toBeDefined()
@@ -718,6 +720,16 @@ it.each([[false, false], [true, false], [false, true], [true, true]])('clips the
     expect(dialog.animate.mock.lastCall?.[1].duration).toBe(120)
     expect(shell.animate).not.toHaveBeenCalled()
     expect(shell.style.overflow).toBe('')
+    // Cross the modal breakpoint before the close fade finishes.
+    viewport.matches = !narrow
+    viewport.addEventListener.mock.calls[0][1]()
+    dispose()
+    render()
+    vi.mocked(useLayoutEffect).mock.lastCall![0]()
+    await Promise.resolve()
+    expect(narrow ? dialog.show : dialog.showModal).not.toHaveBeenCalled()
+    expect(find(render(), 'chat-open').props['aria-expanded']).toBe(false)
+    expect(button.focus).toHaveBeenCalledWith({ preventScroll: true })
     return
   }
   const collapsed = { '--ask-left': `${from.left - to.left - 1}px`, '--ask-top': `${from.top - to.top - 1}px`, width: `${from.width}px`, height: `${from.height}px`, borderRadius: '6px' }
