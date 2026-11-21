@@ -190,4 +190,28 @@ describe('Noise_KK_25519_ChaChaPoly_BLAKE2b', () => {
     expect(eb.privateKey.every((x) => x === 0)).toBe(true)
     expect(a.privateKey.some((x) => x !== 0)).toBe(true)
   })
+
+  it('wipes the ephemeral private key when the handshake fails', () => {
+    const a = generateKeyPair(), b = generateKeyPair(), stranger = generateKeyPair(), ea = generateKeyPair(), eb = generateKeyPair()
+    const i = new NoiseKK({ initiator: true, s: a, rs: b.publicKey, prologue, testEphemeral: ea })
+    // the responder expects someone else, so message 1 fails there
+    const r = new NoiseKK({ initiator: false, s: b, rs: stranger.publicKey, prologue, testEphemeral: eb })
+    const m1 = i.writeMessage(new Uint8Array(0))
+    expect(() => r.readMessage(m1)).toThrow()
+    // a responder that hasn't written yet holds a test ephemeral only; it's wiped as soon as the handshake is dead
+    expect(eb.privateKey.every((x) => x === 0)).toBe(true)
+    const r2 = new NoiseKK({ initiator: false, s: b, rs: a.publicKey, prologue })
+    r2.readMessage(m1)
+    const m2 = r2.writeMessage(new Uint8Array(0))
+    m2[40] ^= 1
+    expect(() => i.readMessage(m2)).toThrow()
+    expect(ea.privateKey.every((x) => x === 0)).toBe(true)
+  })
+
+  it('a cipher keeps its own copy of the key', () => {
+    const k = new Uint8Array(32).fill(7)
+    const a = new CipherState(k), b = new CipherState(k.slice())
+    k.fill(0)
+    expect(b.decrypt(a.encrypt(utf8('pear')))).toEqual(utf8('pear'))
+  })
 })

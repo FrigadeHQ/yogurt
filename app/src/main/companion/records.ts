@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import type { Store } from '../store'
 import { renameMeeting } from '../meeting'
 import { moveToTrash } from '../trash'
+import { FROM_IPHONE } from '../../shared/companion'
 
 /**
  * What the iPhone receives on `pull`, and the edits it sends back as `op`s. The change log is the companion_changes
@@ -35,8 +36,8 @@ export type OpDeps = {
   foldersChanged?: () => void
 }
 
-/** Heading over the phone's My notes when both sides changed them while apart; neither text is lost. */
-export const FROM_IPHONE = '\n\n## From your iPhone\n\n'
+/** Heading over the phone's My notes when both sides changed them while apart (shared with the editor). */
+export { FROM_IPHONE }
 
 /** sha256 hex of the NFC text: the same notes typed on either side hash the same */
 export const notesHash = (text: string) => createHash('sha256').update(text.normalize('NFC'), 'utf8').digest('hex')
@@ -108,9 +109,11 @@ export function applyOp(store: Store, op: Op, deps: OpDeps): { applied: true; me
         return { applied: true }
       }
       // both sides changed: the desktop's text stays, the phone's goes under it. Only its own block counts as already
-      // there (a retry); a short phone text inside the desktop's words ("ok" in "book") is still added.
-      const block = FROM_IPHONE + op.text
-      if (op.text.trim() && !desk.normalize('NFC').includes(block.normalize('NFC'))) deps.notesRewrite(op.meetingId, desk.trim() ? desk.trimEnd() + block : op.text)
+      // there (a retry): last, or followed by another block. A short phone text inside the desktop's words ("ok" in
+      // "book"), or one that only starts an earlier block ("phone" of "phone edit"), is still added.
+      const block = (FROM_IPHONE + op.text).normalize('NFC'), there = desk.normalize('NFC')
+      const retry = there.endsWith(block) || there.includes(block + FROM_IPHONE)
+      if (op.text.trim() && !retry) deps.notesRewrite(op.meetingId, desk.trim() ? desk.trimEnd() + FROM_IPHONE + op.text : op.text)
       return { applied: true, merged: true }
     }
     case 'rename':

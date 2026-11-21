@@ -170,6 +170,16 @@ describe('companion ops', () => {
     expect(store.notes(m.id).mine).toBe('book' + FROM_IPHONE + 'ok')
   })
 
+  it('a phone text that only starts an earlier phone block is still added; a block in the middle counts as there', () => {
+    const m = store.createMeeting({ ...base, title: 'Grape', startedAt: 1000 })
+    store.setNotes(m.id, { mine: 'desk' + FROM_IPHONE + 'phone edit' })
+    applyOp(store, { kind: 'setMine', meetingId: m.id, text: 'phone', baseHash: notesHash('older') }, deps())
+    expect(store.notes(m.id).mine).toBe('desk' + FROM_IPHONE + 'phone edit' + FROM_IPHONE + 'phone')
+    // 'phone edit' is a whole block followed by another one: a retry, not added again
+    applyOp(store, { kind: 'setMine', meetingId: m.id, text: 'phone edit', baseHash: notesHash('older') }, deps())
+    expect(store.notes(m.id).mine).toBe('desk' + FROM_IPHONE + 'phone edit' + FROM_IPHONE + 'phone')
+  })
+
   it('setMine with the text the desktop already has writes nothing', () => {
     const m = store.createMeeting({ ...base, title: 'Grape', startedAt: 1000 })
     store.setNotes(m.id, { mine: 'same' })

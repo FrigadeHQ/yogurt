@@ -394,6 +394,8 @@ export type NoteView = {
   peopleChanged: boolean
   /** the notes were just written again (for new people): what they replaced, so an open editor with no edits since takes them */
   rewrittenFrom?: string
+  /** My notes were just changed from the iPhone: what they replaced, so an open editor with no edits since takes them */
+  mineFrom?: string
   /** latest acknowledged edit revision on each side; failed text is retained in main and overlaid above */
   saves?: Partial<Record<NoteSide, NoteSaveResult>>
 }

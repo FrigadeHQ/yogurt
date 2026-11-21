@@ -217,6 +217,15 @@ describe('hookNotes', () => {
     expect(s.notes.pendingDraftId()).toBeUndefined()
     expect(s.notes.view(s.m.id).saves?.mine).toEqual({ revision: 2, status: 'saved' })
   })
+  it('My notes from the iPhone save as the next revision and tell an open editor what they replaced', () => {
+    const s = setup()
+    expect(s.notes.setMine(s.m.id, 'typed on the desktop', 3).status).toBe('saved')
+    expect(s.notes.phoneMine(s.m.id, 'typed on the phone')).toEqual({ revision: 4, status: 'saved' })
+    expect(s.store.notes(s.m.id).mine).toBe('typed on the phone')
+    expect(s.sent.at(-1)).toMatchObject({ mine: 'typed on the phone', mineFrom: 'typed on the desktop', saves: { mine: { revision: 4, status: 'saved' } } })
+    // the editor's next edit comes after it
+    expect(s.notes.setMine(s.m.id, 'both', 5).status).toBe('saved')
+  })
   it('retains an oversized note in full without acknowledging a truncated save, then saves a shorter revision', () => {
     const s = setup(), original = s.store.notes(s.m.id).mine
     const full = 'x'.repeat(NOTES_MAX) + 'IMPORTANT-END-SENTINEL'

@@ -72,7 +72,8 @@ export class CipherState {
 
   constructor(k: Uint8Array) {
     if (!(k instanceof Uint8Array) || k.length !== 32) throw new Error('noise: a cipher needs a 32-byte key')
-    this.k = k
+    // its own copy: a caller reusing or wiping its buffer can't change this key
+    this.k = k.slice()
   }
 
   encryptWithAd(ad: Uint8Array, pt: Uint8Array): Uint8Array {
@@ -110,6 +111,13 @@ export class CipherState {
   wipe(): void { this.k.fill(0) }
 }
 
+/** A cipher on a key made here; the temporary copy is wiped. */
+function keyed(k: Uint8Array): CipherState {
+  const c = new CipherState(k)
+  k.fill(0)
+  return c
+}
+
 class SymmetricState {
   h: Uint8Array
   private ck: Uint8Array
@@ -132,7 +140,7 @@ class SymmetricState {
     this.ck.fill(0)
     this.ck = ck
     this.cipher?.wipe()
-    this.cipher = new CipherState(key32(k))
+    this.cipher = keyed(key32(k))
   }
 
   encryptAndHash(pt: Uint8Array): Uint8Array {
@@ -153,7 +161,7 @@ class SymmetricState {
     this.ck.fill(0)
     this.cipher?.wipe()
     this.cipher = null
-    return [new CipherState(key32(a)), new CipherState(key32(b))]
+    return [keyed(key32(a)), keyed(key32(b))]
   }
 }
 
@@ -221,6 +229,12 @@ export class NoiseKK {
     if (this.done) this.e?.privateKey.fill(0)
   }
 
+  // a dead handshake never needs its ephemeral again
+  private fail(): void {
+    this.failed = true
+    this.e?.privateKey.fill(0)
+  }
+
   /** Throws on a bad remote key or oversized payload; the handshake can't continue after that. */
   writeMessage(payload: Uint8Array): Uint8Array {
     this.check(true)
@@ -233,7 +247,7 @@ export class NoiseKK {
       this.advance()
       return msg
     } catch (err) {
-      this.failed = true
+      this.fail()
       throw err
     }
   }
@@ -250,7 +264,7 @@ export class NoiseKK {
       this.advance()
       return payload
     } catch (err) {
-      this.failed = true
+      this.fail()
       throw err
     }
   }

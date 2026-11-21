@@ -80,7 +80,7 @@ export function hookNotes(p: {
   }
   const set = (id: string, status: NoteStatus, draft = '', part?: { part: number; of: number }, step?: 'loading') => { live.set(id, { status, draft, part, step }); p.send(view(id)) }
 
-  const saveEdit = (id: string, side: NoteSide, md: string, revision?: number): NoteSaveResult => {
+  const saveEdit = (id: string, side: NoteSide, md: string, revision?: number, extra?: Pick<NoteView, 'mineFrom'>): NoteSaveResult => {
     const sides = edits.get(id) ?? {}, previous = sides[side]
     const rev = revision ?? (previous?.revision ?? 0) + 1
     // A delayed request/acknowledgement cannot replace a newer edit.
@@ -98,7 +98,7 @@ export function hookNotes(p: {
         edit.status = 'saved'; delete edit.text
       }
     } catch (e) { console.error('note edit was not saved; kept for retry', id, side, e) }
-    try { p.send(view(id)) } catch (e) { console.error('could not refresh the note after saving', id, e) }
+    try { p.send({ ...view(id), ...(edit.status === 'saved' ? extra : {}) }) } catch (e) { console.error('could not refresh the note after saving', id, e) }
     return { revision: rev, status: edit.status, ...(edit.status === 'failed' ? { retained: true, ...(edit.reason ? { reason: edit.reason } : {}) } : {}) }
   }
   const retryDrafts = (onlyId?: string): boolean => {
@@ -316,6 +316,8 @@ export function hookNotes(p: {
       p.send(view(id))
     },
     setMine: (id: string, md: string, revision?: number) => saveEdit(id, 'mine', md, revision),
+    /** My notes from the iPhone: a new revision, and an open editor hears what they replaced so it can take them */
+    phoneMine: (id: string, md: string) => saveEdit(id, 'mine', md, undefined, { mineFrom: currentNotes(id).mine }),
     setEnhanced: (id: string, md: string, revision?: number) => saveEdit(id, 'enhanced', md, revision),
     retryDrafts,
     pendingDraftId: () => [...edits].find(([, sides]) => Object.values(sides).some((v) => v.text !== undefined))?.[0],
