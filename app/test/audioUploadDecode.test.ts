@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { inspectAudioUpload } from '../src/preload/audioUpload/inspect'
 import { expect, it, vi } from 'vitest'
 import { AudioResampler } from '../src/preload/audioUpload/resample'
@@ -26,7 +28,19 @@ it('reads AAC config, chunk offsets, individual sample sizes and timestamps from
  expect(packets.map(p=>Array.from(p.data))).toEqual([[1,2,3],[4,5,6,7]])
  expect(packets.map(p=>p.timestamp)).toEqual([0,23220]);expect(packets.at(-1)?.fraction).toBe(1)
 })
-it('rejects video containers, fragmented files, and malformed M4A tables',async()=>{
+it('reads the AAC track of a screen recording, a QuickTime .mov or an .mp4, past its video track',async()=>{
+ // made with AVFoundation: a 64×64 H.264 track, then speech as mono AAC (QuickTime nests its description in a wave box)
+ for(const name of ['screen-recording.mov','screen-recording.mp4']){
+  const file=readFileSync(join(import.meta.dirname,'fixtures',name)),audio=await m4a(reader(file))
+  expect(audio.config).toMatchObject({codec:'mp4a.40.2',sampleRate:44100})
+  expect(audio.durationMs).toBeGreaterThan(2000);expect(audio.durationMs).toBeLessThan(5000)
+  let packets=0;for await(const p of audio.packets){expect(p.data.length).toBeGreaterThan(0);packets++}
+  // one AAC packet per 1024 samples, give or take the encoder's priming
+  expect(Math.abs(packets-audio.durationMs/1000*44100/1024)).toBeLessThan(3)
+  expect(Math.round(await inspectAudioUpload(source(file),new AbortController().signal))).toBe(Math.round(audio.durationMs))
+ }
+})
+it('rejects files without one audio track (a video with no sound), fragmented files, and malformed M4A tables',async()=>{
  await expect(m4a(reader(aacFile('vide')))).rejects.toThrow()
  await expect(m4a(reader(Buffer.concat([aacFile(),box('moof')])))).rejects.toThrow()
  const corrupt=aacFile();const at=corrupt.indexOf('stsz')+12;corrupt.writeUInt32BE(0xffffffff,at)
