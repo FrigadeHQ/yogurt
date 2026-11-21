@@ -3,7 +3,7 @@ import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
 import { Capture, activeCapture, hookCapture, recordingFinished, type CaptureProc } from '../src/main/capture'
 import { openStore, type Store } from '../src/main/store'
-import { activeMeeting, bindMeetingApp, getMeeting, initMeetings, onMeetingChange, onMeetingStart, onMeetingStop, onMeetingStopSaved, prepareMeeting, startPreparedMeeting, resumeMeeting, pauseMeetingClock, renameMeeting, retryStopSave, setAttendees, refreshEventSnapshots, linkEvent, unlinkEvent, startMeeting, stopMeeting, withStopState } from '../src/main/meeting'
+import { activeMeeting, bindMeetingApp, getMeeting, initMeetings, onMeetingChange, onMeetingStart, onMeetingStop, onMeetingStopSaved, createFolderNote, prepareMeeting, startPreparedMeeting, resumeMeeting, pauseMeetingClock, renameMeeting, retryStopSave, setAttendees, refreshEventSnapshots, linkEvent, unlinkEvent, startMeeting, stopMeeting, withStopState } from '../src/main/meeting'
 
 let store: Store
 beforeEach(() => { store = openStore(':memory:'); initMeetings(store) })
@@ -11,6 +11,35 @@ beforeEach(() => { store = openStore(':memory:'); initMeetings(store) })
 const event = { id: 'e1', title: 'Design review', start: 1000, end: 2000, attendees: [{ name: 'Ann', email: 'ann@x.com' }], url: null }
 
 describe('meeting lifecycle', () => {
+  it('files new notes and recordings before their first change, and reuses a written note when recording', () => {
+    const folder = store.createFolder('Reviews')
+    const firstRead: string[][] = []
+    const off = onMeetingChange(m => firstRead.push(store.foldersOf(m.id).map(f => f.id)))
+    try {
+      const draft = createFolderNote(folder.id)
+      expect(draft.state).toBe('prepared')
+      expect(activeMeeting()).toBeNull()
+      store.setNotes(draft.id, { mine: 'First question' })
+      expect(startPreparedMeeting(draft.id)?.id).toBe(draft.id)
+      stopMeeting(draft.id)
+      const recording = startMeeting({ title: event.title, event, app: null, folderId: folder.id })
+      expect(store.folderMeetingIds(folder.id)).toEqual(expect.arrayContaining([draft.id, recording.id]))
+      expect(store.notes(draft.id).mine).toBe('First question')
+      expect(firstRead).toEqual(Array(4).fill([folder.id]))
+    } finally { off() }
+  })
+  it('rolls back a missing destination before recording, and never refiles an existing recording or event', () => {
+    const folder = store.createFolder('Reviews')
+    expect(() => createFolderNote('missing')).toThrow()
+    expect(() => startMeeting({ title: '', event, app: null, folderId: 'missing' })).toThrow()
+    expect(activeMeeting()).toBeNull()
+    expect(store.meetings({ limit: 10 })).toEqual([])
+    const original = startMeeting({ title: '', event, app: null })
+    expect(startMeeting({ title: '', event: null, app: null, folderId: folder.id }).id).toBe(original.id)
+    stopMeeting(original.id)
+    expect(startMeeting({ title: '', event, app: null, folderId: folder.id }).id).toBe(original.id)
+    expect(store.folderMeetingIds(folder.id)).toEqual([])
+  })
   it.each(['stopped', 'done'] as const)('returns the existing %s event note without starting capture before the guarded resume', state => {
     const original = startMeeting({ title: event.title, event, app: null })
     stopMeeting(original.id)
