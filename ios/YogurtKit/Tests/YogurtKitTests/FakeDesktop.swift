@@ -137,6 +137,7 @@ import Network
     var browsing: Bool { update != nil }
     func browse(_ update: @escaping @MainActor ([FoundDesktop]) -> Void) { self.update = update; update(shown) }
     func stopBrowsing() { update = nil }
+    var isBrowsing: Bool { update != nil }
     func show(_ list: [FoundDesktop]) { shown = list; update?(list) }
     func watchPath(_ changed: @escaping @MainActor () -> Void) { pathChanged = changed }
     private var localNetwork: (@MainActor (Bool) -> Void)?

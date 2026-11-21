@@ -169,9 +169,50 @@ import Testing
         let rig = try Rig(paired: false)
         #expect(rig.engine.status == .notPaired)
         rig.engine.setForeground(true)
+        rig.engine.lookForComputers(true)
         #expect(await eventually { rig.engine.discovered.map(\.id) == ["desk-1"] })
         #expect(rig.engine.status == .notPaired)
         #expect(rig.network.opens == 0)
+    }
+
+    @Test func unpairedItLooksForComputersOnlyWhenAsked() async throws {
+        // looking makes iOS ask for the local network, so it waits until the person chose to connect
+        let rig = try Rig(paired: false)
+        rig.engine.setForeground(true)
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(!rig.network.isBrowsing)
+        #expect(rig.engine.discovered.isEmpty)
+        rig.engine.lookForComputers(true)
+        #expect(await eventually { rig.engine.discovered.map(\.id) == ["desk-1"] })
+        rig.engine.lookForComputers(false)
+        #expect(!rig.network.isBrowsing)
+        #expect(rig.engine.discovered.isEmpty)
+        // asked while in the background: it starts once Yogurt is on screen
+        rig.engine.setForeground(false)
+        rig.engine.lookForComputers(true)
+        #expect(!rig.network.isBrowsing)
+        rig.engine.setForeground(true)
+        #expect(await eventually { rig.network.isBrowsing })
+    }
+
+    @Test func unpairingStopsLookingUnlessAsked() async throws {
+        let rig = try Rig { d in d.addMeeting("m1", title: "One") }
+        rig.engine.setForeground(true)
+        #expect(await eventually { rig.connected })
+        rig.engine.unpair()
+        #expect(!rig.network.isBrowsing)
+        #expect(rig.engine.discovered.isEmpty)
+    }
+
+    @Test func aPairingMadeWhileLookingKeepsLookingAfterTheConnectScreenCloses() async throws {
+        let rig = try Rig(paired: false)
+        rig.engine.setForeground(true)
+        rig.engine.lookForComputers(true)
+        #expect(await eventually { !rig.engine.discovered.isEmpty })
+        try await rig.engine.pair(with: rig.engine.discovered[0], code: "123456")
+        rig.engine.lookForComputers(false)
+        #expect(rig.network.isBrowsing)
+        #expect(await eventually { rig.connected })
     }
 
     @Test func pairedButNotFoundSearchesThenSaysOfflineWithTheLastSync() async throws {
@@ -265,6 +306,7 @@ import Testing
     @Test func pairingKeepsTheKeysAndConnects() async throws {
         let rig = try Rig(paired: false)
         rig.engine.setForeground(true)
+        rig.engine.lookForComputers(true)
         #expect(await eventually { !rig.engine.discovered.isEmpty })
         try await rig.engine.pair(with: rig.engine.discovered[0], code: "123456")
         let saved = try #require(rig.vault.load())
@@ -279,6 +321,7 @@ import Testing
         let rig = try Rig(paired: false)
         rig.network.pairResult = .failure(.wrongCode)
         rig.engine.setForeground(true)
+        rig.engine.lookForComputers(true)
         #expect(await eventually { !rig.engine.discovered.isEmpty })
         await #expect(throws: PairingError.wrongCode) { try await rig.engine.pair(with: rig.engine.discovered[0], code: "000000") }
         #expect(rig.vault.load() == nil)

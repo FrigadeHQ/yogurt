@@ -197,6 +197,23 @@ public final class Store {
             .map { Folder(id: $0[0].string ?? "", name: $0[1].string ?? "", createdAt: date($0[2].int ?? 0)) }
     }
 
+    /// The folders one meeting is in, by folder name.
+    public func folderIds(of meetingId: String) -> [String] {
+        ((try? db.query("""
+            SELECT f.id FROM folder_members m JOIN folders f ON f.id = m.folder_id WHERE m.meeting_id = ? ORDER BY f.name COLLATE NOCASE, f.id
+            """, [.text(meetingId)])) ?? []).compactMap { $0[0].string }
+    }
+
+    /// Every meeting's folders in one read, for the list (by folder name).
+    public func memberships() -> [String: [String]] {
+        var out: [String: [String]] = [:]
+        let rows = (try? db.query("""
+            SELECT m.meeting_id, f.id FROM folder_members m JOIN folders f ON f.id = m.folder_id ORDER BY f.name COLLATE NOCASE, f.id
+            """)) ?? []
+        for r in rows { if let meeting = r[0].string, let folder = r[1].string { out[meeting, default: []].append(folder) } }
+        return out
+    }
+
     public func people() -> [Person] {
         ((try? db.query("SELECT email, display_name FROM people ORDER BY email")) ?? [])
             .map { Person(email: $0[0].string ?? "", displayName: $0[1].string) }

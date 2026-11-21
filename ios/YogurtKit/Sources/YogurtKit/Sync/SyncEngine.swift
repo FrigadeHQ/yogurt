@@ -107,6 +107,8 @@ public final class SyncEngine: SyncEngineProtocol {
     @ObservationIgnored private var found: [FoundDesktop] = []
     @ObservationIgnored private var session: DesktopSession?
     @ObservationIgnored private var active = false
+    /// not paired, and the connect screen is open
+    @ObservationIgnored private var looking = false
     @ObservationIgnored private var browsing: Task<Void, Never>?
     @ObservationIgnored private var connecting: Task<Void, Never>?
     @ObservationIgnored private var retry: Task<Void, Never>?
@@ -158,8 +160,19 @@ public final class SyncEngine: SyncEngineProtocol {
         refused = false
         // the Keychain may not have been readable at launch (before the first unlock)
         if pairing == nil, let p = vault.load() { pairing = p }
-        if pairing != nil { lookFor() }
-        let delay = pairing == nil ? config.firstBrowseDelay : .zero
+        if pairing != nil { lookFor(); startBrowsing(after: .zero) } else if looking { startBrowsing(after: config.firstBrowseDelay) }
+    }
+
+    /// Not paired: browse only while the connect screen is open, since browsing makes iOS ask for the local network.
+    public func lookForComputers(_ on: Bool) {
+        guard looking != on else { return }
+        looking = on
+        guard active, pairing == nil else { return }
+        if on { startBrowsing(after: config.firstBrowseDelay) } else { stopBrowsing() }
+    }
+
+    private func startBrowsing(after delay: Duration) {
+        browsing?.cancel()
         browsing = Task { [weak self] in
             if delay > .zero { try? await Task.sleep(for: delay) }
             guard let self, !Task.isCancelled, self.active else { return }
@@ -167,13 +180,17 @@ public final class SyncEngine: SyncEngineProtocol {
         }
     }
 
-    func stop() {
-        guard active else { return }
-        active = false
+    private func stopBrowsing() {
         browsing?.cancel()
         network.stopBrowsing()
         found = []
         discovered = []
+    }
+
+    func stop() {
+        guard active else { return }
+        active = false
+        stopBrowsing()
         cancelTimers()
         endSession()
         if let pairing, !blocked { status = .offline(pairing.desktopName, lastSync: lastSync) }
@@ -377,6 +394,7 @@ public final class SyncEngine: SyncEngineProtocol {
         lastSync = nil
         revision += 1
         status = .notPaired
+        if !looking { stopBrowsing() }
     }
 
     // MARK: - Sync

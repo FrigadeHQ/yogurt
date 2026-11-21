@@ -17,7 +17,8 @@ public enum ConnectionStatus: Sendable, Hashable {
 
     public func label(now: Date) -> String {
         switch self {
-        case .notPaired: "Not paired"
+        // not a problem: the phone works on its own, a computer is optional
+        case .notPaired: "On this iPhone only"
         case .searching: "Looking for your computer…"
         case .connecting(let name): "Connecting to \(name)…"
         case .connected(let name, nil): "Connected to \(name) · Synced just now"
@@ -96,8 +97,12 @@ public protocol SyncEngineProtocol: AnyObject, Observable {
     func ask(_ question: String, scope: AskScope?) async throws -> RemoteAnswer
     /// the app came to the front (true) or went to the background (false)
     func setForeground(_ on: Bool)
+    /// Not paired: look for computers on this Wi-Fi while the connect screen is open. Looking makes iOS ask for the
+    /// local network, so it never starts on its own.
+    func lookForComputers(_ on: Bool)
 }
 
 public extension SyncEngineProtocol {
     func setForeground(_ on: Bool) {}
+    func lookForComputers(_ on: Bool) {}
 }

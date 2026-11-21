@@ -109,6 +109,27 @@ let pageOne = """
         #expect(store.meetings(folder: nil).isEmpty)
     }
 
+    @Test func folderMembershipComesBackInOneRead() throws {
+        let store = try Store(url: tempStoreURL())
+        try store.apply(changes(pageOne), cursor: 7)
+        try store.apply(changes(#"[{"entity":"folder","id":"f2","record":{"id":"f2","name":"Apples","createdAt":400}},{"entity":"folderMembers","id":"f2","record":{"folderId":"f2","meetingIds":["m1","m2"]}}]"#), cursor: 8)
+        #expect(store.folderIds(of: "m1") == ["f2", "f1"])
+        #expect(store.folderIds(of: "m2") == ["f2"])
+        #expect(store.folderIds(of: "nope") == [])
+        #expect(store.memberships() == ["m1": ["f2", "f1"], "m2": ["f2"]])
+    }
+
+    @Test func aSecondStoreOnTheSameFileReadsWhatTheFirstWrites() throws {
+        let url = tempStoreURL()
+        let writer = try Store(url: url)
+        let reader = try Store(url: url)
+        try writer.apply(changes(pageOne), cursor: 7)
+        #expect(reader.meeting("m1")?.title == "Banana sync")
+        try writer.editMine(meetingId: "m1", text: "pears")
+        #expect(reader.notes("m1")?.mine == "pears")
+        #expect(reader.search("pears", limit: 5).map(\.meetingId) == ["m1"])
+    }
+
     @Test func cursorAndEpochPersistAcrossReopen() throws {
         let url = tempStoreURL()
         do {

@@ -6,7 +6,7 @@ import Testing
     let now = Date(timeIntervalSince1970: 1_800_000_000)
 
     @Test func labelsReadPlainly() {
-        #expect(ConnectionStatus.notPaired.label(now: now) == "Not paired")
+        #expect(ConnectionStatus.notPaired.label(now: now) == "On this iPhone only")
         #expect(ConnectionStatus.searching.label(now: now) == "Looking for your computer…")
         #expect(ConnectionStatus.connecting("MacBook").label(now: now) == "Connecting to MacBook…")
         #expect(ConnectionStatus.connected("MacBook", syncing: nil).label(now: now) == "Connected to MacBook · Synced just now")

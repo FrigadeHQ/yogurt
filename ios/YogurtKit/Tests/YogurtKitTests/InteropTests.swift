@@ -252,6 +252,7 @@ struct DesktopServerInteropTests {
         let engine = SyncEngine(store: store, vault: vault, network: LiveNetwork(browser: FixedBrowser([found])),
                                 defaults: UserDefaults(suiteName: "yogurt-interop-\(UUID().uuidString)")!, config: config)
         engine.setForeground(true)
+        engine.lookForComputers(true)
         #expect(await eventually { engine.discovered.map(\.id) == [desktop.desktopId] })
 
         // a wrong code first: refused as wrong, nothing kept
