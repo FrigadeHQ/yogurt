@@ -1,0 +1,426 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		20E726B1DAEBD6F9161F8F68 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 528750F46462C5E3E2057562 /* SearchView.swift */; };
+		2A76250D50D47E45E4DBDEF4 /* YogurtKit in Frameworks */ = {isa = PBXBuildFile; productRef = D5ACFC259CF4B86DFB72A60E /* YogurtKit */; };
+		4753F314D1EB272A4D70D03E /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D35E15A3EBA272FE2D6D787F /* HomeView.swift */; };
+		5373797ED2F260544B28A634 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64BFDD76097A79C483E29D66 /* SettingsView.swift */; };
+		5E88B3A265FA85268F29258A /* MeetingRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA35211C46B373A5CCC62A3 /* MeetingRow.swift */; };
+		5EE47038534951C04EF93B35 /* YogurtApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23DB405B9B69CF24999A7B52 /* YogurtApp.swift */; };
+		6E5EE6D29BE95100EE32805E /* NoteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9FC6009D3487880BE91EB0B /* NoteView.swift */; };
+		8C7E96775760E1ECD1B60DD2 /* Strings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1214C6BDF777F9AFA2CDCEAF /* Strings.swift */; };
+		9B947AE389924E3F1C301D5F /* SampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BAA6124843653AAF42FDC22 /* SampleData.swift */; };
+		9D4B6BE150682C3D970BE1E5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9E204A100FBF0B8A731ABA52 /* Assets.xcassets */; };
+		ADFBF6175190FCD9B73581A6 /* BricolageGrotesque-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 93345889F64AE9C1DA8C6A0E /* BricolageGrotesque-SemiBold.ttf */; };
+		B408211750C2C5073379FF76 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 665E6C46EA0815F0E4A5821C /* Theme.swift */; };
+		B49D7C9287F5DA3ECA57D2FE /* Format.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6A96A86BC6960E5294A46B /* Format.swift */; };
+		BE6F5280826C1048195233F5 /* PairingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 430BE731056AF91B84E7B4E8 /* PairingView.swift */; };
+		D3D2E970B3694F25A8DB908C /* StatusPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C12DEE3D0C6EF5500BF7470 /* StatusPill.swift */; };
+		D9132D82CE7F90CAFE46448F /* PreviewSyncEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716BFD1AB3274305EF4F7DB1 /* PreviewSyncEngine.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0BAA6124843653AAF42FDC22 /* SampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleData.swift; sourceTree = "<group>"; };
+		1214C6BDF777F9AFA2CDCEAF /* Strings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Strings.swift; sourceTree = "<group>"; };
+		23DB405B9B69CF24999A7B52 /* YogurtApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YogurtApp.swift; sourceTree = "<group>"; };
+		430BE731056AF91B84E7B4E8 /* PairingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingView.swift; sourceTree = "<group>"; };
+		528750F46462C5E3E2057562 /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
+		64BFDD76097A79C483E29D66 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		665E6C46EA0815F0E4A5821C /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		6C85D6355EBAF9525141ADFE /* Yogurt.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Yogurt.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		716BFD1AB3274305EF4F7DB1 /* PreviewSyncEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewSyncEngine.swift; sourceTree = "<group>"; };
+		7BA35211C46B373A5CCC62A3 /* MeetingRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingRow.swift; sourceTree = "<group>"; };
+		8267D7C896FBD13433688E40 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		93345889F64AE9C1DA8C6A0E /* BricolageGrotesque-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "BricolageGrotesque-SemiBold.ttf"; sourceTree = "<group>"; };
+		9C12DEE3D0C6EF5500BF7470 /* StatusPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusPill.swift; sourceTree = "<group>"; };
+		9E204A100FBF0B8A731ABA52 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A702A34B59844077A9F7BD40 /* YogurtKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = YogurtKit; path = YogurtKit; sourceTree = SOURCE_ROOT; };
+		BE6A96A86BC6960E5294A46B /* Format.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Format.swift; sourceTree = "<group>"; };
+		C9FC6009D3487880BE91EB0B /* NoteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteView.swift; sourceTree = "<group>"; };
+		D35E15A3EBA272FE2D6D787F /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		63CAFFA12C62FF13F770B9C3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2A76250D50D47E45E4DBDEF4 /* YogurtKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		29C8E356ABC9A5E3A04FC5DD /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				6C85D6355EBAF9525141ADFE /* Yogurt.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		343F09DD599A844ECD56ECA4 /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				93345889F64AE9C1DA8C6A0E /* BricolageGrotesque-SemiBold.ttf */,
+			);
+			path = Fonts;
+			sourceTree = "<group>";
+		};
+		524F2EC8D3152BEB270694BA /* Yogurt */ = {
+			isa = PBXGroup;
+			children = (
+				9E204A100FBF0B8A731ABA52 /* Assets.xcassets */,
+				BE6A96A86BC6960E5294A46B /* Format.swift */,
+				8267D7C896FBD13433688E40 /* Info.plist */,
+				716BFD1AB3274305EF4F7DB1 /* PreviewSyncEngine.swift */,
+				0BAA6124843653AAF42FDC22 /* SampleData.swift */,
+				1214C6BDF777F9AFA2CDCEAF /* Strings.swift */,
+				665E6C46EA0815F0E4A5821C /* Theme.swift */,
+				23DB405B9B69CF24999A7B52 /* YogurtApp.swift */,
+				343F09DD599A844ECD56ECA4 /* Fonts */,
+				957A4CDAE05DC9BD3F6CE53D /* Views */,
+			);
+			path = Yogurt;
+			sourceTree = "<group>";
+		};
+		923F04863D6AD267A3129019 = {
+			isa = PBXGroup;
+			children = (
+				B4242D8DE44E72180930A532 /* Packages */,
+				524F2EC8D3152BEB270694BA /* Yogurt */,
+				29C8E356ABC9A5E3A04FC5DD /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		957A4CDAE05DC9BD3F6CE53D /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				D35E15A3EBA272FE2D6D787F /* HomeView.swift */,
+				7BA35211C46B373A5CCC62A3 /* MeetingRow.swift */,
+				C9FC6009D3487880BE91EB0B /* NoteView.swift */,
+				430BE731056AF91B84E7B4E8 /* PairingView.swift */,
+				528750F46462C5E3E2057562 /* SearchView.swift */,
+				64BFDD76097A79C483E29D66 /* SettingsView.swift */,
+				9C12DEE3D0C6EF5500BF7470 /* StatusPill.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		B4242D8DE44E72180930A532 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				A702A34B59844077A9F7BD40 /* YogurtKit */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		3C00A94D6F4AE6F626FF6915 /* Yogurt */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C7462F205557A3EA906A117F /* Build configuration list for PBXNativeTarget "Yogurt" */;
+			buildPhases = (
+				DABE55A7DE6C3312E96DD47C /* Sources */,
+				62338E400F2ED9CF04629E17 /* Resources */,
+				63CAFFA12C62FF13F770B9C3 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Yogurt;
+			packageProductDependencies = (
+				D5ACFC259CF4B86DFB72A60E /* YogurtKit */,
+			);
+			productName = Yogurt;
+			productReference = 6C85D6355EBAF9525141ADFE /* Yogurt.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		1E5209C5961804CC332EA2B9 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					3C00A94D6F4AE6F626FF6915 = {
+						DevelopmentTeam = 2JNSQVN3N8;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = D5B46ABCF322CEFD0F850BC7 /* Build configuration list for PBXProject "Yogurt" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 923F04863D6AD267A3129019;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				481EA9F6B3FCF393BD279267 /* XCLocalSwiftPackageReference "YogurtKit" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 29C8E356ABC9A5E3A04FC5DD /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				3C00A94D6F4AE6F626FF6915 /* Yogurt */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		62338E400F2ED9CF04629E17 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D4B6BE150682C3D970BE1E5 /* Assets.xcassets in Resources */,
+				ADFBF6175190FCD9B73581A6 /* BricolageGrotesque-SemiBold.ttf in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		DABE55A7DE6C3312E96DD47C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B49D7C9287F5DA3ECA57D2FE /* Format.swift in Sources */,
+				4753F314D1EB272A4D70D03E /* HomeView.swift in Sources */,
+				5E88B3A265FA85268F29258A /* MeetingRow.swift in Sources */,
+				6E5EE6D29BE95100EE32805E /* NoteView.swift in Sources */,
+				BE6F5280826C1048195233F5 /* PairingView.swift in Sources */,
+				D9132D82CE7F90CAFE46448F /* PreviewSyncEngine.swift in Sources */,
+				9B947AE389924E3F1C301D5F /* SampleData.swift in Sources */,
+				20E726B1DAEBD6F9161F8F68 /* SearchView.swift in Sources */,
+				5373797ED2F260544B28A634 /* SettingsView.swift in Sources */,
+				D3D2E970B3694F25A8DB908C /* StatusPill.swift in Sources */,
+				8C7E96775760E1ECD1B60DD2 /* Strings.swift in Sources */,
+				B408211750C2C5073379FF76 /* Theme.swift in Sources */,
+				5EE47038534951C04EF93B35 /* YogurtApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		3C43C348D3AA578AE1FA0531 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Yogurt/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = so.yogurt.ios;
+				PRODUCT_NAME = Yogurt;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		7AD2BD93CB84EE3C7109BCA3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 2JNSQVN3N8;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		9692D756F0828EFE7540ED12 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 2JNSQVN3N8;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		BF0D6FBC41C8EC2AF4998744 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Yogurt/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = so.yogurt.ios;
+				PRODUCT_NAME = Yogurt;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		C7462F205557A3EA906A117F /* Build configuration list for PBXNativeTarget "Yogurt" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3C43C348D3AA578AE1FA0531 /* Debug */,
+				BF0D6FBC41C8EC2AF4998744 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		D5B46ABCF322CEFD0F850BC7 /* Build configuration list for PBXProject "Yogurt" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9692D756F0828EFE7540ED12 /* Debug */,
+				7AD2BD93CB84EE3C7109BCA3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		481EA9F6B3FCF393BD279267 /* XCLocalSwiftPackageReference "YogurtKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = YogurtKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D5ACFC259CF4B86DFB72A60E /* YogurtKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = YogurtKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 1E5209C5961804CC332EA2B9 /* Project object */;
+}
