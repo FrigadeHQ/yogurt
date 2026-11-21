@@ -131,11 +131,13 @@ public struct LocalRecording: Sendable, Codable, Identifiable, Hashable {
         try c.encodeIfPresent(uploadedAt, forKey: .uploadedAt)
     }
 
-    /// Every field but the id has a default, so a recording saved by an older build still loads.
+    /// Every field but the id and audio has a default, so a recording saved by an older build still loads.
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(String.self, forKey: .id)
-        let path = try c.decodeIfPresent(String.self, forKey: .audioPath) ?? ""
+        // without its audio a recording is nothing to upload; resolving "" would point at the app's home folder
+        let path = try c.decode(String.self, forKey: .audioPath)
+        guard !path.isEmpty else { throw DecodingError.dataCorruptedError(forKey: .audioPath, in: c, debugDescription: "no audio path") }
         audioURL = path.hasPrefix("/") ? URL(fileURLWithPath: path) : URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent(path)
         title = try c.decodeIfPresent(String.self, forKey: .title) ?? ""
         startedAt = try c.decodeIfPresent(Date.self, forKey: .startedAt) ?? Date(timeIntervalSince1970: 0)
@@ -231,18 +233,11 @@ public struct MeetingRecord: Sendable, Codable {
 
 public struct NotesRecord: Sendable, Codable {
     public var meetingId: String?
-    public var mine: String
+    /// nil when the record leaves My notes out: the phone keeps what it has
+    public var mine: String?
     public var summary: String?
-    public var mineHash: String
-
-    public init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        meetingId = try c.decodeIfPresent(String.self, forKey: .meetingId)
-        mine = try c.decodeIfPresent(String.self, forKey: .mine) ?? ""
-        summary = try c.decodeIfPresent(String.self, forKey: .summary)
-        // the hash the desktop would have sent for that text
-        mineHash = try c.decodeIfPresent(String.self, forKey: .mineHash) ?? notesHash(mine)
-    }
+    /// nil when left out: the hash of `mine` (what the desktop would have sent), else the one kept here
+    public var mineHash: String?
 }
 
 public struct SegmentsRecord: Sendable, Codable {

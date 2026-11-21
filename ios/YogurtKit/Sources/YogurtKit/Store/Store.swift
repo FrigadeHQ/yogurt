@@ -79,6 +79,16 @@ public final class Store {
         }
     }
 
+    /// Unpaired: everything from the desktop goes, and so do edits meant for it. Meetings recorded here stay (they may
+    /// exist nowhere else), as drafts again.
+    public func forgetDesktop() throws {
+        try db.transaction {
+            try db.run("DELETE FROM pending_ops")
+            try db.run("DELETE FROM op_aliases")
+            try resetForNewEpoch()
+        }
+    }
+
     private func apply(_ change: Change, touched: inout Set<String>) throws {
         let id = change.id
         if change.undecodable {
@@ -95,17 +105,21 @@ public final class Store {
                   attendees = excluded.attendees, app = excluded.app, trashed_at = excluded.trashed_at, language = excluded.language, source = 'desktop'
                 """, [.text(id), .text(r.title ?? ""), .int(ms(r.startedAt)), .of(r.endedAt.map(ms)), .text(json(r.attendees ?? [])),
                       .of(r.app), .of(r.trashedAt.map(ms)), .of(r.language)])
+            // a rename or trash made here and not yet answered is newer than this record
+            try applyPendingMeetingEdits(id)
             touched.insert(id)
         case .notes(let r):
-            let existing = try db.query("SELECT summary, summary_source FROM notes WHERE meeting_id = ?", [.text(id)]).first
+            let existing = try db.query("SELECT summary, summary_source, mine, mine_hash FROM notes WHERE meeting_id = ?", [.text(id)]).first
             // a phone draft's summary stays until the desktop has written its own
             let keepDraft = existing?[1].string == Notes.SummarySource.phoneDraft.rawValue && r.summary == nil
             let summary: SQLValue = keepDraft ? existing![0] : .of(r.summary)
             let source = keepDraft ? Notes.SummarySource.phoneDraft : .desktop
             // an edit made here and not yet sent is newer than anything the desktop can have
-            let mine = try pendingMine(id) ?? r.mine
+            // a record without My notes says nothing about them: what is here stays, with its hash
+            let mine = try pendingMine(id) ?? r.mine ?? existing?[2].string ?? ""
+            let hash = r.mineHash ?? r.mine.map(notesHash) ?? existing?[3].string ?? notesHash("")
             try db.run("INSERT OR REPLACE INTO notes (meeting_id, mine, summary, mine_hash, summary_source) VALUES (?, ?, ?, ?, ?)",
-                       [.text(id), .text(mine), summary, .text(r.mineHash), .text(source.rawValue)])
+                       [.text(id), .text(mine), summary, .text(hash), .text(source.rawValue)])
             touched.insert(id)
         case .segments(let r):
             // the desktop sends an empty transcript while it is still transcribing a phone recording: keep the draft
@@ -225,6 +239,27 @@ public final class Store {
             try db.run("INSERT INTO pending_ops (id, created_at, kind, meeting_id, folder_id, text, title, base_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                        [.text(pending.id), .real(pending.createdAt.timeIntervalSince1970), .text(op.kind.rawValue), .text(op.meetingId),
                         .of(op.folderId), .of(op.text), .of(op.title), .of(op.baseHash)])
+            // rename, trash and restore show at once too, so the phone works the same offline
+            if [.rename, .trash, .restore].contains(op.kind) {
+                try applyPendingMeetingEdits(op.meetingId)
+                try reindex([op.meetingId])
+            }
+        }
+    }
+
+    /// The newest rename and trash/restore still waiting for the desktop, laid over the meeting row.
+    private func applyPendingMeetingEdits(_ meetingId: String) throws {
+        let rows = try db.query("SELECT kind, title, created_at FROM pending_ops WHERE meeting_id = ? AND kind IN ('rename', 'trash', 'restore') ORDER BY seq",
+                                [.text(meetingId)])
+        if let title = rows.last(where: { $0[0].string == "rename" })?[1].string {
+            try db.run("UPDATE meetings SET title = ? WHERE id = ?", [.text(title), .text(meetingId)])
+        }
+        guard let last = rows.last(where: { $0[0].string != "rename" }) else { return }
+        if last[0].string == "trash" {
+            let at: Double = if case .real(let d) = last[2] { d } else { Double(last[2].int ?? 0) }
+            try db.run("UPDATE meetings SET trashed_at = COALESCE(trashed_at, ?) WHERE id = ?", [.int(ms(Date(timeIntervalSince1970: at))), .text(meetingId)])
+        } else {
+            try db.run("UPDATE meetings SET trashed_at = NULL WHERE id = ?", [.text(meetingId)])
         }
     }
 

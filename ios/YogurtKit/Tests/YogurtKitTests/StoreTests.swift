@@ -405,3 +405,64 @@ let pageOne = """
         #expect(throws: (any Error).self) { try Store(url: url) }
     }
 }
+
+@Suite struct StoreSyncTests {
+    @Test func aRecordingWithNoAudioPathDoesNotPointAtTheHomeFolder() throws {
+        #expect(throws: (any Error).self) { try JSONDecoder().decode(LocalRecording.self, from: Data(#"{"id":"p2"}"#.utf8)) }
+        #expect(throws: (any Error).self) { try JSONDecoder().decode(LocalRecording.self, from: Data(#"{"id":"p2","audioPath":""}"#.utf8)) }
+    }
+
+    @Test func aNotesRecordWithoutMineKeepsTheMineHere() throws {
+        let store = try Store(url: tempStoreURL())
+        try store.apply(changes(pageOne), cursor: 7)
+        try store.apply(changes(#"[{"entity":"notes","id":"m1","record":{"meetingId":"m1","summary":"Newer summary."}}]"#), cursor: 8)
+        #expect(store.notes("m1")?.mine == "buy apples")
+        #expect(store.notes("m1")?.summary == "Newer summary.")
+        // and the hash the next edit starts from is still the desktop's for that text
+        try store.editMine(meetingId: "m1", text: "x")
+        #expect(store.pendingOps().first?.op.baseHash == "hash-a")
+    }
+
+    @Test func renameAndTrashShowAtOnceAndOutliveADesktopRecordUntilSent() throws {
+        let store = try Store(url: tempStoreURL())
+        try store.apply(changes(pageOne), cursor: 7)
+        let rename = PendingOp(Op(kind: .rename, meetingId: "m1", title: "Kiwi sync"))
+        try store.enqueue(rename)
+        let trash = PendingOp(Op(kind: .trash, meetingId: "m2"))
+        try store.enqueue(trash)
+        #expect(store.meeting("m1")?.title == "Kiwi sync")
+        #expect(store.meetings().map(\.id) == ["m1"])
+        #expect(store.search("kiwi", limit: 10).map(\.meetingId) == ["m1"])
+        // a record the desktop sent before it had the edits
+        try store.apply(changes(pageOne), cursor: 8)
+        #expect(store.meeting("m1")?.title == "Kiwi sync")
+        #expect(store.meeting("m2")?.trashedAt != nil)
+        // once the desktop has answered, its records win again (that is how a refused edit goes back)
+        try store.markSent(rename.id)
+        try store.markSent(trash.id)
+        try store.apply(changes(pageOne), cursor: 9)
+        #expect(store.meeting("m1")?.title == "Banana sync")
+        #expect(store.meeting("m2")?.trashedAt == nil)
+    }
+
+    @Test func aRestoreShowsAtOnce() throws {
+        let store = try Store(url: tempStoreURL())
+        try store.apply(changes(#"[{"entity":"meeting","id":"m1","record":{"id":"m1","title":"Old","startedAt":1000,"trashedAt":3000}}]"#), cursor: 1)
+        try store.enqueue(PendingOp(Op(kind: .restore, meetingId: "m1")))
+        #expect(store.meeting("m1")?.trashedAt == nil)
+    }
+
+    @Test func forgettingTheDesktopKeepsOnlyRecordingsMadeHere() throws {
+        let store = try Store(url: tempStoreURL())
+        try store.apply(changes(pageOne), cursor: 7, epoch: "e1")
+        try store.editMine(meetingId: "m1", text: "phone text")
+        let rec = LocalRecording(id: "p1", title: "Walk", startedAt: Date(timeIntervalSince1970: 10), endedAt: nil, attendees: [],
+                                 audioURL: URL(fileURLWithPath: "/tmp/p1.m4a"), myNotes: "", transcript: [], summary: nil)
+        try store.saveLocalRecording(rec)
+        try store.forgetDesktop()
+        #expect(store.meetings().map(\.id) == ["p1"])
+        #expect(store.pendingOps().isEmpty)
+        #expect(store.cursor == 0 && store.epoch == nil)
+        #expect(store.localRecordings().map(\.id) == ["p1"])
+    }
+}
