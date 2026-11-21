@@ -39,7 +39,7 @@ test('a failed notes-model download explains waiting notes and answers, and retr
     const cancel = page.getByTestId('chat-stop')
     await expect(cancel).toHaveAccessibleName('Cancel question')
     await expect(cancel).toHaveAttribute('title', 'Cancel question')
-    await expect(cancel).not.toHaveClass(/bg-accent/)
+    await expect(cancel).not.toHaveCSS('background-color', 'rgb(111, 0, 255)')
     await cancel.click()
     await expect(page.getByTestId('chat-turn')).toHaveAttribute('data-status', 'stopped')
     await expect(page.getByTestId('chat-question')).toHaveText('What was decided?')
