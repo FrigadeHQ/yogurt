@@ -1,5 +1,6 @@
 import LocalAuthentication
 import SwiftUI
+import UIKit
 import YogurtKit
 
 @main
@@ -25,19 +26,35 @@ struct YogurtApp: App {
 final class AppModel {
     let store: Store
     let storeFolder: URL
-    let engine: any SyncEngineProtocol
-    /// the preview engine, while the real one isn't built yet (it backs "Try with sample meetings")
+    /// the real sync with the paired computer
+    let sync: SyncEngine
+    /// DEBUG only: backs "Try with sample meetings" and the screenshot launch arguments
     let preview: PreviewSyncEngine?
 
-    init(store: Store, storeFolder: URL, preview: PreviewSyncEngine) {
-        self.store = store; self.storeFolder = storeFolder; self.engine = preview; self.preview = preview
+    /// What the screens talk to: the preview while it is showing something, else the real engine.
+    var engine: any SyncEngineProtocol {
+        if let preview, preview.status != .notPaired || !preview.discovered.isEmpty { return preview }
+        return sync
+    }
+
+    init(store: Store, storeFolder: URL, sync: SyncEngine, preview: PreviewSyncEngine?) {
+        self.store = store; self.storeFolder = storeFolder; self.sync = sync; self.preview = preview
     }
 
     static func open() -> AppModel? {
         let folder = URL.applicationSupportDirectory.appending(path: "Yogurt", directoryHint: .isDirectory)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         guard let store = try? Store(url: folder.appending(path: "yogurt.sqlite")) else { return nil }
-        let model = AppModel(store: store, storeFolder: folder, preview: PreviewSyncEngine(store: store))
+        var config = SyncConfig()
+        config.appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
+        config.phoneName = UIDevice.current.name
+        let sync = SyncEngine(store: store, vault: KeychainVault(), network: LiveNetwork(), config: config)
+        #if DEBUG
+        let preview: PreviewSyncEngine? = PreviewSyncEngine(store: store)
+        #else
+        let preview: PreviewSyncEngine? = nil
+        #endif
+        let model = AppModel(store: store, storeFolder: folder, sync: sync, preview: preview)
         #if DEBUG
         model.applyLaunchArguments()
         #endif
@@ -97,7 +114,11 @@ struct RootView: View {
         }
         .animation(.easeOut(duration: 0.24), value: model.engine.status == .notPaired)
         .background(Theme.bg)
-        .onChange(of: phase) { _, now in if now == .background { locked = true } }
+        .onChange(of: phase, initial: true) { _, now in
+            // sync runs only while Yogurt is on screen; a brief inactive (Control Centre) keeps the connection
+            if now == .active { model.sync.setForeground(true) }
+            if now == .background { locked = true; model.sync.setForeground(false) }
+        }
     }
 }
 

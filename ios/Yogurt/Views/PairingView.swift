@@ -69,6 +69,11 @@ struct PairingView: View {
                 step(3, S.pairStep3)
             }
             .padding(.top, 26)
+            // iOS asks for the local network permission on the first look around; this says why before it does
+            Label(S.localNetworkNote, systemImage: "wifi")
+                .font(.footnote)
+                .foregroundStyle(Theme.muted)
+                .padding(.top, 26)
             if found.isEmpty {
                 HStack(spacing: 10) {
                     ProgressView().controlSize(.small)
@@ -135,7 +140,7 @@ struct CodeEntry: View {
     @Environment(AppModel.self) private var model
     @State private var code = ""
     @State private var busy = false
-    @State private var failed = false
+    @State private var failed: String?
     @State private var shake = 0
     @FocusState private var focused: Bool
 
@@ -160,8 +165,8 @@ struct CodeEntry: View {
                 if busy {
                     HStack(spacing: 8) { ProgressView().controlSize(.small); Text(S.pairing) }
                         .foregroundStyle(Theme.muted)
-                } else if failed {
-                    Text(S.pairFailed).foregroundStyle(Theme.danger)
+                } else if let failed {
+                    Text(failed).foregroundStyle(Theme.danger)
                 }
             }
             .font(.subheadline)
@@ -188,7 +193,7 @@ struct CodeEntry: View {
                 .onChange(of: code) { _, new in
                     let digits = String(new.filter(\.isASCII).filter(\.isNumber).prefix(6))
                     if digits != new { code = digits; return }
-                    if !digits.isEmpty { failed = false }
+                    if !digits.isEmpty { failed = nil }
                     if digits.count == 6 { submit() }
                 }
             // a wider gap in the middle, so the code reads as 123 456
@@ -215,7 +220,7 @@ struct CodeEntry: View {
             .background(Theme.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(failed ? Theme.danger : current ? Theme.accent : Theme.line, lineWidth: current || failed ? 2 : 1)
+                    .strokeBorder(failed != nil ? Theme.danger : current ? Theme.accent : Theme.line, lineWidth: current || failed != nil ? 2 : 1)
             )
             .animation(.easeOut(duration: 0.12), value: current)
     }
@@ -227,7 +232,12 @@ struct CodeEntry: View {
             do {
                 try await model.engine.pair(with: desktop, code: code)
             } catch {
-                failed = true
+                failed = switch error as? PairingError {
+                case .expired: S.pairExpired
+                case .tooMany: S.pairTooMany
+                case .unreachable: S.pairUnreachable
+                default: S.pairFailed
+                }
                 code = ""
                 withAnimation(.default) { shake += 1 }
                 focused = true

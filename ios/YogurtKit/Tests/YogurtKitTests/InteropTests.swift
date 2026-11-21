@@ -164,3 +164,143 @@ struct InteropTests {
         #expect(try peer.report()["pairFail"] as? String == "code")
     }
 }
+
+// MARK: - The real desktop server
+
+private let harnessScript = repo.appendingPathComponent("app/scripts/companion-server-harness.mjs")
+
+/// The desktop's own companion server (createCompanion) with a throwaway profile and made-up meetings, pairing open.
+private final class DesktopHarness: @unchecked Sendable {
+    let process = Process()
+    private let out = Pipe(), stdin = Pipe()
+    private let lock = NSLock()
+    private var lines: [[String: Any]] = []
+    let hello: [String: Any]
+
+    init() throws {
+        process.executableURL = URL(fileURLWithPath: nodePath!)
+        process.arguments = [harnessScript.path]
+        var env = ProcessInfo.processInfo.environment
+        env["NODE_OPTIONS"] = ""
+        process.environment = env
+        process.standardOutput = out
+        process.standardInput = stdin
+        try process.run()
+        hello = try Self.line(out)
+        // later lines (answers, imports) are read in the background
+        Thread.detachNewThread { [weak self, out] in
+            while let line = try? Self.line(out) { self?.lock.withLock { self?.lines.append(line) } }
+        }
+    }
+
+    var port: UInt16 { UInt16(hello["port"] as! Int) }
+    var code: String { hello["code"] as! String }
+    var desktopId: String { hello["desktopId"] as! String }
+    func meeting(_ name: String) -> String { (hello["meetings"] as! [String: String])[name]! }
+
+    func saw(_ key: String) -> [String: Any]? { lock.withLock { lines.last { $0[key] != nil } } }
+
+    /// Asks the harness something and waits for its answer.
+    func ask(_ q: [String: Any], key: String) async throws -> Any? {
+        let before = lock.withLock { lines.count }
+        try stdin.fileHandleForWriting.write(contentsOf: JSONSerialization.data(withJSONObject: q) + Data([0x0a]))
+        for _ in 0..<400 {
+            if let l = lock.withLock({ lines.dropFirst(before).first { $0.keys.contains(key) } }) { return l[key] }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        throw PeerError(description: "harness did not answer")
+    }
+
+    private static func line(_ pipe: Pipe) throws -> [String: Any] {
+        var bytes = Data()
+        let fd = pipe.fileHandleForReading.fileDescriptor
+        var b: UInt8 = 0
+        while true {
+            guard read(fd, &b, 1) == 1 else { throw PeerError(description: "harness exited") }
+            if b == 0x0a { break }
+            bytes.append(b)
+        }
+        return try JSONSerialization.jsonObject(with: bytes) as! [String: Any]
+    }
+
+    deinit {
+        try? stdin.fileHandleForWriting.close()
+        if process.isRunning { process.terminate() }
+    }
+}
+
+/// Bonjour stays off in tests: the harness is found where it listens.
+@MainActor private final class FixedBrowser: DesktopBrowser {
+    let found: [FoundDesktop]
+    init(_ found: [FoundDesktop]) { self.found = found }
+    func start(_ update: @escaping @MainActor ([FoundDesktop]) -> Void) { update(found) }
+    func stop() {}
+}
+
+@MainActor
+@Suite(.enabled(if: nodePath != nil, "node is not on PATH, so the tests against the desktop server are skipped"), .timeLimit(.minutes(1)))
+struct DesktopServerInteropTests {
+    @Test func pairsSyncsSendsEditsAsksFetchesAudioAndUploads() async throws {
+        let desktop = try DesktopHarness()
+        let found = FoundDesktop(desktop: DiscoveredDesktop(id: desktop.desktopId, name: "Harness Mac", pairing: true),
+                                 endpoint: .hostPort(host: "127.0.0.1", port: .init(rawValue: desktop.port)!))
+        let store = try Store(url: tempStoreURL())
+        let vault = MemoryVault()
+        var config = testConfig()
+        config.pullLimit = 200
+        config.audioChunk = 44000
+        let engine = SyncEngine(store: store, vault: vault, network: LiveNetwork(browser: FixedBrowser([found])),
+                                defaults: UserDefaults(suiteName: "yogurt-interop-\(UUID().uuidString)")!, config: config)
+        engine.setForeground(true)
+        #expect(await eventually { engine.discovered.map(\.id) == [desktop.desktopId] })
+
+        // a wrong code first: refused as wrong, nothing kept
+        await #expect(throws: PairingError.wrongCode) { try await engine.pair(with: engine.discovered[0], code: desktop.code == "000000" ? "111111" : "000000") }
+        #expect(vault.load() == nil)
+        // the desktop pauses a second after a wrong guess; the engine waits it out
+        try await engine.pair(with: engine.discovered[0], code: desktop.code)
+        #expect(vault.load()?.desktopId == desktop.desktopId)
+        #expect(vault.load()?.desktopName == "Harness Mac")
+
+        let banana = desktop.meeting("banana")
+        #expect(await eventually(within: .seconds(5)) {
+            if case .connected(_, nil) = engine.status { store.meetings().count == 2 } else { false }
+        })
+        #expect(store.notes(banana)?.mine == "buy apples")
+        #expect(store.notes(banana)?.summary == "## Decisions\n- Bananas.")
+        #expect(store.segments(banana).map(\.text) == ["hello there", "we chose bananas"])
+        #expect(store.folders().map(\.name) == ["Fruit"])
+        #expect(store.meetings(folder: store.folders()[0].id).map(\.id) == [banana])
+
+        // edits from the phone
+        try store.editMine(meetingId: banana, text: "buy apples and kiwis")
+        try store.enqueue(PendingOp(Op(kind: .rename, meetingId: banana, title: "Kiwi sync")))
+        await engine.syncNow()
+        #expect(store.pendingOps().isEmpty)
+        #expect(try await desktop.ask(["cmd": "notes", "id": banana], key: "notes") as? String == "buy apples and kiwis")
+        #expect((try await desktop.ask(["cmd": "meeting", "id": banana], key: "meeting") as? [String: Any])?["title"] as? String == "Kiwi sync")
+
+        // a change on the desktop arrives by itself (the desktop pushes `changed`)
+        let added = try #require(try await desktop.ask(["cmd": "add", "title": "Date planning"], key: "added") as? String)
+        #expect(await eventually(within: .seconds(5)) { store.meeting(added)?.title == "Date planning" })
+
+        let answer = try await engine.ask("Which fruit?", scope: AskScope(meetingIds: [banana]))
+        #expect(answer.answer == "Made-up answer to: Which fruit?")
+        #expect(answer.sources.first?.meetingId == banana)
+
+        let audio = try Data(contentsOf: try await engine.audioURL(meetingId: banana))
+        #expect(audio == Data((0..<100_000).map { UInt8($0 % 251) }))
+
+        // a recording made on the phone goes over and becomes a desktop meeting
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("rec-\(UUID().uuidString).m4a")
+        try Data.random(120_000).write(to: file)
+        let rec = LocalRecording(id: UUID().uuidString, title: "Walk and talk", startedAt: Date(timeIntervalSince1970: 1_700_300_000),
+                                 endedAt: Date(timeIntervalSince1970: 1_700_300_060), attendees: [], audioURL: file,
+                                 myNotes: "made on the phone", transcript: [], summary: nil)
+        try await engine.upload(rec)
+        #expect(await eventually(within: .seconds(5)) { store.localRecordings().first?.uploadedAt != nil })
+        #expect(desktop.saw("imported")?["bytes"] as? Int == 120_000)
+        #expect(await eventually(within: .seconds(5)) { store.meeting(rec.id)?.title == "Walk and talk" })
+        engine.unpair()
+    }
+}

@@ -94,4 +94,10 @@ public protocol SyncEngineProtocol: AnyObject, Observable {
     func syncNow() async
     func unpair()
     func ask(_ question: String, scope: AskScope?) async throws -> RemoteAnswer
+    /// the app came to the front (true) or went to the background (false)
+    func setForeground(_ on: Bool)
+}
+
+public extension SyncEngineProtocol {
+    func setForeground(_ on: Bool) {}
 }

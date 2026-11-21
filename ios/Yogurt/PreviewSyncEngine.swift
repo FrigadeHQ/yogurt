@@ -1,7 +1,7 @@
 import Foundation
 import YogurtKit
 
-/// Stands in for the real sync engine until it lands: never touches the network. With sample meetings loaded it acts
+/// DEBUG only: "Try with sample meetings" and screenshots. Never touches the network. With sample meetings loaded it acts
 /// like a connected computer, taking queued edits as the desktop would, so every screen can be tried for real.
 @MainActor @Observable
 final class PreviewSyncEngine: SyncEngineProtocol {
