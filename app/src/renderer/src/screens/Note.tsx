@@ -140,6 +140,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   const [namingFolder, setNamingFolder] = useState(false)
   /** the bounded reading area holds the chat beside the current view */
   const [transcriptToolbar, setTranscriptToolbar] = useState<HTMLDivElement | null>(null)
+  const readingArea = useRef<HTMLDivElement>(null)
   const [chatAnchor, setChatAnchor] = useState<HTMLDivElement | null>(null)
   /** the notes as shown, for merging a new view from the app outside a state update */
   const current = useRef<NoteView | undefined>(undefined)
@@ -357,7 +358,11 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   }
 
   return (
-    <LoadingContent onReady={()=>document.dispatchEvent(new CustomEvent('audio-upload-note-ready',{detail:id}))} pending={false} skeleton={<Loading layout="note" />} className="loading-note-frame"><div data-testid="note" className="document-main relative flex h-full bg-bg">
+    <LoadingContent onReady={() => {
+      // A keyboard request can open Ask while the loading frame still hides the note.
+      setChatAnchor(readingArea.current)
+      document.dispatchEvent(new CustomEvent('audio-upload-note-ready', { detail: id }))
+    }} pending={false} skeleton={<Loading layout="note" />} className="loading-note-frame"><div data-testid="note" className="document-main relative flex h-full bg-bg">
       {resumeConfirm && <Modal testId="resume-confirm" role="alertdialog" title={t('Record more in this note?')}
         description={t('Your notes, transcript, and previous audio are kept. Your edited summary will be replaced when you stop recording.')}
         onCancel={() => setResumeConfirm(false)}>
@@ -443,7 +448,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
           </div>
         </header>
         {readFailed && <InlineError testId="note-read-error" retry={retryRead} />}
-        <div ref={setChatAnchor} className="note-reading-area">
+        <div ref={readingArea} className="note-reading-area">
           <div ref={panels} className="note-panels">
           <NoteReadingPane active={primary === 'notes'} summary={shown === 'enhanced'} generating={shown === 'enhanced' && ['waiting', 'rewriting', 'handoff', 'reset', 'streaming'].includes(summaryState)} resetting={shown === 'enhanced' && summaryState === 'reset'} writing={shown === 'enhanced' && summaryState === 'streaming'} scroll={readingScroll}>
                 {shown === 'mine' ? <Editor

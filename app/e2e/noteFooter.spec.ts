@@ -12,6 +12,14 @@ test('recording controls stay in the header and Ask lives in the footer with sta
     const page = await app.firstWindow()
     await expect(page.getByTestId('home')).toBeVisible()
     await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
+    const reminder = page.getByTestId('recording-reminder')
+    await reminder.hover()
+    await expect.poll(() => reminder.evaluate(el => {
+      const footer = document.querySelector('.note-footer-bar')
+      return !!footer && footer.getBoundingClientRect().bottom + 8 <= el.getBoundingClientRect().top
+    })).toBe(true)
+    await reminder.getByRole('button', { name: 'Close', exact: true }).click()
+    await expect(page.locator('.note-footer')).toHaveCSS('margin-block-end', '0px')
     await expect(page.getByTestId('note-notes-tab')).toHaveAttribute('aria-selected', 'true')
     await page.getByTestId('note-transcript-toggle').click()
     const header = page.locator('.note-header'), controls = header.getByTestId('note-state')

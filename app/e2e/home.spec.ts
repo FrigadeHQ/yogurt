@@ -306,10 +306,11 @@ test('meeting rows fill a laptop pane and stay centred in their own column throu
           measure()
           for (const open of [false, true]) {
             toggle.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }))
+            // The 200 ms UI timer and the grid transition can finish on different frames.
             do {
               await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
               measure()
-            } while (home.dataset.agendaMotion === 'true')
+            } while (home.dataset.agendaMotion === 'true' || home.getAnimations().length > 0)
             if (toggle.getAttribute('aria-expanded') !== String(open)) throw new Error('Agenda did not toggle')
             listWidths.push(list.getBoundingClientRect().width)
           }
