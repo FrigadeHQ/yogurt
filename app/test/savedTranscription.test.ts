@@ -75,3 +75,13 @@ it('retains a complete original when a replacement finishes without usable words
  const id=note().id;store.addSegments([line(id,0,300,'Original')]);await jobs.start(id,true)
  await vi.waitFor(()=>expect(jobs.owns(id)).toBe(false));expect(store.segments(id).map(l=>l.text)).toEqual(['Original']);expect(store.meeting(id)?.transcriptionAgain).not.toBe(true);expect(summarize).not.toHaveBeenCalled()
 })
+
+it('rewrites the notes of a phone recording once its transcript is replaced, then never again over them',async()=>{
+ const id=note().id;store.addSegments([line(id,0,300,'Phone line')]);store.setNotes(id,{enhanced:'Phone draft'});store.updateMeeting(id,{sourceId:`phone-draft:${id}`})
+ transcribe.mockImplementationOnce(async(_id,_tracks,options)=>{options.save([line(id,0,300,'Computer line')]);return true})
+ await jobs.start(id,true);await vi.waitFor(()=>expect(store.meeting(id)?.transcriptionState).toBe('done'))
+ expect(store.segments(id).map(s=>s.text)).toEqual(['Computer line']);expect(summarize).toHaveBeenCalledExactlyOnceWith(id)
+ expect(store.meeting(id)?.sourceId).toBe(`phone:${id}`)
+ transcribe.mockImplementationOnce(async(_id,_tracks,options)=>{options.save([line(id,0,300,'Again')]);return true})
+ await jobs.start(id,true);await vi.waitFor(()=>expect(store.segments(id)[0]?.text).toBe('Again'));expect(summarize).toHaveBeenCalledOnce()
+})

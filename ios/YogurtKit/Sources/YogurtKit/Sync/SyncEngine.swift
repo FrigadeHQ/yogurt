@@ -588,13 +588,24 @@ public final class SyncEngine: SyncEngineProtocol {
     }
 
     private func sendAudio(_ rec: LocalRecording, over s: DesktopSession) async throws {
-        let file = try FileHandle(forReadingFrom: rec.audioURL)
+        // every computer can transcribe WAV; an m4a only a Mac can. Made off the main actor, thrown away after.
+        let wav = FileManager.default.temporaryDirectory.appending(path: "Yogurt uploads", directoryHint: .isDirectory)
+            .appending(path: "\(rec.id)-\(UUID().uuidString).wav")
+        defer { try? FileManager.default.removeItem(at: wav) }
+        let source = rec.audioURL
+        let converted = await Task.detached(priority: .utility) { () -> Bool in
+            try? FileManager.default.createDirectory(at: wav.deletingLastPathComponent(), withIntermediateDirectories: true)
+            do { try PhoneAudio.wav(from: source, to: wav); return true } catch { return false }
+        }.value
+        // audio that doesn't decode here goes as it is: a Mac may still read it
+        let (url, mime) = converted ? (wav, "audio/wav") : (source, "audio/mp4")
+        let file = try FileHandle(forReadingFrom: url)
         defer { try? file.close() }
-        let size = (try FileManager.default.attributesOfItem(atPath: rec.audioURL.path)[.size] as? Int) ?? 0
+        let size = (try FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int) ?? 0
         let of = max(1, (size + config.audioChunk - 1) / config.audioChunk)
         for index in 0..<of {
             let chunk = try file.read(upToCount: config.audioChunk) ?? Data()
-            let r = try await s.request("uploadAudio", ["meetingId": rec.id, "chunk": chunk.base64EncodedString(), "index": index, "of": of, "mime": "audio/mp4"],
+            let r = try await s.request("uploadAudio", ["meetingId": rec.id, "chunk": chunk.base64EncodedString(), "index": index, "of": of, "mime": mime],
                                         // the last one waits for the import
                                         timeout: index == of - 1 ? .seconds(300) : .seconds(30))
             // done counts only with imported: until then the phone keeps its copy

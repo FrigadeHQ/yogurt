@@ -1,4 +1,5 @@
 import type { Store } from './store'
+import { isPhoneDraft, phoneDraftReplaced } from './companion/phoneImport'
 import type { Track } from './capture'
 import type { RecordedOptions } from './asr'
 import type { TranscriptionState } from '../shared/transcription'
@@ -42,7 +43,10 @@ export function createSavedTranscriptions(d: {
           else d.store.updateMeeting(id,{transcriptionPending:false,transcriptionState:'done'})
           d.changed(id,!!meeting.transcriptionAgain)
           // Replacing a transcript must not overwrite an existing or edited summary.
-          if(!d.store.notes(id).enhanced?.trim())d.summarize(id)
+          // a phone recording's draft notes are rewritten once, by this computer's notes model
+          const phoneDraft=isPhoneDraft(d.store.meeting(id))
+          if(phoneDraft)phoneDraftReplaced(d.store,id)
+          if(phoneDraft||!d.store.notes(id).enhanced?.trim())d.summarize(id)
         } catch(error) {
           if(d.store.meeting(id)){if(job.stopped)stopped(id);else set(id,job.abort.signal.aborted?'queued':'error')}
           if(!job.abort.signal.aborted)console.error('Saved transcription failed',id,error)

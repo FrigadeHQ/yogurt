@@ -86,7 +86,9 @@ function draftOf(body: Record<string, unknown>): PhoneDraft {
   }
 }
 
-type Upload = { meeting: UploadMeeting; draft: PhoneDraft; file?: FileHandle; path: string; next: number; of: number; size: number }
+type Upload = { meeting: UploadMeeting; draft: PhoneDraft; file?: FileHandle; base: string; path: string; mime: string; next: number; of: number; size: number }
+/** what a phone may send: WAV (16 kHz mono, every platform transcribes it), or m4a from an older phone (Mac only) */
+const AUDIO_TYPES: Record<string, string> = { 'audio/wav': '.wav', 'audio/mp4': '.m4a' }
 
 /** One phone's requests. `uploadDir` holds audio being received; it's emptied when the handlers are made. */
 export function createHandlers(d: HandlerDeps & { hello: () => Hello; uploadDir: string }) {
@@ -118,7 +120,8 @@ export function createHandlers(d: HandlerDeps & { hello: () => Hello; uploadDir:
     else if (uploads.size >= MAX_UPLOADS) throw new RequestError('busy')
     await cleared
     await mkdir(d.uploadDir, { recursive: true })
-    uploads.set(meeting.id, { meeting, draft, path: join(d.uploadDir, `${meeting.id}-${randomUUID()}.m4a`), next: 0, of: 0, size: 0 })
+    const base = join(d.uploadDir, `${meeting.id}-${randomUUID()}`)
+    uploads.set(meeting.id, { meeting, draft, base, path: `${base}.m4a`, mime: 'audio/mp4', next: 0, of: 0, size: 0 })
     d.log('COMPANION', 'upload', meeting.id)
     return { accepted: true }
   }
@@ -126,7 +129,8 @@ export function createHandlers(d: HandlerDeps & { hello: () => Hello; uploadDir:
   async function uploadAudio(body: Record<string, unknown>) {
     const meetingId = id(body.meetingId)
     const index = int(body.index, 0, MAX_CHUNKS), of = int(body.of, 1, MAX_CHUNKS)
-    if (index >= of || (body.mime !== undefined && body.mime !== 'audio/mp4')) throw bad()
+    const mime = body.mime === undefined ? 'audio/mp4' : body.mime
+    if (index >= of || typeof mime !== 'string' || !AUDIO_TYPES[mime]) throw bad()
     if (importing.has(meetingId)) {
       if (await imported(meetingId)) return { received: index, done: true, imported: true }
       throw new RequestError('gone')
@@ -136,7 +140,8 @@ export function createHandlers(d: HandlerDeps & { hello: () => Hello; uploadDir:
     if (!u) throw new RequestError('gone')
     const chunk = Buffer.from(str(body.chunk, 4 * CHUNK_BYTES), 'base64')
     // index 0 starts the audio over (a resumed upload); otherwise chunks come in order, a repeat of the last is fine
-    if (index === 0) { await drop(u); u.file = await open(u.path, 'w'); u.next = 0; u.size = 0; u.of = of }
+    if (index === 0) { await drop(u); u.mime = mime; u.path = u.base + AUDIO_TYPES[mime]; u.file = await open(u.path, 'w'); u.next = 0; u.size = 0; u.of = of }
+    else if (mime !== u.mime) throw bad()
     else if (index === u.next - 1 && of === u.of) return { received: index }
     else if (index !== u.next || of !== u.of || !u.file) throw new RequestError('order')
     u.size += chunk.length

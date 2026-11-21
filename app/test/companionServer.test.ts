@@ -250,6 +250,28 @@ describe('companion sessions', () => {
     expect(store.db.prepare('SELECT COUNT(*) AS n FROM meetings WHERE id = ?').get(meeting.id)).toEqual({ n: 1 })
   })
 
+  it('a phone sends WAV, which reaches the import as a .wav; a mime it does not know, or one that changes midway, is refused', async () => {
+    const paths: string[] = []
+    const store = openStore(':memory:')
+    const { connect } = await paired({
+      store,
+      importRecording: async (meeting, audioPath) => {
+        paths.push(audioPath)
+        store.createMeeting({ ...base, title: meeting.title, startedAt: meeting.startedAt, source: 'audio-file' }, meeting.id)
+      },
+    })
+    const meeting = { id: 'phone-meeting-wav', title: 'Hallway chat', startedAt: 1000, endedAt: 2000, attendees: [] }
+    const part = (index: number, mime: string) => ({ meetingId: meeting.id, chunk: Buffer.from(`made-up ${index}`).toString('base64'), index, of: 2, mime })
+    const s = await connect()
+    await s.request('uploadMeeting', { meeting, myNotes: '' })
+    expect(await s.request('uploadAudio', part(0, 'audio/ogg'))).toMatchObject({ type: 'error', body: { code: 'bad-request' } })
+    expect(await s.request('uploadAudio', part(0, 'audio/wav'))).toMatchObject({ type: 'ok', body: { received: 0 } })
+    expect(await s.request('uploadAudio', part(1, 'audio/mp4'))).toMatchObject({ type: 'error', body: { code: 'bad-request' } })
+    expect(await s.request('uploadAudio', part(1, 'audio/wav'))).toMatchObject({ type: 'ok', body: { done: true, imported: true } })
+    expect(paths).toHaveLength(1)
+    expect(paths[0].endsWith('.wav')).toBe(true)
+  })
+
   it('an upload sent again while its import is still running waits for it, and is taken afresh if the import failed', async () => {
     const store = openStore(':memory:')
     let fail: (e: Error) => void = () => {}

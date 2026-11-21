@@ -1,3 +1,4 @@
+import { importPhoneRecording } from './companion/phoneImport'
 import { loadWindowState, placeWindow, saveWindowState } from './windowState'
 import { trustSystemCertificates } from './systemCerts'
 import { createSavedTranscriptions } from './savedTranscription'
@@ -1066,19 +1067,10 @@ app.whenReady().then(() => {
       if (!turn || turn.status !== 'done') throw new Error('no answer')
       return { answer: turn.answer, sources: turn.sources.map((s) => ({ meetingId: s.meetingId, title: s.title, atMs: s.atMs, text: s.excerpt ?? '' })) }
     },
-    // a meeting recorded on the phone: its audio goes where an imported file's would, then it is transcribed and
-    // its notes written the same way (the phone's draft is replaced; only its My notes are kept)
-    importRecording: async (m, audioPath, draft) => {
-      if (store.meeting(m.id)) return
-      const dir = meetingDir(m.id), target = join(dir, 'them.m4a')
-      await mkdir(dir, { recursive: true })
-      await rename(audioPath, target).catch(() => copyFile(audioPath, target))
-      store.createMeeting({ title: m.title, titleSource: 'user', source: 'audio-file', startedAt: m.startedAt, endedAt: m.endedAt, durationMs: m.endedAt - m.startedAt,
-        eventId: null, app: null, attendees: m.attendees, state: 'stopped', transcriptionPending: true }, m.id)
-      if (draft.myNotes.trim()) store.setNotes(m.id, { mine: draft.myNotes })
-      meetingsChanged()
-      void savedTranscriptions.start(m.id)
-    },
+    // a meeting recorded on the phone: its audio goes where an imported file's would, then it is transcribed and its
+    // notes written the same way; the phone's transcript and draft notes show until this computer's replace them
+    importRecording: (m, audioPath, draft) => importPhoneRecording({ store, meetingDir, changed: meetingsChanged,
+      start: (id, again) => savedTranscriptions.start(id, again) }, m, audioPath, draft),
     audioFiles: async (id) => {
       await rejoined; await recordingSettled(id)
       return (['me', 'them'] as const).flatMap((track) => { const path = trackFile(meetingDir(id), track, audioKinds); return path ? [{ track, path }] : [] })
