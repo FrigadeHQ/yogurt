@@ -14,10 +14,12 @@ export function chipScope(chips: ContextChip[], meeting: (id: string) => boolean
   if (!chips.length) return undefined
   return [...new Set(chips.flatMap(c => c.kind === 'meeting' ? meeting(c.id) ? [c.id] : [] : folder(c.id).filter(meeting)))]
 }
-export function askDestination(route: string): { panel: boolean; fresh: boolean; chips: ContextChip[] } {
-  if (route.startsWith('/note/')) return { panel: true, fresh: false, chips: [{ kind: 'meeting', id: route.slice(6) }] }
-  if (route.startsWith('/folder/')) return { panel: false, fresh: false, chips: [{ kind: 'folder', id: route.slice(8) }] }
-  return { panel: false, fresh: route === '/chat' || route.startsWith('/chat/'), chips: [] }
+type AskDestination = { kind: 'focus' } | { kind: 'panel' } | { kind: 'conversation'; chips: ContextChip[] }
+export function askDestination(route: string): AskDestination {
+  if (route === '/chat' || route.startsWith('/chat/')) return { kind: 'focus' }
+  if (route.startsWith('/note/')) return { kind: 'panel' }
+  if (route.startsWith('/folder/')) return { kind: 'conversation', chips: [{ kind: 'folder', id: route.slice(8) }] }
+  return { kind: 'conversation', chips: [] }
 }
 
 export function mentionAt(value: string, caret: number): { start: number; end: number; query: string } | undefined {

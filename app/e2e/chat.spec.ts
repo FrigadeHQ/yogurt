@@ -450,8 +450,22 @@ for (const width of [1100, 720]) test(`Command-J toggles Ask from any focus at $
     await fake(app, 'go', '')
     await expect(page.getByTestId('home')).toBeVisible()
     await page.keyboard.press('Meta+j')
-    await expect(page.locator('#library-question')).toBeVisible()
-    await page.keyboard.press('Meta+j')
-    await expect(page.locator('#library-question')).toBeFocused()
+    await expect(page.getByTestId('chat-page-input')).toBeEditable()
+    await expect.poll(() => page.evaluate(() => window.yogurt.nav.current())).toMatch(/^\/chat\/.+/)
+
+    await page.getByTestId('nav-chat').click()
+    await expect(page.getByTestId('chat-empty')).toBeVisible()
+    const field = page.locator('textarea#library-question')
+    await field.fill('Keep this draft')
+    await field.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(5, 9))
+    for (const invoke of [() => page.keyboard.press('Meta+j'), () => fake(app, 'trayClick', 'ask')]) {
+      await page.getByTestId('chat-recent').focus()
+      await invoke()
+      await expect(field).toBeFocused()
+      await page.keyboard.press('Meta+j')
+      await expect(field).toHaveValue('Keep this draft')
+      expect(await field.evaluate((el: HTMLTextAreaElement) => [el.selectionStart, el.selectionEnd])).toEqual([5, 9])
+      expect(await page.evaluate(() => window.yogurt.nav.current())).toBe('/chat')
+    }
   } finally { await app.close() }
 })

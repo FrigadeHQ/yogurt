@@ -39,8 +39,9 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
     const ask = () => {
       if (document.querySelector('[aria-modal="true"]:not([data-testid="chat-panel"]), [role="alertdialog"]')) return
       const target = askDestination(route)
-      if (target.panel) document.getElementById('meeting-ask')?.click()
-      else void window.yogurt.conversations.current(target.chips, target.fresh).then(id => go(`/chat/${id}`)).catch(error => {
+      if (target.kind === 'focus') document.getElementById('library-question')?.focus({ preventScroll: true })
+      else if (target.kind === 'panel') document.getElementById('meeting-ask')?.click()
+      else void window.yogurt.conversations.current(target.chips).then(id => go(`/chat/${id}`)).catch(error => {
         console.error('Opening Ask failed', error)
         toasts.add({ title: t("Yogurt couldn't make that change. Try again.") })
       })

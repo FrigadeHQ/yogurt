@@ -468,6 +468,21 @@ it('keeps row glyphs stable across typing, filters, and keyboard selection witho
   expect([...icons.keys()]).toEqual(expect.arrayContaining(['search-m1', 'search-ask', 'command-agenda-date', 'command-folder-f1', 'command-theme-light', 'search-person-email%3Aparticipant%40example.test']))
 })
 
+it.each(['/chat', '/chat/saved'])('focuses Ask without a conversation lookup or navigation on %s', async route => {
+  const current = vi.fn().mockResolvedValue('other'), go = vi.fn(), focus = vi.fn()
+  const keydown = vi.fn(), onAsk = vi.fn(), takeAsk = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true)
+  vi.stubGlobal('window', { addEventListener: keydown, yogurt: { os: 'win32', conversations: { current }, nav: { onAsk, takeAsk } } })
+  vi.stubGlobal('document', { querySelector: () => null, getElementById: (id: string) => id === 'library-question' ? { focus } : null })
+  renderer(() => Workspace({ route, go, search() {}, collapsed: false, sidebarMotion: false, toggleSidebar() {}, children: null }))()
+  vi.mocked(useEffect).mock.lastCall![0]()
+  keydown.mock.calls[0][1]({ code: 'KeyJ', ctrlKey: true, preventDefault() {} })
+  onAsk.mock.calls[0][0]()
+  await Promise.resolve()
+  expect(focus.mock.calls).toEqual([[{ preventScroll: true }], [{ preventScroll: true }]])
+  expect(current).not.toHaveBeenCalled()
+  expect(go).not.toHaveBeenCalled()
+})
+
 it.each(['darwin', 'win32'])('toggles the meeting panel once per shortcut press on %s', os => {
   const listeners = new Map<string, (e: any) => void>()
   vi.stubGlobal('window', { matchMedia: () => ({ matches: false }), addEventListener: (name: string, fn: (e: any) => void) => listeners.set(name, fn), removeEventListener() {},
