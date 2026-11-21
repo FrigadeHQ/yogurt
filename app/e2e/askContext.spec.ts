@@ -248,6 +248,12 @@ test('Ask anchors context growth and retains picker results between searches', a
     await page.getByTestId('nav-chat').click()
     const input = page.getByTestId('chat-page-input'), title = page.locator('.ask-home-title'), composer = page.locator('.ask-composer')
     await expect(input).toBeEnabled()
+    const scope = page.getByTestId('ask-scope')
+    await expect(scope).toHaveText('All meetings')
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme })
+      await expect(scope).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+    }
     const top = await title.boundingBox(), composerTop = (await composer.boundingBox())!.y
     await input.fill('@')
     await expect(page.getByRole('option')).toHaveCount(3)
@@ -270,6 +276,14 @@ test('Ask anchors context growth and retains picker results between searches', a
       await expect(input).toHaveValue('')
       expect(await title.boundingBox()).toEqual(top)
       expect((await composer.boundingBox())!.y).toBe(composerTop)
+    }
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme })
+      for (const id of ['ask-scope', 'ask-scope-clear']) {
+        const chip = page.getByTestId(id)
+        await expect(chip).toHaveCSS('background-color', 'rgb(111, 0, 255)')
+        await expect(chip).toHaveCSS('color', 'rgb(255, 255, 255)')
+      }
     }
     await input.fill('@no-match')
     await expect(page.locator('.ask-picker')).toContainText('Nothing found')
