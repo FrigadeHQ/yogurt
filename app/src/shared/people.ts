@@ -13,10 +13,12 @@ export function emailName(email: string): string {
   const local = email.split('@')[0], name = local.replace(/[._-]+/g, ' ').trim() || local
   return name.charAt(0).toUpperCase() + name.slice(1)
 }
+// A seen name only echoes the address when it matches the fallback and has no real capitalization of its own.
+const echoesEmail = (n: string, fallback: string) => n.toLowerCase() === fallback.toLowerCase() && (n === fallback || n === n.toLowerCase() || n === n.toUpperCase())
 export function resolvedPersonName(email: string, display: string | null, seen: string[]): string {
   if (display) return display
   const fallback = emailName(email)
-  const names = seen.filter(n => n.trim() && !n.includes('@') && n.toLowerCase() !== fallback.toLowerCase())
+  const names = seen.filter(n => n.trim() && !n.includes('@') && !echoesEmail(n, fallback))
   // Prefer full names, then a longer name; ties keep the first observation.
   names.sort((a, b) => b.trim().split(/\s+/).length - a.trim().split(/\s+/).length || b.length - a.length)
   return names[0] || fallback
