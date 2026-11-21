@@ -105,6 +105,41 @@ public struct LocalRecording: Sendable, Codable, Identifiable, Hashable {
     public var summary: String?
     public var uploadedAt: Date?
 
+    enum CodingKeys: String, CodingKey { case id, title, startedAt, endedAt, attendees, audioPath, myNotes, transcript, summary, uploadedAt }
+
+    /// The app container's path changes with updates and restores, so the audio is kept relative to it.
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        let home = URL(fileURLWithPath: NSHomeDirectory()).standardizedFileURL.path + "/"
+        let path = audioURL.standardizedFileURL.path
+        try c.encode(path.hasPrefix(home) ? String(path.dropFirst(home.count)) : path, forKey: .audioPath)
+        try c.encode(id, forKey: .id)
+        try c.encode(title, forKey: .title)
+        try c.encode(startedAt, forKey: .startedAt)
+        try c.encodeIfPresent(endedAt, forKey: .endedAt)
+        try c.encode(attendees, forKey: .attendees)
+        try c.encode(myNotes, forKey: .myNotes)
+        try c.encode(transcript, forKey: .transcript)
+        try c.encodeIfPresent(summary, forKey: .summary)
+        try c.encodeIfPresent(uploadedAt, forKey: .uploadedAt)
+    }
+
+    /// Every field but the id has a default, so a recording saved by an older build still loads.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        let path = try c.decodeIfPresent(String.self, forKey: .audioPath) ?? ""
+        audioURL = path.hasPrefix("/") ? URL(fileURLWithPath: path) : URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent(path)
+        title = try c.decodeIfPresent(String.self, forKey: .title) ?? ""
+        startedAt = try c.decodeIfPresent(Date.self, forKey: .startedAt) ?? Date(timeIntervalSince1970: 0)
+        endedAt = try c.decodeIfPresent(Date.self, forKey: .endedAt)
+        attendees = try c.decodeIfPresent([Attendee].self, forKey: .attendees) ?? []
+        myNotes = try c.decodeIfPresent(String.self, forKey: .myNotes) ?? ""
+        transcript = try c.decodeIfPresent([Line].self, forKey: .transcript) ?? []
+        summary = try c.decodeIfPresent(String.self, forKey: .summary)
+        uploadedAt = try c.decodeIfPresent(Date.self, forKey: .uploadedAt)
+    }
+
     public init(id: String, title: String, startedAt: Date, endedAt: Date?, attendees: [Attendee], audioURL: URL,
                 myNotes: String, transcript: [Line], summary: String?, uploadedAt: Date? = nil) {
         self.id = id; self.title = title; self.startedAt = startedAt; self.endedAt = endedAt; self.attendees = attendees
@@ -120,7 +155,8 @@ public func notesHash(_ text: String) -> String {
 // MARK: - Desktop records
 
 /// One entry of a `pull` reply. An entity this version doesn't know comes through with no record and is skipped,
-/// so a newer desktop doesn't stop an older phone from syncing.
+/// so a newer desktop doesn't stop an older phone from syncing. A record that doesn't decode never fails the page:
+/// it comes through `undecodable`, and the store logs its id and skips it.
 public struct Change: Sendable, Codable {
     public enum Record: Sendable {
         case meeting(MeetingRecord), notes(NotesRecord), segments(SegmentsRecord)
@@ -130,16 +166,23 @@ public struct Change: Sendable, Codable {
     public var id: String
     public var deleted: Bool
     public var record: Record?
+    public var undecodable = false
 
     enum CodingKeys: String, CodingKey { case entity, id, deleted, record }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        entity = try c.decode(String.self, forKey: .entity)
-        id = try c.decode(String.self, forKey: .id)
-        deleted = try c.decodeIfPresent(Bool.self, forKey: .deleted) ?? false
-        guard !deleted, c.contains(.record) else { record = nil; return }
-        record = switch entity {
+        entity = (try? c.decodeIfPresent(String.self, forKey: .entity)) ?? ""
+        id = (try? c.decodeIfPresent(String.self, forKey: .id)) ?? ""
+        deleted = (try? c.decodeIfPresent(Bool.self, forKey: .deleted)) ?? false
+        record = nil
+        guard !entity.isEmpty, !id.isEmpty else { undecodable = true; return }
+        guard !deleted, c.contains(.record) else { return }
+        do { record = try Change.record(entity, c) } catch { undecodable = true }
+    }
+
+    private static func record(_ entity: String, _ c: KeyedDecodingContainer<CodingKeys>) throws -> Record? {
+        switch entity {
         case "meeting": .meeting(try c.decode(MeetingRecord.self, forKey: .record))
         case "notes": .notes(try c.decode(NotesRecord.self, forKey: .record))
         case "segments": .segments(try c.decode(SegmentsRecord.self, forKey: .record))
@@ -180,10 +223,19 @@ public struct MeetingRecord: Sendable, Codable {
 }
 
 public struct NotesRecord: Sendable, Codable {
-    public var meetingId: String
+    public var meetingId: String?
     public var mine: String
     public var summary: String?
     public var mineHash: String
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        meetingId = try c.decodeIfPresent(String.self, forKey: .meetingId)
+        mine = try c.decodeIfPresent(String.self, forKey: .mine) ?? ""
+        summary = try c.decodeIfPresent(String.self, forKey: .summary)
+        // the hash the desktop would have sent for that text
+        mineHash = try c.decodeIfPresent(String.self, forKey: .mineHash) ?? notesHash(mine)
+    }
 }
 
 public struct SegmentsRecord: Sendable, Codable {

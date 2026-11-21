@@ -1,4 +1,6 @@
 import Foundation
+import os
+import SQLite3
 
 /// The phone's copy of the desktop's meetings, plus what only the phone has: edits not yet sent and meetings recorded
 /// here. Filled from `pull` pages; nothing in it is the source of truth except pending ops and local recordings.
@@ -7,6 +9,8 @@ import Foundation
 /// the main actor, beside the SyncEngine). Every write is one SQLite transaction, so a crash leaves a whole page or none.
 public final class Store {
     let db: Database
+    /// Ids and counts only, never note text. Tests replace it.
+    var log: (String) -> Void = { Logger(subsystem: "chat.yogurt", category: "store").notice("\($0, privacy: .public)") }
 
     public init(url: URL) throws {
         db = try Database(url: url)
@@ -15,7 +19,10 @@ public final class Store {
 
     private func migrate() throws {
         // no stored data to carry over before 1.0: version 0 is a new file
-        guard try db.query("PRAGMA user_version").first?.first?.int == 0 else { return }
+        let version = try db.query("PRAGMA user_version").first?.first?.int ?? 0
+        // a file from a newer build (the app went back a version): reading it as this one could lose data
+        guard version <= 1 else { throw DatabaseError(code: SQLITE_CANTOPEN, message: "store version \(version) is newer than this app") }
+        guard version == 0 else { return }
         try db.transaction {
             for sql in [
                 "CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)",
@@ -68,12 +75,17 @@ public final class Store {
                 try db.run("DELETE FROM \(table)")
             }
             try db.run("DELETE FROM meta WHERE key IN ('cursor', 'epoch')")
-            for rec in localRecordings() { try writeDraft(rec) }
+            for rec in try loadRecordings() { try writeDraft(rec) }
         }
     }
 
     private func apply(_ change: Change, touched: inout Set<String>) throws {
         let id = change.id
+        if change.undecodable {
+            // skip just this one, so one odd record can't stall sync at the same cursor forever
+            log("skipped an undecodable \(change.entity) change, id \(id)")
+            return
+        }
         switch change.record {
         case .meeting(let r):
             try db.run("""
@@ -195,7 +207,7 @@ public final class Store {
         try db.transaction {
             var op = pending.op
             if op.kind == .setMine {
-                if op.baseHash == nil {
+                if op.baseHash?.isEmpty ?? true {
                     op.baseHash = try db.query("SELECT mine_hash FROM notes WHERE meeting_id = ?", [.text(op.meetingId)]).first?[0].string
                 }
                 let text = op.text ?? ""
@@ -255,13 +267,21 @@ public final class Store {
         }
     }
 
-    public func localRecordings() -> [LocalRecording] {
-        ((try? db.query("SELECT data FROM local_recordings ORDER BY started_at, id")) ?? [])
-            .compactMap { try? JSONDecoder().decode(LocalRecording.self, from: Data(($0[0].string ?? "").utf8)) }
+    public func localRecordings() -> [LocalRecording] { (try? loadRecordings()) ?? [] }
+
+    /// Throws when SQLite does, so a write built on this list never commits from an empty one. A row that no longer
+    /// decodes is logged and kept, for a later build to read.
+    private func loadRecordings() throws -> [LocalRecording] {
+        try db.query("SELECT id, data FROM local_recordings ORDER BY started_at, id").compactMap { r in
+            do { return try JSONDecoder().decode(LocalRecording.self, from: Data((r[1].string ?? "").utf8)) } catch {
+                log("a local recording does not decode, id \(r[0].string ?? "")")
+                return nil
+            }
+        }
     }
 
     public func markUploaded(_ id: String, at: Date = Date()) throws {
-        guard var rec = localRecordings().first(where: { $0.id == id }) else { return }
+        guard var rec = try loadRecordings().first(where: { $0.id == id }) else { return }
         rec.uploadedAt = at
         try db.run("UPDATE local_recordings SET data = ? WHERE id = ?", [.text(json(rec)), .text(id)])
     }
@@ -272,8 +292,11 @@ public final class Store {
         guard source != "desktop" else { return }
         try db.run("INSERT OR REPLACE INTO meetings (id, title, started_at, ended_at, attendees, app, trashed_at, language, source) VALUES (?, ?, ?, ?, ?, NULL, NULL, NULL, 'phone')",
                    [.text(rec.id), .text(rec.title), .int(ms(rec.startedAt)), .of(rec.endedAt.map(ms)), .text(json(rec.attendees))])
-        try db.run("INSERT OR REPLACE INTO notes (meeting_id, mine, summary, mine_hash, summary_source) VALUES (?, ?, ?, '', ?)",
-                   [.text(rec.id), .text(try pendingMine(rec.id) ?? rec.myNotes), .of(rec.summary), .text(Notes.SummarySource.phoneDraft.rawValue)])
+        // the desktop imports the uploaded My notes, so a setMine made on the draft starts from their hash: the desktop
+        // then applies it cleanly instead of adding it again under "From your iPhone"
+        try db.run("INSERT OR REPLACE INTO notes (meeting_id, mine, summary, mine_hash, summary_source) VALUES (?, ?, ?, ?, ?)",
+                   [.text(rec.id), .text(try pendingMine(rec.id) ?? rec.myNotes), .of(rec.summary), .text(notesHash(rec.myNotes)),
+                    .text(Notes.SummarySource.phoneDraft.rawValue)])
         try writeSegments(rec.id, rec.transcript.map { ($0.startMs, $0.endMs, nil, $0.text) })
         try reindex([rec.id])
     }
@@ -302,7 +325,7 @@ public final class Store {
     }
 }
 
-private func ms(_ v: Double) -> Int64 { Int64(v.rounded()) }
-private func ms(_ d: Date) -> Int64 { Int64((d.timeIntervalSince1970 * 1000).rounded()) }
+private func ms(_ v: Double) -> Int64 { clampedInt64(v) }
+private func ms(_ d: Date) -> Int64 { clampedInt64(d.timeIntervalSince1970 * 1000) }
 private func date(_ ms: Int64) -> Date { Date(timeIntervalSince1970: Double(ms) / 1000) }
 private func json<T: Encodable>(_ v: T) -> String { String(decoding: (try? JSONEncoder().encode(v)) ?? Data("null".utf8), as: UTF8.self) }

@@ -13,10 +13,16 @@ enum SQLValue: Equatable {
     var int: Int64? {
         switch self {
         case .int(let i): i
-        case .real(let d): Int64(d)
+        case .real(let d): clampedInt64(d)
         default: nil
         }
     }
+}
+
+/// Int64(Double) traps on NaN or out of range; a malformed record must not crash the app.
+func clampedInt64(_ d: Double) -> Int64 {
+    guard d.isFinite else { return 0 }
+    return d >= 9.2e18 ? .max : d <= -9.2e18 ? .min : Int64(d.rounded())
 }
 
 struct DatabaseError: Error, CustomStringConvertible {
@@ -29,25 +35,41 @@ struct DatabaseError: Error, CustomStringConvertible {
 /// on one actor. Values are always bound, never spliced into SQL.
 final class Database {
     private var handle: OpaquePointer?
+    private let url: URL
+    /// tests only: makes the next rollback fail, as an I/O error or a locked device would
+    var rollbackHook: (() throws -> Void)?
 
     init(url: URL) throws {
+        self.url = url
+        try open()
+    }
+
+    private func open() throws {
         var flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX
         #if os(iOS)
         // notes and transcripts are only readable while the phone is unlocked; the flag covers the journal files too
         flags |= SQLITE_OPEN_FILEPROTECTION_COMPLETE
         #endif
-        let rc = sqlite3_open_v2(url.path, &handle, flags, nil)
+        var h: OpaquePointer?
+        let rc = sqlite3_open_v2(url.path, &h, flags, nil)
         guard rc == SQLITE_OK else {
-            let message = handle.map { String(cString: sqlite3_errmsg($0)) } ?? "open failed"
-            sqlite3_close_v2(handle)
-            handle = nil
+            let message = h.map { String(cString: sqlite3_errmsg($0)) } ?? "open failed"
+            sqlite3_close_v2(h)
             throw DatabaseError(code: rc, message: message)
         }
+        handle = h
         #if os(iOS)
         try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: url.path)
         #endif
         try run("PRAGMA journal_mode = WAL")
-        try run("PRAGMA foreign_keys = ON")
+    }
+
+    /// Closing drops whatever transaction is still open, so nothing later lands inside it unsaved. If opening again
+    /// fails (the phone locked), the next call tries once more.
+    private func reopen() {
+        sqlite3_close_v2(handle)
+        handle = nil
+        try? open()
     }
 
     deinit { sqlite3_close_v2(handle) }
@@ -59,6 +81,7 @@ final class Database {
     /// Every row of the result, each as its columns in order.
     @discardableResult
     func query(_ sql: String, _ args: [SQLValue] = []) throws -> [[SQLValue]] {
+        if handle == nil { try open() }
         var stmt: OpaquePointer?
         guard sqlite3_prepare_v2(handle, sql, -1, &stmt, nil) == SQLITE_OK else { throw error() }
         defer { sqlite3_finalize(stmt) }
@@ -70,7 +93,8 @@ final class Database {
             case .null: sqlite3_bind_null(stmt, at)
             case .int(let v): sqlite3_bind_int64(stmt, at, v)
             case .real(let v): sqlite3_bind_double(stmt, at, v)
-            case .text(let v): sqlite3_bind_text(stmt, at, v, -1, transient)
+            // by byte count, so a NUL inside the text doesn't cut it short
+            case .text(let v): sqlite3_bind_text(stmt, at, v, Int32(v.utf8.count), transient)
             }
             guard rc == SQLITE_OK else { throw error() }
         }
@@ -84,7 +108,7 @@ final class Database {
                 case SQLITE_INTEGER: .int(sqlite3_column_int64(stmt, col))
                 case SQLITE_FLOAT: .real(sqlite3_column_double(stmt, col))
                 case SQLITE_NULL: .null
-                default: .text(String(cString: sqlite3_column_text(stmt, col)))
+                default: .text(text(stmt, col))
                 }
             })
         }
@@ -102,10 +126,20 @@ final class Database {
             try run("RELEASE tx")
             return result
         } catch {
-            try? run("ROLLBACK TO tx")
-            try? run("RELEASE tx")
+            do {
+                try rollbackHook?()
+                try run("ROLLBACK TO tx")
+                try run("RELEASE tx")
+            } catch {
+                reopen()
+            }
             throw error
         }
+    }
+
+    private func text(_ stmt: OpaquePointer?, _ col: Int32) -> String {
+        guard let p = sqlite3_column_text(stmt, col) else { return "" }
+        return String(decoding: UnsafeBufferPointer(start: p, count: Int(sqlite3_column_bytes(stmt, col))), as: UTF8.self)
     }
 
     private func error() -> DatabaseError {

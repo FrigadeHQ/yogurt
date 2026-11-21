@@ -305,3 +305,103 @@ let pageOne = """
         #expect(store.notes("m1")?.mine == "typed on the phone")
     }
 }
+
+@Suite struct StoreFixRoundOneTests {
+    @Test func aBadRecordSkipsOnlyThatChange() throws {
+        let store = try Store(url: tempStoreURL())
+        var logged: [String] = []
+        store.log = { logged.append($0) }
+        try store.apply(changes("""
+        [
+          {"entity":"meeting","id":"bad1","record":{"id":"bad1","title":"No start"}},
+          {"entity":"notes","id":"bad2","record":null},
+          {"entity":"meeting","id":"m2","record":{"id":"m2","title":"Cherry review","startedAt":5000,"endedAt":null,"attendees":[],"app":null,"trashedAt":null,"language":null}},
+          {"entity":"notes","id":"m2","record":{"meetingId":"m2","summary":null}},
+          {"id":"no-entity"}
+        ]
+        """), cursor: 9)
+        #expect(store.meetings(folder: nil).map(\.id) == ["m2"])
+        #expect(store.cursor == 9)
+        // a missing mine is empty, a missing hash is the hash of it
+        #expect(store.notes("m2")?.mine == "")
+        try store.editMine(meetingId: "m2", text: "x")
+        #expect(store.pendingOps().first?.op.baseHash == notesHash(""))
+        #expect(logged.contains { $0.contains("bad1") })
+        #expect(logged.contains { $0.contains("bad2") })
+        #expect(logged.allSatisfy { !$0.contains("No start") })
+    }
+
+    @Test func aDraftEditStartsFromTheNotesTheDesktopWillImport() throws {
+        let store = try Store(url: tempStoreURL())
+        try store.saveLocalRecording(LocalRecording(
+            id: "p1", title: "Walk", startedAt: Date(timeIntervalSince1970: 10), endedAt: nil, attendees: [],
+            audioURL: URL(fileURLWithPath: "/tmp/p1.m4a"), myNotes: "remember the kiwis", transcript: [], summary: nil))
+        try store.editMine(meetingId: "p1", text: "remember the kiwis and limes")
+        // records.ts applies a setMine cleanly only when baseHash is the hash of the desktop's text
+        #expect(store.pendingOps().first?.op.baseHash == notesHash("remember the kiwis"))
+    }
+
+    @Test func anEmptyBaseHashIsFilledIn() throws {
+        let store = try Store(url: tempStoreURL())
+        try store.apply(changes(pageOne), cursor: 7)
+        try store.enqueue(PendingOp(Op(kind: .setMine, meetingId: "m1", text: "x", baseHash: "")))
+        #expect(store.pendingOps().first?.op.baseHash == "hash-a")
+    }
+
+    @Test func aFailedRollbackReopensTheConnection() throws {
+        let url = tempStoreURL()
+        let db = try Database(url: url)
+        try db.run("CREATE TABLE t (v TEXT)")
+        db.rollbackHook = { throw DatabaseError(code: 10, message: "disk I/O") }
+        #expect(throws: (any Error).self) {
+            try db.transaction { try db.run("INSERT INTO t VALUES ('lost')"); throw DatabaseError(code: 1, message: "boom") }
+        }
+        db.rollbackHook = nil
+        try db.transaction { try db.run("INSERT INTO t VALUES ('kept')") }
+        // a second connection sees only committed rows, so nothing is stuck in an open transaction
+        #expect(try Database(url: url).query("SELECT v FROM t") == [[.text("kept")]])
+    }
+
+    @Test func audioIsKeptRelativeToTheAppContainer() throws {
+        let home = URL(fileURLWithPath: NSHomeDirectory())
+        let rec = LocalRecording(
+            id: "p1", title: "Walk", startedAt: Date(timeIntervalSince1970: 10), endedAt: nil, attendees: [],
+            audioURL: home.appendingPathComponent("Library/Recordings/p1.m4a"), myNotes: "", transcript: [], summary: nil)
+        let json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(rec)) as? [String: Any]
+        #expect(json?["audioPath"] as? String == "Library/Recordings/p1.m4a")
+        #expect(try JSONDecoder().decode(LocalRecording.self, from: JSONEncoder().encode(rec)).audioURL.path == rec.audioURL.path)
+        // fields added later decode with defaults
+        let old = try JSONDecoder().decode(LocalRecording.self, from: Data(#"{"id":"p2","audioPath":"Library/p2.m4a"}"#.utf8))
+        #expect(old.audioURL.path == home.appendingPathComponent("Library/p2.m4a").path)
+        #expect(old.title == "" && old.transcript.isEmpty)
+    }
+
+    @Test func anUndecodableRecordingIsLoggedNotDropped() throws {
+        let store = try Store(url: tempStoreURL())
+        var logged: [String] = []
+        store.log = { logged.append($0) }
+        try store.db.run("INSERT INTO local_recordings (id, started_at, data) VALUES ('p9', 1, 'not json')")
+        #expect(store.localRecordings().isEmpty)
+        #expect(logged.contains { $0.contains("p9") })
+        #expect(try store.db.query("SELECT id FROM local_recordings") == [[.text("p9")]])
+    }
+
+    @Test func textWithANulCharacterIsKeptWhole() throws {
+        let store = try Store(url: tempStoreURL())
+        try store.apply(changes(pageOne), cursor: 7)
+        try store.editMine(meetingId: "m1", text: "before\u{0}after")
+        #expect(store.notes("m1")?.mine == "before\u{0}after")
+    }
+
+    @Test func outOfRangeTimesDoNotCrash() throws {
+        let store = try Store(url: tempStoreURL())
+        try store.apply(changes(#"[{"entity":"meeting","id":"m1","record":{"id":"m1","title":"Big","startedAt":1e300,"attendees":[]}}]"#), cursor: 1)
+        #expect(store.meeting("m1") != nil)
+    }
+
+    @Test func aFileFromANewerVersionIsRefused() throws {
+        let url = tempStoreURL()
+        try Database(url: url).run("PRAGMA user_version = 99")
+        #expect(throws: (any Error).self) { try Store(url: url) }
+    }
+}
