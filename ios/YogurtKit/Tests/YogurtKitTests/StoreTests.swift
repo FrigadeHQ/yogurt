@@ -564,4 +564,15 @@ let pageOne = """
         try store.enqueue(PendingOp(Op(kind: .rename, meetingId: "p1", title: "Kiwi plans")))
         #expect(store.localRecordings().first?.titleSource == .typed)
     }
+
+    @Test func recordingsTheComputerAlreadyHasDoNotComeBackAsDraftsAfterUnpairing() throws {
+        let store = try Store(url: tempStoreURL())
+        try store.saveLocalRecording(Self.rec("p1"))
+        try store.saveLocalRecording(Self.rec("p2"))
+        try store.markUploaded("p1")
+        try store.forgetDesktop()
+        #expect(store.meetings().map(\.id) == ["p2"])
+        try store.resetForNewEpoch()
+        #expect(store.meetings().map(\.id) == ["p2"])
+    }
 }

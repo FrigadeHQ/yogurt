@@ -86,7 +86,8 @@ public final class Store {
                 try db.run("DELETE FROM \(table)")
             }
             try db.run("DELETE FROM meta WHERE key IN ('cursor', 'epoch')")
-            for rec in try loadRecordings() { try writeDraft(rec) }
+            // one the computer already has stays there (its audio here is let go): it doesn't come back as a draft
+            for rec in try loadRecordings() where rec.uploadedAt == nil { try writeDraft(rec) }
         }
     }
 
