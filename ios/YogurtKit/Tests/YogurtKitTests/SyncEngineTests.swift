@@ -274,7 +274,8 @@ import Testing
         rig.network.openError = .timeout
         rig.engine.setForeground(true)
         #expect(await eventually { if case .offline = rig.engine.status { true } else { false } })
-        #expect(rig.network.opens > 1)
+        // retried: under a busy test run the second try can come just after "offline"
+        #expect(await eventually { rig.network.opens > 1 })
         rig.network.openError = nil
         #expect(await eventually { rig.connected })
     }
