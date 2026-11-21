@@ -19,7 +19,7 @@ function findName(node: ReactNode): ChipChild | undefined {
   return Children.toArray(node.props.children).map(findName).find(Boolean)
 }
 
-it('ellipsizes the linked name to fit Resume and Copy at 764px and returns their space on wrap', () => {
+it('ellipsizes the linked name to fit Resume and Share at 764px and returns their space on wrap', () => {
   // Border boxes from the 2× screenshot. The full name occupies 132px of the 227.5px date chip.
   const box = (width: number) => ({ getBoundingClientRect: () => ({ width }), getClientRects: () => [1] })
   const anchor = box(227.5), people = box(151.5), folder = box(119)

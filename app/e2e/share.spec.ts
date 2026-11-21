@@ -60,14 +60,20 @@ test('the menu copies the notes as text and HTML, the transcript, and Mac shortc
   await keepClipboard(app)
   try {
     await finished(app, page)
-    await page.getByTestId('share-button').click()
-    await expect(page.getByTestId('share-menu').getByRole('menuitem')).toHaveText([/Copy my notes/, /Copy summary/, /Copy transcript/, /Export Markdown/])
+    const trigger = page.locator('.note-header').getByRole('button', { name: 'Share', exact: true })
+    await expect(trigger).toHaveCSS('height', '30px')
+    await expect(trigger.locator('svg')).toHaveCount(1)
+    await expect(trigger.locator('svg')).toHaveAttribute('data-icon', 'ShareTray')
+    await trigger.locator('svg').click()
+    const menu = page.getByRole('menu', { name: 'Share', exact: true })
+    await expect(menu.getByRole('separator')).toHaveCount(1)
+    await expect(menu.getByRole('menuitem')).toHaveText(['Copy summary', 'Copy my notes', 'Copy transcript', 'Save Markdown…'])
     await page.getByTestId('share-copy-summary').click()
     await expect(page.getByTestId('share-said')).toHaveText('Copied')
     await expect(page.getByTestId('share-button')).toHaveAttribute('data-state', 'copied')
-    const copyBox = (await page.getByTestId('share-button').boundingBox())!
+    const shareBox = (await page.getByTestId('share-button').boundingBox())!
     const feedbackBox = (await page.getByTestId('share-said').boundingBox())!
-    expect(feedbackBox.y).toBeGreaterThanOrEqual(copyBox.y + copyBox.height)
+    expect(feedbackBox.y).toBeGreaterThanOrEqual(shareBox.y + shareBox.height)
     const c = await clip(app)
     expect(c.text).toContain('Launch plan\n• ')
     expect(c.text).toContain('• The site goes live on Tuesday')
@@ -85,9 +91,9 @@ test('the menu copies the notes as text and HTML, the transcript, and Mac shortc
     // the keyboard: the menu opens on Enter, arrows move, Escape closes and gives focus back
     await page.getByTestId('share-button').focus()
     await page.keyboard.press('Enter')
-    await expect(page.getByTestId('share-copy-notes')).toBeFocused()
-    await page.keyboard.press('ArrowDown')
     await expect(page.getByTestId('share-copy-summary')).toBeFocused()
+    await page.keyboard.press('ArrowDown')
+    await expect(page.getByTestId('share-copy-notes')).toBeFocused()
     await page.keyboard.press('Escape')
     await expect(page.getByTestId('share-menu')).toHaveCount(0)
     await expect(page.getByTestId('share-button')).toBeFocused()
@@ -99,7 +105,7 @@ test('the menu copies the notes as text and HTML, the transcript, and Mac shortc
   } finally { await putClipboardBack(app); await app.close() }
 })
 
-test('Export Markdown writes the title, notes and transcript to the file the save step gives', async () => {
+test('Save Markdown writes the title, notes and transcript to the file the save step gives', async () => {
   const file = join(mkdtempSync(join(tmpdir(), 'yogurt-export-')), 'out.md')
   const { app, page } = await launch({ YOGURT_EXPORT_PATH: file })
   try {
@@ -157,23 +163,25 @@ test('empty and failed copy feedback never signals success', async () => {
     await page.getByTestId('new-note').or(page.getByTestId('past-empty').getByRole('button')).first().click()
     await page.getByRole('tab', { name: 'My notes', exact: true }).click()
     await expect(page.getByTestId('note-mine')).toBeVisible()
-    const copy = page.getByTestId('share-button')
-    await copy.click()
-    await page.getByTestId('share-copy-notes').click()
+    const share = page.getByTestId('share-button')
+    await share.press('ArrowDown')
+    await expect(page.getByTestId('share-copy-summary')).toBeDisabled()
+    await expect(page.getByTestId('share-copy-notes')).toBeFocused()
+    await page.keyboard.press('Enter')
     await expect(page.getByTestId('share-said')).toHaveText('Nothing to copy yet')
     expect(await page.getByTestId('share-said').locator('svg').count()).toBe(0)
-    await expect(copy).toHaveAttribute('data-state', 'idle')
+    await expect(share).toHaveAttribute('data-state', 'idle')
     // A clipboard failure at the existing IPC boundary must stay a failure in the UI.
     await app.evaluate(({ ipcMain }) => {
       ipcMain.removeHandler('share:copy')
       ipcMain.handle('share:copy', () => 'failed')
     })
-    await copy.click()
+    await share.click()
     await page.getByTestId('share-copy-notes').click()
     await expect(page.getByTestId('share-said')).toHaveText("Couldn't copy. Try again.")
     await expect(page.getByTestId('share-said')).toHaveAttribute('data-tone', 'error')
     await expect(page.getByTestId('share-said').getByTestId('share-success')).toHaveCount(0)
-    await expect(copy).toHaveAttribute('data-state', 'idle')
+    await expect(share).toHaveAttribute('data-state', 'idle')
   } finally { await app.close() }
 })
 

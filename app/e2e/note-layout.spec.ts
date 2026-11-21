@@ -83,14 +83,14 @@ test('the workspace keeps Meetings and Back navigation, including a return from 
   } finally { await app.close() }
 })
 
-test('Copy beside the meeting controls offers explicit versions and export', async () => {
+test('Share beside the meeting controls offers explicit copy choices and Save Markdown', async () => {
   const { app, page } = await launch()
   await keepClipboard(app)
   try {
     await finished(app, page)
-    await expect(page.locator('.note-header').getByTestId('share-button')).toHaveText('Copy')
+    await expect(page.locator('.note-header').getByTestId('share-button')).toHaveText('Share')
     await page.getByTestId('share-button').click()
-    await expect(page.getByTestId('share-menu').getByRole('menuitem')).toHaveText([/Copy my notes/, /Copy summary/, /Copy transcript/, /Export Markdown/])
+    await expect(page.getByTestId('share-menu').getByRole('menuitem')).toHaveText(['Copy summary', 'Copy my notes', 'Copy transcript', 'Save Markdown…'])
     await page.keyboard.press('Escape')
     await expect(page.getByTestId('share-menu')).toHaveCount(0)
     await page.getByTestId('share-button').click()

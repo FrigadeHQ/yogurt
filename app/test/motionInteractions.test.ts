@@ -847,6 +847,21 @@ it.each([false, true].flatMap(panel => [false, true].flatMap(inline => [
   },
 )
 
+it.each([true, false])('focuses the first available Share action when a summary exists: %s', async hasEnhanced => {
+  const { ShareMenu } = await import('../src/renderer/src/components/ShareMenu')
+  vi.stubGlobal('document', new EventTarget())
+  const render = renderer(() => ShareMenu({ id: 'note', shown: 'mine', status: 'idle', hasEnhanced, beforeUse: async () => true }))
+  find(render(), 'share-button').props.onClick({ detail: 0 })
+  const menu = find(render(), 'share-menu')
+  const items = menu.props.children.filter((item: ReactElement<any>) => item.props.role === 'menuitem')
+  expect(items.map((item: ReactElement<any>) => item.props['data-testid'])).toEqual(['share-copy-summary', 'share-copy-notes', 'share-copy-transcript', 'share-export'])
+  const focused = vi.fn()
+  for (const item of items) item.props.ref({ disabled: item.props.disabled, focus: () => focused(item.props['data-testid']) })
+  const cleanup = vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.includes('keyboard'))![0]()
+  expect(focused).toHaveBeenCalledExactlyOnceWith(hasEnhanced ? 'share-copy-summary' : 'share-copy-notes')
+  if (typeof cleanup === 'function') cleanup()
+})
+
 it('retains an export error and reopens the file save action on retry', async () => {
   vi.useFakeTimers()
   const toast = watchRetryToast()
