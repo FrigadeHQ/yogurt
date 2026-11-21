@@ -515,7 +515,6 @@
     "one": "{count} tanesi zaten buradaydı.",
     "other": "{count} tanesi zaten buradaydı."
   },
-  "{name} + {more}": "{name} +{more}",
   "{name} is on. You can change this any time in Settings.": "{name} açık. Bunu istediğiniz zaman Ayarlar’dan değiştirebilirsiniz.",
   "{rate}×": "{rate}×",
   "Add attendees": "Katılımcı ekle",
@@ -609,7 +608,6 @@
   "Choose meetings or folders": "Toplantı veya klasör seç",
   "In this chat": "Bu sohbette",
   "and {count} others": "ve {count} diğer",
-  "{count} more": "{count} tane daha",
   "Clear": "Temizle",
   "Reading {title} {others}…": "“{title}” {others} okunuyor…",
   "Searched {name}": "{name} içinde arandı",

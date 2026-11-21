@@ -515,7 +515,6 @@
     "one": "1 war schon da.",
     "other": "{count} waren schon da."
   },
-  "{name} + {more}": "{name} + {more}",
   "{name} is on. You can change this any time in Settings.": "{name} ist an. Du kannst das jederzeit in den Einstellungen ändern.",
   "{rate}×": "{rate}×",
   "Add attendees": "Teilnehmende hinzufügen",
@@ -621,7 +620,6 @@
   "Choose meetings or folders": "Meetings oder Ordner wählen",
   "In this chat": "In diesem Gespräch",
   "and {count} others": "und {count} weitere",
-  "{count} more": "{count} weitere",
   "Clear": "Zurücksetzen",
   "Reading {title} {others}…": "„{title}“ {others} werden gelesen …",
   "Searched {name}": "{name} durchsucht",

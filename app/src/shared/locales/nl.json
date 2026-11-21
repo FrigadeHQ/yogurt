@@ -515,7 +515,6 @@
     "one": "{count} stond er al.",
     "other": "{count} stonden er al."
   },
-  "{name} + {more}": "{name} +{more}",
   "{name} is on. You can change this any time in Settings.": "{name} staat aan. Je kunt dit altijd wijzigen in Instellingen.",
   "{rate}×": "{rate}×",
   "Add attendees": "Deelnemers toevoegen",
@@ -621,7 +620,6 @@
   "Choose meetings or folders": "Kies meetings of mappen",
   "In this chat": "In dit gesprek",
   "and {count} others": "en {count} andere",
-  "{count} more": "Nog {count}",
   "Clear": "Wissen",
   "Reading {title} {others}…": "{title} {others} lezen…",
   "Searched {name}": "Gezocht in {name}",

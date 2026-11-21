@@ -158,7 +158,8 @@ test('a note goes into folders from its menu and its chip, and a new folder from
     await page.getByTestId('note-menu-folders').getByTestId('folder-new').click()
     await page.getByTestId('folder-name-input').fill('Board')
     await page.keyboard.press('Enter')
-    await expect(page.getByTestId('note-folders-summary')).toHaveText('Acme + 1')
+    await expect(page.getByTestId('note-folders-summary')).toHaveText('Acme +1')
+    await expect(page.getByTestId('note-folders')).toHaveAccessibleName('Acme and 1 more')
     await expect(folder(page, 'Board').getByTestId('sidebar-folder-count')).toHaveText('1')
 
     // the chip: same list; taking it out of Acme

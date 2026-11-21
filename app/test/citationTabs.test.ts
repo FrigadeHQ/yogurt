@@ -25,7 +25,8 @@ describe('source tabs', () => {
       expect(tab.props.title).toEqual(tab.props['aria-label'])
     }
     if (count === 5) {
-      expect(tabs[2].props.children).toBe('+3')
+      expect(elements(tabs[2].props.children as ReactNode)[0].props).toMatchObject({ dir: 'ltr', children: '+3' })
+      expect(tabs[2].props['aria-label']).toBe(`and 3 more · ${sources.slice(2).map(s => s.title).join(', ')}`)
       expect(tabs[2].props['data-overflow']).toBe(true)
       expect(elements(panels[2]).filter(e => e.props['data-testid'] === 'citation-open')).toHaveLength(3)
       for (const s of sources.slice(2)) expect(tabs[2].props['aria-label']).toContain(s.title)

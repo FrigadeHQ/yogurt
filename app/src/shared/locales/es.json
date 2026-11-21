@@ -525,7 +525,6 @@
     "many": "{count} ya estaban aquí.",
     "other": "{count} ya estaban aquí."
   },
-  "{name} + {more}": "{name} +{more}",
   "{name} is on. You can change this any time in Settings.": "{name} está activado. Puedes cambiarlo cuando quieras en Ajustes.",
   "{rate}×": "{rate}×",
   "Add attendees": "Añadir asistentes",
@@ -634,7 +633,6 @@
   "Choose meetings or folders": "Elegir reuniones o carpetas",
   "In this chat": "En esta conversación",
   "and {count} others": "y {count} más",
-  "{count} more": "{count} más",
   "Clear": "Borrar",
   "Reading {title} {others}…": "Leyendo {title} {others}…",
   "Searched {name}": "Se buscó en {name}",

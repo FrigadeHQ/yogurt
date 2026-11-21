@@ -518,7 +518,6 @@
     "one": "{count} oli jo täällä.",
     "other": "{count} oli jo täällä."
   },
-  "{name} + {more}": "{name} +{more}",
   "{name} is on. You can change this any time in Settings.": "{name} on päällä. Voit muuttaa tätä milloin tahansa Asetuksissa.",
   "{rate}×": "{rate}×",
   "Add attendees": "Lisää osallistujia",
@@ -627,7 +626,6 @@
     "one": "ja {count} muu",
     "other": "ja {count} muuta"
   },
-  "{count} more": "{count} lisää",
   "Clear": "Tyhjennä",
   "Reading {title} {others}…": "Luetaan {title} {others}…",
   "Searched {name}": "Haettu kohteesta {name}",

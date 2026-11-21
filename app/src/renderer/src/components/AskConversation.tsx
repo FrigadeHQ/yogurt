@@ -5,7 +5,7 @@ import { Popover } from '@base-ui/react/popover'
 import { ArrowDown, ArrowUp, Check, Ellipsis, Maximize2, Square, X } from 'lucide-react'
 import { attachContext, mentionAt, type ContextTarget } from '../../../shared/askContext'
 import type { AskStep, ConversationTurn, ConversationView, LibrarySource } from '../../../shared/types'
-import { t } from '../../../shared/i18n'
+import { moreItems, t } from '../../../shared/i18n'
 import { stepText, STEP_EVERY_MS } from '../../../shared/askStep'
 import { dayLabel } from '../dates'
 import { useSmoothText } from '../useSmoothText'
@@ -60,6 +60,8 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
   const [expanded, setExpanded] = useState(false)
   const [scopeExpanded, setScopeExpanded] = useState(false)
   const chips = chat ? attachContext(chat.chips, chat.draftChips) : []
+  const chooseScope = t('Choose meetings or folders')
+  const scopeName = chips.length > 1 ? `${chooseScope} · ${chipTitle(chips[0])} ${moreItems(chips.length - 1)}` : chooseScope
   const inScope = (c: ContextTarget) => chips.some(x => x.kind === c.kind && x.id === c.id)
   const items = (targetResults?.items ?? []).filter(c => query ? true : !inScope(c))
   const meetings = items.filter(c => c.kind === 'meeting')
@@ -285,7 +287,7 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
         onMouseDown={e => e.preventDefault()} onClick={() => void remove(chips)}>{t('Clear')}</button></h3>
         {scoped.map((c, i) => targetRow(c, i))}
         {!!scopeMore && <button type="button" role="option" tabIndex={-1} aria-selected={false} data-active={selected === offset - 1 || undefined} id={`${prefix}-context-${offset - 1}`}
-          onMouseDown={e => e.preventDefault()} onClick={() => setScopeExpanded(true)}><Ellipsis size={14} aria-hidden="true" /><span>{t('{count} more', { count: scopeMore })}</span></button>}
+          onMouseDown={e => e.preventDefault()} onClick={() => setScopeExpanded(true)}><Ellipsis size={14} aria-hidden="true" /><span>{moreItems(scopeMore)}</span></button>}
       </div>}
     </>}
     {(['meeting', 'folder'] as const).map(kind => targets.some(c => c.kind === kind) && <div key={kind} role="group" aria-label={kind === 'meeting' ? t('Meetings') : t('Folders')}>
@@ -352,7 +354,7 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
             setSelector(open ? { query: '' } : undefined)
           }}>
             <span className="ask-scope-group">
-              <Popover.Trigger type="button" className="ask-scope" data-testid="ask-scope" onPointerEnter={prefetch} onFocus={prefetch} disabled={busy} aria-label={t('Choose meetings or folders')} title={t('Choose meetings or folders')}><AskContext chips={chips} /></Popover.Trigger>
+              <Popover.Trigger type="button" className="ask-scope" data-testid="ask-scope" onPointerEnter={prefetch} onFocus={prefetch} disabled={busy} aria-label={scopeName} title={chooseScope}><AskContext chips={chips} /></Popover.Trigger>
               {!!chips.length && <button type="button" className="ask-scope-clear" data-testid="ask-scope-clear" disabled={busy} aria-label={t('Clear')} title={t('Clear')}
                 onClick={() => { void remove(chips); input.current?.focus({ preventScroll: true }) }}><X size={12} aria-hidden="true" /></button>}
             </span>

@@ -3,7 +3,7 @@ import { ChevronDown } from 'lucide-react'
 import { Loading } from './Loading'
 import { LoadingContent } from './LoadingContent'
 import { CalendarLinkForm } from './CalendarLinkForm'
-import { t } from '../../../shared/i18n'
+import { moreItems, t } from '../../../shared/i18n'
 
 let expanded = false
 
@@ -61,7 +61,7 @@ export function CalendarSettings({ connect = false }: { connect?: boolean } = {}
     : !view.calendars.length ? (link ? t('Connect a calendar to see your meetings.') : t('No calendars found on this Mac.'))
     : !selected.length ? t('No calendars selected.')
     : selected.length === 1 ? [selected[0].name, selected[0].source].filter(Boolean).join(' · ')
-    : `${selected[0].name} ${t('and {count} more', { count: selected.length - 1 })}`
+    : `${selected[0].name} ${moreItems(selected.length - 1)}`
   const readFailed = view?.status === 'error' || sys === 'error'
   return <section data-testid="calendar-settings">
     <h2 className="settings-section-heading">{t('Calendars')}</h2>

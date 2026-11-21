@@ -7,6 +7,7 @@ import { useNotePopover } from '../useNotePopover'
 import { Lock, Pencil, Plus, Users, X } from 'lucide-react'
 import type { CalEvent, Meeting, Person } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
+import { compactCount } from '../i18n'
 
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase()
 const first = (name: string) => personName(name).split(/\s+/)[0] ?? name
@@ -28,17 +29,20 @@ export function parsePerson(raw: string): Person | null {
   return { name: name || email[1], email: email[1] }
 }
 
-/** Compact labels show up to three first names, without counting the person themself. */
+function summarizePeople(people: Person[], me: string, limit: number, empty: string) {
+  const others = people.filter(p => !same(p.name, me))
+  const names = others.slice(0, limit).map(p => first(p.name)).reduce((a, b) => a ? t('{a}, {b}', { a, b }) : b, '') || empty
+  const more = Math.max(0, others.length - limit)
+  return { names, more, label: more ? `${names} ${t('and {count} more', { count: more })}` : names }
+}
+
 export function peopleSummary(people: Person[], me: string, limit = 3): string {
-  const others = people.filter((p) => !same(p.name, me))
-  if (!others.length) return t('Me')
-  const names = others.slice(0, limit).map((p) => first(p.name)).reduce((a, b) => t('{a}, {b}', { a, b }))
-  return others.length > limit ? t('{name} + {more}', { name: names, more: others.length - limit }) : names
+  return summarizePeople(people, me, limit, t('Me')).label
 }
 
 /** The header keeps room for the date and folder beside two names. */
-export function peopleChipSummary(people: Person[], me: string): string {
-  return people.some(p => !same(p.name, me)) ? peopleSummary(people, me, 2) : t('Add attendees')
+export function peopleChipSummary(people: Person[], me: string) {
+  return summarizePeople(people, me, 2, t('Add attendees'))
 }
 
 /** One settings read per surface, shared by all of its compact attendee labels. */
@@ -53,15 +57,16 @@ export function People({ m }: { m: Meeting }) {
   const [open, setOpen] = useState<false | 'pointer' | 'keyboard'>(false)
   const presence = usePopoverPresence(open)
   const me = useMyName()
+  const { names, more, label } = peopleChipSummary(m.attendees, me)
   const chip = useRef<HTMLButtonElement>(null)
   const close = useCallback((restore = true) => { setOpen(false); if (restore) chip.current?.focus({ preventScroll: true }) }, [])
 
   return (
     <div className="relative">
-      <button ref={chip} data-testid="note-attendees" aria-haspopup="dialog" aria-expanded={!!open} onClick={(e) => setOpen((o) => o ? false : e.detail > 0 ? 'pointer' : 'keyboard')}
+      <button ref={chip} data-testid="note-attendees" aria-label={label} aria-haspopup="dialog" aria-expanded={!!open} onClick={(e) => setOpen((o) => o ? false : e.detail > 0 ? 'pointer' : 'keyboard')}
         title={m.attendees.map(a => a.email ? `${a.name} <${a.email}>` : a.name).join(', ') || undefined}
         className="note-chip flex items-center gap-1.5 rounded-md border border-line px-2.5 text-[13px] text-muted">
-        <span data-testid="note-attendees-summary" className="flex items-center gap-1.5"><Users size={14} strokeWidth={1.75} aria-hidden="true" />{peopleChipSummary(m.attendees, me)}</span>
+        <span data-testid="note-attendees-summary" className="flex items-center gap-1.5"><Users size={14} strokeWidth={1.75} aria-hidden="true" /><span>{names}{more > 0 && <> {compactCount(more)}</>}</span></span>
       </button>
       {presence.value && <Card m={m} me={me} motionProps={presence.props} chip={chip} onClose={close} />}
     </div>

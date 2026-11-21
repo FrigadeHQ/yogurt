@@ -525,7 +525,6 @@
     "two": "{count} כבר היו כאן.",
     "other": "{count} כבר היו כאן."
   },
-  "{name} + {more}": "{name} +{more}",
   "{name} is on. You can change this any time in Settings.": "{name} מופעל. אפשר לשנות זאת בכל עת בהגדרות.",
   "{rate}×": "{rate}×",
   "Add attendees": "הוספת משתתפים",
@@ -631,7 +630,6 @@
   "Choose meetings or folders": "בחירת פגישות או תיקיות",
   "In this chat": "בשיחה הזו",
   "and {count} others": "ועוד {count}",
-  "{count} more": "עוד {count}",
   "Clear": "נקה",
   "Reading {title} {others}…": "קורא את {title} {others}…",
   "Searched {name}": "בוצע חיפוש ב־{name}",

@@ -515,7 +515,6 @@
     "one": "Nandito na ang {count}.",
     "other": "Nandito na ang {count}."
   },
-  "{name} + {more}": "{name} +{more}",
   "{name} is on. You can change this any time in Settings.": "Naka-on ang {name}. Puwede mo itong baguhin anumang oras sa Settings.",
   "{rate}×": "{rate}×",
   "Add attendees": "Magdagdag ng mga kalahok",
@@ -621,7 +620,6 @@
   "Choose meetings or folders": "Pumili ng pulong o folder",
   "In this chat": "Sa pag-uusap na ito",
   "and {count} others": "at {count} pa",
-  "{count} more": "{count} pa",
   "Clear": "I-clear",
   "Reading {title} {others}…": "Binabasa ang {title} {others}…",
   "Searched {name}": "Hinanap sa {name}",

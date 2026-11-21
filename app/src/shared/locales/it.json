@@ -528,7 +528,6 @@
     "many": "{count} c’erano già.",
     "other": "{count} c’erano già."
   },
-  "{name} + {more}": "{name} +{more}",
   "{name} is on. You can change this any time in Settings.": "{name} è attivo. Puoi cambiarlo quando vuoi in Impostazioni.",
   "{rate}×": "{rate}×",
   "Add attendees": "Aggiungi partecipanti",
@@ -640,7 +639,6 @@
     "one": "e {count} altro",
     "other": "e {count} altri"
   },
-  "{count} more": "Altri {count}",
   "Clear": "Cancella",
   "Reading {title} {others}…": "Lettura di «{title}» {others}…",
   "Searched {name}": "Ricerca in {name}",

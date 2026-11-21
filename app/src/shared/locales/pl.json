@@ -535,7 +535,6 @@
     "many": "{count} już tu było.",
     "other": "{count} już tu było."
   },
-  "{name} + {more}": "{name} +{more}",
   "{name} is on. You can change this any time in Settings.": "{name} jest włączony. Możesz to zmienić w dowolnej chwili w Ustawieniach.",
   "{rate}×": "{rate}×",
   "Add attendees": "Dodaj uczestników",
@@ -657,7 +656,6 @@
     "many": "i {count} innych",
     "other": "i {count} innych"
   },
-  "{count} more": "Jeszcze {count}",
   "Clear": "Wyczyść",
   "Reading {title} {others}…": "Czytanie spotkań „{title}” {others}…",
   "Searched {name}": "Przeszukano {name}",

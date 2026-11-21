@@ -515,7 +515,6 @@
     "one": "{count} पहले से यहाँ थी।",
     "other": "{count} पहले से यहाँ थीं।"
   },
-  "{name} + {more}": "{name} +{more}",
   "{name} is on. You can change this any time in Settings.": "{name} चालू है। आप इसे कभी भी सेटिंग्स में बदल सकते हैं।",
   "{rate}×": "{rate}×",
   "Add attendees": "प्रतिभागी जोड़ें",
@@ -609,7 +608,6 @@
   "Choose meetings or folders": "मीटिंग या फ़ोल्डर चुनें",
   "In this chat": "इस बातचीत में",
   "and {count} others": "और {count} अन्य",
-  "{count} more": "{count} और",
   "Clear": "साफ़ करें",
   "Reading {title} {others}…": "{title} {others} पढ़ी जा रही हैं…",
   "Searched {name}": "{name} में खोजा गया",

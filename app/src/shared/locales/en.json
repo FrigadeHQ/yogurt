@@ -151,12 +151,8 @@
   "Choose meetings or folders": "Choose meetings or folders",
   "In this chat": "In this chat",
   "and {count} others": {
-    "one": "and {count} other",
-    "other": "and {count} others"
-  },
-  "{count} more": {
-    "one": "{count} more",
-    "other": "{count} more"
+    "one": "and {count} more",
+    "other": "and {count} more"
   },
   "Clear": "Clear",
   "Searched {name}": "Searched {name}",

@@ -515,7 +515,6 @@
     "one": "{count} fanns redan här.",
     "other": "{count} fanns redan här."
   },
-  "{name} + {more}": "{name} +{more}",
   "{name} is on. You can change this any time in Settings.": "{name} är på. Du kan ändra det när som helst i Inställningar.",
   "{rate}×": "{rate}×",
   "Add attendees": "Lägg till deltagare",
@@ -621,7 +620,6 @@
   "Choose meetings or folders": "Välj möten eller mappar",
   "In this chat": "I det här samtalet",
   "and {count} others": "och {count} till",
-  "{count} more": "{count} till",
   "Clear": "Rensa",
   "Reading {title} {others}…": "Läser {title} {others}…",
   "Searched {name}": "Sökte i {name}",

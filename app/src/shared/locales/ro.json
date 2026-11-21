@@ -525,7 +525,6 @@
     "few": "{count} erau deja aici.",
     "other": "{count} erau deja aici."
   },
-  "{name} + {more}": "{name} +{more}",
   "{name} is on. You can change this any time in Settings.": "{name} este activat. Puteți schimba asta oricând din Setări.",
   "{rate}×": "{rate}×",
   "Add attendees": "Adaugă participanți",
@@ -638,7 +637,6 @@
   "Choose meetings or folders": "Alege întâlniri sau dosare",
   "In this chat": "În această conversație",
   "and {count} others": "și încă {count}",
-  "{count} more": "Încă {count}",
   "Clear": "Șterge",
   "Reading {title} {others}…": "Se citesc „{title}” {others}…",
   "Searched {name}": "Căutat în {name}",

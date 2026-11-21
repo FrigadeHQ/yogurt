@@ -535,7 +535,6 @@
     "many": "{count} tu už bylo.",
     "other": "{count} tu už bylo."
   },
-  "{name} + {more}": "{name} +{more}",
   "{name} is on. You can change this any time in Settings.": "{name} je zapnutý. Můžete to kdykoli změnit v Nastavení.",
   "{rate}×": "{rate}×",
   "Add attendees": "Přidat účastníky",
@@ -652,7 +651,6 @@
   "Choose meetings or folders": "Vybrat schůzky nebo složky",
   "In this chat": "V této konverzaci",
   "and {count} others": "a {count} další",
-  "{count} more": "{count} další",
   "Clear": "Vymazat",
   "Reading {title} {others}…": "Čtení {title} {others}…",
   "Searched {name}": "Prohledáno {name}",

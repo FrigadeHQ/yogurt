@@ -515,7 +515,6 @@
     "one": "{count} υπήρχε ήδη εδώ.",
     "other": "{count} υπήρχαν ήδη εδώ."
   },
-  "{name} + {more}": "{name} +{more}",
   "{name} is on. You can change this any time in Settings.": "Το {name} είναι ενεργό. Μπορείτε να το αλλάξετε όποτε θέλετε στις Ρυθμίσεις.",
   "{rate}×": "{rate}×",
   "Add attendees": "Προσθήκη συμμετεχόντων",
@@ -624,7 +623,6 @@
   "Choose meetings or folders": "Επιλογή συσκέψεων ή φακέλων",
   "In this chat": "Σε αυτή τη συνομιλία",
   "and {count} others": "και {count} ακόμη",
-  "{count} more": "{count} ακόμη",
   "Clear": "Εκκαθάριση",
   "Reading {title} {others}…": "Ανάγνωση {title} {others}…",
   "Searched {name}": "Αναζήτηση στο {name}",

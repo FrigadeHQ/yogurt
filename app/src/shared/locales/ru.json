@@ -535,7 +535,6 @@
     "many": "{count} уже были здесь.",
     "other": "{count} уже были здесь."
   },
-  "{name} + {more}": "{name} +{more}",
   "{name} is on. You can change this any time in Settings.": "{name}: включено. Это можно изменить в любой момент в Настройках.",
   "{rate}×": "{rate}×",
   "Add attendees": "Добавить участников",
@@ -649,7 +648,6 @@
   "Choose meetings or folders": "Выбрать встречи или папки",
   "In this chat": "В этом разговоре",
   "and {count} others": "и ещё {count}",
-  "{count} more": "Ещё {count}",
   "Clear": "Очистить",
   "Reading {title} {others}…": "Читаем «{title}» {others}…",
   "Searched {name}": "Поиск в {name}",

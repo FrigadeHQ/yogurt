@@ -515,7 +515,6 @@
     "one": "{count} már itt volt.",
     "other": "{count} már itt volt."
   },
-  "{name} + {more}": "{name} +{more}",
   "{name} is on. You can change this any time in Settings.": "{name} bekapcsolva. Bármikor módosíthatod a Beállításokban.",
   "{rate}×": "{rate}×",
   "Add attendees": "Résztvevők hozzáadása",
@@ -609,7 +608,6 @@
   "Choose meetings or folders": "Megbeszélések vagy mappák választása",
   "In this chat": "Ebben a beszélgetésben",
   "and {count} others": "és {count} további",
-  "{count} more": "Még {count}",
   "Clear": "Törlés",
   "Reading {title} {others}…": "„{title}” {others} olvasása…",
   "Searched {name}": "{name} átvizsgálva",

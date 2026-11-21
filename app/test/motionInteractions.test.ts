@@ -880,10 +880,10 @@ it.each([0, 1, 2, 5])('labels a scope of %s items without truncating its count',
   const chips = Array.from({ length: count }, (_, i) => ({ kind: 'meeting' as const, id: String(i), title: 'A very long meeting title '.repeat(20) }))
   const label = scopeLabel(chips)
   expect(label.name).toBe(count ? chips[0].title.trim() : 'All meetings')
-  expect(label.others).toBe(count > 1 ? `and ${count - 1} ${count === 2 ? 'other' : 'others'}` : '')
+  expect(label.others).toBe(count > 1 ? `and ${count - 1} more` : '')
   const contents = AskContext({ chips })
   expect(find(contents, 'ask-scope-name').props.children).toBe(label.name)
-  if (count > 1) expect(find(contents, 'ask-scope-others').props.children).toBe(` ${label.others}`)
+  if (count > 1) expect(find(contents, 'ask-scope-others').props.children[1].props).toMatchObject({ dir: 'ltr', children: `+${count - 1}` })
 })
 
 it('caps selected scope at three, reveals the rest, and gives query matches the full list', async () => {
@@ -892,7 +892,7 @@ it('caps selected scope at three, reveals the rest, and gives query matches the 
   c.popup().onOpenChange(true)
   await c.lookup()
   expect(find(c.render(), 'In this chat').props.children[1]).toHaveLength(3)
-  expect(find(c.render(), `${c.prefix}-context-3`).props.children[1].props.children).toBe('2 more')
+  expect(find(c.render(), `${c.prefix}-context-3`).props.children[1].props.children).toBe('and 2 more')
   expect(find(c.render(), `${c.prefix}-context-4`).props.children[1].props.children).toBe('Already attached')
   find(c.render(), `${c.prefix}-context-3`).props.onClick()
   expect(find(c.render(), 'In this chat').props.children[1]).toHaveLength(5)

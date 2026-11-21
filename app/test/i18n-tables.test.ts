@@ -242,14 +242,14 @@ it('translates additional context results and their singular form', () => {
 
 
 it('translates scope labels and actions in every locale', () => {
-  for (const key of ['All meetings', 'Choose meetings or folders', 'In this chat', 'and {count} others', '{count} more', 'Clear']) {
+  for (const key of ['All meetings', 'Choose meetings or folders', 'In this chat', 'and {count} others', 'and {count} more', 'Clear']) {
     expect(keys).toContain(key)
     for (const { id } of LOCALES) {
       expect(load(id)[key]).toBeDefined()
       if (id !== 'en') expect(forms(load(id)[key])).not.toContain(key)
     }
   }
-  expect(load('en')['and {count} others']).toEqual({ one: 'and {count} other', other: 'and {count} others' })
+  expect(load('en')['and {count} others']).toEqual({ one: 'and {count} more', other: 'and {count} more' })
 })
 
 

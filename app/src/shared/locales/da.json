@@ -515,7 +515,6 @@
     "one": "{count} var her allerede.",
     "other": "{count} var her allerede."
   },
-  "{name} + {more}": "{name} +{more}",
   "{name} is on. You can change this any time in Settings.": "{name} er slået til. Du kan ændre det når som helst i Indstillinger.",
   "{rate}×": "{rate}×",
   "Add attendees": "Tilføj deltagere",
@@ -621,7 +620,6 @@
   "Choose meetings or folders": "Vælg møder eller mapper",
   "In this chat": "I denne samtale",
   "and {count} others": "og {count} andre",
-  "{count} more": "{count} flere",
   "Clear": "Ryd",
   "Reading {title} {others}…": "Læser {title} {others}…",
   "Searched {name}": "Søgte i {name}",

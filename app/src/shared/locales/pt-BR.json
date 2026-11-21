@@ -525,7 +525,6 @@
     "many": "{count} já estavam aqui.",
     "other": "{count} já estavam aqui."
   },
-  "{name} + {more}": "{name} +{more}",
   "{name} is on. You can change this any time in Settings.": "{name} está ativado. Você pode mudar isso quando quiser nos Ajustes.",
   "{rate}×": "{rate}×",
   "Add attendees": "Adicionar participantes",
@@ -637,7 +636,6 @@
     "one": "e mais {count}",
     "other": "e mais {count}"
   },
-  "{count} more": "Mais {count}",
   "Clear": "Limpar",
   "Reading {title} {others}…": "Lendo {title} {others}…",
   "Searched {name}": "Pesquisa em {name}",
