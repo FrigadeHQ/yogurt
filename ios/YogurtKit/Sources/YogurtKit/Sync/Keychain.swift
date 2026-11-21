@@ -48,12 +48,12 @@ public final class KeychainVault: PairingVault {
         return try? JSONDecoder().decode(Pairing.self, from: data)
     }
 
+    /// Replaced in place, so a save that fails leaves the pairing there was.
     public func save(_ pairing: Pairing) throws {
-        delete()
-        var q = query
-        q[kSecValueData as String] = try JSONEncoder().encode(pairing)
-        q[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-        let status = SecItemAdd(q as CFDictionary, nil)
+        let fields: [String: Any] = [kSecValueData as String: try JSONEncoder().encode(pairing),
+                                     kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly]
+        var status = SecItemUpdate(query as CFDictionary, fields as CFDictionary)
+        if status == errSecItemNotFound { status = SecItemAdd(query.merging(fields) { $1 } as CFDictionary, nil) }
         guard status == errSecSuccess else { throw KeychainError(status: status) }
     }
 
