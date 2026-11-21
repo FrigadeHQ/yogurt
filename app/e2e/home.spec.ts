@@ -275,7 +275,7 @@ test('meeting rows fill a laptop pane and stay centred in their own column throu
     const gap = page.locator('.workspace-sidebar-gap')
     for (const direction of ['ltr', 'rtl']) {
       await page.evaluate(dir => { document.documentElement.dir = dir }, direction)
-      for (const [width, sidebar] of [[720, 208], [868, 208], [1728, 208], [1728, 56], [1920, 208], [2560, 208]]) {
+      for (const [width, sidebar] of [[720, 208], [868, 208], [1728, 208], [1728, 0], [1920, 208], [2560, 208]]) {
         await page.setViewportSize({ width, height: 760 })
         // Let the automatic sidebar collapse on crossing 900px finish before choosing a state.
         await page.evaluate(() => new Promise<void>(done => requestAnimationFrame(() => requestAnimationFrame(() => done()))))
