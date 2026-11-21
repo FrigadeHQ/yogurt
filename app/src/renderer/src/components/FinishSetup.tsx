@@ -17,7 +17,7 @@ import { toasts } from './TrashToast'
 /** the permissions this computer has (no calendar or names from calls on Windows and Linux) */
 const kinds = () => supportedKinds(window.yogurt.capabilities)
 
-export function FinishSetup({ collapsed = false }: { collapsed?: boolean }) {
+export function FinishSetup() {
   const [open, setOpen] = useState(false)
   const trigger = useRef<HTMLButtonElement>(null)
   const panel = useRef<HTMLDialogElement>(null)
@@ -101,13 +101,13 @@ export function FinishSetup({ collapsed = false }: { collapsed?: boolean }) {
     }
     window.addEventListener('resize', position); document.addEventListener('pointerdown', away); document.addEventListener('keydown', key)
     return () => { el.close(); window.removeEventListener('resize', position); document.removeEventListener('pointerdown', away); document.removeEventListener('keydown', key) }
-  }, [open, !!items.length, close, collapsed])
+  }, [open, !!items.length, close])
   if (!items.length) return null
   const essential = items.some(item => item.essential)
   const title = essential ? t('Finish setup') : t('Optional setup')
   return (
     <>
-    <button ref={trigger} data-testid="finish-setup-open" data-sidebar="menu-button" aria-label={title} title={collapsed ? title : undefined} className="setup-checklist-trigger workspace-nav" aria-haspopup="dialog" aria-expanded={open}
+    <button ref={trigger} data-testid="finish-setup-open" data-sidebar="menu-button" aria-label={title} className="setup-checklist-trigger workspace-nav" aria-haspopup="dialog" aria-expanded={open}
       onClick={() => { reload(); setOpen((v) => !v) }}>
       {essential ? <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3" fill="var(--accent)" /></svg>
         : <SlidersHorizontal size={16} aria-hidden="true" />}

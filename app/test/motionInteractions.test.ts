@@ -70,38 +70,189 @@ it.each([false, true])('returns through a replaced dialog to the original opener
   expect(opener.focus).toHaveBeenCalledExactlyOnceWith({ preventScroll: true, focusVisible: keyboard })
 })
 
-it.each([
-  { sidebarMotion: false, reduced: false },
-  { sidebarMotion: true, reduced: false },
-  { sidebarMotion: false, reduced: true },
-  { sidebarMotion: true, reduced: true },
-].flatMap(options => ['/meetings', '/note/m1'].map(route => ({ ...options, route }))))('snaps folder rows only for instant sidebar changes or reduced motion ($sidebarMotion, $reduced) on $route', ({ sidebarMotion, reduced, route }) => {
+it.each([false, true])('preserves the folder reorder spring and respects reduced motion (%s)', reduced => {
   vi.stubGlobal('window', { matchMedia: () => ({ matches: reduced }) })
   const folders = [{ id: 'f1', name: 'Planning', icon: 'calendar' as const, color: 'violet' as const, count: 2, createdAt: 1 }]
-  let collapsed = false
-  const nav = renderer(() => FoldersNav({ folders, route, collapsed, sidebarMotion, go() {} }))
-  let item: ReactElement<any>
-  const row = renderer(() => (item.type as Function)(item.props))
-  const render = () => {
-    item = find(nav(), 'folder-reorder-list').props.children[0]
-    const element = find(row(), 'sidebar-folder')
-    expect(element.props.layout).toBeUndefined()
-    expect(element.props.dragControls).toBeDefined()
-    expect(element.props.onDragStart).toBeTypeOf('function')
-    vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.length === 1 && deps[0] === collapsed)![0]()
-    return element
+  const nav = renderer(() => FoldersNav({ folders, route: '', go() {} }))()
+  const item = find(nav, 'folder-reorder-list').props.children[0]
+  const row = find(renderer(() => item.type(item.props))(), 'sidebar-folder')
+  expect(row.props.dragControls).toBeDefined()
+  expect(row.props.onDragStart).toBeTypeOf('function')
+  expect(row.props.transition).toEqual(reduced ? { duration: 0 } : { type: 'spring', stiffness: 520, damping: 42 })
+})
+
+it('names the Folders heading and New folder tooltip', () => {
+  const tree = renderer(() => FoldersNav({ folders: [], route: '', go() {} }))()
+  const nav = find(tree, 'sidebar-folders')
+  const [heading, tooltip] = find(nav, 'workspace-folder-header').props.children
+  expect(heading.type).toBe('h2')
+  const toggle = find(heading, 'workspace-folders-toggle').props
+  expect(toggle['aria-label']).toBe('Folders')
+  expect(toggle.children[0].props.children).toBe('Folders')
+  expect(toggle.title).toBeUndefined()
+  const plus = find(tooltip, 'folder-create').props
+  expect(plus['aria-label']).toBe('New folder')
+  expect(plus.title).toBeUndefined()
+  expect(find(tooltip, 'ActionTooltipPopup').props.label).toBe(plus['aria-label'])
+})
+
+it('peeks on a deliberate mouse hover, cancels a pass, and dismisses on exit or navigation', () => {
+  vi.useFakeTimers()
+  vi.stubGlobal('document', { activeElement: {}, querySelector: () => null })
+  const go = vi.fn()
+  const render = renderer(() => Workspace({ route: '', go, search() {}, shortcuts() {}, collapsed: true, sidebarMotion: false, toggleSidebar() {}, children: null }))
+  const edge = () => find(render(), 'workspace-peek-edge').props
+  const panel = () => find(render(), 'workspace-sidebar').props
+  const pointer = { pointerType: 'mouse', buttons: 0 }
+  for (const e of [{ ...pointer, pointerType: 'touch' }, { ...pointer, buttons: 1 }]) {
+    edge().onPointerEnter(e)
+    vi.runAllTimers()
+    expect(panel().inert).toBe(true)
   }
-  const reorder = reduced ? { duration: 0 } : { type: 'spring', stiffness: 520, damping: 42 }
-  expect(render().props.transition).toEqual(reorder)
-  for (const next of [true, false, true, false]) {
-    collapsed = next
-    expect(render().props.transition).toEqual(reduced || !sidebarMotion ? { duration: 0 } : reorder)
-    // Reordering after a keyboard toggle still uses the original spring.
-    const element = render()
-    element.props.onDragStart()
-    expect(render().props.transition).toEqual(reorder)
+  edge().onPointerEnter(pointer)
+  vi.advanceTimersByTime(40)
+  edge().onPointerLeave()
+  vi.runAllTimers()
+  expect(panel().inert).toBe(true)
+  const bar = () => find(render(), 'workspace-window-bar').props
+  expect(find(render(), 'sidebar-expand').props.onPointerEnter).toBeUndefined()
+  bar().onPointerEnter()
+  vi.runAllTimers()
+  expect(panel().inert).toBe(true)
+  edge().onPointerEnter(pointer)
+  vi.runAllTimers()
+  expect(panel().inert).toBe(false)
+  panel().onPointerLeave()
+  panel().onPointerEnter()
+  vi.runAllTimers()
+  expect(panel().inert).toBe(false)
+  panel().onPointerLeave()
+  vi.runAllTimers()
+  expect(panel().inert).toBe(true)
+  edge().onPointerEnter(pointer)
+  vi.runAllTimers()
+  find(render(), 'nav-chat').props.onClick()
+  expect(go).toHaveBeenCalledWith('/chat')
+  expect(panel().inert).toBe(true)
+})
+
+it('keeps a peek open across the titlebar and docks directly from it', () => {
+  vi.useFakeTimers()
+  vi.stubGlobal('document', { activeElement: {}, querySelector: () => null })
+  let collapsed = true
+  const toggleSidebar = vi.fn()
+  const render = renderer(() => Workspace({ route: '', go() {}, search() {}, shortcuts() {}, collapsed, sidebarMotion: true, toggleSidebar, children: null }))
+  const panel = () => find(render(), 'workspace-sidebar')
+  find(render(), 'workspace-peek-edge').props.onPointerEnter({ pointerType: 'mouse', buttons: 0 })
+  vi.runAllTimers()
+  panel().props.onPointerLeave()
+  find(render(), 'workspace-window-bar').props.onPointerEnter()
+  vi.runAllTimers()
+  expect(panel().props.inert).toBe(false)
+  const footer = find(panel(), 'workspace-sidebar-footer')
+  expect(find(footer, 'CornerMenu').props.visible).toBe(true)
+  find(render(), 'sidebar-expand').props.onClick({ detail: 1 })
+  expect(toggleSidebar).toHaveBeenCalledExactlyOnceWith(true)
+  // The panel stays exposed even before the parent commits its docked width.
+  expect(panel().props.inert).toBe(false)
+  collapsed = false
+  expect(panel().props.inert).toBe(false)
+  expect(find(render(), 'workspace').props['data-peeking']).toBe(false)
+})
+
+it('opens a keyboard peek, respects a child menu and returns Escape focus to its opener', () => {
+  const opener = { isConnected: true, focus: vi.fn() }
+  const search = { focus: vi.fn() }, listeners = new Map<string, Function>()
+  const querySelector = vi.fn()
+  vi.stubGlobal('document', { activeElement: opener, querySelector, addEventListener() {}, removeEventListener() {} })
+  vi.stubGlobal('window', { addEventListener: (name: string, fn: Function) => listeners.set(name, fn), removeEventListener() {} })
+  const render = renderer(() => Workspace({ route: '', go() {}, search() {}, shortcuts() {}, collapsed: true, sidebarMotion: false, toggleSidebar() {}, children: null }))
+  find(render(), 'sidebar-expand').props.onKeyDown({ key: 'ArrowDown', preventDefault() {} })
+  const tree = render(), panel = find(tree, 'workspace-sidebar').props
+  expect(panel.inert).toBe(false)
+  expect(find(tree, 'sidebar-expand').props['aria-expanded']).toBe(true)
+  panel.ref.current = { querySelector: () => search, contains: () => false }
+  const cleanup = vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.includes('keyboard'))![0]() as () => void
+  expect(search.focus).toHaveBeenCalledWith({ preventScroll: true })
+  querySelector.mockReturnValueOnce({})
+  const escape = { key: 'Escape', preventDefault: vi.fn(), stopPropagation: vi.fn() }
+  listeners.get('keydown')!(escape)
+  expect(escape.preventDefault).not.toHaveBeenCalled()
+  listeners.get('keydown')!(escape)
+  expect(find(render(), 'workspace-sidebar').props.inert).toBe(true)
+  expect(opener.focus).toHaveBeenCalledWith({ preventScroll: true })
+  cleanup()
+})
+
+it('remembers the folders disclosure and opens a newly created folder even from a closed section', () => {
+  const stored = new Map<string, string>()
+  vi.stubGlobal('window', { localStorage: { getItem: (key: string) => stored.get(key), setItem: (key: string, value: string) => stored.set(key, value) } })
+  const go = vi.fn()
+  const mount = () => renderer(() => FoldersNav({ folders: [], route: '', go }))
+  let render = mount()
+  const toggle = () => find(render(), 'workspace-folders-toggle').props
+  const panel = () => find(render(), toggle()['aria-controls']).props
+  const caret = () => find(render(), 'workspace-folder-caret')
+  const openCaret = caret()
+  expect(openCaret.type).toBe('svg')
+  expect(toggle()['aria-expanded']).toBe(true)
+  expect(find(render(), 'workspace-folder-header').props['data-empty']).toBe(true)
+  toggle().onClick()
+  expect(caret().type).toBe(openCaret.type)
+  expect(caret().props.children.props.d).toBe(openCaret.props.children.props.d)
+  render = mount()
+  expect(toggle()['aria-expanded']).toBe(false)
+  expect(panel().inert).toBe(true)
+  const create = () => find(render(), 'folder-create').props.onClick()
+  create()
+  find(render(), 'FolderName').props.onDone()
+  expect(toggle()['aria-expanded']).toBe(false)
+  expect(go).not.toHaveBeenCalled()
+  create()
+  find(render(), 'FolderName').props.onDone({ id: 'new' })
+  expect(go).toHaveBeenCalledExactlyOnceWith('/folder/new')
+  render = mount()
+  expect(toggle()['aria-expanded']).toBe(true)
+  expect(panel().inert).toBe(false)
+})
+
+it.each([0, 1, 99, 100, 1234])('shows the capped count and describes the full count for a folder with %i meetings', count => {
+  vi.stubGlobal('window', { matchMedia: () => ({ matches: true }) })
+  const folders = [{ id: 'f', name: 'Planning', count, icon: 'folder' as const, color: 'default' as const, createdAt: 1 }]
+  const nav = renderer(() => FoldersNav({ folders, route: '/folder/f', go() {} }))()
+  const item = find(nav, 'folder-reorder-list').props.children[0]
+  const row = renderer(() => item.type(item.props))()
+  expect(find(row, 'sidebar-folder-open').props).toMatchObject({ 'aria-current': 'page', 'aria-label': 'Planning',
+    'aria-description': count === 1 ? '1 meeting' : `${count.toLocaleString('en-US')} meetings` })
+  expect(find(row, 'sidebar-folder-count').props.children.props).toMatchObject({ dir: 'ltr', children: count > 99 ? '99+' : count })
+  expect(find(row, 'sidebar-folder-more').props['aria-haspopup']).toBe('menu')
+})
+
+it.each(['button', 'right-click', 'keyboard'])('opens the same folder actions via %s', method => {
+  vi.stubGlobal('window', { matchMedia: () => ({ matches: true }) })
+  vi.stubGlobal('getComputedStyle', () => ({ direction: 'ltr' }))
+  const folders = [{ id: 'f', name: 'Planning', count: 1, icon: 'folder' as const, color: 'default' as const, createdAt: 1 }]
+  const nav = renderer(() => FoldersNav({ folders, route: '', go() {} }))()
+  const item = find(nav, 'folder-reorder-list').props.children[0]
+  const render = renderer(() => item.type(item.props))
+  const row = find(render(), 'sidebar-folder')
+  row.props.ref.current = { getBoundingClientRect: () => ({ left: 10, bottom: 70, width: 188 }) }
+  const opener = find(row, 'sidebar-folder-open').props
+  if (method === 'button') {
+    const more = find(row, 'sidebar-folder-more')
+    expect(more.type).toBe('button')
+    expect(more.props.tabIndex).not.toBe(-1)
+    more.props.onClick()
+  } else if (method === 'right-click') opener.onContextMenu({ preventDefault() {} })
+  else opener.onKeyDown({ key: 'F10', shiftKey: true, preventDefault() {} })
+  const result = render()
+  expect(find(result, 'sidebar-folder-more').props['aria-expanded']).toBe(true)
+  const menu = find(result, 'sidebar-folder-menu')
+  for (const action of ['appearance', 'rename', 'up', 'down', 'delete']) {
+    expect(find(menu, 'sidebar-folder-' + action).props.role).toBe('menuitem')
   }
 })
+
 function find(node: ReactNode, testId: string): ReactElement<any> {
   const visit = (value: ReactNode): ReactElement<any> | undefined => {
     if (Array.isArray(value)) return value.map(visit).find(Boolean)

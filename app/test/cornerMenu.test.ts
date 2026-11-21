@@ -15,9 +15,9 @@ function nodes(node: ReactNode): ReactElement<Record<string, any>>[] {
   if (!isValidElement<Record<string, any>>(node)) return []
   return [node, ...nodes(node.props.children)]
 }
-function render(recording = false) {
+function render(recording = false, visible = true) {
   cursor = 0
-  tree = CornerMenu({ section: '/settings', recording, go, shortcuts })
+  tree = CornerMenu({ visible, section: '/settings', recording, go, shortcuts })
 }
 const props = (id: string) => nodes(tree).find(n => n.props['data-testid'] === id)?.props
 const root = () => nodes(tree).find(n => n.type === Menu.Root)!.props
@@ -76,6 +76,17 @@ it('uses the approved seven rows and appends the downloaded version nearest the 
     expect(focus).toHaveBeenCalledTimes(i + 1)
   }
   expect(go.mock.calls).toEqual([['/settings'],['/trash']]); expect(shortcuts).toHaveBeenCalledOnce()
+})
+
+it('closes the menu with its sidebar and keeps a ready update on the corner trigger', () => {
+  mount(); notify(ready); root().onOpenChange(true); render()
+  expect(root().open).toBe(true)
+  render(false, false)
+  expect(root().open).toBe(false)
+  vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.[0] === false)![0]()
+  render()
+  expect(root().open).toBe(false)
+  expect(nodes(props('corner-menu-button')!.children).some(n => n.props['data-testid'] === 'corner-notice-dot')).toBe(true)
 })
 
 it('only offers restart after a download, including after Later, and ignores stale reads', async () => {

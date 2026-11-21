@@ -97,7 +97,7 @@
   "Close Window": "Stäng fönster",
   "Code": "Kod",
   "Coffee": "Kaffe",
-  "Collapse sidebar": "Dölj sidofältet",
+  "Hide sidebar": "Dölj sidofältet",
   "Color": "Färg",
   "Connect calendar": "Anslut kalender",
   "Connect the calendars on this Mac to see your upcoming meetings.": "Anslut kalendrarna på den här Macen för att se dina kommande möten.",
@@ -156,7 +156,7 @@
   "Everyone else": "Alla andra",
   "Everything stays on your Mac.": "Allt stannar på din Mac.",
   "Everything stays on your computer.": "Allt stannar på din dator.",
-  "Expand sidebar": "Visa sidofältet",
+  "Show sidebar": "Visa sidofältet",
   "Exported {count} meetings": {
     "one": "{count} möte har exporterats",
     "other": "{count} möten har exporterats"
@@ -486,7 +486,6 @@
   "Your name": "Ditt namn",
   "Your notes will show up here": "Dina anteckningar visas här",
   "Your notes, transcript, and previous audio are kept. Your edited summary will be replaced when you stop recording.": "Dina anteckningar, transkriptionen och tidigare ljud finns kvar. Din redigerade sammanfattning ersätts när du stoppar inspelningen.",
-  "Your workspace": "Din arbetsyta",
   "Zoom": "Zooma",
   "Zoom In": "Zooma in",
   "Zoom Out": "Zooma ut",

@@ -97,7 +97,7 @@
   "Close Window": "Fenster schließen",
   "Code": "Code",
   "Coffee": "Kaffee",
-  "Collapse sidebar": "Seitenleiste ausblenden",
+  "Hide sidebar": "Seitenleiste ausblenden",
   "Color": "Farbe",
   "Connect calendar": "Kalender verbinden",
   "Connect the calendars on this Mac to see your upcoming meetings.": "Verbinde die Kalender auf diesem Mac, um deine nächsten Meetings zu sehen.",
@@ -156,7 +156,7 @@
   "Everyone else": "Alle anderen",
   "Everything stays on your Mac.": "Alles bleibt auf deinem Mac.",
   "Everything stays on your computer.": "Alles bleibt auf deinem Computer.",
-  "Expand sidebar": "Seitenleiste einblenden",
+  "Show sidebar": "Seitenleiste einblenden",
   "Exported {count} meetings": {
     "one": "1 Meeting exportiert",
     "other": "{count} Meetings exportiert"
@@ -486,7 +486,6 @@
   "Your name": "Dein Name",
   "Your notes will show up here": "Deine Notizen erscheinen hier",
   "Your notes, transcript, and previous audio are kept. Your edited summary will be replaced when you stop recording.": "Deine Notizen, das Transkript und das bisherige Audio bleiben erhalten. Deine bearbeitete Zusammenfassung wird ersetzt, wenn du die Aufnahme stoppst.",
-  "Your workspace": "Dein Arbeitsbereich",
   "Zoom": "Zoomen",
   "Zoom In": "Vergrößern",
   "Zoom Out": "Verkleinern",

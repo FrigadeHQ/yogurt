@@ -97,7 +97,7 @@
   "Close Window": "Luk vindue",
   "Code": "Kode",
   "Coffee": "Kaffe",
-  "Collapse sidebar": "Skjul indholdsoversigt",
+  "Hide sidebar": "Skjul indholdsoversigt",
   "Color": "Farve",
   "Connect calendar": "Forbind kalender",
   "Connect the calendars on this Mac to see your upcoming meetings.": "Forbind kalenderne på denne Mac for at se dine kommende møder.",
@@ -156,7 +156,7 @@
   "Everyone else": "Alle andre",
   "Everything stays on your Mac.": "Alt bliver på din Mac.",
   "Everything stays on your computer.": "Alt bliver på din computer.",
-  "Expand sidebar": "Vis indholdsoversigt",
+  "Show sidebar": "Vis indholdsoversigt",
   "Exported {count} meetings": {
     "one": "{count} møde blev eksporteret",
     "other": "{count} møder blev eksporteret"
@@ -486,7 +486,6 @@
   "Your name": "Dit navn",
   "Your notes will show up here": "Dine noter vises her",
   "Your notes, transcript, and previous audio are kept. Your edited summary will be replaced when you stop recording.": "Dine noter, transskriptionen og tidligere lyd bevares. Dit redigerede resumé erstattes, når du stopper optagelsen.",
-  "Your workspace": "Dit arbejdsområde",
   "Zoom": "Zoom",
   "Zoom In": "Zoom ind",
   "Zoom Out": "Zoom ud",

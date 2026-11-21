@@ -97,7 +97,7 @@
   "Close Window": "Sulje ikkuna",
   "Code": "Koodi",
   "Coffee": "Kahvi",
-  "Collapse sidebar": "Piilota sivupalkki",
+  "Hide sidebar": "Piilota sivupalkki",
   "Color": "Väri",
   "Connect calendar": "Yhdistä kalenteri",
   "Connect the calendars on this Mac to see your upcoming meetings.": "Yhdistä tämän Macin kalenterit, niin näet tulevat kokouksesi.",
@@ -156,7 +156,7 @@
   "Everyone else": "Kaikki muut",
   "Everything stays on your Mac.": "Kaikki pysyy Macillasi.",
   "Everything stays on your computer.": "Kaikki pysyy tietokoneellasi.",
-  "Expand sidebar": "Näytä sivupalkki",
+  "Show sidebar": "Näytä sivupalkki",
   "Exported {count} meetings": {
     "one": "{count} kokous viety",
     "other": "{count} kokousta viety"
@@ -486,7 +486,6 @@
   "Your name": "Nimesi",
   "Your notes will show up here": "Muistiinpanosi näkyvät täällä",
   "Your notes, transcript, and previous audio are kept. Your edited summary will be replaced when you stop recording.": "Muistiinpanosi, litterointi ja aiempi ääni säilyvät. Muokattu yhteenvetosi korvataan, kun pysäytät tallennuksen.",
-  "Your workspace": "Työtilasi",
   "Zoom": "Zoomaa",
   "Zoom In": "Lähennä",
   "Zoom Out": "Loitonna",
