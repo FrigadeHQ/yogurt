@@ -177,6 +177,9 @@ private func no(_ b: Bool, _ loc: SourceLocation = #_sourceLocation) { #expect(!
         // the model is there but writing failed or didn't start: the computer still can
         #expect(DraftNotice.for(hasSummary: false, writing: false, modelAvailable: true, paired: true) == .computerWillWrite)
         #expect(DraftNotice.for(hasSummary: false, writing: false, modelAvailable: true, paired: false) == .notWritten)
+        // the model is downloading: it writes them once it's ready
+        #expect(DraftNotice.for(hasSummary: false, writing: false, modelAvailable: false, modelPreparing: true, paired: false) == .modelPreparing)
+        #expect(DraftNotice.for(hasSummary: false, writing: false, modelAvailable: false, modelPreparing: true, paired: true) == .computerWillWrite)
     }
 }
 

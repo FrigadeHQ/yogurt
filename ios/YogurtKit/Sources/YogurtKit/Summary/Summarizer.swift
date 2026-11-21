@@ -1,4 +1,7 @@
 import Foundation
+import os
+
+private let log = Logger(subsystem: "chat.yogurt", category: "summary")
 
 /// Writes a meeting's notes as Markdown in desktop Yogurt's shape: a "## " section per topic with "- " bullets, and
 /// "## Next steps" when someone said they would do something.
@@ -14,6 +17,8 @@ public protocol TextModel: Sendable {
 public enum TextModelError: Error, Equatable {
     /// the prompt and answer don't fit in what the model can read at once
     case tooLong
+    /// the model wouldn't write about this text (a guardrail or a refusal); a smaller piece often goes through
+    case refused
 }
 
 public enum SummaryError: Error, Equatable {
@@ -46,14 +51,12 @@ public struct MapReduceSummarizer: Summarizer {
         let minutes = (transcript.map(\.endMs).max() ?? 0) / 60000
         let mine = String(myNotes.trimmingCharacters(in: .whitespacesAndNewlines).prefix(Self.myNotesLimit))
         if chunks.count == 1 {
-            do {
-                return try notes(try await model.respond(to: NotesPrompt.notes(transcript: chunks[0], parts: false, myNotes: mine,
-                                                                               minutes: minutes, language: language),
-                                                         maxTokens: Self.notesTokens))
-            } catch TextModelError.tooLong {
-                // it didn't fit with the instructions: read it in two parts instead
-                return try await fromParts(halves(chunks[0]), mine: mine, minutes: minutes)
+            let prompt = NotesPrompt.notes(transcript: chunks[0], parts: false, myNotes: mine, minutes: minutes, language: language)
+            do { return try notes(try await ask(prompt, maxTokens: Self.notesTokens)) } catch {
+                // too long with the instructions, refused, or no notes in the answer: read it in two parts instead
+                log.notice("notes in one go failed (\(String(describing: error), privacy: .public)); trying in parts")
             }
+            return try await fromParts(halves(chunks[0]), mine: mine, minutes: minutes)
         }
         return try await fromParts(chunks, mine: mine, minutes: minutes)
     }
@@ -76,35 +79,78 @@ public struct MapReduceSummarizer: Summarizer {
 
     // MARK: - Map, then reduce
 
-    private func fromParts(_ chunks: [String], mine: String, minutes: Int) async throws -> String {
-        var parts: [String] = []
-        for chunk in chunks { parts += try await summarizePart(chunk, startingAt: parts.count + 1, depth: 0) }
-        // all the parts together must fit too: merge neighbours until they do
-        var joined = parts.joined(separator: "\n\n")
-        var rounds = 0
-        while joined.count > maxChars && rounds < 4 {
-            var merged: [String] = []
-            for group in Chunker.chunks(text: joined, maxChars: maxChars) {
-                merged.append(cleanPart(try await model.respond(to: NotesPrompt.merge(group, language: language), maxTokens: Self.partTokens)))
-            }
-            joined = merged.filter { !$0.isEmpty }.joined(separator: "\n\n")
-            rounds += 1
+    /// One answer, asked again once after a passing failure. Too long and refused come back at once: a smaller piece
+    /// is what helps there.
+    private func ask(_ prompt: String, maxTokens: Int) async throws -> String {
+        do { return try await model.respond(to: prompt, maxTokens: maxTokens) } catch let e as TextModelError { throw e } catch {
+            log.notice("asking again after: \(String(describing: error), privacy: .public)")
+            return try await model.respond(to: prompt, maxTokens: maxTokens)
         }
-        guard !joined.isEmpty else { throw SummaryError.noNotes }
-        let prompt = NotesPrompt.notes(transcript: String(joined.prefix(maxChars)), parts: true, myNotes: mine, minutes: minutes, language: language)
-        return try notes(try await model.respond(to: prompt, maxTokens: Self.notesTokens))
     }
 
-    /// One part's notes. A part the model can't read at once is read in halves.
-    private func summarizePart(_ chunk: String, startingAt n: Int, depth: Int) async throws -> [String] {
-        do {
-            let part = cleanPart(try await model.respond(to: NotesPrompt.part(chunk, number: n, language: language), maxTokens: Self.partTokens))
-            return part.isEmpty ? [] : [part]
-        } catch TextModelError.tooLong where depth < 4 && chunk.count > 200 {
-            var out: [String] = []
-            for half in halves(chunk) { out += try await summarizePart(half, startingAt: n + out.count, depth: depth + 1) }
-            return out
+    /// Every part that could be read counts: one bad part never costs the rest. With no part at all, it's an error.
+    private func fromParts(_ chunks: [String], mine: String, minutes: Int) async throws -> String {
+        var parts: [String] = []
+        for chunk in chunks { parts += await summarizePart(chunk, startingAt: parts.count + 1, depth: 0) }
+        guard !parts.isEmpty else { throw SummaryError.noNotes }
+        let joined = await mergeUntilFits(parts.joined(separator: "\n\n"), limit: maxChars)
+        var context = joined
+        for _ in 0..<3 {
+            let prompt = NotesPrompt.notes(transcript: context, parts: true, myNotes: mine, minutes: minutes, language: language)
+            do { return try notes(try await ask(prompt, maxTokens: Self.notesTokens)) } catch TextModelError.tooLong {
+                let shorter = await mergeUntilFits(context, limit: context.count / 2)
+                if shorter.count >= context.count { break }
+                context = shorter
+            } catch {
+                log.notice("the last step failed (\(String(describing: error), privacy: .public)); keeping the parts' notes")
+                break
+            }
         }
+        // the parts' own notes are notes too
+        return partsAsNotes(joined)
+    }
+
+    /// Neighbouring parts' notes merged until they fit the limit. A group that can't be merged stays as it was.
+    private func mergeUntilFits(_ text: String, limit: Int) async -> String {
+        var joined = text
+        var rounds = 0
+        while joined.count > limit && rounds < 6 {
+            var merged: [String] = []
+            for group in Chunker.chunks(text: joined, maxChars: max(200, limit)) {
+                let m = (try? await ask(NotesPrompt.merge(group, language: language), maxTokens: Self.partTokens)).map(cleanPart) ?? ""
+                merged.append(m.isEmpty ? group : m)
+            }
+            let next = merged.joined(separator: "\n\n")
+            if next.count >= joined.count { break }
+            joined = next
+            rounds += 1
+        }
+        if joined.count > maxChars {
+            log.notice("part notes still \(joined.count, privacy: .public) characters after merging; the end is cut")
+            joined = String(joined.prefix(maxChars))
+        }
+        return joined
+    }
+
+    /// One part's notes, or none. A part too long or refused is read in halves; a part that keeps failing is left out.
+    private func summarizePart(_ chunk: String, startingAt n: Int, depth: Int) async -> [String] {
+        do {
+            let part = cleanPart(try await ask(NotesPrompt.part(chunk, number: n, language: language), maxTokens: Self.partTokens))
+            return part.isEmpty ? [] : [part]
+        } catch let e as TextModelError where depth < 3 && chunk.count > 200 {
+            log.notice("part \(n, privacy: .public): \(String(describing: e), privacy: .public); reading it in halves")
+            var out: [String] = []
+            for half in halves(chunk) { out += await summarizePart(half, startingAt: n + out.count, depth: depth + 1) }
+            return out
+        } catch {
+            log.notice("part \(n, privacy: .public) left out: \(String(describing: error), privacy: .public)")
+            return []
+        }
+    }
+
+    /// "### Topic" part notes as the notes' "## " sections.
+    private func partsAsNotes(_ text: String) -> String {
+        text.components(separatedBy: "\n").map { $0.hasPrefix("### ") ? String($0.dropFirst()) : $0 }.joined(separator: "\n")
     }
 
     private func halves(_ text: String) -> [String] {
@@ -118,7 +164,11 @@ public struct MapReduceSummarizer: Summarizer {
         return n
     }
 
-    private func cleanPart(_ raw: String) -> String { cleanNotes(raw) }
+    /// A part's notes, or "" when the answer has none (an apology, a question back).
+    private func cleanPart(_ raw: String) -> String {
+        let n = cleanNotes(raw)
+        return n.contains("- ") || n.contains("#") ? n : ""
+    }
 }
 
 // MARK: - Prompts

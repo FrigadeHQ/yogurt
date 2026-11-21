@@ -13,6 +13,8 @@ struct RecordView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var recording = RecordingController()
     @State private var tab: Tab = .transcript
+    @State private var confirmDiscard = false
+    @Environment(\.scenePhase) private var phase
     @FocusState private var typing: Bool
     @Namespace private var underline
 
@@ -40,8 +42,9 @@ struct RecordView: View {
             #if DEBUG
             if preview { recording.loadPreview(); return }
             #endif
-            await recording.start()
+            await recording.start(model: model)
         }
+        .onChange(of: phase) { _, now in if now == .active { recording.cameBack() } }
     }
 
     // MARK: - Timer and level
@@ -54,7 +57,18 @@ struct RecordView: View {
                     .contentTransition(.opacity)
             }
             .padding(.top, 18)
+            .frame(maxWidth: .infinity)
             .accessibilityElement(children: .combine)
+            .overlay(alignment: .topLeading) {
+                if recording.state.isLive && !confirmDiscard {
+                    Button(S.discard) { withAnimation(.easeOut(duration: 0.18)) { confirmDiscard = true } }
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.muted)
+                        .frame(minHeight: 44)
+                        .padding(.top, 6)
+                        .accessibilityIdentifier("record-discard")
+                }
+            }
             TimelineView(.periodic(from: .now, by: 0.25)) { context in
                 Text(elapsed(recording.state.elapsed(at: context.date)))
                     .font(.system(size: 64, weight: .light).monospacedDigit())
@@ -63,7 +77,7 @@ struct RecordView: View {
                     .accessibilityLabel(S.recordedTime)
                     .accessibilityValue(elapsed(recording.state.elapsed(at: context.date)))
             }
-            LevelMeter(level: recording.level, still: recording.state.phase != .recording)
+            LevelMeter(level: { recording.level }, still: recording.state.phase != .recording)
                 .frame(height: 28)
                 .accessibilityLabel(S.micLevel)
             if let notice = recording.transcriptNotice {
@@ -92,7 +106,7 @@ struct RecordView: View {
         case .paused(.byYou): S.paused
         case .paused(.interrupted): S.pausedForCall
         case .stopping, .finished: S.savingRecording
-        case .failed: S.paused
+        case .failed: S.stopped
         }
     }
 
@@ -162,6 +176,45 @@ struct RecordView: View {
     // MARK: - Pause and Stop
 
     private var controls: some View {
+        Group {
+            if confirmDiscard && recording.state.isLive { discardConfirm } else { buttons }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 10)
+        .padding(.bottom, 8)
+        .background(Theme.bg)
+        .animation(.easeOut(duration: 0.18), value: recording.state.phase)
+        .animation(.easeOut(duration: 0.18), value: confirmDiscard)
+    }
+
+    /// asked in place, where Stop was, so it can't be hit by accident
+    private var discardConfirm: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(S.discardQuestion).font(.subheadline).foregroundStyle(Theme.ink).fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 12) {
+                Button(S.keepRecording) { confirmDiscard = false }
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(Theme.ink)
+                    .frame(maxWidth: .infinity, minHeight: 50)
+                    .background(Theme.control, in: Capsule())
+                    .accessibilityIdentifier("record-keep")
+                Button(S.discard) {
+                    Task {
+                        await recording.discard()
+                        dismiss()
+                    }
+                }
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity, minHeight: 50)
+                .background(Theme.danger, in: Capsule())
+                .accessibilityIdentifier("record-discard-confirm")
+            }
+        }
+        .transition(.opacity)
+    }
+
+    private var buttons: some View {
         HStack(spacing: 14) {
             switch recording.state.phase {
             case .recording, .paused:
@@ -190,11 +243,6 @@ struct RecordView: View {
                 Button(S.close) { dismiss() }.buttonStyle(PrimaryButtonStyle()).frame(maxWidth: .infinity)
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 10)
-        .padding(.bottom, 8)
-        .background(Theme.bg)
-        .animation(.easeOut(duration: 0.18), value: recording.state.phase)
     }
 
     private func stop() async {
@@ -255,7 +303,8 @@ struct LiveTranscriptView: View {
 
 /// desktop's five-bar meter: quick to rise, gentle to fall, three still dots while paused.
 struct LevelMeter: View {
-    let level: Double
+    /// read each frame, so the level never goes through the view's state
+    let level: () -> Double
     let still: Bool
     @State private var wave = WaveBox()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -265,9 +314,9 @@ struct LevelMeter: View {
     private let gap: CGFloat = 4
 
     var body: some View {
-        TimelineView(.animation(paused: still || reduceMotion)) { context in
+        TimelineView(.animation(minimumInterval: reduceMotion ? 0.1 : nil, paused: still)) { context in
             Canvas { ctx, size in
-                let level = wave.step(to: still ? 0 : level, at: context.date, instant: reduceMotion)
+                let level = wave.step(to: still ? 0 : self.level(), at: context.date, instant: reduceMotion)
                 let heights = still ? [0.0, 0, 0] : weights.map { $0 * level }
                 let alpha = still ? 0.5 : 0.45 + 0.55 * level
                 let width = CGFloat(heights.count) * bar + CGFloat(heights.count - 1) * gap

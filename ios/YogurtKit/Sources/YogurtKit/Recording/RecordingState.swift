@@ -104,11 +104,14 @@ public enum DraftNotice: Sendable, Equatable {
     case needsAppleIntelligence
     /// on its own, and writing them here didn't work
     case notWritten
+    /// on its own, and Apple's model is still getting ready on this iPhone
+    case modelPreparing
 
-    public static func `for`(hasSummary: Bool, writing: Bool, modelAvailable: Bool, paired: Bool) -> DraftNotice? {
+    public static func `for`(hasSummary: Bool, writing: Bool, modelAvailable: Bool, modelPreparing: Bool = false, paired: Bool) -> DraftNotice? {
         if hasSummary { return nil }
         if writing { return .writing }
         if paired { return .computerWillWrite }
+        if modelPreparing { return .modelPreparing }
         return modelAvailable ? .notWritten : .needsAppleIntelligence
     }
 }

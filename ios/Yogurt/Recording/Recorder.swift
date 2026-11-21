@@ -10,7 +10,6 @@ private let log = Logger(subsystem: "so.yogurt.ios", category: "recorder")
 final class Recorder: @unchecked Sendable {
     /// what the screen hears about; called on the main actor
     struct Events: Sendable {
-        var level: @MainActor @Sendable (Double) -> Void = { _ in }
         /// true when a call or another app took the microphone, false when it gave it back
         var interrupted: @MainActor @Sendable (Bool) -> Void = { _ in }
         /// the recording can't go on as it is (a sentence for the person)
@@ -24,7 +23,10 @@ final class Recorder: @unchecked Sendable {
     var events = Events()
 
     private var engine = AVAudioEngine()
+    /// the file's queue
     private let queue = DispatchQueue(label: "so.yogurt.recorder")
+    /// every engine call goes through here, so a route change or a reset never races Pause or Stop
+    private let engineQueue = DispatchQueue(label: "so.yogurt.recorder.engine")
     private var writer: AVAssetWriter?
     private var input: AVAssetWriterInput?
     /// what the file is written from: mono float at the first input's sample rate
@@ -36,7 +38,11 @@ final class Recorder: @unchecked Sendable {
     private var reportedFailure = false
     private let lock = NSLock()
     private var running = false
+    private var heard: Double = 0
     private var observers: [NSObjectProtocol] = []
+
+    /// The meter's level now, 0…1; the screen reads it each frame.
+    var level: Double { lock.withLock { running ? heard : 0 } }
 
     /// The audio written so far, in ms.
     var durationMs: Int {
@@ -44,10 +50,15 @@ final class Recorder: @unchecked Sendable {
     }
 
     func start(writingTo url: URL) throws {
+        try engineQueue.sync { try startOnQueue(url) }
+    }
+
+    private func startOnQueue(_ url: URL) throws {
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playAndRecord, mode: .spokenAudio, options: [.allowBluetoothHFP, .defaultToSpeaker])
+        try Self.configure(session)
         try session.setActive(true)
         guard session.isInputAvailable else { throw RecorderError.noMicrophone }
+        Self.preferBuiltInMic(session)
 
         let hw = engine.inputNode.outputFormat(forBus: 0)
         guard hw.sampleRate > 0, hw.channelCount > 0 else { throw RecorderError.noMicrophone }
@@ -61,23 +72,44 @@ final class Recorder: @unchecked Sendable {
         try startEngine()
     }
 
+    /// A meeting in a room is heard by the iPhone's own microphone: AirPods or a headset would hear only the wearer.
+    /// Bluetooth stays on for output (A2DP) only.
+    private static func configure(_ session: AVAudioSession) throws {
+        try session.setCategory(.playAndRecord, mode: .spokenAudio, options: [.allowBluetoothA2DP])
+        // a ringing alarm or a notification sound shouldn't stop the meeting's recording
+        try? session.setPrefersNoInterruptionsFromSystemAlerts(true)
+        try? session.setPrefersInterruptionOnRouteDisconnect(false)
+    }
+
+    private static func preferBuiltInMic(_ session: AVAudioSession) {
+        if let mic = session.availableInputs?.first(where: { $0.portType == .builtInMic }) { try? session.setPreferredInput(mic) }
+    }
+
     func pause() {
-        setRunning(false)
-        engine.pause()
+        engineQueue.sync {
+            setRunning(false)
+            engine.pause()
+        }
     }
 
     func resume() throws {
-        try AVAudioSession.sharedInstance().setActive(true)
-        try startEngine()
+        try engineQueue.sync {
+            let session = AVAudioSession.sharedInstance()
+            try session.setActive(true)
+            Self.preferBuiltInMic(session)
+            try startEngine()
+        }
     }
 
     /// Closes the file. The audio is never thrown away, even when closing fails: the fragments written are kept.
     func stop() async -> Int {
-        setRunning(false)
-        engine.inputNode.removeTap(onBus: 0)
-        engine.stop()
-        for o in observers { NotificationCenter.default.removeObserver(o) }
-        observers = []
+        engineQueue.sync {
+            setRunning(false)
+            engine.inputNode.removeTap(onBus: 0)
+            engine.stop()
+            for o in observers { NotificationCenter.default.removeObserver(o) }
+            observers = []
+        }
         let (writer, input) = queue.sync { (self.writer, self.input) }
         if let writer, writer.status == .writing {
             input?.markAsFinished()
@@ -103,7 +135,8 @@ final class Recorder: @unchecked Sendable {
             self.onBuffer?(buffer)
             self.meter(buffer)
             guard let target else { return }
-            let mono = converter.flatMap { $0.convertOnce(buffer, to: target) } ?? buffer
+            // the engine reuses its buffers: the file gets a copy
+            guard let mono = converter.map({ $0.convertOnce(buffer, to: target) }) ?? buffer.copied() else { return }
             self.queue.async { self.write(mono) }
         }
         engine.prepare()
@@ -117,8 +150,7 @@ final class Recorder: @unchecked Sendable {
     private func meter(_ buffer: AVAudioPCMBuffer) {
         guard let data = buffer.floatChannelData else { return }
         let level = micLevel(dbfs: dbfs(rms: UnsafeBufferPointer(start: data[0], count: Int(buffer.frameLength))))
-        let report = events.level
-        Task { @MainActor in report(level) }
+        lock.withLock { heard = level }
     }
 
     // MARK: - File
@@ -148,7 +180,9 @@ final class Recorder: @unchecked Sendable {
 
     /// On the queue. Time in the file runs on with the audio, so a pause leaves no gap and transcript times match it.
     private func write(_ buffer: AVAudioPCMBuffer) {
-        guard let writer, let input, let formatDescription, let fileFormat, writer.status == .writing, buffer.frameLength > 0 else { return }
+        guard let writer, let input, let formatDescription, let fileFormat, buffer.frameLength > 0 else { return }
+        // a full disk or a reset audio system: nothing more can be written, so the recording stops and keeps what it has
+        guard writer.status == .writing else { writeFailed(writer); return }
         var timing = CMSampleTimingInfo(duration: CMTime(value: 1, timescale: CMTimeScale(fileFormat.sampleRate)),
                                         presentationTimeStamp: CMTime(value: frames, timescale: CMTimeScale(fileFormat.sampleRate)),
                                         decodeTimeStamp: .invalid)
@@ -160,13 +194,19 @@ final class Recorder: @unchecked Sendable {
               CMSampleBufferSetDataBufferFromAudioBufferList(sample, blockBufferAllocator: nil, blockBufferMemoryAllocator: nil, flags: 0,
                                                              bufferList: buffer.audioBufferList) == noErr else { return }
         // the encoder keeps up in real time; if it ever doesn't, the frames still count so the clock stays true
-        if input.isReadyForMoreMediaData, !input.append(sample), !reportedFailure {
-            reportedFailure = true
-            log.error("writing audio failed: \(String(describing: writer.error), privacy: .public)")
-            let failed = events.failed
-            Task { @MainActor in failed(S.recordingWriteFailed) }
-        }
+        if input.isReadyForMoreMediaData, !input.append(sample) { writeFailed(writer); return }
         frames += Int64(buffer.frameLength)
+    }
+
+    /// On the queue; said once.
+    private func writeFailed(_ writer: AVAssetWriter) {
+        guard !reportedFailure else { return }
+        reportedFailure = true
+        log.error("writing audio failed: \(String(describing: writer.error), privacy: .public)")
+        setRunning(false)
+        let full = (writer.error as NSError?).map { $0.code == NSFileWriteOutOfSpaceError || $0.code == Int(ENOSPC) } ?? false
+        let failed = events.failed
+        Task { @MainActor in failed(full ? S.recordingDiskFull : S.recordingWriteFailed) }
     }
 
     // MARK: - Calls, route changes, resets
@@ -183,22 +223,27 @@ final class Recorder: @unchecked Sendable {
             },
             // a headset plugged in or taken out: the input's format can change, so the tap starts again
             center.addObserver(forName: .AVAudioEngineConfigurationChange, object: nil, queue: nil) { [weak self] _ in
-                guard let self, self.isRunning else { return }
-                do { try self.startEngine() } catch {
-                    log.error("restarting after a route change failed: \(String(describing: error), privacy: .public)")
-                    self.setRunning(false)
-                    let report = self.events.interrupted
-                    Task { @MainActor in report(true) }
+                self?.engineQueue.async { [weak self] in
+                    guard let self, self.isRunning else { return }
+                    do { try self.startEngine() } catch {
+                        log.error("restarting after a route change failed: \(String(describing: error), privacy: .public)")
+                        self.setRunning(false)
+                        let report = self.events.interrupted
+                        Task { @MainActor in report(true) }
+                    }
                 }
             },
-            // the audio system restarted: a new engine, then the same as a call ending
+            // the audio system restarted: the file being written is lost to it, so the recording stops and keeps
+            // what was saved
             center.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification, object: nil, queue: nil) { [weak self] _ in
-                guard let self else { return }
-                self.setRunning(false)
-                self.engine = AVAudioEngine()
-                try? AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .spokenAudio, options: [.allowBluetoothHFP, .defaultToSpeaker])
-                let report = self.events.interrupted
-                Task { @MainActor in report(true); report(false) }
+                self?.engineQueue.async { [weak self] in
+                    guard let self else { return }
+                    self.setRunning(false)
+                    self.engine = AVAudioEngine()
+                    try? Self.configure(AVAudioSession.sharedInstance())
+                    let failed = self.events.failed
+                    Task { @MainActor in failed(S.recordingAudioReset) }
+                }
             },
         ]
     }

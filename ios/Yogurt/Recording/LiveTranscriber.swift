@@ -35,7 +35,8 @@ final class TranscriberRelay: @unchecked Sendable {
             if let target { return target }
             if !off, let copy = buffer.copied() {
                 waiting.append(copy)
-                if waiting.count > keep { waiting.removeFirst() }
+                // dropped in batches: one at a time would copy the whole list each buffer
+                if waiting.count > keep { waiting.removeFirst(100) }
             }
             return nil
         }
@@ -107,8 +108,8 @@ final class AnalyzerTranscriber: LiveTranscriber, @unchecked Sendable {
         self.locale = locale
         self.events = events
         analyzer = SpeechAnalyzer(modules: [transcriber], options: .init(priority: .userInitiated, modelRetention: .whileInUse))
-        // the meeting keeps recording while the language downloads, so its audio waits here (about 30 min at most)
-        (stream, input) = AsyncStream.makeStream(of: AnalyzerInput.self, bufferingPolicy: .bufferingNewest(20_000))
+        // the meeting keeps recording while the language downloads, so its audio waits here (about 10 min at most)
+        (stream, input) = AsyncStream.makeStream(of: AnalyzerInput.self, bufferingPolicy: .bufferingNewest(7_000))
     }
 
     /// Gets the language's model onto the iPhone the first time, then listens until finish().

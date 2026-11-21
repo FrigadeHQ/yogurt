@@ -10,7 +10,7 @@ struct PhoneDraftNotice: View {
 
     var body: some View {
         let available = AppleIntelligence.available()
-        let notice = DraftNotice.for(hasSummary: false, writing: drafts.isWriting(meetingId), modelAvailable: available,
+        let notice = DraftNotice.for(hasSummary: false, writing: drafts.isWriting(meetingId), modelAvailable: available, modelPreparing: AppleIntelligence.preparing,
                                      paired: model.engine.status != .notPaired)
         VStack(alignment: .leading, spacing: 12) {
             switch notice {
@@ -23,6 +23,8 @@ struct PhoneDraftNotice: View {
                 Label(S.notesFromComputer, systemImage: "laptopcomputer").font(.subheadline).foregroundStyle(Theme.muted)
             case .needsAppleIntelligence:
                 Label(S.notesNeedAppleIntelligence, systemImage: "iphone").font(.subheadline).foregroundStyle(Theme.muted)
+            case .modelPreparing:
+                Label(S.notesWhenModelReady, systemImage: "iphone").font(.subheadline).foregroundStyle(Theme.muted)
             case .notWritten, nil:
                 Text(S.notesNotWritten).font(.subheadline).foregroundStyle(Theme.muted)
                 if available {

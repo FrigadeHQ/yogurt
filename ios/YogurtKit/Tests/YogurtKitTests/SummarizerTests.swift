@@ -15,6 +15,8 @@ private actor FakeModel: TextModel {
     }
 }
 
+private enum FlakyError: Error { case busy }
+
 private func seg(_ i: Int, _ text: String) -> Segment {
     Segment(index: i, startMs: i * 4000, endMs: i * 4000 + 3500, speaker: nil, text: text)
 }
@@ -137,5 +139,71 @@ private func longTranscript(_ n: Int) -> [Segment] {
         #expect(cleanNotes("Here you go:\n\n## A\n- b\n\nLet me know if you need more.") == "## A\n- b")
         #expect(cleanNotes("- just bullets") == "- just bullets")
         #expect(cleanNotes("   ") == "")
+    }
+
+    // MARK: - One bad answer never costs the whole draft
+
+    @Test func aPartThatFailsOnceIsAskedAgain() async throws {
+        let model = FakeModel { prompt, n in
+            if prompt.contains("Here is part 2") && n == 2 { throw FlakyError.busy }
+            return prompt.contains("Here is part") ? "### Bit\n- ok" : "## Notes\n- fine"
+        }
+        let s = MapReduceSummarizer(model: model, language: "English", maxChars: 2000)
+        #expect(try await s.summarize(transcript: longTranscript(60), myNotes: "") == "## Notes\n- fine")
+        let parts = await model.prompts.filter { $0.contains("Here is part 2") }
+        #expect(parts.count == 2)
+    }
+
+    @Test func aPartTheModelRefusesIsSkippedAndTheRestKept() async throws {
+        let model = FakeModel { prompt, _ in
+            if prompt.contains("Line 0:") && prompt.contains("Here is part") { throw TextModelError.refused }
+            if prompt.contains("Here is part") { return "### Kept\n- detail" }
+            return "## Notes\n- from the rest"
+        }
+        let s = MapReduceSummarizer(model: model, language: "English", maxChars: 2000)
+        #expect(try await s.summarize(transcript: longTranscript(60), myNotes: "") == "## Notes\n- from the rest")
+        // refused: tried again in smaller pieces before it was left out
+        let refusedTries = await model.prompts.filter { $0.contains("Line 0:") }.count
+        #expect(refusedTries > 1)
+        #expect(await model.prompts.last!.contains("### Kept"))
+    }
+
+    @Test func whenTheLastStepFailsThePartsAreTheNotes() async throws {
+        let model = FakeModel { prompt, n in
+            if prompt.contains("Here is part") { return "### Topic \(n)\n- point \(n)" }
+            throw TextModelError.refused
+        }
+        let s = MapReduceSummarizer(model: model, language: "English", maxChars: 2000)
+        let notes = try await s.summarize(transcript: longTranscript(60), myNotes: "")
+        #expect(notes.hasPrefix("## Topic 1\n- point 1"))
+        #expect(!notes.contains("###"))
+    }
+
+    @Test func aShortMeetingTheModelRefusesIsTriedInParts() async throws {
+        let model = FakeModel { prompt, _ in
+            if prompt.contains("<transcript>") && !prompt.contains("Here is part") && !prompt.contains("notes on each part") { throw TextModelError.refused }
+            return prompt.contains("Here is part") ? "### Bit\n- ok" : "## Notes\n- fine"
+        }
+        let s = MapReduceSummarizer(model: model, language: "English")
+        #expect(try await s.summarize(transcript: longTranscript(10), myNotes: "") == "## Notes\n- fine")
+    }
+
+    @Test func aCombineTooLongIsMergedFurther() async throws {
+        let model = FakeModel { prompt, n in
+            if prompt.contains("Here is part") { return "### Part \(n)\n- " + String(repeating: "x", count: 150) }
+            if prompt.contains("consecutive parts") { return "### Merged\n- short" }
+            // the final step can't read more than a little
+            if prompt.contains("notes on each part") && prompt.contains("### Part") { throw TextModelError.tooLong }
+            return "## Final\n- done"
+        }
+        let s = MapReduceSummarizer(model: model, language: "English", maxChars: 2000)
+        #expect(try await s.summarize(transcript: longTranscript(80), myNotes: "") == "## Final\n- done")
+        #expect(await model.prompts.contains { $0.contains("consecutive parts") })
+    }
+
+    @Test func nothingWorkedIsAnError() async {
+        let model = FakeModel { _, _ in throw TextModelError.refused }
+        let s = MapReduceSummarizer(model: model, language: "English", maxChars: 2000)
+        await #expect(throws: SummaryError.noNotes) { try await s.summarize(transcript: longTranscript(30), myNotes: "") }
     }
 }

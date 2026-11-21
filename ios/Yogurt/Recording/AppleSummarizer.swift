@@ -5,13 +5,20 @@ import YogurtKit
 /// Apple's on-device model (Foundation Models) as YogurtKit's TextModel. Each prompt gets a session of its own, so
 /// one part of a long meeting never fills the model's memory for the next.
 struct AppleModel: TextModel {
+    /// summarising the person's own meeting is a content transformation: the looser guardrails are meant for it
+    private static let model = SystemLanguageModel(guardrails: .permissiveContentTransformations)
+
     func respond(to prompt: String, maxTokens: Int) async throws -> String {
-        let session = LanguageModelSession(instructions: "You write clear, accurate meeting notes. You only use what is in the transcript and notes you are given.")
+        let session = LanguageModelSession(model: Self.model,
+                                           instructions: "You write clear, accurate meeting notes. You only use what is in the transcript and notes you are given.")
         do {
             return try await session.respond(to: prompt, options: GenerationOptions(temperature: 0.3, maximumResponseTokens: maxTokens)).content
         } catch let e as LanguageModelSession.GenerationError {
-            if case .exceededContextWindowSize = e { throw TextModelError.tooLong }
-            throw e
+            switch e {
+            case .exceededContextWindowSize: throw TextModelError.tooLong
+            case .guardrailViolation, .refusal: throw TextModelError.refused
+            default: throw e
+            }
         }
     }
 }
@@ -22,6 +29,9 @@ enum AppleIntelligence {
         let model = SystemLanguageModel.default
         return model.availability == .available && model.supportsLocale(locale)
     }
+
+    /// Turned on but still downloading: notes are written once it's ready.
+    static var preparing: Bool { SystemLanguageModel.default.availability == .unavailable(.modelNotReady) }
 
     static func summarizer(locale: Locale = .current) -> MapReduceSummarizer {
         MapReduceSummarizer(model: AppleModel(), language: languageName(locale))

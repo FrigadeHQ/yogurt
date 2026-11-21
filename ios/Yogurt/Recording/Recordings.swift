@@ -2,6 +2,7 @@
 import os
 import SwiftUI
 import UIKit
+import UserNotifications
 import YogurtKit
 
 private let log = Logger(subsystem: "so.yogurt.ios", category: "recording")
@@ -29,9 +30,7 @@ final class RecordingController {
     private(set) var state = RecordingState()
     private(set) var transcript = LiveTranscript()
     var myNotes = "" { didSet { if myNotes != oldValue { scheduleSave() } } }
-    /// the meter's target, 0…1
-    private(set) var level: Double = 0
-    /// a sentence about the live transcript (downloading the language, turned off)
+    /// a sentence about the live transcript (downloading the language, turned off) or space running low
     private(set) var transcriptNotice: String?
     let id = UUID().uuidString.lowercased()
     private(set) var startedAt = Date()
@@ -41,23 +40,43 @@ final class RecordingController {
     @ObservationIgnored private var folder: URL?
     @ObservationIgnored private var saving: Task<Void, Never>?
     @ObservationIgnored private var ticker: Task<Void, Never>?
+    @ObservationIgnored private var resuming: Task<Void, Never>?
+    @ObservationIgnored private weak var model: AppModel?
+    #if DEBUG
+    @ObservationIgnored private var previewLevel: Double?
+    #endif
 
     /// the recording in progress, so a recovery at launch never takes it
     static private(set) var liveId: String?
+    /// below this the recording doesn't start; below `lowSpace` it warns (64 kbps is about 30 MB an hour)
+    private static let noSpace: Int64 = 50_000_000
+    private static let lowSpace: Int64 = 200_000_000
+    private static let pausedNotification = "recording-paused"
 
     var title: String { S.meetingAt(Format.time(startedAt)) }
 
-    func start() async {
+    /// The meter's level now, read each frame.
+    var level: Double {
+        #if DEBUG
+        if let previewLevel { return previewLevel }
+        #endif
+        return recorder.level
+    }
+
+    func start(model: AppModel) async {
         guard state.begin() else { return }
+        self.model = model
         if AVAudioApplication.shared.recordPermission == .undetermined { _ = await AVAudioApplication.requestRecordPermission() }
         guard AVAudioApplication.shared.recordPermission == .granted else { state.fail(S.micOff); return }
+        let space = freeSpace()
+        if let space, space < Self.noSpace { state.fail(S.recordingNoSpace); return }
+        if let space, space < Self.lowSpace { transcriptNotice = S.recordingLowSpace }
         do {
             let folder = try RecordingsFolder.make()
             self.folder = folder
             recorder.events = Recorder.Events(
-                level: { [weak self] in self?.level = $0 },
                 interrupted: { [weak self] began in self?.interrupted(began) },
-                failed: { [weak self] in self?.transcriptNotice = $0 })
+                failed: { [weak self] message in Task { await self?.stopAfterFailure(message) } })
             let relay = relay
             recorder.onBuffer = { relay.append($0) }
             try recorder.start(writingTo: folder.appending(path: "\(id).m4a"))
@@ -81,6 +100,8 @@ final class RecordingController {
             result: { [weak self] text, start, end, final in self?.transcript.update(text, startMs: start, endMs: end, isFinal: final) },
             notice: { [weak self] in self?.transcriptNotice = $0 })
         Task { [relay] in await LiveTranscription.start(locale: .current, events: events, relay: relay) }
+        // to say so if a call pauses the recording while the phone is in a pocket
+        _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
     }
 
     func pause() {
@@ -91,19 +112,41 @@ final class RecordingController {
 
     func resume() {
         guard state.resume(at: Date()) else { return }
-        do { try recorder.resume() } catch {
+        do {
+            try recorder.resume()
+            clearPausedNotification()
+        } catch {
             log.error("resume failed: \(String(describing: error), privacy: .public)")
             _ = state.pause(.interrupted, at: Date())
         }
     }
 
+    /// Yogurt is on screen again (opened from the notification, or unlocked): a recording a call paused picks up.
+    func cameBack() {
+        guard state.phase == .paused(.interrupted) else { return }
+        resume()
+    }
+
     private func interrupted(_ began: Bool) {
         if began {
-            if state.pause(.interrupted, at: Date()) { recorder.pause(); saveProgress() }
+            guard state.pause(.interrupted, at: Date()) else { return }
+            recorder.pause()
+            saveProgress()
+            if UIApplication.shared.applicationState != .active { postPausedNotification() }
         } else if state.interruptionEnded(at: Date()) {
-            do { try recorder.resume() } catch {
-                // the microphone isn't free yet: Resume is on screen
-                _ = state.pause(.interrupted, at: Date())
+            // the microphone can take a moment to be free again after a call
+            resuming?.cancel()
+            resuming = Task { [weak self] in
+                for delay in [0.0, 0.5, 1.5, 3] {
+                    if delay > 0 { try? await Task.sleep(for: .seconds(delay)) }
+                    guard let self, !Task.isCancelled, self.state.phase == .recording else { return }
+                    do { try self.recorder.resume(); self.clearPausedNotification(); return } catch {
+                        log.error("resume after a call failed: \(String(describing: error), privacy: .public)")
+                    }
+                }
+                guard let self, self.state.phase == .recording else { return }
+                _ = self.state.pause(.interrupted, at: Date())
+                if UIApplication.shared.applicationState != .active { self.postPausedNotification() }
             }
         }
     }
@@ -112,13 +155,27 @@ final class RecordingController {
     /// found again at the next launch).
     func stop(model: AppModel) async -> String? {
         guard state.stop(at: Date()) else { return nil }
-        ticker?.cancel(); saving?.cancel()
+        return await finish(model: model)
+    }
+
+    /// The audio couldn't be written any more (the disk is full, the audio system restarted): what was saved is
+    /// kept as a meeting, and the screen says why it stopped.
+    private func stopAfterFailure(_ message: String) async {
+        guard state.stop(at: Date()), let model else { return }
+        if await finish(model: model) != nil { state.fail(message + " " + S.recordingKeptAsMeeting) }
+    }
+
+    private func finish(model: AppModel) async -> String? {
+        ticker?.cancel(); saving?.cancel(); resuming?.cancel()
+        clearPausedNotification()
         let durationMs = await recorder.stop()
         if let t = relay.current { await waitAtMost(seconds: 6) { await t.finish() } }
         let progress = currentProgress()
         writeProgress(progress)
         guard let folder else { return nil }
         let rec = progress.recording(in: folder, title: title, durationMs: durationMs > 0 ? durationMs : nil)
+        // a recording isn't live once Stop is pressed: if saving fails, the next visit to Home finds it again
+        Self.liveId = nil
         do {
             try model.store.saveLocalRecording(rec)
         } catch {
@@ -127,7 +184,6 @@ final class RecordingController {
             return nil
         }
         try? FileManager.default.removeItem(at: RecordingsFolder.progressURL(id))
-        Self.liveId = nil
         _ = state.finished()
         model.edited()
         // paired: it goes to the computer now if they're connected, else the next time they are
@@ -136,12 +192,46 @@ final class RecordingController {
         return rec.id
     }
 
+    /// Stops and throws the recording away: its audio, transcript and notes.
+    func discard() async {
+        guard state.stop(at: Date()) else { return }
+        ticker?.cancel(); saving?.cancel(); resuming?.cancel()
+        clearPausedNotification()
+        _ = await recorder.stop()
+        if let t = relay.current { await waitAtMost(seconds: 1) { await t.finish() } }
+        Self.liveId = nil
+        if let folder {
+            try? FileManager.default.removeItem(at: folder.appending(path: "\(id).m4a"))
+            try? FileManager.default.removeItem(at: RecordingsFolder.progressURL(id))
+        }
+        _ = state.finished()
+    }
+
+    private func freeSpace() -> Int64? {
+        (try? URL.applicationSupportDirectory.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]))?
+            .volumeAvailableCapacityForImportantUsage
+    }
+
+    private func postPausedNotification() {
+        let content = UNMutableNotificationContent()
+        content.title = S.recordingPausedTitle
+        content.body = S.recordingPausedBody
+        content.sound = .default
+        UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: Self.pausedNotification, content: content, trigger: nil))
+    }
+
+    private func clearPausedNotification() {
+        let center = UNUserNotificationCenter.current()
+        center.removeDeliveredNotifications(withIdentifiers: [Self.pausedNotification])
+        center.removePendingNotificationRequests(withIdentifiers: [Self.pausedNotification])
+    }
+
     #if DEBUG
     func startPreview() {
         _ = state.begin()
         startedAt = Date().addingTimeInterval(-754)
         _ = state.started(at: startedAt)
-        level = 0.55
+        previewLevel = 0.55
     }
     func previewLine(_ text: String, at ms: Int) { transcript.update(text, startMs: ms, endMs: ms + 5000, isFinal: true) }
     func previewVolatile(_ text: String) { transcript.update(text, startMs: 0, endMs: 0, isFinal: false) }
@@ -251,6 +341,12 @@ final class PhoneDrafts {
             let audio = folder.appending(path: p.audioFile)
             let seconds = try? await AVURLAsset(url: audio).load(.duration).seconds
             let ms = seconds.flatMap { $0.isFinite && $0 > 0 ? Int($0 * 1000) : nil }
+            // killed in its first seconds: no audio could be read and nothing was heard, so there's nothing to keep
+            if ms == nil && p.lines.isEmpty && p.myNotes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                try? FileManager.default.removeItem(at: audio)
+                try? FileManager.default.removeItem(at: file)
+                continue
+            }
             let rec = p.recording(in: folder, title: S.meetingAt(Format.time(p.startedAt)), durationMs: ms)
             do {
                 try model.store.saveLocalRecording(rec)
