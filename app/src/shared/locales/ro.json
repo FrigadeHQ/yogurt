@@ -680,6 +680,7 @@
   "You can back up meetings, notes, transcripts and saved audio in one file.": "Puteți salva întâlnirile, notele, transcrierile și sunetul păstrat într-un singur fișier.",
   "You can get a reminder when Yogurt detects a call.": "Puteți primi un memento când Yogurt detectează un apel.",
   "Add meetings": "Adaugă întâlniri",
+  "Add meetings to {folder}": "Adaugă întâlniri în {folder}",
   "New note": "Notă nouă",
   "In this folder": "În acest dosar",
   "Notes and recordings started here are saved in this folder.": "Notițele și înregistrările pe care le începi aici se salvează în acest dosar.",

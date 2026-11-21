@@ -621,6 +621,7 @@
   "You can back up meetings, notes, transcripts and saved audio in one file.": "คุณสำรองการประชุม โน้ต ข้อความถอดเสียง และเสียงที่เก็บไว้ในไฟล์เดียวได้",
   "You can get a reminder when Yogurt detects a call.": "คุณรับการเตือนได้เมื่อ Yogurt ตรวจพบสาย",
   "Add meetings": "เพิ่มการประชุม",
+  "Add meetings to {folder}": "เพิ่มการประชุมไปยัง {folder}",
   "New note": "โน้ตใหม่",
   "In this folder": "อยู่ในโฟลเดอร์นี้",
   "Notes and recordings started here are saved in this folder.": "โน้ตและการบันทึกที่คุณเริ่มที่นี่จะถูกเก็บไว้ในโฟลเดอร์นี้",

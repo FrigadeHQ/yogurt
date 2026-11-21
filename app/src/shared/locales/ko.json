@@ -621,6 +621,7 @@
   "You can back up meetings, notes, transcripts and saved audio in one file.": "회의, 노트, 녹취록과 저장된 오디오를 한 파일에 백업할 수 있어요.",
   "You can get a reminder when Yogurt detects a call.": "Yogurt가 통화를 감지하면 알림을 받을 수 있어요.",
   "Add meetings": "회의 추가",
+  "Add meetings to {folder}": "{folder}에 회의 추가",
   "New note": "새 노트",
   "In this folder": "이 폴더에 있음",
   "Notes and recordings started here are saved in this folder.": "여기에서 시작한 노트와 녹음은 이 폴더에 저장됩니다.",
