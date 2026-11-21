@@ -475,7 +475,7 @@ body:has(.chat-panel[open]) .app-toast-viewport:dir(rtl) { --toast-x:440px; }
 .ask-box { position:relative;min-width:0;border:1px solid var(--line);border-radius:12px;background:var(--float); }
 /* Composers are never lit; a short tapered flare invites typing instead. */
 .ask-tracer { position:absolute;inset:-1px;width:calc(100% + 2px);height:calc(100% + 2px);overflow:visible;pointer-events:none;opacity:0;fill:none;stroke:var(--primary);stroke-width:3;stroke-linecap:round;filter:drop-shadow(0 0 4px color-mix(in srgb,var(--primary) 70%,transparent)) drop-shadow(0 0 10px color-mix(in srgb,var(--primary) 35%,transparent)); }
-.ask-tracer rect { stroke-dasharray:1.05 98.95; }
+.ask-box:dir(rtl) > .ask-tracer { transform:scaleX(-1);transform-origin:center; }
 @media (prefers-reduced-motion:reduce) { .ask-tracer { display:none; } }
 .ask-field { padding:12px; }
 .ask-box textarea { display:block;width:100%;field-sizing:content;min-height:38px;max-height:160px;resize:none;background:transparent;outline:none;color:var(--ink);font-size:14px;line-height:22px; }
