@@ -82,6 +82,11 @@ export function Ask({ id, recording, anchor, onSource }: { id: string; recording
   useEffect(() => () => animations.current.forEach((animation) => animation.cancel()), [])
   useLayoutEffect(() => {
     if (!open || !anchor || !panel.current) return
+    if (closing.current) {
+      // A breakpoint change during exit must finish closing before changing the dialog mode.
+      animations.current.forEach(animation => animation.finish())
+      return
+    }
     const dialog = panel.current
     const position = () => {
       const bounds = anchor.getBoundingClientRect()
