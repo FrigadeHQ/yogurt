@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import type { Folder, FolderMeetingChoice } from '../../../shared/types'
 import { language, t } from '../../../shared/i18n'
+import { Checkbox } from './Checkbox'
+import { ScrollFade } from './ScrollFade'
 import { Search } from './Icons'
 import { InlineError } from './InlineError'
 import { Modal, ModalClose } from './Modal'
@@ -57,18 +59,18 @@ export function AddMeetingsDialog({ folder, onDone }: { folder: Folder; onDone(a
       saving.current = false; setBusy(false); setSaveFailed(true); setAttempt(n => n + 1)
     }
   }
-  return <Modal testId="folder-add-meetings" title={t('Add meetings')} description={folder.name}
+  return <Modal testId="folder-add-meetings" title={t('Add meetings to {folder}', { folder: folder.name })}
     closing={added} busy={busy} onCancel={() => onDone(added)}>
     <label className="shortcuts-search"><Search size={16} aria-hidden="true" />
       <input data-dialog-focus aria-label={t('Search')} placeholder={t('Search')} value={query} disabled={busy}
         onChange={e => setQuery(e.target.value)} onKeyDown={arrows} />
     </label>
-    <div ref={list} role="group" aria-label={t('Meetings')} className="folder-meeting-choices" onKeyDown={arrows}>
+    <ScrollFade><div ref={list} role="group" aria-label={t('Meetings')} className="folder-meeting-choices" onKeyDown={arrows}>
       {loadFailed ? <InlineError testId="folder-meetings-error" retry={() => setAttempt(n => n + 1)} />
         : !rows ? <p role="status">{t('Loading…')}</p>
         : !visible.length ? <p role="status">{needle ? t('Nothing found for “{query}”.', { query: query.trim() }) : t('No meetings here yet')}</p>
-        : visible.map(row => <label key={row.id} className="folder-meeting-choice settings-calendar-choice">
-          <input type="checkbox" checked={row.inFolder || chosen.has(row.id)} disabled={row.inFolder || busy}
+        : visible.map(row => <label key={row.id} className="folder-meeting-choice">
+          <Checkbox checked={row.inFolder || chosen.has(row.id)} disabled={row.inFolder || busy}
             tabIndex={row.id === tabStop?.id ? 0 : -1} onFocus={() => setFocused(row.id)}
             onChange={e => { const checked = e.target.checked; setChosen(previous => {
               const next = new Set(previous)
@@ -79,7 +81,7 @@ export function AddMeetingsDialog({ folder, onDone }: { folder: Folder; onDone(a
           <span className="min-w-0"><span className="block [overflow-wrap:anywhere]">{row.title || t('Untitled meeting')}</span>
             <small>{date.format(row.startedAt)}{row.inFolder && <> · {t('In this folder')}</>}</small></span>
         </label>)}
-    </div>
+    </div></ScrollFade>
     {saveFailed && <p className="modal-error" role="alert">{t("Yogurt couldn't make that change. Try again.")}</p>}
     <div className="modal-actions">
       <button className="modal-button primary" disabled={busy || loadFailed || !selected.length} onClick={() => void save()}>

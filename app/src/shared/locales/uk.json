@@ -691,6 +691,7 @@
   "You can back up meetings, notes, transcripts and saved audio in one file.": "Можна зберегти зустрічі, нотатки, розшифровки й збережене аудіо в одному файлі.",
   "You can get a reminder when Yogurt detects a call.": "Можна отримувати нагадування, коли Yogurt виявляє дзвінок.",
   "Add meetings": "Додати зустрічі",
+  "Add meetings to {folder}": "Додати зустрічі до папки {folder}",
   "New note": "Нова нотатка",
   "In this folder": "У цій папці",
   "Notes and recordings started here are saved in this folder.": "Нотатки й записи, які ви почнете тут, зберігатимуться в цій папці.",

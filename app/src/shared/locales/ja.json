@@ -621,6 +621,7 @@
   "You can back up meetings, notes, transcripts and saved audio in one file.": "会議、ノート、文字起こし、保存済み音声を1つのファイルにバックアップできます。",
   "You can get a reminder when Yogurt detects a call.": "Yogurtが通話を検出したときに通知を受け取れます。",
   "Add meetings": "ミーティングを追加",
+  "Add meetings to {folder}": "{folder} に会議を追加",
   "New note": "新規ノート",
   "In this folder": "このフォルダに追加済み",
   "Notes and recordings started here are saved in this folder.": "ここで作成したノートや開始した録音は、このフォルダに保存されます。",

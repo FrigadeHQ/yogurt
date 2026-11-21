@@ -663,6 +663,7 @@
   "You can back up meetings, notes, transcripts and saved audio in one file.": "Du kan säkerhetskopiera möten, anteckningar, transkriptioner och sparat ljud i en fil.",
   "You can get a reminder when Yogurt detects a call.": "Du kan få en påminnelse när Yogurt upptäcker ett samtal.",
   "Add meetings": "Lägg till möten",
+  "Add meetings to {folder}": "Lägg till möten i {folder}",
   "New note": "Ny anteckning",
   "In this folder": "I den här mappen",
   "Notes and recordings started here are saved in this folder.": "Anteckningar och inspelningar som du påbörjar här sparas i den här mappen.",

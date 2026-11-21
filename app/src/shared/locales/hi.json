@@ -651,6 +651,7 @@
   "You can back up meetings, notes, transcripts and saved audio in one file.": "आप मीटिंग, नोट्स, ट्रांसक्रिप्ट और सहेजे ऑडियो का एक फ़ाइल में बैकअप ले सकते हैं।",
   "You can get a reminder when Yogurt detects a call.": "Yogurt को कॉल मिलने पर आप रिमाइंडर पा सकते हैं।",
   "Add meetings": "मीटिंग जोड़ें",
+  "Add meetings to {folder}": "{folder} में मीटिंग जोड़ें",
   "New note": "नया नोट",
   "In this folder": "इस फ़ोल्डर में",
   "Notes and recordings started here are saved in this folder.": "यहाँ शुरू किए गए नोट और रिकॉर्डिंग इसी फ़ोल्डर में सहेजे जाते हैं।",

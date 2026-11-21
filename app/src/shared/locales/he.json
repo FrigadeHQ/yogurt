@@ -673,6 +673,7 @@
   "You can back up meetings, notes, transcripts and saved audio in one file.": "אפשר לגבות פגישות, הערות, תמלילים ושמע שנשמר בקובץ אחד.",
   "You can get a reminder when Yogurt detects a call.": "אפשר לקבל תזכורת כש-Yogurt מזהה שיחה.",
   "Add meetings": "הוספת פגישות",
+  "Add meetings to {folder}": "הוספת פגישות אל {folder}",
   "New note": "הערה חדשה",
   "In this folder": "בתיקייה הזו",
   "Notes and recordings started here are saved in this folder.": "הערות והקלטות שמתחילים כאן נשמרות בתיקייה הזו.",
