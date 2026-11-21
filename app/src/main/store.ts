@@ -408,6 +408,11 @@ export class Store {
     return (rows as Row[]).map(r => this.readMeeting(r))
   }
 
+  /** Waiting or queued labels on meetings with nothing left to transcribe (recordings, not uploads or replacements): cleared, their ids returned */
+  clearFinishedTranscriptionStates(): string[] {
+    return (this.db.prepare(`UPDATE meetings SET transcription_state=NULL WHERE transcription_pending=0 AND transcription_again=0 AND COALESCE(source,'')!='audio-file'
+      AND transcription_state IN ('queued','transcribing','waiting-model','waiting-recording') RETURNING id`).all() as Array<{ id: string }>).map(r => r.id)
+  }
   clearTranscriptionState(id:string) { this.db.prepare('UPDATE meetings SET transcription_state=NULL,transcription_again=0 WHERE id=?').run(id);this.clearTranscriptionDraft(id) }
   interruptAudioPreparations() {
     this.db.prepare("UPDATE meetings SET transcription_state='error',transcription_pending=0 WHERE source='audio-file' AND transcription_state='preparing'").run()

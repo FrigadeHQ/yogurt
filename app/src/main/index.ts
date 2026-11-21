@@ -60,7 +60,7 @@ import { isId, text, rewriteNote } from './ipcArgs'
 import { hookMics } from './mics'
 import { activeCapture, audioHelperPath, hookCapture, joinParts, onCaptureStart, onRecordingEvent, prepareAppend, recordingFinished, recordingPaused, recordingSettled, rejoinInterrupted, setRecordingPaused, settleRecording, tell, type WarnCode } from './capture'
 import { createWidget } from './widget'
-import { liveSilentMs, hookTranscription, transcribeRecorded, onWhisperGpuOff, meetingLanguage, settleTranscription, speechLocaleFor, spokenChanged, transcriptionBacklogMs, stopTranscriptionServer, releaseIdleSpeech, transcriptFinished, transcriptPartials } from './asr'
+import { liveSilentMs, hookTranscription, transcribeRecorded, onWhisperGpuOff, meetingLanguage, settleTranscription, speechLocaleFor, spokenChanged, transcriptionBacklogMs, stopTranscriptionServer, releaseIdleSpeech, transcriptFinished, transcriptOpen, transcriptPartials } from './asr'
 import { hookCallNames, type Watch } from './callNames'
 import { helperWatch, killAllWatches } from './callNames/watch'
 import { macFullName } from './user'
@@ -606,6 +606,8 @@ app.whenReady().then(() => {
     refresh: (id) => { win?.webContents.send('transcript:speakers', id); sendWidgetTranscript('transcript:speakers', id) },
     sendPartial: (part) => { win?.webContents.send('transcript:partial', part); sendWidgetTranscript('transcript:partial', part) },
     warn: (code) => tell({ t: 'warn', code }), pidFile: join(userDataDir(), 'whisper-server.pid'),
+    // whisper-server went down mid-meeting (#127): the rest is read from the saved recording once the transcript is settled
+    queued: () => { void savedTranscriptions.pump() },
     // English only (the default) or Multi-language, read on each chunk so the footer's picker counts at once
     spoken: () => spokenSetting(loadSettings(settingsFile)),
     // Apple's on-device speech for the live words (macOS 26, Apple Silicon); fake mode has a stand-in when a test asks
@@ -698,7 +700,7 @@ app.whenReady().then(() => {
   })
   let finishing = false, discardUnsaved = false
   const savedTranscriptions = createSavedTranscriptions({
-    store, ready: () => !!setup.installed()?.asr, recording: () => !!activeMeeting() || !!resumingId || finishing,
+    store, ready: () => !!setup.installed()?.asr, recording: () => !!activeMeeting() || !!resumingId || finishing, live: transcriptOpen,
     tracks: async id => {
       await recordingSettled(id)
       const tracks: Partial<Record<'me'|'them',AsyncIterable<Float32Array>>> = {}
