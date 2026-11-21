@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  Private AI meeting notes. A free, open-source alternative to Granola.
+  Private AI meeting notes, with no bot in your call. A free, open-source alternative to Granola, Otter and Fireflies.
 </p>
 
 <p align="center">
