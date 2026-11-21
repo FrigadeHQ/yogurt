@@ -640,6 +640,7 @@
     "one": "et {count} autre",
     "other": "et {count} autres"
   },
+  "Clear meetings": "Effacer la sélection de réunions",
   "Clear": "Effacer",
   "Reading {title} {others}…": "Lecture de « {title} » {others}…",
   "Searched {name}": "Recherche dans {name}",

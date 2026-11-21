@@ -643,6 +643,7 @@
     "one": "e {count} altro",
     "other": "e {count} altri"
   },
+  "Clear meetings": "Deseleziona le riunioni",
   "Clear": "Cancella",
   "Reading {title} {others}…": "Lettura di «{title}» {others}…",
   "Searched {name}": "Ricerca in {name}",
