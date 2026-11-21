@@ -33,7 +33,7 @@ for (const theme of ['light', 'dark'] as const) test(`standard recording reminde
     await page.getByTestId('chat-open').click()
     await expect.poll(async () => {
       const a = await toast.boundingBox(), b = await page.getByTestId('chat-panel').boundingBox()
-      return !!a && !!b && a.x + a.width + 10 <= b.x
+      return !!a && !!b && b.y + b.height + 8 <= a.y
     }).toBe(true)
     await toast.hover()
     await page.getByTestId('chat-panel').evaluate(el => Promise.allSettled([el, ...el.querySelectorAll('.chat-morph-surface,.chat-panel-contents')].flatMap(node => node.getAnimations()).map(a => a.finished)))
