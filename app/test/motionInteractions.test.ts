@@ -897,6 +897,15 @@ it('collapses expanded results for a new search and each new button opening', as
 })
 
 
+it.each([false, true])('uses a ghost scope button only for All meetings (panel: %s)', panel => {
+  const c = mentionComposer(panel)
+  const scope = () => find(c.render(), 'ask-scope').props
+  expect(scope().className.split(' ')).not.toContain('ghost-btn')
+  c.initial.chips = []
+  expect(scope()['aria-label']).toBe('Choose meetings or folders')
+  expect(scope().className.split(' ')).toContain('ghost-btn')
+})
+
 it.each([0, 1, 2, 5])('labels a scope of %s items without truncating its count', count => {
   const chips = Array.from({ length: count }, (_, i) => ({ kind: 'meeting' as const, id: String(i), title: 'A very long meeting title '.repeat(20) }))
   const label = scopeLabel(chips)
