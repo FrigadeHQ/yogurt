@@ -1021,7 +1021,16 @@ html:not(.widget) button:focus-visible, html:not(.widget) input:focus-visible { 
 .audio-upload-submit[aria-busy=true] .audio-upload-submit-label { opacity:0; }
 .audio-upload-submit-icon { position:absolute;inset:0;display:flex;align-items:center;justify-content:center; }
 .audio-upload-date-picker .audio-upload-month button:focus-visible { outline:none; }
-.transcription-notice-slot:empty { display:none; }
+#transcript-lines:has(> .empty-state) { padding-block:0;scrollbar-gutter:stable both-edges; }
+/* Equal space above and below while it fits. In a short pane, give the player clearance first. */
+#transcript-lines > .empty-state {
+  padding-block:0;
+  grid-template-rows:minmax(16px,1fr) auto minmax(max(16px,var(--playback-inset)),1fr);
+}
+/* The shared empty state sits 12px above centre. */
+#transcript-lines > .empty-state > .empty-state-content { grid-row:2;margin-block-end:24px;overflow-wrap:anywhere; }
+.transcript-empty-notice { display:grid;justify-items:center;gap:8px; }
+.transcript-empty-notice .workspace-button { max-width:100%;min-height:var(--button-height);height:auto;white-space:normal; }
 
 /* Floating surfaces keep their solid theme fills until the display permits transparency. */
 @supports (backdrop-filter:blur(1px)) and (background:color-mix(in srgb,white,transparent)) {

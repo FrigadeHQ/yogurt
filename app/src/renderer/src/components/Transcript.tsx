@@ -1,11 +1,12 @@
 import { InlineError, ReadError } from './InlineError'
+import { TranscriptionNotice, type TranscriptNotice } from './Transcription'
 import {transcriptReplacement} from '../../../shared/transcriptReplacement'
 import { citationTargetIndex } from '../../../shared/citations'
 import { SPEAKER_COLORS } from '../../../shared/speakerColors'
 import { ScrollFade } from './ScrollFade'
 import { Loading } from './Loading'
 import { useLoadingState } from '../useLoadingState'
-import { Fragment, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
+import { Fragment, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
 import { AudioLines, ArrowDown } from './Icons'
 import type { Segment, TranscriptPartial } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
@@ -180,7 +181,7 @@ const Row = memo(function Row({ line: l, focused, name, playing, playable, focus
  * while it records; after the meeting a line plays from that moment, and the player sits at the bottom. The header searches it.
  */
 export function Transcript({ id, notice, processing=false, replacing=false, recording, inline = false, active = true, onClose, focus, toolbar }: {
-  id: string; notice?:ReactNode; processing?:boolean; replacing?:boolean; recording: boolean; inline?: boolean; active?: boolean; toolbar?: HTMLElement | null; onClose?: () => void
+  id: string; notice?: TranscriptNotice; processing?:boolean; replacing?:boolean; recording: boolean; inline?: boolean; active?: boolean; toolbar?: HTMLElement | null; onClose?: () => void
   /** a line to show and mark (an answer's source): ms into the meeting; seq: each time it is asked for */
   focus?: { ms: number; match?: string; seq: number }
 }) {
@@ -390,6 +391,8 @@ export function Transcript({ id, notice, processing=false, replacing=false, reco
     setFinding(open)
     if (open) { setShowAll(true); stick.current = false; ours.current?.stop(); ours.current = null }
   }, [])
+  const empty = loaded && !failed && timeline.length === 0 && (!processing || !!notice)
+  const noticeContent = notice && <TranscriptionNotice notice={notice} centered={empty} hasLines={timeline.length > 0} />
   const Surface = inline ? 'section' : 'aside'
 
   return (
@@ -398,12 +401,17 @@ export function Transcript({ id, notice, processing=false, replacing=false, reco
       <TranscriptFind key={id} lines={lines} list={list} active={active} playbackInset={playbackInset} beforeScroll={() => visibility.current?.programmatic()} onFinding={find} toolbar={toolbar} onClose={!inline ? onClose : undefined} />
       <div className="transcript-scroll-wrap relative flex min-h-0 flex-1 flex-col">
         <ScrollFade enabled={active && loaded}><ol id="transcript-lines" data-loaded={loaded} data-loading-phase={loadingPhase} data-testid="transcript" data-replacing={replacing&&processing} ref={list} onScroll={onScroll} onWheel={theirs} onTouchStart={theirs} onPointerDown={theirs} onKeyDownCapture={theirs} onKeyDown={onKeyDown} className="loading-content transcript-loading-content flex flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4 pt-2 text-sm leading-[1.55]">
-          {notice&&<li className="transcription-notice-slot">{notice}</li>}
-          {processing&&!replacing&&timeline.length===0&&<li className="transcription-placeholder" aria-hidden="true"><p className="turn-head"><span className="loading-bar" style={{width:42}}/></p><p className="bubble bubble-them"><span className="loading-bar" style={{width:180}}/></p></li>}
+          {!empty && noticeContent && <li className="transcription-notice-slot">{noticeContent}</li>}
+          {processing&&!notice&&!replacing&&timeline.length===0&&<li className="transcription-placeholder" aria-hidden="true"><p className="turn-head"><span className="loading-bar" style={{width:42}}/></p><p className="bubble bubble-them"><span className="loading-bar" style={{width:180}}/></p></li>}
           {failed && (timeline.length || processing || playable || notice ? <li><InlineError testId="transcript-read-error" retry={() => retry.current()} /></li>
             : <li className="flex flex-1"><ReadError testId="transcript-read-error" retry={() => retry.current()} /></li>)}
           {!failed && loadingPhase !== 'ready' && timeline.length===0 && <li className="loading-placeholder"><Loading layout="transcript" /></li>}
-          {!failed && loaded && !processing && allLines.length === 0 && liveSaid.length === 0 && <li data-testid="transcript-empty" className="note-empty empty-state"><div className="empty-state-content"><div className="empty-tile"><AudioLines size={28} aria-hidden="true" /></div>{t('Nothing heard yet.')}</div></li>}
+          {empty && <li data-testid="transcript-empty" className="note-empty empty-state">
+            <div className="empty-state-content">
+              <div className="empty-tile"><AudioLines size={28} aria-hidden="true" /></div>
+              {noticeContent ?? t('Nothing heard yet.')}
+            </div>
+          </li>}
           {drawn.earlier > 0 && <li className="flex justify-center"><button data-testid="transcript-earlier" onClick={() => { visibility.current?.programmatic(); stick.current = false; setShowAll(true) }} className="ghost-btn">{t('Show earlier lines')}</button></li>}
           {drawn.runs.map(run => <Fragment key={run.k}>
             {turns(run.lines).map((turn) => {

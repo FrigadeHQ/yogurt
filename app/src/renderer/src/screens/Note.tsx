@@ -1,5 +1,5 @@
 import { InlineError, ReadError } from '../components/InlineError'
-import { TranscriptionControl, TranscriptionNotice } from '../components/Transcription'
+import { TranscriptionControl, transcriptionNotice } from '../components/Transcription'
 import { transcriptionBusy } from '../../../shared/transcription'
 import { citationTargetIndex } from '../../../shared/citations'
 import { NoteReadingPane } from '../components/NoteReadingPane'
@@ -465,10 +465,10 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
           {(primary === 'transcript' || transcriptVisited) && <section hidden={primary !== 'transcript'} id="note-transcript-panel" role="tabpanel" aria-labelledby="note-transcript-tab" className="note-content note-transcript-pane">
             <Transcript notice={
               hasAudio && (m.transcriptionPending || !hasTranscript) || m.transcriptionState === 'waiting-model' || m.transcriptionState === 'waiting-recording'
-                ? <TranscriptionNotice state={m.transcriptionState} hasLines={hasTranscript} onContinue={() => void runTranscript()} disabled={recording || !!m.stopSavePending} />
+                ? transcriptionNotice(m.transcriptionState, () => void runTranscript(), recording || !!m.stopSavePending)
                 : !hasAudio && m.transcriptionState === 'error'
-                  ? <InlineError testId="upload-preparation-failed"><span>{t("Yogurt couldn't read this audio file.")}</span><button className="workspace-button" onClick={() => void openAudioUpload()}>{t('Upload a file')}</button></InlineError>
-                  : null
+                  ? { kind: 'upload', run: () => void openAudioUpload() }
+                  : undefined
             } id={id} processing={transcribing} replacing={!!m.transcriptionAgain} recording={recording} active={primary === 'transcript'} inline toolbar={transcriptToolbar} focus={at?.ms != null ? { ...at, ms: at.ms } : undefined} />
           </section>}
           </div>
