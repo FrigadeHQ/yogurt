@@ -161,6 +161,11 @@ export function App() {
         return
       }
       if (document.querySelector('[aria-modal="true"]')) return
+      if (e.code === 'KeyN') {
+        const button = document.getElementById('folder-new-note')
+        if (button) { e.preventDefault(); if (!e.repeat) button.click() }
+        return
+      }
       if (e.code === 'BracketLeft') { e.preventDefault(); back() }
       if (e.code === 'BracketRight') { e.preventDefault(); forward() }
     }
@@ -191,7 +196,7 @@ export function App() {
   const folder = folderId ? folders?.find((s) => s.id === folderId) : undefined
   const suggestedFolder = noteId ? folders?.find((s) => s.id === suggestedFolders[noteId]) : undefined
   // a folder's page waits for the list; a folder that is gone shows Meetings
-  const folderScreen = folderId && (folder ? <Folder key={folder.id} folder={folder} open={open} onStarted={(id) => setSuggestedFolders((current) => ({ ...current, [id]: folder.id }))} /> : foldersFailed ? <div className="native-library"><ReadError className="library-empty" testId="folder-list-error" retry={retryFolders} /></div> : !folders ? <div className="native-folder"><StartRecording /><div className="native-library"><LoadingContent pending testId="meetings-loading" skeleton={<><div className="folder-page-heading"><h1><span className="loading-bar" style={{ width: 140 }} /></h1></div><MeetingListLoading showFolders={false} /></>} /></div></div> : null)
+  const folderScreen = folderId && (folder ? <Folder key={folder.id} folder={folder} open={open} onUploaded={(id) => setSuggestedFolders((current) => ({ ...current, [id]: folder.id }))} /> : foldersFailed ? <div className="native-library"><ReadError className="library-empty" testId="folder-list-error" retry={retryFolders} /></div> : !folders ? <div className="native-folder"><StartRecording folderId={folderId} /><div className="native-library"><LoadingContent pending testId="meetings-loading" skeleton={<><div className="folder-page-heading"><h1><span className="loading-bar" style={{ width: 140 }} /></h1></div><MeetingListLoading showFolders={false} /></>} /></div></div> : null)
   const screen = settings ? <Settings revision={settingsRevision} focus={route.startsWith('/settings/') ? route.slice('/settings/'.length) : undefined} /> : noteId ? <Note key={noteId} id={noteId} onSource={openSource} onTitleChange={setMeeting} at={jump?.id === noteId ? jump : undefined}
     onResumeRequested={resumeRequested ? () => { setResumeRequested(false); rememberRoute(route) } : undefined}
     folderSuggestion={suggestedFolder ? { folder: suggestedFolder, dismiss: () => dismissFolderSuggestion(noteId) } : undefined} />

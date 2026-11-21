@@ -4,7 +4,7 @@ import { Check, Folder as FolderIcon, Minus, Plus, X } from './Icons'
 import type { Folder, MeetingCard } from '../../../shared/types'
 import { moreItems, t } from '../../../shared/i18n'
 import { compactCount } from '../i18n'
-import { setMeetingsInFolder, useFolders } from '../folders'
+import { setMeetingsInFolder, useFolderRead, useFolders } from '../folders'
 import { folderCheck, nextFolderCheck, reconcileFolderChecks, type FolderMemberships, type PendingFolderChecks } from '../folderSelection'
 import { toasts } from './TrashToast'
 import { motion, useReducedMotion, usePopoverPresence } from '../motion'
@@ -76,7 +76,7 @@ export function FolderChip({ meetingId, onNew, suggestion: manualSuggestion, row
     return () => { seq++; off(); offMeetings() }
   }, [meetingId])
   const suggestion = manualSuggestion ?? (automatic ? { folder: automatic, dismiss: () => setAutomatic(null) } : undefined)
-  const mine = useFolders(row ? null : meetingId)
+  const { folders: mine, failed } = useFolderRead(row ? null : meetingId)
   const folders = row ? rowFolders : mine
   const reduced = useReducedMotion()
   const [transition, setTransition] = useState<{ folder: Folder; phase: 'saving' | 'accepted' | 'dismissed' | 'settled' } | null>(null)
@@ -157,6 +157,7 @@ export function FolderChip({ meetingId, onNew, suggestion: manualSuggestion, row
   }, [transition, reduced])
   const appearance = proposed ?? folders?.[0]
   if (row && !proposed) return children
+  if (!row && !mine && !failed) return null
   const trigger = <button ref={chip} data-testid="note-folders" aria-label={more ? `${label} ${moreItems(more)}` : undefined} aria-haspopup="menu" aria-expanded={onChoose ? undefined : !!open} onClick={(e) => { if (onChoose && proposed) onChoose(proposed.id); else setOpen((o) => o ? false : e.detail > 0 ? 'pointer' : 'keyboard') }}
     title={proposed?.name ?? (folders?.map((s) => s.name).join(', ') || undefined)}
     className={proposed ? 'note-folder-name' : 'note-chip flex max-w-64 items-center gap-1.5 rounded-md border border-line px-2.5 text-[13px] text-muted'}>
