@@ -8,7 +8,7 @@ import { PastNotes } from '../src/renderer/src/screens/Home'
 import { FolderChip, FolderPicker } from '../src/renderer/src/components/FolderPicker'
 
 const state = vi.hoisted(() => ({ all: [] as Folder[], mine: [] as Folder[] }))
-vi.mock('../src/renderer/src/folders', () => ({ useFolders: (id?: string) => id ? state.mine : state.all, setMeetingsInFolder: vi.fn() }))
+vi.mock('../src/renderer/src/folders', () => ({ useFolderRead: () => ({ folders: state.mine }), useFolders: (id?: string) => id ? state.mine : state.all, setMeetingsInFolder: vi.fn() }))
 vi.mock('../src/renderer/src/i18n', async original => ({ ...await original<typeof import('../src/renderer/src/i18n')>(), useLanguage: () => 'en' }))
 vi.mock('../src/renderer/src/motion', async original => ({ ...await original<typeof import('../src/renderer/src/motion')>(), useReducedMotion: () => false }))
 vi.mock('../src/renderer/src/components/TrashToast', () => ({ toasts: { add: vi.fn(), close: vi.fn() } }))
