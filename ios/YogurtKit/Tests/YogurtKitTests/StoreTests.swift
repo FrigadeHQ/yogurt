@@ -575,4 +575,14 @@ let pageOne = """
         try store.resetForNewEpoch()
         #expect(store.meetings().map(\.id) == ["p2"])
     }
+
+    @Test func aTitleTypedHereFitsWhatTheComputerTakes() {
+        #expect(Op.title("  Kiwi plans  ") == "Kiwi plans")
+        let long = Op.title(String(repeating: "ab", count: 150))
+        #expect(long.utf16.count == 200)
+        // never half an emoji (two UTF-16 units each, as the computer counts)
+        let emoji = Op.title("a" + String(repeating: "🥝", count: 120))
+        #expect(emoji.utf16.count == 199)
+        #expect(emoji.last == "🥝")
+    }
 }

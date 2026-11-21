@@ -81,6 +81,17 @@ public struct Op: Sendable, Codable, Hashable {
     public init(kind: Kind, meetingId: String, folderId: String? = nil, text: String? = nil, title: String? = nil, baseHash: String? = nil) {
         self.kind = kind; self.meetingId = meetingId; self.folderId = folderId; self.text = text; self.title = title; self.baseHash = baseHash
     }
+
+    /// A title typed here, trimmed and cut to the 200 UTF-16 units the computer takes (it refuses a longer one), at
+    /// a whole character.
+    public static func title(_ typed: String) -> String {
+        var out = ""
+        for c in typed.trimmingCharacters(in: .whitespacesAndNewlines) {
+            guard out.utf16.count + c.utf16.count <= 200 else { break }
+            out.append(c)
+        }
+        return out.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 }
 
 /// An edit made on the phone, kept until the desktop says ok.

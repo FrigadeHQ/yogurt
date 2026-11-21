@@ -75,7 +75,7 @@ struct NoteView: View {
         .alert(S.renameTitle, isPresented: $renaming) {
             TextField(S.title, text: $newTitle)
             Button(S.save) {
-                let title = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                let title = Op.title(newTitle)
                 if !title.isEmpty, title != meeting.title { change(Op(kind: .rename, meetingId: meetingId, title: title)) }
             }
             Button(S.cancel, role: .cancel) {}
