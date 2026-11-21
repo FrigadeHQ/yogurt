@@ -394,7 +394,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
             <div data-testid={recording ? 'rec-bar' : 'note-bar'} className="note-header-actions">
               <div className="note-recorder-controls">
                 {recording && !finishing && <>
-                  <LevelBars height={14} bars={3} testId="note-wave" paused={!!m.paused} className="text-muted" />
+                  <LevelBars height={14} testId="note-wave" paused={!!m.paused} className="text-muted" />
                   <RecordingTime view={recorder} />
                 </>}
                 <div data-testid="note-state" data-state={m.state} data-paused={!!m.paused} className="note-recording-group" data-treatment={RECORDING_CONTROL_TREATMENT} data-recording={recording && !finishing} role="group" aria-label={recording ? m.paused ? t('Paused') : t('Recording') : t('Meeting controls')}>

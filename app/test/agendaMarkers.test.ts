@@ -49,7 +49,7 @@ it('replaces the icon with the real meter when recording starts or resumes, incl
       const html = render({ event: row, now, recording: active })
       if (active) {
         expect(html).toContain('aria-label="Recording"')
-        expect(html).toContain('<canvas data-testid="agenda-recording-levels"')
+        expect(html).toContain('<svg data-testid="agenda-recording-levels"')
         expect(html).not.toContain('lucide-file-text')
         expect(html).not.toContain('Has notes')
       } else if (row.note) {

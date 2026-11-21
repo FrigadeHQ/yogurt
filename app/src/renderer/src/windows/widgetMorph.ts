@@ -56,7 +56,7 @@ export function useWidgetMorph(card: React.RefObject<HTMLDivElement | null>, war
         if (!immediate && (!reduced || 'opacity' in to)) animations.current.push(node.animate([from, to] as Keyframe[], { duration: reduced ? motion.micro : ms, easing: ease, delay: reduced ? 0 : delay, fill: 'both' }))
       }
       animate(el, { left: `${box.x}px`, top: `${box.y}px`, width: `${box.width}px`, height: `${box.height}px`, borderRadius: opened ? '16px' : '10px' })
-      const positions = opened ? [[16, 17], [box.width - timerWidth - 55, 18], [box.width - timerWidth - 16, 18.5]] : [[12, 11], [42, 12], [81, 12.5]]
+      const positions = opened ? [[16, 17], [box.width - timerWidth - 43, 18], [box.width - timerWidth - 16, 18.5]] : [[12, 11], [42, 12], [69, 12.5]]
       items.forEach((item, i) => animate(item, { transform: `translate(${positions[i][0]}px,${positions[i][1]}px)` }))
       body.style.width = `${expanded.width - 2}px`; body.style.height = `${expanded.height - 54}px`
       animate(body, { transform: opened ? 'translateX(0) scale(1)' : 'translateX(40px) scale(.97)', filter: opened ? 'blur(0px)' : 'blur(2px)' }, duration, motion.ease)
@@ -77,7 +77,7 @@ export function useWidgetMorph(card: React.RefObject<HTMLDivElement | null>, war
   useLayoutEffect(() => {
     if (intent.pressed) return
     const timer = card.current?.querySelector<HTMLElement>('[data-testid="widget-time"]')
-    if (timer) window.yogurt.widget.size(95 + timer.getBoundingClientRect().width, 42)
+    if (timer) window.yogurt.widget.size(83 + timer.getBoundingClientRect().width, 42)
   }, [time, open, layout?.pill.width])
   useEffect(() => {
     let frame = 0, lastPoint = { x: -1, y: -1 }, lastSurface = ''
@@ -124,7 +124,7 @@ export function useWidgetMorph(card: React.RefObject<HTMLDivElement | null>, war
       wake.current()
       window.yogurt.widget.pressed(false)
       const timer = card.current?.querySelector<HTMLElement>('[data-testid="widget-time"]')
-      if (timer) window.yogurt.widget.size(95 + timer.getBoundingClientRect().width, 42)
+      if (timer) window.yogurt.widget.size(83 + timer.getBoundingClientRect().width, 42)
     },
   }
 }

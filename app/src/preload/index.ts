@@ -1,3 +1,4 @@
+import type { MeterPacket } from '../shared/speechWave'
 import { audioUpload } from './audioUpload'
 import type { WidgetLayout } from '../shared/widgetMorph'
 import { contextBridge, ipcRenderer } from 'electron'
@@ -34,7 +35,7 @@ const api: YogurtApi = {
       return () => { ipcRenderer.removeListener('widget:state', on) }
     },
     onLevel: (cb) => {
-      const on = (_e: unknown, lv: { me: number; them: number }) => cb(lv)
+      const on = (_e: unknown, lv: MeterPacket) => cb(lv)
       ipcRenderer.on('widget:level', on)
       return () => { ipcRenderer.removeListener('widget:level', on) }
     },

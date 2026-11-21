@@ -201,7 +201,9 @@ html.widget, .widget-pill[data-illustration] { --pill:#232326;--pill-ink:#F7F7FA
 /* closed: the transcript stays mounted but unpainted (hidden once the close has played, its live dots paused); the meter repaints only itself */
 .widget-preview[aria-hidden=true] { visibility:hidden;transition:visibility 0s linear var(--dur-base); }
 .widget-preview[aria-hidden=true] * { animation-play-state:paused !important; }
-[data-testid=widget-wave] { will-change:transform; }
+.recording-wave { flex:none;overflow:visible; }
+.recording-wave line { transform-origin:center;transform-box:view-box; }
+.recording-wave:dir(rtl) > g { transform-origin:center;transform:scaleX(-1); }
 .widget-preview[aria-hidden=true] { pointer-events:none; }
 /* the scroll fade sets overflow inline; the reserved thin scrollbar keeps the reading edge still */
 .widget-preview-conversation { flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:scroll !important;overscroll-behavior:contain;padding:8px 4px 4px 0;scrollbar-gutter:stable;scrollbar-width:auto;scrollbar-color:auto; }

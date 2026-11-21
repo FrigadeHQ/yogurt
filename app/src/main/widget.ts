@@ -1,3 +1,4 @@
+import { silentSpeech, speechSample } from '../shared/speechWave'
 import { BrowserWindow, ipcMain, Notification, screen } from 'electron'
 import { join } from 'node:path'
 import type { Meeting } from './store'
@@ -59,6 +60,7 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
   /** the computer the windows are made for (a Mac's panel, a tool window elsewhere) */
   windowOs?: string }) {
   const model = new WidgetModel(d.os)
+  let speech = silentSpeech
   let win: BrowserWindow | undefined
   let pill = { x: 0, y: 0, width: FIRST_W, height: FIRST_H }
   let layout: WidgetLayout | null = null
@@ -144,6 +146,7 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
   }
 
   onMeetingStart((m) => {
+    speech = silentSpeech
     notifyOnChange = false; notice = null; stopPressed = false
     model.start({ id: m.id, title: m.title, startedAt: m.resume ? m.resume.startedAt - m.resume.capturedMs : m.startedAt })
     open(); push()
@@ -181,8 +184,10 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
   })
   onRecordingEvent((e) => {
     if (!model.meetingId) return
-    if (e.t === 'level') broadcast('widget:level', { me: e.me, them: e.them })
-    else if (e.t === 'paused' && e.meetingId === model.meetingId) { model.pause(e.paused, e.at); push() }
+    if (e.t === 'level') {
+      speech = speechSample(speech, e, performance.timeOrigin + performance.now())
+      broadcast('widget:level', { me: e.me, them: e.them, speech })
+    } else if (e.t === 'paused' && e.meetingId === model.meetingId) { model.pause(e.paused, e.at); push() }
     else if (e.t === 'warn') { model.warn(e.code); push() }
     else if (e.t === 'gave-up') model.gaveUp()
     else if (e.t === 'hiccup') {

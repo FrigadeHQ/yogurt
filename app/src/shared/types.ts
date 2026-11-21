@@ -1,3 +1,4 @@
+import type { MeterPacket } from './speechWave'
 import type { AudioUploadFile, AudioUploadStatus } from './audioUpload'
 import type { RendererError } from './rendererError'
 import type { WidgetLayout, WidgetSurface } from './widgetMorph'
@@ -54,7 +55,7 @@ export type YogurtApi = {
     state(): Promise<WidgetView | null>
     onState(cb: (v: WidgetView | null) => void): () => void
     /** sound levels 0..1, about 10 a second */
-    onLevel(cb: (lv: { me: number; them: number }) => void): () => void
+    onLevel(cb: (lv: MeterPacket) => void): () => void
     open(): void
     stop(): void
     layout(): Promise<WidgetLayout | null>
