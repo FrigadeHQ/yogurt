@@ -166,7 +166,7 @@ function MeetingPlayer({ id, tracks, openTranscript, ref, onTime, onPlaying, onB
       </InlineError>}
       {shown.length > 0 && <div className="flex items-center gap-2">
         <button data-testid="player-toggle" aria-label={playing ? t('Pause') : t('Play')} onClick={() => (playing ? pause() : play())}
-          className="player-btn flex size-[26px] shrink-0 items-center justify-center rounded-full bg-accent text-accent-ink">
+          className="player-btn flex size-[26px] shrink-0 items-center justify-center rounded-full bg-primary text-primary-ink">
           <Swap show={playing ? 'pause' : 'play'} options={{ play: <Play size={13} fill="currentColor" strokeWidth={0} className="ms-0.5" />, pause: <Pause size={13} fill="currentColor" strokeWidth={0} /> }} />
         </button>
         <span className="w-9 shrink-0 text-end tabular-nums">{clock(time * 1000)}</span>
