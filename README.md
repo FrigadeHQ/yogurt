@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  Private AI meeting notes, with no bot in your call. A free, open-source alternative to Granola, Otter and Fireflies.
+  Private AI meeting notes, with no bot in your call. A free, open-source alternative to Granola, Otter and Fireflies. Yogurt records your calls without adding a bot to the meeting.
 </p>
 
 <p align="center">
@@ -20,9 +20,6 @@
   <img src="docs/assets/yogurt-screenshot.webp" width="1074" alt="Yogurt showing the Summary of a launch planning meeting: the plan, next steps by person, and your own reminders">
 </p>
 
-<p align="center">
-  Yogurt records your calls without adding a bot to the meeting.
-</p>
 <p></p>
 <p align="center">
   <sub>macOS 14.4+ (Apple Silicon) · Windows 10 2004+ (x64) · Ubuntu 22.04+ or similar (x64 AppImage) · 8 GB memory</sub><br><br>
