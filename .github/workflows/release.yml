@@ -198,3 +198,18 @@ jobs:
           gh release upload "$DRAFT" files/* --repo "$REPO"
           gh api "repos/$REPO/releases/$id" --jq '.assets[].name'
           echo "::notice::Added to the draft $DRAFT. Check it, then publish: gh release edit $DRAFT --draft=false --latest"
+
+  # ask Vercel to rebuild the site so the Updates page shows this release
+  refresh-site:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rebuild the website
+        env:
+          DEPLOY_HOOK: ${{ secrets.SITE_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo "::notice::SITE_DEPLOY_HOOK is not set, so the site was not rebuilt"
+            exit 0
+          fi
+          curl --fail --silent --show-error --output /dev/null --request POST "$DEPLOY_HOOK"
