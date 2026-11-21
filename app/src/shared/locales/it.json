@@ -682,6 +682,7 @@
   "You can back up meetings, notes, transcripts and saved audio in one file.": "Puoi salvare riunioni, note, trascrizioni e audio conservato in un solo file.",
   "You can get a reminder when Yogurt detects a call.": "Puoi ricevere un promemoria quando Yogurt rileva una chiamata.",
   "Add meetings": "Aggiungi riunioni",
+  "Add meetings to {folder}": "Aggiungi riunioni a {folder}",
   "New note": "Nuova nota",
   "In this folder": "In questa cartella",
   "Notes and recordings started here are saved in this folder.": "Le note e le registrazioni che inizi qui vengono salvate in questa cartella.",

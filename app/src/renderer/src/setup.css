@@ -152,7 +152,6 @@
 /* Calendar options close the list as their own module, divided from the calendars above */
 .settings-calendar-actions>.settings-row { position:relative; }
 .settings-calendar-actions>.settings-row::before { content:"";position:absolute;inset-block-start:0;inset-inline:20px;height:1px;background:var(--line); }
-.settings-calendar-choice input { width:15px;height:15px;flex:none;accent-color:var(--primary); }
 
 .finish-setup-header { display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 12px;border-bottom:1px solid var(--line); }
 .finish-setup-header h2 { font-size:13px;line-height:18px;font-weight:600;color:var(--ink); }

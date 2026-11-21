@@ -621,6 +621,7 @@
   "You can back up meetings, notes, transcripts and saved audio in one file.": "你可以将会议、笔记、转录和已保存的音频备份到一个文件中。",
   "You can get a reminder when Yogurt detects a call.": "你可以在 Yogurt 检测到通话时收到提醒。",
   "Add meetings": "添加会议",
+  "Add meetings to {folder}": "将会议添加到{folder}",
   "New note": "新建笔记",
   "In this folder": "已在此文件夹中",
   "Notes and recordings started here are saved in this folder.": "在此处创建的笔记和开始的录音都会保存到此文件夹。",

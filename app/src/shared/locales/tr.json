@@ -651,6 +651,7 @@
   "You can back up meetings, notes, transcripts and saved audio in one file.": "Toplantıları, notları, dökümleri ve saklanan sesi tek dosyada yedekleyebilirsiniz.",
   "You can get a reminder when Yogurt detects a call.": "Yogurt bir görüşme algıladığında hatırlatma alabilirsiniz.",
   "Add meetings": "Toplantı ekle",
+  "Add meetings to {folder}": "{folder} klasörüne toplantı ekle",
   "New note": "Yeni not",
   "In this folder": "Bu klasörde",
   "Notes and recordings started here are saved in this folder.": "Burada başlattığınız notlar ve kayıtlar bu klasöre kaydedilir.",

@@ -621,6 +621,7 @@
   "You can back up meetings, notes, transcripts and saved audio in one file.": "Bạn có thể sao lưu cuộc họp, ghi chú, bản chép lời và âm thanh đã lưu vào một tệp.",
   "You can get a reminder when Yogurt detects a call.": "Bạn có thể nhận lời nhắc khi Yogurt phát hiện cuộc gọi.",
   "Add meetings": "Thêm cuộc họp",
+  "Add meetings to {folder}": "Thêm cuộc họp vào {folder}",
   "New note": "Ghi chú mới",
   "In this folder": "Trong thư mục này",
   "Notes and recordings started here are saved in this folder.": "Ghi chú và bản ghi âm bạn bắt đầu ở đây sẽ được lưu vào thư mục này.",

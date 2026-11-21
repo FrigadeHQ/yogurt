@@ -669,6 +669,7 @@
   "You can back up meetings, notes, transcripts and saved audio in one file.": "Voit varmuuskopioida kokoukset, muistiinpanot, litteroinnit ja säilytetyn äänen yhteen tiedostoon.",
   "You can get a reminder when Yogurt detects a call.": "Voit saada muistutuksen, kun Yogurt havaitsee puhelun.",
   "Add meetings": "Lisää kokouksia",
+  "Add meetings to {folder}": "Lisää kokouksia kansioon {folder}",
   "New note": "Uusi muistiinpano",
   "In this folder": "Tässä kansiossa",
   "Notes and recordings started here are saved in this folder.": "Täällä aloitetut muistiinpanot ja tallenteet tallennetaan tähän kansioon.",
