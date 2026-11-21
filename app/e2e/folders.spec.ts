@@ -1,3 +1,4 @@
+import { backgroundPixel } from './backgroundPixel'
 import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
@@ -552,7 +553,22 @@ test('24 folder icons and eight colors persist, label filed meetings without rep
     await page.getByTestId('folder-name-input').fill('Design')
     await expect(page.getByRole('radiogroup', { name: 'Icon', exact: true }).getByRole('radio')).toHaveCount(24)
     await expect(page.getByRole('radiogroup', { name: 'Color', exact: true }).getByRole('radio')).toHaveCount(8)
-    await page.getByTestId('folder-icon-palette').click()
+    const picked = page.getByTestId('folder-icon-palette')
+    await picked.click()
+    const orange = page.getByTestId('folder-color-orange')
+    await orange.click()
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' })
+      const ink = colorScheme === 'dark' ? 'rgb(239, 167, 119)' : 'rgb(184, 90, 31)'
+      await expect(picked).toHaveAttribute('aria-checked', 'true')
+      await expect(orange.locator('span')).toHaveCSS('background-color', ink)
+      await expect(picked.locator('svg')).toHaveCSS('stroke', ink)
+      await expect(picked).toHaveCSS('border-color', ink)
+      await expect.poll(() => picked.evaluate(backgroundPixel)).toEqual(colorScheme === 'dark' ? [73, 61, 55, 255] : [244, 229, 219, 255])
+      await picked.hover()
+      await expect(picked).toHaveCSS('background-color', colorScheme === 'dark' ? 'rgb(59, 59, 62)' : 'rgb(228, 228, 231)')
+      await orange.hover()
+    }
     await page.getByTestId('folder-color-violet').click()
     await page.getByTestId('folder-name-save').click()
     const nav = folder(page, 'Design')
