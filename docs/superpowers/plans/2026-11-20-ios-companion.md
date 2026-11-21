@@ -31,10 +31,10 @@ Pairing frames (before Noise, plaintext JSON then binary): `pairHello {v:1, phon
 
 Session messages `{id: string, type: string, body: object}`; replies `{id, type: "ok"|"error", body}`:
 - `hello {appVersion, schema: 1}` → `{desktopId, desktopName, desktopVersion}`
-- `pull {since: number, limit: number}` → `{changes: Change[], cursor: number, more: boolean}` where `Change = {entity: "meeting"|"notes"|"segments"|"folder"|"folderMembers"|"people", id: string, deleted?: true, record?: object}`
+- `pull {since: number, limit: number}` → `{changes: Change[], cursor: number, more: boolean}` where `Change = {entity: "meeting"|"notes"|"segments"|"folder"|"folderMembers"|"people", id: string, deleted?: true, record?: object}` (a segments record carries `oneMic`: one microphone in a room, every speaker null)
 - `op {kind: "setMine"|"rename"|"addToFolder"|"removeFromFolder"|"trash"|"restore", meetingId, folderId?, text?, title?, baseHash?}` → `{applied: true, merged?: true}`
-- `uploadMeeting {meeting: {id,title,startedAt,endedAt,attendees}, myNotes, transcript: [{startMs,endMs,text}], summary?}` → `{accepted: true}`; then `uploadAudio {meetingId, chunk: b64, index, of, mime: "audio/mp4"}`
-- `ask {question, scope?: {folderId?, meetingIds?}}` → `{answer, sources: [{meetingId, title, atMs?, text}]}`
+- `uploadMeeting {meeting: {id,title,titleSource?: "default"|"model"|"typed",startedAt,endedAt,attendees}, myNotes, transcript: [{startMs,endMs,text}], summary?}` → `{accepted: true}`; then `uploadAudio {meetingId, chunk: b64, index, of, mime: "audio/mp4"}`
+- `ask {question, scope?: {folderId?, meetingIds?}}` → `{answer, sources: [{n, meetingId, title, atMs?, text}]}` (n: the number the answer's [n] citations use)
 - `audio {meetingId, track: "me"|"them"}` → stream of `audioChunk {chunk: b64, index, of}`
 - push from desktop: `changed {cursor}`; keepalive `ping {}` / `pong {}`
 
