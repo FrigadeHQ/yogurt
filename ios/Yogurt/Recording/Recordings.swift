@@ -68,9 +68,16 @@ final class RecordingController {
         self.model = model
         if AVAudioApplication.shared.recordPermission == .undetermined { _ = await AVAudioApplication.requestRecordPermission() }
         guard AVAudioApplication.shared.recordPermission == .granted else { state.fail(S.micOff); return }
+        // asked before the recording starts, so the prompt never sits over a meeting being recorded: it's how Yogurt
+        // says so if a call pauses the recording while the phone is in a pocket
+        let center = UNUserNotificationCenter.current()
+        if await center.notificationSettings().authorizationStatus == .notDetermined {
+            _ = try? await center.requestAuthorization(options: [.alert, .sound])
+        }
+        let notificationsOff = await center.notificationSettings().authorizationStatus == .denied
         let space = freeSpace()
         if let space, space < Self.noSpace { state.fail(S.recordingNoSpace); return }
-        if let space, space < Self.lowSpace { transcriptNotice = S.recordingLowSpace }
+        if let space, space < Self.lowSpace { transcriptNotice = S.recordingLowSpace } else if notificationsOff { transcriptNotice = S.notificationsOff }
         do {
             let folder = try RecordingsFolder.make()
             self.folder = folder
@@ -100,8 +107,6 @@ final class RecordingController {
             result: { [weak self] text, start, end, final in self?.transcript.update(text, startMs: start, endMs: end, isFinal: final) },
             notice: { [weak self] in self?.transcriptNotice = $0 })
         Task { [relay] in await LiveTranscription.start(locale: .current, events: events, relay: relay) }
-        // to say so if a call pauses the recording while the phone is in a pocket
-        _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
     }
 
     func pause() {

@@ -31,6 +31,7 @@ extension S {
     static let recordingLowSpace = "Your iPhone is low on space. A long meeting might not fit."
     static let recordingPausedTitle = "Recording paused"
     static let recordingPausedBody = "Another app is using the microphone. Tap to keep recording."
+    static let notificationsOff = "Notifications are off, so if a call pauses the recording, you'll see it only when you open Yogurt."
     static let discard = "Discard"
     static let discardQuestion = "Discard this recording? Its audio, transcript and notes are deleted."
     static let keepRecording = "Keep recording"
