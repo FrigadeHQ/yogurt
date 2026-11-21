@@ -540,4 +540,16 @@ let pageOne = """
         try store.editMine(meetingId: "p1", text: "goes with the recording")
         #expect(store.unsentEdits() == 2)
     }
+
+    @Test func myNotesOnAMeetingWithoutNotesFromTheComputerStayAndStartFromEmpty() throws {
+        let store = try Store(url: tempStoreURL())
+        try store.apply(changes(pageOne), cursor: 7)
+        #expect(store.notes("m2") == nil)
+        try store.editMine(meetingId: "m2", text: "first thoughts")
+        #expect(store.notes("m2")?.mine == "first thoughts")
+        try store.editMine(meetingId: "m2", text: "first thoughts, and more")
+        #expect(store.notes("m2")?.mine == "first thoughts, and more")
+        // the computer's notes for it are empty: the edit applies cleanly there
+        #expect(store.pendingOps().map(\.op.baseHash) == [notesHash("")])
+    }
 }

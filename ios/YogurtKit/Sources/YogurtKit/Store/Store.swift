@@ -264,11 +264,15 @@ public final class Store {
             // a recording made here and not sent yet keeps the edit too, so its upload carries the newest
             try foldIntoRecording(op)
             if op.kind == .setMine {
+                // no notes from the computer yet: its My notes are empty, so the edit starts from the hash of ""
                 if op.baseHash?.isEmpty ?? true {
-                    op.baseHash = try db.query("SELECT mine_hash FROM notes WHERE meeting_id = ?", [.text(op.meetingId)]).first?[0].string
+                    op.baseHash = try db.query("SELECT mine_hash FROM notes WHERE meeting_id = ?", [.text(op.meetingId)]).first?[0].string ?? notesHash("")
                 }
                 let text = op.text ?? ""
-                try db.run("UPDATE notes SET mine = ? WHERE meeting_id = ?", [.text(text), .text(op.meetingId)])
+                try db.run("""
+                    INSERT INTO notes (meeting_id, mine, summary, mine_hash, summary_source) VALUES (?, ?, NULL, ?, 'desktop')
+                    ON CONFLICT (meeting_id) DO UPDATE SET mine = excluded.mine
+                    """, [.text(op.meetingId), .text(text), .text(notesHash(""))])
                 try reindex([op.meetingId])
                 let last = try db.query("SELECT seq, id, kind, text FROM pending_ops WHERE meeting_id = ? ORDER BY seq DESC LIMIT 1", [.text(op.meetingId)]).first
                 if let last, last[2].string == Op.Kind.setMine.rawValue, let lastId = last[1].string {
