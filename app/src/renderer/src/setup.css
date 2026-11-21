@@ -105,6 +105,19 @@
 @keyframes boot-in { to { opacity:1; } }
 @keyframes boot-sweep { 0% { transform:translateX(0); } 70%,100% { transform:translateX(190px); } }
 
+/* The window already has native under-window vibrancy; the launch surface needs no painted fill. */
+.mac-launch { position:fixed;inset:0;display:grid;place-items:center;visibility:hidden;opacity:0;pointer-events:none; }
+.mac-launch[data-active] { visibility:visible;opacity:1;-webkit-app-region:drag;pointer-events:auto; }
+.mac-launch-mark { translate:0 -1vh; }
+.mac-launch[data-active] + .app-shell { visibility:hidden;opacity:0; }
+@media (prefers-reduced-transparency:reduce) {
+  .mac-launch,html.main-window:not([data-chrome=overlay]) #root:empty { background:var(--bg); }
+}
+@media (prefers-reduced-motion:no-preference) and (prefers-reduced-transparency:no-preference) {
+  .mac-launch:not([data-active]) { transition:opacity var(--dur-base) var(--ease-out),visibility 0s var(--dur-base); }
+  .mac-launch:not([data-active]) + .app-shell { transition:opacity var(--dur-base) var(--ease-out); }
+}
+
 .ob-guide { display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:360px; }
 .ob-guide-copy { width:100%;font-size:13px;line-height:20px;color:var(--written);text-align:start; }
 .ob-guide-waiting { width:100%;font-size:12px;line-height:18px;color:var(--muted);text-align:start; }

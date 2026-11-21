@@ -1,5 +1,6 @@
 import { CalendarDays, Check, FileText, ICON_STROKE_WIDTH } from '../src/renderer/src/components/Icons'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { App } from '../src/renderer/src/App'
 import { afterEach, expect, it, vi } from 'vitest'
 import { useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import { useDialogFocus } from '../src/renderer/src/useDialogFocus'
@@ -1087,4 +1088,36 @@ it.each([false, true])('keeps Copy on the current answer without revealing older
   initial.turns[2].status = 'failed'
   initial.turns[2].answer = ''
   expect(turns().map(turn => turn.props.showCopy)).toEqual([false, false, true])
+})
+
+it('hands the same shell from the Mac launch to a read error, checking and the ready workspace', async () => {
+  vi.useFakeTimers()
+  let checking!: (s: { phase: string }) => void
+  vi.stubGlobal('window', { innerWidth: 1100, yogurt: { platform: 'darwin',
+    setup: { state: vi.fn().mockRejectedValue(new Error('read')), onState: (update: typeof checking) => { checking = update; return () => {} } },
+    onboarding: { plan: async () => ({ steps: [], intro: false }) },
+  } })
+  const render = renderer(App)
+  let tree = render()
+  expect(find(tree, 'MacLaunch').props.active).toBe(true)
+  const shell = find(tree, 'app-shell')
+  expect(shell.props.inert).toBe(true)
+  const [readSetup, readPlan] = vi.mocked(useEffect).mock.calls.slice(2, 4)
+  readSetup[0](); readPlan[0]()
+  await Promise.resolve()
+  tree = render()
+  expect(find(tree, 'MacLaunch').props.active).toBe(false)
+  expect(find(tree, 'ReadError').props.testId).toBe('setup-read-error')
+  checking({ phase: 'checking' })
+  expect(find(render(), 'MacLaunch').props.active).toBe(true)
+  checking({ phase: 'ready' })
+  render()
+  vi.mocked(useEffect).mock.calls[4][0]() // readiness releases the launch hold
+  vi.runAllTimers()
+  tree = render()
+  expect(find(tree, 'app-shell').type).toBe(shell.type)
+  expect(find(tree, 'app-shell').props.inert).toBeUndefined()
+  expect(find(tree, 'MacLaunch').props.active).toBe(false)
+  const workspace = find(tree, 'Workspace')
+  expect(workspace.props.route).toBe('')
 })

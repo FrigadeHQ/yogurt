@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { MARK } from '../../../shared/logo'
 import { BOOT } from '../../../shared/onboarding'
 
@@ -27,4 +27,20 @@ export function BootScreen() {
       </svg>
     </div>
   )
+}
+
+/** The existing native material sits behind the whole window. Only expose it during launch. */
+export function MacLaunch({ active }: { active: boolean }) {
+  const [showMark, setShowMark] = useState(() => performance.now() >= BOOT.showAfterMs)
+  useEffect(() => {
+    if (!active || showMark) return
+    const timer = setTimeout(() => setShowMark(true), Math.max(0, BOOT.showAfterMs - performance.now()))
+    return () => clearTimeout(timer)
+  }, [active, showMark])
+  return <div className="mac-launch" data-active={active || undefined} aria-hidden={!active || undefined}
+    data-testid={active ? 'boot-screen' : undefined} role="status" aria-label="Yogurt">
+    {showMark && <svg width={52} height={52} viewBox="0 0 100 100" aria-hidden="true" className="mac-launch-mark text-neutral-400 dark:text-white">
+      <path d={MARK} fill="currentColor" />
+    </svg>}
+  </div>
 }
