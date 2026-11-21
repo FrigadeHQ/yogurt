@@ -123,7 +123,6 @@ it.each(['ltr', 'rtl'])('peeks after a 100ms dwell within the leading 16px below
     expect(panel().inert).toBe(true)
   }
   const bar = () => find(render(), 'workspace-window-bar').props
-  expect(find(render(), 'sidebar-expand').props.onPointerEnter).toBeUndefined()
   bar().onPointerEnter()
   vi.runAllTimers()
   expect(panel().inert).toBe(true)
@@ -148,14 +147,55 @@ it.each(['ltr', 'rtl'])('peeks after a 100ms dwell within the leading 16px below
   expect(panel().inert).toBe(true)
 })
 
-it('keeps a peek open across the titlebar and docks directly from it', () => {
+it('peeks on a deliberate Show sidebar hover and stays open from the button into the panel', () => {
+  vi.useFakeTimers()
+  const querySelector = vi.fn()
+  vi.stubGlobal('document', { activeElement: {}, querySelector })
+  const render = renderer(() => Workspace({ route: '', go() {}, search() {}, shortcuts() {}, collapsed: true, sidebarMotion: true, toggleSidebar() {}, children: null }))
+  const button = () => find(render(), 'sidebar-expand').props
+  const panel = () => find(render(), 'workspace-sidebar').props
+  const mouse = { pointerType: 'mouse', buttons: 0 }
+  for (const event of [{ ...mouse, pointerType: 'touch' }, { ...mouse, pointerType: 'pen' }, { ...mouse, buttons: 1 }]) {
+    button().onPointerEnter(event)
+    vi.runAllTimers()
+    expect(panel().inert).toBe(true)
+  }
+  for (const stop of ['onPointerLeave', 'onPointerDown', 'onPointerCancel']) {
+    button().onPointerEnter(mouse)
+    vi.advanceTimersByTime(100)
+    button()[stop]()
+    vi.runAllTimers()
+    expect(panel().inert).toBe(true)
+  }
+  querySelector.mockReturnValueOnce({})
+  button().onPointerEnter(mouse)
+  vi.runAllTimers()
+  expect(panel().inert).toBe(true)
+  button().onPointerEnter(mouse)
+  vi.advanceTimersByTime(179)
+  expect(panel().inert).toBe(true)
+  vi.advanceTimersByTime(1)
+  expect(panel().inert).toBe(false)
+  find(render(), 'workspace-window-bar').props.onPointerLeave()
+  vi.advanceTimersByTime(40)
+  panel().onPointerEnter()
+  vi.runAllTimers()
+  expect(panel().inert).toBe(false)
+  panel().onPointerLeave()
+  vi.runAllTimers()
+  expect(panel().inert).toBe(true)
+})
+
+it.each(['edge', 'button'])('keeps a %s peek open across the titlebar and docks directly from it', trigger => {
   vi.useFakeTimers()
   vi.stubGlobal('document', { documentElement: { dir: 'ltr' }, activeElement: {}, querySelector: () => null })
   let collapsed = true
   const toggleSidebar = vi.fn()
   const render = renderer(() => Workspace({ route: '', go() {}, search() {}, shortcuts() {}, collapsed, sidebarMotion: true, toggleSidebar, children: null }))
   const panel = () => find(render(), 'workspace-sidebar')
-  find(render(), 'workspace-content').props.onPointerMoveCapture({ target: { closest: () => null }, clientX: 12, clientY: 200, pointerType: 'mouse', buttons: 0 })
+  const mouse = { pointerType: 'mouse', buttons: 0 }
+  if (trigger === 'button') find(render(), 'sidebar-expand').props.onPointerEnter(mouse)
+  else find(render(), 'workspace-content').props.onPointerMoveCapture({ ...mouse, target: { closest: () => null }, clientX: 12, clientY: 200 })
   vi.runAllTimers()
   panel().props.onPointerLeave()
   find(render(), 'workspace-window-bar').props.onPointerEnter()
@@ -170,6 +210,7 @@ it('keeps a peek open across the titlebar and docks directly from it', () => {
   collapsed = false
   expect(panel().props.inert).toBe(false)
   expect(find(render(), 'workspace').props['data-peeking']).toBe(false)
+  expect(find(render(), 'sidebar-collapse').props.onPointerEnter).toBeUndefined()
 })
 
 it('opens a keyboard peek, respects a child menu and returns Escape focus to its opener', () => {

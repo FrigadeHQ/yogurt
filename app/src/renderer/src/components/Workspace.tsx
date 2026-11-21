@@ -78,7 +78,7 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
     <div className="workspace-window-bar" onPointerEnter={peek.cancel} onPointerLeave={peek.leave}>
       <div className="workspace-drag-region drag" data-testid="titlebar" aria-hidden="true" />
       <Tooltip.Root>
-        <Tooltip.Trigger ref={peek.toggle} className="ghost-btn workspace-icon workspace-sidebar-toggle no-drag" data-testid={collapsed ? 'sidebar-expand' : 'sidebar-collapse'}
+        <Tooltip.Trigger ref={peek.toggle} {...peek.buttonHandlers} className="ghost-btn workspace-icon workspace-sidebar-toggle no-drag" data-testid={collapsed ? 'sidebar-expand' : 'sidebar-collapse'}
           onClick={e => { peek.cancel(); toggleSidebar(e.detail > 0) }}
           onKeyDown={e => { if (collapsed && e.key === 'ArrowDown') { e.preventDefault(); peek.keyboard() } }}
           aria-expanded={sidebarVisible} aria-controls="workspace-sidebar" aria-keyshortcuts={onMac() ? 'Control+Meta+S' : 'Control+Shift+S'}
