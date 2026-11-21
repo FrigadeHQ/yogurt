@@ -174,6 +174,7 @@ const api: YogurtApi = {
       ipcRenderer.on('conversations:recording-wait', on)
       return () => { ipcRenderer.removeListener('conversations:recording-wait', on) }
     },
+    currentId: chips => ipcRenderer.invoke('conversations:currentId', chips),
     current: (chips, fresh) => ipcRenderer.invoke('conversations:current', chips, fresh),
     context: (id, chips) => ipcRenderer.invoke('conversations:context', id, chips),
     removeContext: (id, chip) => ipcRenderer.invoke('conversations:remove-context', id, chip),

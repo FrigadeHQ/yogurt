@@ -1,4 +1,6 @@
 {
+  "Ask about this meeting": "Stel een vraag over deze vergadering",
+  "Ask about this folder": "Stel een vraag over deze map",
   "About Yogurt": "Over Yogurt",
   "Like Yogurt? Sharing it or starring it on GitHub helps us keep building it.": "Vind je Yogurt fijn? Door het te delen of een ster te geven op GitHub help je ons het verder te ontwikkelen.",
   "Copy link": "Link kopiëren",
@@ -66,7 +68,6 @@
   "Couldn't load your conversations.": "Je gesprekken konden niet worden geladen.",
   "Ask": "Vragen",
   "Ask Yogurt": "Vraag het Yogurt",
-  "Ask Yogurt (⌘J)": "Vraag het Yogurt (⌘J)",
   "Ask about your meetings": "Vraag over je meetings",
   "Ask anything": "Vraag maar raak",
   "Auto": "Automatisch",
@@ -373,7 +374,6 @@
   "Show in Finder": "Toon in Finder",
   "Show in File Explorer": "Toon in Verkenner",
   "Show in Files": "Toon in Bestanden",
-  "Show or hide Ask Yogurt": "Vraag Yogurt tonen of verbergen",
   "Some of this meeting couldn't be transcribed.": "Een deel van deze meeting kon niet worden getranscribeerd.",
   "Spoken language": "Gesproken taal",
   "Star": "Ster",

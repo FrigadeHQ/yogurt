@@ -1,4 +1,6 @@
 {
+  "Ask about this meeting": "Bu toplantı hakkında soru sor",
+  "Ask about this folder": "Bu klasör hakkında soru sor",
   "About Yogurt": "Yogurt hakkında",
   "Like Yogurt? Sharing it or starring it on GitHub helps us keep building it.": "Yogurt’u beğendiniz mi? Uygulamayı paylaşmanız veya GitHub’da yıldız vermeniz geliştirmeye devam etmemize yardımcı olur.",
   "Copy link": "Bağlantıyı kopyala",
@@ -66,7 +68,6 @@
   "Couldn't load your conversations.": "Konuşmalarınız yüklenemedi.",
   "Ask": "Sor",
   "Ask Yogurt": "Yogurt’a sor",
-  "Ask Yogurt (⌘J)": "Yogurt’a sor (⌘J)",
   "Ask about your meetings": "Toplantılarınız hakkında sorun",
   "Ask anything": "Ne isterseniz sorun",
   "Auto": "Otomatik",
@@ -373,7 +374,6 @@
   "Show in Finder": "Finder’da göster",
   "Show in File Explorer": "Dosya Gezgini’nde göster",
   "Show in Files": "Dosyalar’da göster",
-  "Show or hide Ask Yogurt": "Yogurt’a Sor’u göster veya gizle",
   "Some of this meeting couldn't be transcribed.": "Bu toplantının bir kısmı transkripte dönüştürülemedi.",
   "Spoken language": "Konuşulan dil",
   "Star": "Yıldız",

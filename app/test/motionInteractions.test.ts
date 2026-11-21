@@ -5,7 +5,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import { useDialogFocus } from '../src/renderer/src/useDialogFocus'
 import { Search } from '../src/renderer/src/components/Search'
-import { Ask } from '../src/renderer/src/components/Chat'
+import { ScopedAsk } from '../src/renderer/src/components/ScopedAsk'
 import { AskContext, scopeLabel } from '../src/renderer/src/components/AskContext'
 import { AskConversation } from '../src/renderer/src/components/AskConversation'
 import type { ConversationView } from '../src/shared/types'
@@ -489,118 +489,79 @@ it.each(['/chat', '/chat/saved'])('focuses Ask without a conversation lookup or 
   expect(go).not.toHaveBeenCalled()
 })
 
-it.each(['darwin', 'win32'])('toggles the meeting panel once per shortcut press on %s', os => {
+it.each(['darwin', 'win32'])('focuses contextual Ask once per shortcut press on %s', os => {
   const listeners = new Map<string, (e: any) => void>()
-  vi.stubGlobal('window', { matchMedia: () => ({ matches: false }), addEventListener: (name: string, fn: (e: any) => void) => listeners.set(name, fn), removeEventListener() {},
+  vi.stubGlobal('window', { addEventListener: (name: string, fn: (e: any) => void) => listeners.set(name, fn), removeEventListener() {},
     yogurt: { os, nav: { onAsk: () => () => {}, takeAsk: vi.fn().mockResolvedValue(false) } } })
-  const renderAsk = renderer(() => Ask({ id: 'm1', recording: false, anchor: null, onSource() {} }))
-  let tree = renderAsk()
-  const click = vi.fn(() => { find(tree, 'chat-open').props.onClick(); tree = renderAsk() })
-  const querySelector = vi.fn().mockReturnValue(null)
-  vi.stubGlobal('document', { querySelector, getElementById: () => ({ click }) })
-  const renderWorkspace = renderer(() => Workspace({ route: '/note/m1', go() {}, search() {}, shortcuts() {}, collapsed: false, sidebarMotion: false, toggleSidebar() {}, children: null }))
-  renderWorkspace()
-  vi.mocked(useEffect).mock.lastCall![0]()
-  const press = (extra = {}) => listeners.get('keydown')!({ code: 'KeyJ', metaKey: os === 'darwin', ctrlKey: os !== 'darwin', preventDefault() {}, ...extra })
-  expect(find(tree, 'chat-open').props['aria-expanded']).toBe(false)
-  press()
-  expect(find(tree, 'chat-open').props['aria-expanded']).toBe(true)
-  press({ repeat: true }); press({ isComposing: true }); press({ defaultPrevented: true })
-  expect(click).toHaveBeenCalledTimes(1)
-  expect(find(tree, 'chat-open').props['aria-expanded']).toBe(true)
-  press()
-  expect(find(tree, 'chat-open').props['aria-expanded']).toBe(false)
-  press()
-  expect(find(tree, 'chat-open').props['aria-expanded']).toBe(true)
-  querySelector.mockReturnValue({})
-  press()
-  expect(click).toHaveBeenCalledTimes(3)
+  const focus = vi.fn(), querySelector = vi.fn().mockReturnValue(null)
+  vi.stubGlobal('document', { querySelector, getElementById: (id: string) => id === 'meeting-question' ? { focus } : null })
+  for (const route of ['/note/m1', '/folder/f1']) {
+    const go = vi.fn()
+    renderer(() => Workspace({ route, go, search() {}, shortcuts() {}, collapsed: false, sidebarMotion: false, toggleSidebar() {}, children: null }))()
+    vi.mocked(useEffect).mock.lastCall![0]()
+    const press = (extra = {}) => listeners.get('keydown')!({ code: 'KeyJ', metaKey: os === 'darwin', ctrlKey: os !== 'darwin', preventDefault() {}, ...extra })
+    focus.mockClear(); querySelector.mockReturnValue(null)
+    press(); press()
+    press({ repeat: true }); press({ isComposing: true }); press({ defaultPrevented: true })
+    querySelector.mockReturnValue({}); press()
+    expect(focus.mock.calls).toEqual([[{ preventScroll: true }], [{ preventScroll: true }]])
+    expect(go).not.toHaveBeenCalled()
+  }
 })
 
-it.each([[false, false], [true, false], [false, true], [true, true]])('clips the suggestions and composer with the moving surface (narrow %s, reduced motion %s)', async (narrow, reduced) => {
-  const rect = (x: number, y: number, width: number, height: number) => ({ x, y, width, height, top: y, left: x, right: x + width, bottom: y + height })
-  const to = narrow ? rect(16, 16, 328, 640) : rect(760, 200, 420, 440)
-  // Exercise a button outside the final panel, anchored on either side.
-  const from = narrow ? rect(20, 700, 140, 30) : rect(1040, 670, 140, 30)
-  const node = (bounds: ReturnType<typeof rect>, computed: Record<string, string>) => ({
-    getBoundingClientRect: () => bounds, computed, style: { overflow: '' },
-    animate: vi.fn((_frames: Keyframe[], _options: KeyframeAnimationOptions) => {
-      let finish!: () => void
-      const finished = new Promise<void>(resolve => { finish = resolve })
-      return { playState: 'running', cancel() { this.playState = 'idle' }, finished, finish }
-    }),
-  })
-  const button = { ...node(from, { opacity: '1', borderRadius: '6px' }), focus: vi.fn() }
-  const shell = node(to, { left: '-1px', top: '-1px', width: `${to.width}px`, height: `${to.height}px`, borderRadius: '12px', opacity: '1' })
-  const body = node(to, { opacity: '1' })
-  const input = { focus: vi.fn() }
-  const dialog = { ...node(to, { opacity: '1' }), style: { setProperty() {} }, show() {}, showModal() {}, close() {}, querySelector: () => input }
-  const anchor = { getBoundingClientRect: () => to } as HTMLElement
-  vi.stubGlobal('window', { matchMedia: (query: string) => ({ matches: query.includes('max-width') ? narrow : reduced }), addEventListener() {}, removeEventListener() {} })
-  vi.stubGlobal('innerHeight', 800)
+it.each([
+  [1440, 208, false], [1440, 56, false], [1280, 208, false], [1280, 56, false],
+  [1024, 208, true], [1024, 56, false], [876, 56, false], [875, 56, true], [720, 56, true],
+])('keeps the same composer at %i px with a %i px sidebar', async (width, sidebar, narrow) => {
+  const prefs = new Map<string, string>()
+  const currentId = vi.fn().mockResolvedValue(undefined), current = vi.fn().mockResolvedValue('chat')
+  vi.stubGlobal('window', { localStorage: { getItem: (k: string) => prefs.get(k), setItem: (k: string, v: string) => prefs.set(k, v) },
+    yogurt: { conversations: { current, currentId } } })
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
-  vi.stubGlobal('getComputedStyle', (element: { computed: Record<string, string> }) => element.computed)
-  const render = renderer(() => Ask({ id: 'morph', recording: false, anchor, onSource() {} }))
-  let tree = render()
-  find(tree, 'chat-open').props.ref.current = button
-  find(tree, 'chat-open').props.onClick()
-  tree = render()
-  const panel = find(tree, 'chat-panel')
-  panel.props.ref.current = dialog
-  const surface = find(panel, 'chat-morph-surface')
-  surface.props.ref.current = shell
-  find(surface, 'chat-panel-contents').props.ref.current = body
-  const conversation = find(surface, 'AskConversation')
-  expect(surface.props['aria-hidden']).toBeUndefined()
-  expect(conversation.props).toMatchObject({ id: '', panel: true, pendingDraftKey: 'meeting/morph' })
-  vi.mocked(useLayoutEffect).mock.lastCall![0]()
-  expect(input.focus).toHaveBeenCalledWith({ preventScroll: true })
-  const view = renderer(() => AskConversation(conversation.props))()
-  expect(find(view, 'chat-suggestions')).toBeDefined()
-  expect(find(view, 'chat-box').type).toBe('form')
-
-  const toggle = () => find(tree, 'chat-open').props.onClick()
-  if (reduced) {
-    expect(dialog.animate.mock.lastCall?.[0]).toEqual([{ opacity: 0 }, { opacity: 1 }])
-    toggle()
-    expect(dialog.animate.mock.lastCall?.[0].at(-1)).toEqual({ opacity: 0 })
-    expect(dialog.animate.mock.lastCall?.[1].duration).toBe(120)
-    expect(shell.animate).not.toHaveBeenCalled()
-    expect(shell.style.overflow).toBe('')
-    return
-  }
-  const collapsed = { '--ask-left': `${from.left - to.left - 1}px`, '--ask-top': `${from.top - to.top - 1}px`, width: `${from.width}px`, height: `${from.height}px`, borderRadius: '6px' }
-  const expanded = { '--ask-left': '-1px', '--ask-top': '-1px', width: 'calc(100% + 2px)', height: 'calc(100% + 2px)', borderRadius: '12px' }
-  const shape = () => shell.animate.mock.calls.at(-2)!
-  expect(shape()[0]).toEqual([collapsed, expanded])
-  expect(shape()[1].duration).toBe(180)
-  expect(shell.style.overflow).toBe('clip')
-  expect(body.animate.mock.calls.flatMap(([frames]) => frames).every(frame => Object.keys(frame).every(k => k === 'opacity'))).toBe(true)
-  const first = shell.animate.mock.results.at(-2)!.value
-
-  // Reverse from the painted bounds. A late completion from the first opening cannot release the new clip.
-  const midway = { left: '40px', top: '80px', width: '210px', height: '140px', borderRadius: '8px' }
-  Object.assign(shell.computed, midway)
-  toggle()
-  const resumed = { '--ask-left': midway.left, '--ask-top': midway.top, width: midway.width, height: midway.height, borderRadius: midway.borderRadius }
-  expect(shape()[0]).toEqual([resumed, collapsed])
-  expect(shape()[1].duration).toBe(150)
-  toggle()
-  expect(shape()[0]).toEqual([resumed, expanded])
-  first.finish()
+  const scope = { kind: 'folder' as const, id: 'research', title: 'Field notes' }
+  const render = renderer(() => ScopedAsk({ scope, recording: false, toolbar: null, onSource() {} }))
+  const tree = render(), panel = find(tree, 'chat-dock'), conversation = find(tree, 'AskConversation')
+  const focus = vi.fn(), close = vi.fn(), showModal = vi.fn()
+  const workspace = { getBoundingClientRect: () => ({ width: Number(width) - Number(sidebar) }), style: { setProperty() {}, removeProperty() {} } }
+  panel.props.ref.current = { open: true, offsetHeight: 100, dataset: { expanded: 'false' }, closest: () => workspace,
+    querySelector: () => ({ focus }), close, showModal, isConnected: true }
+  vi.mocked(useLayoutEffect).mock.calls[0][0]()
+  vi.mocked(useEffect).mock.calls[0][0]()
   await Promise.resolve()
-  expect(shell.style.overflow).toBe('clip')
-  shell.animate.mock.results.at(-2)!.value.finish()
-  await Promise.resolve()
-  expect(shell.style.overflow).toBe('')
-  for (const el of [shell, body, button]) {
-    for (const result of el.animate.mock.results) result.value.playState = 'finished'
-  }
-  toggle()
-  expect(shape()[0]).toEqual([expanded, collapsed])
-  expect(shell.style.overflow).toBe('clip')
+  expect(currentId).toHaveBeenCalledWith([{ kind: 'folder', id: 'research' }])
+  expect(current).not.toHaveBeenCalled()
+  expect(focus).not.toHaveBeenCalled()
+  expect(conversation.props).toMatchObject({ scope, pendingDraftKey: 'folder/research' })
+  const composerKey = conversation.key
+  conversation.props.onSend()
+  const open = render()
+  expect(find(open, 'AskConversation').key).toBe(composerKey)
+  expect(find(open, 'chat-panel').props['aria-modal']).toBe(narrow || undefined)
+  const tidy = vi.mocked(useLayoutEffect).mock.calls[1][0]()
+  expect(showModal).toHaveBeenCalledTimes(narrow ? 1 : 0)
+  expect(prefs.get('ask.expanded/folder/research')).toBe('true')
+  expect(find(open, 'chat-panel').props['data-expanded']).toBe(true)
+  find(open, 'AskConversation').props.onClose()
+  if (typeof tidy === 'function') tidy()
+  expect(find(render(), 'chat-dock').props['data-expanded']).toBe(false)
+  vi.mocked(useLayoutEffect).mock.calls[2][0]()
+  expect(prefs.get('ask.expanded/folder/research')).toBe('false')
+  expect(focus).toHaveBeenCalledWith({ preventScroll: true })
 })
 
+it('saves the latest scoped draft even when navigation unmounts the field before its conversation exists', async () => {
+  let resolve!: (id: string) => void
+  const pending = new Promise<string>(done => { resolve = done })
+  const draft = vi.fn().mockResolvedValue(undefined)
+  vi.stubGlobal('window', { yogurt: { conversations: { draft } } })
+  const scope = { kind: 'meeting' as const, id: 'quick-switch', title: 'Weekly review' }
+  const render = renderer(() => AskConversation({ id: '', panel: true, scope, pendingDraftKey: 'meeting/quick-switch',
+    ensureConversation: () => pending, onSelect() {}, onDeleted() {}, onSource() {} }))
+  for (const value of ['First', 'First question']) find(render(), 'chat-input').props.onChange({ target: { value, selectionStart: value.length } })
+  resolve('saved-chat')
+  await pending
+  expect(draft).toHaveBeenCalledExactlyOnceWith('saved-chat', 'First question')
+})
 
 it.each(['send', 'load', 'resolve'] as const)('keeps an early Enter through loading, without duplicate requests or a lost draft (%s failure)', async failure => {
   let id = '', loadError = false

@@ -1,4 +1,6 @@
 {
+  "Ask about this meeting": "Ρωτήστε για αυτή τη σύσκεψη",
+  "Ask about this folder": "Ρωτήστε για αυτόν τον φάκελο",
   "About Yogurt": "Σχετικά με το Yogurt",
   "Like Yogurt? Sharing it or starring it on GitHub helps us keep building it.": "Σας αρέσει το Yogurt; Αν το μοιραστείτε ή του δώσετε ένα αστέρι στο GitHub, μας βοηθάτε να συνεχίσουμε να το αναπτύσσουμε.",
   "Copy link": "Αντιγραφή συνδέσμου",
@@ -66,7 +68,6 @@
   "Couldn't load your conversations.": "Δεν ήταν δυνατή η φόρτωση των συνομιλιών σας.",
   "Ask": "Ρωτήστε",
   "Ask Yogurt": "Ρωτήστε το Yogurt",
-  "Ask Yogurt (⌘J)": "Ρωτήστε το Yogurt (⌘J)",
   "Ask about your meetings": "Ρωτήστε για τις συσκέψεις σας",
   "Ask anything": "Ρωτήστε ό,τι θέλετε",
   "Auto": "Αυτόματα",
@@ -373,7 +374,6 @@
   "Show in Finder": "Εμφάνιση στο Finder",
   "Show in File Explorer": "Εμφάνιση στην Εξερεύνηση αρχείων",
   "Show in Files": "Εμφάνιση στα Αρχεία",
-  "Show or hide Ask Yogurt": "Εμφάνιση ή απόκρυψη του Ρώτα το Yogurt",
   "Some of this meeting couldn't be transcribed.": "Μέρος αυτής της σύσκεψης δεν απομαγνητοφωνήθηκε.",
   "Spoken language": "Ομιλούμενη γλώσσα",
   "Star": "Αστέρι",

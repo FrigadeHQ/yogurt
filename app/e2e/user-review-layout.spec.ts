@@ -18,7 +18,7 @@ test('primary views keep their heading aligned, with room below the window toolb
     for (const chat of [false, true]) {
       if (chat) await page.getByTestId('chat-open').click()
       const before = (await page.getByTestId('note-title').boundingBox())!
-      expect(before).toEqual(initialTitle)
+      expect(before.y).toEqual(initialTitle!.y)
       const toolbar = (await page.getByTestId('titlebar').boundingBox())!
       expect(before.y - toolbar.y - toolbar.height).toBeGreaterThanOrEqual(16)
       await page.getByRole('tab', { name: 'Transcript', exact: true }).click()
@@ -31,7 +31,7 @@ test('primary views keep their heading aligned, with room below the window toolb
       expect(after.y).toBeCloseTo(before.y, 1)
       if (chat) {
         const panel = (await page.getByTestId('chat-panel').boundingBox())!
-        expect(transcript.x + transcript.width).toBeGreaterThan(panel.x)
+        expect(transcript.x + transcript.width).toBeLessThanOrEqual(panel.x + 1)
       }
       await page.getByRole('tab', { name: 'My notes', exact: true }).click()
       const restored = (await page.getByTestId('note-title').boundingBox())!

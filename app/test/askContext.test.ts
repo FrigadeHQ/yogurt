@@ -178,8 +178,8 @@ it('unions live folder membership without duplicates or widening an empty/delete
 
 it('focuses the composer on both Ask routes and opens Ask in context elsewhere', () => {
   for (const route of ['/chat', '/chat/c']) expect(askDestination(route)).toEqual({ kind: 'focus' })
-  expect(askDestination('/note/n')).toEqual({ kind: 'panel' })
-  expect(askDestination('/folder/f')).toEqual({ kind: 'conversation', chips: [{ kind: 'folder', id: 'f' }] })
+  expect(askDestination('/note/n')).toEqual({ kind: 'panel', scope: { kind: 'meeting', id: 'n' } })
+  expect(askDestination('/folder/f')).toEqual({ kind: 'panel', scope: { kind: 'folder', id: 'f' } })
   for (const route of ['', '/trash', '/settings']) expect(askDestination(route)).toEqual({ kind: 'conversation', chips: [] })
 })
 
@@ -266,4 +266,27 @@ it('snapshots the merged scope and names per turn, retaining all-meetings and le
   expect(new Library(reopened.db).turns(id).map(turn => turn.scope)).toEqual([undefined, scope, []])
   const target = fresh(); mergeBackup(target.store.db, s.db)
   expect(target.library.turns(id).map(turn => turn.scope)).toEqual([undefined, scope, []])
+})
+
+
+it('visiting scoped pages creates no chats and preserves each local draft and conversation after reopening', () => {
+  const { library, file } = fresh()
+  const routes = ['/note/a', '/folder/a', '/note/b']
+  const scopes = routes.map(route => {
+    const dest = askDestination(route)
+    if (dest.kind !== 'panel') throw new Error(route)
+    return [dest.scope]
+  })
+  expect(scopes.map(scope => library.currentId(scope))).toEqual([undefined, undefined, undefined])
+  expect(library.conversations()).toHaveLength(0)
+  const ids = scopes.map(scope => library.current(scope))
+  library.addTurn(ids[0], 'Which date did we choose?')
+  ids.forEach((id, i) => library.setDraft(id, `Follow up ${i}`))
+  const reopened = openStore(file); stores.push(reopened)
+  const saved = new Library(reopened.db)
+  scopes.forEach((scope, i) => {
+    expect(saved.currentId(scope)).toBe(ids[i])
+    expect(saved.conversation(ids[i])).toMatchObject({ chips: scope, draft: `Follow up ${i}` })
+    expect(saved.turns(ids[i])).toHaveLength(i === 0 ? 1 : 0)
+  })
 })

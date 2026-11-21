@@ -792,6 +792,10 @@ app.whenReady().then(() => {
   })
   const validChips = (value: unknown): value is ContextChip[] => Array.isArray(value) && value.length <= 40 && value.every(c =>
     c && (c.kind === 'meeting' || c.kind === 'folder') && isId(c.id)) && new Set(value.map(c => `${c.kind}:${c.id}`)).size === value.length
+  ipcMain.handle('conversations:currentId', (_e, chips: unknown) => {
+    if (!validChips(chips)) throw new Error('Invalid context')
+    return library.currentId(chips)
+  })
   ipcMain.handle('conversations:current', (_e, chips: unknown, fresh: unknown) => {
     if (!validChips(chips)) throw new Error('Invalid context')
     const id = library.current(chips.map(({ kind, id }) => ({ kind, id })), fresh === true)

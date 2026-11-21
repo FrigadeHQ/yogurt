@@ -109,7 +109,7 @@ it('keeps search subtle and mentions and tabs fading on the short token for eith
   expect(styles).toContain('::view-transition-new(root) { animation:note-panel-in var(--dur-micro) var(--ease-out)')
 })
 
-it('keeps the anchored panel curve monotonic with a shorter close', () => {
+it('keeps the shared curve monotonic and the contextual panel still', () => {
   expect(motion.base).toBe(180)
   expect(motion.askExit).toBe(150)
   const ease = cubicBezier(...motion.out)
@@ -120,20 +120,11 @@ it('keeps the anchored panel curve monotonic with a shorter close', () => {
     expect(progress).toBeLessThanOrEqual(1)
     previous = progress
   }
-  const styles = readFileSync(new URL('../src/renderer/src/styles.css', import.meta.url), 'utf8')
-  const surface = styles.match(/\.chat-morph-surface \{([^}]+)\}/)![1]
-  // Animated left/top and width/height must not be overconstrained by right/bottom in RTL.
-  expect(surface).toContain('inset:var(--ask-top) auto auto var(--ask-left)')
-  expect(surface).toContain('width:calc(100% + 2px);height:calc(100% + 2px)')
-  expect(surface).not.toContain('transform')
-  expect(surface).not.toContain('pointer-events:none')
-  expect(styles).toMatch(/\.chat-panel-viewport \{[^}]*container-type:size/)
-  const contents = styles.match(/\.chat-panel-contents \{([^}]+)\}/)![1]
-  expect(contents).toContain('width:100cqw;height:100cqh')
-  for (const edge of ['left', 'top']) {
-    expect(styles).toContain(`@property --ask-${edge} { syntax:"<length>";inherits:true;initial-value:-1px; }`)
-    expect(contents).toContain(`${edge}:calc(-1px - var(--ask-${edge}))`)
-  }
+  const css = readFileSync(new URL('../src/renderer/src/workspace.css', import.meta.url), 'utf8')
+  const region = css.slice(css.indexOf('.scoped-ask[open]'))
+  expect(region).toContain('.scoped-ask[data-expanded=true] { inset-block:52px var(--toast-clearance,0px);')
+  expect(region).toContain('.scoped-ask[data-expanded=false] :is(.ask-conversation-head,.ask-thread-wrap) { display:none; }')
+  expect(region).not.toMatch(/(?:transform|animation|transition):/)
 })
 
 it('moves the sidebar and page together with the original timing and child layout', () => {

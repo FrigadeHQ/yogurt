@@ -205,7 +205,7 @@ test('a follow-up email can still be requested through the ordinary Ask composer
   try {
     await finished(app, page)
     await page.getByTestId('chat-open').click()
-    await expect(page.getByTestId('chat-input')).toHaveAttribute('placeholder', 'Ask anything')
+    await expect(page.getByTestId('chat-input')).toHaveAttribute('placeholder', 'Ask about this meeting')
     await expect(page.getByTestId('chat-follow-up')).toHaveCount(0)
     await page.getByTestId('chat-input').fill('Write a follow-up email')
     await page.getByTestId('chat-input').press('Enter')

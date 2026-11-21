@@ -1,4 +1,6 @@
 {
+  "Ask about this meeting": "Poser une question sur cette réunion",
+  "Ask about this folder": "Poser une question sur ce dossier",
   "About Yogurt": "À propos de Yogurt",
   "Like Yogurt? Sharing it or starring it on GitHub helps us keep building it.": "Yogurt vous plaît ? Partager l’appli ou lui donner une étoile sur GitHub nous aide à poursuivre son développement.",
   "Copy link": "Copier le lien",
@@ -67,7 +69,6 @@
   "Couldn't load your conversations.": "Impossible de charger vos conversations.",
   "Ask": "Demander",
   "Ask Yogurt": "Demander à Yogurt",
-  "Ask Yogurt (⌘J)": "Demander à Yogurt (⌘J)",
   "Ask about your meetings": "Posez une question sur vos réunions",
   "Ask anything": "Demandez ce que vous voulez",
   "Auto": "Auto",
@@ -376,7 +377,6 @@
   "Show in Finder": "Afficher dans le Finder",
   "Show in File Explorer": "Afficher dans l’Explorateur de fichiers",
   "Show in Files": "Afficher dans Fichiers",
-  "Show or hide Ask Yogurt": "Afficher ou masquer Demander à Yogurt",
   "Some of this meeting couldn't be transcribed.": "Une partie de cette réunion n’a pas pu être transcrite.",
   "Spoken language": "Langue parlée",
   "Star": "Étoile",

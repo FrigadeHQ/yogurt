@@ -1,4 +1,6 @@
 {
+  "Ask about this meeting": "Spør om dette møtet",
+  "Ask about this folder": "Spør om denne mappen",
   "About Yogurt": "Om Yogurt",
   "Like Yogurt? Sharing it or starring it on GitHub helps us keep building it.": "Liker du Yogurt? Hvis du deler det eller gir det en stjerne på GitHub, hjelper du oss med å utvikle det videre.",
   "Copy link": "Kopier lenke",
@@ -66,7 +68,6 @@
   "Couldn't load your conversations.": "Kunne ikke laste inn samtalene dine.",
   "Ask": "Spør",
   "Ask Yogurt": "Spør Yogurt",
-  "Ask Yogurt (⌘J)": "Spør Yogurt (⌘J)",
   "Ask about your meetings": "Spør om møtene dine",
   "Ask anything": "Spør om hva som helst",
   "Auto": "Auto",
@@ -373,7 +374,6 @@
   "Show in Finder": "Vis i Finder",
   "Show in File Explorer": "Vis i Filutforsker",
   "Show in Files": "Vis i Filer",
-  "Show or hide Ask Yogurt": "Vis eller skjul Spør Yogurt",
   "Some of this meeting couldn't be transcribed.": "Noe av dette møtet kunne ikke transkriberes.",
   "Spoken language": "Talespråk",
   "Star": "Stjerne",

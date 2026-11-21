@@ -186,10 +186,13 @@ export class Library {
     return chipScope(chips, id => !!this.db.prepare('SELECT 1 FROM meetings WHERE id = ? AND trashed_at IS NULL').get(id),
       id => (this.db.prepare('SELECT meeting_id FROM folder_meetings WHERE folder_id = ?').all(id) as Row[]).map(r => String(r.meeting_id)))
   }
+  currentId(chips: ContextChip[]): string | undefined {
+    const row = this.db.prepare('SELECT id FROM conversations WHERE current_key = ? ORDER BY updated_at DESC, rowid DESC LIMIT 1').get(contextKey(chips)) as Row | undefined
+    return row && String(row.id)
+  }
   current(chips: ContextChip[], fresh = false): string {
-    const key = contextKey(chips)
-    const row = this.db.prepare('SELECT id FROM conversations WHERE current_key = ? ORDER BY updated_at DESC, rowid DESC LIMIT 1').get(key) as Row | undefined
-    if (row && !fresh) return String(row.id)
+    const existing = !fresh && this.currentId(chips)
+    if (existing) return existing
     this.db.exec('SAVEPOINT current_conversation')
     try {
       const id = this.createConversation('')

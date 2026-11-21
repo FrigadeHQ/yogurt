@@ -17,7 +17,7 @@ import { ThinkingDots } from './ThinkingDots'
 import { ConversationActions } from './ConversationActions'
 import { ScrollFade } from './ScrollFade'
 import { rememberedScroll, useScrollMemory } from '../useScrollMemory'
-import { AnswerScope, AskContext, chipTitle, ContextIcon } from './AskContext'
+import { AnswerScope, AskContext, chipTitle, ContextIcon, scopePrompt } from './AskContext'
 import { useFollowLatest } from '../useFollowLatest'
 import { Swap, SwapText } from './Swap'
 import { attachAskTracer } from '../askTracer'
@@ -34,7 +34,8 @@ const starters = (chips: ContextTarget[], recording: boolean) => chips.length ==
     : [t('What are my next steps this week?'), t('What did we decide last week?'), t('Catch me up on yesterday')]
 
 /** One composer and thread for both the page and the note panel. Draft writes never wait for the model. */
-export function AskConversation({ id, pendingDraftKey, initial, loadError = false, home = false, panel = false, recording = false, onSelect, onSource, onDeleted, onClose, onExpand }: {
+export function AskConversation({ id, pendingDraftKey, initial, loadError = false, home = false, panel = false, recording = false, scope, ensureConversation, onSend, onSelect, onSource, onDeleted, onClose, onExpand }: {
+  scope?: ContextTarget; ensureConversation?: () => Promise<string>; onSend?: () => void
   id: string; pendingDraftKey?: string; initial?: ConversationView; loadError?: boolean; home?: boolean; panel?: boolean; recording?: boolean; onDeleted: () => void; onClose?: () => void; onExpand?: () => void; onSelect: (id: string) => void; onSource: (source: LibrarySource, match?: string) => void
 }) {
   const [chat, setChat] = useState(initial)
@@ -59,6 +60,7 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
   const [expanded, setExpanded] = useState(false)
   const [scopeExpanded, setScopeExpanded] = useState(false)
   const chips = chat ? attachContext(chat.chips, chat.draftChips) : []
+  const fieldLabel = scope ? scopePrompt(scope.kind) : panel ? t('Ask anything') : t('Ask about your meetings')
   const chooseScope = t('Choose meetings or folders')
   const scopeName = chips.length > 1 ? `${chooseScope} · ${chipTitle(chips[0])} ${moreItems(chips.length - 1)}` : chooseScope
   const inScope = (c: ContextTarget) => chips.some(x => x.kind === c.kind && x.id === c.id)
@@ -93,7 +95,7 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
   const scroll = useScrollMemory<HTMLDivElement>(scrollKey, !!chat)
   const content = useRef<HTMLDivElement>(null)
   const follow = useFollowLatest(scroll, content, !!chat, rememberedScroll(scrollKey) === undefined)
-  const loadingChat = !chat && !error && !readFailed && !loadError
+  const loadingChat = (!scope || !!id) && !chat && !error && !readFailed && !loadError
   const prefix = panel ? 'chat' : 'chat-page'
   useEffect(() => {
     if (!id) return
@@ -147,7 +149,7 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
   // about exactly one meeting: main reads it in now, so the first question only reads itself
   const single = chips.length === 1 && chips[0].kind === 'meeting' ? chips[0].id : undefined
   const warm = () => { if (single && !recordingWait) window.yogurt.conversations.warm(id) }
-  useEffect(warm, [id, single, recordingWait])
+  useEffect(() => { if (!scope || (input.current && input.current === document.activeElement)) warm() }, [id, single, recordingWait, !!scope])
   useEffect(() => { document.getElementById(`${prefix}-context-${selected}`)?.scrollIntoView({ block: 'nearest' }) }, [selected, targets])
   useLayoutEffect(() => {
     const field = input.current, menu = mentionMenu.current
@@ -173,18 +175,28 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
   }, [mention, text, targetResults, expanded, chat])
   const turns = chat?.turns ?? [], last = turns.at(-1)
   const answering = last?.status === 'waiting' || last?.status === 'answering'
-  const busy = recordingWait || !chat || sending || changing || answering
+  const busy = recordingWait || (!chat && (!scope || !!id)) || sending || changing || answering
   const unsent = (chat ? chat.firstChips === null : home || panel) && !turns.length
   const landing = home || (!panel && unsent)
   const saveText = (value: string) => {
     edited.current = true
     setText(value)
     if (id || pendingDraftKey) drafts.set(id || pendingDraftKey!, value)
-    if (!id) return
+    if (!id) {
+      if (ensureConversation && pendingDraftKey) {
+        // A quick navigation can unmount the field before its first local database write resolves.
+        void ensureConversation().then(async cid => {
+          if (drafts.get(pendingDraftKey) !== value) return
+          await window.yogurt.conversations.draft(cid, value)
+          if (drafts.get(pendingDraftKey) === value) drafts.delete(pendingDraftKey)
+        }).catch(() => setError(true))
+      }
+      return
+    }
     void window.yogurt.conversations.draft(id, value).then(() => { if (drafts.get(id) === value) drafts.delete(id) }).catch(() => setError(true))
   }
   const detectMention = (value: string, caret: number) => {
-    if (recordingWait) return
+    if (recordingWait || scope) return
     const typed = value.slice(0, caret) !== text.slice(0, caret)
     if (typed && value[caret - 1] === '@') dismissedMention.current = false
     if (typed && value[caret - 1] === ' ' && mention && targetResults?.query === mention.query && !targets.length) dismissedMention.current = true
@@ -233,10 +245,15 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
   }
   const send = (q: string) => {
     if (recordingWait || !q.trim() || sending || changing || answering || loadError || readFailed || (!chat && (!panel || error))) return
+    onSend?.()
     keepTyping()
     follow.resume(); setSending(true); setError(false); setMention(undefined); setSelector(undefined)
     // Typing is available before the conversation loads; Enter must survive that handoff too.
-    if (!chat) { pendingQuestion.current = q; return }
+    if (!chat) {
+      pendingQuestion.current = q
+      if (!id && ensureConversation) void ensureConversation().catch(() => { pendingQuestion.current = undefined; setSending(false); setError(true) })
+      return
+    }
     submit(q)
   }
   useEffect(() => {
@@ -272,7 +289,7 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
   }
   const startersHidden = !panel && (!!text || !!selector)
   const suggestions = unsent && (landing || panel) && (!panel || !text) && <div data-testid={panel ? 'chat-suggestions' : 'chat-starters'} aria-hidden={startersHidden || undefined} data-instant={!!selector || undefined} inert={startersHidden} className={`ask-starters${panel ? '' : ' ask-home-starters'}`}>
-    {starters(chips, recording).map(q => <button type="button" key={q} title={q} data-testid={panel ? 'chat-suggestion' : 'chat-starter'} disabled={busy || startersHidden} onClick={() => send(q)}>{q}</button>)}
+    {starters(chips.length || !scope ? chips : [scope], recording).map(q => <button type="button" key={q} title={q} data-testid={panel ? 'chat-suggestion' : 'chat-starter'} disabled={busy || startersHidden} onClick={() => send(q)}>{q}</button>)}
   </div>
   const targetRow = (c: ContextTarget, i: number) => <button type="button" role="option" tabIndex={-1} disabled={busy}
     aria-selected={selector ? inScope(c) : selected === i} data-active={selected === i || undefined} id={`${prefix}-context-${i}`} key={`${c.kind}:${c.id}`}
@@ -324,18 +341,22 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
         <button className="workspace-button" data-testid="conversation-load-retry" onClick={() => retryRead.current()}>{t('Try again')}</button>
       </InlineError>}
       {error && <p data-testid={panel ? "chat-send-error" : "chat-page-error"} role="alert" className="chat-error">{t("Couldn't save your changes")}</p>}
-      <LoadingContent pending={!panel && loadingChat} onReady={() => { if (chat) input.current?.focus({ preventScroll: true }) }} testId={landing ? "chat-loading" : undefined}><form ref={composer} className="ask-box" data-busy={busy || undefined} data-testid={`${prefix}-box`} onSubmit={e => { e.preventDefault(); send(text) }} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setMention(undefined) }}>
+      <LoadingContent pending={!panel && loadingChat} onReady={() => { if (chat && !scope) input.current?.focus({ preventScroll: true }) }} testId={landing ? "chat-loading" : undefined}><form ref={composer} className="ask-box" data-busy={busy || undefined} data-testid={`${prefix}-box`} onSubmit={e => { e.preventDefault(); send(text) }} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setMention(undefined) }}>
         <div className="ask-field">
         <Tooltip.Root disabled={!recordingWait}>
           <Tooltip.Trigger render={<div />} delay={180} closeOnClick={false}>
-            <textarea autoFocus={panel} ref={input} id={panel ? 'meeting-question' : 'library-question'} data-testid={`${prefix}-input`} rows={1} maxLength={4000}
-              placeholder={landing ? undefined : panel ? t('Ask anything') : t('Ask about your meetings')} aria-label={panel ? t('Ask anything') : t('Ask about your meetings')} value={text} disabled={!panel && !chat} readOnly={recordingWait || sending || changing}
+            <textarea autoFocus={panel && !scope} ref={input} id={panel ? 'meeting-question' : 'library-question'} data-testid={`${prefix}-input`} rows={1} maxLength={4000}
+              placeholder={landing ? undefined : fieldLabel} aria-label={fieldLabel} value={text} disabled={!panel && !chat} readOnly={recordingWait || sending || changing}
               aria-disabled={recordingWait || undefined} aria-description={waitReason}
-              role="combobox" aria-autocomplete="list" aria-expanded={!!mention} aria-controls={mention ? `${prefix}-contexts` : undefined}
+              role={scope ? undefined : 'combobox'} aria-autocomplete={scope ? undefined : 'list'} aria-expanded={scope ? undefined : !!mention}
+              aria-describedby={scope && !waitReason ? 'scoped-ask-context' : undefined} aria-controls={mention ? `${prefix}-contexts` : undefined}
               aria-activedescendant={mention && selected < rowCount ? `${prefix}-context-${selected}` : undefined}
               onChange={e => { if (recordingWait) return; saveText(e.target.value); detectMention(e.target.value, e.target.selectionStart) }}
               onClick={e => detectMention(e.currentTarget.value, e.currentTarget.selectionStart)}
-              onSelect={e => detectMention(e.currentTarget.value, e.currentTarget.selectionStart)} onFocus={warm} onKeyDown={key} />
+              onSelect={e => detectMention(e.currentTarget.value, e.currentTarget.selectionStart)} onFocus={() => {
+                if (scope && !recordingWait && !id) void ensureConversation?.().catch(() => {})
+                warm()
+              }} onKeyDown={key} />
           </Tooltip.Trigger>
           {recordingWait && <Tooltip.Portal container={panel ? composer : undefined}>
             <Tooltip.Positioner positionMethod="fixed" side="top" sideOffset={6} collisionPadding={12} className="z-[80]">
@@ -344,7 +365,9 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
           </Tooltip.Portal>}
         </Tooltip.Root>
         <div className="ask-box-actions">
-          <Popover.Root open={!!selector} onOpenChange={open => {
+          {scope ? <span id="scoped-ask-context" className="scoped-ask-label" data-testid="ask-scope" title={(chips.length ? chips : [scope]).map(chipTitle).join(', ')}>
+            <AskContext chips={chips.length ? chips : [scope]} fixed />
+          </span> : <Popover.Root open={!!selector} onOpenChange={open => {
             setMention(undefined)
             setTargetResults(open && bare.current ? { query: '', items: bare.current } : undefined); setSelected(0); setExpanded(false); setScopeExpanded(false)
             // Closing from the pill leaves focus on it; hand it back to the text unless the click went somewhere else.
@@ -368,7 +391,7 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
                 </Popover.Popup>
               </Popover.Positioner>
             </Popover.Portal>
-          </Popover.Root>
+          </Popover.Root>}
           {answering ? <button type="button" data-testid={`${prefix}-stop`} className="ask-toolbar-button ask-stop" aria-label={chat?.waitsForModel ? t('Cancel question') : t('Stop')} title={chat?.waitsForModel ? t('Cancel question') : t('Stop')} onClick={() => { keepTyping(); window.yogurt.conversations.stop(id) }}><Square size={10} fill="currentColor" /></button>
             : <button type="submit" data-testid={`${prefix}-send`} className="ask-toolbar-button ask-send" disabled={busy || !text.trim()} aria-label={t('Ask')}><span className="orb-material" aria-hidden="true" /><ArrowUp size={16} /></button>}
         </div>

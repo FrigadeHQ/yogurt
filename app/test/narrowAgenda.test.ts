@@ -11,8 +11,8 @@ it('scrolls the agenda header and events together within the narrow grid row', (
 
 it('gives the hidden track back to the meeting list on either side of the stacking breakpoint', () => {
   expect(css).toContain('grid-template-columns:minmax(0,1fr) var(--agenda-track)')
-  expect(css).toMatch(/@container \(max-width:520px\) \{ \.native-home \{[^}]*grid-template-rows:minmax\(0,1fr\) var\(--agenda-track\)/)
-  expect(css).toContain('.native-home[data-agenda-open=false] { --agenda-track:0px; }')
+  expect(css).toMatch(/@container \(max-width:520px\) \{ \.native-home,\.workspace-right-region:has\(>\.home-agenda-panel\) \{[^}]*grid-template-rows:minmax\(0,1fr\) var\(--agenda-track\)/)
+  expect(css).toContain('.workspace-content:has(.native-home[data-agenda-open=false])>.workspace-right-region { --agenda-track:0px; }')
 })
 
 it('keeps laptop windows full width and caps the hover area in the Home, folder and Trash columns', () => {

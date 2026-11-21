@@ -67,25 +67,23 @@ test('Ask shares meeting history and drafts, and Command-J starts the right cont
   } finally { await app.close() }
 })
 
-test('the note panel and full conversation expose Rename and a single Delete confirmation', async () => {
+test('the folder panel and full conversation expose Rename and a single Delete confirmation', async () => {
   const app = await electron.launch({ args: [join(import.meta.dirname, '../out/main/index.js')], env: {
     ...process.env, YOGURT_FAKE: '1', YOGURT_FAKE_LLM_MS: '10', YOGURT_USER_DATA: mkdtempSync(join(tmpdir(), 'yogurt-ask-actions-')),
   } })
   try {
     const page = await app.firstWindow()
     await expect(page.getByTestId('home')).toBeVisible()
-    const [meeting] = await app.evaluate(() => (globalThis as any).__fake__.chatMeetings()) as string[]
-    await page.evaluate(id => window.yogurt.nav.go(`/note/${id}`), meeting)
-    await expect(page.getByTestId('chat-open')).toBeVisible()
-    // Exercise menus and confirmation inside the native modal panel, too.
+    const meetings = await app.evaluate(() => (globalThis as any).__fake__.chatMeetings()) as string[]
+    await page.evaluate(async ids => {
+      const folder = (await window.yogurt.folders.create('Project notes'))!
+      for (const id of ids) await window.yogurt.folders.add(folder.id, id)
+      window.yogurt.nav.go(`/folder/${folder.id}`)
+    }, meetings)
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(720, 760))
-    await page.keyboard.press('Meta+j')
-    await expect(page.locator('.chat-panel .ask-conversation-head')).toHaveCount(1)
-    // Global retrieval supplies cited chunks; single-meeting answers use the whole transcript.
-    await page.getByTestId('ask-scope').click()
-    await page.locator('.ask-picker-clear').click()
-    await expect(page.getByTestId('ask-scope')).toHaveText('All meetings')
-    await page.getByRole('combobox', { name: 'Search meetings and folders' }).press('Escape')
+    await page.getByTestId('chat-open').click()
+    await expect(page.getByTestId('chat-panel')).toHaveAttribute('aria-modal', 'true')
+    await expect(page.getByTestId('ask-scope')).toHaveText('Project notes')
     await page.getByTestId('chat-input').fill('What are my next steps?')
     await page.getByTestId('chat-input').press('Enter')
     await expect(page.getByTestId('chat-turn')).toHaveAttribute('data-status', 'done', { timeout: 15_000 })
@@ -173,9 +171,10 @@ test('Ask has soft thread edges, compact bubbles, and expands the same reading p
     const meeting = await app.evaluate(() => (globalThis as any).__fake__.bigMeeting(5)) as string
     await page.evaluate(id => window.yogurt.nav.go(`/note/${id}`), meeting)
     await expect(page.getByTestId('chat-open')).toBeVisible()
-    await page.keyboard.press('Meta+j')
+    await page.getByTestId('chat-open').click()
     const panel = page.getByTestId('chat-panel'), input = page.getByTestId('chat-input')
-    await expect(panel).toHaveCSS('width', '420px')
+    expect((await panel.boundingBox())!.width).toBeGreaterThanOrEqual(304)
+    expect((await panel.boundingBox())!.width).toBeLessThanOrEqual(420)
     await expect(panel.locator('.ask-conversation-head')).toHaveCSS('border-bottom-width', '0px')
     await expect(panel.locator('.ask-composer')).toHaveCSS('border-top-width', '0px')
     await expect(page.getByTestId('chat-suggestion')).toHaveCount(3)
@@ -199,8 +198,8 @@ test('Ask has soft thread edges, compact bubbles, and expands the same reading p
         id: i + 1, question: `Question ${i + 1}`, answer: 'A saved paragraph about the meeting. '.repeat(20), status: 'done', sources: [],
       })) }))
     }, view)
-    // Escape folds Ask back into its button; reopening after that loads the saved draft
-    await input.press('Escape'); await expect(panel).toHaveCount(0); await page.keyboard.press('Meta+j')
+    await page.reload()
+    await expect(panel).toBeVisible()
     await expect(input).toHaveValue('Keep my draft')
     const thread = panel.locator('.ask-thread')
     for (const colorScheme of ['light', 'dark'] as const) {

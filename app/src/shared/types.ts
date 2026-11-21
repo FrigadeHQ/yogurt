@@ -222,6 +222,7 @@ export type YogurtApi = {
     onRecordingWait(cb: (waiting: boolean) => void): () => void
     /** newest first */
     list(): Promise<ConversationSummary[]>
+    currentId(chips: ContextChip[]): Promise<string | undefined>
     current(chips: ContextChip[], fresh?: boolean): Promise<string>
     context(id: string, chips: ContextChip[]): Promise<void>
     removeContext(id: string, chip: ContextChip): Promise<void>

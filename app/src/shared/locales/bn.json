@@ -1,4 +1,6 @@
 {
+  "Ask about this meeting": "এই মিটিং সম্পর্কে জিজ্ঞেস করুন",
+  "Ask about this folder": "এই ফোল্ডার সম্পর্কে জিজ্ঞেস করুন",
   "About Yogurt": "Yogurt সম্পর্কে",
   "Like Yogurt? Sharing it or starring it on GitHub helps us keep building it.": "Yogurt ভালো লাগে? এটি শেয়ার করলে বা GitHub-এ স্টার দিলে আমাদের এর উন্নয়ন চালিয়ে যেতে সুবিধা হয়।",
   "Copy link": "লিংক কপি করুন",
@@ -66,7 +68,6 @@
   "Couldn't load your conversations.": "আপনার কথোপকথনগুলি লোড করা যায়নি।",
   "Ask": "জিজ্ঞেস করুন",
   "Ask Yogurt": "Yogurt-কে জিজ্ঞেস করুন",
-  "Ask Yogurt (⌘J)": "Yogurt-কে জিজ্ঞেস করুন (⌘J)",
   "Ask about your meetings": "আপনার মিটিং নিয়ে জিজ্ঞেস করুন",
   "Ask anything": "যা খুশি জিজ্ঞেস করুন",
   "Auto": "অটো",
@@ -373,7 +374,6 @@
   "Show in Finder": "Finder-এ দেখান",
   "Show in File Explorer": "ফাইল এক্সপ্লোরারে দেখান",
   "Show in Files": "Files-এ দেখান",
-  "Show or hide Ask Yogurt": "Ask Yogurt দেখান বা লুকান",
   "Some of this meeting couldn't be transcribed.": "এই মিটিংয়ের কিছু অংশ ট্রান্সক্রাইব করা যায়নি।",
   "Spoken language": "কথ্য ভাষা",
   "Star": "তারা",

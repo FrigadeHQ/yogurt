@@ -6,7 +6,7 @@ import { keys, onMac } from '../keys'
 
 export const appShortcuts = () => [
   [t('Meetings'), '⌘1'], [t('Ask'), '⌘2'], [t('Trash'), '⌘3'],
-  [t('Search and commands'), '⌘K'], [t('Show or hide Ask Yogurt'), '⌘J'], [t('Settings'), '⌘,'],
+  [t('Search and commands'), '⌘K'], [t('Ask Yogurt'), '⌘J'], [t('Settings'), '⌘,'],
   [t('Back'), '⌘['], [t('Forward'), '⌘]'], [t('Copy notes'), '⇧⌘C'], [t('Keyboard shortcuts'), '⌘/'],
 ].map(([label, mac]) => [label, keys(mac)] as const)
 

@@ -1,4 +1,6 @@
 {
+  "Ask about this meeting": "Zeptejte se na tuto schůzku",
+  "Ask about this folder": "Zeptejte se na tuto složku",
   "About Yogurt": "O aplikaci Yogurt",
   "Like Yogurt? Sharing it or starring it on GitHub helps us keep building it.": "Líbí se vám Yogurt? Když ho nasdílíte nebo mu dáte hvězdičku na GitHubu, pomůžete nám ho dál vyvíjet.",
   "Copy link": "Zkopírovat odkaz",
@@ -68,7 +70,6 @@
   "Couldn't load your conversations.": "Vaše konverzace se nepodařilo načíst.",
   "Ask": "Zeptat se",
   "Ask Yogurt": "Zeptat se Yogurtu",
-  "Ask Yogurt (⌘J)": "Zeptat se Yogurtu (⌘J)",
   "Ask about your meetings": "Ptejte se na své schůzky",
   "Ask anything": "Ptejte se na cokoli",
   "Auto": "Automaticky",
@@ -379,7 +380,6 @@
   "Show in Finder": "Zobrazit ve Finderu",
   "Show in File Explorer": "Zobrazit v Průzkumníkovi souborů",
   "Show in Files": "Zobrazit v Souborech",
-  "Show or hide Ask Yogurt": "Zobrazit nebo skrýt Zeptat se Yogurt",
   "Some of this meeting couldn't be transcribed.": "Část této schůzky se nepodařilo přepsat.",
   "Spoken language": "Mluvený jazyk",
   "Star": "Hvězda",

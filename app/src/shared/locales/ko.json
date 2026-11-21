@@ -1,4 +1,6 @@
 {
+  "Ask about this meeting": "이 회의에 대해 질문하기",
+  "Ask about this folder": "이 폴더에 대해 질문하기",
   "About Yogurt": "Yogurt 정보",
   "Like Yogurt? Sharing it or starring it on GitHub helps us keep building it.": "Yogurt가 마음에 드시나요? 주변에 공유하거나 GitHub에서 별표를 주시면 개발을 이어 가는 데 도움이 됩니다.",
   "Copy link": "링크 복사",
@@ -63,7 +65,6 @@
   "Couldn't load your conversations.": "대화 목록을 불러올 수 없습니다.",
   "Ask": "질문",
   "Ask Yogurt": "Yogurt에게 질문",
-  "Ask Yogurt (⌘J)": "Yogurt에게 질문 (⌘J)",
   "Ask about your meetings": "내 회의에 대해 물어보세요",
   "Ask anything": "무엇이든 물어보세요",
   "Auto": "자동",
@@ -364,7 +365,6 @@
   "Show in Finder": "Finder에서 보기",
   "Show in File Explorer": "파일 탐색기에서 보기",
   "Show in Files": "파일에서 보기",
-  "Show or hide Ask Yogurt": "Yogurt에 질문 표시 또는 숨기기",
   "Some of this meeting couldn't be transcribed.": "이 회의의 일부는 녹취하지 못했어요.",
   "Spoken language": "말하는 언어",
   "Star": "별",

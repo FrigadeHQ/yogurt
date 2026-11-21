@@ -1,4 +1,6 @@
 {
+  "Ask about this meeting": "询问这场会议的内容",
+  "Ask about this folder": "询问这个文件夹的内容",
   "About Yogurt": "关于 Yogurt",
   "Like Yogurt? Sharing it or starring it on GitHub helps us keep building it.": "喜欢 Yogurt 吗？把它分享给别人，或在 GitHub 上为项目点颗星，都能帮助我们继续开发。",
   "Copy link": "复制链接",
@@ -63,7 +65,6 @@
   "Couldn't load your conversations.": "无法加载你的对话。",
   "Ask": "提问",
   "Ask Yogurt": "问 Yogurt",
-  "Ask Yogurt (⌘J)": "问 Yogurt（⌘J）",
   "Ask about your meetings": "问问你的会议",
   "Ask anything": "随便问",
   "Auto": "自动",
@@ -364,7 +365,6 @@
   "Show in Finder": "在访达中显示",
   "Show in File Explorer": "在文件资源管理器中显示",
   "Show in Files": "在“文件”中显示",
-  "Show or hide Ask Yogurt": "显示或隐藏询问 Yogurt",
   "Some of this meeting couldn't be transcribed.": "这个会议有一部分无法转写。",
   "Spoken language": "会议语言",
   "Star": "星形",

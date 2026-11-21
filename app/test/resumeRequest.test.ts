@@ -26,7 +26,7 @@ vi.mock('react', async original => ({ ...await original<typeof import('react')>(
 vi.mock('../src/renderer/src/motion', async original => ({ ...await original<typeof import('../src/renderer/src/motion')>(), useReducedMotion: () => true }))
 let meeting: MeetingView, notes: NoteView
 let meetingChanged: () => void, notesChanged: (notes: NoteView) => void
-const resume = vi.fn(), consumed = vi.fn(), title = vi.fn(), source = vi.fn()
+const resume = vi.fn(), consumed = vi.fn(), title = vi.fn()
 const meetingListeners=new Set<()=>void>()
 const transcriptGet = vi.fn(), stopSummary = vi.fn()
 let segmentChanged: (line: { meetingId: string; text: string }) => void, transcriptChanged: (id: string) => void, setupChanged: (state: SetupState) => void
@@ -35,7 +35,7 @@ let tree: ReactNode
 const unmount = () => { hooks.effects.forEach(effect => effect.cleanup?.()); hooks.values = []; hooks.refs = []; hooks.memos = []; hooks.effects = [] }
 async function render() {
   hooks.state = 0; hooks.ref = 0; hooks.memo = 0; hooks.effect = 0
-  tree = Note({ id: 'resume-fixture', onTitleChange: title, onSource: source, onResumeRequested: requested })
+  tree = Note({ id: 'resume-fixture', onTitleChange: title, onResumeRequested: requested })
   for (const effect of hooks.effects) if (effect.pending) {
     effect.cleanup?.()
     effect.cleanup = effect.run() || undefined

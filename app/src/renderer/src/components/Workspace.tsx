@@ -1,11 +1,13 @@
+import { RightRegion } from '../rightRegion'
+import { ScopedAsk } from './ScopedAsk'
 import { WorkspaceFolders } from '../folders'
 import { AudioUploadHost } from './AudioUpload'
 import { toasts } from './TrashToast'
 import { askDestination } from '../../../shared/askContext'
 import * as Sidebar from '@animate-ui/react/primitives/sidebar'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { ChevronLeft, ChevronRight, MeetingFile, AskBubble, Search, SidebarToggle } from './Icons'
-import type { MeetingView, Folder, WidgetView } from '../../../shared/types'
+import type { LibrarySource, MeetingView, Folder, WidgetView } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
 import { command, keys, onMac } from '../keys'
 import { LevelBars } from './LevelBars'
@@ -15,12 +17,16 @@ import { FinishSetup } from './FinishSetup'
 import { NotesSetup } from './NotesSetup'
 import { CornerMenu } from './CornerMenu'
 
-export function Workspace({ route, meeting, folders, go, back, forward, search, shortcuts, collapsed, sidebarMotion, toggleSidebar, children }: {
+export function Workspace({ route, meeting, folders, go, back, forward, search, shortcuts, collapsed, sidebarMotion, toggleSidebar, onSource, children }: {
   meeting?: Pick<MeetingView, 'id' | 'title'>
+  onSource?: (source: LibrarySource, match?: string) => void
   folders?: Folder[]
   route: string; go: (route: string) => void; back?: () => void; forward?: () => void; search: () => void; shortcuts: () => void; children: ReactNode
   collapsed: boolean; sidebarMotion: boolean; toggleSidebar: (animate?: boolean) => void
 }) {
+  const pendingAsk = useRef<string>(undefined)
+  const [rightRegion, setRightRegion] = useState<HTMLDivElement | null>(null)
+  const [rightToolbar, setRightToolbar] = useState<HTMLDivElement | null>(null)
   const [recording, setRecording] = useState<WidgetView | null>(null)
   useEffect(() => {
     let active = true, updated = false
@@ -38,7 +44,11 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
       if (document.querySelector('[aria-modal="true"]:not([data-testid="chat-panel"]), [role="alertdialog"]')) return
       const target = askDestination(route)
       if (target.kind === 'focus') document.getElementById('library-question')?.focus({ preventScroll: true })
-      else if (target.kind === 'panel') document.getElementById('meeting-ask')?.click()
+      else if (target.kind === 'panel') {
+        const field = document.getElementById('meeting-question')
+        if (field) field.focus({ preventScroll: true })
+        else pendingAsk.current = route
+      }
       else void window.yogurt.conversations.current(target.chips).then(id => go(`/chat/${id}`)).catch(error => {
         console.error('Opening Ask failed', error)
         toasts.add({ title: t("Yogurt couldn't make that change. Try again.") })
@@ -60,6 +70,16 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
     { route: '/chat', label: t('Ask'), Icon: AskBubble },
   ]
   const folder = route.startsWith('/folder/') ? folders?.find((s) => route === `/folder/${s.id}`) : undefined
+  const destination = askDestination(route)
+  const scope = destination.kind === 'panel' && (destination.scope.kind === 'meeting' ? meeting?.id === destination.scope.id : !!folder)
+    ? { ...destination.scope, title: destination.scope.kind === 'meeting' ? meeting!.title : folder!.name } : undefined
+  useLayoutEffect(() => {
+    if (pendingAsk.current !== route) { pendingAsk.current = undefined; return }
+    if (scope) {
+      document.getElementById('meeting-question')?.focus({ preventScroll: true })
+      pendingAsk.current = undefined
+    }
+  }, [route, scope?.id])
   const current = links.find((link) => link.route === section) ?? (route.startsWith('/folder/') ? { label: folder?.name ?? t('Folder') } : undefined)
   const label = note ? (meeting && route === `/note/${meeting.id}` ? meeting.title : t('Meeting')) : route.startsWith('/settings') ? t('Settings') : route === '/trash' ? t('Trash') : current?.label ?? t('Meetings')
   const nav = (link: typeof links[number]) => <button key={link.route} data-testid={link.route === '' ? 'nav-home' : 'nav-chat'}
@@ -109,9 +129,15 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
         <RecordingTime view={recording} testId="recording-return-time" className="recording-return-time" />
       </button>}
       <div id="workspace-actions" className="workspace-toolbar-actions" />
-      <div id="workspace-agenda-actions" className="workspace-toolbar-actions" />
+      <div ref={setRightToolbar} id="workspace-agenda-actions" className="workspace-toolbar-actions" />
       </header>
-      <WorkspaceFolders value={folders}>{children}</WorkspaceFolders>
+      <WorkspaceFolders value={folders}><RightRegion value={rightRegion}>
+        {children}
+        <div ref={setRightRegion} className="workspace-right-region">
+          {scope && onSource && <ScopedAsk key={`${scope.kind}/${scope.id}`} scope={scope} onSource={onSource} toolbar={rightToolbar}
+            recording={recording?.kind === 'recording' && scope.kind === 'meeting' && recording.meetingId === scope.id} />}
+        </div>
+      </RightRegion></WorkspaceFolders>
       <AudioUploadHost />
 
     </div>

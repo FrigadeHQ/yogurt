@@ -1,4 +1,6 @@
 {
+  "Ask about this meeting": "Întreabă despre această întâlnire",
+  "Ask about this folder": "Întreabă despre acest dosar",
   "About Yogurt": "Despre Yogurt",
   "Like Yogurt? Sharing it or starring it on GitHub helps us keep building it.": "Îți place Yogurt? Dacă îl distribui sau îi dai o stea pe GitHub, ne ajuți să îl dezvoltăm în continuare.",
   "Copy link": "Copiază linkul",
@@ -67,7 +69,6 @@
   "Couldn't load your conversations.": "Conversațiile tale nu au putut fi încărcate.",
   "Ask": "Întrebați",
   "Ask Yogurt": "Întrebați Yogurt",
-  "Ask Yogurt (⌘J)": "Întrebați Yogurt (⌘J)",
   "Ask about your meetings": "Întrebați despre întâlnirile dvs.",
   "Ask anything": "Întrebați orice",
   "Auto": "Automat",
@@ -376,7 +377,6 @@
   "Show in Finder": "Afișați în Finder",
   "Show in File Explorer": "Afișați în Explorer",
   "Show in Files": "Afișați în Fișiere",
-  "Show or hide Ask Yogurt": "Arată sau ascunde Întreabă Yogurt",
   "Some of this meeting couldn't be transcribed.": "O parte din această întâlnire nu a putut fi transcrisă.",
   "Spoken language": "Limba vorbită",
   "Star": "Stea",

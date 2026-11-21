@@ -25,7 +25,8 @@ test('recording controls stay in the header and Ask lives in the footer with sta
     await expect(controls.getByTestId('note-pause')).toHaveCSS('border-top-width', '0px')
     await expect(controls.getByTestId('note-stop')).toHaveCSS('border-top-width', '0px')
     await expect(header.getByTestId('chat-open')).toHaveCount(0)
-    await expect(page.locator('.note-footer').getByTestId('chat-open')).toContainText('⌘J')
+    await expect(page.getByTestId('chat-open')).toHaveAttribute('title', /⌘J/)
+    await expect(page.getByTestId('chat-dock').getByTestId('chat-input')).toBeVisible()
     await expect(header.getByTestId('note-elapsed')).toMatchAriaSnapshot(String.raw`- timer "Recorded time": /^(?:\d+:)?\d+:\d{2}$/`)
     const corner = (await page.locator('.workspace-corner').boundingBox())!
     const footer = (await page.locator('.note-footer-bar').boundingBox())!
@@ -34,6 +35,14 @@ test('recording controls stay in the header and Ask lives in the footer with sta
     expect(Math.abs(footer.height - corner.height)).toBeLessThan(1)
     expect(Math.abs(footer.x - content.x)).toBeLessThan(1)
     expect(Math.abs(footer.width - content.width)).toBeLessThan(1)
+    const field = page.getByTestId('chat-input')
+    if (await field.isEditable()) {
+      await field.fill('First line\nSecond line\nThird line')
+      const grown = (await page.locator('.note-footer-bar').boundingBox())!
+      expect(grown.y).toBeCloseTo(corner.y, 0)
+      expect(grown.height).toBeCloseTo(corner.height, 0)
+      await field.fill('')
+    }
     await expect.poll(async () => Number(await page.getByTestId('note-wave').getAttribute('data-level')), { timeout: 15_000 }).toBeGreaterThan(0.05)
     for (const colorScheme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' })

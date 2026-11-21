@@ -58,79 +58,58 @@ test('recording on a small Mac leaves Ask readable and explains when typing resu
   } finally { await app.close() }
 })
 
-test('Ask opens one contained panel, keeps the note usable, and restores focus when closed', async () => {
+test('the meeting keeps its reading width until the first send opens a conversation above the same field', async () => {
   const { app, page } = await launch()
   try {
+    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1440, 800))
     const id = await fake<string>(app, 'bigMeeting', 10)
     await fake(app, 'go', `/note/${id}`)
-    const trigger = page.getByTestId('chat-open'), panel = page.getByTestId('chat-panel'), input = page.getByTestId('chat-input')
-    await expect(trigger).toBeVisible()
-    await expect(input).toHaveCount(0)
-    const closed = (await page.getByTestId('note-title').boundingBox())!
+    const input = page.getByTestId('chat-input'), panel = page.getByTestId('chat-panel')
+    await expect(input).toHaveAttribute('placeholder', 'Ask about this meeting')
+    await expect(input).not.toBeFocused()
+    const original = await input.elementHandle()
+    const width = (await page.locator('.note-reading-area').boundingBox())!.width
     await page.keyboard.press('Meta+j')
-    await expect(panel).toBeVisible()
     await expect(input).toBeFocused()
-    await expect(panel.getByTestId('chat-box')).toBeVisible()
-    const reading = (await page.locator('.note-reading-area').boundingBox())!, panelBox = (await panel.boundingBox())!
-    const composer = (await panel.locator('.chat-composer').boundingBox())!
-    expect(await page.getByTestId('note-title').boundingBox()).toEqual(closed)
-    expect(reading.y + reading.height - panelBox.y - panelBox.height).toBeCloseTo(12, 1)
-    expect(await page.evaluate(() => innerWidth) - panelBox.x - panelBox.width).toBeCloseTo(24, 1)
-    expect(panelBox.y + panelBox.height - composer.y - composer.height).toBeCloseTo(1, 1)
-    await expect(page.locator('.note-footer').getByTestId('chat-open')).toContainText('⌘J')
-    await expect(panel.locator('[data-testid=chat-suggestion]:visible')).toHaveCount(3)
-    await expect(page.getByText('Write a follow-up email', { exact: true })).toHaveCount(0)
-    await input.fill('A question to come back to')
-    await page.getByTestId('note-title').click()
-    await expect(panel).toBeVisible()
+    await input.fill('What did we decide?')
+    expect((await page.locator('.note-reading-area').boundingBox())!.width).toBe(width)
+    await input.press('Enter')
+    await expect(panel.getByTestId('chat-turn')).toBeVisible()
+    expect(await original!.evaluate(el => el === document.activeElement)).toBe(true)
+    const box = (await panel.boundingBox())!, note = (await page.locator('.note-reading-area').boundingBox())!
+    expect(note.x + note.width).toBeLessThanOrEqual(box.x + 1)
+    expect(box.y).toBeCloseTo(52, 0)
+    expect(box.y + box.height).toBeCloseTo(await page.evaluate(() => innerHeight), 0)
+    await input.fill('A follow-up for later')
     await input.press('Escape')
     await expect(panel).toHaveCount(0)
-    await expect(trigger).toBeFocused()
-    await trigger.click()
-    await expect(input).toHaveValue('A question to come back to')
-    // Command-J toggles this conversation without losing its draft.
-    await page.keyboard.press('Meta+j')
-    await expect(panel).toHaveCount(0)
-    await expect(trigger).toBeFocused()
-    await page.keyboard.press('Meta+j')
-    await expect(input).toBeFocused()
-    await expect(input).toHaveValue('A question to come back to')
-    await expect(panel).toBeVisible()
-    await page.keyboard.press('Escape')
-    await expect(trigger).toBeFocused()
+    await expect(input).toHaveValue('A follow-up for later')
+    expect((await page.locator('.note-reading-area').boundingBox())!.width).toBe(width)
   } finally { await app.close() }
 })
 
-test('a narrow chat is modal, contains keyboard focus, and keeps its draft when widened', async () => {
+test('the width left by the sidebar determines whether the same conversation is modal', async () => {
   const { app, page } = await launch()
   try {
+    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1024, 760))
     const id = await fake<string>(app, 'bigMeeting', 10)
     await fake(app, 'go', `/note/${id}`)
-    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((win) => !win.webContents.getURL().includes('#'))!.setSize(720, 600))
-    await page.getByTestId('chat-open').click()
     const panel = page.getByTestId('chat-panel'), input = page.getByTestId('chat-input')
+    if (await page.getByTestId('sidebar-expand').count()) await page.getByTestId('sidebar-expand').click()
+    await page.getByTestId('chat-open').click()
     await expect(panel).toHaveAttribute('aria-modal', 'true')
-    expect(await panel.evaluate((el) => el.matches(':modal'))).toBe(true)
-    await expect(input).toBeFocused()
-    // the scope picker is disabled while the chat loads, and Tab skips a disabled button
-    await expect(panel.getByRole('button', { name: 'Choose meetings or folders' })).toBeEnabled()
-    await page.keyboard.press('Tab')
-    await expect(panel.getByRole('button', { name: 'Choose meetings or folders' })).toBeFocused()
+    await input.fill('Keep this draft')
+    await input.press('Tab')
+    expect(await panel.evaluate(el => el.matches(':modal') && el.contains(document.activeElement))).toBe(true)
     await page.keyboard.press('Escape')
-    await expect(panel).toHaveCount(0)
     await expect(page.getByTestId('chat-open')).toBeFocused()
+    await page.getByTestId('sidebar-collapse').click()
+    await page.getByTestId('chat-open').click()
+    await expect(panel).not.toHaveAttribute('aria-modal', 'true')
+    await expect(input).toHaveValue('Keep this draft')
+    await page.getByTestId('note-title').click()
     await page.keyboard.press('Meta+j')
     await expect(input).toBeFocused()
-    await input.fill('Keep this draft')
-    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((win) => !win.webContents.getURL().includes('#'))!.setSize(1100, 760))
-    await expect(panel).not.toHaveAttribute('aria-modal', 'true')
-    expect(await panel.evaluate((el) => el.matches(':modal'))).toBe(false)
-    await expect(input).toHaveValue('Keep this draft')
-    await expect(input).toBeFocused()
-    const note = (await page.locator('.note-content:visible').boundingBox())!, chat = (await panel.boundingBox())!
-    expect(note.x + note.width).toBeGreaterThan(chat.x)
-    await input.press('Escape')
-    await expect(page.getByTestId('chat-open')).toBeFocused()
   } finally { await app.close() }
 })
 
@@ -141,7 +120,7 @@ test('asking about a finished meeting streams the answer in, word by word, and i
     await fake(app, 'go', `/note/${id}`)
     await page.getByTestId('chat-open').click()
     const input = page.getByTestId('chat-input')
-    await expect(input).toHaveAttribute('placeholder', 'Ask anything')
+    await expect(input).toHaveAttribute('placeholder', 'Ask about this meeting')
     // Keep the action slot reserved even before there is a question to send.
     await expect(page.getByTestId('chat-send')).toBeDisabled()
     await expect(page.getByTestId('chat-follow-up')).toHaveCount(0)
@@ -185,7 +164,7 @@ test('asking about a finished meeting streams the answer in, word by word, and i
     await expect(page.getByTestId('chat-panel')).toBeVisible()
 
     await page.reload()
-    await page.getByTestId('chat-open').click()
+    await expect(page.getByTestId('chat-panel')).toBeVisible()
     await expect(page.getByTestId('chat-turn')).toHaveAttribute('data-status', 'done')
     await expect(page.getByTestId('chat-answer')).toContainText('The site goes live on Tuesday.')
 
@@ -247,7 +226,7 @@ test('during a recording it answers from the transcript so far, and a stop keeps
     await expect(page.getByTestId('chat-answer')).not.toContainText('Wednesday')
     // stopped stays stopped
     await page.reload()
-    await page.getByTestId('chat-open').click()
+    await expect(page.getByTestId('chat-panel')).toBeVisible()
     await expect(page.getByTestId('chat-turn')).toHaveAttribute('data-status', 'stopped')
   } finally { await app.close() }
 })
@@ -364,61 +343,25 @@ test('an unacknowledged question cannot be sent twice, and a rejected request ke
 })
 
 
-test('Ask grows from its button identically for either trigger and keeps typing available', async () => {
+for (const reducedMotion of ['reduce', 'no-preference'] as const) test(`the same composer survives opening and closing with ${reducedMotion} motion`, async () => {
   const { app, page } = await launch()
   try {
+    await page.emulateMedia({ reducedMotion })
     const id = await fake<string>(app, 'bigMeeting', 10)
     await fake(app, 'go', `/note/${id}`)
-    await page.emulateMedia({ reducedMotion: 'no-preference' })
-    const trigger = page.getByTestId('chat-open')
-    await trigger.click()
-    const panel = page.getByTestId('chat-panel')
-    const surface = page.locator('.chat-morph-surface')
-    const motion = await surface.evaluate(el => el.getAnimations().map(a => ({ duration: a.effect!.getTiming().duration, easing: a.effect!.getTiming().easing, frames: (a.effect as KeyframeEffect).getKeyframes() })).filter(a => a.frames.some(f => f.width)))
-    expect(motion).toHaveLength(1)
-    expect(motion[0].duration).toBe(180)
-    expect(motion[0].easing).toBe('cubic-bezier(0.23, 1, 0.32, 1)')
-    expect(parseFloat(String(motion[0].frames[0].width))).toBeCloseTo((await trigger.boundingBox())!.width)
-    expect(String(motion[0].frames.at(-1)!.width)).toContain('100%')
-    expect(motion[0].frames.every(frame => !frame.transform)).toBe(true)
-    // Sample the opening itself, including the frame where the shell is still on the button.
-    const insets = await surface.evaluate(el => {
-      const shape = el.getAnimations().find(a => (a.effect as KeyframeEffect).getKeyframes().some(f => f.width))!
-      const dialog = el.closest('dialog')!.getBoundingClientRect()
-      const body = el.querySelector('.chat-panel-contents')!, composer = body.querySelector('.chat-composer')!
-      shape.pause()
-      const samples = [0, 45, 90, 180].map(ms => {
-        shape.currentTime = ms
-        const bounds = body.getBoundingClientRect()
-        return [bounds.left - dialog.left, bounds.top - dialog.top, dialog.right - bounds.right, dialog.bottom - composer.getBoundingClientRect().bottom]
-      })
-      shape.finish()
-      return samples
-    })
-    for (const sample of insets) for (const inset of sample) expect(inset).toBeCloseTo(1, 1)
-    await expect(page.getByTestId('chat-input')).toBeFocused()
-    await expect(page.locator('.chat-panel-contents')).toHaveCSS('transform', 'none')
-    await expect(page.locator('.chat-panel-contents')).toHaveCSS('filter', 'none')
-    await page.getByTestId('chat-input').fill('Keep this thought')
+    const input = page.getByTestId('chat-input'), toggle = page.getByTestId('chat-open')
+    await input.fill('Keep this thought')
+    const editor = await input.elementHandle()
+    await toggle.click()
+    await expect(page.getByTestId('chat-panel')).toBeVisible()
     await page.getByTestId('chat-close').click()
-    await expect(page.getByTestId('chat-panel')).toHaveCount(0)
-    await expect(trigger).toBeFocused()
-    await page.keyboard.press('Meta+j')
-    await expect(page.getByTestId('chat-input')).toBeFocused()
-    expect(await surface.evaluate(el => el.getAnimations().map(a => a.effect!.getTiming().duration))).toEqual([180, 120])
-    await page.keyboard.press('Escape')
-    await expect(trigger).toBeFocused()
-    await page.emulateMedia({ reducedMotion: 'reduce' })
-    await page.keyboard.press('Meta+j')
-    await expect(page.getByTestId('chat-input')).toHaveValue('Keep this thought')
-    await expect(panel).toHaveCSS('transform', 'none')
-    expect(await panel.evaluate(el => el.getAnimations().map(a => a.effect!.getTiming().duration))).toEqual([120])
-    await page.keyboard.press('Escape')
-    await expect(trigger).toBeFocused()
+    await expect(page.getByTestId('chat-dock')).toBeVisible()
+    expect(await editor!.evaluate(el => el === document.getElementById('meeting-question'))).toBe(true)
+    await expect(input).toHaveValue('Keep this thought')
   } finally { await app.close() }
 })
 
-for (const width of [1100, 720]) test(`Command-J toggles Ask from any focus at ${width}px and still opens Chat elsewhere`, async () => {
+for (const width of [1100, 720]) test(`Command-J focuses contextual Ask at ${width}px and still opens Chat elsewhere`, async () => {
   const { app, page } = await launch()
   try {
     await app.evaluate(({ BrowserWindow }, width) => BrowserWindow.getAllWindows()[0].setSize(width, 760), width)
@@ -430,23 +373,15 @@ for (const width of [1100, 720]) test(`Command-J toggles Ask from any focus at $
     await expect(input).toBeFocused()
     await input.fill('Keep my draft')
     await page.keyboard.press('Meta+j')
+    await expect(input).toBeFocused()
     await expect(panel).toHaveCount(0)
-    await expect(trigger).toBeFocused()
-    await page.keyboard.press('Meta+j')
-    await expect(input).toHaveValue('Keep my draft')
+    await trigger.click()
+    await expect(panel).toBeVisible()
     await page.getByTestId('chat-menu').focus()
     await page.keyboard.press('Meta+j')
-    await expect(panel).toHaveCount(0)
-    await page.keyboard.press('Meta+j')
     await expect(input).toBeFocused()
-    if (width === 1100) {
-      await page.getByTestId('note-title').click()
-      await page.keyboard.press('Meta+j')
-      await expect(panel).toHaveCount(0)
-      await page.keyboard.press('Meta+j')
-      await expect(input).toBeFocused()
-    }
-    await page.keyboard.press('Escape')
+    await expect(input).toHaveValue('Keep my draft')
+    await input.press('Escape')
     await fake(app, 'go', '')
     await expect(page.getByTestId('home')).toBeVisible()
     await page.keyboard.press('Meta+j')

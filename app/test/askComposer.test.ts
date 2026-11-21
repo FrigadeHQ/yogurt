@@ -101,7 +101,7 @@ it.each([true, false])('keeps a blocked field focusable and preserves the draft 
   vi.stubGlobal('window', { matchMedia: () => ({ matches: false }), yogurt: { os: 'darwin', conversations: { ask, draft } } })
   const initial: ConversationView = { id: 'draft', title: '', chips: [], draft: 'Keep this question', draftChips: [], firstChips: null,
     turns: [], waitsForMeeting: true, waitsForModel: false }
-  const ui = createElement(AskConversation, { id: initial.id, initial, panel, home: !panel, onSelect() {}, onDeleted() {}, onSource() {} })
+  const ui = createElement(AskConversation, { id: initial.id, initial, panel, home: !panel, scope: panel ? { kind: 'meeting', id: 'meeting', title: 'Design review' } : undefined, onSelect() {}, onDeleted() {}, onSource() {} })
   const locked = renderToStaticMarkup(createElement(AskRecordingWait.Provider, { value: true }, ui))
   const input = locked.match(/<textarea[^>]*>/)![0]
   expect(input).toContain('aria-disabled="true"')

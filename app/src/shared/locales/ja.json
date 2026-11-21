@@ -1,4 +1,6 @@
 {
+  "Ask about this meeting": "この会議について質問する",
+  "Ask about this folder": "このフォルダについて質問する",
   "About Yogurt": "Yogurt について",
   "Like Yogurt? Sharing it or starring it on GitHub helps us keep building it.": "Yogurt を気に入っていただけましたか？ 他の人に紹介したり、GitHub でスターを付けたりしていただけると、開発を続ける励みになります。",
   "Copy link": "リンクをコピー",
@@ -63,7 +65,6 @@
   "Couldn't load your conversations.": "会話の一覧を読み込めませんでした。",
   "Ask": "質問",
   "Ask Yogurt": "Yogurtに質問",
-  "Ask Yogurt (⌘J)": "Yogurtに質問（⌘J）",
   "Ask about your meetings": "ミーティングについて質問",
   "Ask anything": "何でも聞いてください",
   "Auto": "自動",
@@ -364,7 +365,6 @@
   "Show in Finder": "Finderで表示",
   "Show in File Explorer": "エクスプローラーで表示",
   "Show in Files": "ファイルで表示",
-  "Show or hide Ask Yogurt": "Yogurtに質問を表示／非表示",
   "Some of this meeting couldn't be transcribed.": "このミーティングの一部を文字起こしできませんでした。",
   "Spoken language": "話す言語",
   "Star": "星",

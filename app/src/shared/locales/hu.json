@@ -1,4 +1,6 @@
 {
+  "Ask about this meeting": "Kérdezzen erről a megbeszélésről",
+  "Ask about this folder": "Kérdezzen erről a mappáról",
   "About Yogurt": "A Yogurt névjegye",
   "Like Yogurt? Sharing it or starring it on GitHub helps us keep building it.": "Tetszik a Yogurt? Ha megosztod, vagy csillagot adsz neki a GitHubon, segítesz nekünk a további fejlesztésben.",
   "Copy link": "Hivatkozás másolása",
@@ -66,7 +68,6 @@
   "Couldn't load your conversations.": "Nem sikerült betölteni a beszélgetéseidet.",
   "Ask": "Kérdezz",
   "Ask Yogurt": "Kérdezd a Yogurtot",
-  "Ask Yogurt (⌘J)": "Kérdezd a Yogurtot (⌘J)",
   "Ask about your meetings": "Kérdezz a megbeszéléseidről",
   "Ask anything": "Kérdezz bármit",
   "Auto": "Automatikus",
@@ -373,7 +374,6 @@
   "Show in Finder": "Megjelenítés a Finderben",
   "Show in File Explorer": "Megjelenítés a Fájlkezelőben",
   "Show in Files": "Megjelenítés a Fájlokban",
-  "Show or hide Ask Yogurt": "Kérdezze a Yogurtot megjelenítése vagy elrejtése",
   "Some of this meeting couldn't be transcribed.": "A megbeszélés egy részét nem sikerült átírni.",
   "Spoken language": "Beszélt nyelv",
   "Star": "Csillag",

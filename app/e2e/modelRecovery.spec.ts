@@ -51,9 +51,9 @@ test('a failed notes-model download explains waiting notes and answers, and retr
     await expect(chatError).toBeVisible()
     await expect(cancel).toHaveAccessibleName('Cancel question')
     await expect.poll(() => page.getByTestId('chat-panel').evaluate((panel) => {
-      const reading = document.querySelector('.note-reading-area')!.getBoundingClientRect()
-      return panel.getBoundingClientRect().top - reading.top
-    })).toBeGreaterThanOrEqual(11)
+      const reading = document.querySelector('.workspace-toolbar')!.getBoundingClientRect()
+      return panel.getBoundingClientRect().top - reading.bottom
+    })).toBeGreaterThanOrEqual(-1)
     await page.getByTestId('note-stop').click()
     await page.getByTestId('note-summary-tab').click()
     await page.getByTestId('chat-close').click()

@@ -1,3 +1,4 @@
+import { RightRegion } from '../rightRegion'
 import { InlineError, ReadError } from '../components/InlineError'
 import { transcriptionLabel } from '../../../shared/transcription'
 import { LoadingContent } from '../components/LoadingContent'
@@ -5,7 +6,7 @@ import { StartRecording } from '../components/StartRecording'
 import { Mic, SidebarToggle, Check, Circle, FileText, Users } from '../components/Icons'
 import { createPortal } from 'react-dom'
 import { readAgendaOpen, saveAgendaOpen } from '../agenda'
-import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react'
+import { useContext, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react'
 import type { MeetingCard } from '../../../shared/types'
 import { useScrollMemory } from '../useScrollMemory'
 import { loadUpTo } from '../paging'
@@ -62,6 +63,10 @@ export function Home({ open, openFolder, agendaJump }: { open: (id: string) => v
     setAgendaOpen(!agendaOpen)
     saveAgendaOpen(!agendaOpen)
   }
+  const region = useContext(RightRegion)
+  const agenda = calendar && <div ref={panel} id="home-agenda" className="home-agenda-panel" inert={!agendaOpen}>
+    {(agendaOpen || agendaMotion) && <Agenda revision={calendarRevision} recording={recording} onStart={start} onOpen={open} jumpTo={agendaJump} />}
+  </div>
   const label = agendaOpen ? t('Hide Agenda') : t('Show Agenda')
   return <div data-testid="home" className={calendar ? 'native-home' : 'native-home no-agenda'} data-agenda-open={calendar && agendaOpen} data-agenda-motion={agendaMotion}>
     {calendar && toolbar && createPortal(<button ref={toggle} id="home-agenda-toggle" className="ghost-btn workspace-icon agenda-toggle no-drag"
@@ -75,9 +80,7 @@ export function Home({ open, openFolder, agendaJump }: { open: (id: string) => v
       {past.failed && !!past.cards?.length && <InlineError testId="meetings-read-error" retry={past.retry} />}
       <LoadingContent pending={!past.cards && !past.failed} testId="meetings-loading" skeleton={<MeetingListLoading />} className="library-load">{!past.cards?.length ? <LibraryEmpty testId="past-empty" icon={<FileText size={28} aria-hidden="true" />} title={t('Your notes will show up here')} description={t('Your summary appears after you stop recording.')} retry={past.failed ? past.retry : undefined}><div ref={setEmptyActions} /></LibraryEmpty> : <PastNotes cards={past.cards ?? []} day={day} more={past.more} sentinel={past.setSentinel} onOpen={open} openFolder={openFolder} />}</LoadingContent>
     </div>
-    {calendar && <div ref={panel} id="home-agenda" className="home-agenda-panel" inert={!agendaOpen}>
-      {(agendaOpen || agendaMotion) && <Agenda revision={calendarRevision} recording={recording} onStart={start} onOpen={open} jumpTo={agendaJump} />}
-    </div>}
+    {region ? createPortal(agenda, region) : region === undefined && agenda}
   </div>
 }
 

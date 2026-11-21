@@ -1,4 +1,6 @@
 {
+  "Ask about this meeting": "Kysy tästä kokouksesta",
+  "Ask about this folder": "Kysy tästä kansiosta",
   "About Yogurt": "Tietoja Yogurtista",
   "Like Yogurt? Sharing it or starring it on GitHub helps us keep building it.": "Pidätkö Yogurtista? Kun jaat sen tai annat sille tähden GitHubissa, autat meitä jatkamaan sen kehittämistä.",
   "Copy link": "Kopioi linkki",
@@ -66,7 +68,6 @@
   "Couldn't load your conversations.": "Keskustelujasi ei voitu ladata.",
   "Ask": "Kysy",
   "Ask Yogurt": "Kysy Yogurtilta",
-  "Ask Yogurt (⌘J)": "Kysy Yogurtilta (⌘J)",
   "Ask about your meetings": "Kysy kokouksistasi",
   "Ask anything": "Kysy mitä tahansa",
   "Auto": "Automaattinen",
@@ -373,7 +374,6 @@
   "Show in Finder": "Näytä Finderissa",
   "Show in File Explorer": "Näytä Resurssienhallinnassa",
   "Show in Files": "Näytä Tiedostoissa",
-  "Show or hide Ask Yogurt": "Näytä tai piilota Kysy Yogurtilta",
   "Some of this meeting couldn't be transcribed.": "Osaa tästä kokouksesta ei voitu litteroida.",
   "Spoken language": "Puhuttu kieli",
   "Star": "Tähti",

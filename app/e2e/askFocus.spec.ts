@@ -79,9 +79,9 @@ test('Back to latest floats 8px above the box in the panel and on the page', asy
         id: i + 1, question: `Question ${i + 1}`, answer: 'A saved paragraph about the meeting. '.repeat(20), status: 'done', sources: [],
       })) }))
     }, view)
-    // let the close finish: ⌘J during the closing motion reverses it and keeps the old view
-    await input.press('Escape'); await expect(page.getByTestId('chat-panel')).toHaveCount(0)
-    await page.keyboard.press('Meta+j')
+    // Reload the saved thread through the replacement fixture reader.
+    await page.reload()
+    await expect(page.getByTestId('chat-turn')).toHaveCount(30)
     const gap = async (prefix: string) => {
       await page.locator('.ask-thread').evaluate(el => { el.scrollTop = 0; el.dispatchEvent(new Event('scroll')) })
       await expect(page.getByTestId('chat-latest')).toBeVisible()

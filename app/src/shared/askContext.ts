@@ -14,11 +14,11 @@ export function chipScope(chips: ContextChip[], meeting: (id: string) => boolean
   if (!chips.length) return undefined
   return [...new Set(chips.flatMap(c => c.kind === 'meeting' ? meeting(c.id) ? [c.id] : [] : folder(c.id).filter(meeting)))]
 }
-type AskDestination = { kind: 'focus' } | { kind: 'panel' } | { kind: 'conversation'; chips: ContextChip[] }
+type AskDestination = { kind: 'focus' } | { kind: 'panel'; scope: ContextChip } | { kind: 'conversation'; chips: ContextChip[] }
 export function askDestination(route: string): AskDestination {
   if (route === '/chat' || route.startsWith('/chat/')) return { kind: 'focus' }
-  if (route.startsWith('/note/')) return { kind: 'panel' }
-  if (route.startsWith('/folder/')) return { kind: 'conversation', chips: [{ kind: 'folder', id: route.slice(8) }] }
+  if (route.startsWith('/note/')) return { kind: 'panel', scope: { kind: 'meeting', id: route.slice(6) } }
+  if (route.startsWith('/folder/')) return { kind: 'panel', scope: { kind: 'folder', id: route.slice(8) } }
   return { kind: 'conversation', chips: [] }
 }
 

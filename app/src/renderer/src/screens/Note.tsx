@@ -3,7 +3,6 @@ import { TranscriptionControl, transcriptionNotice } from '../components/Transcr
 import { transcriptionBusy } from '../../../shared/transcription'
 import { citationTargetIndex } from '../../../shared/citations'
 import { NoteReadingPane } from '../components/NoteReadingPane'
-import type { LibrarySource } from '../../../shared/types'
 import { flushSync } from 'react-dom'
 import { Loading } from '../components/Loading'
 import { LoadingContent } from '../components/LoadingContent'
@@ -20,7 +19,6 @@ import { SummaryWaiting } from '../components/SummaryWaiting'
 import { Editor } from '../components/Editor'
 import { mergeNoteView } from '../noteMerge'
 import { Transcript } from '../components/Transcript'
-import { Ask } from '../components/Chat'
 import { LevelBars } from '../components/LevelBars'
 import { RecordingTime } from '../components/RecordingTime'
 import { RecordingAction } from '../components/RecordingAction'
@@ -58,8 +56,7 @@ function useAutosave(id: string, side: NoteSide, text: string, saved?: NoteSaveR
 const readingViews = new Map<string, { primary: 'transcript' | 'notes'; view: 'mine' | 'enhanced' }>()
 
 /** A meeting keeps its reading tab when revisited; an explicit source or recording action can still switch it. */
-export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResumeRequested }: {
-  onSource: (s: LibrarySource, match?: string) => void
+export function Note({ id, onTitleChange, at, folderSuggestion, onResumeRequested }: {
   id: string; onTitleChange: (meeting: Pick<MeetingView, 'id' | 'title'>) => void
   /** A citation target: null ms selects notes; seq identifies each Open action. */
   at?: { ms: number | null; match?: string; seq: number }
@@ -140,7 +137,6 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   const [namingFolder, setNamingFolder] = useState(false)
   /** the bounded reading area holds the chat beside the current view */
   const [transcriptToolbar, setTranscriptToolbar] = useState<HTMLDivElement | null>(null)
-  const [chatAnchor, setChatAnchor] = useState<HTMLDivElement | null>(null)
   /** the notes as shown, for merging a new view from the app outside a state update */
   const current = useRef<NoteView | undefined>(undefined)
   /** what the recorder has to say right now (a hint, a hiccup), shown under the note too */
@@ -443,7 +439,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
           </div>
         </header>
         {readFailed && <InlineError testId="note-read-error" retry={retryRead} />}
-        <div ref={setChatAnchor} className="note-reading-area">
+        <div className="note-reading-area">
           <div ref={panels} className="note-panels">
           <NoteReadingPane active={primary === 'notes'} summary={shown === 'enhanced'} generating={shown === 'enhanced' && ['waiting', 'rewriting', 'handoff', 'reset', 'streaming'].includes(summaryState)} resetting={shown === 'enhanced' && summaryState === 'reset'} writing={shown === 'enhanced' && summaryState === 'streaming'} scroll={readingScroll}>
                 {shown === 'mine' ? <Editor
@@ -504,7 +500,6 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
             {minutes != null && <><span data-testid="note-duration">{t('{count} min', { count: minutes })}</span><span aria-hidden="true">·</span></>}
             {t('Yogurt can make mistakes.')}
           </div>
-          <Ask id={id} recording={recording} anchor={chatAnchor} onSource={onSource} />
           </div>
         </footer>
       </div>

@@ -7,6 +7,7 @@ import { FolderGlyph } from './FolderAppearance'
 import { compactCount, tx } from '../i18n'
 import { moreItems, t } from '../../../shared/i18n'
 
+export const scopePrompt = (kind: ContextTarget['kind']) => kind === 'meeting' ? t('Ask about this meeting') : t('Ask about this folder')
 export const chipTitle = (c: ContextTarget) => c.title.trim() || (c.kind === 'meeting' ? t('Untitled meeting') : t('Folder'))
 export const scopeLabel = (chips: ContextTarget[]) => ({
   name: chips.length ? chipTitle(chips[0]) : t('All meetings'),
@@ -20,10 +21,10 @@ export function ContextIcon({ target }: { target: ContextTarget }) {
   return <FolderGlyph appearance={folder ?? DEFAULT_FOLDER_APPEARANCE} size={14} />
 }
 
-export function AskContext({ chips }: { chips: ContextTarget[] }) {
+export function AskContext({ chips, fixed }: { chips: ContextTarget[]; fixed?: boolean }) {
   const name = chips.length ? chipTitle(chips[0]) : t('All meetings')
   return <>{chips[0] && <ContextIcon target={chips[0]} />}<span className="ask-scope-label"><span className="ask-scope-name">{name}</span>
-    {chips.length > 1 && <span className="ask-scope-others"> {compactCount(chips.length - 1)}</span>}</span><ChevronDown size={12} aria-hidden="true" /></>
+    {chips.length > 1 && <span className="ask-scope-others"> {compactCount(chips.length - 1)}</span>}</span>{!fixed && <ChevronDown size={12} aria-hidden="true" />}</>
 }
 
 

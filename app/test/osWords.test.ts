@@ -43,8 +43,8 @@ describe('Mac text', () => {
   it('uses Mac wording only for Mac-specific features', () => {
     expect(keys.filter((k) => /\bMac\b/.test(k))).toEqual(MAC)
   })
-  it('keeps the ⌘, menu bar, Finder and System Settings words', () => {
-    for (const k of ['Ask Yogurt (⌘J)', 'Menu bar and Dock', 'Menu bar only', 'Dock only', 'Show in Finder', 'Open System Settings', 'Turn it on in System Settings'])
+  it('keeps the menu bar, Finder and System Settings words', () => {
+    for (const k of ['Menu bar and Dock', 'Menu bar only', 'Dock only', 'Show in Finder', 'Open System Settings', 'Turn it on in System Settings'])
       expect(keys).toContain(k)
   })
   it('has a Windows and Linux sentence beside each one shown there', () => {

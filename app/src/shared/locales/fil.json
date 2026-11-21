@@ -1,4 +1,6 @@
 {
+  "Ask about this meeting": "Magtanong tungkol sa pulong na ito",
+  "Ask about this folder": "Magtanong tungkol sa folder na ito",
   "About Yogurt": "Tungkol sa Yogurt",
   "Like Yogurt? Sharing it or starring it on GitHub helps us keep building it.": "Gusto mo ang Yogurt? Kapag ibinahagi mo ito o binigyan ng star sa GitHub, natutulungan mo kaming patuloy itong pagandahin.",
   "Copy link": "Kopyahin ang link",
@@ -66,7 +68,6 @@
   "Couldn't load your conversations.": "Hindi ma-load ang mga usapan mo.",
   "Ask": "Magtanong",
   "Ask Yogurt": "Tanungin ang Yogurt",
-  "Ask Yogurt (⌘J)": "Tanungin ang Yogurt (⌘J)",
   "Ask about your meetings": "Magtanong tungkol sa mga meeting mo",
   "Ask anything": "Magtanong ng kahit ano",
   "Auto": "Auto",
@@ -373,7 +374,6 @@
   "Show in Finder": "Ipakita sa Finder",
   "Show in File Explorer": "Ipakita sa File Explorer",
   "Show in Files": "Ipakita sa Files",
-  "Show or hide Ask Yogurt": "Ipakita o itago ang Magtanong sa Yogurt",
   "Some of this meeting couldn't be transcribed.": "Hindi na-transcribe ang bahagi ng meeting na ito.",
   "Spoken language": "Wikang sinasalita",
   "Star": "Bituin",

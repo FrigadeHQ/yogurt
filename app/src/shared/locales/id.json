@@ -1,4 +1,6 @@
 {
+  "Ask about this meeting": "Tanyakan tentang rapat ini",
+  "Ask about this folder": "Tanyakan tentang folder ini",
   "About Yogurt": "Tentang Yogurt",
   "Like Yogurt? Sharing it or starring it on GitHub helps us keep building it.": "Suka Yogurt? Dengan membagikannya atau memberinya bintang di GitHub, Anda membantu kami terus mengembangkannya.",
   "Copy link": "Salin tautan",
@@ -63,7 +65,6 @@
   "Couldn't load your conversations.": "Percakapan Anda gagal dimuat.",
   "Ask": "Tanya",
   "Ask Yogurt": "Tanya Yogurt",
-  "Ask Yogurt (⌘J)": "Tanya Yogurt (⌘J)",
   "Ask about your meetings": "Tanyakan tentang rapat Anda",
   "Ask anything": "Tanyakan apa saja",
   "Auto": "Otomatis",
@@ -364,7 +365,6 @@
   "Show in Finder": "Tampilkan di Finder",
   "Show in File Explorer": "Tampilkan di File Explorer",
   "Show in Files": "Tampilkan di Berkas",
-  "Show or hide Ask Yogurt": "Tampilkan atau sembunyikan Tanya Yogurt",
   "Some of this meeting couldn't be transcribed.": "Sebagian rapat ini tidak bisa ditranskripsi.",
   "Spoken language": "Bahasa lisan",
   "Star": "Bintang",
