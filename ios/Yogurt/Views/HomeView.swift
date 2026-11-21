@@ -13,7 +13,8 @@ struct HomeView: View {
     @State private var folder: String?
     @State private var showSettings = false
     @State private var showConnect = false
-    @State private var showRecordingSoon = false
+    @State private var showRecord = false
+    @Environment(\.scenePhase) private var phase
     @AppStorage("connectHintHidden") private var connectHintHidden = false
 
     var body: some View {
@@ -29,10 +30,12 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showSettings) { SettingsView() }
         .sheet(isPresented: $showConnect) { ConnectSheet() }
-        .alert(S.recordingSoonTitle, isPresented: $showRecordingSoon) {
-            Button(S.ok, role: .cancel) {}
-        } message: { Text(S.recordingSoonBody) }
+        .fullScreenCover(isPresented: $showRecord) {
+            RecordView(saved: { path.append(.meeting($0)) }, preview: UserDefaults.standard.bool(forKey: "previewRecording"))
+        }
         .onAppear(perform: applyLaunch)
+        // recordings a crash left behind, and notes not written yet
+        .task(id: phase) { if phase == .active { await PhoneDrafts.shared.resume(model: model) } }
     }
 
     private var list: some View {
@@ -42,6 +45,7 @@ struct HomeView: View {
         let meetings = model.store.meetings(folder: shownFolder)
         let filed = shownFolder == nil ? folderMap(folders) : [:]
         let alone = model.engine.status == .notPaired
+        let recordings = Dictionary(model.store.localRecordings().map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         return ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 Text(S.yourMeetings)
@@ -73,7 +77,7 @@ struct HomeView: View {
                                 .accessibilityAddTraits(.isHeader)
                             ForEach(day.meetings) { m in
                                 NavigationLink(value: Route.meeting(m.id)) {
-                                    MeetingRow(meeting: m, folders: filed[m.id] ?? [])
+                                    MeetingRow(meeting: m, folders: filed[m.id] ?? [], detail: PhoneDrafts.shared.homeDetail(for: m, recordings: recordings, model: model))
                                 }
                                 .buttonStyle(RowButtonStyle())
                                 .padding(.horizontal, -8)
@@ -108,7 +112,7 @@ struct HomeView: View {
     }
 
     private var recordButton: some View {
-        Button { showRecordingSoon = true } label: {
+        Button { showRecord = true } label: {
             Label(S.record, systemImage: "mic.fill").padding(.horizontal, 6)
         }
         .buttonStyle(PrimaryButtonStyle())
@@ -139,6 +143,7 @@ struct HomeView: View {
         if d.string(forKey: "openSearch") != nil, path.isEmpty { path = [.search] }
         if d.bool(forKey: "openSettings") { showSettings = true }
         if d.bool(forKey: "openConnect") { showConnect = true }
+        if d.bool(forKey: "openRecord") { showRecord = true }
         if let f = d.string(forKey: "openFolder") { folder = f }
         #endif
     }

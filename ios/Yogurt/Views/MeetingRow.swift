@@ -5,6 +5,8 @@ import YogurtKit
 struct MeetingRow: View {
     let meeting: Meeting
     var folders: [Folder] = []
+    /// in place of who was there: "Recorded on this iPhone · waiting for your computer"
+    var detail: String? = nil
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -14,7 +16,7 @@ struct MeetingRow: View {
                     .font(.body.weight(.medium))
                     .foregroundStyle(Theme.ink)
                     .lineLimit(1)
-                Text(Format.people(meeting.attendees))
+                Text(detail ?? Format.people(meeting.attendees))
                     .font(.subheadline)
                     .foregroundStyle(Theme.muted)
                     .lineLimit(1)

@@ -50,7 +50,7 @@ struct NoteView: View {
                     switch shown {
                     case .summary: SummaryPane(notes: notes)
                     case .mine: MyNotesPane(meetingId: meetingId, latest: notes?.mine ?? "")
-                    case .transcript: TranscriptPane(meetingId: meetingId)
+                    case .transcript: TranscriptPane(meetingId: meetingId, oneMic: notes?.summarySource == .phoneDraft)
                     }
                 }
                 .padding(.top, 20)
@@ -157,7 +157,8 @@ struct NoteView: View {
     }
 
     private func defaultTab(_ notes: Notes?) -> Tab {
-        if notes?.summary?.isEmpty == false { return .summary }
+        // a phone recording opens on its notes being written
+        if notes?.summary?.isEmpty == false || notes?.summarySource == .phoneDraft { return .summary }
         return .mine
     }
 
@@ -231,6 +232,8 @@ struct SummaryPane: View {
                 }
                 MarkdownView(markdown: summary, color: Theme.written)
             }
+        } else if let notes, notes.summarySource == .phoneDraft {
+            PhoneDraftNotice(meetingId: notes.meetingId)
         } else {
             VStack(alignment: .leading, spacing: 6) {
                 Text(S.noSummary).font(.body.weight(.medium)).foregroundStyle(Theme.ink)
@@ -337,6 +340,8 @@ struct MyNotesPane: View {
 
 struct TranscriptPane: View {
     let meetingId: String
+    /// recorded on one iPhone in a room: nobody is named, so each line stands on its own
+    var oneMic = false
     @Environment(AppModel.self) private var model
     /// nil until read; a long transcript is read off the main thread
     @State private var segments: [Segment]?
@@ -357,9 +362,11 @@ struct TranscriptPane: View {
                 ForEach(turns(segments), id: \.first.index) { turn in
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 8) {
-                            Text(speaker(turn.first.speaker))
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(turn.first.speaker == "me" ? Theme.accent : Theme.ink)
+                            if !oneMic {
+                                Text(speaker(turn.first.speaker))
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(turn.first.speaker == "me" ? Theme.accent : Theme.ink)
+                            }
                             Text(Format.offset(turn.first.startMs))
                                 .font(.caption.monospacedDigit())
                                 .foregroundStyle(Theme.muted)
@@ -379,7 +386,7 @@ struct TranscriptPane: View {
     private func turns(_ segments: [Segment]) -> [(first: Segment, text: String)] {
         var out: [(first: Segment, text: String)] = []
         for s in segments {
-            if let last = out.last, last.first.speaker == s.speaker {
+            if !oneMic, let last = out.last, last.first.speaker == s.speaker {
                 out[out.count - 1].text += " " + s.text
             } else {
                 out.append((s, s.text))
