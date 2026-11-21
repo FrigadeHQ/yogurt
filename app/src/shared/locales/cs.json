@@ -800,5 +800,7 @@
   "Yogurt couldn't start pairing. Try again.": "Yogurt nemohl zahájit párování. Zkuste to znovu.",
   "Yogurt on your iPhone": "Yogurt v iPhonu",
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Váš iPhone komunikuje s tímto počítačem jen ve stejné síti Wi-Fi. Nic nejde přes internet.",
-  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "Váš iPhone se teď k tomuto počítači nedostane. Zkuste Yogurt restartovat."
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "Váš iPhone se teď k tomuto počítači nedostane. Zkuste Yogurt restartovat.",
+  "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "Váš iPhone tento počítač nevidí. Povolte Yogurtu místní síť v Nastavení systému → Soukromí a zabezpečení.",
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "Váš iPhone tento počítač nevidí. Povolte Yogurt ve firewallu pro soukromé sítě."
 }

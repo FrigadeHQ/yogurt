@@ -727,5 +727,7 @@
   "Yogurt couldn't start pairing. Try again.": "Yogurt tidak bisa memulai pemasangan. Coba lagi.",
   "Yogurt on your iPhone": "Yogurt di iPhone kamu",
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone kamu hanya berbicara dengan komputer ini di Wi-Fi yang sama. Tidak ada yang lewat internet.",
-  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhone kamu tidak bisa menjangkau komputer ini sekarang. Coba mulai ulang Yogurt."
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhone kamu tidak bisa menjangkau komputer ini sekarang. Coba mulai ulang Yogurt.",
+  "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "iPhone kamu tidak bisa melihat komputer ini. Izinkan Jaringan Lokal untuk Yogurt di Pengaturan Sistem → Privasi & Keamanan.",
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone kamu tidak bisa melihat komputer ini. Izinkan Yogurt melewati firewall kamu di jaringan pribadi."
 }

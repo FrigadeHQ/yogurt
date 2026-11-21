@@ -727,5 +727,7 @@
   "Yogurt couldn't start pairing. Try again.": "Yogurt 無法開始配對。請再試一次。",
   "Yogurt on your iPhone": "iPhone 上的 Yogurt",
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "你的 iPhone 只在同一 Wi-Fi 下與這台電腦通訊。任何內容都不經過網際網路。",
-  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "你的 iPhone 現在無法連線這台電腦。請試著重新啟動 Yogurt。"
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "你的 iPhone 現在無法連線這台電腦。請試著重新啟動 Yogurt。",
+  "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "你的 iPhone 看不到這台電腦。請在「系統設定」→「隱私權與安全性」中允許 Yogurt 使用本地網路。",
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "你的 iPhone 看不到這台電腦。請在防火牆中允許 Yogurt 在私人網路上通訊。"
 }

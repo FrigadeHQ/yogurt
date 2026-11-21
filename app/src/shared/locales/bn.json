@@ -757,5 +757,7 @@
   "Yogurt couldn't start pairing. Try again.": "Yogurt যুক্ত করা শুরু করতে পারেনি। আবার চেষ্টা করুন।",
   "Yogurt on your iPhone": "আপনার iPhone-এ Yogurt",
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "আপনার iPhone শুধু একই Wi-Fi-তে এই কম্পিউটারের সঙ্গে কথা বলে। কিছুই ইন্টারনেট দিয়ে যায় না।",
-  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "আপনার iPhone এখন এই কম্পিউটারে পৌঁছাতে পারছে না। Yogurt আবার চালু করে দেখুন।"
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "আপনার iPhone এখন এই কম্পিউটারে পৌঁছাতে পারছে না। Yogurt আবার চালু করে দেখুন।",
+  "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "আপনার iPhone এই কম্পিউটারটি দেখতে পাচ্ছে না। সিস্টেম সেটিংস → গোপনীয়তা ও নিরাপত্তায় Yogurt-কে লোকাল নেটওয়ার্ক ব্যবহারের অনুমতি দিন।",
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "আপনার iPhone এই কম্পিউটারটি দেখতে পাচ্ছে না। প্রাইভেট নেটওয়ার্কে আপনার ফায়ারওয়ালের মধ্য দিয়ে Yogurt-কে অনুমতি দিন।"
 }

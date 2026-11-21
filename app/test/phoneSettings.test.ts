@@ -18,7 +18,7 @@ async function render(status: CompanionStatus | null, ...extra: unknown[]) {
   const react = await vi.importActual<typeof import('react')>('react')
   const mock = vi.mocked(useState).mockImplementation(react.useState).mockImplementationOnce(() => [status, vi.fn()])
   for (const v of extra) mock.mockImplementationOnce(() => [v, vi.fn()])
-  return renderToStaticMarkup(createElement(PhoneSettings)).replace(/<!-- -->/g, '').replace(/&#x27;/g, "'")
+  return renderToStaticMarkup(createElement(PhoneSettings)).replace(/<!-- -->/g, '').replace(/&#x27;/g, "'").replace(/&amp;/g, '&')
 }
 
 it('not paired: explains it and offers Pair a phone, with the Wi-Fi note', async () => {
@@ -76,6 +76,21 @@ it('paired: the phone, Connected or when it was last seen, and Unpair with an in
   expect(await render({ ...idle, paired: { name: 'Test iPhone', lastSeen: NOW }, error: 'listen' })).toContain('data-testid="phone-notice"')
 })
 
+const MAC_NETWORK = "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security."
+const PC_NETWORK = "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks."
+
+it('an advert the network refused says how to let the iPhone see this computer, while pairing and once paired', async () => {
+  vi.stubGlobal('window', { yogurt: { platform: 'darwin' } })
+  try {
+    const pairing = await render({ ...idle, error: 'network', pairing: { code: '482913', expiresAt: NOW + 102_000, attemptsLeft: 5 } })
+    expect(pairing).toContain(MAC_NETWORK)
+    expect(pairing).toContain('data-testid="phone-code"')
+    expect(await render({ ...idle, error: 'network', paired: { name: 'Test iPhone', lastSeen: NOW } })).toContain(MAC_NETWORK)
+    vi.stubGlobal('window', { yogurt: { platform: 'win32' } })
+    expect(await render({ ...idle, error: 'network', paired: { name: 'Test iPhone', lastSeen: NOW } })).toContain(PC_NETWORK)
+  } finally { vi.unstubAllGlobals() }
+})
+
 it('shows nothing when the companion is not running', async () => {
   expect(await render(null)).toBe('')
 })
@@ -83,7 +98,7 @@ it('shows nothing when the companion is not running', async () => {
 it('translates the Phone section in every interface language', () => {
   for (const { id } of LOCALES) {
     setLanguage(id)
-    for (const key of ['Phone', 'Pair a phone', 'Open Yogurt on your iPhone and type this code', WIFI, 'Unpair your iPhone? It keeps its copy until you pair again.']) {
+    for (const key of ['Phone', 'Pair a phone', 'Open Yogurt on your iPhone and type this code', WIFI, 'Unpair your iPhone? It keeps its copy until you pair again.', MAC_NETWORK, PC_NETWORK]) {
       expect(t(key).trim()).not.toBe('')
       if (id !== 'en') expect(t(key)).not.toBe(key)
     }

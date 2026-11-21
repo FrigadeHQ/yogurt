@@ -33,6 +33,11 @@ Pairing needs the desktop build from this branch (`ios-companion`) until it's re
 
 Both need to be on the same Wi-Fi. Your meetings come over, and what you record on the iPhone goes to the computer, which writes the final notes.
 
+If the iPhone stays on "Looking for computers…":
+
+- **Mac:** System Settings → Privacy & Security → Local Network: turn on Yogurt (under `pnpm dev` it's listed as Electron, or as your terminal app).
+- **Windows:** when Windows Firewall asks about Yogurt, allow it on private networks, and check that your Wi-Fi is set to Private.
+
 ## For developers
 
 ### YogurtKit tests

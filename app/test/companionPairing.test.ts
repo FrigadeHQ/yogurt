@@ -6,7 +6,7 @@ import { openStore } from '../src/main/store'
 import { ready } from '../src/main/companion/sodium'
 import { generateKeyPair } from '../src/main/companion/noise'
 import { createCompanion, type Companion, type CompanionDeps } from '../src/main/companion'
-import type { Advert } from '../src/main/companion/advertise'
+import type { Advert, Advertiser } from '../src/main/companion/advertise'
 import { pairAsPhone, raw, session } from './helpers/companionClient'
 
 beforeAll(() => ready())
@@ -36,6 +36,23 @@ async function make(o: Partial<CompanionDeps> = {}) {
 const devices = (store: ReturnType<typeof openStore>) => store.db.prepare('SELECT id, name, public_key FROM companion_devices').all()
 
 describe('companion pairing', () => {
+  it('an advert the network refuses (no Local Network permission, a firewall) says so instead of showing a code as if all is well', async () => {
+    const advertiser: Advertiser = { publish: () => {}, stop: () => {} }
+    const { c } = await make({ advertiser })
+    const pushed: string[] = []
+    c.onStatus((s) => pushed.push(String(s.error)))
+    await c.startPairing()
+    expect(c.status().error).toBeNull()
+    advertiser.onFailure?.()
+    expect(c.status().error).toBe('network')
+    expect(c.status().pairing).not.toBeNull()
+    expect(pushed.at(-1)).toBe('network')
+    // trying again starts from a clean slate
+    await c.cancelPairing()
+    await c.startPairing()
+    expect(c.status().error).toBeNull()
+  })
+
   it('is off until pairing starts: no port, no advert, and a desktop id plus a sealed key on disk', async () => {
     const { c, adverts, dir } = await make()
     expect(c.port()).toBeNull()

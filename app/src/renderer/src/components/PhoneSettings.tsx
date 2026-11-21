@@ -58,6 +58,11 @@ export function PhoneSettings() {
 
   const pairing = status?.pairing
   const paired = status?.paired
+  // the phone can't find this computer: say what to allow, in this computer's words
+  const network = status?.error !== 'network' ? null
+    : <p role="alert" data-testid="phone-network" className="settings-description text-danger">{globalThis.window?.yogurt?.platform === 'darwin'
+      ? t("Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.")
+      : t("Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.")}</p>
   const notice = status?.error === 'keychain' ? t("Yogurt couldn't reach this computer's secure storage, so it can't pair right now.")
     : failed || status?.error === 'listen' ? t("Yogurt couldn't start pairing. Try again.")
     : status?.pairingClosed === 'tooMany' ? t('Too many wrong codes. Start pairing again.')
@@ -75,6 +80,7 @@ export function PhoneSettings() {
             <span>{pairing.code.slice(0, 3)}</span><span>{pairing.code.slice(3)}</span>
           </p>
           <p data-testid="phone-countdown" aria-live="off" className="settings-description">{t('Code works for {time}', { time: countdown(pairing.expiresAt - now) })}</p>
+          {network}
         </div>
         <button type="button" data-testid="phone-cancel" disabled={busy} onClick={() => void cancel()} className="workspace-button settings-action">{t('Cancel')}</button>
       </div>
@@ -89,6 +95,7 @@ export function PhoneSettings() {
               {status.connected ? t('Connected') : paired.lastSeen == null ? t('Not connected yet') : lastSeen(paired.lastSeen, now)}
             </p>}
           {status.error === 'listen' && <p role="alert" data-testid="phone-notice" className="settings-description text-danger">{t("Your iPhone can't reach this computer right now. Try restarting Yogurt.")}</p>}
+          {network}
         </div>
         {confirming ? <div className="flex shrink-0 gap-2">
           <button type="button" data-testid="phone-unpair-cancel" disabled={busy} onClick={() => setConfirming(false)} className="workspace-button">{t('Cancel')}</button>

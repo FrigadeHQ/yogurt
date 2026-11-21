@@ -782,5 +782,7 @@
   "Yogurt couldn't start pairing. Try again.": "Yogurt no pudo iniciar la vinculación. Inténtalo de nuevo.",
   "Yogurt on your iPhone": "Yogurt en tu iPhone",
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Tu iPhone habla con este ordenador solo en la misma red Wi-Fi. Nada pasa por internet.",
-  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "Tu iPhone no puede comunicarse con este ordenador ahora. Prueba a reiniciar Yogurt."
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "Tu iPhone no puede comunicarse con este ordenador ahora. Prueba a reiniciar Yogurt.",
+  "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "Tu iPhone no ve este ordenador. Permite la red local para Yogurt en Ajustes del Sistema → Privacidad y seguridad.",
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "Tu iPhone no ve este ordenador. Permite Yogurt en tu cortafuegos para redes privadas."
 }

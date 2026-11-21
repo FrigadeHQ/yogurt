@@ -727,5 +727,7 @@
   "Yogurt couldn't start pairing. Try again.": "Yogurt가 페어링을 시작하지 못했습니다. 다시 시도하세요.",
   "Yogurt on your iPhone": "iPhone의 Yogurt",
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone은 같은 Wi-Fi에서만 이 컴퓨터와 통신합니다. 인터넷을 거치는 것은 없습니다.",
-  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhone이 지금 이 컴퓨터에 연결할 수 없습니다. Yogurt를 다시 시작해 보세요."
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhone이 지금 이 컴퓨터에 연결할 수 없습니다. Yogurt를 다시 시작해 보세요.",
+  "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "iPhone에서 이 컴퓨터가 보이지 않습니다. 시스템 설정 → 개인정보 보호 및 보안에서 Yogurt의 로컬 네트워크를 허용하세요.",
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone에서 이 컴퓨터가 보이지 않습니다. 방화벽에서 개인 네트워크에 대해 Yogurt를 허용하세요."
 }

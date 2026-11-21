@@ -786,5 +786,7 @@
   "Yogurt couldn't start pairing. Try again.": "Yogurt nu a putut porni asocierea. Încearcă din nou.",
   "Yogurt on your iPhone": "Yogurt pe iPhone-ul tău",
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone-ul tău vorbește cu acest computer doar în aceeași rețea Wi-Fi. Nimic nu trece prin internet.",
-  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhone-ul tău nu poate ajunge acum la acest computer. Încearcă să repornești Yogurt."
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhone-ul tău nu poate ajunge acum la acest computer. Încearcă să repornești Yogurt.",
+  "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "iPhone-ul tău nu vede acest computer. Permite rețeaua locală pentru Yogurt în Configurări sistem → Confidențialitate și securitate.",
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone-ul tău nu vede acest computer. Permite Yogurt în firewall pentru rețelele private."
 }

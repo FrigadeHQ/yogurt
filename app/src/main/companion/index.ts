@@ -87,6 +87,13 @@ export async function createCompanion(d: CompanionDeps) {
   let pairingClosed: CompanionStatus['pairingClosed'] = null
   let retryAt = 0
   let listenFailed = false
+  /** the network refused the advert: the phone can't find this computer (cleared once one connects, or pairing starts again) */
+  let advertFailed = false
+  advertiser.onFailure = () => {
+    if (advertFailed) return
+    advertFailed = true
+    emit()
+  }
   let expiry: NodeJS.Timeout | undefined
   let server: Listening | null = null
   let starting: Promise<void> | null = null
@@ -102,7 +109,7 @@ export async function createCompanion(d: CompanionDeps) {
       paired: dev && { name: dev.name, lastSeen: dev.lastSeen },
       pairing: open && { code: open.code, expiresAt: open.expiresAt, attemptsLeft: open.attemptsLeft },
       pairingClosed,
-      error: listenFailed ? 'listen' : null,
+      error: listenFailed ? 'listen' : advertFailed ? 'network' : null,
       connected: !!session,
       syncing: busy > 0,
     }
@@ -211,6 +218,7 @@ export async function createCompanion(d: CompanionDeps) {
         opened: (s: Session) => {
           session?.close()
           session = s
+          advertFailed = false
           lastCursor = maxSeq()
           seen()
           d.log('COMPANION', 'session opened')
@@ -275,6 +283,7 @@ export async function createCompanion(d: CompanionDeps) {
     /** a new six-digit code for two minutes; the server starts if it wasn't running */
     async startPairing(): Promise<{ code: string; expiresAt: number }> {
       listenFailed = false
+      advertFailed = false
       freshCode()
       pairingClosed = null
       retryAt = 0

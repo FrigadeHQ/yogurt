@@ -797,5 +797,7 @@
   "Yogurt couldn't start pairing. Try again.": "Yogurt не зміг почати під’єднання. Спробуйте ще раз.",
   "Yogurt on your iPhone": "Yogurt на вашому iPhone",
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone спілкується з цим комп’ютером лише в тій самій мережі Wi-Fi. Нічого не йде через інтернет.",
-  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhone зараз не може зв’язатися з цим комп’ютером. Спробуйте перезапустити Yogurt."
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhone зараз не може зв’язатися з цим комп’ютером. Спробуйте перезапустити Yogurt.",
+  "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "iPhone не бачить цей комп’ютер. Дозвольте Yogurt доступ до локальної мережі в Системних параметрах → Приватність і безпека.",
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone не бачить цей комп’ютер. Дозвольте Yogurt у брандмауері для приватних мереж."
 }

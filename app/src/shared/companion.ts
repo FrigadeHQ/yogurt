@@ -9,9 +9,10 @@ export type CompanionStatus = {
   pairingClosed: null | 'expired' | 'tooMany'
   /**
    * keychain: the system keychain wouldn't open this computer's key (off, the pairing kept, until a start where it opens);
-   * listen: the server couldn't start listening, so pairing closed (the next start tries again)
+   * listen: the server couldn't start listening, so pairing closed (the next start tries again);
+   * network: the local network refused the advert (macOS Local Network permission, a firewall), so the phone can't find it
    */
-  error: null | 'keychain' | 'listen'
+  error: null | 'keychain' | 'listen' | 'network'
   connected: boolean
   syncing: boolean
 }
