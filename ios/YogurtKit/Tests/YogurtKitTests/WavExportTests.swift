@@ -17,7 +17,63 @@ private func toneM4A(seconds: Double = 1.5, rate: Double = 48000) throws -> URL 
     return url
 }
 
+/// Made-up audio written the way the phone's Recorder writes it, AAC through AVAssetWriter in fragments, and left
+/// unfinished as a killed app leaves it.
+private func fragmentedM4A(seconds: Double, rate: Double = 48000) async throws -> URL {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent("frag-\(UUID().uuidString).m4a")
+    let writer = try AVAssetWriter(outputURL: url, fileType: .m4a)
+    writer.movieFragmentInterval = CMTime(seconds: 1, preferredTimescale: 600)
+    let input = AVAssetWriterInput(mediaType: .audio, outputSettings: [AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: rate,
+                                                                       AVNumberOfChannelsKey: 1, AVEncoderBitRateKey: 64000])
+    writer.add(input)
+    #expect(writer.startWriting())
+    writer.startSession(atSourceTime: .zero)
+    let format = AVAudioFormat(standardFormatWithSampleRate: rate, channels: 1)!
+    var desc: CMAudioFormatDescription?
+    CMAudioFormatDescriptionCreate(allocator: nil, asbd: format.streamDescription, layoutSize: 0, layout: nil, magicCookieSize: 0,
+                                   magicCookie: nil, extensions: nil, formatDescriptionOut: &desc)
+    let piece = AVAudioFrameCount(rate / 10)
+    var frames: Int64 = 0
+    while Double(frames) < seconds * rate {
+        let buf = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: piece)!
+        buf.frameLength = piece
+        for i in 0..<Int(piece) { buf.floatChannelData![0][i] = Float(sin(Double(frames + Int64(i)) * 2 * .pi * 440 / rate)) * 0.3 }
+        var timing = CMSampleTimingInfo(duration: CMTime(value: 1, timescale: CMTimeScale(rate)),
+                                        presentationTimeStamp: CMTime(value: frames, timescale: CMTimeScale(rate)), decodeTimeStamp: .invalid)
+        var sample: CMSampleBuffer?
+        CMSampleBufferCreate(allocator: nil, dataBuffer: nil, dataReady: false, makeDataReadyCallback: nil, refcon: nil, formatDescription: desc!,
+                             sampleCount: CMItemCount(piece), sampleTimingEntryCount: 1, sampleTimingArray: &timing, sampleSizeEntryCount: 0,
+                             sampleSizeArray: nil, sampleBufferOut: &sample)
+        CMSampleBufferSetDataBufferFromAudioBufferList(sample!, blockBufferAllocator: nil, blockBufferMemoryAllocator: nil, flags: 0,
+                                                       bufferList: buf.audioBufferList)
+        while !input.isReadyForMoreMediaData { try await Task.sleep(for: .milliseconds(2)) }
+        #expect(input.append(sample!))
+        frames += Int64(piece)
+    }
+    // never finished, as when the app is killed: what's on disk is what the fragments wrote so far
+    try await Task.sleep(for: .seconds(1.5))
+    let copy = url.deletingPathExtension().appendingPathExtension("killed.m4a")
+    try FileManager.default.copyItem(at: url, to: copy)
+    writer.cancelWriting()
+    try? FileManager.default.removeItem(at: url)
+    return copy
+}
+
 @Suite struct WavExportTests {
+    @Test func aRecordingCutShortByACrashStillConvertsUpToWhereItEnds() async throws {
+        let m4a = try await fragmentedM4A(seconds: 6)
+        let wav = FileManager.default.temporaryDirectory.appendingPathComponent("cut-\(UUID().uuidString).wav")
+        defer { try? FileManager.default.removeItem(at: m4a); try? FileManager.default.removeItem(at: wav) }
+        // cut in the middle of a fragment written before the app was killed
+        let killed = try Data(contentsOf: m4a)
+        try killed.prefix(killed.count / 2).write(to: m4a)
+        try PhoneAudio.wav(from: m4a, to: wav)
+        let d = try Data(contentsOf: wav)
+        let seconds = Double(d.count - 44) / 32000
+        // the fragments before the cut, and nothing made up after it
+        #expect(seconds > 2 && seconds < 5.5)
+    }
+
     @Test func anM4AFromThePhoneBecomes16kMono16BitWav() throws {
         let m4a = try toneM4A()
         let wav = FileManager.default.temporaryDirectory.appendingPathComponent("out-\(UUID().uuidString).wav")
