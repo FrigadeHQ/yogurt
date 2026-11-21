@@ -39,15 +39,16 @@ describe('the MCP server', () => {
       return [init.result.instructions, list.result.tools.find((t) => t.name === 'get_audio')!.description]
     }
     const mac = "A meeting's recording as files on this Mac: one per side (track me: the person's microphone; them: the other side of the call), AAC in .m4a. Gives paths, which apps on this Mac can open."
-    expect(await audioText()).toEqual([expect.stringMatching(/^Yogurt holds the person's meeting notes, transcripts and recordings on this Mac\. Use list_meetings or search to find a meeting, then get_meeting, get_transcript or get_audio\./), mac])
-    expect(await audioText('darwin')).toEqual(await audioText())
+    const here = await audioText()
+    expect(here).toEqual([expect.stringMatching(/^Yogurt holds the person's meeting notes, transcripts and recordings on this Mac\. Use list_meetings or search to find a meeting, then get_meeting, get_transcript or get_audio\./), mac])
+    expect(await audioText('darwin')).toEqual(here)
     for (const p of ['win32', 'linux']) {
       const [instructions, audio] = await audioText(p)
       expect(instructions).toContain('on this computer.')
       expect(audio).toContain('Ogg Opus in .ogg')
       expect(`${instructions} ${audio}`).not.toMatch(/this Mac/)
     }
-  }, 30_000) // five databases: under a second on a Mac, over 5 s on GitHub's Windows runners
+  }, 120_000) // four databases: under a second on a Mac, but up to ~40 s on GitHub's Windows runners
   it('answers notifications with nothing, pings with an empty result, and anything else with method not found', async () => {
     const { mcp } = setup()
     expect(await mcp.handle({ jsonrpc: '2.0', method: 'notifications/initialized' })).toBeNull()
