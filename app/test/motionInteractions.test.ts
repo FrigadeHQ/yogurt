@@ -496,25 +496,26 @@ it.each(['darwin', 'win32'])('toggles the meeting panel once per shortcut press 
   expect(click).toHaveBeenCalledTimes(3)
 })
 
-it.each([false, true])('keeps the composer clip inside the growing shape through open, close and reversal (narrow: %s)', narrow => {
+it.each([[false, false], [true, false], [false, true], [true, true]])('clips the suggestions and composer with the moving surface (narrow %s, reduced motion %s)', async (narrow, reduced) => {
   const rect = (x: number, y: number, width: number, height: number) => ({ x, y, width, height, top: y, left: x, right: x + width, bottom: y + height })
   const to = narrow ? rect(16, 16, 328, 640) : rect(760, 200, 420, 440)
   // Exercise a button outside the final panel, anchored on either side.
   const from = narrow ? rect(20, 700, 140, 30) : rect(1040, 670, 140, 30)
-  const box = rect(to.x + 1, to.y + 1, to.width - 2, to.height - 2)
   const node = (bounds: ReturnType<typeof rect>, computed: Record<string, string>) => ({
-    getBoundingClientRect: () => bounds, computed,
-    animate: vi.fn((_frames: Keyframe[], _options: KeyframeAnimationOptions) => ({
-      playState: 'running', cancel() { this.playState = 'idle' }, finished: new Promise<void>(() => {}),
-    })),
+    getBoundingClientRect: () => bounds, computed, style: { overflow: '' },
+    animate: vi.fn((_frames: Keyframe[], _options: KeyframeAnimationOptions) => {
+      let finish!: () => void
+      const finished = new Promise<void>(resolve => { finish = resolve })
+      return { playState: 'running', cancel() { this.playState = 'idle' }, finished, finish }
+    }),
   })
   const button = { ...node(from, { opacity: '1', borderRadius: '6px' }), focus: vi.fn() }
   const shell = node(to, { left: '-1px', top: '-1px', width: `${to.width}px`, height: `${to.height}px`, borderRadius: '12px', opacity: '1' })
-  const body = node(box, { clipPath: 'none', opacity: '1' })
+  const body = node(to, { opacity: '1' })
   const input = { focus: vi.fn() }
   const dialog = { ...node(to, { opacity: '1' }), style: { setProperty() {} }, show() {}, showModal() {}, close() {}, querySelector: () => input }
   const anchor = { getBoundingClientRect: () => to } as HTMLElement
-  vi.stubGlobal('window', { matchMedia: (query: string) => ({ matches: query.includes('max-width') && narrow }), addEventListener() {}, removeEventListener() {} })
+  vi.stubGlobal('window', { matchMedia: (query: string) => ({ matches: query.includes('max-width') ? narrow : reduced }), addEventListener() {}, removeEventListener() {} })
   vi.stubGlobal('innerHeight', 800)
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
   vi.stubGlobal('getComputedStyle', (element: { computed: Record<string, string> }) => element.computed)
@@ -525,60 +526,58 @@ it.each([false, true])('keeps the composer clip inside the growing shape through
   tree = render()
   const panel = find(tree, 'chat-panel')
   panel.props.ref.current = dialog
-  panel.props.children[0].props.ref.current = shell
-  panel.props.children[1].props.ref.current = body
-  // The conversation mounts before its ID resolves; clipping must not postpone the editable composer.
-  expect(panel.props.children[1].props.children[1].props).toMatchObject({ id: '', panel: true, pendingDraftKey: 'meeting/morph' })
+  const surface = find(panel, 'chat-morph-surface')
+  surface.props.ref.current = shell
+  find(surface, 'chat-panel-contents').props.ref.current = body
+  const conversation = find(surface, 'AskConversation')
+  expect(surface.props['aria-hidden']).toBeUndefined()
+  expect(conversation.props).toMatchObject({ id: '', panel: true, pendingDraftKey: 'meeting/morph' })
   vi.mocked(useLayoutEffect).mock.lastCall![0]()
   expect(input.focus).toHaveBeenCalledWith({ preventScroll: true })
+  const view = renderer(() => AskConversation(conversation.props))()
+  expect(find(view, 'chat-suggestions')).toBeDefined()
+  expect(find(view, 'chat-box').type).toBe('form')
 
-  const lerp = (a: string, b: string, p: number) => parseFloat(a) + (parseFloat(b) - parseFloat(a)) * p
-  const clip = (value: string) => {
-    const n = value.match(/-?\d+(?:\.\d+)?/g)!.map(Number)
-    return n.length === 2 ? [n[0], n[0], n[0], n[0], n[1]] : n
+  const toggle = () => find(tree, 'chat-open').props.onClick()
+  if (reduced) {
+    expect(dialog.animate.mock.lastCall?.[0]).toEqual([{ opacity: 0 }, { opacity: 1 }])
+    toggle()
+    expect(dialog.animate.mock.lastCall?.[0].at(-1)).toEqual({ opacity: 0 })
+    expect(dialog.animate.mock.lastCall?.[1].duration).toBe(120)
+    expect(shell.animate).not.toHaveBeenCalled()
+    expect(shell.style.overflow).toBe('')
+    return
   }
-  const check = (expand: boolean) => {
-    const [shape, shapeTiming] = shell.animate.mock.calls.at(-2)!
-    const [crop, cropTiming] = body.animate.mock.calls.at(-2)!
-    expect(shapeTiming.duration).toBe(cropTiming.duration)
-    expect(shapeTiming.easing).toBe(cropTiming.easing)
-    expect(cropTiming.fill).toBe(expand ? 'backwards' : 'forwards')
-    expect(shapeTiming.fill).toBe('both')
-    expect(shape[1].width).toBe(expand ? 'calc(100% + 2px)' : `${from.width}px`)
-    expect(shape.every(frame => !frame.transform)).toBe(true)
-    const at = (p: number) => {
-      const used = (frame: Keyframe, key: string) => String(frame[key]).includes('100%') ? `${to[key as 'width' | 'height']}px` : String(frame[key])
-      const bounds = Object.fromEntries(['left', 'top', 'width', 'height', 'borderRadius'].map(key => [key, lerp(used(shape[0], key), used(shape[1], key), p)]))
-      const start = clip(String(crop[0].clipPath)), end = clip(String(crop[1].clipPath))
-      const inset = start.map((value, i) => value + (end[i] - value) * p)
-      return { bounds, inset }
-    }
-    // All intermediate rectangles AND rounded corners agree, not just the two endpoints.
-    for (let frame = 0; frame <= 100; frame++) {
-      const { bounds, inset: [top, right, bottom, left, radius] } = at(frame / 100)
-      expect(box.left + left).toBeCloseTo(to.left + 1 + bounds.left + 1)
-      expect(box.top + top).toBeCloseTo(to.top + 1 + bounds.top + 1)
-      expect(box.right - right).toBeCloseTo(to.left + 1 + bounds.left + bounds.width - 1)
-      expect(box.bottom - bottom).toBeCloseTo(to.top + 1 + bounds.top + bounds.height - 1)
-      expect(radius).toBeCloseTo(bounds.borderRadius - 1)
-    }
-    // A fast toggle resumes from the same on-screen bounds and radius.
-    const { bounds, inset } = at(.4)
-    Object.assign(shell.computed, Object.fromEntries(Object.entries(bounds).map(([key, value]) => [key, `${value}px`])))
-    body.computed.clipPath = `inset(${inset.slice(0, 4).map(n => `${n}px`).join(' ')} round ${inset[4]}px)`
+  const collapsed = { '--ask-left': `${from.left - to.left - 1}px`, '--ask-top': `${from.top - to.top - 1}px`, width: `${from.width}px`, height: `${from.height}px`, borderRadius: '6px' }
+  const expanded = { '--ask-left': '-1px', '--ask-top': '-1px', width: 'calc(100% + 2px)', height: 'calc(100% + 2px)', borderRadius: '12px' }
+  const shape = () => shell.animate.mock.calls.at(-2)!
+  expect(shape()[0]).toEqual([collapsed, expanded])
+  expect(shape()[1].duration).toBe(180)
+  expect(shell.style.overflow).toBe('clip')
+  expect(body.animate.mock.calls.flatMap(([frames]) => frames).every(frame => Object.keys(frame).every(k => k === 'opacity'))).toBe(true)
+  const first = shell.animate.mock.results.at(-2)!.value
+
+  // Reverse from the painted bounds. A late completion from the first opening cannot release the new clip.
+  const midway = { left: '40px', top: '80px', width: '210px', height: '140px', borderRadius: '8px' }
+  Object.assign(shell.computed, midway)
+  toggle()
+  const resumed = { '--ask-left': midway.left, '--ask-top': midway.top, width: midway.width, height: midway.height, borderRadius: midway.borderRadius }
+  expect(shape()[0]).toEqual([resumed, collapsed])
+  expect(shape()[1].duration).toBe(150)
+  toggle()
+  expect(shape()[0]).toEqual([resumed, expanded])
+  first.finish()
+  await Promise.resolve()
+  expect(shell.style.overflow).toBe('clip')
+  shell.animate.mock.results.at(-2)!.value.finish()
+  await Promise.resolve()
+  expect(shell.style.overflow).toBe('')
+  for (const el of [shell, body, button]) {
+    for (const result of el.animate.mock.results) result.value.playState = 'finished'
   }
-  check(true)
-  find(tree, 'chat-open').props.onClick()
-  check(false)
-  find(tree, 'chat-open').props.onClick()
-  check(true)
-  for (const element of [shell, body, button, dialog]) {
-    for (const result of element.animate.mock.results) result.value.playState = 'finished'
-  }
-  Object.assign(shell.computed, { left: '-1px', top: '-1px', width: `${to.width}px`, height: `${to.height}px`, borderRadius: '12px' })
-  body.computed.clipPath = 'none'
-  find(tree, 'chat-open').props.onClick()
-  check(false)
+  toggle()
+  expect(shape()[0]).toEqual([expanded, collapsed])
+  expect(shell.style.overflow).toBe('clip')
 })
 
 

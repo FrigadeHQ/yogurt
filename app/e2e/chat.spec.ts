@@ -381,6 +381,21 @@ test('Ask grows from its button identically for either trigger and keeps typing 
     expect(parseFloat(String(motion[0].frames[0].width))).toBeCloseTo((await trigger.boundingBox())!.width)
     expect(String(motion[0].frames.at(-1)!.width)).toContain('100%')
     expect(motion[0].frames.every(frame => !frame.transform)).toBe(true)
+    // Sample the opening itself, including the frame where the shell is still on the button.
+    const insets = await surface.evaluate(el => {
+      const shape = el.getAnimations().find(a => (a.effect as KeyframeEffect).getKeyframes().some(f => f.width))!
+      const dialog = el.closest('dialog')!.getBoundingClientRect()
+      const body = el.querySelector('.chat-panel-contents')!, composer = body.querySelector('.chat-composer')!
+      shape.pause()
+      const samples = [0, 45, 90, 180].map(ms => {
+        shape.currentTime = ms
+        const bounds = body.getBoundingClientRect()
+        return [bounds.left - dialog.left, bounds.top - dialog.top, dialog.right - bounds.right, dialog.bottom - composer.getBoundingClientRect().bottom]
+      })
+      shape.finish()
+      return samples
+    })
+    for (const sample of insets) for (const inset of sample) expect(inset).toBeCloseTo(1, 1)
     await expect(page.getByTestId('chat-input')).toBeFocused()
     await expect(page.locator('.chat-panel-contents')).toHaveCSS('transform', 'none')
     await expect(page.locator('.chat-panel-contents')).toHaveCSS('filter', 'none')

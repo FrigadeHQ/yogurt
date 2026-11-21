@@ -123,9 +123,17 @@ it('keeps the anchored panel curve monotonic with a shorter close', () => {
   const styles = readFileSync(new URL('../src/renderer/src/styles.css', import.meta.url), 'utf8')
   const surface = styles.match(/\.chat-morph-surface \{([^}]+)\}/)![1]
   // Animated left/top and width/height must not be overconstrained by right/bottom in RTL.
-  expect(surface).toContain('inset:-1px auto auto -1px')
+  expect(surface).toContain('inset:var(--ask-top) auto auto var(--ask-left)')
   expect(surface).toContain('width:calc(100% + 2px);height:calc(100% + 2px)')
   expect(surface).not.toContain('transform')
+  expect(surface).not.toContain('pointer-events:none')
+  expect(styles).toMatch(/\.chat-panel-viewport \{[^}]*container-type:size/)
+  const contents = styles.match(/\.chat-panel-contents \{([^}]+)\}/)![1]
+  expect(contents).toContain('width:100cqw;height:100cqh')
+  for (const edge of ['left', 'top']) {
+    expect(styles).toContain(`@property --ask-${edge} { syntax:"<length>";inherits:true;initial-value:-1px; }`)
+    expect(contents).toContain(`${edge}:calc(-1px - var(--ask-${edge}))`)
+  }
 })
 
 it('moves the sidebar and page together with the original timing and child layout', () => {
