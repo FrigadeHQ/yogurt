@@ -5,7 +5,7 @@
   "type": "module",
   "main": "out/main/index.js",
   "scripts": {
-    "dev": "electron-vite dev",
+    "dev": "node scripts/dev.mjs",
     "build": "node scripts/native.mjs && electron-vite build",
     "test": "vitest run",
     "e2e": "node scripts/native.mjs && electron-vite build && playwright test",
