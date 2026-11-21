@@ -236,8 +236,8 @@
 .agenda-week span { font-size:10px;line-height:14px;color:var(--muted); }
 .agenda-week b { display:grid;place-items:center;font-size:11px;font-weight:500;width:26px;height:26px;border-radius:6px;border:1px solid transparent; }
 .agenda-week button:not([aria-pressed=true]):not([aria-current=date]):hover b { background:var(--accent-soft); }
-.agenda-week [aria-current=date]:not([aria-pressed=true]) b { color:var(--accent);border-color:currentColor; }
-.agenda-week [aria-pressed=true] b { color:var(--primary-ink);background:var(--primary); }
+.agenda-week [aria-current=date] b { color:var(--accent);border-color:var(--accent); }
+.agenda-week [aria-pressed=true] b { color:var(--ink);background:var(--control-hover); }
 .agenda-day { display:flex;align-items:baseline;gap:9px;margin-bottom:0; }
 .agenda-day h3 { font-size:13px;font-weight:600; }
 .agenda-day>span { font-size:11px;color:var(--muted); }
@@ -407,9 +407,8 @@
 .folder-choice-label { color:var(--muted);font-size:11px;font-weight:500;margin-bottom:9px; }
 .folder-icon-grid { display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;margin-bottom:20px; }
 .folder-icon-grid button { display:grid;place-items:center;height:38px;border:1px solid transparent;border-radius:8px;background:transparent;transition:background var(--dur-micro) ease,border-color var(--dur-micro) ease; }
-.folder-icon-grid button:hover { background:var(--control); }
-.folder-icon-grid button[aria-checked=true] { background:var(--primary); }
-.folder-icon-grid button[aria-checked=true] .folder-glyph { color:var(--primary-ink); }
+.folder-icon-grid button[aria-checked=true] { border:1.5px solid var(--folder-ink);background:color-mix(in srgb,var(--folder-ink) 16%,var(--float)); }
+.folder-icon-grid button:hover:not(:disabled) { background:var(--control-hover); }
 .folder-color-grid { display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px; }
 .folder-color-grid button { display:grid;place-items:center;height:30px;border:1px solid transparent;border-radius:50%; }
 .folder-color-grid button span { width:18px;height:18px;border-radius:50%;background:var(--folder-ink); }
@@ -607,10 +606,6 @@
 @media (prefers-reduced-motion:reduce) {
   .note-folder-proposal,.meeting-folder-proposal,.note-folder-actions,.meeting-folder-proposal .note-folder-name span:last-child { transition:none; }
 }
-
-/* a color here too: the shimmering Thinking… line paints its text through a transparent fill */
-.ask-conversation ::selection { background:var(--accent-soft);color:var(--ink); }
-@media (prefers-color-scheme:dark) { .ask-conversation ::selection { background:var(--primary);color:var(--primary-ink); } }
 
 .native-library { scrollbar-gutter:stable; }
 .native-library:has(.library-empty) { display:flex;flex-direction:column; }

@@ -38,8 +38,8 @@ test('@everywhere on win32: the agenda sends you to Settings, a calendar link co
     for (const colorScheme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme })
       const selected = form.getByRole('tab', { selected: true })
-      await expect(selected).toHaveCSS('background-color', 'rgb(111, 0, 255)')
-      await expect(selected).toHaveCSS('color', 'rgb(255, 255, 255)')
+      await expect(selected).toHaveCSS('background-color', colorScheme === 'dark' ? 'rgb(59, 59, 62)' : 'rgb(228, 228, 231)')
+      await expect(selected).toHaveCSS('color', colorScheme === 'dark' ? 'rgb(231, 230, 235)' : 'rgb(41, 41, 44)')
     }
     await expect(form.getByTestId('calendar-link-open')).toHaveAttribute('href', /outlook\.office\.com/)
     // a page that isn't a calendar says so, and nothing is connected

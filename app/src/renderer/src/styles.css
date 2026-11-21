@@ -511,8 +511,10 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 }
 input:focus-visible { border-radius: 5px; }
 input::selection, textarea::selection, .note-prose ::selection { background: var(--accent-soft); }
+/* Ask’s Thinking text uses a transparent fill and needs explicit selection ink. */
+.ask-conversation ::selection { background:var(--accent-soft);color:var(--ink); }
 @media (prefers-color-scheme: dark) {
-  input::selection, textarea::selection, .note-prose ::selection { background: var(--primary); color: var(--primary-ink); }
+  input::selection, textarea::selection, .note-prose ::selection, .ask-conversation ::selection { background:color-mix(in srgb,var(--accent) 32%,var(--bg));color:var(--ink); }
 }
 .editor-menu { z-index: 40; }
 .editor-toolbar { display:flex;align-items:center;gap:2px;padding:4px;border:1px solid var(--line);border-radius:10px;background:var(--float);box-shadow:var(--shadow); }
