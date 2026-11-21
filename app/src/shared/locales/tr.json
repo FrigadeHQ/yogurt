@@ -532,6 +532,8 @@
   "Asks you to record when a call starts.": "Arama başında kayıt önerir.",
   "Names speakers in your transcript.": "Dökümde konuşmacıları adlandırır.",
   "Untitled meeting": "Başlıksız toplantı",
+  "Add “{credit}”": "“{credit}” ifadesini ekle",
+  "On copied summaries and saved Markdown files.": "Kopyalanan özetlere ve kaydedilen Markdown dosyalarına.",
   "Stop recording when the call ends": "Arama sona erdiğinde kaydı durdur",
   "Join and record": "Katıl ve kaydet",
   "Settings…": "Ayarlar…",

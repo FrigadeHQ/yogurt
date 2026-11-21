@@ -38,6 +38,8 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   stopWhenCallEnds?: boolean
   /** a quiet reminder to ask everyone before recording; on unless turned off */
   recordingReminder?: boolean
+  /** Credit on copied summaries and saved Markdown; on unless turned off. */
+  includeRecordingCredit?: boolean
   /** keep audio after its transcript and summary are saved; on unless turned off */
   keepRecordings?: boolean
   /** Only meetings ending after this opt-out may lose their audio automatically. */
@@ -64,6 +66,7 @@ export const summaryLanguageSetting = (s: Settings): string => isLocale(s.summar
 
 /** "Stop recording when the call ends": on by default */
 export const stopsWhenCallEnds = (s: Settings): boolean => s.stopWhenCallEnds !== false
+export const includesRecordingCredit = (s: Settings): boolean => s.includeRecordingCredit !== false
 export const recordingReminderOn = (s: Settings): boolean => s.recordingReminder !== false
 /** Old recordings stay, even if their summaries are saved or rewritten after opting out. */
 export const keepsRecording = (s: Settings, endedAt: number | null): boolean =>

@@ -542,6 +542,8 @@
   "Asks you to record when a call starts.": "מציע להקליט בתחילת שיחה.",
   "Names speakers in your transcript.": "מוסיף שמות דוברים לתמלול.",
   "Untitled meeting": "פגישה ללא כותרת",
+  "Add “{credit}”": "הוספת „{credit}”",
+  "On copied summaries and saved Markdown files.": "לסיכומים שהועתקו ולקובצי Markdown שנשמרו.",
   "Stop recording when the call ends": "עצירת ההקלטה בסיום השיחה",
   "Join and record": "הצטרפות והקלטה",
   "Settings…": "הגדרות…",

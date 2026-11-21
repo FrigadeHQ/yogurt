@@ -532,6 +532,8 @@
   "Asks you to record when a call starts.": "Προτείνει εγγραφή όταν καλείτε.",
   "Names speakers in your transcript.": "Ονομάζει ομιλητές στη μεταγραφή.",
   "Untitled meeting": "Συνάντηση χωρίς τίτλο",
+  "Add “{credit}”": "Προσθήκη του «{credit}»",
+  "On copied summaries and saved Markdown files.": "Στις αντιγραμμένες συνόψεις και στα αποθηκευμένα αρχεία Markdown.",
   "Stop recording when the call ends": "Διακοπή ηχογράφησης όταν λήξει η κλήση",
   "Join and record": "Συμμετοχή και εγγραφή",
   "Settings…": "Ρυθμίσεις…",

@@ -502,6 +502,8 @@
   "Asks you to record when a call starts.": "Menawarkan rekaman saat panggilan.",
   "Names speakers in your transcript.": "Menamai pembicara di transkrip.",
   "Untitled meeting": "Rapat tanpa judul",
+  "Add “{credit}”": "Tambahkan “{credit}”",
+  "On copied summaries and saved Markdown files.": "Pada ringkasan yang disalin dan berkas Markdown yang disimpan.",
   "Stop recording when the call ends": "Hentikan rekaman saat panggilan berakhir",
   "Join and record": "Gabung dan rekam",
   "Settings…": "Pengaturan…",

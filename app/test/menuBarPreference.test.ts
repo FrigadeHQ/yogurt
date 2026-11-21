@@ -82,3 +82,22 @@ it('shows meeting titles by default, preserves the opt-out across visibility cha
   expect(loadSettings(file).showNextMeeting).toBeUndefined()
   expect(changed).toHaveBeenLastCalledWith(true)
 })
+
+it('defaults the sharing credit on and persists only an explicit opt-out', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'yogurt-credit-')); dirs.push(dir)
+  const file = join(dir, 'settings.json')
+  const deps = { setShowNextMeeting: vi.fn(), file, permissions: {} as Parameters<typeof hookPreferences>[0]['permissions'], ask: false, setLogin: vi.fn(), loginOn: () => false, macName: () => '', relaunch: () => false, setTrayVisible: vi.fn(), setDockVisible: vi.fn() }
+  hookPreferences(deps)
+  const get = () => handlers.get('settings:get')!().includeRecordingCredit
+  const set = (value: unknown) => handlers.get('settings:recording-credit')!(null, value)
+  updateSettings(file, { theme: 'dark' })
+  expect(get()).toBe(true)
+  set(false)
+  hookPreferences(deps)
+  for (const invalid of [null, 1, 'true']) set(invalid)
+  expect(get()).toBe(false)
+  expect(loadSettings(file)).toMatchObject({ theme: 'dark', includeRecordingCredit: false })
+  set(true)
+  expect(get()).toBe(true)
+  expect(loadSettings(file)).toEqual({ theme: 'dark' })
+})

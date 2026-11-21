@@ -532,6 +532,8 @@
   "Asks you to record when a call starts.": "Bietet bei Anrufbeginn Aufnahme an.",
   "Names speakers in your transcript.": "Benennt Sprecher im Transkript.",
   "Untitled meeting": "Unbenanntes Meeting",
+  "Add “{credit}”": "„{credit}“ hinzufügen",
+  "On copied summaries and saved Markdown files.": "In kopierten Zusammenfassungen und gespeicherten Markdown-Dateien.",
   "Stop recording when the call ends": "Aufnahme stoppen, wenn der Anruf endet",
   "Join and record": "Teilnehmen und aufnehmen",
   "Settings…": "Einstellungen…",

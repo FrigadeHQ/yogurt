@@ -532,6 +532,8 @@
   "Asks you to record when a call starts.": "Tilbyder optagelse, når opkald starter.",
   "Names speakers in your transcript.": "Navngiver talere i udskriften.",
   "Untitled meeting": "Møde uden titel",
+  "Add “{credit}”": "Tilføj “{credit}”",
+  "On copied summaries and saved Markdown files.": "I kopierede resuméer og gemte Markdown-filer.",
   "Stop recording when the call ends": "Stop optagelsen, når opkaldet slutter",
   "Join and record": "Deltag og optag",
   "Settings…": "Indstillinger…",

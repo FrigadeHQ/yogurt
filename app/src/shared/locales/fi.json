@@ -535,6 +535,8 @@
   "Asks you to record when a call starts.": "Ehdottaa tallennusta puhelun alussa.",
   "Names speakers in your transcript.": "Nimeää puhujat tekstissä.",
   "Untitled meeting": "Nimetön kokous",
+  "Add “{credit}”": "Lisää ”{credit}”",
+  "On copied summaries and saved Markdown files.": "Kopioituihin yhteenvetoihin ja tallennettuihin Markdown-tiedostoihin.",
   "Stop recording when the call ends": "Pysäytä tallennus puhelun päättyessä",
   "Join and record": "Liity ja tallenna",
   "Settings…": "Asetukset…",

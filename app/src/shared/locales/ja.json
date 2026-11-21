@@ -502,6 +502,8 @@
   "Asks you to record when a call starts.": "通話開始時に録音を提案します。",
   "Names speakers in your transcript.": "文字起こしに話者名を表示します。",
   "Untitled meeting": "無題のミーティング",
+  "Add “{credit}”": "「{credit}」を追加",
+  "On copied summaries and saved Markdown files.": "コピーした要約と保存したMarkdownファイルに表示します。",
   "Stop recording when the call ends": "通話が終了したら録音を停止",
   "Join and record": "参加して録音",
   "Settings…": "設定…",

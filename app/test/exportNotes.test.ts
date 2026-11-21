@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { fileNameFor, shareTarget, toClipboard, toMarkdownFile, toPlainText, transcriptDoc } from '../src/shared/exportNotes'
+import { language, setLanguage } from '../src/shared/i18n'
 import { docToMd } from '../src/shared/markdown'
 import type { Meeting, Segment } from '../src/shared/types'
 
@@ -28,6 +29,17 @@ describe('toClipboard', () => {
     const out = toClipboard('a <b>bold</b> & "q"\n- 1 < 2').html
     expect(out).toContain('<p>a &lt;b&gt;bold&lt;/b&gt; &amp; &quot;q&quot;</p>')
     expect(out).toContain('<li>1 &lt; 2</li>')
+  })
+  it('keeps the translated credit in the local word order, including its link', () => {
+    const previous = language()
+    try {
+      setLanguage('ja')
+      const { text, html } = toClipboard('計画', true)
+      expect(text).toBe('計画\n\nYogurt で録音 · yogurt.so')
+      expect(html).toContain('>Yogurt</a> で録音 · yogurt.so')
+    } finally {
+      setLanguage(previous)
+    }
   })
   it('does not link anything but web and mail addresses', () => {
     expect(toClipboard('[x](javascript:run)').html).toBe('<p>x</p>')

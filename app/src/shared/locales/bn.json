@@ -532,6 +532,8 @@
   "Asks you to record when a call starts.": "কল শুরু হলে রেকর্ড করতে বলে।",
   "Names speakers in your transcript.": "প্রতিলিপিতে বক্তার নাম দেখায়।",
   "Untitled meeting": "শিরোনামহীন মিটিং",
+  "Add “{credit}”": "“{credit}” যোগ করুন",
+  "On copied summaries and saved Markdown files.": "কপি করা সারাংশে ও সংরক্ষিত Markdown ফাইলে।",
   "Stop recording when the call ends": "কল শেষ হলে রেকর্ডিং থামান",
   "Join and record": "যোগ দিন ও রেকর্ড করুন",
   "Settings…": "সেটিংস…",

@@ -532,6 +532,8 @@
   "Asks you to record when a call starts.": "Erbjuder inspelning när samtal börjar.",
   "Names speakers in your transcript.": "Namnger talarna i utskriften.",
   "Untitled meeting": "Möte utan titel",
+  "Add “{credit}”": "Lägg till ”{credit}”",
+  "On copied summaries and saved Markdown files.": "I kopierade sammanfattningar och sparade Markdown-filer.",
   "Stop recording when the call ends": "Stoppa inspelningen när samtalet avslutas",
   "Join and record": "Anslut och spela in",
   "Settings…": "Inställningar…",

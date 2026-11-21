@@ -532,6 +532,8 @@
   "Asks you to record when a call starts.": "Alok na magrekord sa simula ng tawag.",
   "Names speakers in your transcript.": "Pangalan ng nagsasalita sa transcript.",
   "Untitled meeting": "Pulong na walang pamagat",
+  "Add “{credit}”": "Idagdag ang “{credit}”",
+  "On copied summaries and saved Markdown files.": "Sa mga kinopyang buod at na-save na Markdown file.",
   "Stop recording when the call ends": "Ihinto ang recording kapag natapos ang tawag",
   "Join and record": "Sumali at mag-record",
   "Settings…": "Settings…",

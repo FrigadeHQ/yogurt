@@ -532,6 +532,8 @@
   "Asks you to record when a call starts.": "Felvételt ajánl a hívás kezdetén.",
   "Names speakers in your transcript.": "Megnevezi a beszélőket az átiratban.",
   "Untitled meeting": "Névtelen megbeszélés",
+  "Add “{credit}”": "„{credit}” hozzáadása",
+  "On copied summaries and saved Markdown files.": "A másolt összefoglalókhoz és a mentett Markdown-fájlokhoz.",
   "Stop recording when the call ends": "Felvétel leállítása a hívás végén",
   "Join and record": "Csatlakozás és felvétel",
   "Settings…": "Beállítások…",

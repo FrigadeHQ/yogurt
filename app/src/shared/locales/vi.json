@@ -502,6 +502,8 @@
   "Asks you to record when a call starts.": "Gợi ý ghi âm khi cuộc gọi bắt đầu.",
   "Names speakers in your transcript.": "Ghi tên người nói trong bản chép.",
   "Untitled meeting": "Cuộc họp chưa có tiêu đề",
+  "Add “{credit}”": "Thêm “{credit}”",
+  "On copied summaries and saved Markdown files.": "Vào bản tóm tắt đã sao chép và tệp Markdown đã lưu.",
   "Stop recording when the call ends": "Dừng ghi âm khi cuộc gọi kết thúc",
   "Join and record": "Tham gia và ghi âm",
   "Settings…": "Cài đặt…",

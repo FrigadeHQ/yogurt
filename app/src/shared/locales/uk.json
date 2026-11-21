@@ -552,6 +552,8 @@
   "Asks you to record when a call starts.": "Пропонує запис на початку дзвінка.",
   "Names speakers in your transcript.": "Указує імена в розшифровці.",
   "Untitled meeting": "Зустріч без назви",
+  "Add “{credit}”": "Додавати «{credit}»",
+  "On copied summaries and saved Markdown files.": "До скопійованих підсумків і збережених файлів Markdown.",
   "Stop recording when the call ends": "Зупинити запис після завершення дзвінка",
   "Join and record": "Приєднатися й записати",
   "Settings…": "Параметри…",

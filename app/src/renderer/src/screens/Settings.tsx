@@ -232,6 +232,21 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
               await window.yogurt.settings.setKeepRecordings(on)
               setPrefs(p => p && { ...p, keepRecordings: on })
             }} />
+            <div className="settings-row">
+              <div className="settings-row-copy">
+                <label htmlFor="recording-credit" className="settings-label">{t('Add “{credit}”', { credit: t('Recorded with {app}', { app: 'Yogurt' }) })}</label>
+                <p id="recording-credit-description" className="settings-description">{t('On copied summaries and saved Markdown files.')}</p>
+              </div>
+              <button id="recording-credit" role="switch" aria-checked={prefs?.includeRecordingCredit ?? true} aria-describedby="recording-credit-description"
+                disabled={!prefs || general.busy} className="settings-toggle" onClick={() => {
+                  if (!prefs) return
+                  const on = !prefs.includeRecordingCredit
+                  void general.save(async () => {
+                    await window.yogurt.settings.setIncludeRecordingCredit(on)
+                    setPrefs(p => p && { ...p, includeRecordingCredit: on })
+                  }, 'recording-credit-retry')
+                }}><span className="settings-toggle-knob" /></button>
+            </div>
             <NotesModel reveal={focus === 'notes-model'} />
           </LoadingContent></div>
 

@@ -26,7 +26,7 @@ import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { isFake, userDataDir } from './paths'
 import { logToFile } from './log'
-import { loadSettings, localeOf, keepsRecording, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings, visibilityOf, summaryLanguageSetting } from './settings'
+import { includesRecordingCredit, loadSettings, localeOf, keepsRecording, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings, visibilityOf, summaryLanguageSetting } from './settings'
 import { CALL_GONE_MS, useCallApps, watchEveryMs } from './detect'
 import { systemLocale } from './locale'
 import { language as uiLanguage, onLanguage, setLanguage, t } from '../shared/i18n'
@@ -846,7 +846,7 @@ app.whenReady().then(() => {
   })
   // the mic picker under the note's bar: the mics, the chosen one, and switching while recording
   hookMics({ helper: micListHelper(process.platform) === 'system' || isFake() ? runHelper : audioHelper.run, settingsFile, send: (channel, payload) => win?.webContents.send(channel, payload) })
-  hookShare({ store, window: () => win })
+  hookShare({ store, window: () => win, includeRecordingCredit: () => includesRecordingCredit(loadSettings(settingsFile)) })
   const foldersChanged = () => { win?.webContents.send('folders:changed'); folderSuggestions.refresh() }
   hookFolders({ store, changed: foldersChanged })
   // every meeting to one file and back; what an import adds shows up on home

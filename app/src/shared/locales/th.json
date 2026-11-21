@@ -502,6 +502,8 @@
   "Asks you to record when a call starts.": "เสนอให้บันทึกเมื่อเริ่มโทร",
   "Names speakers in your transcript.": "ระบุชื่อผู้พูดในข้อความถอดเสียง",
   "Untitled meeting": "การประชุมไม่มีชื่อ",
+  "Add “{credit}”": "เพิ่ม “{credit}”",
+  "On copied summaries and saved Markdown files.": "ในสรุปที่คัดลอกและไฟล์ Markdown ที่บันทึก",
   "Stop recording when the call ends": "หยุดบันทึกเสียงเมื่อจบสาย",
   "Join and record": "เข้าร่วมและบันทึก",
   "Settings…": "การตั้งค่า…",

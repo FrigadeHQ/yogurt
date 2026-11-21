@@ -576,6 +576,8 @@
   "Asks you to record when a call starts.": "يقترح التسجيل عند بدء المكالمة.",
   "Names speakers in your transcript.": "يحدد أسماء المتحدثين في النص.",
   "Untitled meeting": "اجتماع بلا عنوان",
+  "Add “{credit}”": "إضافة «{credit}»",
+  "On copied summaries and saved Markdown files.": "إلى الملخصات المنسوخة وملفات Markdown المحفوظة.",
   "Stop recording when the call ends": "إيقاف التسجيل عند انتهاء المكالمة",
   "Join and record": "الانضمام والتسجيل",
   "Settings…": "الإعدادات…",

@@ -502,6 +502,8 @@
   "Asks you to record when a call starts.": "通話開始時提示你錄音。",
   "Names speakers in your transcript.": "在逐字稿中標註發言者姓名。",
   "Untitled meeting": "未命名會議",
+  "Add “{credit}”": "加入「{credit}」",
+  "On copied summaries and saved Markdown files.": "用於複製的摘要和儲存的 Markdown 檔案。",
   "Stop recording when the call ends": "通話結束時停止錄音",
   "Join and record": "加入並錄音",
   "Settings…": "設定…",

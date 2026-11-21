@@ -253,6 +253,7 @@ const api: YogurtApi = {
     setOpenAtLogin: (on) => ipcRenderer.invoke('settings:login', on),
     setName: (name) => ipcRenderer.invoke('settings:name', name),
     setStopWhenCallEnds: (on) => ipcRenderer.invoke('settings:auto-stop', on),
+    setIncludeRecordingCredit: (on) => ipcRenderer.invoke('settings:recording-credit', on),
     setRecordingReminder: (on) => ipcRenderer.invoke('settings:recording-reminder', on),
     setKeepRecordings: (on) => ipcRenderer.invoke('settings:keep-recordings', on),
     setJargon: (terms) => ipcRenderer.invoke('settings:jargon', terms),

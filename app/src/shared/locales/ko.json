@@ -502,6 +502,8 @@
   "Asks you to record when a call starts.": "통화 시작 시 녹음을 제안합니다.",
   "Names speakers in your transcript.": "기록에 발언자 이름을 표시합니다.",
   "Untitled meeting": "제목 없는 회의",
+  "Add “{credit}”": "‘{credit}’ 추가",
+  "On copied summaries and saved Markdown files.": "복사한 요약과 저장한 Markdown 파일에 표시합니다.",
   "Stop recording when the call ends": "통화가 끝나면 녹음 중지",
   "Join and record": "참여 및 녹음",
   "Settings…": "설정…",

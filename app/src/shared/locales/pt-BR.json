@@ -542,6 +542,8 @@
   "Asks you to record when a call starts.": "Sugere gravar no início da chamada.",
   "Names speakers in your transcript.": "Identifica quem fala na transcrição.",
   "Untitled meeting": "Reunião sem título",
+  "Add “{credit}”": "Adicionar “{credit}”",
+  "On copied summaries and saved Markdown files.": "Nos resumos copiados e nos arquivos Markdown salvos.",
   "Stop recording when the call ends": "Parar a gravação quando a chamada terminar",
   "Join and record": "Entrar e gravar",
   "Settings…": "Ajustes…",

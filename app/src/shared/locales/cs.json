@@ -552,6 +552,8 @@
   "Asks you to record when a call starts.": "Nabídne nahrávání při začátku hovoru.",
   "Names speakers in your transcript.": "Přiřadí jména v přepisu.",
   "Untitled meeting": "Schůzka bez názvu",
+  "Add “{credit}”": "Přidat „{credit}“",
+  "On copied summaries and saved Markdown files.": "Do zkopírovaných shrnutí a uložených souborů Markdown.",
   "Stop recording when the call ends": "Zastavit nahrávání po skončení hovoru",
   "Join and record": "Připojit se a nahrávat",
   "Settings…": "Nastavení…",

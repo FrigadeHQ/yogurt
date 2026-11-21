@@ -532,6 +532,8 @@
   "Asks you to record when a call starts.": "Biedt opname aan bij gespreksstart.",
   "Names speakers in your transcript.": "Benoemt sprekers in het transcript.",
   "Untitled meeting": "Naamloze vergadering",
+  "Add “{credit}”": "‘{credit}’ toevoegen",
+  "On copied summaries and saved Markdown files.": "Aan gekopieerde samenvattingen en opgeslagen Markdown-bestanden.",
   "Stop recording when the call ends": "Opname stoppen wanneer het gesprek eindigt",
   "Join and record": "Deelnemen en opnemen",
   "Settings…": "Instellingen…",
