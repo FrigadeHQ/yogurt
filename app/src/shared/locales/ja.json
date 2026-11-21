@@ -582,6 +582,7 @@
   "Choose meetings or folders": "会議やフォルダを選択",
   "In this chat": "この会話内",
   "and {count} others": "と他 {count} 件",
+  "Clear meetings": "会議の選択を解除",
   "Clear": "クリア",
   "Reading {title} {others}…": "「{title}」{others}を読んでいます…",
   "Searched {name}": "{name}を検索",
