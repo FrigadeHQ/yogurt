@@ -341,7 +341,15 @@ public final class Store {
     private func writeDraft(_ rec: LocalRecording) throws {
         // once the desktop sent the meeting, its copy wins
         let source = try db.query("SELECT source FROM meetings WHERE id = ?", [.text(rec.id)]).first?[0].string
-        guard source != "desktop" else { return }
+        guard source != "desktop" else {
+            // the computer took it before the phone's notes were written: they show until the computer writes its own
+            if let summary = rec.summary {
+                try db.run("UPDATE notes SET summary = ? WHERE meeting_id = ? AND summary_source = ? AND summary IS NULL",
+                           [.text(summary), .text(rec.id), .text(Notes.SummarySource.phoneDraft.rawValue)])
+                try reindex([rec.id])
+            }
+            return
+        }
         try db.run("INSERT OR REPLACE INTO meetings (id, title, started_at, ended_at, attendees, app, trashed_at, language, source) VALUES (?, ?, ?, ?, ?, NULL, NULL, NULL, 'phone')",
                    [.text(rec.id), .text(rec.title), .int(ms(rec.startedAt)), .of(rec.endedAt.map(ms)), .text(json(rec.attendees))])
         // the desktop imports the uploaded My notes, so a setMine made on the draft starts from their hash: the desktop
