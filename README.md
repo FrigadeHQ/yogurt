@@ -102,6 +102,54 @@ Meeting data stays local; Yogurt goes online for model downloads and update chec
 
 </details>
 
+<details><summary><strong>Does Yogurt train AI on my meetings? Can anyone at Yogurt read them?</strong></summary>
+
+<br>
+
+> No. Your recordings, transcripts and notes stay on your computer, and Yogurt has no server that receives them, so nobody at Yogurt can read them. The AI models run on your computer and don't learn from your meetings. Yogurt only goes online to download its models, check for updates and, if you add one, read your calendar link.
+
+</details>
+
+<details><summary><strong>Is Yogurt safe for confidential meetings?</strong></summary>
+
+<br>
+
+> Yogurt keeps everything on your computer: audio, transcripts and notes are never uploaded, and transcription and summaries run offline. That makes it a good fit for client calls, therapy sessions, legal work and board meetings where audio can't go to a cloud service. You can also turn off saving audio in **Settings**, and Yogurt is open source, so anyone can check what it does. Follow your own rules on getting consent to record.
+
+</details>
+
+<details><summary><strong>How much memory do I need?</strong></summary>
+
+<br>
+
+> At least 8 GB. Yogurt checks your computer during setup and picks the best transcription and notes models it can run well. With 16 GB or more, Yogurt can usually run a larger notes model that writes better notes.
+
+</details>
+
+<details><summary><strong>Can I turn an existing recording into notes?</strong></summary>
+
+<br>
+
+> Yes. Use **Upload a file** to add an MP3, M4A or WAV recording. Yogurt transcribes it on your computer and writes notes, the same as for a live meeting.
+
+</details>
+
+<details><summary><strong>Can I ask questions across all my meetings?</strong></summary>
+
+<br>
+
+> Yes. Use **Ask** to ask about one meeting, a folder, or all your meetings at once, for example "what did we decide about pricing?". Answers point to the meetings they came from, and everything runs on your computer.
+
+</details>
+
+<details><summary><strong>How accurate is it compared to cloud transcription?</strong></summary>
+
+<br>
+
+> Yogurt uses Whisper large-v3-turbo on computers that can run it, the same family of models many cloud services use, so English accuracy is close to cloud transcription. Smaller computers get a smaller Whisper model, which is faster but makes more mistakes, especially outside English. You can add names and words to a custom vocabulary so they're spelled right.
+
+</details>
+
 <details><summary><strong>How much does setup download?</strong></summary>
 
 <br>
