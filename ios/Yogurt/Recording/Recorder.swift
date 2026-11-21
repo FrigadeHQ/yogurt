@@ -1,5 +1,6 @@
 @preconcurrency import AVFoundation
 import os
+import Synchronization
 import YogurtKit
 
 private let log = Logger(subsystem: "so.yogurt.ios", category: "recorder")
@@ -36,13 +37,14 @@ final class Recorder: @unchecked Sendable {
     private var frames: Int64 = 0
     /// on the queue: a failed write is reported once
     private var reportedFailure = false
-    private let lock = NSLock()
-    private var running = false
-    private var heard: Double = 0
+    /// atomics, not a lock: the audio thread that sets them must never wait
+    private let running = Atomic<Bool>(false)
+    /// the level's bits (a Double)
+    private let heard = Atomic<UInt64>(0)
     private var observers: [NSObjectProtocol] = []
 
     /// The meter's level now, 0…1; the screen reads it each frame.
-    var level: Double { lock.withLock { running ? heard : 0 } }
+    var level: Double { running.load(ordering: .relaxed) ? Double(bitPattern: heard.load(ordering: .relaxed)) : 0 }
 
     /// The audio written so far, in ms.
     var durationMs: Int {
@@ -144,13 +146,13 @@ final class Recorder: @unchecked Sendable {
         setRunning(true)
     }
 
-    private var isRunning: Bool { lock.withLock { running } }
-    private func setRunning(_ on: Bool) { lock.withLock { running = on } }
+    private var isRunning: Bool { running.load(ordering: .relaxed) }
+    private func setRunning(_ on: Bool) { running.store(on, ordering: .relaxed) }
 
     private func meter(_ buffer: AVAudioPCMBuffer) {
         guard let data = buffer.floatChannelData else { return }
         let level = micLevel(dbfs: dbfs(rms: UnsafeBufferPointer(start: data[0], count: Int(buffer.frameLength))))
-        lock.withLock { heard = level }
+        heard.store(level.bitPattern, ordering: .relaxed)
     }
 
     // MARK: - File
