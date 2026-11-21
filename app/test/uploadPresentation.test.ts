@@ -35,8 +35,7 @@ it('keeps the shared busy button box and label, without the extra inset edge',()
  const css=readFileSync(new URL('../src/renderer/src/styles.css',import.meta.url),'utf8')
  const busy=css.match(/\.note-resume-action\[data-processing=true\] \{([^}]+)\}/)![1]
  expect(busy).not.toMatch(/border-color:|background:/)
- expect(busy).toContain('box-shadow:0 1px 2px #0000000A')
- expect(busy).not.toContain('inset')
+ expect(busy).not.toMatch(/box-shadow|gradient/)
  for(const state of ['preparing','transcribing'] as const) {
   const control=TranscriptionControl({state,onStop:()=>{}})
   expect(control.props.className).toContain('note-resume-action')
