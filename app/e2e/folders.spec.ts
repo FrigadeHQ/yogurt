@@ -35,13 +35,16 @@ const openNote = async (page: Page, title: string) => {
   await expect(page.getByTestId('note-title')).toHaveText(title)
 }
 
-test('folder and Trash icons stay still on hover in either sidebar size and respect reduced motion', async () => {
+test('folder and Trash icons stay still on hover in the docked and peeked sidebar and respect reduced motion', async () => {
   const { app, page } = await launch()
   try {
     await page.emulateMedia({ reducedMotion: 'no-preference' })
     await newFolder(page, 'Standup')
     for (const compact of [false, true]) {
-      if (compact) await page.getByTestId('sidebar-collapse').click()
+      if (compact) {
+        await page.getByTestId('sidebar-collapse').click()
+        await page.getByTestId('sidebar-expand').press('ArrowDown')
+      }
       for (const id of ['sidebar-folder-open', 'nav-trash']) {
         if (id === 'nav-trash') await page.getByTestId('corner-menu-button').click()
         const row = page.getByTestId(id)

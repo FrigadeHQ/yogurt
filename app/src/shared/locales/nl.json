@@ -97,7 +97,7 @@
   "Close Window": "Sluit venster",
   "Code": "Code",
   "Coffee": "Koffie",
-  "Collapse sidebar": "Navigatiekolom verbergen",
+  "Hide sidebar": "Navigatiekolom verbergen",
   "Color": "Kleur",
   "Connect calendar": "Agenda koppelen",
   "Connect the calendars on this Mac to see your upcoming meetings.": "Koppel de agenda's op deze Mac om je komende meetings te zien.",
@@ -156,7 +156,7 @@
   "Everyone else": "Alle anderen",
   "Everything stays on your Mac.": "Alles blijft op je Mac.",
   "Everything stays on your computer.": "Alles blijft op je computer.",
-  "Expand sidebar": "Navigatiekolom tonen",
+  "Show sidebar": "Navigatiekolom tonen",
   "Exported {count} meetings": {
     "one": "{count} meeting geëxporteerd",
     "other": "{count} meetings geëxporteerd"
@@ -486,7 +486,6 @@
   "Your name": "Je naam",
   "Your notes will show up here": "Je notities verschijnen hier",
   "Your notes, transcript, and previous audio are kept. Your edited summary will be replaced when you stop recording.": "Je notities, het transcript en de eerdere audio blijven bewaard. Je bewerkte samenvatting wordt vervangen als je de opname stopt.",
-  "Your workspace": "Je werkruimte",
   "Zoom": "Zoom",
   "Zoom In": "Zoom in",
   "Zoom Out": "Zoom uit",

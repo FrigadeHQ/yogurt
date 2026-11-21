@@ -97,7 +97,7 @@
   "Close Window": "Pencereyi Kapat",
   "Code": "Kod",
   "Coffee": "Kahve",
-  "Collapse sidebar": "Kenar çubuğunu daralt",
+  "Hide sidebar": "Kenar çubuğunu gizle",
   "Color": "Renk",
   "Connect calendar": "Takvimi bağla",
   "Connect the calendars on this Mac to see your upcoming meetings.": "Yaklaşan toplantılarınızı görmek için bu Mac’teki takvimleri bağlayın.",
@@ -156,7 +156,7 @@
   "Everyone else": "Diğer herkes",
   "Everything stays on your Mac.": "Her şey Mac’inizde kalır.",
   "Everything stays on your computer.": "Her şey bilgisayarınızda kalır.",
-  "Expand sidebar": "Kenar çubuğunu genişlet",
+  "Show sidebar": "Kenar çubuğunu göster",
   "Exported {count} meetings": {
     "one": "{count} toplantı dışa aktarıldı",
     "other": "{count} toplantı dışa aktarıldı"
@@ -486,7 +486,6 @@
   "Your name": "Adınız",
   "Your notes will show up here": "Notlarınız burada görünecek",
   "Your notes, transcript, and previous audio are kept. Your edited summary will be replaced when you stop recording.": "Notlarınız, transkript ve önceki ses korunur. Düzenlediğiniz özet, kaydı durdurduğunuzda değiştirilecek.",
-  "Your workspace": "Çalışma alanınız",
   "Zoom": "Büyüt",
   "Zoom In": "Yakınlaştır",
   "Zoom Out": "Uzaklaştır",

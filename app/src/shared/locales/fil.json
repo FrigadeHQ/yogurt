@@ -97,7 +97,7 @@
   "Close Window": "Isara ang Window",
   "Code": "Code",
   "Coffee": "Kape",
-  "Collapse sidebar": "I-collapse ang sidebar",
+  "Hide sidebar": "Itago ang sidebar",
   "Color": "Kulay",
   "Connect calendar": "Ikonekta ang calendar",
   "Connect the calendars on this Mac to see your upcoming meetings.": "Ikonekta ang mga calendar sa Mac na ito para makita ang mga paparating mong meeting.",
@@ -156,7 +156,7 @@
   "Everyone else": "Lahat ng iba",
   "Everything stays on your Mac.": "Lahat ay nananatili sa Mac mo.",
   "Everything stays on your computer.": "Lahat ay nananatili sa computer mo.",
-  "Expand sidebar": "I-expand ang sidebar",
+  "Show sidebar": "Ipakita ang sidebar",
   "Exported {count} meetings": {
     "one": "Na-export ang {count} meeting",
     "other": "Na-export ang {count} na meeting"
@@ -486,7 +486,6 @@
   "Your name": "Pangalan mo",
   "Your notes will show up here": "Lalabas dito ang mga note mo",
   "Your notes, transcript, and previous audio are kept. Your edited summary will be replaced when you stop recording.": "Nakatabi ang mga note, transcript at dating audio mo. Papalitan ang na-edit mong buod kapag inihinto mo ang recording.",
-  "Your workspace": "Workspace mo",
   "Zoom": "I-zoom",
   "Zoom In": "Mag-zoom In",
   "Zoom Out": "Mag-zoom Out",
