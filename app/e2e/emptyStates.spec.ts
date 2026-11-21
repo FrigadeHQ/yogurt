@@ -1,4 +1,4 @@
-import { openFromCorner } from './cornerNavigation'
+import { openFromCorner, revealSidebar } from './cornerNavigation'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -45,10 +45,12 @@ for (const theme of ['light', 'dark'] as const) for (const width of [1200, 720])
       await check('past-empty', 'meetings')
       await openFromCorner(page, 'nav-trash')
       await check('trash-none', 'trash')
+      await revealSidebar(page)
       await page.getByTestId('folder-create').click()
       await page.getByTestId('folder-name-input').fill('Projects')
       await page.keyboard.press('Enter')
       await check('folder-empty', 'folder')
+      await revealSidebar(page)
       await page.getByTestId('nav-chat').click()
       await expect(page.getByTestId('chat-page-box')).toBeVisible()
       await page.emulateMedia({ colorScheme: theme, reducedMotion: 'no-preference' })
