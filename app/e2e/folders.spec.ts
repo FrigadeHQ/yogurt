@@ -9,7 +9,8 @@ const main = join(import.meta.dirname, '../out/main/index.js')
 
 async function launch(env: Record<string, string> = {}) {
   const userData = mkdtempSync(join(tmpdir(), 'yogurt-e2e-'))
-  const app = await electron.launch({ args: [main], env: { ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: userData, ...env } })
+  // Let the renderer follow Yogurt's appearance setting across reloads.
+  const app = await electron.launch({ colorScheme: null, args: [main], env: { ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: userData, ...env } })
   const page = await app.firstWindow()
   await expect(page.getByTestId('home')).toBeVisible()
   return { app, page }
@@ -127,6 +128,7 @@ for (const theme of ['light', 'dark'] as const) test(`add existing meetings from
   try {
     await page.evaluate(theme => window.yogurt.settings.setTheme(theme), theme)
     await withMeetings(app, page)
+    await expect.poll(() => page.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)).toBe(theme === 'dark')
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(w => !w.webContents.getURL().includes('#'))!.setSize(720, 520))
     const longTitle = 'Planning'.repeat(25)
     await page.evaluate(async title => {
