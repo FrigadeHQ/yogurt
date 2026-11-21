@@ -339,6 +339,8 @@ describe('companion sessions', () => {
     const chunks = s.pushes.filter((x) => x.type === 'audioChunk' && x.id === 'a1').map((x) => x.body as { chunk: string; index: number; of: number })
     expect(chunks.map((x) => x.index)).toEqual([...Array((last.body as { of: number }).of).keys()])
     expect(Buffer.concat(chunks.map((x) => Buffer.from(x.chunk, 'base64')))).toEqual(Buffer.from(bytes))
+    // the file's own kind, so the phone can name it and refuse what it can't play (ogg)
+    expect(s.pushes.find((x) => x.type === 'audioChunk' && x.id === 'a1')?.body).toMatchObject({ index: 0, ext: 'm4a' })
     expect(await s.request('audio', { meetingId: m.id, track: 'me' })).toMatchObject({ type: 'error', body: { code: 'gone' } })
     // in the Trash: not served
     store.trashMeeting(m.id, 5000)

@@ -3,7 +3,7 @@
 import { randomUUID } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { mkdir, open, rm, stat, type FileHandle } from 'node:fs/promises'
-import { join } from 'node:path'
+import { extname, join } from 'node:path'
 import type { Store } from '../store'
 import { applyOp, changesSince, type Op, type OpDeps } from './records'
 import { CHUNK_BYTES } from './frames'
@@ -202,12 +202,13 @@ export function createHandlers(d: HandlerDeps & { hello: () => Hello; uploadDir:
     const file = (await d.audioFiles(meetingId)).find((f) => f.track === body.track)
     if (!file) throw new RequestError('gone')
     const { size } = await stat(file.path)
+    const ext = extname(file.path).slice(1).toLowerCase()
     const of = Math.max(1, Math.ceil(size / CHUNK_BYTES))
     let index = 0
     for await (const part of createReadStream(file.path, { highWaterMark: CHUNK_BYTES })) {
-      await send({ id: reqId, type: 'audioChunk', body: { chunk: (part as Buffer).toString('base64'), index: index++, of } })
+      await send({ id: reqId, type: 'audioChunk', body: { chunk: (part as Buffer).toString('base64'), index: index++, of, ext } })
     }
-    if (index === 0) await send({ id: reqId, type: 'audioChunk', body: { chunk: '', index: 0, of: 1 } })
+    if (index === 0) await send({ id: reqId, type: 'audioChunk', body: { chunk: '', index: 0, of: 1, ext } })
     d.log('COMPANION', 'audio', meetingId, `chunks=${of}`)
   }
 

@@ -162,6 +162,28 @@ import Testing
         _ = try await rig.engine.audioURL(meetingId: "m1")
         #expect(rig.desktop.requests("audio").count == 1)
     }
+
+    @Test func fetchedAudioIsNamedByTheComputersKindAndReportsProgress() async throws {
+        let rig = try Rig { d in d.audioFiles["m1"] = Data("made-up wav bytes".utf8); d.audioExt["m1"] = "wav" }
+        rig.engine.setForeground(true)
+        #expect(await eventually { rig.connected })
+        #expect(rig.engine.cachedAudio(meetingId: "m1") == nil)
+        var seen: [Double] = []
+        let url = try await rig.engine.audioURL(meetingId: "m1", progress: { seen.append($0) })
+        #expect(url.pathExtension == "wav")
+        #expect(seen.last == 1 && seen.count > 1 && seen == seen.sorted())
+        #expect(rig.engine.cachedAudio(meetingId: "m1") == url)
+    }
+
+    @Test func audioTheiPhoneCantPlayIsRefusedAndNothingIsKept() async throws {
+        let rig = try Rig { d in d.audioFiles["m1"] = Data("made-up ogg bytes".utf8); d.audioExt["m1"] = "ogg" }
+        rig.engine.setForeground(true)
+        #expect(await eventually { rig.connected })
+        await #expect(throws: SyncError.unplayableAudio) { try await rig.engine.audioURL(meetingId: "m1") }
+        #expect(rig.engine.cachedAudio(meetingId: "m1") == nil)
+        let left = (try? FileManager.default.contentsOfDirectory(atPath: rig.engine.audioFolder.path)) ?? []
+        #expect(left.isEmpty)
+    }
 }
 
 @MainActor @Suite struct SyncStatusTests {

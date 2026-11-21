@@ -144,6 +144,7 @@ public final class SyncEngine: SyncEngineProtocol {
     @ObservationIgnored private var uploadWaits: [String: (tries: Int, until: ContinuousClock.Instant)] = [:]
     @ObservationIgnored private var uploadRetry: Task<Void, Never>?
     var uploadFolder: URL { config.uploadFolder }
+    var audioFolder: URL { config.audioFolder }
     /// a recording that waits a moment before going to the computer (its draft notes and title are being written)
     @ObservationIgnored public var holdsUpload: @MainActor (String) -> Bool = { _ in false }
 
@@ -706,25 +707,38 @@ public final class SyncEngine: SyncEngineProtocol {
         return try JSONDecoder().decode(RemoteAnswer.self, from: JSONSerialization.data(withJSONObject: r))
     }
 
+    /// A track fetched before, if it's still in the caches folder.
+    public func cachedAudio(meetingId: String, track: String = "them") -> URL? {
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: config.audioFolder.path)) ?? []
+        return names.first { $0.hasPrefix("\(meetingId)-\(track).") && PlayerLogic.canPlay(ext: ($0 as NSString).pathExtension) }
+            .map { config.audioFolder.appending(path: $0) }
+    }
+
     /// One track of a desktop meeting's audio ("me" is the mic, "them" the call; a phone recording is "them"),
-    /// fetched once into the caches folder.
-    public func audioURL(meetingId: String, track: String = "them") async throws -> URL {
-        let file = config.audioFolder.appending(path: "\(meetingId)-\(track).m4a")
-        if FileManager.default.fileExists(atPath: file.path) { return file }
+    /// fetched once into the caches folder under the kind of file the computer has. `progress` goes from 0 to 1.
+    public func audioURL(meetingId: String, track: String = "them", progress: (@MainActor (Double) -> Void)? = nil) async throws -> URL {
+        if let file = cachedAudio(meetingId: meetingId, track: track) { return file }
         guard let s = session else { throw SyncError.notConnected }
         try FileManager.default.createDirectory(at: config.audioFolder, withIntermediateDirectories: true)
         // its own name, so two fetches of the same track can't write into one file
         let part = config.audioFolder.appending(path: "\(UUID().uuidString).part")
         FileManager.default.createFile(atPath: part.path, contents: nil)
         let out = try FileHandle(forWritingTo: part)
+        var ext = "m4a"
         do {
             try await s.stream("audio", ["meetingId": meetingId, "track": track], timeout: .seconds(30)) { body in
                 guard let chunk = (body["chunk"] as? String).flatMap({ Data(base64Encoded: $0) }), let index = body["index"] as? Int,
                       let of = body["of"] as? Int else { throw SyncError.badMessage }
+                // an older computer leaves the kind out: it only ever served m4a
+                if index == 0, let e = body["ext"] as? String { ext = e }
+                guard PlayerLogic.canPlay(ext: ext) else { throw SyncError.unplayableAudio }
                 try out.write(contentsOf: chunk)
+                progress?(Double(index + 1) / Double(max(of, 1)))
                 return index >= of - 1
             }
             try out.close()
+            let file = config.audioFolder.appending(path: "\(meetingId)-\(track).\(ext.lowercased())")
+            try? FileManager.default.removeItem(at: file)
             try FileManager.default.moveItem(at: part, to: file)
             return file
         } catch {

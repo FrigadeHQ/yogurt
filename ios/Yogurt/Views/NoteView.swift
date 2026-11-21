@@ -18,9 +18,12 @@ struct NoteView: View {
     @State private var toastTask: Task<Void, Never>?
     /// read off the main thread, again each time sync lands something
     @State private var loaded: StoreReader.Note?
+    @State private var player = NotePlayer()
 
     var body: some View {
         let revision = model.revision
+        // the computer coming into reach (or going) is when audio can be fetched
+        let connected: Bool = { if case .connected = model.engine.status { true } else { false } }()
         Group {
             if let loaded {
                 if let meeting = loaded.meeting {
@@ -36,6 +39,10 @@ struct NoteView: View {
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottom) { toastView }
         .task(id: revision) { loaded = await model.reader.note(meetingId) }
+        .task(id: connected) { player.load(meetingId: meetingId, model: model, startAt: atMs) }
+        // leaving the note ends its audio. Going to the background doesn't pause what is playing (the audio mode is on);
+        // what isn't playing never starts.
+        .onDisappear { player.stop() }
     }
 
     private func content(_ meeting: Meeting, _ loaded: StoreReader.Note) -> some View {
@@ -53,7 +60,7 @@ struct NoteView: View {
                     case .summary: SummaryPane(notes: notes)
                     case .mine: MyNotesPane(meetingId: meetingId, latest: notes?.mine ?? "")
                     case .transcript: TranscriptPane(meetingId: meetingId, oneMic: meeting.oneMic,
-                                                     atMs: tab == nil ? atMs : nil, proxy: proxy)
+                                                     atMs: tab == nil ? atMs : nil, proxy: proxy, player: player)
                     }
                 }
                 .padding(.top, 20)
@@ -62,6 +69,9 @@ struct NoteView: View {
             .padding(.bottom, 40)
         } }
         .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .bottom) {
+            PlayerBar(player: player) { player.load(meetingId: meetingId, model: model) }
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink(value: Route.ask(meetingId)) {
@@ -356,6 +366,8 @@ struct TranscriptPane: View {
     /// scrolls to the turn this moment falls in, once, and marks it
     var atMs: Int? = nil
     var proxy: ScrollViewProxy? = nil
+    /// tapping a line plays from it, and the line playing is marked
+    var player: NotePlayer? = nil
     @Environment(AppModel.self) private var model
     /// nil until read; a long transcript is read off the main thread
     @State private var segments: [Segment]?
@@ -381,9 +393,16 @@ struct TranscriptPane: View {
         if segments.isEmpty {
             Text(S.noTranscript).font(.subheadline).foregroundStyle(Theme.muted)
         } else {
+            let all = turns(segments)
+            let starts = all.map(\.first.startMs)
+            // the line playing, else the one an Ask source pointed at
+            let markedIndex: Int? = {
+                if let player, player.touched, player.isReady, let i = PlayerLogic.line(at: player.positionMs, starts: starts) { return all[i].first.index }
+                return atMs.flatMap { ms in PlayerLogic.line(at: ms, starts: starts).map { all[$0].first.index } }
+            }()
             LazyVStack(alignment: .leading, spacing: 18) {
-                ForEach(turns(segments), id: \.first.index) { turn in
-                    let marked = atMs != nil && target(atMs!) == turn.first.index
+                ForEach(all, id: \.first.index) { turn in
+                    let marked = markedIndex == turn.first.index
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 8) {
                             if !oneMic {
@@ -404,6 +423,8 @@ struct TranscriptPane: View {
                     .padding(marked ? 10 : 0)
                     .background(marked ? Theme.accentSoft : .clear, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                     .padding(marked ? -10 : 0)
+                    .contentShape(Rectangle())
+                    .onTapGesture { if let player, player.isReady { player.playFrom(lineAt: turn.first.startMs) } }
                     .id(turn.first.index)
                 }
             }

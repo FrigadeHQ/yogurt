@@ -7,10 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		15F0B787A6AA8C1C69BB0C90 /* NotePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFEEB8E08F7E95BB8EAB5A92 /* NotePlayer.swift */; };
 		20E726B1DAEBD6F9161F8F68 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 528750F46462C5E3E2057562 /* SearchView.swift */; };
 		2A76250D50D47E45E4DBDEF4 /* YogurtKit in Frameworks */ = {isa = PBXBuildFile; productRef = D5ACFC259CF4B86DFB72A60E /* YogurtKit */; };
 		2B3031B62FE796BCB4D3E5AE /* Recordings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 764EEF8446D5FC923213C898 /* Recordings.swift */; };
 		394D67E11692004F571B6198 /* AskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5319E04B56F702918937F69 /* AskView.swift */; };
+		39D557332228465E16836394 /* PlayerBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A7C2B8779B19B1D9E01D9CA /* PlayerBar.swift */; };
 		4753F314D1EB272A4D70D03E /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D35E15A3EBA272FE2D6D787F /* HomeView.swift */; };
 		5373797ED2F260544B28A634 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64BFDD76097A79C483E29D66 /* SettingsView.swift */; };
 		5E88B3A265FA85268F29258A /* MeetingRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA35211C46B373A5CCC62A3 /* MeetingRow.swift */; };
@@ -58,6 +60,7 @@
 		764EEF8446D5FC923213C898 /* Recordings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Recordings.swift; sourceTree = "<group>"; };
 		7BA35211C46B373A5CCC62A3 /* MeetingRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingRow.swift; sourceTree = "<group>"; };
 		8267D7C896FBD13433688E40 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		8A7C2B8779B19B1D9E01D9CA /* PlayerBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerBar.swift; sourceTree = "<group>"; };
 		926FDCB2952E51696433D3A7 /* RecordStrings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordStrings.swift; sourceTree = "<group>"; };
 		93345889F64AE9C1DA8C6A0E /* BricolageGrotesque-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "BricolageGrotesque-SemiBold.ttf"; sourceTree = "<group>"; };
 		9C12DEE3D0C6EF5500BF7470 /* StatusPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusPill.swift; sourceTree = "<group>"; };
@@ -69,6 +72,7 @@
 		BE6A96A86BC6960E5294A46B /* Format.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Format.swift; sourceTree = "<group>"; };
 		C1F7C61B3AED6B44D7037B6C /* PhoneDraftNotice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneDraftNotice.swift; sourceTree = "<group>"; };
 		C9FC6009D3487880BE91EB0B /* NoteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteView.swift; sourceTree = "<group>"; };
+		CFEEB8E08F7E95BB8EAB5A92 /* NotePlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotePlayer.swift; sourceTree = "<group>"; };
 		D35E15A3EBA272FE2D6D787F /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -137,10 +141,20 @@
 				23DB405B9B69CF24999A7B52 /* YogurtApp.swift */,
 				4400410427130BB08D1334EE /* Ask */,
 				343F09DD599A844ECD56ECA4 /* Fonts */,
+				5EE9A36E778736DB3B2A6DF0 /* Player */,
 				34E23A29DDFF9B69889BA76B /* Recording */,
 				957A4CDAE05DC9BD3F6CE53D /* Views */,
 			);
 			path = Yogurt;
+			sourceTree = "<group>";
+		};
+		5EE9A36E778736DB3B2A6DF0 /* Player */ = {
+			isa = PBXGroup;
+			children = (
+				CFEEB8E08F7E95BB8EAB5A92 /* NotePlayer.swift */,
+				8A7C2B8779B19B1D9E01D9CA /* PlayerBar.swift */,
+			);
+			path = Player;
 			sourceTree = "<group>";
 		};
 		923F04863D6AD267A3129019 = {
@@ -262,12 +276,14 @@
 				4753F314D1EB272A4D70D03E /* HomeView.swift in Sources */,
 				B804D8E6894E203182B83F21 /* LiveTranscriber.swift in Sources */,
 				5E88B3A265FA85268F29258A /* MeetingRow.swift in Sources */,
+				15F0B787A6AA8C1C69BB0C90 /* NotePlayer.swift in Sources */,
 				6E5EE6D29BE95100EE32805E /* NoteView.swift in Sources */,
 				B3655D77AA8D567A3E87DC9F /* OnboardingArt.swift in Sources */,
 				AFB502B812B635030A6F0B8B /* OnboardingView.swift in Sources */,
 				BE6F5280826C1048195233F5 /* PairingView.swift in Sources */,
 				9A8E4BE947AB0B0E37C03FB9 /* Permissions.swift in Sources */,
 				D9ABBAFB9CFE3643DAE2BF97 /* PhoneDraftNotice.swift in Sources */,
+				39D557332228465E16836394 /* PlayerBar.swift in Sources */,
 				D9132D82CE7F90CAFE46448F /* PreviewSyncEngine.swift in Sources */,
 				D6D63D3003B9863819C297BA /* RecordStrings.swift in Sources */,
 				CC49CF59513E07DABDD6C941 /* RecordView.swift in Sources */,

@@ -20,6 +20,8 @@ import Network
     var importedAudio: [String: Data] = [:]
     var staged: [String: (data: Data, next: Int)] = [:]
     var audioFiles: [String: Data] = [:]
+    /// the kind of file the computer serves ("ext" on the first chunk); left out for an older computer
+    var audioExt: [String: String] = [:]
     var sessions: [FakeSession] = []
     /// every pull is refused with this, while set
     var pullError: SyncError?
@@ -104,7 +106,9 @@ import Network
         guard let data = desktop.audioFiles[body["meetingId"] as? String ?? ""] else { throw SyncError.remote("gone") }
         let parts = stride(from: 0, to: max(data.count, 1), by: 4).map { data.subdata(in: $0..<min($0 + 4, data.count)) }
         for (i, p) in parts.enumerated() {
-            if try each(["chunk": p.base64EncodedString(), "index": i, "of": parts.count]) { return }
+            var chunk: [String: Any] = ["chunk": p.base64EncodedString(), "index": i, "of": parts.count]
+            if i == 0, let ext = desktop.audioExt[body["meetingId"] as? String ?? ""] { chunk["ext"] = ext }
+            if try each(chunk) { return }
         }
     }
 

@@ -10,6 +10,8 @@ public enum SyncError: Error, Equatable, Sendable {
     case remote(String)
     /// the desktop closed the handshake or it didn't verify: it doesn't know this phone's key (any more)
     case unrecognised
+    /// the computer's audio is a kind this iPhone can't play (ogg from Windows or Linux)
+    case unplayableAudio
 }
 
 /// One connection to the desktop, as whole frames: each is a 2-byte big-endian length then that many bytes
