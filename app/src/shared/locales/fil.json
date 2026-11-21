@@ -663,6 +663,7 @@
   "You can back up meetings, notes, transcripts and saved audio in one file.": "Puwede mong i-backup ang mga meeting, tala, transcript at na-save na audio sa isang file.",
   "You can get a reminder when Yogurt detects a call.": "Puwede kang makatanggap ng paalala kapag may natukoy na tawag ang Yogurt.",
   "Add meetings": "Magdagdag ng mga meeting",
+  "Add meetings to {folder}": "Magdagdag ng mga meeting sa {folder}",
   "New note": "Bagong tala",
   "In this folder": "Nasa folder na ito",
   "Notes and recordings started here are saved in this folder.": "Dito sa folder na ito mase-save ang mga tala at recording na sisimulan mo rito.",

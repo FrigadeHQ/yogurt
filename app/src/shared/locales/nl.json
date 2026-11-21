@@ -663,6 +663,7 @@
   "You can back up meetings, notes, transcripts and saved audio in one file.": "Je kunt meetings, notities, transcripten en bewaarde audio in één bestand opslaan.",
   "You can get a reminder when Yogurt detects a call.": "Je kunt een herinnering krijgen als Yogurt een gesprek herkent.",
   "Add meetings": "Vergaderingen toevoegen",
+  "Add meetings to {folder}": "Vergaderingen toevoegen aan {folder}",
   "New note": "Nieuwe notitie",
   "In this folder": "In deze map",
   "Notes and recordings started here are saved in this folder.": "Notities en opnamen die je hier begint, worden in deze map opgeslagen.",

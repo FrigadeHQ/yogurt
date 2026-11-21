@@ -719,6 +719,7 @@
   "You can back up meetings, notes, transcripts and saved audio in one file.": "يمكنك نسخ الاجتماعات والملاحظات والنصوص والصوت المحفوظ احتياطيًا في ملف واحد.",
   "You can get a reminder when Yogurt detects a call.": "يمكنك تلقي تذكير عندما يكتشف Yogurt مكالمة.",
   "Add meetings": "إضافة اجتماعات",
+  "Add meetings to {folder}": "إضافة اجتماعات إلى {folder}",
   "New note": "ملاحظة جديدة",
   "In this folder": "في هذا المجلد",
   "Notes and recordings started here are saved in this folder.": "تُحفظ الملاحظات والتسجيلات التي تبدأها هنا في هذا المجلد.",

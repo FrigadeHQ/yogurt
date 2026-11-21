@@ -621,6 +621,7 @@
   "You can back up meetings, notes, transcripts and saved audio in one file.": "Anda dapat mencadangkan rapat, catatan, transkrip, dan audio tersimpan dalam satu file.",
   "You can get a reminder when Yogurt detects a call.": "Anda dapat menerima pengingat saat Yogurt mendeteksi panggilan.",
   "Add meetings": "Tambahkan rapat",
+  "Add meetings to {folder}": "Tambahkan rapat ke {folder}",
   "New note": "Catatan baru",
   "In this folder": "Di folder ini",
   "Notes and recordings started here are saved in this folder.": "Catatan dan rekaman yang Anda mulai di sini disimpan di folder ini.",
