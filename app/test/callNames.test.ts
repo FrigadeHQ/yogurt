@@ -40,12 +40,13 @@ const webexCurrentWindows = (): WatchLine['windows'] => [{ title: 'Webex meeting
 ] }] } }]
 const webexLine = (t: number): WatchLine => ({ t, app: 'Cisco-Systems.Spark', windows: webexWindows() })
 
-function setup(o: { app?: string | null; attendees?: Meeting['attendees'] } = {}) {
+function setup(o: { app?: string | null; attendees?: Meeting['attendees']; micPids?: Record<string, number[]> } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'yogurt-callnames-')); dirs.push(root)
   const store = openStore(join(root, 'yogurt.db')); stores.push(store)
   const m = store.createMeeting({ title: 'Sync', startedAt: 1_000_000, endedAt: null, eventId: null, app: o.app === undefined ? 'Zoom' : o.app, attendees: o.attendees ?? [], state: 'recording' })
   let clock = 1_000_000
-  const watched: string[][] = []
+  const watched: string[][] = [], watchedPids: Array<number[] | undefined> = []
+  const micPids = { ...o.micPids }
   let emit!: (l: WatchLine) => void
   let stopped = 0
   const starts: Array<(m: Meeting) => void> = [], stops: Array<(m: Meeting) => void> = [], binds: Array<(m: Meeting) => void> = []
@@ -55,12 +56,15 @@ function setup(o: { app?: string | null; attendees?: Meeting['attendees'] } = {}
   const done = new Promise<void>((r) => { transcribed = r })
   const hook = hookCallNames({
     store, myNames: () => ['Alex Morgan'], transcribed: () => done, changed: (id) => changed.push(id), log: (s) => logs.push(s), now: () => clock, every: () => {},
-    watch: (ids, onLine) => { watched.push(ids); emit = onLine; return { stop: () => { stopped++ } } },
+    watch: (ids, onLine, pids) => { watched.push(ids); watchedPids.push(pids); emit = onLine; return { stop: () => { stopped++ } } },
+    micPids: (app) => micPids[app] ?? [],
     onStart: (fn) => starts.push(fn), onStop: (fn) => stops.push(fn), onCapture: (fn) => captures.push(fn), onBind: (fn) => binds.push(fn),
   })
   const capture = new EventEmitter()
   return {
-    store, m, hook, watched, changed, logs, transcribed, stopped: () => stopped,
+    store, m, hook, watched, watchedPids, changed, logs, transcribed, stopped: () => stopped,
+    /** the processes of an app on the mic now */
+    setMic(app: string, pids: number[]) { micPids[app] = pids },
     start() { starts.forEach((f) => f(m)); captures.forEach((f) => f(capture, m.id)) },
     /** audio heard: meeting time `ms`, arriving at wall clock `at` */
     audio(ms: number, at: number) { clock = at; capture.emit('pcm', 'them', ms, new Float32Array(1600)) },
@@ -193,6 +197,38 @@ describe('hookCallNames', () => {
     expect(s.hook.nameFor(s.m.id, 1500, 4000)).toBe('Dana Smith')
     expect(s.hook.nameFor(s.m.id, 6000, 8000)).toBe('Ann Lee')
     expect(s.hook.nameFor('other', 1500, 4000)).toBeNull()
+  })
+
+  // #98: two Zoom meetings, two Zoom processes. The helper reads the processes it is given, else the frontmost one,
+  // which here is the other meeting.
+  const twoMeetings: Record<number, string[]> = { 501: ['Alex Morgan', 'Dana Smith'], 502: ['Alex Morgan', 'Priya Nair', 'Omar Haddad'] }
+  const helperReads = (pids: number[] | undefined) => twoMeetings[pids?.[0] ?? 502]
+  it('with two Zoom meetings open, only the one on the mic is read: no name from the other reaches this transcript or its attendees (#98)', async () => {
+    const s = setup({ micPids: { Zoom: [501] } })
+    s.start()
+    expect(s.watchedPids).toEqual([[501]])
+    s.audio(0, 1_000_100)
+    s.store.addSegments([{ meetingId: s.m.id, track: 'them', startMs: 1000, endMs: 3000, text: 'hi', speaker: null }])
+    const people = helperReads(s.watchedPids.at(-1))
+    for (let t = 1_000_000; t < 1_005_000; t += 500) s.emit(zoomLine(t, people, people[1], 'Alex Morgan'))
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id).map((x) => x.speaker)).toEqual(['Dana Smith'])
+    expect(s.store.meeting(s.m.id)!.attendees.map((a) => a.name)).toEqual(['Dana Smith'])
+  })
+  it('a recording whose app was not on the mic yet is read again from only the process on the mic once it is, and what was read before is dropped (#98)', () => {
+    const s = setup()
+    s.start()
+    expect(s.watchedPids).toEqual([undefined])
+    s.audio(0, 1_000_100)
+    for (let t = 1_000_000; t < 1_002_000; t += 500) s.emit(zoomLine(t, helperReads(undefined), 'Priya Nair'))
+    s.setMic('Zoom', [501]); s.hook.checkQuiet()
+    expect(s.stopped()).toBe(1)
+    expect(s.watchedPids.at(-1)).toEqual([501])
+    expect(s.hook.nameFor(s.m.id, 0, 1000)).toBeNull()
+    // learned once: the watch isn't started again on every check
+    s.hook.checkQuiet()
+    expect(s.watchedPids).toHaveLength(2)
   })
 
   it('reads Webex roster names during a call', () => {

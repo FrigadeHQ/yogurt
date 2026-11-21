@@ -25,7 +25,11 @@ export function createSignals(d: { helper: Helper; events: (from: number, to: nu
       let micApps: MicApp[] = []
       try {
         const raw = await d.helper(['mic-apps'])
-        if (Array.isArray(raw)) micApps = raw.flatMap((r: Record<string, unknown>) => typeof r?.bundleId === 'string' ? [{ bundleId: r.bundleId, name: typeof r.name === 'string' ? r.name : r.bundleId }] : [])
+        if (Array.isArray(raw)) micApps = raw.flatMap((r: Record<string, unknown>) => typeof r?.bundleId === 'string' ? [{
+          bundleId: r.bundleId, name: typeof r.name === 'string' ? r.name : r.bundleId,
+          // which process: two Zoom meetings are two processes, and names come only from the one on the mic (#98)
+          ...(typeof r.pid === 'number' ? { pid: r.pid } : {}),
+        }] : [])
       } catch { /* no helper: no signal */ }
       const owners = [...new Set(micApps.flatMap(m => {
         const id = callAppId(m.bundleId)

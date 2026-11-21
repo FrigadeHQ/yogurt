@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { callAppId, tabTitleApp, CALL_GONE_MS, callGone, watchEveryMs, decide, ended, isOwnMicApp, useCallApps, type Signals } from '../src/main/detect'
+import { callAppId, micPids, tabTitleApp, CALL_GONE_MS, callGone, watchEveryMs, decide, ended, isOwnMicApp, useCallApps, type Signals } from '../src/main/detect'
 import type { CalEvent } from '../src/main/calendar'
 
 const NOW = Date.parse('2026-10-29T15:00:00Z')
@@ -207,5 +207,18 @@ describe('call apps on Windows and Linux', () => {
       expect(isOwnMicApp('zoom.exe')).toBe(false)
     })
     expect(isOwnMicApp('yogurt-audio')).toBe(false)
+  })
+})
+
+describe('micPids: the processes of a call app on the mic (#98)', () => {
+  it('the app\'s own processes and its helpers, never another app\'s', () => {
+    const mic = [
+      { bundleId: 'us.zoom.xos', name: 'zoom.us', pid: 501 },
+      { bundleId: 'us.zoom.CptHost', name: 'CptHost', pid: 777 },
+      { bundleId: 'com.google.Chrome', name: 'Chrome', pid: 900 },
+      { bundleId: 'us.zoom.xos', name: 'zoom.us' },
+    ]
+    expect(micPids(mic, ['us.zoom.xos'], 'Zoom')).toEqual([501, 777])
+    expect(micPids(mic, [], 'Teams')).toEqual([])
   })
 })

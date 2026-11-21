@@ -27,7 +27,7 @@ import { pathToFileURL } from 'node:url'
 import { isFake, userDataDir } from './paths'
 import { logToFile } from './log'
 import { includesRecordingCredit, loadSettings, localeOf, keepsRecording, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings, visibilityOf, summaryLanguageSetting } from './settings'
-import { CALL_GONE_MS, useCallApps, watchEveryMs } from './detect'
+import { CALL_GONE_MS, micPids, useCallApps, watchEveryMs, type MicApp } from './detect'
 import { systemLocale } from './locale'
 import { language as uiLanguage, onLanguage, setLanguage, t } from '../shared/i18n'
 import bundledCatalog from '../../../catalog/catalog.json'
@@ -307,6 +307,9 @@ const macName = () => (isFake() ? process.env.YOGURT_FAKE_FULL_NAME ?? 'Sam Rive
 /** starting and pausing a recording the way home and the widget do, for AI apps (set once detection starts) */
 let recordingControls: { start(o: { eventId?: string; title?: string }): Promise<StartResult>; pause(id: unknown, paused: unknown): boolean } | undefined
 
+/** the processes of a call app on the mic at the last reading (set once detection starts): names come only from them (#98) */
+let micPidsNow: (app: string) => number[] = () => []
+
 /** fake mode's hooks reach the store and the notes through these */
 let storeRef: Store | undefined
 let indexerRef: { schedule(): Promise<unknown> } | undefined
@@ -316,10 +319,13 @@ function startDetection() {
   if (isFake()) setHelper(fakeHelper)
   const signals = createSignals({ helper: runHelper, events: readCalendar })
   refreshCalendarConsumers = () => signals.invalidateCalendar()
+  let lastReading: { micApps: MicApp[]; runningApps?: string[] } | undefined
+  // yogurt-system (Windows, Linux) reads no single process yet; the Mac helper does
+  if (process.platform === 'darwin') micPidsNow = (app) => (lastReading ? micPids(lastReading.micApps, lastReading.runningApps, app) : [])
   const now = isFake() ? fakeNow : Date.now
   let fakeSilence: number | undefined
   const watcher: Watcher = new Watcher({
-    read: (at) => signals.read(at), now, active: activeMeeting, bindApp: bindMeetingApp,
+    read: async (at) => (lastReading = await signals.read(at)), now, active: activeMeeting, bindApp: bindMeetingApp,
     offer: (p) => prompts.offer(p), askStop: (m) => prompts.askStop(m), hide: () => prompts.hide(),
     // the call ended: the same stop as the widget's Stop button, then say so
     autoStop: (m) => { widget.callEnded(m.id); stopMeeting(m.id); prompts.stopped(m) },
@@ -593,7 +599,7 @@ app.whenReady().then(() => {
     transcribed: async (id) => { await recordingFinished(id); await transcriptFinished(id) },
     // people seen in the call joined the meeting: unedited notes already written get written again for them
     changed: (id) => { win?.webContents.send('transcript:speakers', id); sendWidgetTranscript('transcript:speakers', id); win?.webContents.send('meetings:changed'); notes.applyPeople(id) },
-    onStart: onMeetingStart, onStop: onMeetingStop, onCapture: onCaptureStart, onBind: onMeetingBound,
+    onStart: onMeetingStart, onStop: onMeetingStop, onCapture: onCaptureStart, onBind: onMeetingBound, micPids: (app) => micPidsNow(app),
   })
   // Windows and Linux: whisper left the graphics card in a meeting, so the speed check (timed with it) runs again next start
   onWhisperGpuOff(() => speedStore(speedFile()).forget())
