@@ -17,6 +17,12 @@ describe('companyOf', () => {
     expect(companyOf('ana@mail.acme.co.uk')).toBe('Acme')
     expect(companyOf('bo@north-wind.io')).toBe('North-Wind')
   })
+  it('keeps a short company name in front of a country domain, and skips only second-level labels', () => {
+    expect(companyOf('a@corp.sap.de')).toBe('Sap')
+    expect(companyOf('a@sap.de')).toBe('Sap')
+    expect(companyOf('a@acme.co.uk')).toBe('Acme')
+    expect(companyOf('a@mail.acme.com.au')).toBe('Acme')
+  })
   it('says nothing for mail providers or names too short to be sure of', () => {
     for (const e of ['sam@gmail.com', 'sam@icloud.com', 'sam@outlook.com', 'tarun@gmail.com', 'no-at-sign', 'x@localhost']) expect(companyOf(e)).toBeNull()
   })
