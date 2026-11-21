@@ -2,6 +2,7 @@ import { _electron as electron, expect, test, type ElectronApplication, type Pag
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { revealSidebar } from './cornerNavigation'
 
 const main = join(import.meta.dirname, '../out/main/index.js')
 const zoom = { bundleId: 'us.zoom.xos', name: 'zoom.us' }
@@ -453,6 +454,7 @@ for (const width of [1100, 720]) test(`Command-J toggles Ask from any focus at $
     await expect(page.getByTestId('chat-page-input')).toBeEditable()
     await expect.poll(() => page.evaluate(() => window.yogurt.nav.current())).toMatch(/^\/chat\/.+/)
 
+    await revealSidebar(page)
     await page.getByTestId('nav-chat').click()
     await expect(page.getByTestId('chat-empty')).toBeVisible()
     const field = page.locator('textarea#library-question')
