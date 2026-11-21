@@ -1,6 +1,6 @@
 import { LoadingContent } from './LoadingContent'
 import { useEffect, useRef, useState } from 'react'
-import { BookA, Plus, X } from 'lucide-react'
+import { BookA, Plus, X } from './Icons'
 import { t } from '../../../shared/i18n'
 import { addTerm, MAX_TERM, MAX_TERMS } from '../../../shared/jargon'
 
@@ -29,7 +29,7 @@ export function Jargon() {
   }
   return (
     <LoadingContent pending={!loaded}><div className="settings-row">
-      <span className="settings-permission-icon"><BookA size={17} strokeWidth={1.75} aria-hidden="true" /></span>
+      <span className="settings-permission-icon"><BookA size={17} aria-hidden="true" /></span>
       <div className="settings-row-copy">
         <label htmlFor="jargon-input" className="settings-label">{t('Custom words')}</label>
         <p className="settings-description">{t('Yogurt uses these words to spell names and terms in your transcripts and notes.')}</p>

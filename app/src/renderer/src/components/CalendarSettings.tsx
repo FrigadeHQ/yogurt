@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown } from './Icons'
 import { Loading } from './Loading'
 import { LoadingContent } from './LoadingContent'
 import { CalendarLinkForm } from './CalendarLinkForm'

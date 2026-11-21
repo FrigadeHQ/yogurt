@@ -615,7 +615,6 @@ input::selection, textarea::selection, .note-prose ::selection { background: var
 .chat-morph-surface { position:absolute;inset:var(--ask-top) auto auto var(--ask-left);width:calc(100% + 2px);height:calc(100% + 2px);border:1px solid var(--line);border-radius:inherit;background:var(--float);box-shadow:0 16px 48px rgb(0 0 0 / .18),0 4px 12px rgb(0 0 0 / .08); }
 .chat-panel-contents { position:absolute;left:calc(-1px - var(--ask-left));top:calc(-1px - var(--ask-top));width:100cqw;height:100cqh;display:flex;flex-direction:column; }
 .chat-trigger[aria-expanded=true] { opacity:0; }
-[data-icon] { flex:none; }
 [data-icon=Loader] { animation:icon-spin 1s linear infinite; }
 [data-icon] path { transform-box:fill-box;transform-origin:center; }
 @keyframes icon-spin { to { transform:rotate(360deg); } }

@@ -1,6 +1,8 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { FolderGlyph } from '../src/renderer/src/components/FolderAppearance'
+import type { FolderIconId } from '../src/shared/folderAppearance'
 import type { Folder, MeetingCard } from '../src/shared/types'
 import { PastNotes } from '../src/renderer/src/screens/Home'
 import { FolderChip, FolderPicker } from '../src/renderer/src/components/FolderPicker'
@@ -120,4 +122,18 @@ it('keeps the meeting link then More before any folder controls in DOM tab order
     for (const button of buttons.slice(2)) expect(button).toContain('data-testid="past-note-folder"')
     for (const button of buttons) expect(button).not.toMatch(/disabled|tabindex/)
   }
+})
+
+it('keeps a distinct drawing for each stored folder icon', () => {
+  const stored = [
+    'folder', 'star', 'heart', 'flag', 'bookmark', 'briefcase', 'users', 'handshake', 'message', 'video', 'calendar', 'clock',
+    'target', 'lightbulb', 'rocket', 'code', 'palette', 'megaphone', 'graduation', 'book', 'flask', 'coffee', 'house', 'plane',
+  ] satisfies FolderIconId[]
+  const glyphs = stored.map(icon => {
+    const html = renderToStaticMarkup(createElement(FolderGlyph, { appearance: { icon, color: 'violet' } }))
+    expect(html).toContain(`data-folder-icon="${icon}"`)
+    expect(html).toContain('data-folder-color="violet"')
+    return html.match(/<svg[^>]*>(.*?)<\/svg>/)![1]
+  })
+  expect(new Set(glyphs).size).toBe(stored.length)
 })

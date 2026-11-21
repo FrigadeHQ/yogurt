@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Toast } from '@animate-ui/react/primitives/base-ui/toast'
-import { X } from 'lucide-react'
+import { X } from './Icons'
 import { t } from '../../../shared/i18n'
 import type { SetupState } from '../../../shared/types'
 import { motion, useReducedMotion } from '../motion'

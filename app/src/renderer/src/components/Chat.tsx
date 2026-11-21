@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom'
 import type { LibrarySource } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
 import { keys, onMac } from '../keys'
-import { MessageCircle } from './Icons'
+import { AskBubble } from './Icons'
 import { setToastDialog } from './TrashToast'
 import { AskConversation } from './AskConversation'
 import { motion as timing } from '../motion'
@@ -141,7 +141,7 @@ export function Ask({ id, recording, anchor, onSource }: { id: string; recording
         if (closing.current) { closing.current = false; morph(true) }
         animateOpen.current = true; setError(false); setOpen(true)
         panel.current?.querySelector('textarea')?.focus({ preventScroll: true })
-      }}><MessageCircle size={16} strokeWidth={1.75} aria-hidden="true" /><span>{t('Ask Yogurt')}</span><kbd aria-hidden="true">{keys('⌘J')}</kbd></button>
+      }}><AskBubble className="flex-none" size={16} aria-hidden="true" /><span>{t('Ask Yogurt')}</span><kbd aria-hidden="true">{keys('⌘J')}</kbd></button>
     {anchor && createPortal(conversation, anchor)}
   </>
 }

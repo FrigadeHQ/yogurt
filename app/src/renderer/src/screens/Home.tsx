@@ -2,11 +2,10 @@ import { InlineError, ReadError } from '../components/InlineError'
 import { transcriptionLabel } from '../../../shared/transcription'
 import { LoadingContent } from '../components/LoadingContent'
 import { StartRecording } from '../components/StartRecording'
-import { Mic, SidebarToggle } from '../components/Icons'
+import { Mic, SidebarToggle, Check, Circle, FileText, Users } from '../components/Icons'
 import { createPortal } from 'react-dom'
 import { readAgendaOpen, saveAgendaOpen } from '../agenda'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react'
-import { Check, Circle, FileText, Users } from 'lucide-react'
 import type { MeetingCard } from '../../../shared/types'
 import { useScrollMemory } from '../useScrollMemory'
 import { loadUpTo } from '../paging'
@@ -68,13 +67,13 @@ export function Home({ open, openFolder, agendaJump }: { open: (id: string) => v
     {calendar && toolbar && createPortal(<button ref={toggle} id="home-agenda-toggle" className="ghost-btn workspace-icon agenda-toggle no-drag"
       aria-label={label} aria-expanded={agendaOpen} aria-controls="home-agenda" aria-keyshortcuts={onMac() ? 'Control+Meta+A' : 'Control+Shift+A'}
       title={`${label} (${keys('⌃⌘A')})`} data-agenda-motion={agendaMotion} onClick={e => toggleAgenda(e.detail > 0)}>
-      <SidebarToggle className="-scale-x-100 rtl:scale-x-100" size={16} strokeWidth={1.75} aria-hidden="true" />
+      <SidebarToggle className="flex-none -scale-x-100 rtl:scale-x-100" size={16} aria-hidden="true" />
     </button>, toolbar)}
     <StartRecording testId="new-note" compact={calendar && !agendaOpen} emptyActions={emptyActions} onGone={() => setCalendarRevision(revision => revision + 1)} />
     <div className="native-library" ref={past.setRoot} tabIndex={-1}>
       <h1>{t('Your meetings')}</h1>
       {past.failed && !!past.cards?.length && <InlineError testId="meetings-read-error" retry={past.retry} />}
-      <LoadingContent pending={!past.cards && !past.failed} testId="meetings-loading" skeleton={<MeetingListLoading />} className="library-load">{!past.cards?.length ? <LibraryEmpty testId="past-empty" icon={<FileText size={28} strokeWidth={1.5} aria-hidden="true" />} title={t('Your notes will show up here')} description={t('Your summary appears after you stop recording.')} retry={past.failed ? past.retry : undefined}><div ref={setEmptyActions} /></LibraryEmpty> : <PastNotes cards={past.cards ?? []} day={day} more={past.more} sentinel={past.setSentinel} onOpen={open} openFolder={openFolder} />}</LoadingContent>
+      <LoadingContent pending={!past.cards && !past.failed} testId="meetings-loading" skeleton={<MeetingListLoading />} className="library-load">{!past.cards?.length ? <LibraryEmpty testId="past-empty" icon={<FileText size={28} aria-hidden="true" />} title={t('Your notes will show up here')} description={t('Your summary appears after you stop recording.')} retry={past.failed ? past.retry : undefined}><div ref={setEmptyActions} /></LibraryEmpty> : <PastNotes cards={past.cards ?? []} day={day} more={past.more} sentinel={past.setSentinel} onOpen={open} openFolder={openFolder} />}</LoadingContent>
     </div>
     {calendar && <div ref={panel} id="home-agenda" className="home-agenda-panel" inert={!agendaOpen}>
       {(agendaOpen || agendaMotion) && <Agenda revision={calendarRevision} recording={recording} onStart={start} onOpen={open} jumpTo={agendaJump} />}
@@ -255,7 +254,7 @@ export function PastCard({ c, onOpen, openFolder, openFolders, more, when, fixed
   }}>
     <button data-meeting-id={c.id} disabled={loading} onClick={() => onOpen(c.id)} aria-pressed={selected} className="native-meeting-link">
     <span className="meeting-content">
-    <span className={`meeting-identity ${recording ? 'recording' : ''}`} aria-hidden="true">{loading ? null : selected ? <Check size={16} data-testid="meeting-selected" /> : recording ? <Mic size={16} /> : c.attendees.length > 1 ? <Users size={16} /> : initials || <FileText size={16} />}</span>
+    <span className={`meeting-identity ${recording ? 'recording' : ''}`} aria-hidden="true">{loading ? null : selected ? <Check size={16} data-testid="meeting-selected" /> : recording ? <Mic className="flex-none" size={16} /> : c.attendees.length > 1 ? <Users size={16} /> : initials || <FileText size={16} />}</span>
     <span className="meeting-description"><strong>{loading ? <span className="loading-bar" style={{ width: c.title.length * 6, maxWidth: '85%' }} /> : c.title}</strong><span data-testid={loading ? undefined : "past-note-attendees"} title={c.attendees.map((p) => p.name).join(', ') || undefined}>{loading ? <span className="loading-bar" style={{ width: 110 }} /> : transcriptionLabel(c.transcriptionState) || (c.attendees.length ? peopleSummary(c.attendees, me) : t('Personal notes'))}</span>
     </span>
     </span>

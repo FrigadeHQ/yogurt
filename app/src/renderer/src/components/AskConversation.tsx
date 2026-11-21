@@ -2,7 +2,7 @@ import { InlineError } from './InlineError'
 import { useContext, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { Popover } from '@base-ui/react/popover'
-import { ArrowDown, ArrowUp, Check, Ellipsis, Maximize2, Square, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Check, Ellipsis, Maximize2, Square, X, Copy } from './Icons'
 import { attachContext, mentionAt, type ContextTarget } from '../../../shared/askContext'
 import type { AskStep, ConversationTurn, ConversationView, LibrarySource } from '../../../shared/types'
 import { moreItems, t } from '../../../shared/i18n'
@@ -10,7 +10,6 @@ import { stepText, STEP_EVERY_MS } from '../../../shared/askStep'
 import { dayLabel } from '../dates'
 import { useSmoothText } from '../useSmoothText'
 import { AnswerText } from './AnswerText'
-import { Copy } from './Icons'
 import { Loading } from './Loading'
 import { LoadingContent } from './LoadingContent'
 import { NotesModelWait } from './NotesModelWait'
@@ -394,7 +393,7 @@ function Turn({ turn, chat, panel, showCopy, onSource, onRetry, retryDisabled }:
     {answer && <div data-testid={`${prefix}-answer`} dir="auto" data-streaming={live || undefined} className={`note-prose chat-answer${live ? ' stream-caret' : ''}`}><AnswerText md={answer} live={live} sources={turn.sources} onSource={onSource} /></div>}
     {answer && !live && <div className="chat-answer-actions"><button className="text-action chat-copy-action" data-testid="chat-copy-answer" aria-label={copied ? t('Copied') : t('Copy answer')} onClick={() => {
       void navigator.clipboard.writeText(turn.answer).then(() => { setCopied(true); setFailed(false) }).catch(() => setFailed(true))
-    }}><Swap show={copied ? 'done' : 'copy'} options={{ copy: <Copy size={13} />, done: <Check size={13} /> }} /><SwapText text={copied ? t('Copied') : t('Copy')} /></button>{turn.scope && <AnswerScope chips={turn.scope} />}<span role="status" className={failed ? 'text-danger' : 'sr-only'}>{failed ? t("Yogurt couldn't copy.") : copied ? t('Copied') : ''}</span></div>}
+    }}><Swap show={copied ? 'done' : 'copy'} options={{ copy: <Copy className="flex-none" size={13} />, done: <Check size={13} /> }} /><SwapText text={copied ? t('Copied') : t('Copy')} /></button>{turn.scope && <AnswerScope chips={turn.scope} />}<span role="status" className={failed ? 'text-danger' : 'sr-only'}>{failed ? t("Yogurt couldn't copy.") : copied ? t('Copied') : ''}</span></div>}
     {turn.status === 'stopped' && <p className="text-xs text-muted">{answer ? t('Stopped') : t('Stopped before answering')}</p>}
     {turn.status === 'failed' && <InlineError testId="chat-answer-error"><span>{t("Yogurt couldn't answer that.")}</span><button type="button" className="workspace-button" disabled={retryDisabled} onClick={onRetry}>{t('Try again')}</button></InlineError>}
   </div>

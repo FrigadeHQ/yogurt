@@ -22,13 +22,13 @@ it('uses plain page titles and always reserves both history controls', () => {
     expect(heading(route)).toContain('data-testid="nav-back"')
     expect(heading(route)).toContain('data-testid="nav-forward"')
     expect((heading(route).match(/<svg/g) ?? []).length).toBe(2)
-    expect(heading(route)).not.toContain('lucide-house')
+    expect(heading(route)).not.toContain('data-icon="House"')
   }
 })
 
 it('a saved chat is still under Ask', () => {
   expect(heading('/chat/abc-1')).toContain('>Ask</span>')
-  expect(heading('/chat/abc-1')).not.toContain('lucide-message-circle')
+  expect(heading('/chat/abc-1')).not.toContain('data-icon="AskBubble"')
 })
 
 it('keeps the flexible breadcrumb draggable and only its buttons non-draggable', () => {

@@ -1,5 +1,5 @@
 import { useLayoutEffect, useState } from 'react'
-import { X } from 'lucide-react'
+import { X } from './Icons'
 import { REWRITE_NOTE_MAX } from '../../../shared/rewriteNote'
 import { t } from '../../../shared/i18n'
 

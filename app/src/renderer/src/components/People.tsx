@@ -4,7 +4,7 @@ import { attendeePrivacy, emailName, groupPeople, initials, personEmail } from '
 import { toasts } from './TrashToast'
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
 import { useNotePopover } from '../useNotePopover'
-import { Lock, Pencil, Plus, Users, X } from 'lucide-react'
+import { Lock, Pencil, Plus, Users, X } from './Icons'
 import type { CalEvent, Meeting, Person } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
 import { compactCount } from '../i18n'
@@ -66,7 +66,7 @@ export function People({ m }: { m: Meeting }) {
       <button ref={chip} data-testid="note-attendees" aria-label={label} aria-haspopup="dialog" aria-expanded={!!open} onClick={(e) => setOpen((o) => o ? false : e.detail > 0 ? 'pointer' : 'keyboard')}
         title={m.attendees.map(a => a.email ? `${a.name} <${a.email}>` : a.name).join(', ') || undefined}
         className="note-chip flex items-center gap-1.5 rounded-md border border-line px-2.5 text-[13px] text-muted">
-        <span data-testid="note-attendees-summary" className="flex items-center gap-1.5"><Users size={14} strokeWidth={1.75} aria-hidden="true" /><span>{names}{more > 0 && <> {compactCount(more)}</>}</span></span>
+        <span data-testid="note-attendees-summary" className="flex items-center gap-1.5"><Users size={14} aria-hidden="true" /><span>{names}{more > 0 && <> {compactCount(more)}</>}</span></span>
       </button>
       {presence.value && <Card m={m} me={me} motionProps={presence.props} chip={chip} onClose={close} />}
     </div>
@@ -157,7 +157,7 @@ function Card({ m, me, motionProps, chip, onClose }: { m: Meeting; me: string; m
           </li>)}
         </ul>}
       {attendeePrivacy(focused, text) && <p data-testid="people-private" className="mt-2 flex items-start gap-2 text-xs leading-relaxed text-muted">
-        <Lock size={12} strokeWidth={1.75} aria-hidden="true" className="mt-0.5 shrink-0" />
+        <Lock size={12} aria-hidden="true" className="mt-0.5 shrink-0" />
         <span>{t('Nothing is sent. This is only for your notes.')}</span>
       </p>}
       </div>
@@ -188,11 +188,11 @@ function Row({ name, email, mine, onRemove, onRename }: { name: string; email?: 
           : <span className="block truncate">{name}{mine && <span className="text-muted"> {t('(me)')}</span>}</span>}
         {email && <span data-testid="people-email" className="block truncate text-xs leading-[17px] text-muted">{email}</span>}
       </div>
-      {onRename && !editing && <button data-testid="people-edit" aria-label={t('Rename')} title={t('Rename')} onClick={() => { setDraft(name); setEditing(true) }} className="ghost-btn workspace-icon person-remove"><Pencil size={14} strokeWidth={1.75} aria-hidden="true" /></button>}
+      {onRename && !editing && <button data-testid="people-edit" aria-label={t('Rename')} title={t('Rename')} onClick={() => { setDraft(name); setEditing(true) }} className="ghost-btn workspace-icon person-remove"><Pencil size={14} aria-hidden="true" /></button>}
       {onRemove && (
         <button data-testid="people-remove" onClick={onRemove} aria-label={t('Remove {name}', { name })} title={t('Remove')}
           className="ghost-btn workspace-icon person-remove">
-          <X size={14} strokeWidth={1.75} aria-hidden="true" />
+          <X size={14} aria-hidden="true" />
         </button>
       )}
     </li>

@@ -10,7 +10,7 @@ import { LoadingContent } from '../components/LoadingContent'
 import { motion, useReducedMotion } from '../motion'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useScrollMemory } from '../useScrollMemory'
-import { Lock, RotateCcw, Trash2 } from 'lucide-react'
+import { Lock, RotateCcw, Trash2, Mic, Pause, Play } from '../components/Icons'
 import type { MeetingView, NoteSaveResult, NoteSide, NoteView, SetupState, WidgetView } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
 import { osWords } from '../keys'
@@ -24,7 +24,6 @@ import { Ask } from '../components/Chat'
 import { LevelBars } from '../components/LevelBars'
 import { RecordingTime } from '../components/RecordingTime'
 import { RecordingAction } from '../components/RecordingAction'
-import { Mic, Pause, Play } from '../components/Icons'
 import { ShareMenu } from '../components/ShareMenu'
 import { NoteMenu, summaryAction } from '../components/NoteMenu'
 import { DeleteNote } from '../components/DeleteNote'
@@ -401,7 +400,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                   {recording && !finishing && <>
                     <RecordingAction data-testid="note-pause" disabled={pausing} onClick={() => { void togglePause() }}
                       label={m.paused ? t('Resume recording') : t('Pause recording')} className="note-record-action note-pause-action">
-                      <Swap show={m.paused ? 'play' : 'pause'} options={{ pause: <Pause size={14} fill="currentColor" strokeWidth={0} />, play: <Play size={14} fill="currentColor" strokeWidth={0} /> }} />
+                      <Swap show={m.paused ? 'play' : 'pause'} options={{ pause: <Pause className="flex-none" size={14} fill="currentColor" strokeWidth={0} />, play: <Play className="flex-none" size={14} fill="currentColor" strokeWidth={0} /> }} />
                     </RecordingAction>
                     <RecordingAction data-testid="note-stop" onClick={(e) => { requestFinish(true); picked.current = true; setView('mine'); setFinishing(true); setTabPointer(e.detail > 0); window.yogurt.meetings.stop(id) }} label={t('Stop recording')} className="note-record-action note-finish-action">
                       <span className="note-stop-label">{t('Stop')}</span>
@@ -410,11 +409,11 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                   {finishing && <span data-testid="note-finishing" role="status" className="note-finishing">{t('Stopping…')}</span>}
                   {!finishing && (summaryPending || (!transcribing && m.source !== 'audio-file')) && (m.state === 'stopped' || m.state === 'done') && !m.stopSavePending && !trashed && <button data-testid="note-resume" disabled={starting && !summaryPending} onClick={() => { if (summaryPending) void window.yogurt.notes.stop(id).catch(console.error); else void resumeRecording() }}
                     aria-label={resumeLabel} className="workspace-button note-resume-action" title={summaryPending ? resumeLabel : t('Resume recording in this note')}>
-                    {!summaryPending && <Mic size={14} aria-hidden="true" />}
+                    {!summaryPending && <Mic className="flex-none" size={14} aria-hidden="true" />}
                     <SwapText text={starting && !summaryPending ? t('Preparing…') : resumeLabel} />
                   </button>}
                   {m.state === 'prepared' && !trashed && <button data-testid="note-start" disabled={starting} onClick={() => { void startPrepared() }} className="note-record-action primary">
-                    <Mic size={14} strokeWidth={1.75} aria-hidden="true" />{starting ? t('Starting…') : t('Start recording')}
+                    <Mic className="flex-none" size={14} aria-hidden="true" />{starting ? t('Starting…') : t('Start recording')}
                   </button>}
                 </div>
               </div>
@@ -576,7 +575,7 @@ function Enhanced({ notes, presentation, disabled, onChange, onBlur, onRetry, fo
   }
   if (presentation === 'stopped') return <div className="summary-stopped">
     <p role="status">{t('Summary stopped.')}</p>
-    <button type="button" onClick={onRetry} className="summary-generate flex items-center gap-2.5 rounded-xl px-3 py-2 text-start text-sm whitespace-nowrap text-ink hover:bg-[var(--line)] focus-visible:bg-[var(--line)]"><RotateCcw size={15} strokeWidth={1.75} aria-hidden="true" className="text-muted" />{t('Generate summary')}</button>
+    <button type="button" onClick={onRetry} className="summary-generate flex items-center gap-2.5 rounded-xl px-3 py-2 text-start text-sm whitespace-nowrap text-ink hover:bg-[var(--line)] focus-visible:bg-[var(--line)]"><RotateCcw size={15} aria-hidden="true" className="text-muted" />{t('Generate summary')}</button>
   </div>
   if (presentation === 'empty') return <p data-testid="note-enhanced-empty" className="text-[15px] text-muted">{t('There is no transcript or typed note to summarize.')}</p>
   if (presentation === 'waiting') {

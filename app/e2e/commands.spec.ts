@@ -1,3 +1,4 @@
+import { ICON_STROKE_WIDTH } from '../src/renderer/src/components/Icons'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -380,7 +381,7 @@ test('the input stays icon-free, row icons and hints stay fixed, and the seconda
     const commandColor = glyphs.find(glyph => !glyph.folderColor)?.color
     for (const glyph of glyphs) {
       expect(glyph.size).toEqual([16, 16])
-      expect(glyph.stroke).toBe('1.75')
+      expect(glyph.stroke).toBe(String(ICON_STROKE_WIDTH))
       expect(glyph.color).toBe(glyph.folderColor ?? commandColor)
     }
     const hints = await page.locator('.search-footer').textContent()

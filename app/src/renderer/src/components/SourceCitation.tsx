@@ -1,6 +1,6 @@
 import { useId, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { Popover } from '@base-ui/react/popover'
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight } from './Icons'
 import type { LibrarySource } from '../../../shared/types'
 import { language, moreItems, t } from '../../../shared/i18n'
 import { compactCount } from '../i18n'

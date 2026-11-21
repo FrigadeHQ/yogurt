@@ -1,3 +1,5 @@
+import { CalendarDays, Check, FileText, ICON_STROKE_WIDTH } from '../src/renderer/src/components/Icons'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, expect, it, vi } from 'vitest'
 import { useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import { useDialogFocus } from '../src/renderer/src/useDialogFocus'
@@ -282,7 +284,7 @@ it.each([true, false])('offers and runs the date command only with an agenda (ca
   if (!calendar) { expect(() => find(tree, 'command-agenda-date')).toThrow('Missing'); return }
   const row = find(tree, 'command-agenda-date')
   expect(row.props['aria-selected']).toBe(true)
-  expect(row.props.children[0].type.displayName).toBe('CalendarDays')
+  expect(row.props.children[0].type).toBe(CalendarDays)
   expect(row.props.children[1].props.children[0]).toBe('Go to Nov 11, 2028')
   find(tree, 'search').props.onKeyDown({ key: 'Enter', nativeEvent: {}, preventDefault() {} })
   expect(onNavigate).toHaveBeenCalledExactlyOnceWith('', new Date(2028, 10, 11).getTime())
@@ -402,7 +404,7 @@ it('keeps initial search results still, ignores stationary hover, and scrolls on
   tree = render(); scroll()
   expect(find(tree, 'command-meetings').props['aria-selected']).toBe(true)
   expect(() => find(tree, 'search-intent-icon')).toThrow('Missing')
-  expect(find(tree, 'command-meetings').props.children[0].type.displayName).toBe('FileText')
+  expect(find(tree, 'command-meetings').props.children[0].type).toBe(FileText)
   expect(scrollIntoView).not.toHaveBeenCalled()
   find(tree, 'search').props.onKeyDown({ key: 'ArrowDown', nativeEvent: {}, preventDefault() {} })
   tree = render(); scroll()
@@ -447,7 +449,10 @@ it('keeps row glyphs stable across typing, filters, and keyboard selection witho
       if (icons.has(props.id)) expect(icon.type).toBe(icons.get(props.id))
       icons.set(props.id, icon.type)
       if (icon.props.appearance) expect(icon.props.appearance).toBe(folders[0])
-      else expect(icon.props).toMatchObject({ size: 16, strokeWidth: 1.75, 'aria-hidden': 'true' })
+      else {
+        expect(icon.props).toMatchObject({ size: 16, 'aria-hidden': 'true' })
+        expect(renderToStaticMarkup(icon)).toContain(`stroke-width="${ICON_STROKE_WIDTH}"`)
+      }
     }
     inspect(props.children)
   }
@@ -1058,7 +1063,7 @@ it('checks an inline match already in scope and consumes its mention without add
   c.type('@Already')
   await c.lookup()
   const row = find(c.render(), `${c.prefix}-context-0`).props
-  expect(row.children[2].type.displayName).toBe('Check')
+  expect(row.children[2].type).toBe(Check)
   c.key(c.input(), 'Enter')
   await c.flush()
   expect(c.context).not.toHaveBeenCalled()

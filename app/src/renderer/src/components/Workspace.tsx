@@ -4,14 +4,13 @@ import { toasts } from './TrashToast'
 import { askDestination } from '../../../shared/askContext'
 import * as Sidebar from '@animate-ui/react/primitives/sidebar'
 import { useEffect, useState, type ReactNode } from 'react'
-import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Trash2, MeetingFile, AskBubble, Search, SidebarSettings, SidebarToggle } from './Icons'
 import type { MeetingView, Folder, WidgetView } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
 import { command, keys, onMac } from '../keys'
 import { Wordmark } from './Logo'
 import { LevelBars } from './LevelBars'
 import { RecordingTime } from './RecordingTime'
-import { FileText, MessageCircle, Search, Settings, SidebarToggle } from './Icons'
 import { FoldersNav } from './FoldersNav'
 import { FinishSetup } from './FinishSetup'
 import { NotesSetup } from './NotesSetup'
@@ -58,17 +57,17 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
     return () => { off(); window.removeEventListener('keydown', key) }
   }, [route, go])
   const links = [
-    { route: '', label: t('Meetings'), Icon: FileText },
-    { route: '/chat', label: t('Ask'), Icon: MessageCircle },
+    { route: '', label: t('Meetings'), Icon: MeetingFile },
+    { route: '/chat', label: t('Ask'), Icon: AskBubble },
     { route: '/trash', label: t('Trash'), Icon: Trash2 },
-    { route: '/settings', label: t('Settings'), Icon: Settings },
+    { route: '/settings', label: t('Settings'), Icon: SidebarSettings },
   ]
   const folder = route.startsWith('/folder/') ? folders?.find((s) => route === `/folder/${s.id}`) : undefined
   const current = links.find((link) => link.route === section) ?? (route.startsWith('/folder/') ? { label: folder?.name ?? t('Folder') } : undefined)
   const label = note ? (meeting && route === `/note/${meeting.id}` ? meeting.title : t('Meeting')) : route.startsWith('/settings') ? t('Settings') : current?.label ?? t('Meetings')
   const nav = (link: typeof links[number]) => <button key={link.route} data-testid={link.route === '' ? 'nav-home' : link.route === '/chat' ? 'nav-chat' : link.route === '/settings' ? 'settings-open' : 'nav-trash'}
     data-sidebar="menu-button" aria-label={link.label} title={collapsed ? link.label : undefined} className={`workspace-nav${link.route === '/trash' ? ' workspace-trash' : ''}`} aria-current={section === link.route || link.route === '' && route === '/meetings' ? 'page' : undefined} onClick={() => go(link.route)}>
-    <link.Icon size={16} strokeWidth={1.75} aria-hidden="true" /><span>{link.label}</span>
+    <link.Icon size={16} aria-hidden="true" /><span>{link.label}</span>
   </button>
 
   return <div className={`workspace ${collapsed ? 'sidebar-collapsed' : ''}`} data-testid="workspace" data-sidebar-motion={sidebarMotion}>
@@ -78,7 +77,7 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
         onClick={(e) => toggleSidebar(e.detail > 0)}
         aria-expanded={!collapsed} aria-controls="workspace-sidebar" aria-keyshortcuts={onMac() ? 'Control+Meta+S' : 'Control+Shift+S'} title={`${collapsed ? t('Expand sidebar') : t('Collapse sidebar')} (${keys('⌃⌘S')})`}
         aria-label={collapsed ? t('Expand sidebar') : t('Collapse sidebar')}>
-        <SidebarToggle className="sidebar-toggle-glyph rtl:-scale-x-100" size={16} strokeWidth={1.75} aria-hidden="true" />
+        <SidebarToggle className="flex-none sidebar-toggle-glyph rtl:-scale-x-100" size={16} aria-hidden="true" />
       </button>
     </div>
     <Sidebar.Gap className="workspace-sidebar-gap" transition={sidebarTransition} />
@@ -86,7 +85,7 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
       <div className="workspace-sidebar-inner">
       <div className="sidebar-titlebar" />
       <div className="workspace-sidebar-body">
-        <button className="workspace-search no-drag" data-testid="search-open" aria-label={t('Search')} title={`${t('Search')} (${keys('⌘K')})`} onClick={search}><Search size={16} strokeWidth={1.75} aria-hidden="true" /><span>{t('Search')}</span><kbd>{keys('⌘K')}</kbd></button>
+        <button className="workspace-search no-drag" data-testid="search-open" aria-label={t('Search')} title={`${t('Search')} (${keys('⌘K')})`} onClick={search}><Search className="flex-none" size={16} aria-hidden="true" /><span>{t('Search')}</span><kbd>{keys('⌘K')}</kbd></button>
         <nav aria-label={t('Workspace')}>{links.slice(0, 2).map(nav)}</nav>
         <div className="workspace-folder-label">{t('Your workspace')}</div>
         <FoldersNav collapsed={collapsed} sidebarMotion={sidebarMotion} folders={folders} route={route} go={go} />
@@ -103,8 +102,8 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
       <header className="workspace-toolbar" data-note={note} data-recording-return={returnToRecording}>
         <div className="workspace-breadcrumb drag">
           <span className="workspace-history">
-            <button data-testid="nav-back" className="ghost-btn workspace-icon no-drag" disabled={!back && !note} onClick={back ?? (() => go(''))} aria-label={t('Back')} title={`${t('Back')} (${keys('⌘[')})`}><ChevronLeft size={14} strokeWidth={1.75} className="rtl:-scale-x-100" aria-hidden="true" /></button>
-            <button data-testid="nav-forward" className="ghost-btn workspace-icon no-drag" disabled={!forward} onClick={forward} aria-label={t('Forward')} title={`${t('Forward')} (${keys('⌘]')})`}><ChevronRight size={14} strokeWidth={1.75} className="rtl:-scale-x-100" aria-hidden="true" /></button>
+            <button data-testid="nav-back" className="ghost-btn workspace-icon no-drag" disabled={!back && !note} onClick={back ?? (() => go(''))} aria-label={t('Back')} title={`${t('Back')} (${keys('⌘[')})`}><ChevronLeft size={14} className="rtl:-scale-x-100" aria-hidden="true" /></button>
+            <button data-testid="nav-forward" className="ghost-btn workspace-icon no-drag" disabled={!forward} onClick={forward} aria-label={t('Forward')} title={`${t('Forward')} (${keys('⌘]')})`}><ChevronRight size={14} className="rtl:-scale-x-100" aria-hidden="true" /></button>
           </span>
           <span data-testid="workspace-heading" aria-current="page" title={label}>{label}</span>
         </div>

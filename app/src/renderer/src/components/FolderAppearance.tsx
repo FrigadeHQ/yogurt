@@ -1,15 +1,15 @@
 import type { KeyboardEvent } from 'react'
-import { Folder, Star, Heart, Flag, Bookmark, BriefcaseBusiness, UsersRound, Handshake, MessageCircle, Video, CalendarDays, Clock, Target, Lightbulb, Rocket, Code, Palette, Megaphone, GraduationCap, BookOpen, FlaskConical, Coffee, House, Plane } from 'lucide-react'
+import { Folder, Star, Heart, Flag, Bookmark, BriefcaseBusiness, FolderPeople, Handshake, FolderChat, Video, CalendarDays, Clock, Target, Lightbulb, Rocket, Code, Palette, Megaphone, GraduationCap, BookOpen, FlaskConical, Coffee, House, Plane } from './Icons'
 import { FOLDER_ICONS, FOLDER_COLORS, type FolderAppearance, type FolderIconId, type FolderColor } from '../../../shared/folderAppearance'
 import { t } from '../../../shared/i18n'
 
-const icons = { folder: Folder, star: Star, heart: Heart, flag: Flag, bookmark: Bookmark, briefcase: BriefcaseBusiness, users: UsersRound,
-  handshake: Handshake, message: MessageCircle, video: Video, calendar: CalendarDays, clock: Clock, target: Target, lightbulb: Lightbulb,
+const icons = { folder: Folder, star: Star, heart: Heart, flag: Flag, bookmark: Bookmark, briefcase: BriefcaseBusiness, users: FolderPeople,
+  handshake: Handshake, message: FolderChat, video: Video, calendar: CalendarDays, clock: Clock, target: Target, lightbulb: Lightbulb,
   rocket: Rocket, code: Code, palette: Palette, megaphone: Megaphone, graduation: GraduationCap, book: BookOpen, flask: FlaskConical, coffee: Coffee, house: House, plane: Plane }
 
 export function FolderGlyph({ appearance, size = 16 }: { appearance: FolderAppearance; size?: number }) {
   const Icon = icons[appearance.icon] ?? Folder
-  return <span className="folder-glyph" data-folder-icon={appearance.icon} data-folder-color={appearance.color} aria-hidden="true"><Icon size={size} strokeWidth={1.75} /></span>
+  return <span className="folder-glyph" data-folder-icon={appearance.icon} data-folder-color={appearance.color} aria-hidden="true"><Icon size={size} /></span>
 }
 
 function arrowChoice(e: KeyboardEvent<HTMLDivElement>, columns: number) {

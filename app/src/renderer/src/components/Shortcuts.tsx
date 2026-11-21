@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, X } from 'lucide-react'
+import { Search, X } from './Icons'
 import { t } from '../../../shared/i18n'
 import { Modal, ModalClose } from './Modal'
 import { keys, onMac } from '../keys'

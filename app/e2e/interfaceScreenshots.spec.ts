@@ -248,7 +248,7 @@ async function emptyBlock(area: Locator) {
   expect(Math.abs(action.y - box.y - box.height - 8)).toBeLessThanOrEqual(1)
   await expect(area.locator('.empty-tile')).toHaveCount(0)
   if (await area.evaluate(el => el.classList.contains('agenda-status'))) {
-    await expect(area.locator(':scope > svg.lucide-calendar-days')).toHaveCSS('width', '18px')
+    await expect(area.locator(':scope > svg[data-icon="CalendarDays"]')).toHaveCSS('width', '18px')
   } else await expect(area.locator('svg')).toHaveCount(0)
 }
 

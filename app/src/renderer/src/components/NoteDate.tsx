@@ -1,7 +1,7 @@
 import { usePopoverPresence } from '../motion'
 import { Component, createRef, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { ScrollFade } from './ScrollFade'
-import { CalendarDays, Plus, ChevronDown, ChevronLeft, ChevronRight, Clock, ExternalLink, Link2Off } from 'lucide-react'
+import { CalendarDays, Plus, ChevronDown, ChevronLeft, ChevronRight, Clock, ExternalLink, Link2Off } from './Icons'
 import type { CalEvent, CalendarStatus, Meeting } from '../../../shared/types'
 import { language, t } from '../../../shared/i18n'
 import { noteDateLabel, timeOf } from '../dates'
@@ -56,7 +56,7 @@ export function NoteDate({ m }: { m: Meeting }) {
   return <div className="relative note-date-anchor">
     <button ref={chip} title={eventTitle} data-testid="note-date" aria-label={eventTitle ? `${date} ${eventTitle}` : undefined} aria-haspopup="dialog" aria-expanded={!!open} onClick={e => setOpen(o => o ? false : e.detail > 0 ? 'pointer' : 'keyboard')}
       className="note-chip note-date-chip flex items-center gap-1.5 rounded-md border border-line px-2.5 text-[13px] text-muted">
-      <CalendarDays size={14} strokeWidth={1.75} aria-hidden="true" /><span>{date}</span>
+      <CalendarDays size={14} aria-hidden="true" /><span>{date}</span>
       {eventTitle && <>
         <span aria-hidden="true" className={color ? 'note-date-chip-dot' : undefined} style={{ backgroundColor: color }}>{color ? null : ' · '}</span>
         <span ref={fitNoteEventName} className="note-date-chip-name" dir="auto">{eventTitle}</span>

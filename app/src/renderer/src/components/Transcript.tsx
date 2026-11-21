@@ -6,7 +6,7 @@ import { ScrollFade } from './ScrollFade'
 import { Loading } from './Loading'
 import { useLoadingState } from '../useLoadingState'
 import { Fragment, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
-import { AudioLines, ArrowDown } from 'lucide-react'
+import { AudioLines, ArrowDown } from './Icons'
 import type { Segment, TranscriptPartial } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
 import { useLanguage } from '../i18n'
@@ -403,7 +403,7 @@ export function Transcript({ id, notice, processing=false, replacing=false, reco
           {failed && (timeline.length || processing || playable || notice ? <li><InlineError testId="transcript-read-error" retry={() => retry.current()} /></li>
             : <li className="flex flex-1"><ReadError testId="transcript-read-error" retry={() => retry.current()} /></li>)}
           {!failed && loadingPhase !== 'ready' && timeline.length===0 && <li className="loading-placeholder"><Loading layout="transcript" /></li>}
-          {!failed && loaded && !processing && allLines.length === 0 && liveSaid.length === 0 && <li data-testid="transcript-empty" className="note-empty empty-state"><div className="empty-state-content"><div className="empty-tile"><AudioLines size={28} strokeWidth={1.5} aria-hidden="true" /></div>{t('Nothing heard yet.')}</div></li>}
+          {!failed && loaded && !processing && allLines.length === 0 && liveSaid.length === 0 && <li data-testid="transcript-empty" className="note-empty empty-state"><div className="empty-state-content"><div className="empty-tile"><AudioLines size={28} aria-hidden="true" /></div>{t('Nothing heard yet.')}</div></li>}
           {drawn.earlier > 0 && <li className="flex justify-center"><button data-testid="transcript-earlier" onClick={() => { visibility.current?.programmatic(); stick.current = false; setShowAll(true) }} className="ghost-btn">{t('Show earlier lines')}</button></li>}
           {drawn.runs.map(run => <Fragment key={run.k}>
             {turns(run.lines).map((turn) => {

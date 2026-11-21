@@ -92,7 +92,7 @@ test('both AI stages live beside recording, open below, retry failures and disap
       await setSetup(app, state)
       await expect(trigger).toHaveAccessibleName(`${label} · 27%`)
       await expect(trigger).toHaveAttribute('title', `${label} · 27%`)
-      await expect(trigger.locator('.lucide-chevron-down')).toHaveCount(0)
+      await expect(trigger.locator('[data-icon="ChevronDown"]')).toHaveCount(0)
       await expect(page.locator('.workspace-toolbar').getByTestId('notes-setup-open')).toHaveCount(1)
       await expect(trigger).toHaveCSS('font-weight', '400')
       const start = (await page.getByTestId('new-note').boundingBox())!

@@ -1,6 +1,6 @@
 import { FolderGlyph } from './FolderAppearance'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
-import { Check, FolderIcon, Minus, Plus, X } from 'lucide-react'
+import { Check, Folder as FolderIcon, Minus, Plus, X } from './Icons'
 import type { Folder, MeetingCard } from '../../../shared/types'
 import { moreItems, t } from '../../../shared/i18n'
 import { compactCount } from '../i18n'

@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
-import { ArrowDown } from 'lucide-react'
+import { ArrowDown } from './Icons'
 import { t } from '../../../shared/i18n'
 import { useFollowLatest } from '../useFollowLatest'
 import { ScrollFade } from './ScrollFade'

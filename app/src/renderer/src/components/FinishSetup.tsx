@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Ellipsis, SlidersHorizontal, X } from 'lucide-react'
+import { Ellipsis, SlidersHorizontal, X } from './Icons'
 import { Menu } from '@base-ui/react/menu'
 import type { MissingPermission } from '../../../shared/types'
 import { finishSetupReason, permissionCopy } from '../permissionCopy'
@@ -110,7 +110,7 @@ export function FinishSetup({ collapsed = false }: { collapsed?: boolean }) {
     <button ref={trigger} data-testid="finish-setup-open" data-sidebar="menu-button" aria-label={title} title={collapsed ? title : undefined} className="setup-checklist-trigger workspace-nav" aria-haspopup="dialog" aria-expanded={open}
       onClick={() => { reload(); setOpen((v) => !v) }}>
       {essential ? <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3" fill="var(--accent)" /></svg>
-        : <SlidersHorizontal size={16} strokeWidth={1.75} aria-hidden="true" />}
+        : <SlidersHorizontal size={16} aria-hidden="true" />}
       <span>{title}</span>
     </button>
     {open && createPortal(<dialog ref={panel} data-testid="finish-setup" aria-label={title} className="finish-setup"

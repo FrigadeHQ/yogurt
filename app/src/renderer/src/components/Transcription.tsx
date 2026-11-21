@@ -1,13 +1,12 @@
-import { AudioLines } from 'lucide-react'
+import { AudioLines, Loader } from './Icons'
 import { t } from '../../../shared/i18n'
 import { transcriptionLabel, type TranscriptionState } from '../../../shared/transcription'
-import { Loader } from './Icons'
 import { Swap, SwapText } from './Swap'
 
 export function TranscriptionControl({state,onStop}:{state:TranscriptionState;onStop:()=>void}) {
   const title=state==='preparing'?t('Cancel'):t('Stop transcription')
   return <button className="workspace-button note-resume-action" data-processing="true" aria-busy="true" data-testid="transcription-stop" aria-label={title} title={title} onClick={onStop}>
-    <Swap show="busy" options={{busy:<span className="summary-stop-icon"><Loader size={14}/><span className="summary-stop-square"/></span>}}/>
+    <Swap show="busy" options={{busy:<span className="summary-stop-icon"><Loader className="flex-none" size={14}/><span className="summary-stop-square"/></span>}}/>
     <SwapText text={state==='preparing'?t('Preparing audio…'):t('Transcribing…')}/>
   </button>
 }

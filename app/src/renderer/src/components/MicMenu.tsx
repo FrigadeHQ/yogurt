@@ -1,7 +1,6 @@
 import { usePopoverPresence } from '../motion'
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { Check, ChevronDown, Info, Mic } from 'lucide-react'
-import { Pause } from './Icons'
+import { Check, ChevronDown, Info, Mic, Pause } from './Icons'
 import type { MicsView } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
 import { osWords } from '../keys'
@@ -86,7 +85,7 @@ export function MicMenu({ recording, paused }: { recording: boolean; paused?: bo
       <button ref={button} data-testid="rec-mic-chip" aria-haspopup="menu" aria-expanded={!!open} title={t('Microphone')}
         onClick={(e) => setOpen((o) => o ? false : e.detail > 0 ? 'pointer' : 'keyboard')}
         className="bar-btn flex max-w-[220px] items-center gap-1.5 rounded-md px-1.5 py-0.5 hover:text-ink aria-expanded:text-ink">
-        <Swap show={paused ? 'paused' : 'mic'} options={{ mic: <Mic size={11} />, paused: <Pause size={11} fill="currentColor" strokeWidth={0} /> }} />
+        <Swap show={paused ? 'paused' : 'mic'} options={{ mic: <Mic size={11} />, paused: <Pause className="flex-none" size={11} fill="currentColor" strokeWidth={0} /> }} />
         <span data-testid="rec-mic" className="truncate">{paused ? t('Recording paused') : name}</span>
         <ChevronDown size={11} aria-hidden="true" className="shrink-0" />
       </button>

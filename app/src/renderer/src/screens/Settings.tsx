@@ -2,7 +2,7 @@ import { AboutYogurt } from '../components/AboutYogurt'
 import { retryToast, toasts } from '../components/TrashToast'
 import { LoadingContent } from '../components/LoadingContent'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Check, ChevronDown, Copy, Download, ExternalLink, Globe, Lock, Upload, FileText } from 'lucide-react'
+import { Check, ChevronDown, Copy, Download, ExternalLink, Globe, Lock, Upload, FileText } from '../components/Icons'
 import type { Access, AppVisibility, McpStatus, PermissionKind, PermissionStatus, SetupState, Theme, UpdateStatus } from '../../../shared/types'
 import { notesDownloadText, notesUpgradeSize } from '../notesSetup'
 import { permissionCopy } from '../permissionCopy'
@@ -322,7 +322,7 @@ function AppLanguage() {
   const system = LOCALES.find((l) => l.id === s?.systemLocale)?.name ?? 'English'
   return (
     <LoadingContent pending={!s} testId="language-loading"><div className="settings-row">
-      <span className="settings-permission-icon"><Globe size={17} strokeWidth={1.75} aria-hidden="true" /></span>
+      <span className="settings-permission-icon"><Globe size={17} aria-hidden="true" /></span>
       <div className="settings-row-copy">
         <label htmlFor="settings-app-language" className="settings-label">{t('App language')}</label>
         <p className="settings-description">{t("This changes the language of Yogurt's menus and buttons.")}</p>
@@ -348,7 +348,7 @@ function SummaryLanguage() {
   }
   return (
     <LoadingContent pending={language === undefined}><div className="settings-row">
-      <span className="settings-permission-icon"><FileText size={17} strokeWidth={1.75} aria-hidden="true" /></span>
+      <span className="settings-permission-icon"><FileText size={17} aria-hidden="true" /></span>
       <div className="settings-row-copy">
         <label htmlFor="settings-summary-language" className="settings-label">{t('Summary language')}</label>
         <p id="settings-summary-language-description" className="settings-description">{t('Used for new summaries and when you write them again.')}</p>
@@ -372,7 +372,7 @@ export function PermissionRow({ kind, status, onAsk }: { kind: PermissionKind; s
   const granted = status === 'granted'
   return (
     <li data-testid="permission-row" data-kind={kind} data-status={status ?? ''} className="settings-row">
-      <span className="settings-permission-icon"><Icon size={17} strokeWidth={1.75} aria-hidden="true" /></span>
+      <span className="settings-permission-icon"><Icon size={17} aria-hidden="true" /></span>
       <div className="settings-row-copy">
         <p className="settings-permission-label">
           {c.name}

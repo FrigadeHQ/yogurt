@@ -63,7 +63,7 @@ it.each([false, true])('places an offline feed according to whether healthy even
       expect(html).toMatch(/<button[^>]*class="workspace-button"[^>]*>Try again<\/button>/)
       expect(html.includes('Design review')).toBe(hasEvents)
       expect(html).not.toContain('agenda-error-tile')
-      expect(html).not.toContain('lucide-triangle-alert')
+      expect(html).not.toContain('data-icon="TriangleAlert"')
     })
   } finally { cleanup?.() }
 })

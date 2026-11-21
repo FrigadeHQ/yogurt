@@ -1,5 +1,5 @@
 import type { ComponentPropsWithRef } from 'react'
-import { TriangleAlert } from 'lucide-react'
+import { TriangleAlert } from './Icons'
 import { LevelBars } from './LevelBars'
 import { Logo } from './Logo'
 

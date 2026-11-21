@@ -5,7 +5,7 @@ import { MotionPopup } from './MotionPopup'
 import { motion } from '../motion'
 import { FolderGlyph } from './FolderAppearance'
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { AudioLines, CalendarDays, FileText, FolderIcon, Keyboard, LogIn, MessageCircle, Monitor, Moon, PanelLeft, Settings, Sun, Trash2, UserRound, X } from 'lucide-react'
+import { AudioLines, CalendarDays, FileText, Folder as FolderIcon, Keyboard, LogIn, MessageCircle, Monitor, Moon, PanelLeft, Settings, Sun, Trash2, UserRound, X } from './Icons'
 import type { SearchResult, SnippetPart, Folder, Person } from '../../../shared/types'
 import { t, language } from '../../../shared/i18n'
 import { command, keys, osWords } from '../keys'
@@ -237,11 +237,11 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
               <button data-testid="search-scope-clear" onClick={() => { setScope(undefined); input.current?.focus() }} aria-label={t('Search all meetings')} title={t('Search all meetings')}><X size={13} aria-hidden="true" /></button>
             </span>}
             {selectedPeople.map(person => <span key={searchPersonKey(person)} data-testid="search-person-filter" className="search-filter">
-              <UserRound size={14} strokeWidth={1.75} aria-hidden="true" /><span className="truncate" title={person.email || person.name}>{person.name || person.email}</span>
+              <UserRound size={14} aria-hidden="true" /><span className="truncate" title={person.email || person.name}>{person.name || person.email}</span>
               <button onClick={() => clearPerson(person)} aria-label={t('Remove {name}', { name: person.name || person.email || '' })}><X size={13} aria-hidden="true" /></button>
             </span>)}
             {dateLabel && <span data-testid="search-date" className="search-filter">
-              <CalendarDays size={14} strokeWidth={1.75} aria-hidden="true" /><span className="truncate" title={dateLabel}>{dateLabel}</span>
+              <CalendarDays size={14} aria-hidden="true" /><span className="truncate" title={dateLabel}>{dateLabel}</span>
               <button data-testid="search-date-clear" onClick={clearDate} aria-label={t('Remove {name}', { name: dateLabel })}><X size={13} aria-hidden="true" /></button>
             </span>}
           </div>}
@@ -260,7 +260,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
               <li role="presentation" className="command-section">{t('Ask')}</li>
               <li id="search-ask" data-testid="search-ask" role="option" aria-selected={activeIndex === i} aria-disabled={running}
                 onMouseMove={(e) => hover(e, i)} onClick={() => void ask(row.query)} className="search-row command-row">
-                <MessageCircle size={16} strokeWidth={1.75} aria-hidden="true" />
+                <MessageCircle size={16} aria-hidden="true" />
                 <span className="shrink-0">{t('Ask Yogurt')}</span><span className="command-label truncate text-muted">{row.query}</span>
                 <kbd className="search-key search-return" aria-hidden="true">↵</kbd>
               </li>
@@ -269,7 +269,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
               {previous?.kind !== 'person' && <li role="presentation" className="command-section">{t('People')}</li>}
               <li id={`search-person-${encodeURIComponent(searchPersonKey(row.person))}`} data-testid="search-person" role="option" aria-selected={activeIndex === i}
                 onMouseMove={(e) => hover(e, i)} onClick={() => pickPerson(row)} className="search-row command-row">
-                <UserRound size={16} strokeWidth={1.75} aria-hidden="true" />
+                <UserRound size={16} aria-hidden="true" />
                 <span className="command-label">{t('Meetings with {name}', { name: row.person.name || row.person.email || '' })}</span>
                 {row.person.email && <span className="search-metadata truncate">{row.person.email}</span>}
                 <kbd className="search-key search-return" aria-hidden="true">↵</kbd>
@@ -284,7 +284,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
                   onMouseMove={(e) => hover(e, i)} onClick={() => onOpen(r.meetingId)}
                   className="search-row search-meeting"
                 >
-                  <FileText size={16} strokeWidth={1.75} aria-hidden="true" />
+                  <FileText size={16} aria-hidden="true" />
                   <span className="min-w-0 flex-1">
                     <span data-testid="search-result-title" className="block truncate text-sm font-medium leading-5"><Marked parts={markWords(r.title, typed)} /></span>
                     {typed && r.parts.length > 0 && <span className="mt-0.5 line-clamp-1 text-xs leading-5 text-muted"><Marked parts={r.parts} /></span>}
@@ -300,7 +300,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
               {(previous?.kind !== 'command' || previous.command.group !== c.group) && <p className="command-section">{c.group}</p>}
               <div id={`command-${c.id}`} data-testid={`command-${c.id}`} role="option" aria-selected={activeIndex === i} aria-current={current || undefined} aria-disabled={running}
                 onMouseMove={(e) => hover(e, i)} onClick={() => void runCommand(c)} className="search-row command-row">
-                {'folder' in c ? <FolderGlyph appearance={c.folder} /> : <c.Icon size={16} strokeWidth={1.75} aria-hidden="true" />}
+                {'folder' in c ? <FolderGlyph appearance={c.folder} /> : <c.Icon size={16} aria-hidden="true" />}
                 <span className="command-label">{c.label}{current && <span aria-hidden="true"> ✓</span>}</span>{'shortcut' in c && <kbd className="search-key search-shortcut">{c.shortcut}</kbd>}
                 <kbd className="search-key search-return" aria-hidden="true">↵</kbd>
               </div>

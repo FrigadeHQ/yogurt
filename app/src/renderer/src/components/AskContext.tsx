@@ -1,6 +1,6 @@
 import { useContext } from 'react'
 import { WorkspaceFolders } from '../folders'
-import { ChevronDown, FileText } from 'lucide-react'
+import { ChevronDown, FileText } from './Icons'
 import type { ContextTarget } from '../../../shared/askContext'
 import { DEFAULT_FOLDER_APPEARANCE } from '../../../shared/folderAppearance'
 import { FolderGlyph } from './FolderAppearance'
