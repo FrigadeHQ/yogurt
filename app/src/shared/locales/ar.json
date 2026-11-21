@@ -801,5 +801,22 @@
   "Stop transcription": "إيقاف التفريغ النصي",
   "Audio is unavailable.": "الصوت غير متاح.",
   "Add a calendar by link": "إضافة تقويم عبر رابط",
-  "Calendars from the Mac's Calendar app appear above automatically.": "تظهر تقاويم تطبيق التقويم على Mac أعلاه تلقائيًا."
+  "Calendars from the Mac's Calendar app appear above automatically.": "تظهر تقاويم تطبيق التقويم على Mac أعلاه تلقائيًا.",
+  "All lines marked Them": "كل الأسطر المعلَّمة «الآخرون»",
+  "All of {name}'s lines": "كل أسطر {name}",
+  "Attendees": "المشاركون",
+  "Change to {name}": "التغيير إلى {name}",
+  "Change who is speaking": "تغيير المتحدث",
+  "Each part of a long meeting, summarized first": "كل جزء من اجتماع طويل، يُلخَّص أولًا",
+  "Just this turn": "هذا الدور فقط",
+  "New name": "اسم جديد",
+  "New name…": "اسم جديد…",
+  "Speakers": "المتحدثون",
+  "Summary prompt": "موجّه الملخص",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "ما يطلبه Yogurt من نموذج الملاحظات عند كتابة الملخص. تُملأ الكلمات بين <أقواس زاوية> من كل اجتماع.",
+  "Who is speaking?": "من المتحدث؟",
+  "Yogurt couldn't show the prompt. Try again.": "تعذّر على Yogurt عرض الموجّه. حاول مرة أخرى.",
+  "Getting the voice model…": "جارٍ تنزيل نموذج الأصوات…",
+  "Matching voices…": "جارٍ مطابقة الأصوات…",
+  "Telling voices apart…": "جارٍ التمييز بين الأصوات…"
 }

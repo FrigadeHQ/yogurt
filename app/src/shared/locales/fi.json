@@ -751,5 +751,22 @@
   "Stop transcription": "Pysäytä litterointi",
   "Audio is unavailable.": "Ääni ei ole saatavilla.",
   "Add a calendar by link": "Lisää kalenteri linkillä",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Macin Kalenteri-apin kalenterit näkyvät automaattisesti yllä."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Macin Kalenteri-apin kalenterit näkyvät automaattisesti yllä.",
+  "All lines marked Them": "Kaikki rivit merkinnällä ”Muut”",
+  "All of {name}'s lines": "Kaikki rivit: {name}",
+  "Attendees": "Osallistujat",
+  "Change to {name}": "Vaihda: {name}",
+  "Change who is speaking": "Vaihda puhuja",
+  "Each part of a long meeting, summarized first": "Pitkän kokouksen jokainen osa, ensin tiivistettynä",
+  "Just this turn": "Vain tämä vuoro",
+  "New name": "Uusi nimi",
+  "New name…": "Uusi nimi…",
+  "Speakers": "Puhujat",
+  "Summary prompt": "Yhteenvedon kehote",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "Mitä Yogurt pyytää muistiinpanomallilta, kun se kirjoittaa yhteenvedon. <Kulmasulkeissa> olevat sanat täytetään kunkin kokouksen tiedoilla.",
+  "Who is speaking?": "Kuka puhuu?",
+  "Yogurt couldn't show the prompt. Try again.": "Yogurt ei voinut näyttää kehotetta. Yritä uudelleen.",
+  "Getting the voice model…": "Ladataan äänimallia…",
+  "Matching voices…": "Yhdistetään ääniä…",
+  "Telling voices apart…": "Erotellaan ääniä…"
 }

@@ -745,5 +745,22 @@
   "Stop transcription": "Itigil ang transkripsiyon",
   "Audio is unavailable.": "Hindi available ang audio.",
   "Add a calendar by link": "Magdagdag ng kalendaryo gamit ang link",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Awtomatikong lalabas sa itaas ang mga kalendaryo mula sa Calendar app ng Mac."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Awtomatikong lalabas sa itaas ang mga kalendaryo mula sa Calendar app ng Mac.",
+  "All lines marked Them": "Lahat ng linyang may markang “Iba”",
+  "All of {name}'s lines": "Lahat ng linya ni {name}",
+  "Attendees": "Mga kalahok",
+  "Change to {name}": "Palitan ng {name}",
+  "Change who is speaking": "Palitan kung sino ang nagsasalita",
+  "Each part of a long meeting, summarized first": "Bawat bahagi ng mahabang meeting, binubuod muna",
+  "Just this turn": "Itong turn lang",
+  "New name": "Bagong pangalan",
+  "New name…": "Bagong pangalan…",
+  "Speakers": "Mga nagsasalita",
+  "Summary prompt": "Prompt ng buod",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "Ang hinihingi ng Yogurt sa notes model kapag sumusulat ito ng buod. Pinupunan mula sa bawat meeting ang mga salitang nasa <angle bracket>.",
+  "Who is speaking?": "Sino ang nagsasalita?",
+  "Yogurt couldn't show the prompt. Try again.": "Hindi maipakita ng Yogurt ang prompt. Subukang muli.",
+  "Getting the voice model…": "Kinukuha ang voice model…",
+  "Matching voices…": "Itinutugma ang mga boses…",
+  "Telling voices apart…": "Pinagbubukod ang mga boses…"
 }

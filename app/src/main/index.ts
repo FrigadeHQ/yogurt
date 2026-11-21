@@ -69,7 +69,9 @@ import { installAppMenu } from './appMenu'
 import { UtilityEngine } from './engine'
 import { createNotesModel } from './notes/model'
 import { FakeEngine } from './notes/fake'
-import { hookNotes } from './notes'
+import { hookNotes, VOICES_WAIT_MS } from './notes'
+import { promptPreview } from './notes/enhance'
+import { hookVoices } from './voices'
 import { hookReadAhead, readAheadAllowed } from './notes/readAhead'
 import { createQueue, isSmallMac, notesMemory } from './notes/queue'
 import type { ContextChip } from '../shared/askContext'
@@ -591,6 +593,30 @@ app.whenReady().then(() => {
   })
   // Replay through the live channel so a stale async reply cannot overtake newer words or finals.
   ipcMain.on('transcript:subscribe', (e) => { for (const part of transcriptPartials()) e.sender.send('transcript:partial', part) })
+  // The person says who spoke: one turn's lines, or every line of a speaker. Not while recording: names from the call
+  // are still settling then. A name typed new joins the attendees, as people seen in the call do (callNames).
+  ipcMain.handle('transcript:set-speaker', (e, id: unknown, target: unknown, to: unknown) => {
+    if (e.sender !== win?.webContents || !isId(id) || typeof to !== 'string' || !target || typeof target !== 'object') return false
+    const m = store.meeting(id)
+    if (!m || m.state === 'recording') return false
+    const t = target as { ids?: unknown; from?: unknown }
+    const ids = Array.isArray(t.ids) ? t.ids.filter((x): x is number => Number.isInteger(x)).slice(0, 5000) : null
+    const which: { ids: number[] } | { from: string | null } | null = ids ? { ids } : t.from === null || typeof t.from === 'string' ? { from: t.from as string | null } : null
+    if (!which || (ids && !ids.length)) return false
+    const changed = store.setSpeaker(id, which, to)
+    if (!changed) return changed === 0
+    const name = to.replace(/\s+/g, ' ').trim().slice(0, 200)
+    const known = new Set(m.attendees.map(a => a.name.toLocaleLowerCase()))
+    // a voice label (Speaker 2) moved onto another is not a person to add; a real name is
+    if (!known.has(name.toLocaleLowerCase()) && !/^Speaker \d+$/i.test(name) && ![me(), macName()].some(n => n?.toLocaleLowerCase() === name.toLocaleLowerCase()))
+      store.updateMeeting(id, { attendees: [...m.attendees, { name, email: null }] })
+    win?.webContents.send('transcript:speakers', id)
+    sendWidgetTranscript('transcript:speakers', id)
+    win?.webContents.send('meetings:changed')
+    notes.applyPeople(id)
+    void indexer.refresh()
+    return true
+  })
   // hidden echo lines back into the transcript (and search)
   ipcMain.handle('transcript:restore', (_e, id: unknown, ids: unknown) => {
     if (!isId(id)) return
@@ -647,7 +673,16 @@ app.whenReady().then(() => {
     removed: id => { for (const w of BrowserWindow.getAllWindows()) w.webContents.send('audio:deleted', id) },
     ...(automatic ? { keep: endedAt => keepsRecording(loadSettings(settingsFile), endedAt) } : {}),
   })
+  // who is who by voice on the other side, once a meeting is finished: before its summary (voices/)
+  const voices = hookVoices({
+    store, modelsDir: join(userDataDir(), 'models'), off: isFake() && process.env.YOGURT_FAKE_VOICES !== '1', fake: isFake(),
+    trackFile: (id) => trackFile(meetingDir(id), 'them', audioKinds),
+    helper: audioHelperPath, workerPath: join(__dirname, 'voices.js'),
+    progress: (v) => win?.webContents.send('voices:progress', v),
+    changed: (id) => { win?.webContents.send('transcript:speakers', id); sendWidgetTranscript('transcript:speakers', id); win?.webContents.send('meetings:changed'); notes.applyPeople(id) },
+  })
   const notes = hookNotes({
+    voiced: (id) => voices.run(id),
     summarized: id => { folderSuggestions.schedule(id); void removeRecording(id, true) },
     // Windows and Linux: a note waiting while the model loads says so (a Mac shows what it always did)
     showLoading: platform !== 'darwin',
@@ -674,7 +709,9 @@ app.whenReady().then(() => {
     transcribe: (id,tracks,options) => transcribeRecorded(id,tracks,undefined,options),
     draft:id=>win?.webContents.send('transcript:draft',id),
     changed: (id,replaced) => {win?.webContents.send('meetings:changed');if(replaced){win?.webContents.send('transcript:replaced',id);void indexer.schedule()}},
-    summarize: id => {void notes.writeAgain(id)},
+    // a recording transcribed from its saved audio (an upload, or one recorded before the speech model was in) is
+    // finished too: its voices are told apart before the summary, as after a meeting (notes/index.ts)
+    summarize: id => { void Promise.race([voices.run(id), new Promise<void>(r => setTimeout(r, VOICES_WAIT_MS))]).then(() => notes.writeAgain(id)) },
   })
   const uploads = hookAudioUploads({
     root: join(userDataDir(), 'meetings'), store, window: () => win, exiting: () => allowQuit,
@@ -812,6 +849,9 @@ app.whenReady().then(() => {
   // notes only for a meeting that exists: saving one for an unknown id would throw (its row must exist)
   const known = (id: unknown): id is string => isId(id) && !!store.meeting(id)
   ipcMain.handle('notes:get', (_e, id: unknown) => (isId(id) ? notes.view(id) : undefined))
+  ipcMain.handle('voices:progress', (_e, id: unknown) => (isId(id) ? voices.progress(id) : null))
+  // the prompts summaries are written with, for Settings (the person's summary language and name filled in)
+  ipcMain.handle('notes:prompt-preview', () => promptPreview({ summaryLanguage: summaryLanguageSetting(loadSettings(settingsFile)), me: me() }))
   const saveEdit = (id: unknown, side: unknown, md: unknown, revision: unknown): NoteSaveResult => {
     if (!isId(id) || typeof md !== 'string' || !Number.isSafeInteger(revision) || Number(revision) < 1 || (side !== 'mine' && side !== 'enhanced')) return { revision: Number(revision) || 0, status: 'failed', retained: false }
     return side === 'mine' ? notes.setMine(id, md, Number(revision)) : notes.setEnhanced(id, md, Number(revision))

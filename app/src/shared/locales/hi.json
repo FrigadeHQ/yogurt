@@ -733,5 +733,22 @@
   "Stop transcription": "ट्रांसक्रिप्शन रोकें",
   "Audio is unavailable.": "ऑडियो उपलब्ध नहीं है।",
   "Add a calendar by link": "लिंक से कैलेंडर जोड़ें",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Mac के कैलेंडर ऐप के कैलेंडर ऊपर अपने आप दिखाई देते हैं।"
+  "Calendars from the Mac's Calendar app appear above automatically.": "Mac के कैलेंडर ऐप के कैलेंडर ऊपर अपने आप दिखाई देते हैं।",
+  "All lines marked Them": "“बाकी लोग” वाली सभी पंक्तियाँ",
+  "All of {name}'s lines": "{name} की सभी पंक्तियाँ",
+  "Attendees": "प्रतिभागी",
+  "Change to {name}": "{name} में बदलें",
+  "Change who is speaking": "कौन बोल रहा है, बदलें",
+  "Each part of a long meeting, summarized first": "लंबी मीटिंग का हर हिस्सा, पहले सारांशित",
+  "Just this turn": "सिर्फ़ यह बारी",
+  "New name": "नया नाम",
+  "New name…": "नया नाम…",
+  "Speakers": "बोलने वाले",
+  "Summary prompt": "सारांश का प्रॉम्प्ट",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "सारांश लिखते समय Yogurt नोट्स मॉडल से जो कहता है। <कोण कोष्ठक> वाले शब्द हर मीटिंग से भरे जाते हैं।",
+  "Who is speaking?": "कौन बोल रहा है?",
+  "Yogurt couldn't show the prompt. Try again.": "Yogurt प्रॉम्प्ट नहीं दिखा सका। फिर से कोशिश करें।",
+  "Getting the voice model…": "आवाज़ मॉडल लाया जा रहा है…",
+  "Matching voices…": "आवाज़ें मिलाई जा रही हैं…",
+  "Telling voices apart…": "आवाज़ें अलग पहचानी जा रही हैं…"
 }

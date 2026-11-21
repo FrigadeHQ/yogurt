@@ -755,5 +755,22 @@
   "Stop transcription": "עצירת תמלול",
   "Audio is unavailable.": "האודיו אינו זמין.",
   "Add a calendar by link": "הוספת יומן באמצעות קישור",
-  "Calendars from the Mac's Calendar app appear above automatically.": "יומנים מיישום לוח השנה ב-Mac מופיעים למעלה באופן אוטומטי."
+  "Calendars from the Mac's Calendar app appear above automatically.": "יומנים מיישום לוח השנה ב-Mac מופיעים למעלה באופן אוטומטי.",
+  "All lines marked Them": "כל השורות שמסומנות „האחרים”",
+  "All of {name}'s lines": "כל השורות של {name}",
+  "Attendees": "משתתפים",
+  "Change to {name}": "שינוי ל{name}",
+  "Change who is speaking": "שינוי הדובר",
+  "Each part of a long meeting, summarized first": "כל חלק בפגישה ארוכה, מסוכם קודם",
+  "Just this turn": "רק התור הזה",
+  "New name": "שם חדש",
+  "New name…": "שם חדש…",
+  "Speakers": "דוברים",
+  "Summary prompt": "הנחיית הסיכום",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "מה ש-Yogurt מבקש ממודל הסיכומים כשהוא כותב סיכום. מילים ב<סוגריים משולשים> ממולאות מכל פגישה.",
+  "Who is speaking?": "מי מדבר?",
+  "Yogurt couldn't show the prompt. Try again.": "Yogurt לא הצליח להציג את ההנחיה. יש לנסות שוב.",
+  "Getting the voice model…": "מורידים את מודל הקולות…",
+  "Matching voices…": "מתאימים בין הקולות…",
+  "Telling voices apart…": "מבחינים בין הקולות…"
 }

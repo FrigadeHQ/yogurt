@@ -18,6 +18,7 @@ import { rememberedScroll, useScrollMemory } from '../useScrollMemory'
 import { followGlide, scrollBehavior } from '../motion'
 import { followTarget, inView } from '../../../shared/follow'
 import { afterFinal, joinWords } from '../../../shared/liveWords'
+import { SpeakerMenu } from './SpeakerMenu'
 
 type Line = Omit<Segment, 'id'> & { id?: number; previous?:boolean }
 const key = (l: { track: string; startMs: number }) => `${l.track}:${l.startMs}`
@@ -177,9 +178,11 @@ const Row = memo(function Row({ line: l, focused, name, playing, playable, focus
 
 /**
  * The meeting's transcript: each turn carries who said it, following new lines
- * while it records; after the meeting a line plays from that moment, and the player sits at the bottom. The header searches it.
+ * while it records; after the meeting a line plays on its own (its side only, stopping at its end), and the player sits at the bottom. The header searches it.
  */
-export function Transcript({ id, notice, processing=false, replacing=false, recording, inline = false, active = true, onClose, focus, toolbar }: {
+export function Transcript({ id, notice, processing=false, replacing=false, recording, inline = false, active = true, onClose, focus, toolbar, people = [] }: {
+  /** the meeting's attendees, offered when the person fixes who spoke */
+  people?: string[]
   id: string; notice?:ReactNode; processing?:boolean; replacing?:boolean; recording: boolean; inline?: boolean; active?: boolean; toolbar?: HTMLElement | null; onClose?: () => void
   /** a line to show and mark (an answer's source): ms into the meeting; seq: each time it is asked for */
   focus?: { ms: number; match?: string; seq: number }
@@ -192,6 +195,9 @@ export function Transcript({ id, notice, processing=false, replacing=false, reco
   const timeline = useMemo(() => echoRuns(withLive(allLines, liveSaid)).filter(run => !run.echo), [allLines, liveSaid])
   const lines = useMemo(() => echoRuns(allLines).filter(run => !run.echo).flatMap(run => run.lines), [allLines])
   const [finding, setFinding] = useState(false)
+  // who spoke can be fixed once the meeting is over and its lines are saved (not while a new transcript replaces them)
+  const editable = !recording && !replacing
+  const speakers = useMemo(() => [...new Set(allLines.filter(l => l.track === 'them' && l.speaker).map(l => l.speaker!))], [allLines])
   // a long recording draws its latest lines; the earlier ones on request (recentRuns)
   const [showAll, setShowAll] = useState(false)
   useEffect(() => { setFinding(false); setShowAll(false) }, [id])
@@ -345,7 +351,7 @@ export function Transcript({ id, notice, processing=false, replacing=false, reco
     // a button, or text being selected to copy, is not a request to play
     if (!playableRef.current || (e.target as HTMLElement).closest('button, input, form') || window.getSelection()?.toString()) return
     follow()
-    player.current?.playFrom(l.startMs)
+    player.current?.playLine(l.startMs, l.endMs, l.track)
   }, [follow])
 
   // the line an answer pointed to: in the middle of the panel, marked, and the list's tab stop
@@ -381,7 +387,7 @@ export function Transcript({ id, notice, processing=false, replacing=false, reco
     else if (e.key === 'ArrowUp') { e.preventDefault(); go(i - 1) }
     else if (e.key === 'Home') { e.preventDefault(); go(0) }
     else if (e.key === 'End') { e.preventDefault(); go(lines.length - 1) }
-    else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); follow(); player.current?.playFrom(lines[i].startMs) }
+    else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); follow(); player.current?.playLine(lines[i].startMs, lines[i].endMs, lines[i].track) }
   }
 
   const grouped = useMemo(() => timeline.map(run => ({ ...run, k: key(run.lines[0]) })), [timeline])
@@ -415,7 +421,13 @@ export function Transcript({ id, notice, processing=false, replacing=false, reco
               <li key={key(first)} data-testid="transcript-turn" data-track={first.track} className={`transcript-turn flex flex-col gap-[5px] ${me ? 'items-end' : 'items-start'}`}>
                 {/* the other side's name heads their turn; the mic's side needs none, its bubbles sit at the end */}
                 <p className={me ? 'sr-only' : 'turn-head flex items-baseline gap-2 px-1 text-xs'}>
-                  <span data-testid="transcript-who" data-color={color} data-folder-color={color === undefined ? undefined : SPEAKER_COLORS[color]} className={`line-who font-medium ${me ? '' : 'text-muted'} ${named ? 'name-in' : 'invisible'}`}>{who(first)}</span>
+                  {(() => {
+                    const ids = turn.flatMap(x => 'live' in x || x.previous || !x.id || x.id < 0 ? [] : [x.id])
+                    const attrs = { 'data-color': color, 'data-folder-color': color === undefined ? undefined : SPEAKER_COLORS[color], className: `line-who font-medium ${me ? '' : 'text-muted'} ${named ? 'name-in' : 'invisible'}` }
+                    return !me && editable && named && ids.length === turn.length
+                      ? <SpeakerMenu meetingId={id} current={first.speaker} currentName={who(first)} ids={ids} people={people} speakers={speakers} {...attrs}>{who(first)}</SpeakerMenu>
+                      : <span data-testid="transcript-who" {...attrs}>{who(first)}</span>
+                  })()}
                   <time className="turn-time tabular-nums text-muted">{clock(first.startMs)}</time>
                 </p>
                 {bubbles(turn).map((b) => (

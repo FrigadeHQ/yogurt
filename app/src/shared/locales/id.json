@@ -703,5 +703,22 @@
   "Stop transcription": "Hentikan transkripsi",
   "Audio is unavailable.": "Audio tidak tersedia.",
   "Add a calendar by link": "Tambahkan kalender melalui tautan",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Kalender dari app Kalender di Mac otomatis muncul di atas."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Kalender dari app Kalender di Mac otomatis muncul di atas.",
+  "All lines marked Them": "Semua baris bertanda “Yang lain”",
+  "All of {name}'s lines": "Semua baris {name}",
+  "Attendees": "Peserta",
+  "Change to {name}": "Ubah ke {name}",
+  "Change who is speaking": "Ubah siapa yang berbicara",
+  "Each part of a long meeting, summarized first": "Setiap bagian rapat panjang, diringkas lebih dulu",
+  "Just this turn": "Giliran ini saja",
+  "New name": "Nama baru",
+  "New name…": "Nama baru…",
+  "Speakers": "Pembicara",
+  "Summary prompt": "Prompt ringkasan",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "Yang diminta Yogurt dari model catatan saat menulis ringkasan. Kata dalam <kurung sudut> diisi dari setiap rapat.",
+  "Who is speaking?": "Siapa yang berbicara?",
+  "Yogurt couldn't show the prompt. Try again.": "Yogurt tidak dapat menampilkan prompt. Coba lagi.",
+  "Getting the voice model…": "Mengambil model suara…",
+  "Matching voices…": "Mencocokkan suara…",
+  "Telling voices apart…": "Membedakan suara…"
 }

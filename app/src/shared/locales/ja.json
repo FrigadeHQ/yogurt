@@ -703,5 +703,22 @@
   "Stop transcription": "文字起こしを停止",
   "Audio is unavailable.": "音声を利用できません。",
   "Add a calendar by link": "リンクでカレンダーを追加",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Macのカレンダーアプリのカレンダーは上に自動で表示されます。"
+  "Calendars from the Mac's Calendar app appear above automatically.": "Macのカレンダーアプリのカレンダーは上に自動で表示されます。",
+  "All lines marked Them": "「相手」のすべての行",
+  "All of {name}'s lines": "{name}のすべての行",
+  "Attendees": "参加者",
+  "Change to {name}": "{name}に変更",
+  "Change who is speaking": "話者を変更",
+  "Each part of a long meeting, summarized first": "長い会議の各部分（先に要約）",
+  "Just this turn": "この発言のみ",
+  "New name": "新しい名前",
+  "New name…": "新しい名前…",
+  "Speakers": "話者",
+  "Summary prompt": "要約のプロンプト",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "要約を書くときにYogurtがノートモデルに伝える内容です。<山かっこ>内の語句は各会議の内容で埋められます。",
+  "Who is speaking?": "誰が話していますか？",
+  "Yogurt couldn't show the prompt. Try again.": "Yogurtでプロンプトを表示できませんでした。もう一度お試しください。",
+  "Getting the voice model…": "音声モデルを取得中…",
+  "Matching voices…": "声を照合中…",
+  "Telling voices apart…": "声を聞き分けています…"
 }

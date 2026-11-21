@@ -745,5 +745,22 @@
   "Stop transcription": "Stopp transkripsjon",
   "Audio is unavailable.": "Lyden er ikke tilgjengelig.",
   "Add a calendar by link": "Legg til en kalender via lenke",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Kalendere fra Kalender-appen på Macen vises automatisk ovenfor."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Kalendere fra Kalender-appen på Macen vises automatisk ovenfor.",
+  "All lines marked Them": "Alle linjer merket «Andre»",
+  "All of {name}'s lines": "Alle linjer fra {name}",
+  "Attendees": "Deltakere",
+  "Change to {name}": "Endre til {name}",
+  "Change who is speaking": "Endre hvem som snakker",
+  "Each part of a long meeting, summarized first": "Hver del av et langt møte, oppsummert først",
+  "Just this turn": "Bare denne turen",
+  "New name": "Nytt navn",
+  "New name…": "Nytt navn…",
+  "Speakers": "Talere",
+  "Summary prompt": "Ledetekst for oppsummering",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "Det Yogurt ber notatmodellen om når den skriver en oppsummering. Ord i <vinkelparenteser> fylles inn fra hvert møte.",
+  "Who is speaking?": "Hvem snakker?",
+  "Yogurt couldn't show the prompt. Try again.": "Yogurt kunne ikke vise ledeteksten. Prøv igjen.",
+  "Getting the voice model…": "Henter stemmemodellen…",
+  "Matching voices…": "Matcher stemmer…",
+  "Telling voices apart…": "Skiller stemmer…"
 }

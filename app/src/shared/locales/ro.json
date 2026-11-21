@@ -762,5 +762,22 @@
   "Stop transcription": "Oprește transcrierea",
   "Audio is unavailable.": "Fișierul audio nu este disponibil.",
   "Add a calendar by link": "Adaugă un calendar prin link",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Calendarele din aplicația Calendar de pe Mac apar automat mai sus."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Calendarele din aplicația Calendar de pe Mac apar automat mai sus.",
+  "All lines marked Them": "Toate rândurile marcate „Ceilalți”",
+  "All of {name}'s lines": "Toate rândurile lui {name}",
+  "Attendees": "Participanți",
+  "Change to {name}": "Schimbă în {name}",
+  "Change who is speaking": "Schimbă cine vorbește",
+  "Each part of a long meeting, summarized first": "Fiecare parte a unei întâlniri lungi, rezumată întâi",
+  "Just this turn": "Doar această intervenție",
+  "New name": "Nume nou",
+  "New name…": "Nume nou…",
+  "Speakers": "Vorbitori",
+  "Summary prompt": "Promptul rezumatului",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "Ce îi cere Yogurt modelului de notițe când scrie un rezumat. Cuvintele dintre <paranteze unghiulare> se completează din fiecare întâlnire.",
+  "Who is speaking?": "Cine vorbește?",
+  "Yogurt couldn't show the prompt. Try again.": "Yogurt nu a putut afișa promptul. Încearcă din nou.",
+  "Getting the voice model…": "Se descarcă modelul de voci…",
+  "Matching voices…": "Se potrivesc vocile…",
+  "Telling voices apart…": "Se deosebesc vocile…"
 }

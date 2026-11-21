@@ -733,5 +733,22 @@
   "Stop transcription": "Dökümü durdur",
   "Audio is unavailable.": "Ses kullanılamıyor.",
   "Add a calendar by link": "Bağlantıyla takvim ekle",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Mac’in Takvim uygulamasındaki takvimler otomatik olarak yukarıda görünür."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Mac’in Takvim uygulamasındaki takvimler otomatik olarak yukarıda görünür.",
+  "All lines marked Them": "“Diğerleri” olarak işaretli tüm satırlar",
+  "All of {name}'s lines": "{name} adlı kişinin tüm satırları",
+  "Attendees": "Katılımcılar",
+  "Change to {name}": "{name} olarak değiştir",
+  "Change who is speaking": "Konuşanı değiştir",
+  "Each part of a long meeting, summarized first": "Uzun bir toplantının her bölümü, önce özetlenir",
+  "Just this turn": "Yalnızca bu konuşma",
+  "New name": "Yeni ad",
+  "New name…": "Yeni ad…",
+  "Speakers": "Konuşmacılar",
+  "Summary prompt": "Özet istemi",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "Yogurt'ün özet yazarken not modelinden istedikleri. <Açılı parantez> içindeki sözcükler her toplantıdan doldurulur.",
+  "Who is speaking?": "Kim konuşuyor?",
+  "Yogurt couldn't show the prompt. Try again.": "Yogurt istemi gösteremedi. Tekrar deneyin.",
+  "Getting the voice model…": "Ses modeli indiriliyor…",
+  "Matching voices…": "Sesler eşleştiriliyor…",
+  "Telling voices apart…": "Sesler ayırt ediliyor…"
 }

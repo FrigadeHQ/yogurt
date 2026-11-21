@@ -703,5 +703,22 @@
   "Stop transcription": "전사 중지",
   "Audio is unavailable.": "오디오를 사용할 수 없습니다.",
   "Add a calendar by link": "링크로 캘린더 추가",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Mac 캘린더 앱의 캘린더가 위에 자동으로 표시됩니다."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Mac 캘린더 앱의 캘린더가 위에 자동으로 표시됩니다.",
+  "All lines marked Them": "'상대방'으로 표시된 모든 줄",
+  "All of {name}'s lines": "{name}의 모든 줄",
+  "Attendees": "참석자",
+  "Change to {name}": "{name}(으)로 변경",
+  "Change who is speaking": "말하는 사람 변경",
+  "Each part of a long meeting, summarized first": "긴 회의의 각 부분(먼저 요약)",
+  "Just this turn": "이 발언만",
+  "New name": "새 이름",
+  "New name…": "새 이름…",
+  "Speakers": "화자",
+  "Summary prompt": "요약 프롬프트",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "요약을 쓸 때 Yogurt가 노트 모델에 요청하는 내용입니다. <꺾쇠괄호> 안의 단어는 회의마다 채워집니다.",
+  "Who is speaking?": "누가 말하고 있나요?",
+  "Yogurt couldn't show the prompt. Try again.": "Yogurt에서 프롬프트를 표시하지 못했습니다. 다시 시도하세요.",
+  "Getting the voice model…": "음성 모델 가져오는 중…",
+  "Matching voices…": "목소리 맞추는 중…",
+  "Telling voices apart…": "목소리 구분하는 중…"
 }

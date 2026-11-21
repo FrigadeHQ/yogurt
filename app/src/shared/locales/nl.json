@@ -745,5 +745,22 @@
   "Stop transcription": "Transcriptie stoppen",
   "Audio is unavailable.": "Audio is niet beschikbaar.",
   "Add a calendar by link": "Agenda toevoegen via een link",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Agenda’s uit de Agenda-app op je Mac verschijnen automatisch hierboven."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Agenda’s uit de Agenda-app op je Mac verschijnen automatisch hierboven.",
+  "All lines marked Them": "Alle regels gemarkeerd als ‘Anderen’",
+  "All of {name}'s lines": "Alle regels van {name}",
+  "Attendees": "Deelnemers",
+  "Change to {name}": "Wijzigen in {name}",
+  "Change who is speaking": "Wijzigen wie er spreekt",
+  "Each part of a long meeting, summarized first": "Elk deel van een lange vergadering, eerst samengevat",
+  "Just this turn": "Alleen deze beurt",
+  "New name": "Nieuwe naam",
+  "New name…": "Nieuwe naam…",
+  "Speakers": "Sprekers",
+  "Summary prompt": "Prompt voor de samenvatting",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "Wat Yogurt het notitiemodel vraagt als het een samenvatting schrijft. Woorden tussen <punthaken> worden per vergadering ingevuld.",
+  "Who is speaking?": "Wie spreekt er?",
+  "Yogurt couldn't show the prompt. Try again.": "Yogurt kon de prompt niet tonen. Probeer het opnieuw.",
+  "Getting the voice model…": "Stemmodel ophalen…",
+  "Matching voices…": "Stemmen koppelen…",
+  "Telling voices apart…": "Stemmen onderscheiden…"
 }

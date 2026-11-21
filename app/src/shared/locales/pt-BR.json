@@ -761,5 +761,22 @@
   "Stop transcription": "Parar transcrição",
   "Audio is unavailable.": "O áudio não está disponível.",
   "Add a calendar by link": "Adicionar calendário por link",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Os calendários do app Calendário do Mac aparecem acima automaticamente."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Os calendários do app Calendário do Mac aparecem acima automaticamente.",
+  "All lines marked Them": "Todas as linhas marcadas como “Outros”",
+  "All of {name}'s lines": "Todas as linhas de {name}",
+  "Attendees": "Participantes",
+  "Change to {name}": "Mudar para {name}",
+  "Change who is speaking": "Mudar quem está falando",
+  "Each part of a long meeting, summarized first": "Cada parte de uma reunião longa, resumida primeiro",
+  "Just this turn": "Só esta fala",
+  "New name": "Novo nome",
+  "New name…": "Novo nome…",
+  "Speakers": "Falantes",
+  "Summary prompt": "Prompt do resumo",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "O que o Yogurt pede ao modelo de notas ao escrever um resumo. As palavras entre <colchetes angulares> são preenchidas com cada reunião.",
+  "Who is speaking?": "Quem está falando?",
+  "Yogurt couldn't show the prompt. Try again.": "O Yogurt não conseguiu mostrar o prompt. Tente novamente.",
+  "Getting the voice model…": "Baixando o modelo de vozes…",
+  "Matching voices…": "Associando vozes…",
+  "Telling voices apart…": "Distinguindo vozes…"
 }

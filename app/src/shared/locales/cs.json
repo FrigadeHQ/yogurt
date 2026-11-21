@@ -776,5 +776,22 @@
   "Stop transcription": "Zastavit přepis",
   "Audio is unavailable.": "Zvuk není k dispozici.",
   "Add a calendar by link": "Přidat kalendář pomocí odkazu",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Kalendáře z aplikace Kalendář na Macu se automaticky zobrazí výše."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Kalendáře z aplikace Kalendář na Macu se automaticky zobrazí výše.",
+  "All lines marked Them": "Všechny řádky označené „Ostatní“",
+  "All of {name}'s lines": "Všechny řádky: {name}",
+  "Attendees": "Účastníci",
+  "Change to {name}": "Změnit na {name}",
+  "Change who is speaking": "Změnit, kdo mluví",
+  "Each part of a long meeting, summarized first": "Každá část dlouhé schůzky, shrnutá nejdřív",
+  "Just this turn": "Jen tento úsek",
+  "New name": "Nové jméno",
+  "New name…": "Nové jméno…",
+  "Speakers": "Mluvčí",
+  "Summary prompt": "Prompt pro souhrn",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "Co Yogurt žádá po modelu poznámek, když píše souhrn. Slova v <lomených závorkách> se doplní z každé schůzky.",
+  "Who is speaking?": "Kdo mluví?",
+  "Yogurt couldn't show the prompt. Try again.": "Yogurt nemohl zobrazit prompt. Zkuste to znovu.",
+  "Getting the voice model…": "Stahuje se hlasový model…",
+  "Matching voices…": "Párují se hlasy…",
+  "Telling voices apart…": "Rozlišují se hlasy…"
 }

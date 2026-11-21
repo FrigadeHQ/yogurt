@@ -2,7 +2,7 @@ import { audioUpload } from './audioUpload'
 import type { WidgetLayout } from '../shared/widgetMorph'
 import { contextBridge, ipcRenderer } from 'electron'
 import { capabilities, platformOf } from '../shared/platform'
-import type { ChatView, ConversationSummary, ConversationView, NoteView, PromptAction, SetupState, UpdateStatus, WidgetView, YogurtApi } from '../shared/types'
+import type { ChatView, ConversationSummary, ConversationView, NoteView, PromptAction, SetupState, UpdateStatus, VoicesProgress, WidgetView, YogurtApi } from '../shared/types'
 
 const api: YogurtApi = {
   reportRendererError: report => ipcRenderer.send('renderer:error', report),
@@ -87,6 +87,10 @@ const api: YogurtApi = {
       return () => { ipcRenderer.removeListener('meetings:changed', on) }
     },
   },
+  voices: {
+    progress: id => ipcRenderer.invoke('voices:progress', id),
+    onProgress: cb => { const on = (_e: unknown, v: VoicesProgress) => cb(v); ipcRenderer.on('voices:progress', on); return () => { ipcRenderer.removeListener('voices:progress', on) } },
+  },
   transcript: {
     draft:id=>ipcRenderer.invoke('transcript:draft',id),
     onDraft:cb=>{const listener=(_e:unknown,id:string)=>cb(id);ipcRenderer.on('transcript:draft',listener);return()=>ipcRenderer.removeListener('transcript:draft',listener)},
@@ -95,6 +99,7 @@ const api: YogurtApi = {
     stop: id => ipcRenderer.invoke('transcript:stop',id),
     get: (id, o) => ipcRenderer.invoke('transcript:get', id, o),
     restore: (id, ids) => ipcRenderer.invoke('transcript:restore', id, ids),
+    setSpeaker: (id, target, name) => ipcRenderer.invoke('transcript:set-speaker', id, target, name),
     onSegment: (cb) => {
       const on = (_e: unknown, seg: Parameters<typeof cb>[0]) => cb(seg)
       ipcRenderer.on('transcript:segment', on)
@@ -114,6 +119,7 @@ const api: YogurtApi = {
   },
   notes: {
     get: (id) => ipcRenderer.invoke('notes:get', id),
+    promptPreview: () => ipcRenderer.invoke('notes:prompt-preview'),
     setMine: (id, md, revision) => ipcRenderer.invoke('notes:set-mine', id, md, revision),
     setEnhanced: (id, md, revision) => ipcRenderer.invoke('notes:set-enhanced', id, md, revision),
     flushSync: (id, side, md, revision) => ipcRenderer.sendSync('notes:flush-sync', id, side, md, revision),

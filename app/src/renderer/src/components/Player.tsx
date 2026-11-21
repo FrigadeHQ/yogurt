@@ -9,10 +9,21 @@ import { Swap } from './Swap'
 import { recordingDeletedToast } from './TrashToast'
 
 type Track = 'me' | 'them'
-export type PlayerHandle = { playFrom: (ms: number) => void }
+export type PlayerHandle = {
+  playFrom: (ms: number) => void
+  /** one line on its own: from just before it to just after it, the other side muted, then it stops */
+  playLine: (startMs: number, endMs: number, track: Track) => void
+}
 const RATES = [1, 1.5, 2]
 /** a track further than this from the other is put back in step */
 const DRIFT_S = 0.08
+/** a line played on its own starts this much before it (whisper's start can be a little late), not the full second
+ * playFrom gives, which would bring in the end of the person before */
+const LINE_LEAD_S = 0.25
+/** and stops this long after its end, so the last word isn't clipped */
+const LINE_TAIL_S = 0.3
+/** what was asked to play before every track could seek: the whole meeting from ms, or one line */
+type Want = { ms: number; line?: { endMs: number; track: Track } }
 
 /**
  * Both sides of the meeting, played together: one audio element per track, kept in step with the longer one.
@@ -35,7 +46,10 @@ function MeetingPlayer({ id, tracks, openTranscript, ref, onTime, onPlaying, onB
   /** tracks that could not be read: dropped, and the other plays on */
   const [broken, setBroken] = useState<Track[]>([])
   const restoring = useRef(new Set<Track>())
-  const pendingPlayFrom = useRef<number | undefined>(undefined)
+  const pendingPlay = useRef<Want | undefined>(undefined)
+  /** the line playing on its own: its side, and where it stops (meeting seconds); null while the whole meeting plays */
+  const clip = useRef<{ track: Track; endS: number } | null>(null)
+  const clipFrame = useRef(0)
   const shown = tracks.filter((tr) => !broken.includes(tr))
   const [playing, setPlaying] = useState(false)
   const [time, setTime] = useState(0)
@@ -81,19 +95,50 @@ function MeetingPlayer({ id, tracks, openTranscript, ref, onTime, onPlaying, onB
   }
   const pause = () => { for (const a of all()) a.pause() }
 
-  const playFrom = (ms: number) => {
-    if (all().some(a => a.readyState === 0)) { pendingPlayFrom.current = ms; return }
-    pendingPlayFrom.current = undefined
-    seek(Math.max(0, ms / 1000 - 1)); play()
+  /** back to the whole meeting: both sides heard, no stop */
+  const endClip = () => {
+    clip.current = null
+    cancelAnimationFrame(clipFrame.current); clipFrame.current = 0
+    for (const a of all()) a.muted = false
   }
-  useImperativeHandle(ref, () => ({ playFrom }))
-  useEffect(() => { if (pendingPlayFrom.current !== undefined) playFrom(pendingPlayFrom.current) }, [broken])
+  /** a line playing on its own stops at its end; checked every frame (timeupdate alone comes only about 4 times a second) */
+  const checkClip = () => {
+    const c = clip.current, a = c && els.current[c.track]
+    if (!c || !a || a.seeking || a.currentTime < c.endS) return
+    pause(); endClip()
+  }
+  const watchClip = () => {
+    clipFrame.current = 0
+    if (!clip.current || !anyPlaying()) return
+    checkClip()
+    if (clip.current) clipFrame.current = requestAnimationFrame(watchClip)
+  }
+  const go = (w: Want) => {
+    if (all().some(a => a.readyState === 0)) { pendingPlay.current = w; return }
+    pendingPlay.current = undefined
+    endClip()
+    if (!w.line) { seek(Math.max(0, w.ms / 1000 - 1)); play(); return }
+    const from = Math.max(0, w.ms / 1000 - LINE_LEAD_S)
+    seek(from)
+    // only their side is heard while it can play the line; without it (gone, unreadable, shorter) everything plays as before
+    const own = shown.includes(w.line.track) ? els.current[w.line.track] : undefined
+    if (own && from < lenOf(own)) {
+      clip.current = { track: w.line.track, endS: w.line.endMs / 1000 + LINE_TAIL_S }
+      for (const tr of shown) { const a = els.current[tr]; if (a) a.muted = tr !== w.line.track }
+    }
+    play()
+    if (clip.current) clipFrame.current = requestAnimationFrame(watchClip)
+  }
+  const playFrom = (ms: number) => go({ ms })
+  const playLine = (startMs: number, endMs: number, track: Track) => go(endMs > startMs ? { ms: startMs, line: { endMs, track } } : { ms: startMs })
+  useImperativeHandle(ref, () => ({ playFrom, playLine }))
+  useEffect(() => { if (pendingPlay.current) go(pendingPlay.current) }, [broken])
 
   useEffect(() => { for (const a of all()) a.playbackRate = rate }, [rate])
   useEffect(() => { setBroken([]); setPlaying(false); setTime(0); setDuration(0); touched.current = false }, [id])
   // another meeting, or the panel closing: stop
   // React lets go of the elements (els) before this cleanup runs, and an audio let go keeps playing: pause every one it had
-  useEffect(() => () => { for (const a of owned.current) a.pause(); owned.current.clear(); onTimeRef.current?.(null) }, [id])
+  useEffect(() => () => { cancelAnimationFrame(clipFrame.current); clip.current = null; for (const a of owned.current) { a.pause(); a.muted = false } owned.current.clear(); onTimeRef.current?.(null) }, [id])
   useEffect(() => { onPlayingRef.current?.(playing) }, [playing])
   useEffect(() => { onBusyRef.current?.(playing || menuOpen || confirm) }, [playing, menuOpen, confirm])
 
@@ -101,6 +146,7 @@ function MeetingPlayer({ id, tracks, openTranscript, ref, onTime, onPlaying, onB
   const tick = (a: HTMLAudioElement) => {
     // A queued timeupdate can still carry the old clock during a seek. The requested position owns the UI until
     // the media element has settled; otherwise a drag briefly sends the thumb and transcript backwards.
+    if (clip.current) checkClip()
     if (a !== lead() || a.seeking) return
     setTime(a.currentTime)
     if (touched.current) onTimeRef.current?.(a.currentTime * 1000)
@@ -149,7 +195,7 @@ function MeetingPlayer({ id, tracks, openTranscript, ref, onTime, onPlaying, onB
               if (other) start(track)
             }
             setDuration(Math.max(0, ...all().map(lenOf)))
-            if (pendingPlayFrom.current !== undefined) playFrom(pendingPlayFrom.current)
+            if (pendingPlay.current) go(pendingPlay.current)
           }}
           onTimeUpdate={(e) => tick(e.currentTarget)}
           onPlay={changed} onPause={changed}
@@ -165,13 +211,13 @@ function MeetingPlayer({ id, tracks, openTranscript, ref, onTime, onPlaying, onB
         </div>
       </InlineError>}
       {shown.length > 0 && <div className="flex items-center gap-2">
-        <button data-testid="player-toggle" aria-label={playing ? t('Pause') : t('Play')} onClick={() => (playing ? pause() : play())}
+        <button data-testid="player-toggle" aria-label={playing ? t('Pause') : t('Play')} onClick={() => { if (playing) pause(); else { endClip(); play() } }}
           className="player-btn flex size-[26px] shrink-0 items-center justify-center rounded-full bg-accent text-accent-ink">
           <Swap show={playing ? 'pause' : 'play'} options={{ play: <Play size={13} fill="currentColor" strokeWidth={0} className="ms-0.5" />, pause: <Pause size={13} fill="currentColor" strokeWidth={0} /> }} />
         </button>
         <span className="w-9 shrink-0 text-end tabular-nums">{clock(time * 1000)}</span>
         <input data-testid="player-scrubber" type="range" min={0} max={duration || 0} step={0.1} value={Math.min(time, duration || 0)} aria-label={t('Position')}
-          onChange={(e) => seek(Number(e.target.value))} className="scrubber min-w-0 flex-1" style={{ ['--fill' as string]: `${fill}%` }} />
+          onChange={(e) => { endClip(); seek(Number(e.target.value)) }} className="scrubber min-w-0 flex-1" style={{ ['--fill' as string]: `${fill}%` }} />
         <span className="w-9 shrink-0 tabular-nums">{clock(duration * 1000)}</span>
         <button data-testid="player-speed" aria-label={t('Playback speed {rate}', { rate: rateText })}
           onClick={() => setRate((r) => RATES[(RATES.indexOf(r) + 1) % RATES.length])}

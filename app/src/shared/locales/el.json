@@ -748,5 +748,22 @@
   "Stop transcription": "Διακοπή απομαγνητοφώνησης",
   "Audio is unavailable.": "Ο ήχος δεν είναι διαθέσιμος.",
   "Add a calendar by link": "Προσθήκη ημερολογίου μέσω συνδέσμου",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Τα ημερολόγια από την εφαρμογή Ημερολόγιο του Mac εμφανίζονται αυτόματα παραπάνω."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Τα ημερολόγια από την εφαρμογή Ημερολόγιο του Mac εμφανίζονται αυτόματα παραπάνω.",
+  "All lines marked Them": "Όλες οι γραμμές με «Οι άλλοι»",
+  "All of {name}'s lines": "Όλες οι γραμμές: {name}",
+  "Attendees": "Συμμετέχοντες",
+  "Change to {name}": "Αλλαγή σε {name}",
+  "Change who is speaking": "Αλλαγή ομιλητή",
+  "Each part of a long meeting, summarized first": "Κάθε μέρος μιας μεγάλης σύσκεψης, συνοψισμένο πρώτα",
+  "Just this turn": "Μόνο αυτή η σειρά",
+  "New name": "Νέο όνομα",
+  "New name…": "Νέο όνομα…",
+  "Speakers": "Ομιλητές",
+  "Summary prompt": "Οδηγία σύνοψης",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "Τι ζητά το Yogurt από το μοντέλο σημειώσεων όταν γράφει μια σύνοψη. Οι λέξεις σε <γωνιακές αγκύλες> συμπληρώνονται από κάθε σύσκεψη.",
+  "Who is speaking?": "Ποιος μιλάει;",
+  "Yogurt couldn't show the prompt. Try again.": "Το Yogurt δεν μπόρεσε να εμφανίσει την οδηγία. Δοκιμάστε ξανά.",
+  "Getting the voice model…": "Γίνεται λήψη του μοντέλου φωνών…",
+  "Matching voices…": "Αντιστοίχιση φωνών…",
+  "Telling voices apart…": "Διάκριση φωνών…"
 }

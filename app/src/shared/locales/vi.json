@@ -703,5 +703,22 @@
   "Stop transcription": "Dừng chép lời",
   "Audio is unavailable.": "Âm thanh không khả dụng.",
   "Add a calendar by link": "Thêm lịch bằng liên kết",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Lịch từ ứng dụng Lịch trên Mac tự động xuất hiện ở trên."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Lịch từ ứng dụng Lịch trên Mac tự động xuất hiện ở trên.",
+  "All lines marked Them": "Mọi dòng được đánh dấu “Người khác”",
+  "All of {name}'s lines": "Mọi dòng của {name}",
+  "Attendees": "Người tham dự",
+  "Change to {name}": "Đổi thành {name}",
+  "Change who is speaking": "Đổi người đang nói",
+  "Each part of a long meeting, summarized first": "Từng phần của cuộc họp dài, được tóm tắt trước",
+  "Just this turn": "Chỉ lượt này",
+  "New name": "Tên mới",
+  "New name…": "Tên mới…",
+  "Speakers": "Người nói",
+  "Summary prompt": "Lời nhắc tóm tắt",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "Những gì Yogurt yêu cầu mô hình ghi chú khi viết bản tóm tắt. Các từ trong <dấu ngoặc nhọn> được điền từ mỗi cuộc họp.",
+  "Who is speaking?": "Ai đang nói?",
+  "Yogurt couldn't show the prompt. Try again.": "Yogurt không thể hiển thị lời nhắc. Hãy thử lại.",
+  "Getting the voice model…": "Đang tải mô hình giọng nói…",
+  "Matching voices…": "Đang khớp giọng nói…",
+  "Telling voices apart…": "Đang phân biệt giọng nói…"
 }
