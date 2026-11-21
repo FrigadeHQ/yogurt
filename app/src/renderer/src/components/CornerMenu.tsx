@@ -4,7 +4,7 @@ import { Menu } from '@base-ui/react/menu'
 import { Tooltip } from '@base-ui/react/tooltip'
 import { Logo as CornerMark } from './Logo'
 import { ActionTooltipPopup } from './ActionTooltipPopup'
-import { BookOpen, Keyboard, Megaphone, MessageCircle, RotateCw, SidebarSettings as Settings, Trash2 } from './Icons'
+import { Keyboard, Megaphone, MessageCircle, RotateCw, SidebarSettings as Settings, Trash2 } from './Icons'
 import type { UpdateStatus } from '../../../shared/types'
 import { dirOf, language, t } from '../../../shared/i18n'
 import { keys } from '../keys'
@@ -91,9 +91,9 @@ export function CornerMenu({ section, recording, go, shortcuts }: { section: str
   }
   const labels = {
     news: t("What's new"), github: t('Star us on GitHub'), discord: t('Join Discord'),
-    shortcuts: t('Keyboard shortcuts'), feedback: t('Send feedback'), help: t('Help'), settings: t('Settings'), trash: t('Trash'),
+    shortcuts: t('Keyboard shortcuts'), feedback: t('Send feedback'), settings: t('Settings'), trash: t('Trash'),
   }
-  const glyphs = { news: Megaphone, shortcuts: Keyboard, feedback: MessageCircle, help: BookOpen, settings: Settings, trash: Trash2 }
+  const glyphs = { news: Megaphone, shortcuts: Keyboard, feedback: MessageCircle, settings: Settings, trash: Trash2 }
   const shortcutKeys = { shortcuts: '⌘/', settings: '⌘,', trash: '⌘3' }
   const rowDot = <span className="corner-row-dot" aria-hidden="true" />
   return <DirectionProvider direction={dirOf(language())}>
