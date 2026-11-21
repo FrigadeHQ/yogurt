@@ -500,13 +500,11 @@ body:has(.chat-panel[open]) .app-toast-viewport:dir(rtl) { --toast-x:440px; }
 .ask-stop:hover:not(:disabled) { background:var(--control-hover);color:var(--ink); }
 .ask-stop:active:not(:disabled) { background:var(--control-pressed); }
 .ask-scope-group { display:flex;align-items:center;gap:1px;min-width:0;max-width:calc(100% - 40px); }
-.ask-scope { display:flex;align-items:center;gap:6px;min-width:0;max-width:100%;height:28px;padding:0 8px;border-radius:8px;background:var(--control);color:var(--muted);font-size:12px;white-space:nowrap; }
-.ask-scope:hover:not(:disabled) { background:var(--control-hover);color:var(--ink); }
-.ask-scope:disabled { opacity:.45; }
-.ask-scope-group:has(.ask-scope-clear) .ask-scope { border-start-end-radius:0;border-end-end-radius:0; }
+.ask-scope { display:flex;align-items:center;gap:6px;min-width:0;max-width:100%;height:28px;padding:0 8px;border:0;border-radius:14px;color:var(--muted);font-size:12px;white-space:nowrap; }
+.ask-scope-selected { background:var(--control);border-radius:8px;border-start-end-radius:0;border-end-end-radius:0; }
 .ask-scope-clear { flex:none;display:flex;align-items:center;justify-content:center;width:26px;height:28px;border-start-end-radius:8px;border-end-end-radius:8px;background:var(--control);color:var(--muted); }
-.ask-scope-clear:hover:not(:disabled) { background:var(--control-hover);color:var(--ink); }
-.ask-scope-clear:disabled { opacity:.45; }
+.ask-scope-selected:hover:not(:disabled),.ask-scope-clear:hover:not(:disabled) { background:var(--control-hover);color:var(--ink); }
+.ask-scope-selected:disabled,.ask-scope-clear:disabled { opacity:.45; }
 .ask-picker h3:has(.text-action) { display:flex;align-items:center;justify-content:space-between; }
 .ask-scope-label { display:flex;min-width:0; }
 .ask-scope-name { min-width:0;overflow:hidden;text-overflow:ellipsis; }
