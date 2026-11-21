@@ -18,6 +18,11 @@ test('download progress keeps its geometry as percentages and phases change', as
     }
     for (const colorScheme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme })
+      if (!before) {
+        const accent = colorScheme === 'dark' ? 'rgb(183, 128, 255)' : 'rgb(111, 0, 255)'
+        await expect(page.getByTestId('wordmark').locator('path').first()).toHaveCSS('fill', accent)
+        await expect(page.getByTestId('download-blob').locator('.icon-art stop[offset=".45"]').first()).toHaveCSS('stop-color', accent)
+      }
       let initial: { x: number; y: number; width: number; height: number } | undefined
       for (const fraction of [.09, .1, .99, 1]) {
         await app.evaluate(({ BrowserWindow }, fraction) => BrowserWindow.getAllWindows()[0].webContents.send('setup:state', { phase: 'downloading', fraction }), fraction)
@@ -54,6 +59,7 @@ test('first-run notification stands alone and help stays in a bounded disclosure
     }
     for (const colorScheme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme })
+      if (!before) await expect.poll(() => page.locator('.ob-prompt-icon img').evaluate(el => (el as HTMLImageElement).currentSrc.endsWith('/favicon-dark.png'))).toBe(colorScheme === 'dark')
       await page.screenshot({ path: info.outputPath(`notification-art-${before ? 'before' : 'after'}-${colorScheme}.png`) })
       expect(await page.locator('.setup-screen').evaluate(el => getComputedStyle(el).backgroundColor)).toMatch(/^rgb\(/)
     }

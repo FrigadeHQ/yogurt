@@ -1,4 +1,4 @@
-import { app, Menu, nativeImage, powerMonitor, systemPreferences, Tray, type MenuItemConstructorOptions } from 'electron'
+import { app, Menu, nativeImage, nativeTheme, powerMonitor, systemPreferences, Tray, type MenuItemConstructorOptions } from 'electron'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { activeMeeting, onMeetingChange } from './meeting'
@@ -78,6 +78,7 @@ export function createTray(d: { show: boolean; visible?: boolean; showNextMeetin
   }
   const look = (m: ReturnType<typeof activeMeeting>, next?: CalEvent, at = now()) =>
     trayLook(os, m ? { paused: recordingPaused(m.id) } : null, m ? d.elapsed() : 0, next, at, systemTrayTime)
+  const themedIcon = (name: string) => os !== 'darwin' && nativeTheme.shouldUseDarkColors ? name + '-dark' : name
   const image = (name: string) => {
     const icon = nativeImage.createFromPath(iconPath(name))
     if (os === 'darwin') icon.setTemplateImage(true)
@@ -97,7 +98,8 @@ export function createTray(d: { show: boolean; visible?: boolean; showNextMeetin
       if (untilChange < 60_000 - at % 60_000) boundary = setTimeout(updateLook, untilChange).unref()
     }
     const l = look(m, next, at)
-    if (l.icon !== iconName) { tray.setImage(image(l.icon)); iconName = l.icon }
+    const name = themedIcon(l.icon)
+    if (name !== iconName) { tray.setImage(image(name)); iconName = name }
     if (l.title !== null && l.title !== lastTitle) { tray.setTitle(l.title, { fontType: 'monospacedDigit' }); lastTitle = l.title }
     if (l.tooltip !== lastTooltip) { tray.setToolTip(l.tooltip); lastTooltip = l.tooltip }
   }
@@ -124,7 +126,7 @@ export function createTray(d: { show: boolean; visible?: boolean; showNextMeetin
       tray = undefined
       lastTitle = lastTooltip = undefined
     } else if (!tray) {
-      iconName = look(activeMeeting()).icon
+      iconName = themedIcon(look(activeMeeting()).icon)
       tray = new Tray(image(iconName))
       tray.on('mouse-down', refresh)
       // Windows: a left click opens Yogurt and a right click shows the menu (Linux trays mostly show the menu)
@@ -157,7 +159,11 @@ export function createTray(d: { show: boolean; visible?: boolean; showNextMeetin
   }
   tick()
   powerMonitor.on('resume', tick)
-  app.on('will-quit', () => { clearInterval(clock); clearTimeout(calendar); clearTimeout(boundary); powerMonitor.off('resume', tick) })
+  if (os !== 'darwin') nativeTheme.on('updated', updateLook)
+  app.on('will-quit', () => {
+    clearInterval(clock); clearTimeout(calendar); clearTimeout(boundary); powerMonitor.off('resume', tick)
+    if (os !== 'darwin') nativeTheme.off('updated', updateLook)
+  })
   onMeetingChange(refresh)
   onLanguage(refresh)
   onRecordingEvent((e) => {
