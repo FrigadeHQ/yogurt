@@ -1,3 +1,4 @@
+#if DEBUG
 import Foundation
 import YogurtKit
 
@@ -216,3 +217,4 @@ enum SampleData {
         return (try? JSONDecoder().decode([Change].self, from: data)) ?? []
     }
 }
+#endif

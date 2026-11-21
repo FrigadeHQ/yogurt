@@ -13,25 +13,33 @@ struct NoteView: View {
     @State private var renaming = false
     @State private var newTitle = ""
     @State private var toast: String?
+    @State private var toastTask: Task<Void, Never>?
+    /// read off the main thread, again each time sync lands something
+    @State private var loaded: StoreReader.Note?
 
     var body: some View {
-        let _ = model.engine.revision
+        let revision = model.revision
         Group {
-            if let meeting = model.store.meeting(meetingId) {
-                content(meeting)
+            if let loaded {
+                if let meeting = loaded.meeting {
+                    content(meeting, loaded)
+                } else {
+                    Text(S.notFound).foregroundStyle(Theme.muted).frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             } else {
-                Text(S.notFound).foregroundStyle(Theme.muted).frame(maxWidth: .infinity, maxHeight: .infinity)
+                Color.clear
             }
         }
         .background(Theme.bg)
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottom) { toastView }
+        .task(id: revision) { loaded = await model.reader.note(meetingId) }
     }
 
-    private func content(_ meeting: Meeting) -> some View {
-        let notes = model.store.notes(meetingId)
-        let folders = model.store.folders()
-        let inFolders = folders.filter { f in model.store.meetings(folder: f.id).contains { $0.id == meetingId } }
+    private func content(_ meeting: Meeting, _ loaded: StoreReader.Note) -> some View {
+        let notes = loaded.notes
+        let folders = loaded.folders
+        let inFolders = folders.filter { loaded.inFolders.contains($0.id) }
         let shown = tab ?? defaultTab(notes)
         return ScrollView {
             VStack(alignment: .leading, spacing: 0) {
@@ -41,8 +49,8 @@ struct NoteView: View {
                 Group {
                     switch shown {
                     case .summary: SummaryPane(notes: notes)
-                    case .mine: MyNotesPane(meetingId: meetingId, initial: notes?.mine ?? "")
-                    case .transcript: TranscriptPane(segments: model.store.segments(meetingId))
+                    case .mine: MyNotesPane(meetingId: meetingId, latest: notes?.mine ?? "")
+                    case .transcript: TranscriptPane(meetingId: meetingId)
                     }
                 }
                 .padding(.top, 20)
@@ -76,6 +84,8 @@ struct NoteView: View {
                 .tracking(-0.4)
                 .foregroundStyle(Theme.heading)
                 .onTapGesture { newTitle = m.title; renaming = true }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityHint(S.rename)
             HStack(spacing: 6) {
                 Text([Format.day(m.startedAt), Format.time(m.startedAt), Format.duration(m)].compactMap { $0 }.joined(separator: " · "))
                 if !m.attendees.isEmpty {
@@ -175,6 +185,7 @@ struct NoteView: View {
         } label: {
             Image(systemName: "ellipsis").accessibilityLabel(S.more)
         }
+        .accessibilityLabel(S.more)
     }
 
     /// Edits other than My notes show once the computer has taken them, so say when that has to wait.
@@ -182,8 +193,11 @@ struct NoteView: View {
         model.send(op)
         if case .connected = model.engine.status { return }
         withAnimation { toast = S.changeQueued }
-        Task {
+        // a second change starts the 3 seconds again rather than being cleared early by the first
+        toastTask?.cancel()
+        toastTask = Task {
             try? await Task.sleep(for: .seconds(3))
+            guard !Task.isCancelled else { return }
             withAnimation { toast = nil }
         }
     }
@@ -226,20 +240,27 @@ struct SummaryPane: View {
     }
 }
 
-/// My notes, saved a second after typing stops (and on leaving), as one queued edit for the computer.
+/// My notes, saved a second after typing stops (and on leaving or switching apps), as one queued edit for the computer.
 struct MyNotesPane: View {
     let meetingId: String
+    /// My notes as the Store has them now; a sync can change it while this is open
+    let latest: String
     @Environment(AppModel.self) private var model
+    @Environment(\.scenePhase) private var phase
     @State private var text: String
+    /// the text last read from or saved to the Store, so loading it again isn't taken for typing
+    @State private var base: String
     @State private var state: SaveState = .saved
     @State private var saveTask: Task<Void, Never>?
     @FocusState private var focused: Bool
 
     enum SaveState { case saved, saving, failed }
 
-    init(meetingId: String, initial: String) {
+    init(meetingId: String, latest: String) {
         self.meetingId = meetingId
-        _text = State(initialValue: initial)
+        self.latest = latest
+        _text = State(initialValue: latest)
+        _base = State(initialValue: latest)
     }
 
     var body: some View {
@@ -268,8 +289,16 @@ struct MyNotesPane: View {
                 .foregroundStyle(state == .failed ? Theme.danger : Theme.muted)
                 .contentTransition(.opacity)
         }
-        .onChange(of: text) { _, _ in schedule() }
+        .onChange(of: text) { _, new in if new != base { schedule() } }
         .onDisappear { if state == .saving { save() } }
+        // leaving Yogurt (home swipe, a call, the lock) saves what's typed now, not a second later
+        .onChange(of: phase) { _, now in if now != .active, state == .saving { save() } }
+        // the computer's newer My notes arrived: show them, unless the person is typing (their save merges on the computer)
+        .onChange(of: latest) { _, new in
+            guard !focused, state == .saved, new != text else { return }
+            base = new
+            text = new
+        }
     }
 
     private var stateLabel: String {
@@ -293,9 +322,11 @@ struct MyNotesPane: View {
     private func save() {
         saveTask?.cancel()
         // skip when nothing changed, so opening a note never queues an edit
-        guard model.store.notes(meetingId)?.mine != text else { state = .saved; return }
+        guard model.store.notes(meetingId)?.mine != text else { base = text; state = .saved; return }
         do {
             try model.store.editMine(meetingId: meetingId, text: text)
+            model.edited()
+            base = text
             state = .saved
             Task { await model.engine.syncNow() }
         } catch {
@@ -305,14 +336,25 @@ struct MyNotesPane: View {
 }
 
 struct TranscriptPane: View {
-    let segments: [Segment]
+    let meetingId: String
+    @Environment(AppModel.self) private var model
+    /// nil until read; a long transcript is read off the main thread
+    @State private var segments: [Segment]?
 
     var body: some View {
+        let revision = model.revision
+        Group {
+            if let segments { lines(segments) } else { Color.clear.frame(height: 1) }
+        }
+        .task(id: revision) { segments = await model.reader.segments(meetingId) }
+    }
+
+    @ViewBuilder private func lines(_ segments: [Segment]) -> some View {
         if segments.isEmpty {
             Text(S.noTranscript).font(.subheadline).foregroundStyle(Theme.muted)
         } else {
             LazyVStack(alignment: .leading, spacing: 18) {
-                ForEach(turns, id: \.first.index) { turn in
+                ForEach(turns(segments), id: \.first.index) { turn in
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 8) {
                             Text(speaker(turn.first.speaker))
@@ -334,7 +376,7 @@ struct TranscriptPane: View {
     }
 
     /// back-to-back lines from the same speaker read as one turn
-    private var turns: [(first: Segment, text: String)] {
+    private func turns(_ segments: [Segment]) -> [(first: Segment, text: String)] {
         var out: [(first: Segment, text: String)] = []
         for s in segments {
             if let last = out.last, last.first.speaker == s.speaker {
@@ -385,7 +427,7 @@ struct MarkdownView: View {
                 Image(systemName: done ? "checkmark.square" : "square").foregroundStyle(Theme.muted)
                 inline(text).strikethrough(done, color: Theme.muted)
             }
-            .padding(.leading, CGFloat(level) * 18)
+            .padding(.leading, indent(level))
         case .paragraph(let text):
             inline(text)
         case .rule:
@@ -398,8 +440,11 @@ struct MarkdownView: View {
             Text(marker).foregroundStyle(Theme.muted).frame(minWidth: 12, alignment: .leading)
             inline(text)
         }
-        .padding(.leading, CGFloat(level) * 18)
+        .padding(.leading, indent(level))
     }
+
+    /// deep nesting stops indenting at six levels, so odd input can't push text off screen
+    private func indent(_ level: Int) -> CGFloat { CGFloat(min(level, 6)) * 18 }
 
     private func inline(_ text: String, font: Font = .body, color: Color? = nil) -> Text {
         let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)

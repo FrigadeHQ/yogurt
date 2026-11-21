@@ -1,7 +1,24 @@
 import SwiftUI
 import YogurtKit
 
-/// First run: find the computer on this Wi-Fi, then type the 6-digit code it shows.
+/// Connecting is optional, so it opens as a sheet: from onboarding, the status pill, Home's hint and Settings.
+/// It closes by itself once paired.
+struct ConnectSheet: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            PairingView()
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) { Button(S.notNow) { dismiss() } }
+                }
+        }
+        .onChange(of: model.engine.status == .notPaired) { _, unpaired in if !unpaired { dismiss() } }
+    }
+}
+
+/// Find the computer on this Wi-Fi, then type the 6-digit code it shows.
 struct PairingView: View {
     @Environment(AppModel.self) private var model
     @State private var chosen: DiscoveredDesktop?
@@ -20,24 +37,31 @@ struct PairingView: View {
                     .foregroundStyle(Theme.muted)
                     .padding(.top, 36)
                 #if DEBUG
-                if let preview = model.preview {
-                    Button(S.trySample) { preview.loadSamples() }
-                        .font(.footnote)
-                        .foregroundStyle(Theme.muted)
-                        .underline()
-                        .padding(.top, 20)
-                        .accessibilityIdentifier("try-sample")
-                }
+                Button(S.trySample) { model.preview.loadSamples() }
+                    .font(.footnote)
+                    .foregroundStyle(Theme.muted)
+                    .underline()
+                    .padding(.top, 20)
+                    .accessibilityIdentifier("try-sample")
                 #endif
             }
             .padding(.horizontal, 24)
-            .padding(.top, 48)
+            .padding(.top, 12)
             .padding(.bottom, 32)
         }
         .scrollDismissesKeyboard(.interactively)
         .background(Theme.bg)
-        .onAppear(perform: pickOnlyOne)
+        // looking makes iOS ask for the local network, so it happens only while this screen is open
+        .onAppear { model.sync.lookForComputers(true); pickOnlyOne() }
+        .onDisappear { model.sync.lookForComputers(false) }
         .onChange(of: model.engine.discovered) { _, _ in pickOnlyOne() }
+    }
+
+    private var localNetworkDenied: Bool {
+        #if DEBUG
+        if UserDefaults.standard.bool(forKey: "previewLocalNetworkDenied") { return true }
+        #endif
+        return model.sync.localNetworkDenied
     }
 
     /// With just one computer showing a code, go straight to typing it.
@@ -74,7 +98,19 @@ struct PairingView: View {
                 .font(.footnote)
                 .foregroundStyle(Theme.muted)
                 .padding(.top, 26)
-            if found.isEmpty {
+            if localNetworkDenied && found.isEmpty {
+                // iOS said no to the local network: nothing can be found until it's allowed in Settings
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(S.localNetworkDenied).font(.subheadline).foregroundStyle(Theme.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button(S.openSettings) { Permission.openSettings() }
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.accent)
+                        .frame(minHeight: 44)
+                        .accessibilityIdentifier("open-settings")
+                }
+                .padding(.top, 30)
+            } else if found.isEmpty {
                 HStack(spacing: 10) {
                     ProgressView().controlSize(.small)
                     Text(S.pairLooking).font(.subheadline).foregroundStyle(Theme.muted)
@@ -114,7 +150,7 @@ struct PairingView: View {
     private func computerRow(_ d: DiscoveredDesktop) -> some View {
         HStack(spacing: 12) {
             Image(systemName: "laptopcomputer")
-                .font(.system(size: 17))
+                .font(.body)
                 .foregroundStyle(Theme.written)
                 .frame(width: 38, height: 38)
                 .background(Theme.control, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
@@ -143,6 +179,7 @@ struct CodeEntry: View {
     @State private var failed: String?
     @State private var shake = 0
     @FocusState private var focused: Bool
+    @ScaledMetric(relativeTo: .title) private var boxHeight: CGFloat = 60
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -189,6 +226,7 @@ struct CodeEntry: View {
                 .focused($focused)
                 .opacity(0.02)
                 .accessibilityLabel(S.codeField)
+                .accessibilityValue(S.codeDigits(code.count))
                 .accessibilityIdentifier("pair-code")
                 .onChange(of: code) { _, new in
                     let digits = String(new.filter(\.isASCII).filter(\.isNumber).prefix(6))
@@ -213,10 +251,10 @@ struct CodeEntry: View {
         let digit = i < chars.count ? String(chars[i]) : ""
         let current = focused && !busy && i == min(chars.count, 5)
         return Text(digit)
-            .font(.system(size: 28, weight: .semibold, design: .rounded).monospacedDigit())
+            .font(.system(.title, design: .rounded).weight(.semibold).monospacedDigit())
             .foregroundStyle(Theme.ink)
             .frame(maxWidth: .infinity)
-            .frame(height: 60)
+            .frame(height: boxHeight)
             .background(Theme.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -231,6 +269,10 @@ struct CodeEntry: View {
         Task {
             do {
                 try await model.engine.pair(with: desktop, code: code)
+            } catch SyncError.localNetworkDenied {
+                failed = S.localNetworkDenied
+                code = ""
+                focused = true
             } catch {
                 failed = switch error as? PairingError {
                 case .expired: S.pairExpired

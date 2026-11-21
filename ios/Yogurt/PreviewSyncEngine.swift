@@ -1,3 +1,4 @@
+#if DEBUG
 import Foundation
 import YogurtKit
 
@@ -111,3 +112,4 @@ final class PreviewSyncEngine: SyncEngineProtocol {
 }
 
 private func ms(_ d: Date) -> Double { (d.timeIntervalSince1970 * 1000).rounded() }
+#endif

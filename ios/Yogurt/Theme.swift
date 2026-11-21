@@ -24,6 +24,9 @@ enum Theme {
     static let live = dynamic(0x416D48, 0xAED4B5)
     static let danger = dynamic(0xB63C4D, 0xF098A5)
     static let dangerSoft = dynamic(0xF4E5E8, 0x59343C)
+    /// the onboarding pictures' purple, as on desktop's first run
+    static let art = dynamic(0x7142E8, 0xA48BF4)
+    static let artSoft = dynamic(0xEEE9FC, 0x2D2445)
 
     /// Bricolage Grotesque SemiBold (bundled, OFL), desktop's brand face, for screen titles only.
     static func brand(_ size: CGFloat, relativeTo style: Font.TextStyle = .title) -> Font {
