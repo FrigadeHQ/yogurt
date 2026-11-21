@@ -27,11 +27,8 @@
 .workspace-sidebar[inert] { transform:translateX(-100%);pointer-events:none; }
 .workspace-sidebar[inert]::after { visibility:hidden; }
 .workspace:dir(rtl) .workspace-sidebar[inert] { transform:translateX(100%); }
-.workspace-peek-edge { position:absolute;inset-block:52px 0;inset-inline-start:0;width:5px;z-index:3; }
-.workspace[data-peeking=true] .workspace-peek-edge { pointer-events:none; }
 .workspace[data-peeking=true] .workspace-sidebar-inner { box-shadow:var(--shadow); }
 .sidebar-collapsed .workspace-sidebar { z-index:4; }
-@media (hover:none) and (any-hover:none) { .workspace-peek-edge { display:none; } }
 .sidebar-collapsed .workspace-sidebar-inner { background-color:var(--chrome);border-start-end-radius:8px;border-end-end-radius:8px; }
 @media (prefers-reduced-motion:no-preference) {
   /* Keep the panel opaque until the moving page has cleared its footprint. */

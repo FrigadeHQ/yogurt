@@ -89,7 +89,6 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
       </Tooltip.Root>
     </div>
     <Sidebar.Gap className="workspace-sidebar-gap" transition={sidebarTransition} />
-    {collapsed && <div aria-hidden="true" className="workspace-peek-edge" onPointerEnter={peek.enter} onPointerLeave={peek.leave} />}
     <div ref={peek.panel} id="workspace-sidebar" className="workspace-sidebar" role="complementary" aria-label={t('Main navigation')}
       inert={!sidebarVisible} aria-hidden={!sidebarVisible} onPointerEnter={peek.cancel} onPointerLeave={peek.leave}>
       <div className="workspace-sidebar-inner">
@@ -104,7 +103,7 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
       </div>
       </div>
     </div>
-    <div className="workspace-content">
+    <div className="workspace-content" {...peek.edgeHandlers}>
       <header className="workspace-toolbar" data-note={note} data-recording-return={returnToRecording}>
         <div className="workspace-breadcrumb drag">
           <span className="workspace-history">
