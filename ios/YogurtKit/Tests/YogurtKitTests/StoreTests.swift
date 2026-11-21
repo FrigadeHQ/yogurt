@@ -508,4 +508,36 @@ let pageOne = """
         try store.saveLocalRecording(Self.rec())
         #expect(store.meeting("p1")?.oneMic == true)
     }
+
+    @Test func editsToARecordingMadeHereSurvivePairingAndAreWhatGetsUploaded() throws {
+        let store = try Store(url: tempStoreURL())
+        try store.saveLocalRecording(Self.rec(notes: "typed while recording"))
+        try store.editMine(meetingId: "p1", text: "typed after Stop")
+        try store.enqueue(PendingOp(Op(kind: .rename, meetingId: "p1", title: "Kiwi planning")))
+        try store.enqueue(PendingOp(Op(kind: .trash, meetingId: "p1")))
+        // the meeting from the computer, edited here too
+        try store.apply(changes(pageOne), cursor: 7, epoch: "e1")
+        try store.editMine(meetingId: "m1", text: "phone text for the computer")
+
+        try store.forgetDesktop()
+        #expect(store.notes("p1")?.mine == "typed after Stop")
+        #expect(store.meeting("p1")?.title == "Kiwi planning")
+        #expect(store.meeting("p1")?.trashedAt != nil)
+        let rec = try #require(store.localRecordings().first)
+        #expect(rec.myNotes == "typed after Stop")
+        #expect(rec.title == "Kiwi planning")
+        // edits to the recording go with it to whichever computer gets it; the computer's own meeting is gone
+        #expect(store.pendingOps().map(\.op.meetingId) == ["p1", "p1", "p1"])
+        #expect(store.unsentEdits() == 0)
+    }
+
+    @Test func editsMeantForTheComputerAreCounted() throws {
+        let store = try Store(url: tempStoreURL())
+        try store.apply(changes(pageOne), cursor: 7, epoch: "e1")
+        try store.saveLocalRecording(Self.rec())
+        try store.editMine(meetingId: "m1", text: "one")
+        try store.enqueue(PendingOp(Op(kind: .rename, meetingId: "m2", title: "two")))
+        try store.editMine(meetingId: "p1", text: "goes with the recording")
+        #expect(store.unsentEdits() == 2)
+    }
 }

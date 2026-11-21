@@ -372,11 +372,15 @@ public final class SyncEngine: SyncEngineProtocol {
         let d = try await network.pair(target, code: code, phoneName: config.phoneName, phoneKey: keys.publicKey, phoneId: phoneId)
         endSession()
         let p = Pairing(phonePrivateKey: keys.privateKey, phoneId: phoneId, desktopId: d.id, desktopName: d.name, desktopKey: d.key)
+        let same = pairing?.desktopId == d.id
         try vault.save(p)
-        // whatever was here belonged to no computer, or another one
-        try? store.forgetDesktop()
-        dropAudio()
-        lastSync = nil
+        // whatever was here belonged to no computer, or another one. The same computer again (it lost this phone's
+        // key): the copy and the edits not sent yet stay; a replaced database shows as a new epoch.
+        if !same {
+            try? store.forgetDesktop()
+            dropAudio()
+            lastSync = nil
+        }
         pairing = p
         revision += 1
         refusals = 0

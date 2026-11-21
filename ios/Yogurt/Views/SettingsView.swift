@@ -54,7 +54,10 @@ struct SettingsView: View {
             .confirmationDialog(S.unpairTitle(name ?? S.computer.lowercased()), isPresented: $confirmUnpair, titleVisibility: .visible) {
                 Button(S.unpair, role: .destructive) { model.engine.unpair(); dismiss() }
                 Button(S.cancel, role: .cancel) {}
-            } message: { Text(S.unpairBody) }
+            } message: {
+                let unsent = model.store.unsentEdits()
+                Text(unsent > 0 ? S.unpairBody + "\n\n" + S.unpairUnsent(unsent) : S.unpairBody)
+            }
             .sheet(isPresented: $connecting) { ConnectSheet() }
         }
         // the folder walk reads every file's size, so it runs off the main thread

@@ -317,6 +317,21 @@ import Testing
         #expect(await eventually { rig.connected })
     }
 
+    @Test func pairingAgainWithTheSameComputerKeepsEditsNotSentYet() async throws {
+        let rig = try Rig { d in d.addMeeting("m1", title: "One"); d.addNotes("m1", mine: "desk") }
+        rig.engine.setForeground(true)
+        #expect(await eventually { rig.connected && rig.store.meetings().count == 1 })
+        rig.engine.setForeground(false)
+        try rig.store.editMine(meetingId: "m1", text: "typed offline")
+        rig.engine.setForeground(true)
+        rig.engine.lookForComputers(true)
+        #expect(await eventually { !rig.engine.discovered.isEmpty })
+        rig.desktop.opReply = { _ in .failure(.remote("busy")) }
+        try await rig.engine.pair(with: rig.engine.discovered[0], code: "123456")
+        #expect(rig.store.pendingOps().map(\.op.text) == ["typed offline"])
+        #expect(rig.store.notes("m1")?.mine == "typed offline")
+    }
+
     @Test func aWrongCodeLeavesItUnpaired() async throws {
         let rig = try Rig(paired: false)
         rig.network.pairResult = .failure(.wrongCode)

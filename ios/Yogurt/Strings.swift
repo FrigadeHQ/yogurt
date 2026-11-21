@@ -137,6 +137,9 @@ enum S {
     static let unpair = "Unpair"
     static func unpairTitle(_ name: String) -> String { "Unpair from \(name)?" }
     static let unpairBody = "Meetings from your computer are removed from this iPhone. They stay on your computer, and you can connect again any time."
+    static func unpairUnsent(_ n: Int) -> String {
+        n == 1 ? "1 change hasn't reached your computer yet and will be lost." : "\(n) changes haven't reached your computer yet and will be lost."
+    }
     static let privacy = "Privacy"
     static let faceIDLock = "Lock with Face ID"
     static let faceIDFooter = "Yogurt asks for Face ID when you open it."

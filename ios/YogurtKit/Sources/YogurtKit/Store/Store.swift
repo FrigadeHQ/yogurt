@@ -91,14 +91,22 @@ public final class Store {
     }
 
     /// Unpaired: everything from the desktop goes, and so do edits meant for it. Meetings recorded here stay (they may
-    /// exist nowhere else), as drafts again.
+    /// exist nowhere else), as drafts again, with the edits made to them: those go to whichever computer gets them.
     public func forgetDesktop() throws {
         try db.transaction {
-            try db.run("DELETE FROM pending_ops")
-            try db.run("DELETE FROM op_aliases")
+            try db.run("DELETE FROM pending_ops WHERE meeting_id NOT IN (\(Self.notUploaded))")
+            try db.run("DELETE FROM op_aliases WHERE live_id NOT IN (SELECT id FROM pending_ops)")
             try resetForNewEpoch()
         }
     }
+
+    /// Edits waiting for the computer that unpairing would lose (those to recordings made here stay with them).
+    public func unsentEdits() -> Int {
+        Int((try? db.query("SELECT COUNT(*) FROM pending_ops WHERE meeting_id NOT IN (\(Self.notUploaded))"))?.first?.first?.int ?? 0)
+    }
+
+    /// ids of the recordings made here that the computer doesn't have yet
+    private static let notUploaded = "SELECT id FROM local_recordings WHERE json_extract(data, '$.uploadedAt') IS NULL"
 
     private func apply(_ change: Change, touched: inout Set<String>) throws {
         let id = change.id
@@ -253,6 +261,8 @@ public final class Store {
     public func enqueue(_ pending: PendingOp) throws {
         try db.transaction {
             var op = pending.op
+            // a recording made here and not sent yet keeps the edit too, so its upload carries the newest
+            try foldIntoRecording(op)
             if op.kind == .setMine {
                 if op.baseHash?.isEmpty ?? true {
                     op.baseHash = try db.query("SELECT mine_hash FROM notes WHERE meeting_id = ?", [.text(op.meetingId)]).first?[0].string
@@ -278,6 +288,13 @@ public final class Store {
                 try reindex([op.meetingId])
             }
         }
+    }
+
+    private func foldIntoRecording(_ op: Op) throws {
+        guard op.kind == .setMine || op.kind == .rename,
+              var rec = try loadRecordings().first(where: { $0.id == op.meetingId }), rec.uploadedAt == nil else { return }
+        if op.kind == .setMine { rec.myNotes = op.text ?? "" } else if let title = op.title { rec.title = title }
+        try db.run("UPDATE local_recordings SET data = ? WHERE id = ?", [.text(json(rec)), .text(rec.id)])
     }
 
     /// The newest rename and trash/restore still waiting for the desktop, laid over the meeting row.
@@ -368,6 +385,7 @@ public final class Store {
         }
         try db.run("INSERT OR REPLACE INTO meetings (id, title, started_at, ended_at, attendees, app, trashed_at, language, source) VALUES (?, ?, ?, ?, ?, NULL, NULL, NULL, 'phone')",
                    [.text(rec.id), .text(rec.title), .int(ms(rec.startedAt)), .of(rec.endedAt.map(ms)), .text(json(rec.attendees))])
+        try applyPendingMeetingEdits(rec.id)
         // the desktop imports the uploaded My notes, so a setMine made on the draft starts from their hash: the desktop
         // then applies it cleanly instead of adding it again under "From your iPhone"
         try db.run("INSERT OR REPLACE INTO notes (meeting_id, mine, summary, mine_hash, summary_source) VALUES (?, ?, ?, ?, ?)",
