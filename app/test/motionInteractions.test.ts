@@ -96,31 +96,43 @@ it('names the Folders heading and New folder tooltip', () => {
   expect(find(tooltip, 'ActionTooltipPopup').props.label).toBe(plus['aria-label'])
 })
 
-it('peeks on a deliberate mouse hover, cancels a pass, and dismisses on exit or navigation', () => {
+it.each(['ltr', 'rtl'])('peeks after a 100ms dwell within the leading 16px below the titlebar (%s)', dir => {
   vi.useFakeTimers()
-  vi.stubGlobal('document', { activeElement: {}, querySelector: () => null })
+  vi.stubGlobal('document', { documentElement: { dir }, activeElement: {}, querySelector: () => null })
+  vi.stubGlobal('window', { innerWidth: 720 })
   const go = vi.fn()
   const render = renderer(() => Workspace({ route: '', go, search() {}, shortcuts() {}, collapsed: true, sidebarMotion: false, toggleSidebar() {}, children: null }))
-  const edge = () => find(render(), 'workspace-peek-edge').props
+  const content = () => find(render(), 'workspace-content').props
   const panel = () => find(render(), 'workspace-sidebar').props
-  const pointer = { pointerType: 'mouse', buttons: 0 }
-  for (const e of [{ ...pointer, pointerType: 'touch' }, { ...pointer, buttons: 1 }]) {
-    edge().onPointerEnter(e)
+  const pointer = { target: { closest: () => null }, clientX: dir === 'rtl' ? 708 : 12, clientY: 52, pointerType: 'mouse', buttons: 0 }
+  for (const event of [
+    { ...pointer, clientX: dir === 'rtl' ? 703 : 16 }, { ...pointer, clientY: 51 },
+    { ...pointer, pointerType: 'touch' }, { ...pointer, pointerType: 'pen' }, { ...pointer, buttons: 1 },
+    { ...pointer, target: { closest: () => ({ tagName: 'BUTTON' }) } },
+  ]) {
+    content().onPointerMoveCapture(pointer)
+    content().onPointerMoveCapture(event)
     vi.runAllTimers()
     expect(panel().inert).toBe(true)
   }
-  edge().onPointerEnter(pointer)
-  vi.advanceTimersByTime(40)
-  edge().onPointerLeave()
-  vi.runAllTimers()
-  expect(panel().inert).toBe(true)
+  for (const cancel of ['onPointerLeave', 'onPointerDownCapture', 'onPointerCancel', 'onWheelCapture']) {
+    content().onPointerMoveCapture(pointer)
+    vi.advanceTimersByTime(40)
+    content()[cancel]()
+    vi.runAllTimers()
+    expect(panel().inert).toBe(true)
+  }
   const bar = () => find(render(), 'workspace-window-bar').props
   expect(find(render(), 'sidebar-expand').props.onPointerEnter).toBeUndefined()
   bar().onPointerEnter()
   vi.runAllTimers()
   expect(panel().inert).toBe(true)
-  edge().onPointerEnter(pointer)
-  vi.runAllTimers()
+  content().onPointerMoveCapture(pointer)
+  vi.advanceTimersByTime(75)
+  content().onPointerMoveCapture({ ...pointer, clientX: dir === 'rtl' ? 704 : 15 })
+  vi.advanceTimersByTime(24)
+  expect(panel().inert).toBe(true)
+  vi.advanceTimersByTime(1)
   expect(panel().inert).toBe(false)
   panel().onPointerLeave()
   panel().onPointerEnter()
@@ -129,7 +141,7 @@ it('peeks on a deliberate mouse hover, cancels a pass, and dismisses on exit or 
   panel().onPointerLeave()
   vi.runAllTimers()
   expect(panel().inert).toBe(true)
-  edge().onPointerEnter(pointer)
+  content().onPointerMoveCapture(pointer)
   vi.runAllTimers()
   find(render(), 'nav-chat').props.onClick()
   expect(go).toHaveBeenCalledWith('/chat')
@@ -138,12 +150,12 @@ it('peeks on a deliberate mouse hover, cancels a pass, and dismisses on exit or 
 
 it('keeps a peek open across the titlebar and docks directly from it', () => {
   vi.useFakeTimers()
-  vi.stubGlobal('document', { activeElement: {}, querySelector: () => null })
+  vi.stubGlobal('document', { documentElement: { dir: 'ltr' }, activeElement: {}, querySelector: () => null })
   let collapsed = true
   const toggleSidebar = vi.fn()
   const render = renderer(() => Workspace({ route: '', go() {}, search() {}, shortcuts() {}, collapsed, sidebarMotion: true, toggleSidebar, children: null }))
   const panel = () => find(render(), 'workspace-sidebar')
-  find(render(), 'workspace-peek-edge').props.onPointerEnter({ pointerType: 'mouse', buttons: 0 })
+  find(render(), 'workspace-content').props.onPointerMoveCapture({ target: { closest: () => null }, clientX: 12, clientY: 200, pointerType: 'mouse', buttons: 0 })
   vi.runAllTimers()
   panel().props.onPointerLeave()
   find(render(), 'workspace-window-bar').props.onPointerEnter()
