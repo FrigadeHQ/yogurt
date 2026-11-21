@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react'
-import { FALL, RISE, SPEECH_PACKET_TIMEOUT, WAVE_PERIOD, silentSpeech, speechAt, speechBars, type SpeechAnchor } from '../../../shared/speechWave'
+import { FALL, REST_OPACITY, RISE, SPEECH_PACKET_TIMEOUT, WAVE_PERIOD, silentSpeech, speechAt, speechBars, type SpeechAnchor } from '../../../shared/speechWave'
 
 const WIDTH = 15, STROKE = 1.75, STUB = 3
-type Props = { height: number; className?: string; testId: string; paused?: boolean; stillBars?: boolean }
+type Props = { height: number; className?: string; testId: string; paused?: boolean; stillBars?: boolean; restOpacity?: number }
 
 // Scale the centreline. Its non-scaling stroke retains the same round caps at every height.
 const scale = (value: number, height: number) => `scaleY(${(STUB + value * (height - STUB) - STROKE) / (height - STROKE)})`
 
-export function LevelBars({ height, className = '', testId, paused = false, stillBars = false }: Props) {
+export function LevelBars({ height, className = '', testId, paused = false, stillBars = false, restOpacity = REST_OPACITY }: Props) {
   const ref = useRef<SVGSVGElement>(null)
   const recent = useRef(silentSpeech)
   useEffect(() => {
@@ -30,7 +30,7 @@ export function LevelBars({ height, className = '', testId, paused = false, stil
       const planAt = (ms: number) => speechBars({
         drive: Math.min(1, Math.max(0, drive + ms / (playing ? RISE : -FALL))),
         phase: voice.phase + ms,
-      }, media.matches)
+      }, media.matches, restOpacity)
       const plan = planAt(0)
       bars.forEach((bar, i) => {
         const value = marker ? [.35, .525, .7, .525, .35][i] : plan.heights[i]
@@ -78,14 +78,14 @@ export function LevelBars({ height, className = '', testId, paused = false, stil
     document.addEventListener('visibilitychange', sync)
     sync()
     return () => { off(); clearTimeout(deadline); cancel(); media.removeEventListener('change', sync); document.removeEventListener('visibilitychange', sync) }
-  }, [height, paused, stillBars])
+  }, [height, paused, stillBars, restOpacity])
 
   return <svg ref={ref} data-testid={testId} aria-hidden="true" width={WIDTH} height={height} viewBox={`0 0 ${WIDTH} ${height}`} className={`recording-wave ${className}`}>
     <g stroke="currentColor" strokeWidth={STROKE} strokeLinecap="round">
       {Array.from({ length: 5 }, (_, i) => {
         const x = STROKE / 2 + i * (WIDTH - STROKE) / 4
         return <line key={i} x1={x} x2={x} y1={STROKE / 2} y2={height - STROKE / 2}
-          vectorEffect="non-scaling-stroke" style={{ transform: scale(0, height), opacity: .45 }} />
+          vectorEffect="non-scaling-stroke" style={{ transform: scale(0, height), opacity: restOpacity }} />
       })}
     </g>
   </svg>
