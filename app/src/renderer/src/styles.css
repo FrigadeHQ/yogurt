@@ -544,7 +544,7 @@ input::selection, textarea::selection, .note-prose ::selection { background: var
 .note-header { flex:none;padding-top:84px; }
 .note-metadata { display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-width:0; }
 .note-meta-row { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:16px; }
-.note-header-actions { display:flex;align-items:center;flex-wrap:wrap;gap:12px; }
+.note-header-actions { display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:12px;margin-inline-start:auto; }
 .note-recorder-controls { display:flex;align-items:center;gap:8px; }
 .note-elapsed { font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap; }
 .note-primary-tabs { position:relative;display:flex;gap:24px;margin-top:22px;border-bottom:1px solid var(--line); }
@@ -779,7 +779,7 @@ html:not(.widget) button:focus-visible, html:not(.widget) input:focus-visible { 
 /* Calendar linking lives in the date popover; attendee editing stays in People. */
 .note-date-anchor { min-width:0;max-width:min(100%, 17rem); }
 .note-date-chip { max-width:100%;white-space:nowrap; }
-.note-date-chip>svg { flex:none; }
+.note-date-chip>:not(.note-date-chip-name) { flex:none; }
 .note-date-chip-dot { width:6px;height:6px;border-radius:50%;flex:none; }
 .note-date-chip-name { min-width:0;overflow:hidden;text-overflow:ellipsis; }
 .note-date-card { --note-date-ms:var(--dur-base);--note-date-ease:var(--ease-out); }
