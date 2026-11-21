@@ -67,6 +67,17 @@ beforeEach(() => {
 })
 afterEach(() => { unmount(); vi.unstubAllGlobals() })
 
+it('tints the note wave purple while recording, grey on pause, and purple again on resume', async () => {
+  meeting.state = 'recording'; requested = undefined
+  await render(); await render()
+  expect(find(tree, 'note-wave')?.props).toMatchObject({ className: 'text-accent', paused: false, restOpacity: 0.7 })
+  for (const paused of [true, false]) {
+    meeting = { ...meeting, paused: paused || undefined }
+    meetingChanged(); await render(); await render()
+    expect(find(tree, 'note-wave')?.props).toMatchObject({ className: paused ? 'text-muted' : 'text-accent', paused })
+  }
+})
+
 it.each(['', 'Keep this decision.'])('the note Resume button always lands on My notes with content %j', async mine => {
   notes = { ...notes, status: 'done', mine }; requested = undefined
   await render(); await render()
