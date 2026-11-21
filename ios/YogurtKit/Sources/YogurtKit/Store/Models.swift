@@ -19,6 +19,12 @@ public struct Meeting: Sendable, Codable, Identifiable, Hashable {
     /// set while it is in the desktop's Trash
     public var trashedAt: Date?
     public var language: String?
+
+    public init(id: String, title: String, startedAt: Date, endedAt: Date?, attendees: [Attendee], app: String?,
+                trashedAt: Date?, language: String?) {
+        self.id = id; self.title = title; self.startedAt = startedAt; self.endedAt = endedAt; self.attendees = attendees
+        self.app = app; self.trashedAt = trashedAt; self.language = language
+    }
 }
 
 public struct Notes: Sendable, Codable, Identifiable, Hashable {
@@ -48,6 +54,7 @@ public struct Folder: Sendable, Codable, Identifiable, Hashable {
     public var id: String
     public var name: String
     public var createdAt: Date
+    public init(id: String, name: String, createdAt: Date) { self.id = id; self.name = name; self.createdAt = createdAt }
 }
 
 public struct Person: Sendable, Codable, Identifiable, Hashable {
