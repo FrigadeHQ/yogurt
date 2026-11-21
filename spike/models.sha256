@@ -1,0 +1,15 @@
+# sha256  file  (source URL). Embedding sums match the release's checksum.txt.
+c59158379255ad66e161679cca6af8d52d51e389e3224ab7d7a7baae295c2db5  3dspeaker_speech_eres2net_sv_en_voxceleb_16k.onnx  https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/3dspeaker_speech_eres2net_sv_en_voxceleb_16k.onnx
+aa3cfc16963a10586a9393f5035d6d6b57e98d358b347f80c2a30bf4f00ceba2  3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx  https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx
+357a834f702b80161e5b981182c038e18553c1f2ca752ed6cec2052365d4129b  3dspeaker_speech_campplus_sv_en_voxceleb_16k.onnx  https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/3dspeaker_speech_campplus_sv_en_voxceleb_16k.onnx
+ad4a1802485d8b34c722d2a9d04249662f2ece5d28a7a039063ca22f515a789e  nemo_en_titanet_small.onnx  https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/nemo_en_titanet_small.onnx
+e9848563da86f263117134dfd7ad63c92355b37de492b55e325400c9d9c39012  wespeaker_en_voxceleb_resnet34_LM.onnx  https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/wespeaker_en_voxceleb_resnet34_LM.onnx
+24615ee884c897d9d2ba09bb4d30da6bb1b15e685065962db5b02e76e4996488  sherpa-onnx-pyannote-segmentation-3-0.tar.bz2  https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-segmentation-models/sherpa-onnx-pyannote-segmentation-3-0.tar.bz2
+220ad67ca923bef2fa91f2390c786097bf305bceb5e261d4af67b38e938e1079  sherpa-onnx-pyannote-segmentation-3-0/model.onnx  (in the tarball)
+6936edac5d0904fc5c4ab175546c5cc5366601fdc1b1e5183a6ea2c10f05d150  ES2004a.Array1-01.wav  https://groups.inf.ed.ac.uk/ami/AMICorpusMirror/amicorpus/ES2004a/audio/ES2004a.Array1-01.wav
+9869c6146c2fd9595403edb36c2caeda65c12ffa2c0af4ce48d6814b673fd5a9  ES2004a.rttm  https://raw.githubusercontent.com/pyannote/AMI-diarization-setup/main/only_words/rttms/test/ES2004a.rttm
+23fd54fd6dbe23870f10317b256f7c648fe0fd587e56d2f940840309f1578b60  IS1009a.Array1-01.wav  https://groups.inf.ed.ac.uk/ami/AMICorpusMirror/amicorpus/IS1009a/audio/IS1009a.Array1-01.wav
+ba38d35ca567f3f1e061d90fdc33579ce60d2060fc8664eaeb77d2e0fcd88b01  IS1009a.rttm  https://raw.githubusercontent.com/pyannote/AMI-diarization-setup/main/only_words/rttms/test/IS1009a.rttm
+46f81fb403e40a98c1b694c842404c0db24f3a6c67397b247faf0d3f42cf9163  TS3003a.Array1-01.wav  https://groups.inf.ed.ac.uk/ami/AMICorpusMirror/amicorpus/TS3003a/audio/TS3003a.Array1-01.wav
+57137f098ee3be9b8d77c9faa4b16e9155e821bdbf21b974dd8771d7e646d185  TS3003a.rttm  https://raw.githubusercontent.com/pyannote/AMI-diarization-setup/main/only_words/rttms/test/TS3003a.rttm
+3e2560b19bee6952c7c7ce041b0f1ea8a7ea9468044c4eea79d2a2c67e24ab0f  ES2004a.Mix-Headset.wav  https://groups.inf.ed.ac.uk/ami/AMICorpusMirror/amicorpus/ES2004a/audio/ES2004a.Mix-Headset.wav
