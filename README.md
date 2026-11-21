@@ -1,29 +1,31 @@
-<p align="center">
-  <a href="https://yogurt.so?utm_source=github&utm_medium=readme&utm_campaign=yogurt">
-    <img src="docs/assets/readme-header.svg" width="212" height="86" alt="Yogurt. Take note.">
-  </a>
-</p>
+<p align="center"><a href="https://yogurt.so?utm_source=github&utm_medium=readme&utm_campaign=yogurt"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-banner-app-dark.webp"><img src="docs/assets/readme-banner-app-light.webp" width="880" alt="Yogurt. AI meeting notes without a bot. The app showing a launch planning meeting with Ask open."></picture></a></p>
 
-<p align="center">
-  Private AI meeting notes, with no bot in your call. A free, open-source alternative to Granola, Otter and Fireflies. Yogurt records your calls without adding a bot to the meeting.
-</p>
+<div align="center"><strong>Yogurt</strong></div>
+<div align="center">Private AI meeting notes, with no bot in your call.<br />A free, open-source alternative to Granola, Otter and Fireflies.</div>
+<br />
+<div align="center">
+<a href="https://yogurt.so?utm_source=github&utm_medium=readme&utm_campaign=yogurt">Website</a>
+<span> · </span>
+<a href="https://github.com/FrigadeHQ/yogurt">GitHub</a>
+</div>
 
-<p align="center">
-  Download for <a href="https://github.com/FrigadeHQ/yogurt/releases/latest/download/Yogurt-mac-arm64.dmg">Mac</a> · <a href="https://github.com/FrigadeHQ/yogurt/releases/latest/download/Yogurt-windows-x64.exe">Windows</a> · <a href="https://github.com/FrigadeHQ/yogurt/releases/latest/download/Yogurt-linux-x86_64.AppImage">Linux</a>
-</p>
+## Introduction
 
-<p align="center">
-  Or on a Mac with <a href="https://brew.sh">Homebrew</a>: <code>brew install --cask frigadehq/yogurt/yogurt</code>
-</p>
+Yogurt records your microphone and call audio, then transcribes and summarizes on your Mac, Windows or Linux computer. It names speakers from Zoom, Teams and Meet and answers questions across meetings with sources.
 
-<p align="center">
-  <img src="docs/assets/yogurt-screenshot.webp" width="1074" alt="Yogurt showing the Summary of a launch planning meeting: the plan, next steps by person, and your own reminders">
-</p>
+## Why
 
-<p align="center">
-  <a href="https://yogurt.so?utm_source=github&utm_medium=readme&utm_campaign=yogurt">yogurt.so</a> · <a href="docs/README.md">Help</a> · <a href="https://yogurt.so/discord">Discord</a> · <a href="docs/building.md">Build and run locally</a> · <a href="LICENSE">MIT license</a><br><br>
-  Made by <a href="https://frigade.com?utm_source=github&utm_medium=readme&utm_campaign=yogurt">Frigade</a>.
-</p>
+Our conversations are our business. We want our meeting notes on our own computers, with no account to create. That's why we built Yogurt to record, transcribe and summarize locally. It goes online only to download models and check for updates.
+
+## Download
+
+Yogurt is free for [Mac](https://github.com/FrigadeHQ/yogurt/releases/latest/download/Yogurt-mac-arm64.dmg), [Windows](https://github.com/FrigadeHQ/yogurt/releases/latest/download/Yogurt-windows-x64.exe) and [Linux](https://github.com/FrigadeHQ/yogurt/releases/latest/download/Yogurt-linux-x86_64.AppImage).
+
+On a Mac you can also use [Homebrew](https://brew.sh).
+
+```sh
+brew install --cask frigadehq/yogurt/yogurt
+```
 
 ## What it does
 
@@ -216,10 +218,16 @@ Meeting data stays local; Yogurt goes online for model downloads and update chec
 
 </details>
 
-## Build from source
+## Support
 
-See [Build and run locally](docs/building.md) for setup, tests and installer builds.
+- [Help](docs/README.md)
+- [Discord](https://yogurt.so/discord)
+- [Report a bug](https://github.com/FrigadeHQ/yogurt/issues)
 
-## License
+## Development
 
-[MIT](LICENSE) · Copyright 2026 Frigade.
+- [Build and run locally](docs/building.md)
+
+---
+
+Made by [Frigade](https://frigade.com?utm_source=github&utm_medium=readme&utm_campaign=yogurt), [MIT license](LICENSE).
