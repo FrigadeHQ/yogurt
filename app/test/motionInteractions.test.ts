@@ -901,6 +901,7 @@ it.each([false, true])('uses a ghost scope button only for All meetings (panel: 
   const c = mentionComposer(panel)
   const scope = () => find(c.render(), 'ask-scope').props
   expect(scope().className.split(' ')).not.toContain('ghost-btn')
+  expect(find(c.render(), 'ask-scope-clear').props['aria-label']).toBe('Clear meetings')
   c.initial.chips = []
   expect(scope()['aria-label']).toBe('Choose meetings or folders')
   expect(scope().className.split(' ')).toContain('ghost-btn')

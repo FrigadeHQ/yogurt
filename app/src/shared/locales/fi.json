@@ -630,6 +630,7 @@
     "one": "ja {count} muu",
     "other": "ja {count} muuta"
   },
+  "Clear meetings": "Tyhjennä kokousvalinta",
   "Clear": "Tyhjennä",
   "Reading {title} {others}…": "Luetaan {title} {others}…",
   "Searched {name}": "Haettu kohteesta {name}",
