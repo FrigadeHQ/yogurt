@@ -53,7 +53,7 @@ import { getCalendar } from './calendarLink/get'
 import { createSignals } from './detectSignals'
 import { Watcher } from './watch'
 import { createPrompts } from './prompts'
-import { activeMeeting, bindMeetingApp, getMeeting, initMeetings, onMeetingBound, onMeetingChange, onMeetingStart, onMeetingStop, onMeetingStopSaved, refreshEventSnapshots, linkEvent, unlinkEvent, prepareMeeting, startPreparedMeeting, resumeMeeting, pauseMeetingClock, renameMeeting, retryStopSave, setAttendees, startMeeting, stopMeeting, stopSavePending, withStopState } from './meeting'
+import { activeMeeting, bindMeetingApp, getMeeting, initMeetings, onMeetingBound, onMeetingChange, onMeetingStart, onMeetingStop, onMeetingStopSaved, createFolderNote, refreshEventSnapshots, linkEvent, unlinkEvent, prepareMeeting, startPreparedMeeting, resumeMeeting, pauseMeetingClock, renameMeeting, retryStopSave, setAttendees, startMeeting, stopMeeting, stopSavePending, withStopState } from './meeting'
 import { deleteMeeting } from './deleteMeeting'
 import { emptyTrash, moveToTrash, purgeTrash } from './trash'
 import { isId, text, rewriteNote } from './ipcArgs'
@@ -366,7 +366,7 @@ function startDetection() {
   updateWidgetVisibility = widget.visibilityChanged
   sendWidgetTranscript = widget.transcript
   /** The one way notes start: the card's Take notes, and home's Start notes and New note. Opens the note. */
-  function begin(p: { title: string; event: CalEvent | null; app: string | null }) {
+  function begin(p: { title: string; event: CalEvent | null; app: string | null; folderId?: string }) {
     const alreadyRecording = !!activeMeeting()
     const m = startMeeting(p)
     const resume = resumesNote(m)
@@ -376,7 +376,7 @@ function startDetection() {
   // home: Start notes for a calendar event (looked up here, never taken from the page), or New note with none; an AI
   // app's start_recording the same way, with its own title if it gave one
   // gone: the event left the calendar since the page showed it (moved, cancelled); failed: anything else, in plain words on the page
-  const startNotes = async (o: { eventId?: string; title?: string }): Promise<StartResult> => {
+  const startNotes = async (o: { eventId?: string; title?: string; folderId?: string }): Promise<StartResult> => {
     try {
       const cur = activeMeeting()
       if (cur) { goTo(`/note/${cur.id}`); return { id: cur.id, alreadyRecording: true } }
@@ -385,13 +385,20 @@ function startDetection() {
         event = (await comingUp()).find((e) => matchesEvent(e, o.eventId!)) ?? null
         if (!event) return { error: 'gone' }
       }
-      return begin({ title: o.title ?? event?.title ?? '', event, app: null })
+      return begin({ title: o.title ?? event?.title ?? '', event, app: null, folderId: o.folderId })
     } catch (e) {
       console.error('start notes failed', e)
       return { error: 'failed' }
     }
   }
-  ipcMain.handle('meetings:start', (_e, eventId: unknown) => startNotes(typeof eventId === 'string' ? { eventId } : {}))
+  ipcMain.handle('meetings:start', (_e, eventId: unknown, folderId?: unknown): Promise<StartResult> | StartResult => {
+    if (folderId !== undefined && !isId(folderId)) return { error: 'failed' }
+    return startNotes({ eventId: typeof eventId === 'string' ? eventId : undefined, folderId })
+  })
+  ipcMain.handle('meetings:folder-note', (_e, folderId: unknown) => {
+    if (!isId(folderId)) throw new Error('Invalid folder')
+    return createFolderNote(folderId).id
+  })
   ipcMain.handle('meetings:prepare', async (_e, eventId: unknown, at: unknown): Promise<StartResult> => {
     if (typeof eventId !== 'string' || typeof at !== 'number' || !Number.isFinite(at) || !Number.isFinite(new Date(at).getTime())) return { error: 'gone' }
     try {

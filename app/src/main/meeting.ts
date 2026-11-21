@@ -54,7 +54,7 @@ export const withStopState = <T extends Meeting>(m: T): T => {
   return pending ? { ...m, state: 'stopped', endedAt: pending.endedAt, ...(pending.durationMs == null ? {} : { durationMs: pending.durationMs }) } : m
 }
 
-export function startMeeting(p: { title: string; event: CalEvent | null; app: string | null }): Meeting {
+export function startMeeting(p: { title: string; event: CalEvent | null; app: string | null; folderId?: string }): Meeting {
   if (!store) throw new Error('Meetings are not ready yet')
   if (active) return active
   const existing = p.event && eventIds(p.event).map((id) => store!.meetingForEvent(id)).find(Boolean)
@@ -67,7 +67,7 @@ export function startMeeting(p: { title: string; event: CalEvent | null; app: st
     title, titleSource: sourceOf(title, p.event?.id ?? null), startedAt: Date.now(), endedAt: null, eventId: p.event?.id ?? null,
     ...(p.event ? { eventStartedAt: p.event.start, eventEndedAt: p.event.end, eventTitle: p.event.title, ownEmail: p.event.ownEmail ?? null,
       ...(p.event.calendar ? { eventCalendarName: p.event.calendar.name, eventCalendarSource: p.event.calendar.source } : {}) } : {}),
-    app: p.app, attendees: p.event?.attendees ?? [], state: 'recording',
+    app: p.app, attendees: p.event?.attendees ?? [], state: 'recording', folderId: p.folderId,
   })
   active = m
   clock = { startedAt: Date.now(), before: 0, pausedAt: null, pausedMs: 0, measured: false }
@@ -80,6 +80,15 @@ export function bindMeetingApp(id: string, app: string): Meeting | undefined {
   if (!active || active.id !== id || active.app) return undefined
   const m = update(id, { app })
   if (m) run(binds, m)
+  return m
+}
+
+/** A hand-written note can start recording later in the same meeting. */
+export function createFolderNote(folderId: string): Meeting {
+  if (!store) throw new Error('Meetings are not ready yet')
+  const m = store.createMeeting({ title: t('Meeting'), startedAt: Date.now(), endedAt: null, eventId: null,
+    app: null, attendees: [], state: 'prepared', folderId })
+  run(changes, m)
   return m
 }
 
