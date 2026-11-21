@@ -21,9 +21,9 @@ it('keeps a flat face on bordered controls, including selected, paused and proce
   }
 })
 
-it('retains the original recording primary and its divider', () => {
+it('retains the recording primary gradient, pressed depth and divider', () => {
   expect(styles).toMatch(/\.workspace-button\.primary \{[^}]*background-image:linear-gradient\(180deg,#FFFFFF14,transparent 55%,#0000000A\);border-color:#00000014;/)
-  expect(styles).toMatch(/\.workspace-button\.primary:active:not\(:disabled\) \{[^}]*box-shadow:inset 0 1px 2px #35006533;/)
+  expect(styles).toMatch(/\.workspace-button\.primary:active:not\(:disabled\) \{[^}]*box-shadow:inset 0 1px 2px #00000033;/)
   expect(styles).toMatch(/\.primary\.recording-chevron \{[^}]*border-inline-start:1px solid #FFFFFF26;/)
 })
 

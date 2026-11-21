@@ -1,8 +1,8 @@
 /* Only chrome reveals the Mac's blurred backdrop; text and reading surfaces stay opaque. */
-.workspace { position:relative;isolation:isolate;display:flex;height:100%;overflow:hidden;--sidebar-inset:10px;--nav-inset:11px;--workspace-footer-height:52px;--chrome-glass:color-mix(in srgb,var(--chrome) 85%,transparent);--sidebar-field:#FAFAFB;--sidebar-field-edge:#E8E8EB;--sidebar-selected:#E7E1EF;--reading-surface:linear-gradient(to bottom,transparent 52px,var(--bg) 52px);background:var(--chrome-glass); }
+.workspace { position:relative;isolation:isolate;display:flex;height:100%;overflow:hidden;--sidebar-inset:10px;--nav-inset:11px;--workspace-footer-height:52px;--chrome-glass:color-mix(in srgb,var(--chrome) 85%,transparent);--sidebar-field:#FAFAFB;--sidebar-field-edge:#E8E8EB;--sidebar-selected:color-mix(in srgb,var(--accent) 7%,var(--chrome));--reading-surface:linear-gradient(to bottom,transparent 52px,var(--bg) 52px);background:var(--chrome-glass); }
 @media (prefers-reduced-transparency:reduce),(prefers-contrast:more) { .workspace { --chrome-glass:var(--chrome); } }
 /* 85% glass keeps a trace of the desktop without a light page behind the window washing the sidebar out; search is a filled field with a quiet edge. */
-@media (prefers-color-scheme:dark) { .workspace { --sidebar-field:#2F2F31;--sidebar-field-edge:#363638;--sidebar-selected:#38313F; } }
+@media (prefers-color-scheme:dark) { .workspace { --sidebar-field:#2F2F31;--sidebar-field-edge:#363638;--sidebar-selected:color-mix(in srgb,var(--accent) 13%,var(--chrome)); } }
 /* The Mac title bar is one opaque surface in the sidebar's colour, edge to edge, ruled off from the page; native glass remains below it. */
 :root:not([data-chrome=overlay]) .workspace { background:linear-gradient(var(--chrome) 0 52px,transparent 52px),var(--chrome-glass); }
 /* One stationary drag region; later no-drag controls cut holes in it for native clicks. */
@@ -87,9 +87,9 @@
 .sidebar-collapsed .workspace-toolbar { padding-inline-start:68px; }
 .workspace[data-sidebar-motion=true] .workspace-toolbar { transition:padding-inline-start 200ms cubic-bezier(.22,1,.36,1); }
 .workspace button:focus-visible { outline:2px solid var(--focus);outline-offset:2px; }
-.workspace-button.primary { background-color:var(--primary);background-image:linear-gradient(180deg,#FFFFFF14,transparent 55%,#0000000A);border-color:#00000014;color:#FFFFFF;box-shadow:inset 0 1px 0 #FFFFFF29,0 1px 2px #35006524; }
+.workspace-button.primary { background-color:var(--primary);background-image:linear-gradient(180deg,#FFFFFF14,transparent 55%,#0000000A);border-color:#00000014;color:var(--accent-ink);box-shadow:inset 0 1px 0 #FFFFFF29,0 1px 2px #00000024; }
 .workspace-button.primary:hover:not(:disabled) { background-color:var(--primary-hover); }
-.workspace-button.primary:active:not(:disabled) { background-image:none;box-shadow:inset 0 1px 2px #35006533; }
+.workspace-button.primary:active:not(:disabled) { background-image:none;box-shadow:inset 0 1px 2px #00000033; }
 .recording-split { display:flex;min-width:0;max-width:min(100%,276px); }
 .recording-main { flex:0 1 auto;min-width:0; }
 .recording-main>svg { flex:none; }
@@ -106,10 +106,10 @@
 .workspace-toolbar[data-recording-return=true] { gap:16px;padding-inline-end:17px; }
 .workspace-toolbar[data-recording-return=true][data-note=true] { padding-inline-end:62px; }
 .workspace-toolbar[data-recording-return=true] .workspace-breadcrumb { flex:1;overflow:hidden; }
-.workspace-recording-link { position:relative;flex:none;display:flex;align-items:center;justify-content:center;gap:9px;min-width:86px;height:30px;padding:0 12px;border:1px solid #5200BC;border-radius:9px;background:linear-gradient(180deg,#7A1AFF,#6F00FF 65%,#6600EB);color:#FFFFFF;box-shadow:inset 0 1px 0 #FFFFFF33,0 1px 3px #39008026;font-size:12px;font-weight:500;white-space:nowrap;transition:box-shadow var(--dur-micro) ease; }
+.workspace-recording-link { position:relative;flex:none;display:flex;align-items:center;justify-content:center;gap:9px;min-width:86px;height:30px;padding:0 12px;border:1px solid color-mix(in srgb,var(--accent) 82%,black);border-radius:9px;background:linear-gradient(180deg,#FFFFFF14,transparent 65%,#0000000A),var(--accent);color:var(--accent-ink);box-shadow:inset 0 1px 0 #FFFFFF33,0 1px 3px #00000026;font-size:12px;font-weight:500;white-space:nowrap;transition:box-shadow var(--dur-micro) ease; }
 .recording-return-time { font-variant-numeric:tabular-nums;min-width:32px;text-align:center; }
-.workspace-recording-link:hover { filter:brightness(1.06);box-shadow:inset 0 1px 0 #FFFFFF40,0 2px 5px #39008033; }
-.workspace-recording-link:active { filter:brightness(.96);box-shadow:inset 0 1px 3px #39008033; }
+.workspace-recording-link:hover { filter:brightness(1.06);box-shadow:inset 0 1px 0 #FFFFFF40,0 2px 5px #00000033; }
+.workspace-recording-link:active { filter:brightness(.96);box-shadow:inset 0 1px 3px #00000033; }
 .workspace-recording-link[data-paused=true] { background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent);box-shadow:var(--shadow-soft); }
 .workspace:dir(rtl) .workspace-toolbar[data-recording-return=true][data-note=true] { padding-left:185px; }
 .workspace:dir(rtl).sidebar-collapsed .workspace-toolbar[data-recording-return=true][data-note=true] { padding-left:185px; }
@@ -150,7 +150,7 @@
 .native-meeting-card .meeting-meta { grid-column:-2; }
 .meeting-content { display:flex;align-items:center;gap:12px;min-width:0; }
 .meeting-identity { display:grid;place-items:center;width:30px;height:30px;flex:none;border-radius:7px;background:var(--control);color:var(--written);border:1px solid transparent;font-size:10px;font-weight:600; }
-.meeting-identity.recording { color:#FFFFFF;background:var(--primary);border-color:transparent; }
+.meeting-identity.recording { color:var(--accent-ink);background:var(--primary);border-color:transparent; }
 .meeting-description { min-width:0;flex:1; }
 .meeting-description strong { display:block;font-weight:500;font-size:13px;line-height:19px;letter-spacing:-.1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
 .meeting-description>span { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;line-height:16px;margin-top:2px;color:var(--muted); }
@@ -182,7 +182,7 @@
 .native-library:has(>.library-empty)>:not(.library-empty) { flex-shrink:0; }
 .empty-state { flex:1;display:grid;place-items:center;min-width:0;padding-block:24px 48px;text-align:center; }
 .empty-state-content { width:100%;max-width:310px; }
-.empty-tile { width:64px;height:64px;margin:0 auto 16px;display:grid;place-items:center;border:1px solid var(--line);border-radius:14px;background:var(--float);color:var(--written);box-shadow:0 1px 2px #17171A0A,0 10px 28px -12px #2A1A4A24;position:relative; }
+.empty-tile { width:64px;height:64px;margin:0 auto 16px;display:grid;place-items:center;border:1px solid var(--line);border-radius:14px;background:var(--float);color:var(--written);box-shadow:0 1px 2px #17171A0A,0 10px 28px -12px color-mix(in srgb,var(--accent) 8%,transparent);position:relative; }
 .empty-tile::before { content:"";position:absolute;inset:5px;border:1px solid var(--line);border-radius:9px;opacity:.45;pointer-events:none; }
 @media (prefers-color-scheme:dark) { .empty-tile { box-shadow:0 1px 2px #00000033,0 14px 32px -10px #00000080; } }
 .agenda-status[role=alert] { display:grid;justify-items:start; }
@@ -209,7 +209,7 @@
 .agenda-week b { display:grid;place-items:center;font-size:11px;font-weight:500;width:26px;height:26px;border-radius:6px;border:1px solid transparent; }
 .agenda-week button:not([aria-pressed=true]):not([aria-current=date]):hover b { background:var(--accent-soft); }
 .agenda-week [aria-pressed=true] b { color:var(--accent);background:var(--accent-soft);border-color:transparent; }
-.agenda-week [aria-current=date] b { color:#FFFFFF;background:var(--primary); }
+.agenda-week [aria-current=date] b { color:var(--accent-ink);background:var(--primary); }
 .agenda-day { display:flex;align-items:baseline;gap:9px;margin-bottom:0; }
 .agenda-day h3 { font-size:13px;font-weight:600; }
 .agenda-day>span { font-size:11px;color:var(--muted); }
@@ -357,7 +357,7 @@
 /* Folder glyphs and speaker names share these theme-aware inks. */
 [data-folder-color] { color-scheme:light dark;--folder-ink:var(--written);--folder-tint:var(--control); }
 .widget [data-folder-color] { color-scheme:dark; }
-[data-folder-color=violet] { --folder-ink:light-dark(#7434CA,#B995FF); }
+[data-folder-color=violet] { --folder-ink:var(--accent); }
 [data-folder-color=blue] { --folder-ink:light-dark(#2868BA,#87B5F4); }
 [data-folder-color=teal] { --folder-ink:light-dark(#157D80,#72CECE); }
 [data-folder-color=green] { --folder-ink:light-dark(#388044,#92C88A); }
@@ -481,13 +481,13 @@ body:has(.chat-panel[open]) .app-toast-viewport:dir(rtl) { --toast-x:440px; }
 .ask-toolbar-button:hover:not(:disabled) { background:var(--control);color:var(--ink); }
 .ask-toolbar-button:active:not(:disabled) { background:var(--control-hover); }
 .ask-toolbar-button:disabled { color:var(--muted);opacity:.45; }
-/* A small violet orb: two pre-blurred layers turn under a veil that keeps the white arrow readable; still until hovered. */
-.ask-send { position:relative;isolation:isolate;overflow:hidden;background:var(--primary);color:#FFFFFF;transition:transform 120ms ease-out;--orb-play:paused; }
-.ask-send::after { content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:rgb(111 0 255 / .74);box-shadow:inset 0 0 0 1px #CCB6FF44; }
+/* A small violet orb: two pre-blurred layers turn under a veil that keeps the arrow readable; still until hovered. */
+.ask-send { position:relative;isolation:isolate;overflow:hidden;background:var(--primary);color:var(--accent-ink);transition:transform 120ms ease-out;--orb-play:paused; }
+.ask-send::after { content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:color-mix(in srgb,var(--accent) 74%,transparent);box-shadow:inset 0 0 0 1px #FFFFFF44; }
 .ask-send svg { position:relative;z-index:1; }
 .orb-material { position:absolute;inset:0;overflow:hidden;border-radius:inherit;pointer-events:none;background:var(--primary);isolation:isolate; }
-.orb-material::before,.orb-material::after { content:"";position:absolute;inset:-35%;pointer-events:none;background:radial-gradient(ellipse at 27% 32%,#CCB6FF 0 12%,#AF8BFF 24%,transparent 52%),radial-gradient(ellipse at 75% 68%,#7142E8 0 18%,transparent 50%);filter:blur(3px);animation:orb-turn 18s linear infinite;animation-play-state:var(--orb-play);transform:rotate(22deg);opacity:.92; }
-.orb-material::after { background:radial-gradient(ellipse at 68% 26%,#FFFFFF 0 3%,#CCB6FF 13%,transparent 40%),radial-gradient(ellipse at 23% 72%,var(--accent) 0 13%,#7142E8 29%,transparent 54%);animation-name:orb-counter;animation-duration:27s;opacity:.8; }
+.orb-material::before,.orb-material::after { content:"";position:absolute;inset:-35%;pointer-events:none;background:radial-gradient(ellipse at 27% 32%,#FFFFFFA6 0 12%,#FFFFFF70 24%,transparent 52%),radial-gradient(ellipse at 75% 68%,#00000024 0 18%,transparent 50%);filter:blur(3px);animation:orb-turn 18s linear infinite;animation-play-state:var(--orb-play);transform:rotate(22deg);opacity:.92; }
+.orb-material::after { background:radial-gradient(ellipse at 68% 26%,#FFFFFF 0 3%,#FFFFFF80 13%,transparent 40%),radial-gradient(ellipse at 23% 72%,var(--accent) 0 13%,#00000024 29%,transparent 54%);animation-name:orb-counter;animation-duration:27s;opacity:.8; }
 @keyframes orb-turn { from { transform:rotate(22deg); } to { transform:rotate(382deg); } }
 @keyframes orb-counter { from { transform:rotate(-28deg); } to { transform:rotate(-388deg); } }
 .ask-box:not([data-busy=true]) .ask-send:not(:disabled):is(:hover,[data-focus-ring]) { --orb-play:running;transform:scale(1.04); }
@@ -590,7 +590,7 @@ body:has(.chat-panel[open]) .app-toast-viewport:dir(rtl) { --toast-x:440px; }
 
 /* a color here too: the shimmering Thinking… line paints its text through a transparent fill */
 .ask-conversation ::selection { background:var(--accent-soft);color:var(--ink); }
-@media (prefers-color-scheme:dark) { .ask-conversation ::selection { background:#8055B8;color:#FFFFFF; } }
+@media (prefers-color-scheme:dark) { .ask-conversation ::selection { background:var(--accent);color:var(--accent-ink); } }
 
 .native-library { scrollbar-gutter:stable; }
 .native-library:has(.library-empty) { display:flex;flex-direction:column; }
@@ -637,7 +637,7 @@ body:has(.chat-panel[open]) .app-toast-viewport:dir(rtl) { --toast-x:440px; }
 .meeting-selection-folder { position:relative; }
 .meeting-selection-menu { position:absolute;width:240px;max-width:calc(100vw - 16px);max-height:min(320px,60vh);overflow:auto;border:1px solid var(--line); }
 .meeting-selection-bar button:focus-visible { outline:2px solid var(--focus);outline-offset:2px; }
-.meeting-drag-count { border-radius:5px;padding:2px 6px;background:var(--primary);color:#FFFFFF;font-size:11px; }
+.meeting-drag-count { border-radius:5px;padding:2px 6px;background:var(--primary);color:var(--accent-ink);font-size:11px; }
 
 /* This confirmation and its Settings shortcut stay on one line. */
 .app-toast[data-kind=recording-deleted-toast] { inset-inline-start:auto;width:max-content;max-width:calc(100vw - 40px); }
