@@ -36,11 +36,12 @@ export function finishQuit(): void {
  * DOES NOT WORK WHILE RECORDING.
  */
 export async function hookUpdates(d: { file: string; available: boolean; recording(): boolean; /** fake mode: a version already downloaded */ fake?: { version: string; restarted(): void } }): Promise<void> {
+  let runningVersion = app.getVersion()
   let state: UpdateStatus['state'] = 'idle'
   let next: string | undefined, dismissedVersion: string | undefined
   const status = (): UpdateStatus => {
     const on = autoUpdateOn(loadSettings(d.file))
-    return { version: app.getVersion(), available: d.available || !!d.fake, on, state, next, dismissed: !!next && next === dismissedVersion }
+    return { version: runningVersion, available: d.available || !!d.fake, on, state, next, dismissed: !!next && next === dismissedVersion }
   }
   const set = (s: UpdateStatus['state'], version?: string) => {
     state = s
@@ -66,7 +67,13 @@ export async function hookUpdates(d: { file: string; available: boolean; recordi
   ipcMain.handle('updates:restart', () => {
     if (state !== 'ready' || d.recording()) return false
     // fake mode: as if Yogurt came back on the new version
-    if (d.fake) { d.fake.restarted(); set('latest'); return true }
+    if (d.fake) {
+      d.fake.restarted()
+      runningVersion = d.fake.version
+      next = undefined
+      set('latest')
+      return true
+    }
     installOnQuit = true
     app.quit()
     return true
