@@ -353,7 +353,7 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
             setSelector(open ? { query: '' } : undefined)
           }}>
             <span className="ask-scope-group">
-              <Popover.Trigger type="button" className="ask-scope" data-testid="ask-scope" onPointerEnter={prefetch} onFocus={prefetch} disabled={busy} aria-label={scopeName} title={chooseScope}><AskContext chips={chips} /></Popover.Trigger>
+              <Popover.Trigger type="button" className={chips.length ? 'ask-scope ask-scope-selected' : 'ask-scope ghost-btn'} data-testid="ask-scope" onPointerEnter={prefetch} onFocus={prefetch} disabled={busy} aria-label={scopeName} title={chooseScope}><AskContext chips={chips} /></Popover.Trigger>
               {!!chips.length && <button type="button" className="ask-scope-clear" data-testid="ask-scope-clear" disabled={busy} aria-label={t('Clear')} title={t('Clear')}
                 onClick={() => { void remove(chips); input.current?.focus({ preventScroll: true }) }}><X size={12} aria-hidden="true" /></button>}
             </span>
