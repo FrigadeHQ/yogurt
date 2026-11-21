@@ -43,6 +43,15 @@ export function hookFolders(d: { store: Store; changed: () => void }) {
   })
   // its meetings stay
   ipcMain.handle('folders:delete', (_e, id: unknown) => { if (folder(id)) { store.deleteFolder(id); d.changed() } })
+  ipcMain.handle('folders:meeting-choices', (_e, id: unknown) => {
+    if (!folder(id)) throw new Error('Folder unavailable')
+    return store.folderMeetingChoices(id)
+  })
+  ipcMain.handle('folders:add-many', (_e, id: unknown, ids: unknown) => {
+    if (!folder(id) || !Array.isArray(ids) || !ids.every(isId) || !store.addMeetingsToFolder(id, ids)) return false
+    d.changed()
+    return true
+  })
   ipcMain.handle('folders:add', (_e, id: unknown, meetingId: unknown) => { if (folder(id) && meeting(meetingId)) { store.addToFolder(id, meetingId); d.changed() } })
   ipcMain.handle('folders:remove', (_e, id: unknown, meetingId: unknown) => { if (isId(id) && isId(meetingId)) { store.removeFromFolder(id, meetingId); d.changed() } })
 }

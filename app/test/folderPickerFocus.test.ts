@@ -9,7 +9,7 @@ vi.mock('react', async importOriginal => {
   const react = await importOriginal<typeof import('react')>()
   return { ...react, useEffect: vi.fn(), useLayoutEffect: vi.fn(), useRef: vi.fn(react.useRef) }
 })
-vi.mock('../src/renderer/src/folders', () => ({ useFolders: (id?: string) => id ? [] : state.all, setMeetingsInFolder: vi.fn() }))
+vi.mock('../src/renderer/src/folders', () => ({ useFolderRead: () => ({ folders: [] }), useFolders: (id?: string) => id ? [] : state.all, setMeetingsInFolder: vi.fn() }))
 vi.mock('../src/renderer/src/components/TrashToast', () => ({ toasts: { add: vi.fn(), close: vi.fn() } }))
 vi.mock('../src/renderer/src/motion', () => ({ useReducedMotion: () => false, usePopoverPresence: () => ({ value: false, props: {} }) }))
 afterEach(() => vi.unstubAllGlobals())
