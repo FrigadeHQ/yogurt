@@ -147,10 +147,13 @@ test('the compact calendar keeps its original type and geometry with distinct se
         await expect(control).toHaveCSS('color', white)
         await expect(control.locator('svg')).toHaveCSS('stroke', white)
       }
+      const selectedFill = colorScheme === 'dark' ? 'rgb(59, 59, 62)' : 'rgb(228, 228, 231)'
+      const ink = colorScheme === 'dark' ? 'rgb(231, 230, 235)' : 'rgb(41, 41, 44)'
       const today = week.locator('[aria-current=date]')
       await today.click()
-      await expect(today.locator('b')).toHaveCSS('background-color', fill)
-      await expect(today.locator('b')).toHaveCSS('color', white)
+      await expect(today.locator('b')).toHaveCSS('background-color', selectedFill)
+      await expect(today.locator('b')).toHaveCSS('color', ink)
+      await expect(today.locator('b')).toHaveCSS('border-color', accent)
       await expect(today.locator('b')).toHaveCSS('font-size', '11px')
       await expect(today.locator('b')).toHaveCSS('width', '26px')
       await expect(today.locator('b')).toHaveCSS('height', '26px')
@@ -171,8 +174,8 @@ test('the compact calendar keeps its original type and geometry with distinct se
       await today.hover()
       await expect(today.locator('b')).toHaveCSS('color', accent)
       await expect(today.locator('b')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
-      await expect(other.locator('b')).toHaveCSS('background-color', fill)
-      await expect(other.locator('b')).toHaveCSS('color', white)
+      await expect(other.locator('b')).toHaveCSS('background-color', selectedFill)
+      await expect(other.locator('b')).toHaveCSS('color', ink)
       await expect(other).toHaveCSS('outline-style', 'solid')
       await expect(other).toHaveCSS('outline-width', '2px')
       // Logical order and hit targets stay within the compact calendar in either direction.

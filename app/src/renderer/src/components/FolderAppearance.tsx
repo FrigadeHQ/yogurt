@@ -27,7 +27,7 @@ function arrowChoice(e: KeyboardEvent<HTMLDivElement>, columns: number) {
 export function FolderChoices({ value, onChange, disabled }: { value: FolderAppearance; onChange: (value: FolderAppearance) => void; disabled: boolean }) {
   return <div className="folder-choices">
     <div className="folder-choice-label">{t('Icon')}</div>
-    <div className="folder-icon-grid" role="radiogroup" aria-label={t('Icon')} onKeyDown={(e) => arrowChoice(e, 6)}>
+    <div className="folder-icon-grid" data-folder-color={value.color} role="radiogroup" aria-label={t('Icon')} onKeyDown={(e) => arrowChoice(e, 6)}>
       {(Object.keys(FOLDER_ICONS) as FolderIconId[]).map((icon) => <button key={icon} type="button" role="radio" aria-checked={icon === value.icon}
         data-dialog-focus={icon === value.icon ? true : undefined} aria-label={t(FOLDER_ICONS[icon])} title={t(FOLDER_ICONS[icon])} tabIndex={icon === value.icon ? 0 : -1} disabled={disabled}
         data-testid={`folder-icon-${icon}`} onClick={() => onChange({ ...value, icon })}>
