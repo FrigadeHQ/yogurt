@@ -761,5 +761,22 @@
   "Stop transcription": "עצירת תמלול",
   "Audio is unavailable.": "האודיו אינו זמין.",
   "Add a calendar by link": "הוספת יומן באמצעות קישור",
-  "Calendars from the Mac's Calendar app appear above automatically.": "יומנים מיישום לוח השנה ב-Mac מופיעים למעלה באופן אוטומטי."
+  "Calendars from the Mac's Calendar app appear above automatically.": "יומנים מיישום לוח השנה ב-Mac מופיעים למעלה באופן אוטומטי.",
+  "Phone": "טלפון",
+  "Pair a phone": "צימוד טלפון",
+  "Open Yogurt on your iPhone and type this code": "פתחו את Yogurt ב-iPhone והקלידו את הקוד הזה",
+  "Code works for {time}": "הקוד תקף עוד {time}",
+  "Connected": "מחובר",
+  "Last seen just now": "נראה הרגע",
+  "Last seen {when}": "נראה לאחרונה {when}",
+  "Not connected yet": "עדיין לא התחבר",
+  "Read your notes and record meetings on your iPhone. They come back here to be transcribed.": "קראו את ההערות שלכם והקליטו פגישות ב-iPhone. הן חוזרות לכאן לתמלול.",
+  "The code ran out. Start pairing again.": "תוקף הקוד פג. התחילו את הצימוד מחדש.",
+  "Too many wrong codes. Start pairing again.": "יותר מדי קודים שגויים. התחילו את הצימוד מחדש.",
+  "Unpair": "ביטול צימוד",
+  "Unpair your iPhone? It keeps its copy until you pair again.": "לבטל את הצימוד של ה-iPhone? הוא שומר את העותק שלו עד שתצמדו שוב.",
+  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt לא הצליח לפתוח את מחזיק המפתחות שלו, ולכן אינו יכול לצמד כרגע.",
+  "Yogurt couldn't start pairing. Try again.": "Yogurt לא הצליח להתחיל את הצימוד. נסו שוב.",
+  "Yogurt on your iPhone": "Yogurt ב-iPhone שלך",
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "ה-iPhone מדבר עם המחשב הזה רק באותה רשת Wi-Fi. שום דבר לא עובר דרך האינטרנט."
 }

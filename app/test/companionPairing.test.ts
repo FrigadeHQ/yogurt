@@ -112,16 +112,26 @@ describe('companion pairing', () => {
   })
 
   it('a second phone during an exchange is told busy; one that goes quiet after hello frees the slot', async () => {
-    const { c } = await make({ limits: { stepMs: 200 } })
+    const { c, tick } = await make({ limits: { stepMs: 200 } })
     const { code } = await c.startPairing()
     const quiet = await raw(c.port()!)
     quiet.sendJson({ type: 'pairHello', v: 1, phoneSession: Buffer.alloc(16, 2).toString('base64'), phoneName: 'x' })
     expect((await quiet.json()).type).toBe('pairStart')
     expect((await pairAsPhone(c.port()!, code, generateKeyPair())).result).toEqual({ type: 'pairFail', reason: 'busy' })
     await quiet.closed
-    // nothing guessed, nothing counted
+    // nothing guessed, nothing counted, but the next one still waits the pause a wrong guess would get
     expect(c.status().pairing?.attemptsLeft).toBe(5)
+    expect((await pairAsPhone(c.port()!, code, generateKeyPair())).result).toEqual({ type: 'pairFail', reason: 'busy' })
+    tick(1000)
     expect((await pairAsPhone(c.port()!, code, generateKeyPair())).result).toEqual({ type: 'pairOk' })
+  })
+
+  it('a server that cannot listen makes startPairing fail and says so in its status', async () => {
+    // an address this computer doesn't have: listening fails the way a refused bind would
+    const { c } = await make({ host: '192.0.2.1' })
+    await expect(c.startPairing()).rejects.toThrow()
+    expect(c.status()).toMatchObject({ error: 'listen', pairing: null })
+    expect(c.port()).toBeNull()
   })
 
   it('a pairing that finishes after the window closed is refused and stores nothing', async () => {

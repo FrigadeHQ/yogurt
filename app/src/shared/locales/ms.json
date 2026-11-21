@@ -709,5 +709,22 @@
   "Stop transcription": "Hentikan transkripsi",
   "Audio is unavailable.": "Audio tidak tersedia.",
   "Add a calendar by link": "Tambah kalendar melalui pautan",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Kalendar daripada app Kalendar pada Mac muncul di atas secara automatik."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Kalendar daripada app Kalendar pada Mac muncul di atas secara automatik.",
+  "Phone": "Telefon",
+  "Pair a phone": "Pasangkan telefon",
+  "Open Yogurt on your iPhone and type this code": "Buka Yogurt pada iPhone anda dan taip kod ini",
+  "Code works for {time}": "Kod sah {time} lagi",
+  "Connected": "Disambungkan",
+  "Last seen just now": "Dilihat sebentar tadi",
+  "Last seen {when}": "Terakhir dilihat {when}",
+  "Not connected yet": "Belum disambungkan",
+  "Read your notes and record meetings on your iPhone. They come back here to be transcribed.": "Baca nota anda dan rakam mesyuarat pada iPhone. Semuanya kembali ke sini untuk ditranskripsikan.",
+  "The code ran out. Start pairing again.": "Kod telah tamat tempoh. Mulakan pemasangan semula.",
+  "Too many wrong codes. Start pairing again.": "Terlalu banyak kod salah. Mulakan pemasangan semula.",
+  "Unpair": "Nyahpasang",
+  "Unpair your iPhone? It keeps its copy until you pair again.": "Nyahpasang iPhone anda? Ia menyimpan salinannya sehingga anda memasangkannya semula.",
+  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt tidak dapat membuka rantai kuncinya, jadi ia tidak boleh memasangkan sekarang.",
+  "Yogurt couldn't start pairing. Try again.": "Yogurt tidak dapat memulakan pemasangan. Cuba lagi.",
+  "Yogurt on your iPhone": "Yogurt pada iPhone anda",
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone anda hanya bercakap dengan komputer ini pada Wi-Fi yang sama. Tiada apa-apa melalui internet."
 }

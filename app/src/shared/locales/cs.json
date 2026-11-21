@@ -782,5 +782,22 @@
   "Stop transcription": "Zastavit přepis",
   "Audio is unavailable.": "Zvuk není k dispozici.",
   "Add a calendar by link": "Přidat kalendář pomocí odkazu",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Kalendáře z aplikace Kalendář na Macu se automaticky zobrazí výše."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Kalendáře z aplikace Kalendář na Macu se automaticky zobrazí výše.",
+  "Phone": "Telefon",
+  "Pair a phone": "Spárovat telefon",
+  "Open Yogurt on your iPhone and type this code": "Otevřete Yogurt v iPhonu a zadejte tento kód",
+  "Code works for {time}": "Kód platí ještě {time}",
+  "Connected": "Připojeno",
+  "Last seen just now": "Naposledy viděn právě teď",
+  "Last seen {when}": "Naposledy viděn {when}",
+  "Not connected yet": "Zatím nepřipojeno",
+  "Read your notes and record meetings on your iPhone. They come back here to be transcribed.": "Čtěte poznámky a nahrávejte schůzky v iPhonu. Vracejí se sem k přepisu.",
+  "The code ran out. Start pairing again.": "Platnost kódu vypršela. Začněte párování znovu.",
+  "Too many wrong codes. Start pairing again.": "Příliš mnoho špatných kódů. Začněte párování znovu.",
+  "Unpair": "Zrušit párování",
+  "Unpair your iPhone? It keeps its copy until you pair again.": "Zrušit párování iPhonu? Svou kopii si ponechá, dokud ho znovu nespárujete.",
+  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt nemohl otevřít svou klíčenku, takže teď nemůže párovat.",
+  "Yogurt couldn't start pairing. Try again.": "Yogurt nemohl zahájit párování. Zkuste to znovu.",
+  "Yogurt on your iPhone": "Yogurt v iPhonu",
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Váš iPhone komunikuje s tímto počítačem jen ve stejné síti Wi-Fi. Nic nejde přes internet."
 }

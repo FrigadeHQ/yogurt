@@ -739,5 +739,22 @@
   "Stop transcription": "প্রতিলিপি বন্ধ করুন",
   "Audio is unavailable.": "অডিও উপলভ্য নেই।",
   "Add a calendar by link": "লিংক দিয়ে ক্যালেন্ডার যোগ করুন",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Mac-এর ক্যালেন্ডার অ্যাপের ক্যালেন্ডারগুলি উপরে স্বয়ংক্রিয়ভাবে দেখা যায়।"
+  "Calendars from the Mac's Calendar app appear above automatically.": "Mac-এর ক্যালেন্ডার অ্যাপের ক্যালেন্ডারগুলি উপরে স্বয়ংক্রিয়ভাবে দেখা যায়।",
+  "Phone": "ফোন",
+  "Pair a phone": "ফোন যুক্ত করুন",
+  "Open Yogurt on your iPhone and type this code": "আপনার iPhone-এ Yogurt খুলুন এবং এই কোডটি লিখুন",
+  "Code works for {time}": "কোডটি আর {time} চলবে",
+  "Connected": "সংযুক্ত",
+  "Last seen just now": "এইমাত্র দেখা গেছে",
+  "Last seen {when}": "শেষ দেখা গেছে {when}",
+  "Not connected yet": "এখনো সংযুক্ত হয়নি",
+  "Read your notes and record meetings on your iPhone. They come back here to be transcribed.": "আপনার iPhone-এ নোট পড়ুন এবং মিটিং রেকর্ড করুন। ট্রান্সক্রাইব হওয়ার জন্য সেগুলো এখানে ফিরে আসে।",
+  "The code ran out. Start pairing again.": "কোডের মেয়াদ শেষ। আবার যুক্ত করা শুরু করুন।",
+  "Too many wrong codes. Start pairing again.": "অনেক বেশি ভুল কোড। আবার যুক্ত করা শুরু করুন।",
+  "Unpair": "বিচ্ছিন্ন করুন",
+  "Unpair your iPhone? It keeps its copy until you pair again.": "আপনার iPhone বিচ্ছিন্ন করবেন? আবার যুক্ত না করা পর্যন্ত এটি নিজের কপি রাখে।",
+  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt তার কিচেইন খুলতে পারেনি, তাই এখন যুক্ত করতে পারছে না।",
+  "Yogurt couldn't start pairing. Try again.": "Yogurt যুক্ত করা শুরু করতে পারেনি। আবার চেষ্টা করুন।",
+  "Yogurt on your iPhone": "আপনার iPhone-এ Yogurt",
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "আপনার iPhone শুধু একই Wi-Fi-তে এই কম্পিউটারের সঙ্গে কথা বলে। কিছুই ইন্টারনেট দিয়ে যায় না।"
 }

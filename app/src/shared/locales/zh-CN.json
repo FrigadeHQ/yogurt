@@ -709,5 +709,22 @@
   "Stop transcription": "停止转写",
   "Audio is unavailable.": "音频不可用。",
   "Add a calendar by link": "通过链接添加日历",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Mac 日历 App 中的日历会自动显示在上方。"
+  "Calendars from the Mac's Calendar app appear above automatically.": "Mac 日历 App 中的日历会自动显示在上方。",
+  "Phone": "手机",
+  "Pair a phone": "配对手机",
+  "Open Yogurt on your iPhone and type this code": "在 iPhone 上打开 Yogurt 并输入此代码",
+  "Code works for {time}": "代码还可用 {time}",
+  "Connected": "已连接",
+  "Last seen just now": "刚刚在线",
+  "Last seen {when}": "上次在线 {when}",
+  "Not connected yet": "尚未连接",
+  "Read your notes and record meetings on your iPhone. They come back here to be transcribed.": "在 iPhone 上阅读笔记、录制会议。录音会回到这里进行转写。",
+  "The code ran out. Start pairing again.": "代码已过期。请重新开始配对。",
+  "Too many wrong codes. Start pairing again.": "错误代码太多。请重新开始配对。",
+  "Unpair": "取消配对",
+  "Unpair your iPhone? It keeps its copy until you pair again.": "要取消与 iPhone 的配对吗？在你再次配对之前，它会保留自己的副本。",
+  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt 无法打开其钥匙串，因此现在无法配对。",
+  "Yogurt couldn't start pairing. Try again.": "Yogurt 无法开始配对。请重试。",
+  "Yogurt on your iPhone": "iPhone 上的 Yogurt",
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "你的 iPhone 只在同一 Wi-Fi 下与这台电脑通信。任何内容都不经过互联网。"
 }

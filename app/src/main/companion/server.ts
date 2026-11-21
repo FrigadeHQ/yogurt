@@ -153,6 +153,8 @@ export function startServer(h: ServerHooks, port: number, host: string): Promise
       const channel = new SecureChannel(socket, send, recv, h.now, h.limits.rekey)
       if (early.length) { channel.close(); return fail('spoke before the handshake ended') }
 
+      // msg 1 can be replayed: one that isn't followed by a frame that decrypts frees its slot after one step
+      const proof = setTimeout(() => fail('no proof'), h.limits.stepMs)
       let idle: NodeJS.Timeout | undefined
       const awake = () => { clearTimeout(idle); idle = setTimeout(() => fail('idle'), h.limits.idleMs) }
       awake()
@@ -161,7 +163,7 @@ export function startServer(h: ServerHooks, port: number, host: string): Promise
       // a replayed message 1 gets this far too; only a phone holding its ephemeral key can send a frame that
       // decrypts, so that is when it counts as connected (and replaces an older session)
       let proved = false
-      socket.on('close', () => { clearTimeout(idle); channel.close(); if (proved) h.closed(s) })
+      socket.on('close', () => { clearTimeout(idle); clearTimeout(proof); channel.close(); if (proved) h.closed(s) })
       const run = (msg: Record<string, unknown>) => {
         h.busy(1)
         return h.handle(msg, (m) => channel.send(m)).catch(() => fail('reply failed')).finally(() => h.busy(-1))
@@ -170,7 +172,7 @@ export function startServer(h: ServerHooks, port: number, host: string): Promise
         awake()
         let msg: Record<string, unknown> | null
         try { msg = channel.receive(f) } catch { return fail('bad message') }
-        if (!proved) { proved = true; clearTimeout(handshake); known(); h.opened(s) }
+        if (!proved) { proved = true; clearTimeout(handshake); clearTimeout(proof); known(); h.opened(s) }
         if (!msg) return
         if (msg.type === 'ping') { channel.send({ ...(typeof msg.id === 'string' ? { id: msg.id } : {}), type: 'pong', body: {} }).catch(() => fail('reply failed')); return }
         if (typeof msg.type !== 'string' || typeof msg.id !== 'string') return fail('bad request')

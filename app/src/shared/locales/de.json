@@ -751,5 +751,22 @@
   "Stop transcription": "Transkription anhalten",
   "Audio is unavailable.": "Audio ist nicht verfügbar.",
   "Add a calendar by link": "Kalender per Link hinzufügen",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Kalender aus der Kalender-App auf deinem Mac erscheinen automatisch oben."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Kalender aus der Kalender-App auf deinem Mac erscheinen automatisch oben.",
+  "Phone": "Telefon",
+  "Pair a phone": "iPhone koppeln",
+  "Open Yogurt on your iPhone and type this code": "Öffne Yogurt auf deinem iPhone und gib diesen Code ein",
+  "Code works for {time}": "Code gilt noch {time}",
+  "Connected": "Verbunden",
+  "Last seen just now": "Zuletzt gesehen gerade eben",
+  "Last seen {when}": "Zuletzt gesehen {when}",
+  "Not connected yet": "Noch nicht verbunden",
+  "Read your notes and record meetings on your iPhone. They come back here to be transcribed.": "Lies deine Notizen und nimm Meetings auf deinem iPhone auf. Sie kommen hierher zurück, um transkribiert zu werden.",
+  "The code ran out. Start pairing again.": "Der Code ist abgelaufen. Starte das Koppeln neu.",
+  "Too many wrong codes. Start pairing again.": "Zu viele falsche Codes. Starte das Koppeln neu.",
+  "Unpair": "Entkoppeln",
+  "Unpair your iPhone? It keeps its copy until you pair again.": "iPhone entkoppeln? Es behält seine Kopie, bis du es wieder koppelst.",
+  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt konnte seinen Schlüsselbund nicht öffnen und kann deshalb gerade nicht koppeln.",
+  "Yogurt couldn't start pairing. Try again.": "Yogurt konnte das Koppeln nicht starten. Versuch es noch einmal.",
+  "Yogurt on your iPhone": "Yogurt auf deinem iPhone",
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Dein iPhone spricht mit diesem Computer nur im selben WLAN. Nichts geht über das Internet."
 }

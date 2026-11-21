@@ -709,5 +709,22 @@
   "Stop transcription": "หยุดถอดเสียง",
   "Audio is unavailable.": "ไม่มีเสียงให้ใช้งาน",
   "Add a calendar by link": "เพิ่มปฏิทินด้วยลิงก์",
-  "Calendars from the Mac's Calendar app appear above automatically.": "ปฏิทินจากแอปปฏิทินบน Mac จะแสดงด้านบนโดยอัตโนมัติ"
+  "Calendars from the Mac's Calendar app appear above automatically.": "ปฏิทินจากแอปปฏิทินบน Mac จะแสดงด้านบนโดยอัตโนมัติ",
+  "Phone": "โทรศัพท์",
+  "Pair a phone": "จับคู่โทรศัพท์",
+  "Open Yogurt on your iPhone and type this code": "เปิด Yogurt บน iPhone แล้วพิมพ์รหัสนี้",
+  "Code works for {time}": "รหัสใช้ได้อีก {time}",
+  "Connected": "เชื่อมต่อแล้ว",
+  "Last seen just now": "เห็นล่าสุดเมื่อสักครู่",
+  "Last seen {when}": "เห็นล่าสุด {when}",
+  "Not connected yet": "ยังไม่ได้เชื่อมต่อ",
+  "Read your notes and record meetings on your iPhone. They come back here to be transcribed.": "อ่านโน้ตและบันทึกการประชุมบน iPhone แล้วจะกลับมาที่นี่เพื่อถอดเสียง",
+  "The code ran out. Start pairing again.": "รหัสหมดอายุแล้ว เริ่มจับคู่ใหม่อีกครั้ง",
+  "Too many wrong codes. Start pairing again.": "ใส่รหัสผิดหลายครั้งเกินไป เริ่มจับคู่ใหม่อีกครั้ง",
+  "Unpair": "เลิกจับคู่",
+  "Unpair your iPhone? It keeps its copy until you pair again.": "เลิกจับคู่ iPhone ใช่ไหม iPhone จะเก็บสำเนาไว้จนกว่าคุณจะจับคู่อีกครั้ง",
+  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt เปิดพวงกุญแจของตัวเองไม่ได้ จึงจับคู่ไม่ได้ในตอนนี้",
+  "Yogurt couldn't start pairing. Try again.": "Yogurt เริ่มจับคู่ไม่ได้ ลองอีกครั้ง",
+  "Yogurt on your iPhone": "Yogurt บน iPhone ของคุณ",
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone จะคุยกับคอมพิวเตอร์เครื่องนี้ผ่าน Wi-Fi เดียวกันเท่านั้น ไม่มีอะไรผ่านอินเทอร์เน็ต"
 }

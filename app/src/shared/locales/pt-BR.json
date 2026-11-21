@@ -767,5 +767,22 @@
   "Stop transcription": "Parar transcrição",
   "Audio is unavailable.": "O áudio não está disponível.",
   "Add a calendar by link": "Adicionar calendário por link",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Os calendários do app Calendário do Mac aparecem acima automaticamente."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Os calendários do app Calendário do Mac aparecem acima automaticamente.",
+  "Phone": "Celular",
+  "Pair a phone": "Parear um celular",
+  "Open Yogurt on your iPhone and type this code": "Abra o Yogurt no seu iPhone e digite este código",
+  "Code works for {time}": "O código vale por mais {time}",
+  "Connected": "Conectado",
+  "Last seen just now": "Visto agora mesmo",
+  "Last seen {when}": "Visto {when}",
+  "Not connected yet": "Ainda não conectado",
+  "Read your notes and record meetings on your iPhone. They come back here to be transcribed.": "Leia suas notas e grave reuniões no seu iPhone. Elas voltam para cá para serem transcritas.",
+  "The code ran out. Start pairing again.": "O código expirou. Comece o pareamento de novo.",
+  "Too many wrong codes. Start pairing again.": "Códigos errados demais. Comece o pareamento de novo.",
+  "Unpair": "Desparear",
+  "Unpair your iPhone? It keeps its copy until you pair again.": "Desparear seu iPhone? Ele mantém a cópia dele até você parear de novo.",
+  "Yogurt couldn't open its keychain, so it can't pair right now.": "O Yogurt não conseguiu abrir as chaves dele, então não pode parear agora.",
+  "Yogurt couldn't start pairing. Try again.": "O Yogurt não conseguiu iniciar o pareamento. Tente de novo.",
+  "Yogurt on your iPhone": "Yogurt no seu iPhone",
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Seu iPhone fala com este computador só na mesma rede Wi-Fi. Nada passa pela internet."
 }

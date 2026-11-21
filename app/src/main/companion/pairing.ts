@@ -30,6 +30,8 @@ export type PairCtx = {
   waiting: () => boolean
   /** one guess at the code was made (the phone has a box it can check its guess against): counts against the code */
   guessed: () => void
+  /** a phone said hello and then nothing usable: no guess, but the same pause as one, so stalls can't hold pairing */
+  stalled: () => void
   /** a counted guess didn't pair: 'tooMany' once the code is used up (the caller makes a new one) */
   failed: () => PairFail
   desktop: { id: string; name: string; publicKey: Uint8Array }
@@ -78,7 +80,7 @@ export async function pair(io: PairIo, hello: Record<string, unknown>, ctx: Pair
   const { ya, secret } = cpaceStart(code, ci, sid)
   io.send({ type: 'pairStart', v: 1, desktopSession: b64(desktopSession), desktopId: ctx.desktop.id, desktopName: ctx.desktop.name, ya: b64(ya) })
   let yb: Uint8Array
-  try { yb = bytes((await message(io, 'pairReply')).yb, 32) } catch (err) { secret.scalar.fill(0); throw err }
+  try { yb = bytes((await message(io, 'pairReply')).yb, 32) } catch (err) { secret.scalar.fill(0); ctx.stalled(); throw err }
   // from here the phone can test its one guess against pairConfirm, so it counts whatever happens next
   ctx.guessed()
   let keys: ReturnType<typeof pairKeys> | undefined

@@ -751,5 +751,22 @@
   "Stop transcription": "Stoppa transkribering",
   "Audio is unavailable.": "Ljudet är inte tillgängligt.",
   "Add a calendar by link": "Lägg till en kalender via länk",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Kalendrar från appen Kalender på din Mac visas automatiskt ovanför."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Kalendrar från appen Kalender på din Mac visas automatiskt ovanför.",
+  "Phone": "Telefon",
+  "Pair a phone": "Parkoppla en telefon",
+  "Open Yogurt on your iPhone and type this code": "Öppna Yogurt på din iPhone och skriv den här koden",
+  "Code works for {time}": "Koden gäller i {time} till",
+  "Connected": "Ansluten",
+  "Last seen just now": "Sågs nyss",
+  "Last seen {when}": "Sågs senast {when}",
+  "Not connected yet": "Inte ansluten än",
+  "Read your notes and record meetings on your iPhone. They come back here to be transcribed.": "Läs dina anteckningar och spela in möten på din iPhone. De kommer tillbaka hit för att transkriberas.",
+  "The code ran out. Start pairing again.": "Koden gick ut. Börja parkopplingen igen.",
+  "Too many wrong codes. Start pairing again.": "För många fel koder. Börja parkopplingen igen.",
+  "Unpair": "Koppla från",
+  "Unpair your iPhone? It keeps its copy until you pair again.": "Koppla från din iPhone? Den behåller sin kopia tills du parkopplar igen.",
+  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt kunde inte öppna sin nyckelring, så den kan inte parkoppla just nu.",
+  "Yogurt couldn't start pairing. Try again.": "Yogurt kunde inte starta parkopplingen. Försök igen.",
+  "Yogurt on your iPhone": "Yogurt på din iPhone",
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Din iPhone pratar bara med den här datorn på samma wifi. Inget går via internet."
 }

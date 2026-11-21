@@ -779,5 +779,22 @@
   "Stop transcription": "Остановить расшифровку",
   "Audio is unavailable.": "Аудио недоступно.",
   "Add a calendar by link": "Добавить календарь по ссылке",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Календари из приложения «Календарь» на Mac автоматически отображаются выше."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Календари из приложения «Календарь» на Mac автоматически отображаются выше.",
+  "Phone": "Телефон",
+  "Pair a phone": "Подключить телефон",
+  "Open Yogurt on your iPhone and type this code": "Откройте Yogurt на iPhone и введите этот код",
+  "Code works for {time}": "Код действует ещё {time}",
+  "Connected": "Подключён",
+  "Last seen just now": "Был в сети только что",
+  "Last seen {when}": "Был в сети {when}",
+  "Not connected yet": "Ещё не подключался",
+  "Read your notes and record meetings on your iPhone. They come back here to be transcribed.": "Читайте заметки и записывайте встречи на iPhone. Записи возвращаются сюда для расшифровки.",
+  "The code ran out. Start pairing again.": "Срок действия кода истёк. Начните подключение заново.",
+  "Too many wrong codes. Start pairing again.": "Слишком много неверных кодов. Начните подключение заново.",
+  "Unpair": "Отключить",
+  "Unpair your iPhone? It keeps its copy until you pair again.": "Отключить iPhone? Его копия сохранится, пока вы не подключите его снова.",
+  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt не смог открыть свою связку ключей, поэтому сейчас не может подключить телефон.",
+  "Yogurt couldn't start pairing. Try again.": "Yogurt не смог начать подключение. Попробуйте ещё раз.",
+  "Yogurt on your iPhone": "Yogurt на вашем iPhone",
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone связывается с этим компьютером только в одной сети Wi-Fi. Ничего не идёт через интернет."
 }

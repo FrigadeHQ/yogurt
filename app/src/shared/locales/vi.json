@@ -709,5 +709,22 @@
   "Stop transcription": "Dừng chép lời",
   "Audio is unavailable.": "Âm thanh không khả dụng.",
   "Add a calendar by link": "Thêm lịch bằng liên kết",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Lịch từ ứng dụng Lịch trên Mac tự động xuất hiện ở trên."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Lịch từ ứng dụng Lịch trên Mac tự động xuất hiện ở trên.",
+  "Phone": "Điện thoại",
+  "Pair a phone": "Ghép nối điện thoại",
+  "Open Yogurt on your iPhone and type this code": "Mở Yogurt trên iPhone và nhập mã này",
+  "Code works for {time}": "Mã còn hiệu lực {time}",
+  "Connected": "Đã kết nối",
+  "Last seen just now": "Vừa thấy",
+  "Last seen {when}": "Thấy lần cuối {when}",
+  "Not connected yet": "Chưa kết nối",
+  "Read your notes and record meetings on your iPhone. They come back here to be transcribed.": "Đọc ghi chú và ghi âm cuộc họp trên iPhone. Chúng quay về đây để được chép lời.",
+  "The code ran out. Start pairing again.": "Mã đã hết hạn. Hãy bắt đầu ghép nối lại.",
+  "Too many wrong codes. Start pairing again.": "Quá nhiều mã sai. Hãy bắt đầu ghép nối lại.",
+  "Unpair": "Hủy ghép nối",
+  "Unpair your iPhone? It keeps its copy until you pair again.": "Hủy ghép nối iPhone? iPhone vẫn giữ bản sao của nó cho đến khi bạn ghép nối lại.",
+  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt không mở được chuỗi khóa của mình nên chưa thể ghép nối lúc này.",
+  "Yogurt couldn't start pairing. Try again.": "Yogurt không bắt đầu ghép nối được. Hãy thử lại.",
+  "Yogurt on your iPhone": "Yogurt trên iPhone của bạn",
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone chỉ trò chuyện với máy tính này trên cùng mạng Wi-Fi. Không có gì đi qua internet."
 }

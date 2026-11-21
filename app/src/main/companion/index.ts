@@ -11,17 +11,9 @@ import { ATTEMPTS, newCode, PAIR_MS, type PairCtx, type PairedPhone } from './pa
 import { createHandlers, type HandlerDeps } from './handlers'
 import { LIMITS, startServer, type Limits, type Listening, type Session } from './server'
 import { bonjourAdvertiser, type Advertiser } from './advertise'
+import type { CompanionStatus } from '../../shared/companion'
 
-export type CompanionStatus = {
-  paired: null | { name: string; lastSeen: number | null }
-  pairing: null | { code: string; expiresAt: number; attemptsLeft: number }
-  /** why the last pairing closed without a phone: its two minutes ran out, or too many wrong codes (null otherwise) */
-  pairingClosed: null | 'expired' | 'tooMany'
-  /** the system keychain wouldn't open this computer's key: off, the pairing kept, until a start where it opens */
-  error: null | 'keychain'
-  connected: boolean
-  syncing: boolean
-}
+export type { CompanionStatus }
 
 export type CompanionDeps = Omit<HandlerDeps, 'now' | 'store'> & {
   store: Store
@@ -94,6 +86,7 @@ export async function createCompanion(d: CompanionDeps) {
   let pairing: { code: string; expiresAt: number; attemptsLeft: number; codes: number } | null = null
   let pairingClosed: CompanionStatus['pairingClosed'] = null
   let retryAt = 0
+  let listenFailed = false
   let expiry: NodeJS.Timeout | undefined
   let server: Listening | null = null
   let starting: Promise<void> | null = null
@@ -109,7 +102,7 @@ export async function createCompanion(d: CompanionDeps) {
       paired: dev && { name: dev.name, lastSeen: dev.lastSeen },
       pairing: open && { code: open.code, expiresAt: open.expiresAt, attemptsLeft: open.attemptsLeft },
       pairingClosed,
-      error: null,
+      error: listenFailed ? 'listen' : null,
       connected: !!session,
       syncing: busy > 0,
     }
@@ -142,6 +135,7 @@ export async function createCompanion(d: CompanionDeps) {
     code: () => openPairing()?.code ?? null,
     waiting: () => now() < retryAt,
     guessed: () => { if (pairing) pairing.attemptsLeft-- },
+    stalled: () => { retryAt = now() + RETRY_MS },
     failed: () => {
       d.log('COMPANION', 'pair attempt failed', `left=${pairing?.attemptsLeft ?? 0}`)
       retryAt = now() + RETRY_MS
@@ -231,6 +225,7 @@ export async function createCompanion(d: CompanionDeps) {
         if ((err as NodeJS.ErrnoException).code !== 'EADDRINUSE') throw err
         server = await startServer(hooks, 0, host)
       }
+      listenFailed = false
       const port = server.port
       if (port !== saved.port) { saved.port = port; persist() }
       d.log('COMPANION', 'listening', `port=${port}`)
@@ -241,7 +236,10 @@ export async function createCompanion(d: CompanionDeps) {
   /** On while pairing or paired, off otherwise; the advertisement follows. One at a time, so the last word wins. */
   let refreshing: Promise<void> = Promise.resolve()
   const refresh = () => {
-    refreshing = refreshing.then(turn).catch((err) => d.log('COMPANION', 'could not turn on or off', (err as NodeJS.ErrnoException).code ?? (err as Error).name))
+    refreshing = refreshing.then(turn).catch((err) => {
+      if (wanted() && !server) listenFailed = true
+      d.log('COMPANION', 'could not turn on or off', (err as NodeJS.ErrnoException).code ?? (err as Error).name)
+    })
     return refreshing
   }
   const wanted = () => !stopped && (!!pairing || !!device())
@@ -270,6 +268,14 @@ export async function createCompanion(d: CompanionDeps) {
       const { code, expiresAt } = pairing!
       emit()
       await refresh()
+      // nothing listens, so no phone could reach the code: closed, and the status says why
+      if (!server && pairing?.code === code) {
+        pairing = null
+        clearTimeout(expiry)
+        await refresh()
+        emit()
+        throw new Error('listen')
+      }
       d.log('COMPANION', 'pairing opened')
       return { code, expiresAt }
     },

@@ -89,6 +89,7 @@ import { AUDIO_SCHEME, audioExts, createAudioHandler, trackFile, type AudioExt }
 import { helperDecode, wavDecode } from './asr/backfill'
 import { finishQuit, hookUpdates, isPreviewBuild, updatesOn } from './updates'
 import { createCompanion, type Companion } from './companion'
+import { hookCompanion } from './companion/ipc'
 import { copyFile, mkdir, rename } from 'node:fs/promises'
 import type { NoteSaveResult, StartResult } from '../shared/types'
 
@@ -1051,7 +1052,7 @@ app.whenReady().then(() => {
   const companionOn = !isFake() || process.env.YOGURT_FAKE_COMPANION === '1'
   // Linux without a secret service: the key is only scrambled on disk (the file is the person's own, mode 600)
   if (companionOn && !safeStorage.isEncryptionAvailable()) console.warn('COMPANION key not sealed: no system keychain')
-  if (companionOn) void createCompanion({
+  const companionReady = !companionOn ? Promise.resolve(undefined) : createCompanion({
     store, userDataDir: userDataDir(), seal: sealSecret, open: openSecret, appVersion: app.getVersion(),
     deviceName: () => os.hostname().replace(/\.local$/i, ''), recording: () => !!activeMeeting(),
     log: (...parts) => console.info(...parts),
@@ -1095,7 +1096,8 @@ app.whenReady().then(() => {
       restored: (id) => { indexer.restored(id); meetingsChanged() },
       foldersChanged: () => { win?.webContents.send('folders:changed'); folderSuggestions.refresh() },
     },
-  }).then((c) => { companion = c }).catch((err) => console.error('COMPANION could not start', (err as Error).name))
+  }).then((c) => { companion = c; return c }, (err) => { console.error('COMPANION could not start', (err as Error).name); return undefined })
+  hookCompanion({ companion: companionReady, send: (s) => { if (win && !win.isDestroyed()) win.webContents.send('companion:status', s) } })
   ipcMain.handle('meetings:cards', (_e, o: { before?: { at: number; id: string }; limit?: number; folder?: string }) => {
     const limit = Math.max(1, Math.min(1000, Number(o?.limit) || 40))
     const b = o?.before

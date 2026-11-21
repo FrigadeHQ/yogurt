@@ -757,5 +757,22 @@
   "Stop transcription": "Pysäytä litterointi",
   "Audio is unavailable.": "Ääni ei ole saatavilla.",
   "Add a calendar by link": "Lisää kalenteri linkillä",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Macin Kalenteri-apin kalenterit näkyvät automaattisesti yllä."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Macin Kalenteri-apin kalenterit näkyvät automaattisesti yllä.",
+  "Phone": "Puhelin",
+  "Pair a phone": "Yhdistä puhelin",
+  "Open Yogurt on your iPhone and type this code": "Avaa Yogurt iPhonessasi ja kirjoita tämä koodi",
+  "Code works for {time}": "Koodi toimii vielä {time}",
+  "Connected": "Yhdistetty",
+  "Last seen just now": "Nähty juuri äsken",
+  "Last seen {when}": "Nähty viimeksi {when}",
+  "Not connected yet": "Ei vielä yhdistetty",
+  "Read your notes and record meetings on your iPhone. They come back here to be transcribed.": "Lue muistiinpanojasi ja nauhoita kokouksia iPhonella. Ne palaavat tänne litteroitaviksi.",
+  "The code ran out. Start pairing again.": "Koodi vanheni. Aloita yhdistäminen uudelleen.",
+  "Too many wrong codes. Start pairing again.": "Liian monta väärää koodia. Aloita yhdistäminen uudelleen.",
+  "Unpair": "Poista yhdistys",
+  "Unpair your iPhone? It keeps its copy until you pair again.": "Poistetaanko iPhonen yhdistys? Se säilyttää kopionsa, kunnes yhdistät uudelleen.",
+  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt ei saanut avattua avainnippuaan, joten se ei voi yhdistää juuri nyt.",
+  "Yogurt couldn't start pairing. Try again.": "Yogurt ei voinut aloittaa yhdistämistä. Yritä uudelleen.",
+  "Yogurt on your iPhone": "Yogurt iPhonessasi",
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhonesi puhuu tämän tietokoneen kanssa vain samassa Wi-Fi-verkossa. Mitään ei kulje internetin kautta."
 }

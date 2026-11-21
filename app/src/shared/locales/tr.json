@@ -739,5 +739,22 @@
   "Stop transcription": "Dökümü durdur",
   "Audio is unavailable.": "Ses kullanılamıyor.",
   "Add a calendar by link": "Bağlantıyla takvim ekle",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Mac’in Takvim uygulamasındaki takvimler otomatik olarak yukarıda görünür."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Mac’in Takvim uygulamasındaki takvimler otomatik olarak yukarıda görünür.",
+  "Phone": "Telefon",
+  "Pair a phone": "Telefon eşle",
+  "Open Yogurt on your iPhone and type this code": "iPhone’unda Yogurt’u aç ve bu kodu yaz",
+  "Code works for {time}": "Kod {time} daha geçerli",
+  "Connected": "Bağlı",
+  "Last seen just now": "Az önce görüldü",
+  "Last seen {when}": "Son görülme {when}",
+  "Not connected yet": "Henüz bağlanmadı",
+  "Read your notes and record meetings on your iPhone. They come back here to be transcribed.": "Notlarını oku ve toplantıları iPhone’unda kaydet. Metne dökülmek için buraya geri gelirler.",
+  "The code ran out. Start pairing again.": "Kodun süresi doldu. Eşlemeyi yeniden başlat.",
+  "Too many wrong codes. Start pairing again.": "Çok fazla yanlış kod. Eşlemeyi yeniden başlat.",
+  "Unpair": "Eşlemeyi kaldır",
+  "Unpair your iPhone? It keeps its copy until you pair again.": "iPhone’unun eşlemesi kaldırılsın mı? Yeniden eşleyene kadar kendi kopyasını saklar.",
+  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt anahtar zincirini açamadı, bu yüzden şu anda eşleme yapamıyor.",
+  "Yogurt couldn't start pairing. Try again.": "Yogurt eşlemeyi başlatamadı. Yeniden dene.",
+  "Yogurt on your iPhone": "iPhone’unda Yogurt",
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone’un bu bilgisayarla yalnızca aynı Wi-Fi ağında konuşur. Hiçbir şey internetten geçmez."
 }

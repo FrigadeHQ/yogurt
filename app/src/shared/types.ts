@@ -1,3 +1,4 @@
+import type { CompanionStatus } from './companion'
 import type { AudioUploadFile, AudioUploadStatus } from './audioUpload'
 import type { RendererError } from './rendererError'
 import type { WidgetLayout, WidgetSurface } from './widgetMorph'
@@ -161,6 +162,15 @@ export type YogurtApi = {
     status(): Promise<McpStatus>
     set(on: boolean): Promise<McpStatus>
     onClients(fn: (clients: string[]) => void): () => void
+  }
+  /** Settings → Phone: pairing the iPhone app with this computer over the local network; null when it isn't running */
+  companion: {
+    status(): Promise<CompanionStatus | null>
+    /** ok: false when it couldn't (the status says why when it knows: keychain, listen) */
+    startPairing(): Promise<{ ok: boolean; status: CompanionStatus | null }>
+    cancelPairing(): Promise<CompanionStatus | null>
+    unpair(): Promise<CompanionStatus | null>
+    onStatus(fn: (s: CompanionStatus) => void): () => void
   }
   updates: {
     status(): Promise<UpdateStatus>

@@ -754,5 +754,22 @@
   "Stop transcription": "Διακοπή απομαγνητοφώνησης",
   "Audio is unavailable.": "Ο ήχος δεν είναι διαθέσιμος.",
   "Add a calendar by link": "Προσθήκη ημερολογίου μέσω συνδέσμου",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Τα ημερολόγια από την εφαρμογή Ημερολόγιο του Mac εμφανίζονται αυτόματα παραπάνω."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Τα ημερολόγια από την εφαρμογή Ημερολόγιο του Mac εμφανίζονται αυτόματα παραπάνω.",
+  "Phone": "Τηλέφωνο",
+  "Pair a phone": "Σύζευξη τηλεφώνου",
+  "Open Yogurt on your iPhone and type this code": "Άνοιξε το Yogurt στο iPhone σου και πληκτρολόγησε αυτόν τον κωδικό",
+  "Code works for {time}": "Ο κωδικός ισχύει ακόμη {time}",
+  "Connected": "Συνδεδεμένο",
+  "Last seen just now": "Εμφανίστηκε μόλις τώρα",
+  "Last seen {when}": "Τελευταία εμφάνιση {when}",
+  "Not connected yet": "Δεν έχει συνδεθεί ακόμη",
+  "Read your notes and record meetings on your iPhone. They come back here to be transcribed.": "Διάβασε τις σημειώσεις σου και ηχογράφησε συσκέψεις στο iPhone σου. Επιστρέφουν εδώ για απομαγνητοφώνηση.",
+  "The code ran out. Start pairing again.": "Ο κωδικός έληξε. Ξεκίνα πάλι τη σύζευξη.",
+  "Too many wrong codes. Start pairing again.": "Πάρα πολλοί λάθος κωδικοί. Ξεκίνα πάλι τη σύζευξη.",
+  "Unpair": "Κατάργηση σύζευξης",
+  "Unpair your iPhone? It keeps its copy until you pair again.": "Κατάργηση σύζευξης του iPhone σου; Κρατά το αντίγραφό του μέχρι να το συζεύξεις ξανά.",
+  "Yogurt couldn't open its keychain, so it can't pair right now.": "Το Yogurt δεν μπόρεσε να ανοίξει την κλειδοθήκη του, οπότε δεν μπορεί να κάνει σύζευξη τώρα.",
+  "Yogurt couldn't start pairing. Try again.": "Το Yogurt δεν μπόρεσε να ξεκινήσει τη σύζευξη. Δοκίμασε ξανά.",
+  "Yogurt on your iPhone": "Το Yogurt στο iPhone σου",
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Το iPhone σου μιλά με αυτόν τον υπολογιστή μόνο στο ίδιο Wi-Fi. Τίποτα δεν περνά από το διαδίκτυο."
 }

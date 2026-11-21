@@ -142,6 +142,20 @@ describe('companion sessions', () => {
     expect(c.status().connected).toBe(true)
   })
 
+  it('a replayed first handshake message is closed after one step, not the whole handshake time', async () => {
+    const { c, phone, desktopKey } = await paired({ limits: { handshakeMs: 10_000, stepMs: 200 } })
+    let captured: Uint8Array | undefined
+    const first = await session(c.port()!, phone, desktopKey, undefined, { sent: (m) => { captured = m } })
+    first.close()
+    const replay = await raw(c.port()!)
+    replay.send(captured!)
+    await replay.next()
+    const at = Date.now()
+    await replay.closed
+    // a flood of replays can't keep the slots the real phone needs for long
+    expect(Date.now() - at).toBeLessThan(2000)
+  })
+
   it('takes at most two waiting connections from one address, and drops silent ones fast', async () => {
     const { c, connect } = await paired({ limits: { firstFrameMs: 200 } })
     const a = await raw(c.port()!), b = await raw(c.port()!)

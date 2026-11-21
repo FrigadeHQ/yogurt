@@ -709,5 +709,22 @@
   "Stop transcription": "文字起こしを停止",
   "Audio is unavailable.": "音声を利用できません。",
   "Add a calendar by link": "リンクでカレンダーを追加",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Macのカレンダーアプリのカレンダーは上に自動で表示されます。"
+  "Calendars from the Mac's Calendar app appear above automatically.": "Macのカレンダーアプリのカレンダーは上に自動で表示されます。",
+  "Phone": "iPhone",
+  "Pair a phone": "iPhoneとペアリング",
+  "Open Yogurt on your iPhone and type this code": "iPhoneでYogurtを開いて、このコードを入力してください",
+  "Code works for {time}": "コードの有効時間：残り{time}",
+  "Connected": "接続中",
+  "Last seen just now": "たった今接続",
+  "Last seen {when}": "最終接続：{when}",
+  "Not connected yet": "まだ接続していません",
+  "Read your notes and record meetings on your iPhone. They come back here to be transcribed.": "iPhoneでメモを読んだり、会議を録音したりできます。録音はこちらに戻って文字起こしされます。",
+  "The code ran out. Start pairing again.": "コードの有効期限が切れました。もう一度ペアリングを始めてください。",
+  "Too many wrong codes. Start pairing again.": "間違ったコードが多すぎます。もう一度ペアリングを始めてください。",
+  "Unpair": "ペアリングを解除",
+  "Unpair your iPhone? It keeps its copy until you pair again.": "iPhoneとのペアリングを解除しますか？再びペアリングするまで、iPhoneは自分のコピーを保持します。",
+  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurtがキーチェーンを開けなかったため、今はペアリングできません。",
+  "Yogurt couldn't start pairing. Try again.": "Yogurtはペアリングを開始できませんでした。もう一度お試しください。",
+  "Yogurt on your iPhone": "iPhone版Yogurt",
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhoneは同じWi-Fi上でのみこのコンピュータと通信します。インターネットを経由するものはありません。"
 }
