@@ -154,6 +154,37 @@ function around(raw: string, pairs: string[]): SnippetPart[] {
   return parts
 }
 
+/**
+ * What the iPhone has to fetch again, by trigger so every write path is seen (the app, backup import, the Trash).
+ * One row per thing: a new change drops its older row, so the log never outgrows what it describes and a
+ * phone behind by any amount gets each thing once. companion/records.ts reads it.
+ */
+const COMPANION_SOURCES: Array<{ table: string; entity: string; id: string; update: string }> = [
+  // only what the phone shows: opening a note or a folder suggestion is no change to it
+  { table: 'meetings', entity: 'meeting', id: 'id', update: 'title, started_at, ended_at, attendees, app, trashed_at, language' },
+  { table: 'notes', entity: 'notes', id: 'meeting_id', update: 'mine, enhanced' },
+  { table: 'segments', entity: 'segments', id: 'meeting_id', update: 'start_ms, end_ms, text, speaker, hidden' },
+  { table: 'folders', entity: 'folder', id: 'id', update: 'name' },
+  { table: 'folder_meetings', entity: 'folderMembers', id: 'folder_id', update: 'folder_id, meeting_id' },
+  { table: 'people', entity: 'people', id: 'email', update: 'display_name' },
+]
+function companionTables(db: DatabaseSync) {
+  const fresh = !db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'companion_changes'").get()
+  db.exec(`CREATE TABLE IF NOT EXISTS companion_changes (seq INTEGER PRIMARY KEY AUTOINCREMENT, entity TEXT NOT NULL, entity_id TEXT NOT NULL, at INTEGER NOT NULL);
+    CREATE UNIQUE INDEX IF NOT EXISTS companion_changes_entity ON companion_changes(entity, entity_id);
+    CREATE TABLE IF NOT EXISTS companion_devices (id TEXT PRIMARY KEY, name TEXT NOT NULL, public_key TEXT NOT NULL, paired_at INTEGER NOT NULL, last_seen INTEGER);`)
+  // delete then insert, not OR REPLACE: an upsert outside a trigger overrides its conflict policy
+  const log = (entity: string, id: string) => `DELETE FROM companion_changes WHERE entity = '${entity}' AND entity_id = ${id};
+    INSERT INTO companion_changes (entity, entity_id, at) VALUES ('${entity}', ${id}, CAST(unixepoch('subsec') * 1000 AS INTEGER));`
+  for (const s of COMPANION_SOURCES) {
+    db.exec(`CREATE TRIGGER IF NOT EXISTS companion_${s.table}_ai AFTER INSERT ON ${s.table} BEGIN ${log(s.entity, `new.${s.id}`)} END;
+      CREATE TRIGGER IF NOT EXISTS companion_${s.table}_ad AFTER DELETE ON ${s.table} BEGIN ${log(s.entity, `old.${s.id}`)} END;
+      CREATE TRIGGER IF NOT EXISTS companion_${s.table}_au AFTER UPDATE OF ${s.update} ON ${s.table} BEGIN ${log(s.entity, `old.${s.id}`)} ${log(s.entity, `new.${s.id}`)} END;`)
+  }
+  // a database from before the log: everything in it is new to a phone
+  if (fresh) for (const s of COMPANION_SOURCES) db.exec(`INSERT OR IGNORE INTO companion_changes (entity, entity_id, at) SELECT DISTINCT '${s.entity}', ${s.id}, 0 FROM ${s.table}`)
+}
+
 /** Meetings, transcripts and notes in one SQLite file, with full-text search. */
 export class Store {
   /** public only so tests can poke at tables */
@@ -265,6 +296,7 @@ export class Store {
     const hadPeople = this.db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'people'").get()
     this.db.exec('CREATE TABLE IF NOT EXISTS people (email TEXT PRIMARY KEY, display_name TEXT, seen_names TEXT NOT NULL DEFAULT "[]", first_seen INTEGER NOT NULL, last_seen INTEGER NOT NULL)')
     if (!hadPeople) backfillPeople(this.db)
+    companionTables(this.db)
     // chat across meetings: its chunks, vectors and saved conversations (library/store.ts)
     libraryTables(this.db)
     // voices told apart by letter (Speaker A, B) are gone: a database from then loses the letters, so those lines say Them
