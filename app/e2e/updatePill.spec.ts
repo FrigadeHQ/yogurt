@@ -40,7 +40,7 @@ test('The corner button opens the approved menu by keyboard and offers a ready u
         /What's new/, 'Star us on GitHub', 'Join Discord', /Keyboard shortcuts/,
         'Send feedback', 'Help', /Settings/, /Trash/, 'Restart to update · 9.9.9',
       ])
-      await expect(badge).toHaveCount(0)
+      await expect(badge).toBeVisible()
       await expect(tip).toBeHidden()
       await expect(menu.getByRole('separator')).toHaveCount(0)
       await page.keyboard.press('Home')
@@ -64,6 +64,43 @@ test('The corner button opens the approved menu by keyboard and offers a ready u
     await expect(menu).toHaveCount(0)
     await button.click()
     await expect(menu.getByRole('menuitem')).toHaveCount(8)
+    const news = menu.getByRole('menuitem', { name: "What's new", exact: true })
+    await expect(news.locator('.corner-row-dot')).toBeVisible()
+    await expect(badge).toHaveCount(0)
+    await news.click()
+    await expect(menu).toHaveCount(0)
+    await button.click()
+    await expect(news.locator('.corner-row-dot')).toHaveCount(0)
+    await expect(badge).toHaveCount(0)
+  } finally { await app.close() }
+})
+
+test('a row moving beneath the pointer stays neutral and the keyboard can highlight immediately', async () => {
+  const { app, page } = await launch(undefined, '')
+  try {
+    // Stretch the real entrance so Trash passes through the click position at a repeatable speed.
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
+    await page.addStyleTag({ content: '.menu-entry.corner-menu { transition-duration: 40s; transition-timing-function: linear; clip-path: none; }' })
+    const button = page.getByTestId('corner-menu-button'), menu = page.getByTestId('corner-menu')
+    const point = await button.evaluate(el => {
+      const box = el.getBoundingClientRect()
+      return { x: Math.floor(box.x + box.width / 2), y: Math.floor(box.y + box.height / 2) }
+    })
+    await page.mouse.click(point.x, point.y)
+    await expect(page.getByTestId('corner-notice-dot')).toHaveCount(0)
+    const trash = menu.getByTestId('nav-trash')
+    await expect.poll(() => trash.evaluate((el, p) => el.contains(document.elementFromPoint(p.x, p.y)), point)).toBe(true)
+    await expect(trash).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+    await expect(trash).not.toHaveAttribute('data-highlighted', '')
+    await page.keyboard.press('Home')
+    const first = menu.getByRole('menuitem').first()
+    await expect(first).toBeFocused()
+    await expect(first).toHaveAttribute('data-highlighted', '')
+    await expect(first).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+    await expect(menu).toHaveAttribute('data-suppress-hover', 'true')
+    await page.mouse.move(point.x + 2, point.y)
+    await expect(menu).not.toHaveAttribute('data-suppress-hover', 'true')
+    await expect(trash).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
   } finally { await app.close() }
 })
 
@@ -100,7 +137,7 @@ for (const failure of ['false', 'reject'] as const) test(`keeps the update ready
     }, failure)
     await page.getByTestId('corner-menu-button').click(); await page.getByTestId('update-restart').click()
     await expect(page.getByTestId('corner-menu').getByRole('alert')).toHaveText("Yogurt couldn't restart. Try again.")
-    await expect(page.getByTestId('corner-notice-dot')).toHaveCount(0)
+    await expect(page.getByTestId('corner-notice-dot')).toBeVisible()
     await expect(page.getByTestId('update-restart')).toBeEnabled()
     expect(await restarts(app)).toBe(0)
   } finally { await app.close() }
@@ -171,10 +208,10 @@ test('Later survives a renderer reload but Settings still offers Restart', async
     await page.getByTestId('update-restart').press('Escape')
     await expect(page.getByTestId('corner-menu')).toHaveCount(0)
     await page.evaluate(() => window.yogurt.updates.later())
-    await expect(page.getByTestId('corner-notice-dot')).toHaveCount(0)
+    await expect(page.getByTestId('corner-notice-dot')).toBeVisible()
     expect(await restarts(app)).toBe(0)
     await page.reload(); await expect(page.getByTestId('home')).toBeVisible()
-    await expect(page.getByTestId('corner-notice-dot')).toHaveCount(0)
+    await expect(page.getByTestId('corner-notice-dot')).toBeVisible()
     await page.evaluate(() => window.yogurt.nav.go('/settings'))
     await expect(page.getByTestId('updates-restart')).toBeVisible()
     await expect(page.getByTestId('updates-state')).toHaveAttribute('data-state', 'ready')
@@ -184,37 +221,53 @@ test('Later survives a renderer reload but Settings still offers Restart', async
   } finally { await app.close() }
 })
 
-test('opening What\'s new marks that release read across reloads and a newer version restores both indicators', async () => {
+test('opening What\'s new marks that release read independently of the persistent ready update dot', async () => {
   // Use the real fake updater for both reads and broadcasts, above Electron's development version.
   const { app, page } = await launch(undefined, '999.0.0')
   try {
     await expect(page.getByTestId('corner-notice-dot')).toBeVisible()
     const button = page.getByTestId('corner-menu-button')
-    const news = page.getByRole('menuitem', { name: /What's new/ })
+    const news = page.getByRole('menuitem', { name: "What's new", exact: true })
+    const newsDot = news.locator('.corner-row-dot')
     await button.click()
-    await expect(news.getByText('New', { exact: true })).toBeVisible()
+    await expect(news).toHaveText("What's new")
+    await expect(news).toHaveAccessibleDescription('New')
+    const restartDot = page.getByTestId('update-restart').locator('.corner-row-dot')
+    await expect(newsDot).toBeVisible()
+    await expect(restartDot).toBeVisible()
     await news.click()
     await expect(page.getByTestId('corner-menu')).toHaveCount(0)
     await page.reload()
     await button.click()
-    await expect(news.getByText('New', { exact: true })).toHaveCount(0)
+    await expect(news).toHaveAccessibleDescription('')
+    await expect(newsDot).toHaveCount(0)
+    await expect(restartDot).toBeVisible()
     await expect(page.getByTestId('corner-menu')).toBeVisible()
     await page.getByTestId('update-restart').press('Escape')
     await expect(page.getByTestId('corner-menu')).toHaveCount(0)
     await page.evaluate(() => window.yogurt.updates.later())
-    await expect(page.getByTestId('corner-notice-dot')).toHaveCount(0)
+    await expect(page.getByTestId('corner-notice-dot')).toBeVisible()
     const state = await page.evaluate(() => window.yogurt.updates.status())
     expect(state).toMatchObject({ next: '999.0.0', dismissed: true })
+    await button.click()
+    await page.getByTestId('update-restart').click()
+    await expect.poll(() => restarts(app)).toBe(1)
+    await expect(page.getByTestId('corner-notice-dot')).toHaveCount(0)
+    await expect(button).not.toHaveAccessibleDescription('Update ready')
     await app.evaluate(({ BrowserWindow }, previous) => {
       for (const win of BrowserWindow.getAllWindows()) win.webContents.send('updates:status', {
-        ...previous, next: '999.0.1', dismissed: false,
+        ...previous, version: '999.0.0', next: '999.0.1', dismissed: false,
       })
     }, state)
     await expect(page.getByTestId('corner-notice-dot')).toBeVisible()
     await page.getByTestId('corner-menu-button').click()
-    await expect(page.getByTestId('corner-notice-dot')).toHaveCount(0)
-    await expect(news.getByText('New', { exact: true })).toBeVisible()
+    await expect(page.getByTestId('corner-notice-dot')).toBeVisible()
+    await expect(news).toHaveText("What's new")
+    await expect(news).toHaveAccessibleDescription('New')
     await expect(page.getByTestId('update-restart')).toHaveText('Restart to update · 999.0.1')
+    await expect(newsDot).toBeVisible()
+    await expect(restartDot).toBeVisible()
+
   } finally { await app.close() }
 })
 
@@ -225,16 +278,16 @@ test('restarting the app offers the same ready version again', async () => {
     await expect(first.page.getByTestId('corner-notice-dot')).toBeVisible()
     await first.page.getByTestId('corner-menu-button').click()
     await first.page.keyboard.press('Escape')
-    await expect(first.page.getByTestId('corner-notice-dot')).toHaveCount(0)
+    await expect(first.page.getByTestId('corner-notice-dot')).toBeVisible()
   } finally { await first.app.close() }
   const second = await launch(root)
   try {
     expect((await second.page.evaluate(() => window.yogurt.updates.status())).state).toBe('ready')
-    await expect(second.page.getByTestId('corner-notice-dot')).toHaveCount(0)
+    await expect(second.page.getByTestId('corner-notice-dot')).toBeVisible()
     await second.page.getByTestId('corner-menu-button').click()
     await expect(second.page.getByTestId('update-restart')).toHaveText('Restart to update · 9.9.9')
     await second.page.keyboard.press('Escape')
-    await expect(second.page.getByTestId('corner-notice-dot')).toHaveCount(0)
+    await expect(second.page.getByTestId('corner-notice-dot')).toBeVisible()
   }
   finally { await second.app.close() }
 })

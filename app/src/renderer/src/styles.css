@@ -246,7 +246,7 @@ html.widget, .widget-pill[data-illustration] { --pill:#232326;--pill-ink:#F7F7FA
 /* Menus share the floating surface in each theme. */
 .menu-entry[role="menu"] { color:var(--ink);border-color:var(--line);border-radius:9px;padding:5px;background:var(--float);box-shadow:var(--shadow); }
 .menu-entry[role="menu"] :is([role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"]) { min-height:32px;border-radius:5px;padding:6px 9px;font-size:12px;line-height:20px; }
-.menu-entry[role="menu"] :is([role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"]):hover:not(:disabled) { background:var(--control-hover); }
+.menu-entry[role="menu"]:where(:not([data-suppress-hover])) :is([role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"]):hover:not(:disabled) { background:var(--control-hover); }
 .menu-entry[role="menu"] :is([role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"])[data-focus-ring] { outline:none;background:var(--selected); }
 .menu-entry[role="menu"] :is([data-testid="note-delete"], .folder-picker-new) { margin-top: 4px; border-top: 1px solid var(--line); border-radius: 0 0 5px 5px; padding-top: 10px; }
 .people-add-field:has([data-focus-ring]) { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
