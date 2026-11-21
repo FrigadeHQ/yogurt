@@ -43,11 +43,11 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllGlobals())
 
-it('uses the approved eight rows and appends the downloaded version nearest the corner button', () => {
+it('uses the approved seven rows and appends the downloaded version nearest the corner button', () => {
   mount(); notify(ready); render()
-  expect(cornerRows).toEqual(['news','github','discord','shortcuts','feedback','help','settings','trash'])
+  expect(cornerRows).toEqual(['news','github','discord','shortcuts','feedback','settings','trash'])
   const items = nodes(tree).filter(n => n.type === Menu.Item || n.type === Menu.LinkItem)
-  expect(items.slice(0,-1).map(n => n.props.label)).toEqual(["What's new",'Star us on GitHub','Join Discord','Keyboard shortcuts','Send feedback','Help','Settings','Trash'])
+  expect(items.slice(0,-1).map(n => n.props.label)).toEqual(["What's new",'Star us on GitHub','Join Discord','Keyboard shortcuts','Send feedback','Settings','Trash'])
   expect(items.at(-1)?.props['data-testid']).toBe('update-restart')
   expect(JSON.stringify(tree)).toContain('Restart to update · 0.3.10')
   const links = items.filter(n => n.type === Menu.LinkItem)
@@ -59,7 +59,7 @@ it('uses the approved eight rows and appends the downloaded version nearest the 
   expect(nodes(tree).filter(n => n.type === 'kbd').map(n => n.props.children)).toEqual(['⌘/', '⌘,', '⌘3'])
   expect(links.map(n => n.props.href)).toEqual([
     'https://yogurt.so/updates', 'https://github.com/FrigadeHQ/yogurt', 'https://yogurt.so/discord',
-    'https://github.com/FrigadeHQ/yogurt/issues/new', 'https://yogurt.so/#questions',
+    'https://github.com/FrigadeHQ/yogurt/issues/new',
   ])
   expect(props('settings-open')!['aria-current']).toBe('page')
   const focus = vi.fn()
