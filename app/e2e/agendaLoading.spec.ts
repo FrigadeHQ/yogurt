@@ -139,9 +139,18 @@ test('the compact calendar keeps its original type and geometry with a bright to
     const week = page.locator('.agenda-week')
     for (const colorScheme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' })
+      const accent = colorScheme === 'light' ? 'rgb(111, 0, 255)' : 'rgb(183, 128, 255)'
+      const soft = await week.evaluate(el => {
+        const sample = document.createElement('span')
+        sample.style.backgroundColor = 'var(--accent-soft)'
+        el.append(sample)
+        const color = getComputedStyle(sample).backgroundColor
+        sample.remove()
+        return color
+      })
       const today = week.locator('[aria-current=date]')
-      await expect(today.locator('b')).toHaveCSS('background-color', 'rgb(111, 0, 255)')
-      await expect(today.locator('b')).toHaveCSS('color', 'rgb(255, 255, 255)')
+      await expect(today.locator('b')).toHaveCSS('background-color', accent)
+      await expect(today.locator('b')).toHaveCSS('color', colorScheme === 'light' ? 'rgb(255, 255, 255)' : 'rgb(27, 27, 29)')
       await expect(today.locator('b')).toHaveCSS('font-size', '11px')
       await expect(today.locator('b')).toHaveCSS('width', '26px')
       await expect(today.locator('b')).toHaveCSS('height', '26px')
@@ -158,10 +167,10 @@ test('the compact calendar keeps its original type and geometry with a bright to
       await page.keyboard.press('Space')
       await expect(other).toHaveAttribute('aria-pressed', 'true')
       await expect(today).toHaveAttribute('aria-pressed', 'false')
-      await expect(today.locator('b')).toHaveCSS('background-color', 'rgb(111, 0, 255)')
+      await expect(today.locator('b')).toHaveCSS('background-color', accent)
       await today.hover()
-      await expect(today.locator('b')).toHaveCSS('background-color', 'rgb(111, 0, 255)')
-      await expect(other.locator('b')).toHaveCSS('background-color', colorScheme === 'light' ? 'rgb(241, 230, 255)' : 'rgb(44, 22, 74)')
+      await expect(today.locator('b')).toHaveCSS('background-color', accent)
+      await expect(other.locator('b')).toHaveCSS('background-color', soft)
       await expect(other).toHaveCSS('outline-style', 'solid')
       await expect(other).toHaveCSS('outline-width', '2px')
       // Logical order and hit targets stay within the compact calendar in either direction.

@@ -28,9 +28,13 @@
   --ink: #23242A;
   --muted: #6E6F7B;
   --line: #E6E6EC;
-  --accent: #7142E8;
+  --accent: #6F00FF;
+  --primary: var(--accent);
+  --primary-hover: color-mix(in srgb, var(--accent) 92%, black);
+  --focus: var(--accent);
+  --pill-accent: var(--accent);
   --accent-ink: #FFFFFF;
-  --accent-soft: #EDE6FC;
+  --accent-soft: color-mix(in srgb, var(--accent) 10%, var(--bg));
   --status-live: #416D48;
   --danger: #C13E51;
   --danger-ink: #FFFFFF;
@@ -43,7 +47,6 @@
   --scrim: rgba(20, 18, 28, .18);
   --pill: #232229;
   --pill-ink: #FAF9FF;
-  --pill-accent: #CCB6FF;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -52,9 +55,9 @@
     --ink: #EEEFF4;
     --muted: #9A9BA9;
     --line: #32333D;
-    --accent: #AF8BFF;
-    --accent-ink: #241637;
-    --accent-soft: #35284F;
+    --accent: #B780FF;
+    --accent-ink: #1B1B1D;
+    --accent-soft: color-mix(in srgb, var(--accent) 16%, var(--bg));
     --status-live: #AED4B5;
     --danger: #F28798;
     --danger-ink: #32121B;
@@ -67,7 +70,6 @@
     --scrim: rgba(0, 0, 0, .45);
     --pill: #25232E;
     --pill-ink: #FAF9FF;
-    --pill-accent: #CCB6FF;
   }
 }
 
@@ -83,19 +85,13 @@
   --heading: #29292C;
   --written: #54545A;
   --line: #E6E6E8;
-  --accent: #6F00FF;
-  --accent-ink: #FFFFFF;
-  --accent-soft: #F1E6FF;
-  --playback-bg: #E5D4FF;
-  --playback-ink: #35105F;
-  --primary: #6F00FF;
-  --primary-hover: #6200E0;
+  --playback-bg: color-mix(in srgb, var(--accent) 17%, var(--bg));
+  --playback-ink: var(--ink);
   --control: #ECECEE;
   --control-hover: #E4E4E7;
   --control-pressed: #DCDCE1;
   --control-border: transparent;
-  --selected: #E4E2E8;
-  --focus: #6F00FF;
+  --selected: color-mix(in srgb, var(--accent) 4%, var(--control-hover));
   --danger: #B63C4D;
   --danger-ink: #FFFFFF;
   --danger-soft: #F4E5E8;
@@ -115,18 +111,10 @@
     --heading: #E7E6EB;
     --written: #C6C3CC;
     --line: #343436;
-    --accent: #B780FF;
-    --accent-ink: #FFFFFF;
-    --accent-soft: #2C164A;
-    --playback-bg: #7040AF;
-    --playback-ink: #FFFFFF;
-    --primary: #6F00FF;
-    --primary-hover: #7D1AFF;
+    --playback-bg: var(--accent-soft);
     --control: #333335;
     --control-hover: #3B3B3E;
     --control-pressed: #434347;
-    --selected: #3B393F;
-    --focus: #C599FF;
     --danger: #F098A5;
     --danger-ink: #32121B;
     --danger-soft: #59343C;
@@ -180,7 +168,7 @@ body {
 
 /* The recorder floats inside a transparent native window. */
 html.widget, html.widget body, html.widget #root { background: transparent; }
-html.widget, .widget-pill[data-illustration] { --pill:#232326;--pill-ink:#F7F7FA;--accent:#B780FF;--pill-accent:var(--accent);--widget-line:#48484D; }
+html.widget, .widget-pill[data-illustration] { --pill:#232326;--pill-ink:#F7F7FA;--widget-line:#48484D; }
 .widget-pill {
   background: var(--pill);
   border:1px solid var(--widget-line);
@@ -503,7 +491,7 @@ html.widget, .widget-pill[data-illustration] { --pill:#232326;--pill-ink:#F7F7FA
 .modal-button:hover:not(:disabled) { background:var(--control-hover); }
 .modal-button.danger { color:var(--danger-control-ink);background:var(--danger-soft); }
 .modal-button.danger:hover:not(:disabled) { background:color-mix(in srgb,var(--danger-soft) 87%,var(--danger)); }
-.modal-button.primary { background:var(--primary);color:#fff; }
+.modal-button.primary { background:var(--primary);color:var(--accent-ink); }
 .modal-button.primary:hover:not(:disabled) { background:var(--primary-hover); }
 .modal-button:disabled { opacity:.55; }
 .search-row[aria-selected="true"] { background:var(--selected); }
@@ -524,7 +512,7 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 input:focus-visible { border-radius: 5px; }
 input::selection, textarea::selection, .note-prose ::selection { background: var(--accent-soft); }
 @media (prefers-color-scheme: dark) {
-  input::selection, textarea::selection, .note-prose ::selection { background: #8055B8; color: #FFFFFF; }
+  input::selection, textarea::selection, .note-prose ::selection { background: var(--accent); color: var(--accent-ink); }
 }
 .editor-menu { z-index: 40; }
 .editor-toolbar { display:flex;align-items:center;gap:2px;padding:4px;border:1px solid var(--line);border-radius:10px;background:var(--float);box-shadow:var(--shadow); }
@@ -662,7 +650,7 @@ input::selection, textarea::selection, .note-prose ::selection { background: var
 .note-record-action:hover:not(:disabled) { background:var(--control-hover); }
 .note-record-action:active:not(:disabled) { background:var(--control-pressed); }
 .note-record-action:disabled { opacity:.45; }
-.note-record-action.primary { background:var(--primary);border-color:var(--primary);color:#FFFFFF;box-shadow:var(--shadow-soft); }
+.note-record-action.primary { background:var(--primary);border-color:var(--primary);color:var(--accent-ink);box-shadow:var(--shadow-soft); }
 .note-record-action.primary:hover:not(:disabled) { background:var(--primary-hover); }
 .note-record-action.primary:active:not(:disabled) { box-shadow:none; }
 @media(prefers-reduced-motion:reduce) { .note-record-action { transition:none; } }
@@ -696,7 +684,7 @@ input::selection, textarea::selection, .note-prose ::selection { background: var
 .transcript-find-close { opacity:0;transition:opacity var(--dur-micro) var(--ease-out); }
 .transcript-find[data-open=true] .transcript-find-close { opacity:1;transition-delay:var(--dur-micro); }
 ::highlight(transcript-find) { background:var(--accent-soft);color:var(--ink); }
-::highlight(transcript-find-current) { background:var(--primary);color:#FFFFFF; }
+::highlight(transcript-find-current) { background:var(--primary);color:var(--accent-ink); }
 .transcript-find:dir(rtl) { clip-path:inset(-4px -600px -4px -4px); }
 .transcript-find:dir(rtl) .transcript-find-clip { transform:translateX(calc(32px - 100%)); }
 .transcript-find:dir(rtl) .transcript-search-field { transform:translateX(calc(100% - 32px)); }
@@ -783,6 +771,12 @@ html:not(.widget) button:focus-visible, html:not(.widget) input:focus-visible { 
 
 /* Name ink comes from the same folder token in both transcript surfaces. */
 :is(.line-who,.widget-preview-speaker)[data-folder-color] { color:var(--folder-ink); }
+/* Keep violet names readable on the charcoal recorder and over highlighted transcript rows. */
+:is(.line-who,.widget-preview-speaker)[data-folder-color=violet] { background:var(--accent-ink);border-radius:4px; }
+@media (prefers-color-scheme:light) {
+  .widget-details > :is(span:first-child,svg) { filter:drop-shadow(0 0 1px var(--pill-ink)); }
+  .widget-pill:focus-visible { outline-color:var(--pill-ink); }
+}
 
 /* Calendar linking lives in the date popover; attendee editing stays in People. */
 .note-date-anchor { min-width:0;max-width:min(100%, 17rem); }

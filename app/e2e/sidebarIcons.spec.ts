@@ -52,6 +52,7 @@ for (const theme of ['light', 'dark'] as const) test(`sidebar icon scope and mot
     }
     for (const id of ['nav-home', 'nav-chat']) await hover(id)
     const corner = page.getByTestId('corner-menu-button')
+    await expect(corner.locator('svg path')).toHaveCSS('fill', theme === 'dark' ? 'rgb(183, 128, 255)' : 'rgb(111, 0, 255)')
     await corner.hover()
     await expect(page.getByRole('tooltip')).toHaveText('Help and settings')
     await corner.click()
