@@ -69,6 +69,20 @@ describe('CPace ristretto255 / SHA-512', () => {
     expect(() => cpaceFinish(cpaceStart('1', ci, sid).secret, new Uint8Array(31))).toThrow()
   })
 
+  it('wipes the scalar when cpaceStart fails', () => {
+    const scalar = new Uint8Array(31).fill(7)
+    expect(() => cpaceStart('1', utf8('ci'), random(16), undefined, scalar)).toThrow()
+    expect(scalar.every((x) => x === 0)).toBe(true)
+  })
+
+  it('a used secret cannot give a second key', () => {
+    const ci = utf8('ci'), sid = random(16)
+    const a = cpaceStart('123456', ci, sid)
+    const b = cpaceRespond('123456', ci, sid, a.ya)
+    cpaceFinish(a.secret, b.yb)
+    expect(() => cpaceFinish(a.secret, b.yb)).toThrow()
+  })
+
   it('samples scalars below 2^252', () => {
     for (let i = 0; i < 20; i++) expect(cpaceStart('1', utf8('ci'), random(16)).secret.scalar[31]).toBeLessThan(0x10)
   })

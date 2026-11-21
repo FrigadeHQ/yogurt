@@ -59,14 +59,27 @@ function scalarMultVfy(y: Uint8Array, x: Uint8Array): Uint8Array {
   }
 }
 
+// wipes K and the hash input once the key is out (best effort: JS may keep copies)
 function isk(sid: Uint8Array, k: Uint8Array, ya: Uint8Array, ada: Uint8Array, yb: Uint8Array, adb: Uint8Array): Uint8Array {
-  return sodium().crypto_hash_sha512(concat(lvCat(DSI_ISK, sid, k), lvCat(ya, ada), lvCat(yb, adb)))
+  const input = concat(lvCat(DSI_ISK, sid, k), lvCat(ya, ada), lvCat(yb, adb))
+  try {
+    return sodium().crypto_hash_sha512(input)
+  } finally {
+    k.fill(0)
+    input.fill(0)
+  }
 }
 
-/** Initiator, step 1: send `ya` (the public share Ya), keep `secret` for cpaceFinish. `scalar` is for test vectors only. */
-export function cpaceStart(prs: string, ci: Uint8Array, sid: Uint8Array, ada = EMPTY, scalar = sampleScalar()): { ya: Uint8Array; secret: CpaceSecret } {
-  const ya = sodium().crypto_scalarmult_ristretto255(scalar, cpaceGenerator(prs, ci, sid))
-  return { ya, secret: { scalar, sid, ya, ada } }
+/** Initiator, step 1: send `ya` (the public share Ya), keep `secret` for cpaceFinish. Never pass `testScalar` outside test vectors. */
+export function cpaceStart(prs: string, ci: Uint8Array, sid: Uint8Array, ada = EMPTY, testScalar?: Uint8Array): { ya: Uint8Array; secret: CpaceSecret } {
+  const scalar = testScalar ?? sampleScalar()
+  try {
+    const ya = sodium().crypto_scalarmult_ristretto255(scalar, cpaceGenerator(prs, ci, sid))
+    return { ya, secret: { scalar, sid, ya, ada } }
+  } catch (err) {
+    scalar.fill(0)
+    throw err
+  }
 }
 
 /** Initiator, step 2: the 64-byte ISK from the responder's Yb. Single use: the scalar is wiped. */
@@ -78,8 +91,9 @@ export function cpaceFinish(secret: CpaceSecret, yb: Uint8Array, adb = EMPTY): U
   }
 }
 
-/** Responder: answer the initiator's Ya with Yb and get the same ISK. `scalar` is for test vectors only. */
-export function cpaceRespond(prs: string, ci: Uint8Array, sid: Uint8Array, ya: Uint8Array, ada = EMPTY, adb = EMPTY, scalar = sampleScalar()): { yb: Uint8Array; isk: Uint8Array } {
+/** Responder: answer the initiator's Ya with Yb and get the same ISK. Never pass `testScalar` outside test vectors. */
+export function cpaceRespond(prs: string, ci: Uint8Array, sid: Uint8Array, ya: Uint8Array, ada = EMPTY, adb = EMPTY, testScalar?: Uint8Array): { yb: Uint8Array; isk: Uint8Array } {
+  const scalar = testScalar ?? sampleScalar()
   try {
     const yb = sodium().crypto_scalarmult_ristretto255(scalar, cpaceGenerator(prs, ci, sid))
     return { yb, isk: isk(sid, scalarMultVfy(scalar, ya), ya, ada, yb, adb) }
