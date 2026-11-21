@@ -52,7 +52,7 @@ struct NoteView: View {
                     switch shown {
                     case .summary: SummaryPane(notes: notes)
                     case .mine: MyNotesPane(meetingId: meetingId, latest: notes?.mine ?? "")
-                    case .transcript: TranscriptPane(meetingId: meetingId, oneMic: notes?.summarySource == .phoneDraft,
+                    case .transcript: TranscriptPane(meetingId: meetingId, oneMic: meeting.oneMic,
                                                      atMs: tab == nil ? atMs : nil, proxy: proxy)
                     }
                 }

@@ -21,7 +21,8 @@ public final class Store {
         // no stored data to carry over before 1.0: version 0 is a new file
         let version = try db.query("PRAGMA user_version").first?.first?.int ?? 0
         // a file from a newer build (the app went back a version): reading it as this one could lose data
-        guard version <= 1 else { throw DatabaseError(code: SQLITE_CANTOPEN, message: "store version \(version) is newer than this app") }
+        guard version <= 2 else { throw DatabaseError(code: SQLITE_CANTOPEN, message: "store version \(version) is newer than this app") }
+        if version == 1 { try addOneMic(); return }
         guard version == 0 else { return }
         try db.transaction {
             for sql in [
@@ -45,6 +46,16 @@ public final class Store {
                 "CREATE VIRTUAL TABLE search USING fts5 (meeting_id UNINDEXED, title, mine, summary, transcript, tokenize = 'unicode61 remove_diacritics 2')",
                 "PRAGMA user_version = 1",
             ] { try db.run(sql) }
+            try addOneMic()
+        }
+    }
+
+    /// Version 2: meetings with one microphone in a room. A table of its own, since a transcript can arrive before
+    /// its meeting.
+    private func addOneMic() throws {
+        try db.transaction {
+            try db.run("CREATE TABLE one_mic (meeting_id TEXT PRIMARY KEY)")
+            try db.run("PRAGMA user_version = 2")
         }
     }
 
@@ -71,7 +82,7 @@ public final class Store {
     /// from 0. Edits not yet sent and meetings recorded here stay.
     public func resetForNewEpoch() throws {
         try db.transaction {
-            for table in ["meetings", "notes", "segments", "folders", "folder_members", "people", "search"] {
+            for table in ["meetings", "notes", "segments", "one_mic", "folders", "folder_members", "people", "search"] {
                 try db.run("DELETE FROM \(table)")
             }
             try db.run("DELETE FROM meta WHERE key IN ('cursor', 'epoch')")
@@ -125,6 +136,7 @@ public final class Store {
             // the desktop sends an empty transcript while it is still transcribing a phone recording: keep the draft
             if r.segments.isEmpty, try !db.query("SELECT 1 FROM local_recordings WHERE id = ?", [.text(id)]).isEmpty { break }
             try writeSegments(id, r.segments.map { (Int(ms($0.startMs)), Int(ms($0.endMs)), $0.speaker, $0.text) })
+            try setOneMic(id, r.oneMic ?? false)
             touched.insert(id)
         case .folder(let r):
             try db.run("INSERT OR REPLACE INTO folders (id, name, created_at) VALUES (?, ?, ?)", [.text(id), .text(r.name), .int(ms(r.createdAt))])
@@ -139,8 +151,8 @@ public final class Store {
             guard change.deleted else { return }
             switch change.entity {
             case "meeting":
-                for sql in ["DELETE FROM meetings WHERE id = ?", "DELETE FROM notes WHERE meeting_id = ?",
-                            "DELETE FROM segments WHERE meeting_id = ?", "DELETE FROM folder_members WHERE meeting_id = ?"] {
+                for sql in ["DELETE FROM meetings WHERE id = ?", "DELETE FROM notes WHERE meeting_id = ?", "DELETE FROM segments WHERE meeting_id = ?",
+                            "DELETE FROM one_mic WHERE meeting_id = ?", "DELETE FROM folder_members WHERE meeting_id = ?"] {
                     try db.run(sql, [.text(id)])
                 }
                 touched.insert(id)
@@ -149,6 +161,7 @@ public final class Store {
                 touched.insert(id)
             case "segments":
                 try db.run("DELETE FROM segments WHERE meeting_id = ?", [.text(id)])
+                try setOneMic(id, false)
                 touched.insert(id)
             case "folder":
                 try db.run("DELETE FROM folders WHERE id = ?", [.text(id)])
@@ -169,14 +182,14 @@ public final class Store {
     public func meetings(folder: String? = nil, trashed: Bool = false) -> [Meeting] {
         let join = folder == nil ? "" : "JOIN folder_members f ON f.meeting_id = m.id AND f.folder_id = ?"
         let rows = (try? db.query("""
-            SELECT m.id, m.title, m.started_at, m.ended_at, m.attendees, m.app, m.trashed_at, m.language FROM meetings m \(join)
+            SELECT \(Self.meetingColumns) FROM meetings m \(join)
             WHERE m.trashed_at IS \(trashed ? "NOT NULL" : "NULL") ORDER BY m.started_at DESC, m.id
             """, folder.map { [.text($0)] } ?? [])) ?? []
         return rows.map(meeting(row:))
     }
 
     public func meeting(_ id: String) -> Meeting? {
-        (try? db.query("SELECT id, title, started_at, ended_at, attendees, app, trashed_at, language FROM meetings WHERE id = ?", [.text(id)]))?
+        (try? db.query("SELECT \(Self.meetingColumns) FROM meetings m WHERE m.id = ?", [.text(id)]))?
             .first.map(meeting(row:))
     }
 
@@ -219,10 +232,13 @@ public final class Store {
             .map { Person(email: $0[0].string ?? "", displayName: $0[1].string) }
     }
 
+    private static let meetingColumns = "m.id, m.title, m.started_at, m.ended_at, m.attendees, m.app, m.trashed_at, m.language, "
+        + "EXISTS (SELECT 1 FROM one_mic o WHERE o.meeting_id = m.id)"
+
     private func meeting(row r: [SQLValue]) -> Meeting {
         Meeting(id: r[0].string ?? "", title: r[1].string ?? "", startedAt: date(r[2].int ?? 0), endedAt: r[3].int.map(date),
                 attendees: (try? JSONDecoder().decode([Attendee].self, from: Data((r[4].string ?? "[]").utf8))) ?? [],
-                app: r[5].string, trashedAt: r[6].int.map(date), language: r[7].string)
+                app: r[5].string, trashedAt: r[6].int.map(date), language: r[7].string, oneMic: r[8].int == 1)
     }
 
     // MARK: - Edits made here
@@ -358,6 +374,7 @@ public final class Store {
                    [.text(rec.id), .text(try pendingMine(rec.id) ?? rec.myNotes), .of(rec.summary), .text(notesHash(rec.myNotes)),
                     .text(Notes.SummarySource.phoneDraft.rawValue)])
         try writeSegments(rec.id, rec.transcript.map { ($0.startMs, $0.endMs, nil, $0.text) })
+        try setOneMic(rec.id, true)
         try reindex([rec.id])
     }
 
@@ -369,6 +386,10 @@ public final class Store {
             try db.run("INSERT INTO segments (meeting_id, idx, start_ms, end_ms, speaker, text) VALUES (?, ?, ?, ?, ?, ?)",
                        [.text(meetingId), .of(i), .of(l.0), .of(l.1), .of(l.2), .text(l.3)])
         }
+    }
+
+    private func setOneMic(_ meetingId: String, _ on: Bool) throws {
+        try db.run(on ? "INSERT OR IGNORE INTO one_mic (meeting_id) VALUES (?)" : "DELETE FROM one_mic WHERE meeting_id = ?", [.text(meetingId)])
     }
 
     /// The newest My notes queued for the desktop, if any.

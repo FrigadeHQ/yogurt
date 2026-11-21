@@ -487,3 +487,25 @@ let pageOne = """
         #expect(store.localRecordings().map(\.id) == ["p1"])
     }
 }
+
+@Suite struct StoreFinalFixTests {
+    static func rec(_ id: String = "p1", notes: String = "", uploaded: Date? = nil) -> LocalRecording {
+        LocalRecording(id: id, title: "Meeting at 3:04 PM", startedAt: Date(timeIntervalSince1970: 10), endedAt: Date(timeIntervalSince1970: 70),
+                       attendees: [], audioURL: URL(fileURLWithPath: "/tmp/\(id).m4a"), myNotes: notes, transcript: [], summary: nil,
+                       uploadedAt: uploaded)
+    }
+
+    @Test func aOneMicMeetingIsMarkedSoItsLinesAreNotRunTogether() throws {
+        let store = try Store(url: tempStoreURL())
+        // the transcript can come before its meeting in a page
+        try store.apply(changes("""
+        [{"entity":"segments","id":"a1","record":{"meetingId":"a1","oneMic":true,"segments":[{"startMs":0,"endMs":900,"speaker":null,"text":"made-up line"}]}},
+         {"entity":"meeting","id":"a1","record":{"id":"a1","title":"Room","startedAt":1000}}]
+        """), cursor: 2)
+        try store.apply(changes(pageOne), cursor: 3)
+        #expect(store.meeting("a1")?.oneMic == true)
+        #expect(store.meeting("m1")?.oneMic == false)
+        try store.saveLocalRecording(Self.rec())
+        #expect(store.meeting("p1")?.oneMic == true)
+    }
+}

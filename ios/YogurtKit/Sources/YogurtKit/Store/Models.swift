@@ -19,11 +19,13 @@ public struct Meeting: Sendable, Codable, Identifiable, Hashable {
     /// set while it is in the desktop's Trash
     public var trashedAt: Date?
     public var language: String?
+    /// one microphone in a room (a phone recording, an uploaded file): nobody is named, each line stands alone
+    public var oneMic: Bool
 
     public init(id: String, title: String, startedAt: Date, endedAt: Date?, attendees: [Attendee], app: String?,
-                trashedAt: Date?, language: String?) {
+                trashedAt: Date?, language: String?, oneMic: Bool = false) {
         self.id = id; self.title = title; self.startedAt = startedAt; self.endedAt = endedAt; self.attendees = attendees
-        self.app = app; self.trashedAt = trashedAt; self.language = language
+        self.app = app; self.trashedAt = trashedAt; self.language = language; self.oneMic = oneMic
     }
 }
 
@@ -248,6 +250,8 @@ public struct SegmentsRecord: Sendable, Codable {
         public var text: String
     }
     public var meetingId: String
+    /// one microphone in a room: every speaker is nil (left out by an older desktop)
+    public var oneMic: Bool?
     public var segments: [Line]
 }
 

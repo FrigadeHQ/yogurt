@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { openStore, type Store } from '../src/main/store'
 import { initMeetings } from '../src/main/meeting'
+import { AUDIO_SPEAKER } from '../src/shared/audioUpload'
 import { applyOp, changesSince, FROM_IPHONE, notesHash, type Change } from '../src/main/companion/records'
 
 let store: Store
@@ -33,7 +34,7 @@ describe('companion change log', () => {
     const rec = (e: string) => changes.find((c) => c.entity === e)!.record
     expect(rec('meeting')).toEqual({ id: m.id, title: 'Banana sync', startedAt: 1000, endedAt: 2000, attendees: [{ name: 'Ada Example', email: 'ada@example.com' }], app: 'Zoom', trashedAt: null, language: null })
     expect(rec('notes')).toEqual({ meetingId: m.id, mine: 'second', summary: '## Summary', mineHash: notesHash('second') })
-    expect(rec('segments')).toEqual({ meetingId: m.id, segments: [{ startMs: 0, endMs: 900, speaker: 'me', text: 'hello there' }, { startMs: 1000, endMs: 1900, speaker: null, text: 'hi back' }] })
+    expect(rec('segments')).toEqual({ meetingId: m.id, oneMic: false, segments: [{ startMs: 0, endMs: 900, speaker: 'me', text: 'hello there' }, { startMs: 1000, endMs: 1900, speaker: null, text: 'hi back' }] })
     expect(rec('folder')).toEqual({ id: f.id, name: 'Fruit', createdAt: f.createdAt })
     expect(rec('folderMembers')).toEqual({ folderId: f.id, meetingIds: [m.id] })
     expect(rec('people')).toEqual({ email: 'ada@example.com', displayName: null })
@@ -140,6 +141,15 @@ describe('companion change log', () => {
     expect(changes).toContainEqual({ entity: 'meeting', id: gone.id, deleted: true })
     expect(changes.find((c) => c.entity === 'meeting' && c.id === m.id)?.record).toMatchObject({ trashedAt: 4000 })
     expect(new Set(keys(changes)).size).toBe(changes.length)
+  })
+})
+
+describe('companion one-mic meetings', () => {
+  it('an uploaded or phone recording says oneMic and names nobody, never the reserved audio speaker', () => {
+    const m = store.createMeeting({ ...base, title: 'Room chat', startedAt: 1000, source: 'audio-file' })
+    store.addSegments([{ meetingId: m.id, track: 'them', startMs: 0, endMs: 900, text: 'made-up line', speaker: AUDIO_SPEAKER }])
+    const seg = changesSince(store, 0, 100).changes.find((c) => c.entity === 'segments' && c.id === m.id)!.record
+    expect(seg).toEqual({ meetingId: m.id, oneMic: true, segments: [{ startMs: 0, endMs: 900, speaker: null, text: 'made-up line' }] })
   })
 })
 

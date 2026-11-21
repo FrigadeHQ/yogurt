@@ -3,6 +3,7 @@ import type { Store } from '../store'
 import { renameMeeting } from '../meeting'
 import { moveToTrash } from '../trash'
 import { FROM_IPHONE } from '../../shared/companion'
+import { AUDIO_SPEAKER } from '../../shared/audioUpload'
 
 /**
  * What the iPhone receives on `pull`, and the edits it sends back as `op`s. The change log is the companion_changes
@@ -13,8 +14,9 @@ import { FROM_IPHONE } from '../../shared/companion'
  *   startedAt/endedAt/trashedAt are ms since 1970; trashedAt null unless it is in the Trash (it can be restored there).
  * - notes [meeting id]: { meetingId, mine, summary, mineHash }: mine is My notes, summary the written notes (enhanced,
  *   null until written); mineHash = notesHash(mine), the baseHash a setMine op sends back.
- * - segments [meeting id]: { meetingId, segments: [{ startMs, endMs, speaker, text }] }: the whole transcript in order,
- *   hidden echo lines left out; speaker 'me' on the mic, the call's name for the other side, null for Them.
+ * - segments [meeting id]: { meetingId, oneMic, segments: [{ startMs, endMs, speaker, text }] }: the whole transcript in
+ *   order, hidden echo lines left out; speaker 'me' on the mic, the call's name for the other side, null for Them.
+ *   oneMic: one microphone in a room (an uploaded file or a phone recording), so every speaker is null.
  * - folder [folder id]: { id, name, createdAt }
  * - folderMembers [folder id]: { folderId, meetingIds }: trashed meetings stay listed (a restore puts them back).
  * - people [email]: { email, displayName }: a name the person gave someone, null for none.
@@ -53,8 +55,13 @@ function record(store: Store, entity: Entity, id: string): object | undefined {
       const n = store.notes(id)
       return { meetingId: id, mine: n.mine, summary: n.enhanced, mineHash: notesHash(n.mine) }
     }
-    case 'segments':
-      return store.meeting(id) && { meetingId: id, segments: store.segments(id).map((s) => ({ startMs: s.startMs, endMs: s.endMs, speaker: s.speaker, text: s.text })) }
+    case 'segments': {
+      const m = store.meeting(id)
+      // one microphone in a room (an uploaded file, a phone recording): nobody is named, and the phone doesn't run
+      // its lines together by speaker
+      return m && { meetingId: id, oneMic: m.source === 'audio-file',
+        segments: store.segments(id).map((s) => ({ startMs: s.startMs, endMs: s.endMs, speaker: s.speaker === AUDIO_SPEAKER ? null : s.speaker, text: s.text })) }
+    }
     case 'folder': {
       const f = store.folder(id)
       return f && { id: f.id, name: f.name, createdAt: f.createdAt }
