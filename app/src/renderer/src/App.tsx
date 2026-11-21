@@ -141,7 +141,13 @@ export function App() {
       const mac = onMac()
       if (e.isComposing || !command(e) || e.altKey || (mac && e.shiftKey) || document.querySelector('dialog:modal, .app-modal[aria-modal="true"]')) return
       if (mac ? e.ctrlKey : e.shiftKey) {
-        if (e.code === 'KeyS' && !document.querySelector('[aria-modal="true"]')) {
+        if (document.querySelector('[aria-modal="true"]')) return
+        const agenda = e.code === 'KeyA' && document.getElementById('home-agenda-toggle')
+        if (agenda) {
+          e.preventDefault(); e.stopPropagation(); if (!e.repeat) agenda.click()
+          return
+        }
+        if (e.code === 'KeyS') {
           e.preventDefault(); e.stopPropagation(); if (!e.repeat) toggleSidebar()
         }
         return

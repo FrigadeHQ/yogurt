@@ -49,6 +49,8 @@
     "one": "1 Meeting hinzugefügt.",
     "other": "{count} Meetings hinzugefügt."
   },
+  "Hide Agenda": "Agenda ausblenden",
+  "Show Agenda": "Agenda einblenden",
   "Agenda": "Agenda",
   "All set": "Alles bereit",
   "Allow": "Erlauben",

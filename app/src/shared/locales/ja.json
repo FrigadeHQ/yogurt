@@ -46,6 +46,8 @@
   "Add context": "コンテキストを追加",
   "Add to folder": "フォルダに追加",
   "Added {count} meetings.": "{count}件のミーティングを追加しました。",
+  "Hide Agenda": "予定を非表示",
+  "Show Agenda": "予定を表示",
   "Agenda": "予定",
   "All set": "準備完了",
   "Allow": "許可",

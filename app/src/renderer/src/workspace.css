@@ -120,7 +120,13 @@
 .workspace-recording-link[data-paused=true] { background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent);box-shadow:var(--shadow-soft); }
 .workspace:dir(rtl) .workspace-toolbar[data-recording-return=true][data-note=true] { padding-left:185px; }
 .workspace:dir(rtl).sidebar-collapsed .workspace-toolbar[data-recording-return=true][data-note=true] { padding-left:185px; }
-.native-home { height:100%;padding-top:52px;display:grid;grid-template-columns:minmax(0,1fr) 270px;min-height:0; }
+.native-home { --agenda-size:270px;--agenda-track:var(--agenda-size);height:100%;padding-top:52px;display:grid;grid-template-columns:minmax(0,1fr) var(--agenda-track);min-height:0; }
+.native-home[data-agenda-open=false] { --agenda-track:0px; }
+.home-agenda-panel { min-width:0;min-height:0;overflow:clip; }
+.home-agenda-panel>.native-agenda { width:var(--agenda-size);height:100%; }
+@media (prefers-reduced-motion:no-preference) {
+  .native-home[data-agenda-motion=true] { transition:grid-template-columns 200ms cubic-bezier(.22,1,.36,1),grid-template-rows 200ms cubic-bezier(.22,1,.36,1); }
+}
 .workspace-toolbar-actions { flex:none; }
 .workspace-toolbar-actions:has(.recording-split) { flex:0 1 auto;min-width:0;max-width:276px; }
 .workspace-toolbar:has(.recording-split) .workspace-breadcrumb { min-width:100px; }
@@ -136,6 +142,10 @@
 .workspace:dir(rtl) .workspace-toolbar:has(.notes-download-status) { padding-inline-end:132px; }
 .workspace:dir(rtl) .workspace-toolbar[data-note=true]:has(.notes-download-status) { padding-inline-end:185px; }
 .native-library { position:relative;padding:29px 26px 30px;min-width:0;overflow:auto; }
+/* Keep the scroll area full width. The hover background extends 8px past the content on each side. */
+@media (width > 1728px) {
+  :is(.native-home,.native-folder)>.native-library>* { --meeting-list-max-width:1520px;inline-size:min(100%,calc(var(--meeting-list-max-width) - 16px));margin-inline:auto; }
+}
 .native-library>h1 { font-size:20px;line-height:26px;font-weight:600;letter-spacing:-.55px;margin-bottom:9px; }
 .native-meeting-day { margin-top:25px; }
 .native-meeting-day>h2,.meeting-day-exit { font-size:10px;line-height:14px;font-weight:500;color:var(--muted);margin-bottom:9px; }
@@ -338,9 +348,9 @@
 @media(prefers-reduced-motion:reduce) { .citation-card,.citation-liquid,.citation-edge,.citation-passage { transition:none; }.citation-card[data-closing=true] :is(.citation-liquid,.citation-edge) { transform:none; }.citation-card * { animation:none!important; }.citation-liquid { filter:none!important; } }
 ::highlight(citation-target) { background:color-mix(in srgb,var(--accent-soft) 70%,transparent); }
 [data-focused] { background:color-mix(in srgb,var(--accent-soft) 70%,transparent); }
-@container (max-width:700px) { .native-home { grid-template-columns:minmax(0,1fr) 235px; }.native-library { padding:24px 18px; }.native-agenda { padding-block:25px;--agenda-inset:15px; }.meeting-description strong { font-size:13px; }.meeting-meta { font-size:10px; } }
-@container (max-width:520px) { .native-home { grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) 200px; }.native-agenda { border-inline-start:0;border-top:1px solid var(--line);overflow-y:auto;overscroll-behavior:contain; }.agenda-scroll { flex:none;min-height:0;overflow:visible; }.native-meeting-link { gap:8px; }.workspace-breadcrumb { gap:5px; }.workspace-parent,.workspace-parent-separator { display:none; } }
-/* no calendar on this computer (Windows, Linux): the library takes the whole width */
+@container (max-width:700px) { .native-home { --agenda-size:235px; }.native-library { padding:24px 18px; }.native-agenda { padding-block:25px;--agenda-inset:15px; }.meeting-description strong { font-size:13px; }.meeting-meta { font-size:10px; } }
+@container (max-width:520px) { .native-home { --agenda-size:200px;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) var(--agenda-track); }.home-agenda-panel>.native-agenda { width:100%;height:var(--agenda-size); }.native-agenda { border-inline-start:0;border-top:1px solid var(--line);overflow-y:auto;overscroll-behavior:contain; }.agenda-scroll { flex:none;min-height:0;overflow:visible; }.native-meeting-link { gap:8px; }.workspace-breadcrumb { gap:5px; }.workspace-parent,.workspace-parent-separator { display:none; } }
+/* A platform without Agenda only needs the meeting list. */
 .native-home.no-agenda { grid-template-columns:minmax(0,1fr);grid-template-rows:none; }
 .workspace-assistant-dock { position:absolute;inset-inline:0;bottom:0;height:44px;display:flex;align-items:center;justify-content:flex-end;padding:0 18px;border-top:1px solid var(--line);background:var(--bg); }
 .workspace-assistant-launch { display:inline-flex;align-items:center;gap:7px;height:28px;padding:0 9px;border:1px solid transparent;border-radius:6px;background:transparent;font-size:11px;font-weight:450;color:var(--muted);transition:background-color var(--dur-micro) ease,color var(--dur-micro) ease; }
@@ -427,9 +437,9 @@ body:has(.chat-panel[open]) .app-toast-viewport:dir(rtl) { --toast-x:440px; }
 
 /* Only the filled pane changes; the frame stays fixed. */
 .sidebar-toggle-pane { width:6px; }
-.workspace-sidebar-toggle[aria-expanded=false] .sidebar-toggle-pane { width:2px; }
+.workspace-sidebar-toggle[aria-expanded=false] .sidebar-toggle-pane,.agenda-toggle[aria-expanded=false] .sidebar-toggle-pane { width:2px; }
 @media (prefers-reduced-motion:no-preference) {
-  .workspace[data-sidebar-motion=true] .sidebar-toggle-pane { transition:width 200ms cubic-bezier(.22,1,.36,1); }
+  .workspace[data-sidebar-motion=true] .workspace-sidebar-toggle .sidebar-toggle-pane,.agenda-toggle[data-agenda-motion=true] .sidebar-toggle-pane { transition:width 200ms cubic-bezier(.22,1,.36,1); }
 }
 
 /* Ask keeps one reading column and one composer in both surfaces. */

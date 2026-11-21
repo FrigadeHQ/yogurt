@@ -50,6 +50,8 @@
     "many": "Se añadieron {count} reuniones.",
     "other": "Se añadieron {count} reuniones."
   },
+  "Hide Agenda": "Ocultar agenda",
+  "Show Agenda": "Mostrar agenda",
   "Agenda": "Agenda",
   "All set": "Todo listo",
   "Allow": "Permitir",

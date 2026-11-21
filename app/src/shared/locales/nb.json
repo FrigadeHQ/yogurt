@@ -49,6 +49,8 @@
     "one": "La til {count} møte.",
     "other": "La til {count} møter."
   },
+  "Hide Agenda": "Skjul agendaen",
+  "Show Agenda": "Vis agendaen",
   "Agenda": "Agenda",
   "All set": "Alt klart",
   "Allow": "Tillat",

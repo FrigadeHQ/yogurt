@@ -49,6 +49,8 @@
     "one": "{count} meeting toegevoegd.",
     "other": "{count} meetings toegevoegd."
   },
+  "Hide Agenda": "Agenda verbergen",
+  "Show Agenda": "Agenda tonen",
   "Agenda": "Agenda",
   "All set": "Alles klaar",
   "Allow": "Toestaan",

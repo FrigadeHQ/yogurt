@@ -51,6 +51,8 @@
     "many": "Přidáno {count} schůzky.",
     "other": "Přidáno {count} schůzek."
   },
+  "Hide Agenda": "Skrýt program",
+  "Show Agenda": "Zobrazit program",
   "Agenda": "Program",
   "All set": "Vše je připraveno",
   "Allow": "Povolit",

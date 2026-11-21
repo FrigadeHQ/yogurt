@@ -116,6 +116,7 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
         <RecordingTime view={recording} testId="recording-return-time" className="recording-return-time" />
       </button>}
       <div id="workspace-actions" className="workspace-toolbar-actions" />
+      <div id="workspace-agenda-actions" className="workspace-toolbar-actions" />
       </header>
       <WorkspaceFolders value={folders}>{children}</WorkspaceFolders>
       <AudioUploadHost />

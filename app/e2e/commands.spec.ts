@@ -67,6 +67,7 @@ test('a future date command opens Meetings on that agenda day and its week', asy
         { id: 'example', title: 'Example event', start: at, end: at + 60_000, attendees: [], url: null },
       ] }))
     })
+    await page.getByRole('button', { name: 'Hide Agenda' }).click()
     await page.getByTestId('nav-trash').click()
     const jump = async () => {
       await page.keyboard.press('Meta+k')
@@ -92,6 +93,9 @@ test('a future date command opens Meetings on that agenda day and its week', asy
     await expect(agenda.getByRole('button', { name: 'Sunday, November 12', exact: true })).toHaveAttribute('aria-pressed', 'true')
     await jump()
     await expect(agenda.getByRole('button', { name: 'Saturday, November 11', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await page.getByTestId('nav-trash').click()
+    await page.getByTestId('nav-home').click()
+    await expect(page.getByRole('button', { name: 'Show Agenda' })).toBeVisible()
   } finally { await app.close() }
 })
 

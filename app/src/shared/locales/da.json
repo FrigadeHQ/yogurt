@@ -49,6 +49,8 @@
     "one": "{count} møde blev tilføjet.",
     "other": "{count} møder blev tilføjet."
   },
+  "Hide Agenda": "Skjul dagsordenen",
+  "Show Agenda": "Vis dagsordenen",
   "Agenda": "Dagsorden",
   "All set": "Alt er klar",
   "Allow": "Tillad",

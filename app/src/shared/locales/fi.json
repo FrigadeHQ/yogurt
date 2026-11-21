@@ -49,6 +49,8 @@
     "one": "{count} kokous lisätty.",
     "other": "{count} kokousta lisätty."
   },
+  "Hide Agenda": "Piilota asialista",
+  "Show Agenda": "Näytä asialista",
   "Agenda": "Asialista",
   "All set": "Kaikki valmista",
   "Allow": "Salli",

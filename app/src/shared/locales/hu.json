@@ -49,6 +49,8 @@
     "one": "{count} megbeszélés hozzáadva.",
     "other": "{count} megbeszélés hozzáadva."
   },
+  "Hide Agenda": "Napirend elrejtése",
+  "Show Agenda": "Napirend megjelenítése",
   "Agenda": "Napirend",
   "All set": "Minden kész",
   "Allow": "Engedélyezés",

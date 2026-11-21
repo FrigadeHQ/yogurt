@@ -50,6 +50,8 @@
     "many": "{count} réunions ajoutées.",
     "other": "{count} réunions ajoutées."
   },
+  "Hide Agenda": "Masquer l’agenda",
+  "Show Agenda": "Afficher l’agenda",
   "Agenda": "Agenda",
   "All set": "Tout est prêt",
   "Allow": "Autoriser",

@@ -49,6 +49,8 @@
     "one": "{count} toplantı eklendi.",
     "other": "{count} toplantı eklendi."
   },
+  "Hide Agenda": "Gündemi gizle",
+  "Show Agenda": "Gündemi göster",
   "Agenda": "Gündem",
   "All set": "Her şey hazır",
   "Allow": "İzin ver",

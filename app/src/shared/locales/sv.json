@@ -49,6 +49,8 @@
     "one": "{count} möte har lagts till.",
     "other": "{count} möten har lagts till."
   },
+  "Hide Agenda": "Dölj agendan",
+  "Show Agenda": "Visa agendan",
   "Agenda": "Agenda",
   "All set": "Allt klart",
   "Allow": "Tillåt",

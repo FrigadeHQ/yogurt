@@ -51,6 +51,8 @@
     "many": "Dodano {count} spotkań.",
     "other": "Dodano {count} spotkania."
   },
+  "Hide Agenda": "Ukryj plan dnia",
+  "Show Agenda": "Pokaż plan dnia",
   "Agenda": "Plan dnia",
   "All set": "Wszystko gotowe",
   "Allow": "Zezwól",

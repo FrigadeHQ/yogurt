@@ -15,7 +15,7 @@ import { personName } from './People'
 let lastRecording: boolean | undefined
 
 /** Start or resume from a library destination; main resolves the event's note. */
-export function StartRecording({ onStarted, onGone, emptyActions, testId = 'start-recording' }: { emptyActions?: HTMLElement | null; onStarted?: (id: string) => void; onGone?: () => void; testId?: string }) {
+export function StartRecording({ onStarted, onGone, emptyActions, compact, testId = 'start-recording' }: { compact?: boolean; emptyActions?: HTMLElement | null; onStarted?: (id: string) => void; onGone?: () => void; testId?: string }) {
   const [actions, setActions] = useState<HTMLElement | null>(null)
   const [recording, setRecording] = useState(lastRecording)
   const [starting, setStarting] = useState(false)
@@ -80,7 +80,7 @@ export function StartRecording({ onStarted, onGone, emptyActions, testId = 'star
   const resuming = live.length === 1 && resumesNote(live[0].note)
   const label = live.length === 1 ? live[0].note?.source === 'audio-file' ? t('Open {title}', { title }) : resuming ? t('Resume notes · {title}', { title }) : t('Take notes · {title}', { title })
     : live.length > 1 ? t('Take notes · {count} now', { count: live.length }) : t('Start recording')
-  const content = <><Mic size={14} aria-hidden="true" /><span className="recording-label">{label}</span></>
+  const content = <><Mic size={14} aria-hidden="true" /><span className={compact ? 'sr-only' : 'recording-label'}>{label}</span></>
   const button = { 'data-testid': testId, disabled: starting, title: label, className: 'workspace-button primary recording-main no-drag' }
   return createPortal(<Menu.Root modal={false} open={open} onOpenChange={setOpen}>
     {emptyActions && createPortal(<button type="button" disabled={starting} data-testid="empty-start-recording" className="workspace-button" onClick={() => void start(null)}>
