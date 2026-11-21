@@ -141,7 +141,7 @@ test('the compact calendar keeps its original type and geometry with distinct se
       await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' })
       const accent = colorScheme === 'light' ? 'rgb(111, 0, 255)' : 'rgb(183, 128, 255)'
       const fill = 'rgb(111, 0, 255)', white = 'rgb(255, 255, 255)'
-      for (const id of ['start-recording', 'recording-choices']) {
+      for (const id of ['new-note', 'recording-choices']) {
         const control = page.getByTestId(id)
         await expect(control).toHaveCSS('background-color', fill)
         await expect(control).toHaveCSS('color', white)

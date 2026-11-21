@@ -133,6 +133,7 @@ for (const theme of ['light', 'dark'] as const) test(`add existing meetings from
       const [first] = await window.yogurt.meetings.cards({ limit: 1 })
       await window.yogurt.meetings.rename(first.id, title)
     }, longTitle)
+    await page.getByTestId('sidebar-expand').press('ArrowDown')
     await newFolder(page, 'Reviews')
     const header = page.locator('.folder-page-heading').getByRole('button', { name: 'Add meetings' })
     const empty = page.getByTestId('folder-empty').getByRole('button', { name: 'Add meetings' })
