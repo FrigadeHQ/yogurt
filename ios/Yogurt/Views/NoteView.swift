@@ -7,6 +7,8 @@ struct NoteView: View {
     enum Tab: String, CaseIterable { case summary, mine, transcript }
 
     let meetingId: String
+    /// opened from an Ask source: the transcript, at this moment (ms)
+    var atMs: Int? = nil
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var tab: Tab?
@@ -41,7 +43,7 @@ struct NoteView: View {
         let folders = loaded.folders
         let inFolders = folders.filter { loaded.inFolders.contains($0.id) }
         let shown = tab ?? defaultTab(notes)
-        return ScrollView {
+        return ScrollViewReader { proxy in ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 header(meeting, folders: inFolders)
                 if meeting.trashedAt != nil { trashBanner }
@@ -50,16 +52,24 @@ struct NoteView: View {
                     switch shown {
                     case .summary: SummaryPane(notes: notes)
                     case .mine: MyNotesPane(meetingId: meetingId, latest: notes?.mine ?? "")
-                    case .transcript: TranscriptPane(meetingId: meetingId, oneMic: notes?.summarySource == .phoneDraft)
+                    case .transcript: TranscriptPane(meetingId: meetingId, oneMic: notes?.summarySource == .phoneDraft,
+                                                     atMs: tab == nil ? atMs : nil, proxy: proxy)
                     }
                 }
                 .padding(.top, 20)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 40)
-        }
+        } }
         .scrollDismissesKeyboard(.interactively)
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink(value: Route.ask(meetingId)) {
+                    Image(systemName: "bubble.left.and.text.bubble.right")
+                }
+                .accessibilityLabel(S.ask)
+                .accessibilityIdentifier("note-ask")
+            }
             ToolbarItem(placement: .topBarTrailing) { menu(meeting, folders: folders, inFolders: inFolders) }
         }
         .alert(S.renameTitle, isPresented: $renaming) {
@@ -157,6 +167,7 @@ struct NoteView: View {
     }
 
     private func defaultTab(_ notes: Notes?) -> Tab {
+        if atMs != nil { return .transcript }
         // a phone recording opens on its notes being written
         if notes?.summary?.isEmpty == false || notes?.summarySource == .phoneDraft { return .summary }
         return .mine
@@ -342,16 +353,28 @@ struct TranscriptPane: View {
     let meetingId: String
     /// recorded on one iPhone in a room: nobody is named, so each line stands on its own
     var oneMic = false
+    /// scrolls to the turn this moment falls in, once, and marks it
+    var atMs: Int? = nil
+    var proxy: ScrollViewProxy? = nil
     @Environment(AppModel.self) private var model
     /// nil until read; a long transcript is read off the main thread
     @State private var segments: [Segment]?
+    @State private var scrolled = false
 
     var body: some View {
         let revision = model.revision
         Group {
             if let segments { lines(segments) } else { Color.clear.frame(height: 1) }
         }
-        .task(id: revision) { segments = await model.reader.segments(meetingId) }
+        .task(id: revision) {
+            segments = await model.reader.segments(meetingId)
+            if let atMs, !scrolled, let target = target(atMs) {
+                scrolled = true
+                // after the lines are laid out
+                try? await Task.sleep(for: .milliseconds(80))
+                withAnimation(.easeOut(duration: 0.25)) { proxy?.scrollTo(target, anchor: .center) }
+            }
+        }
     }
 
     @ViewBuilder private func lines(_ segments: [Segment]) -> some View {
@@ -360,6 +383,7 @@ struct TranscriptPane: View {
         } else {
             LazyVStack(alignment: .leading, spacing: 18) {
                 ForEach(turns(segments), id: \.first.index) { turn in
+                    let marked = atMs != nil && target(atMs!) == turn.first.index
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 8) {
                             if !oneMic {
@@ -377,9 +401,20 @@ struct TranscriptPane: View {
                             .lineSpacing(4)
                             .textSelection(.enabled)
                     }
+                    .padding(marked ? 10 : 0)
+                    .background(marked ? Theme.accentSoft : .clear, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .padding(marked ? -10 : 0)
+                    .id(turn.first.index)
                 }
             }
         }
+    }
+
+    /// the turn a moment falls in: the last one starting at or before it
+    private func target(_ ms: Int) -> Int? {
+        guard let segments else { return nil }
+        let all = turns(segments)
+        return (all.last { $0.first.startMs <= ms } ?? all.first)?.first.index
     }
 
     /// back-to-back lines from the same speaker read as one turn

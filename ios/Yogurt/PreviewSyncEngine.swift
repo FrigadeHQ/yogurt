@@ -60,9 +60,13 @@ final class PreviewSyncEngine: SyncEngineProtocol {
 
     func ask(_ question: String, scope: AskScope?) async throws -> RemoteAnswer {
         try await Task.sleep(for: .milliseconds(600))
-        let first = store.meetings().first
-        return RemoteAnswer(answer: "These are sample meetings, so this is a sample answer.",
-                            sources: first.map { [.init(meetingId: $0.id, title: $0.title, atMs: nil, text: "")] } ?? [])
+        // the phone's own passage search, so the sample answer's sources really match the question
+        let found = LocalAsk.passages(for: question, scope: scope, in: store).prefix(2)
+        let sources = found.map { RemoteAnswer.Source(meetingId: $0.meetingId, title: $0.title, atMs: $0.atMs, text: $0.text) }
+        let answer = sources.isEmpty ? "These are sample meetings, so this is a sample answer."
+            : "These are sample meetings, so this is a sample answer. It draws on **\(sources[0].title)** [1]"
+                + (sources.count > 1 ? " and **\(sources[1].title)** [2]." : ".")
+        return RemoteAnswer(answer: answer, sources: Array(sources))
     }
 
     /// Applies an edit the way the desktop would, then sends the records back as a pull would.

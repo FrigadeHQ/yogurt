@@ -3,7 +3,11 @@ import YogurtKit
 
 enum Route: Hashable {
     case meeting(String)
+    /// a meeting's transcript, scrolled to this moment (ms)
+    case transcript(String, Int)
     case search
+    /// Ask across meetings; with a meeting id, about that meeting first
+    case ask(String?)
 }
 
 /// Meetings by day, newest first, with the connection always showing at the top.
@@ -24,7 +28,9 @@ struct HomeView: View {
                 .navigationDestination(for: Route.self) { route in
                     switch route {
                     case .meeting(let id): NoteView(meetingId: id)
+                    case .transcript(let id, let atMs): NoteView(meetingId: id, atMs: atMs)
                     case .search: SearchView(open: { path.append(.meeting($0)) })
+                    case .ask(let id): AskView(meetingId: id)
                     }
                 }
         }
@@ -104,6 +110,8 @@ struct HomeView: View {
             }
                 .layoutPriority(1)
             Spacer(minLength: 4)
+            IconButton(symbol: "bubble.left.and.text.bubble.right", label: S.ask) { path.append(.ask(nil)) }
+                .accessibilityIdentifier("ask")
             IconButton(symbol: "magnifyingglass", label: S.search) { path.append(.search) }
             IconButton(symbol: "gearshape", label: S.settings) { showSettings = true }
         }
@@ -139,8 +147,11 @@ struct HomeView: View {
     private func applyLaunch() {
         #if DEBUG
         let d = UserDefaults.standard
-        if let id = d.string(forKey: "openMeeting"), path.isEmpty { path = [.meeting(id)] }
+        if let id = d.string(forKey: "openMeeting"), path.isEmpty {
+            path = [d.object(forKey: "openAtMs") != nil ? .transcript(id, d.integer(forKey: "openAtMs")) : .meeting(id)]
+        }
         if d.string(forKey: "openSearch") != nil, path.isEmpty { path = [.search] }
+        if d.object(forKey: "openAsk") != nil, path.count <= 1 { path.append(.ask(path.isEmpty ? nil : d.string(forKey: "openMeeting"))) }
         if d.bool(forKey: "openSettings") { showSettings = true }
         if d.bool(forKey: "openConnect") { showConnect = true }
         if d.bool(forKey: "openRecord") { showRecord = true }
