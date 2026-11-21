@@ -353,10 +353,7 @@ export const Monitor = icon('Monitor', [
 ])
 
 export const Moon = icon('Moon', [
-  ['path', { d: 'M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z', key: '0' }],
-  ['path', { d: 'M12 22C15.3137 22 18 17.5228 18 12C18 6.47715 15.3137 2 12 2', key: '1' }],
-  dot(8.5, 14.5, 1.5),
-  dot(11, 7, 0.25),
+  ['path', { d: 'M10 3A9.1 9.1 0 1 0 21 14A8.5 8.5 0 0 1 10 3Z', key: '0' }],
 ])
 
 export const Palette = icon('Palette', [
