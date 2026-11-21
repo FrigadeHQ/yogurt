@@ -35,7 +35,7 @@ test('the hidden sidebar peeks over a full-width page and keeps folder actions a
     await expect(panel).toHaveCount(0)
     await page.mouse.move(500, 200)
     await expect(panel).toHaveCount(0)
-    await page.mouse.move(2, 200)
+    await page.mouse.move(12, 200)
     await expect(panel).toBeVisible()
     await expect(panel.getByTestId('corner-menu-button')).toBeInViewport()
     await expect.poll(() => footer.evaluate(el => innerHeight - el.getBoundingClientRect().bottom)).toBe(0)
@@ -74,6 +74,9 @@ test('the hidden sidebar peeks over a full-width page and keeps folder actions a
     await expect(panel).toHaveCount(0)
     expect((await content.boundingBox())!.width).toBe(await page.evaluate(() => innerWidth))
     expect(await page.locator('.workspace').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
+    // The hidden sidebar's hover zone leaves hit testing to the meeting list, including its scroll area.
+    const library = page.locator('.native-home > .native-library')
+    expect(await library.evaluate(el => [2, 12, 15].every(x => el.contains(document.elementFromPoint(x, 200))))).toBe(true)
     expect(await page.locator('.workspace-sidebar-body').evaluate(el => getComputedStyle(el).overflowX)).toBe('hidden')
     await page.evaluate(() => window.yogurt.settings.setLanguage('ar'))
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')

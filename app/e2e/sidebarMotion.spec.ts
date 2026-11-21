@@ -83,7 +83,9 @@ test('docking an edge peek keeps its footer still while the loaded page moves in
     for (const reduced of [false, true]) {
       await page.emulateMedia({ reducedMotion: reduced ? 'reduce' : 'no-preference' })
       await toggle.press('Enter')
-      await page.locator('.workspace-peek-edge').hover()
+      await expect.poll(() => content.evaluate(el => el.contains(document.elementFromPoint(12, 200)))).toBe(true)
+      await page.mouse.move(12, 200)
+      await expect(panel).toHaveAttribute('aria-hidden', 'false')
       await expect.poll(() => panel.evaluate(el => el.getBoundingClientRect().x)).toBe(0)
       const before = await corner.boundingBox()
       expect(await content.evaluate(el => el.contains(document.elementFromPoint(innerWidth - 32, 160)))).toBe(true)

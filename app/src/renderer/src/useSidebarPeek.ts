@@ -11,7 +11,10 @@ export function useSidebarPeek(collapsed: boolean, route: string) {
   const pointerMotion = useRef(false)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const open = collapsed && mode !== null
-  const cancel = () => clearTimeout(timer.current)
+  const cancel = () => {
+    clearTimeout(timer.current)
+    timer.current = undefined
+  }
   const dismiss = (restore = false) => {
     cancel()
     if (restore || panel.current?.contains(document.activeElement)) {
@@ -26,10 +29,15 @@ export function useSidebarPeek(collapsed: boolean, route: string) {
     pointerMotion.current = how === 'pointer'
     setMode(how)
   }
-  const enter = (event: PointerEvent) => {
-    cancel()
-    if (collapsed && !open && event.pointerType === 'mouse' && !event.buttons)
-      timer.current = setTimeout(() => { if (!childPopupOpen()) reveal('pointer') }, 80)
+  // Observe the page so the edge never takes a click or scrollbar drag from it.
+  const trackEdge = (event: PointerEvent) => {
+    const atEdge = document.documentElement.dir === 'rtl' ? event.clientX >= window.innerWidth - 16 : event.clientX < 16
+    if (!atEdge || event.clientY < 52 || event.pointerType !== 'mouse' || event.buttons) return cancel()
+    if ((event.target as Element).closest('button, a[href], input, select, textarea, [contenteditable=true], [role=button], [role=scrollbar]')) return cancel()
+    if (timer.current === undefined) timer.current = setTimeout(() => {
+      timer.current = undefined
+      if (!childPopupOpen()) reveal('pointer')
+    }, 100)
   }
   const leave = () => {
     cancel()
@@ -65,5 +73,9 @@ export function useSidebarPeek(collapsed: boolean, route: string) {
       document.removeEventListener('focusin', outside)
     }
   }, [open, mode])
-  return { open, pointerMotion: pointerMotion.current, panel, toggle, enter, leave, cancel, dismiss, keyboard: () => { cancel(); reveal('keyboard') } }
+  const edgeHandlers = collapsed && !open ? {
+    onPointerMoveCapture: trackEdge, onPointerLeave: cancel,
+    onPointerDownCapture: cancel, onPointerCancel: cancel, onWheelCapture: cancel,
+  } : undefined
+  return { open, pointerMotion: pointerMotion.current, panel, toggle, edgeHandlers, leave, cancel, dismiss, keyboard: () => { cancel(); reveal('keyboard') } }
 }
