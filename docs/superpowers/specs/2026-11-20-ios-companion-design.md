@@ -35,6 +35,16 @@ transcription and notes) and the two stay in sync. Nothing ever goes through a s
   "Not on the same Wi-Fi · last synced 2 h ago", "Not paired".
 - The phone's copy is protected at rest by iOS Data Protection (complete) and an optional Face ID lock.
 
+## Standalone and onboarding (added 2026-11-20, from the user)
+
+- The phone app is fully usable without a desktop: record, transcribe, draft notes, search and Ask (on-device) all work
+  unpaired. Pairing is never a gate.
+- First launch shows an onboarding flow modelled on desktop Yogurt's (app/src/renderer/src/screens/Onboarding.tsx):
+  welcome, what Yogurt does, microphone and speech permissions (each explained before the system prompt), and an
+  optional step "Already use Yogurt on your computer?" with Connect (pairing) or Not now. Connecting later is always
+  available from Settings and from a quiet prompt on Home.
+- Unpaired status pill reads "On this iPhone only" (not an error) and opens the connect flow.
+
 ## Non-goals (v1)
 
 - More than one computer per phone, or more than one phone per computer (the computer keeps the latest pairing).
