@@ -29,15 +29,19 @@ export function useSidebarPeek(collapsed: boolean, route: string) {
     pointerMotion.current = how === 'pointer'
     setMode(how)
   }
-  // Observe the page so the edge never takes a click or scrollbar drag from it.
-  const trackEdge = (event: PointerEvent) => {
-    const atEdge = document.documentElement.dir === 'rtl' ? event.clientX >= window.innerWidth - 16 : event.clientX < 16
-    if (!atEdge || event.clientY < 52 || event.pointerType !== 'mouse' || event.buttons) return cancel()
-    if ((event.target as Element).closest('button, a[href], input, select, textarea, [contenteditable=true], [role=button], [role=scrollbar]')) return cancel()
+  const schedulePeek = (event: PointerEvent, dwell: number) => {
+    if (event.pointerType !== 'mouse' || event.buttons) return cancel()
     if (timer.current === undefined) timer.current = setTimeout(() => {
       timer.current = undefined
       if (!childPopupOpen()) reveal('pointer')
-    }, 100)
+    }, dwell)
+  }
+  // Observe the page so the edge never takes a click or scrollbar drag from it.
+  const trackEdge = (event: PointerEvent) => {
+    const atEdge = document.documentElement.dir === 'rtl' ? event.clientX >= window.innerWidth - 16 : event.clientX < 16
+    if (!atEdge || event.clientY < 52) return cancel()
+    if ((event.target as Element).closest('button, a[href], input, select, textarea, [contenteditable=true], [role=button], [role=scrollbar]')) return cancel()
+    schedulePeek(event, 100)
   }
   const leave = () => {
     cancel()
@@ -77,5 +81,9 @@ export function useSidebarPeek(collapsed: boolean, route: string) {
     onPointerMoveCapture: trackEdge, onPointerLeave: cancel,
     onPointerDownCapture: cancel, onPointerCancel: cancel, onWheelCapture: cancel,
   } : undefined
-  return { open, pointerMotion: pointerMotion.current, panel, toggle, edgeHandlers, leave, cancel, dismiss, keyboard: () => { cancel(); reveal('keyboard') } }
+  const buttonHandlers = collapsed && !open ? {
+    onPointerEnter: (event: PointerEvent) => schedulePeek(event, 180),
+    onPointerLeave: cancel, onPointerDown: cancel, onPointerCancel: cancel,
+  } : undefined
+  return { open, pointerMotion: pointerMotion.current, panel, toggle, edgeHandlers, buttonHandlers, leave, cancel, dismiss, keyboard: () => { cancel(); reveal('keyboard') } }
 }
