@@ -132,7 +132,11 @@ describe('companion pairing', () => {
     await expect(c.startPairing()).rejects.toThrow()
     expect(c.status()).toMatchObject({ error: 'listen', pairing: null })
     expect(c.port()).toBeNull()
+    // putting it away clears the error, so Settings doesn't greet the next visit with it
+    await c.cancelPairing()
+    expect(c.status().error).toBeNull()
   })
+
 
   it('a pairing that finishes after the window closed is refused and stores nothing', async () => {
     const { c, store } = await make()

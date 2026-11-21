@@ -56,7 +56,7 @@ it('closed pairing and failures say why, and offer to start again', async () => 
 
 it('a keychain that will not open says so and offers no pairing', async () => {
   const html = await render({ ...idle, error: 'keychain' })
-  expect(html).toContain("Yogurt couldn't open its keychain, so it can't pair right now.")
+  expect(html).toContain("Yogurt couldn't reach this computer's secure storage, so it can't pair right now.")
   expect(html).not.toContain('data-testid="phone-pair"')
 })
 
@@ -72,6 +72,8 @@ it('paired: the phone, Connected or when it was last seen, and Unpair with an in
   const confirming = await render({ ...idle, paired: { name: 'Test iPhone', lastSeen: NOW } }, false, false, true)
   expect(confirming).toContain('Unpair your iPhone? It keeps its copy until you pair again.')
   expect(confirming).toContain('data-testid="phone-unpair-confirm"')
+  // a paired phone this computer can't listen for says so
+  expect(await render({ ...idle, paired: { name: 'Test iPhone', lastSeen: NOW }, error: 'listen' })).toContain('data-testid="phone-notice"')
 })
 
 it('shows nothing when the companion is not running', async () => {

@@ -63,5 +63,10 @@ describe('companion IPC', () => {
     expect(f.c.cancelPairing).toHaveBeenCalledOnce()
     expect(await call('companion:unpair')).toEqual(idle)
     expect(f.c.unpair).toHaveBeenCalledOnce()
+    // a failure answers the status as it is, rather than an error the window can't place
+    f.c.unpair.mockRejectedValueOnce(new Error('disk'))
+    expect(await call('companion:unpair')).toEqual(idle)
+    f.c.cancelPairing.mockRejectedValueOnce(new Error('disk'))
+    expect(await call('companion:cancel-pairing')).toEqual(idle)
   })
 })

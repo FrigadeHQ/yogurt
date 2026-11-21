@@ -775,8 +775,9 @@
   "Too many wrong codes. Start pairing again.": "יותר מדי קודים שגויים. התחילו את הצימוד מחדש.",
   "Unpair": "ביטול צימוד",
   "Unpair your iPhone? It keeps its copy until you pair again.": "לבטל את הצימוד של ה-iPhone? הוא שומר את העותק שלו עד שתצמדו שוב.",
-  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt לא הצליח לפתוח את מחזיק המפתחות שלו, ולכן אינו יכול לצמד כרגע.",
+  "Yogurt couldn't reach this computer's secure storage, so it can't pair right now.": "Yogurt לא הצליח לגשת לאחסון המאובטח של המחשב הזה, ולכן אינו יכול לצמד כרגע.",
   "Yogurt couldn't start pairing. Try again.": "Yogurt לא הצליח להתחיל את הצימוד. נסו שוב.",
   "Yogurt on your iPhone": "Yogurt ב-iPhone שלך",
-  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "ה-iPhone מדבר עם המחשב הזה רק באותה רשת Wi-Fi. שום דבר לא עובר דרך האינטרנט."
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "ה-iPhone מדבר עם המחשב הזה רק באותה רשת Wi-Fi. שום דבר לא עובר דרך האינטרנט.",
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "ה-iPhone לא מצליח להגיע למחשב הזה כרגע. נסו להפעיל מחדש את Yogurt."
 }

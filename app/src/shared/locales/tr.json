@@ -753,8 +753,9 @@
   "Too many wrong codes. Start pairing again.": "Çok fazla yanlış kod. Eşlemeyi yeniden başlat.",
   "Unpair": "Eşlemeyi kaldır",
   "Unpair your iPhone? It keeps its copy until you pair again.": "iPhone’unun eşlemesi kaldırılsın mı? Yeniden eşleyene kadar kendi kopyasını saklar.",
-  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt anahtar zincirini açamadı, bu yüzden şu anda eşleme yapamıyor.",
+  "Yogurt couldn't reach this computer's secure storage, so it can't pair right now.": "Yogurt bu bilgisayarın güvenli depolamasına ulaşamadı, bu yüzden şu anda eşleme yapamıyor.",
   "Yogurt couldn't start pairing. Try again.": "Yogurt eşlemeyi başlatamadı. Yeniden dene.",
   "Yogurt on your iPhone": "iPhone’unda Yogurt",
-  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone’un bu bilgisayarla yalnızca aynı Wi-Fi ağında konuşur. Hiçbir şey internetten geçmez."
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone’un bu bilgisayarla yalnızca aynı Wi-Fi ağında konuşur. Hiçbir şey internetten geçmez.",
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhone’un şu anda bu bilgisayara ulaşamıyor. Yogurt’u yeniden başlatmayı dene."
 }

@@ -753,8 +753,9 @@
   "Too many wrong codes. Start pairing again.": "Túl sok hibás kód. Kezdd újra a párosítást.",
   "Unpair": "Párosítás megszüntetése",
   "Unpair your iPhone? It keeps its copy until you pair again.": "Megszünteted az iPhone párosítását? Megtartja a másolatát, amíg újra nem párosítod.",
-  "Yogurt couldn't open its keychain, so it can't pair right now.": "A Yogurt nem tudta megnyitni a kulcskarikáját, ezért most nem tud párosítani.",
+  "Yogurt couldn't reach this computer's secure storage, so it can't pair right now.": "A Yogurt nem érte el a számítógép biztonságos tárhelyét, ezért most nem tud párosítani.",
   "Yogurt couldn't start pairing. Try again.": "A Yogurt nem tudta elindítani a párosítást. Próbáld újra.",
   "Yogurt on your iPhone": "Yogurt az iPhone-odon",
-  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Az iPhone-od csak ugyanazon a Wi-Fi-hálózaton beszél ezzel a számítógéppel. Semmi sem megy át az interneten."
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Az iPhone-od csak ugyanazon a Wi-Fi-hálózaton beszél ezzel a számítógéppel. Semmi sem megy át az interneten.",
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "Az iPhone-od most nem éri el ezt a számítógépet. Próbáld újraindítani a Yogurtot."
 }

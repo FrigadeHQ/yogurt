@@ -723,8 +723,9 @@
   "Too many wrong codes. Start pairing again.": "Quá nhiều mã sai. Hãy bắt đầu ghép nối lại.",
   "Unpair": "Hủy ghép nối",
   "Unpair your iPhone? It keeps its copy until you pair again.": "Hủy ghép nối iPhone? iPhone vẫn giữ bản sao của nó cho đến khi bạn ghép nối lại.",
-  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt không mở được chuỗi khóa của mình nên chưa thể ghép nối lúc này.",
+  "Yogurt couldn't reach this computer's secure storage, so it can't pair right now.": "Yogurt không truy cập được bộ lưu trữ an toàn của máy tính này nên chưa thể ghép nối lúc này.",
   "Yogurt couldn't start pairing. Try again.": "Yogurt không bắt đầu ghép nối được. Hãy thử lại.",
   "Yogurt on your iPhone": "Yogurt trên iPhone của bạn",
-  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone chỉ trò chuyện với máy tính này trên cùng mạng Wi-Fi. Không có gì đi qua internet."
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone chỉ trò chuyện với máy tính này trên cùng mạng Wi-Fi. Không có gì đi qua internet.",
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhone hiện không kết nối được với máy tính này. Hãy thử khởi động lại Yogurt."
 }

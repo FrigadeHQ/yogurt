@@ -723,8 +723,9 @@
   "Too many wrong codes. Start pairing again.": "错误代码太多。请重新开始配对。",
   "Unpair": "取消配对",
   "Unpair your iPhone? It keeps its copy until you pair again.": "要取消与 iPhone 的配对吗？在你再次配对之前，它会保留自己的副本。",
-  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt 无法打开其钥匙串，因此现在无法配对。",
+  "Yogurt couldn't reach this computer's secure storage, so it can't pair right now.": "Yogurt 无法访问这台电脑的安全存储，因此现在无法配对。",
   "Yogurt couldn't start pairing. Try again.": "Yogurt 无法开始配对。请重试。",
   "Yogurt on your iPhone": "iPhone 上的 Yogurt",
-  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "你的 iPhone 只在同一 Wi-Fi 下与这台电脑通信。任何内容都不经过互联网。"
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "你的 iPhone 只在同一 Wi-Fi 下与这台电脑通信。任何内容都不经过互联网。",
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "你的 iPhone 现在无法连接这台电脑。请尝试重新启动 Yogurt。"
 }

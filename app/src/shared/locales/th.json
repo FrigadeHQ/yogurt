@@ -723,8 +723,9 @@
   "Too many wrong codes. Start pairing again.": "ใส่รหัสผิดหลายครั้งเกินไป เริ่มจับคู่ใหม่อีกครั้ง",
   "Unpair": "เลิกจับคู่",
   "Unpair your iPhone? It keeps its copy until you pair again.": "เลิกจับคู่ iPhone ใช่ไหม iPhone จะเก็บสำเนาไว้จนกว่าคุณจะจับคู่อีกครั้ง",
-  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt เปิดพวงกุญแจของตัวเองไม่ได้ จึงจับคู่ไม่ได้ในตอนนี้",
+  "Yogurt couldn't reach this computer's secure storage, so it can't pair right now.": "Yogurt เข้าถึงพื้นที่จัดเก็บที่ปลอดภัยของคอมพิวเตอร์เครื่องนี้ไม่ได้ จึงจับคู่ไม่ได้ในตอนนี้",
   "Yogurt couldn't start pairing. Try again.": "Yogurt เริ่มจับคู่ไม่ได้ ลองอีกครั้ง",
   "Yogurt on your iPhone": "Yogurt บน iPhone ของคุณ",
-  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone จะคุยกับคอมพิวเตอร์เครื่องนี้ผ่าน Wi-Fi เดียวกันเท่านั้น ไม่มีอะไรผ่านอินเทอร์เน็ต"
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone จะคุยกับคอมพิวเตอร์เครื่องนี้ผ่าน Wi-Fi เดียวกันเท่านั้น ไม่มีอะไรผ่านอินเทอร์เน็ต",
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhone ของคุณเชื่อมต่อกับคอมพิวเตอร์เครื่องนี้ไม่ได้ในตอนนี้ ลองเปิด Yogurt ใหม่"
 }

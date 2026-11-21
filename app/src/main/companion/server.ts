@@ -23,9 +23,11 @@ export type Limits = {
   connections: number
   /** requests waiting their turn on one session */
   queued: number
+  /** first handshake messages remembered since start-up, so an exact replay is dropped at once */
+  replays: number
   rekey: Rekey
 }
-export const LIMITS: Limits = { handshakeMs: 10_000, firstFrameMs: 3000, stepMs: 3000, perAddress: 2, idleMs: 2 * 60 * 1000, connections: 4, queued: 64, rekey: { bytes: 2 ** 30, ms: 60 * 60 * 1000 } }
+export const LIMITS: Limits = { handshakeMs: 10_000, firstFrameMs: 3000, stepMs: 3000, perAddress: 2, idleMs: 2 * 60 * 1000, connections: 4, queued: 64, replays: 10_000, rekey: { bytes: 2 ** 30, ms: 60 * 60 * 1000 } }
 
 const PROLOGUE = new TextEncoder().encode('yogurt-v1')
 /** requests that may take long run beside the queue, so pings and pulls still get through */
@@ -41,6 +43,8 @@ export type ServerHooks = {
   pairing: () => PairCtx | null
   paired: (phone: PairedPhone) => void
   phoneKey: () => Uint8Array | null
+  /** false when this ephemeral key was seen before (a replayed message 1); remembers it otherwise */
+  fresh: (ephemeral: Uint8Array) => boolean
   staticKey: () => KeyPair
   /** a session is up: the one before it (if any) is closed by the caller */
   opened: (s: Session) => void
@@ -148,6 +152,8 @@ export function startServer(h: ServerHooks, port: number, host: string): Promise
       const noise = new NoiseKK({ initiator: false, s: h.staticKey(), rs, prologue: PROLOGUE })
       // throws when the phone isn't the paired one: closed, no request seen
       noise.readMessage(first)
+      // checked after it verifies, so made-up messages can't push real ones out of the cache
+      if (!h.fresh(first.subarray(0, 32))) return fail('replayed')
       socket.write(frame(noise.writeMessage(new Uint8Array(0))))
       const { send, recv } = noise.split()
       const channel = new SecureChannel(socket, send, recv, h.now, h.limits.rekey)

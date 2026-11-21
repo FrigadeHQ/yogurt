@@ -793,8 +793,9 @@
   "Too many wrong codes. Start pairing again.": "Слишком много неверных кодов. Начните подключение заново.",
   "Unpair": "Отключить",
   "Unpair your iPhone? It keeps its copy until you pair again.": "Отключить iPhone? Его копия сохранится, пока вы не подключите его снова.",
-  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt не смог открыть свою связку ключей, поэтому сейчас не может подключить телефон.",
+  "Yogurt couldn't reach this computer's secure storage, so it can't pair right now.": "Yogurt не смог обратиться к защищённому хранилищу этого компьютера, поэтому сейчас не может подключить телефон.",
   "Yogurt couldn't start pairing. Try again.": "Yogurt не смог начать подключение. Попробуйте ещё раз.",
   "Yogurt on your iPhone": "Yogurt на вашем iPhone",
-  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone связывается с этим компьютером только в одной сети Wi-Fi. Ничего не идёт через интернет."
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone связывается с этим компьютером только в одной сети Wi-Fi. Ничего не идёт через интернет.",
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhone сейчас не может связаться с этим компьютером. Попробуйте перезапустить Yogurt."
 }

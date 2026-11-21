@@ -723,8 +723,9 @@
   "Too many wrong codes. Start pairing again.": "잘못된 코드가 너무 많습니다. 페어링을 다시 시작하세요.",
   "Unpair": "페어링 해제",
   "Unpair your iPhone? It keeps its copy until you pair again.": "iPhone 페어링을 해제할까요? 다시 페어링할 때까지 iPhone은 자신의 사본을 유지합니다.",
-  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt가 키체인을 열 수 없어 지금은 페어링할 수 없습니다.",
+  "Yogurt couldn't reach this computer's secure storage, so it can't pair right now.": "Yogurt가 이 컴퓨터의 보안 저장소에 접근할 수 없어 지금은 페어링할 수 없습니다.",
   "Yogurt couldn't start pairing. Try again.": "Yogurt가 페어링을 시작하지 못했습니다. 다시 시도하세요.",
   "Yogurt on your iPhone": "iPhone의 Yogurt",
-  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone은 같은 Wi-Fi에서만 이 컴퓨터와 통신합니다. 인터넷을 거치는 것은 없습니다."
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone은 같은 Wi-Fi에서만 이 컴퓨터와 통신합니다. 인터넷을 거치는 것은 없습니다.",
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhone이 지금 이 컴퓨터에 연결할 수 없습니다. Yogurt를 다시 시작해 보세요."
 }

@@ -784,8 +784,9 @@
   "Too many wrong codes. Start pairing again.": "Troppi codici sbagliati. Ricomincia l’abbinamento.",
   "Unpair": "Dissocia",
   "Unpair your iPhone? It keeps its copy until you pair again.": "Dissociare il tuo iPhone? Tiene la sua copia finché non lo abbini di nuovo.",
-  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt non è riuscito ad aprire il suo portachiavi, quindi ora non può abbinare.",
+  "Yogurt couldn't reach this computer's secure storage, so it can't pair right now.": "Yogurt non è riuscito ad accedere all’archivio sicuro di questo computer, quindi ora non può abbinare.",
   "Yogurt couldn't start pairing. Try again.": "Yogurt non è riuscito ad avviare l’abbinamento. Riprova.",
   "Yogurt on your iPhone": "Yogurt sul tuo iPhone",
-  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Il tuo iPhone parla con questo computer solo sulla stessa rete Wi-Fi. Niente passa da internet."
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Il tuo iPhone parla con questo computer solo sulla stessa rete Wi-Fi. Niente passa da internet.",
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "Il tuo iPhone non riesce a raggiungere questo computer ora. Prova a riavviare Yogurt."
 }

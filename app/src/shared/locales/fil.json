@@ -765,8 +765,9 @@
   "Too many wrong codes. Start pairing again.": "Masyadong maraming maling code. Simulan ulit ang pagpapares.",
   "Unpair": "Alisin ang pares",
   "Unpair your iPhone? It keeps its copy until you pair again.": "Alisin ang pares ng iPhone mo? Itatago nito ang kopya nito hanggang ipares mo ulit.",
-  "Yogurt couldn't open its keychain, so it can't pair right now.": "Hindi mabuksan ng Yogurt ang keychain nito, kaya hindi ito makakapagpares ngayon.",
+  "Yogurt couldn't reach this computer's secure storage, so it can't pair right now.": "Hindi maabot ng Yogurt ang secure storage ng computer na ito, kaya hindi ito makakapagpares ngayon.",
   "Yogurt couldn't start pairing. Try again.": "Hindi masimulan ng Yogurt ang pagpapares. Subukan ulit.",
   "Yogurt on your iPhone": "Yogurt sa iPhone mo",
-  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Kausap lang ng iPhone mo ang computer na ito sa iisang Wi-Fi. Walang dumadaan sa internet."
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Kausap lang ng iPhone mo ang computer na ito sa iisang Wi-Fi. Walang dumadaan sa internet.",
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "Hindi maabot ng iPhone mo ang computer na ito ngayon. Subukang i-restart ang Yogurt."
 }

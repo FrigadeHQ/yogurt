@@ -753,8 +753,9 @@
   "Too many wrong codes. Start pairing again.": "অনেক বেশি ভুল কোড। আবার যুক্ত করা শুরু করুন।",
   "Unpair": "বিচ্ছিন্ন করুন",
   "Unpair your iPhone? It keeps its copy until you pair again.": "আপনার iPhone বিচ্ছিন্ন করবেন? আবার যুক্ত না করা পর্যন্ত এটি নিজের কপি রাখে।",
-  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt তার কিচেইন খুলতে পারেনি, তাই এখন যুক্ত করতে পারছে না।",
+  "Yogurt couldn't reach this computer's secure storage, so it can't pair right now.": "Yogurt এই কম্পিউটারের সুরক্ষিত স্টোরেজে পৌঁছাতে পারেনি, তাই এখন যুক্ত করতে পারছে না।",
   "Yogurt couldn't start pairing. Try again.": "Yogurt যুক্ত করা শুরু করতে পারেনি। আবার চেষ্টা করুন।",
   "Yogurt on your iPhone": "আপনার iPhone-এ Yogurt",
-  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "আপনার iPhone শুধু একই Wi-Fi-তে এই কম্পিউটারের সঙ্গে কথা বলে। কিছুই ইন্টারনেট দিয়ে যায় না।"
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "আপনার iPhone শুধু একই Wi-Fi-তে এই কম্পিউটারের সঙ্গে কথা বলে। কিছুই ইন্টারনেট দিয়ে যায় না।",
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "আপনার iPhone এখন এই কম্পিউটারে পৌঁছাতে পারছে না। Yogurt আবার চালু করে দেখুন।"
 }

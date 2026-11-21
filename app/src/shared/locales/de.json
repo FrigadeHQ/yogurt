@@ -765,8 +765,9 @@
   "Too many wrong codes. Start pairing again.": "Zu viele falsche Codes. Starte das Koppeln neu.",
   "Unpair": "Entkoppeln",
   "Unpair your iPhone? It keeps its copy until you pair again.": "iPhone entkoppeln? Es behält seine Kopie, bis du es wieder koppelst.",
-  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt konnte seinen Schlüsselbund nicht öffnen und kann deshalb gerade nicht koppeln.",
+  "Yogurt couldn't reach this computer's secure storage, so it can't pair right now.": "Yogurt konnte den sicheren Speicher dieses Computers nicht erreichen und kann deshalb gerade nicht koppeln.",
   "Yogurt couldn't start pairing. Try again.": "Yogurt konnte das Koppeln nicht starten. Versuch es noch einmal.",
   "Yogurt on your iPhone": "Yogurt auf deinem iPhone",
-  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Dein iPhone spricht mit diesem Computer nur im selben WLAN. Nichts geht über das Internet."
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Dein iPhone spricht mit diesem Computer nur im selben WLAN. Nichts geht über das Internet.",
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "Dein iPhone kann diesen Computer gerade nicht erreichen. Starte Yogurt neu."
 }

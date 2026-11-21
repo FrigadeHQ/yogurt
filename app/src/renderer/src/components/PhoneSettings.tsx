@@ -26,25 +26,26 @@ export function PhoneSettings() {
   const [confirming, setConfirming] = useState(false)
   const [now, setNow] = useState(Date.now)
   useEffect(() => {
-    let live = true
-    void window.yogurt.companion.status().then((s) => { if (live) setStatus(s) }, () => { if (live) setStatus(null) })
-    const off = window.yogurt.companion.onStatus(setStatus)
+    // a push that lands before the first answer is newer than it
+    let live = true, pushed = false
+    void window.yogurt.companion.status().then((s) => { if (live && !pushed) setStatus(s) }, () => { if (live && !pushed) setStatus(null) })
+    const off = window.yogurt.companion.onStatus((s) => { pushed = true; setStatus(s) })
     return () => { live = false; off() }
   }, [])
-  // the countdown and "last seen" move on by themselves
-  const ticking = !!status?.pairing || !!status?.paired
+  // the countdown moves every second, "last seen" by the minute
+  const tick = status?.pairing ? 1000 : status?.paired ? 30_000 : 0
   useEffect(() => {
-    if (!ticking) return
+    if (!tick) return
     setNow(Date.now())
-    const timer = setInterval(() => setNow(Date.now()), 1000)
+    const timer = setInterval(() => setNow(Date.now()), tick)
     return () => clearInterval(timer)
-  }, [ticking])
+  }, [tick])
   // fake mode, or it didn't start: nothing here to pair
   if (status === null) return null
 
   const act = async (run: () => Promise<CompanionStatus | null>) => {
     setBusy(true)
-    try { const s = await run(); if (s) setStatus(s) } finally { setBusy(false) }
+    try { const s = await run(); if (s) setStatus(s) } catch { /* the next status push says what is true */ } finally { setBusy(false) }
   }
   const start = () => act(async () => {
     setFailed(false); setConfirming(false)
@@ -57,7 +58,7 @@ export function PhoneSettings() {
 
   const pairing = status?.pairing
   const paired = status?.paired
-  const notice = status?.error === 'keychain' ? t("Yogurt couldn't open its keychain, so it can't pair right now.")
+  const notice = status?.error === 'keychain' ? t("Yogurt couldn't reach this computer's secure storage, so it can't pair right now.")
     : failed || status?.error === 'listen' ? t("Yogurt couldn't start pairing. Try again.")
     : status?.pairingClosed === 'tooMany' ? t('Too many wrong codes. Start pairing again.')
     : status?.pairingClosed === 'expired' ? t('The code ran out. Start pairing again.')
@@ -87,6 +88,7 @@ export function PhoneSettings() {
               {status.connected && <span data-testid="phone-live-dot" aria-hidden="true" className="phone-live-dot inline-block size-2 shrink-0 rounded-full" style={{ backgroundColor: 'var(--status-live)' }} />}
               {status.connected ? t('Connected') : paired.lastSeen == null ? t('Not connected yet') : lastSeen(paired.lastSeen, now)}
             </p>}
+          {status.error === 'listen' && <p role="alert" data-testid="phone-notice" className="settings-description text-danger">{t("Your iPhone can't reach this computer right now. Try restarting Yogurt.")}</p>}
         </div>
         {confirming ? <div className="flex shrink-0 gap-2">
           <button type="button" data-testid="phone-unpair-cancel" disabled={busy} onClick={() => setConfirming(false)} className="workspace-button">{t('Cancel')}</button>

@@ -768,8 +768,9 @@
   "Too many wrong codes. Start pairing again.": "Πάρα πολλοί λάθος κωδικοί. Ξεκίνα πάλι τη σύζευξη.",
   "Unpair": "Κατάργηση σύζευξης",
   "Unpair your iPhone? It keeps its copy until you pair again.": "Κατάργηση σύζευξης του iPhone σου; Κρατά το αντίγραφό του μέχρι να το συζεύξεις ξανά.",
-  "Yogurt couldn't open its keychain, so it can't pair right now.": "Το Yogurt δεν μπόρεσε να ανοίξει την κλειδοθήκη του, οπότε δεν μπορεί να κάνει σύζευξη τώρα.",
+  "Yogurt couldn't reach this computer's secure storage, so it can't pair right now.": "Το Yogurt δεν μπόρεσε να φτάσει στον ασφαλή χώρο αποθήκευσης αυτού του υπολογιστή, οπότε δεν μπορεί να κάνει σύζευξη τώρα.",
   "Yogurt couldn't start pairing. Try again.": "Το Yogurt δεν μπόρεσε να ξεκινήσει τη σύζευξη. Δοκίμασε ξανά.",
   "Yogurt on your iPhone": "Το Yogurt στο iPhone σου",
-  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Το iPhone σου μιλά με αυτόν τον υπολογιστή μόνο στο ίδιο Wi-Fi. Τίποτα δεν περνά από το διαδίκτυο."
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Το iPhone σου μιλά με αυτόν τον υπολογιστή μόνο στο ίδιο Wi-Fi. Τίποτα δεν περνά από το διαδίκτυο.",
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "Το iPhone σου δεν μπορεί να φτάσει αυτόν τον υπολογιστή τώρα. Δοκίμασε να επανεκκινήσεις το Yogurt."
 }

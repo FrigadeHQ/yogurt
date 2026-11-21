@@ -723,8 +723,9 @@
   "Too many wrong codes. Start pairing again.": "Terlalu banyak kod salah. Mulakan pemasangan semula.",
   "Unpair": "Nyahpasang",
   "Unpair your iPhone? It keeps its copy until you pair again.": "Nyahpasang iPhone anda? Ia menyimpan salinannya sehingga anda memasangkannya semula.",
-  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt tidak dapat membuka rantai kuncinya, jadi ia tidak boleh memasangkan sekarang.",
+  "Yogurt couldn't reach this computer's secure storage, so it can't pair right now.": "Yogurt tidak dapat mencapai storan selamat komputer ini, jadi ia tidak boleh memasangkan sekarang.",
   "Yogurt couldn't start pairing. Try again.": "Yogurt tidak dapat memulakan pemasangan. Cuba lagi.",
   "Yogurt on your iPhone": "Yogurt pada iPhone anda",
-  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone anda hanya bercakap dengan komputer ini pada Wi-Fi yang sama. Tiada apa-apa melalui internet."
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone anda hanya bercakap dengan komputer ini pada Wi-Fi yang sama. Tiada apa-apa melalui internet.",
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhone anda tidak dapat mencapai komputer ini sekarang. Cuba mulakan semula Yogurt."
 }

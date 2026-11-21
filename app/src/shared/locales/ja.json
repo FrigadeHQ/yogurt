@@ -723,8 +723,9 @@
   "Too many wrong codes. Start pairing again.": "間違ったコードが多すぎます。もう一度ペアリングを始めてください。",
   "Unpair": "ペアリングを解除",
   "Unpair your iPhone? It keeps its copy until you pair again.": "iPhoneとのペアリングを解除しますか？再びペアリングするまで、iPhoneは自分のコピーを保持します。",
-  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurtがキーチェーンを開けなかったため、今はペアリングできません。",
+  "Yogurt couldn't reach this computer's secure storage, so it can't pair right now.": "Yogurtがこのコンピュータの安全な保存領域にアクセスできなかったため、今はペアリングできません。",
   "Yogurt couldn't start pairing. Try again.": "Yogurtはペアリングを開始できませんでした。もう一度お試しください。",
   "Yogurt on your iPhone": "iPhone版Yogurt",
-  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhoneは同じWi-Fi上でのみこのコンピュータと通信します。インターネットを経由するものはありません。"
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhoneは同じWi-Fi上でのみこのコンピュータと通信します。インターネットを経由するものはありません。",
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhoneが今このコンピュータに接続できません。Yogurtを再起動してみてください。"
 }

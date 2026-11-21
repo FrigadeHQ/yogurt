@@ -771,8 +771,9 @@
   "Too many wrong codes. Start pairing again.": "Liian monta väärää koodia. Aloita yhdistäminen uudelleen.",
   "Unpair": "Poista yhdistys",
   "Unpair your iPhone? It keeps its copy until you pair again.": "Poistetaanko iPhonen yhdistys? Se säilyttää kopionsa, kunnes yhdistät uudelleen.",
-  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt ei saanut avattua avainnippuaan, joten se ei voi yhdistää juuri nyt.",
+  "Yogurt couldn't reach this computer's secure storage, so it can't pair right now.": "Yogurt ei saanut yhteyttä tämän tietokoneen suojattuun tallennustilaan, joten se ei voi yhdistää juuri nyt.",
   "Yogurt couldn't start pairing. Try again.": "Yogurt ei voinut aloittaa yhdistämistä. Yritä uudelleen.",
   "Yogurt on your iPhone": "Yogurt iPhonessasi",
-  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhonesi puhuu tämän tietokoneen kanssa vain samassa Wi-Fi-verkossa. Mitään ei kulje internetin kautta."
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhonesi puhuu tämän tietokoneen kanssa vain samassa Wi-Fi-verkossa. Mitään ei kulje internetin kautta.",
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhonesi ei tavoita tätä tietokonetta juuri nyt. Kokeile käynnistää Yogurt uudelleen."
 }

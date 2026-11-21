@@ -16,6 +16,7 @@ export function hookCompanion(d: { companion: Promise<Bridge | undefined>; send:
     if (!c) return { ok: false, status: null }
     try { await c.startPairing(); return { ok: true, status: c.status() } } catch { return { ok: false, status: c.status() } }
   })
-  ipcMain.handle('companion:cancel-pairing', async () => { const c = await ready; await c?.cancelPairing(); return c?.status() ?? null })
-  ipcMain.handle('companion:unpair', async () => { const c = await ready; await c?.unpair(); return c?.status() ?? null })
+  // a failure answers the status as it is, so the window shows what is true rather than an error it can't place
+  ipcMain.handle('companion:cancel-pairing', async () => { const c = await ready; await c?.cancelPairing().catch(() => {}); return c?.status() ?? null })
+  ipcMain.handle('companion:unpair', async () => { const c = await ready; await c?.unpair().catch(() => {}); return c?.status() ?? null })
 }

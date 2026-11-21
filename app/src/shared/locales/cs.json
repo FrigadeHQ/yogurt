@@ -796,8 +796,9 @@
   "Too many wrong codes. Start pairing again.": "Příliš mnoho špatných kódů. Začněte párování znovu.",
   "Unpair": "Zrušit párování",
   "Unpair your iPhone? It keeps its copy until you pair again.": "Zrušit párování iPhonu? Svou kopii si ponechá, dokud ho znovu nespárujete.",
-  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt nemohl otevřít svou klíčenku, takže teď nemůže párovat.",
+  "Yogurt couldn't reach this computer's secure storage, so it can't pair right now.": "Yogurt se nedostal k zabezpečenému úložišti tohoto počítače, takže teď nemůže párovat.",
   "Yogurt couldn't start pairing. Try again.": "Yogurt nemohl zahájit párování. Zkuste to znovu.",
   "Yogurt on your iPhone": "Yogurt v iPhonu",
-  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Váš iPhone komunikuje s tímto počítačem jen ve stejné síti Wi-Fi. Nic nejde přes internet."
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Váš iPhone komunikuje s tímto počítačem jen ve stejné síti Wi-Fi. Nic nejde přes internet.",
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "Váš iPhone se teď k tomuto počítači nedostane. Zkuste Yogurt restartovat."
 }

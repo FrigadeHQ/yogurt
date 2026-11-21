@@ -765,8 +765,9 @@
   "Too many wrong codes. Start pairing again.": "For mange feil koder. Start tilkoblingen på nytt.",
   "Unpair": "Koble fra",
   "Unpair your iPhone? It keeps its copy until you pair again.": "Koble fra iPhonen? Den beholder kopien sin til du kobler til igjen.",
-  "Yogurt couldn't open its keychain, so it can't pair right now.": "Yogurt fikk ikke åpnet nøkkelringen sin, så den kan ikke koble til nå.",
+  "Yogurt couldn't reach this computer's secure storage, so it can't pair right now.": "Yogurt fikk ikke tilgang til den sikre lagringen på denne datamaskinen, så den kan ikke koble til nå.",
   "Yogurt couldn't start pairing. Try again.": "Yogurt fikk ikke startet tilkoblingen. Prøv igjen.",
   "Yogurt on your iPhone": "Yogurt på iPhonen din",
-  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhonen din snakker bare med denne datamaskinen på samme wifi. Ingenting går via internett."
+  "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhonen din snakker bare med denne datamaskinen på samme wifi. Ingenting går via internett.",
+  "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhonen din når ikke denne datamaskinen akkurat nå. Prøv å starte Yogurt på nytt."
 }

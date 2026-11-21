@@ -189,6 +189,16 @@ export async function createCompanion(d: CompanionDeps) {
   }, d.pollMs ?? 1000)
   poll.unref?.()
 
+  // every message 1 since start-up, oldest first, kept across the server turning off and on
+  const seenEphemerals = new Set<string>()
+  const fresh = (e: Uint8Array) => {
+    const k = Buffer.from(e).toString('base64')
+    if (seenEphemerals.has(k)) return false
+    seenEphemerals.add(k)
+    if (seenEphemerals.size > limits.replays) seenEphemerals.delete(seenEphemerals.values().next().value!)
+    return true
+  }
+
   async function listen() {
     if (server || stopped) return
     starting ??= (async () => {
@@ -196,6 +206,7 @@ export async function createCompanion(d: CompanionDeps) {
         limits, now, log: d.log,
         pairing: pairCtx, paired,
         phoneKey: () => device()?.key ?? null,
+        fresh,
         staticKey: () => keys,
         opened: (s: Session) => {
           session?.close()
@@ -219,12 +230,14 @@ export async function createCompanion(d: CompanionDeps) {
       }
       const host = d.host ?? '0.0.0.0'
       try {
-        server = await startServer(hooks, saved.port ?? 0, host)
-      } catch (err) {
-        // the port we had is taken now: a new one (the phone finds it again through Bonjour)
-        if ((err as NodeJS.ErrnoException).code !== 'EADDRINUSE') throw err
-        server = await startServer(hooks, 0, host)
-      }
+        try {
+          server = await startServer(hooks, saved.port ?? 0, host)
+        } catch (err) {
+          // the port we had is taken now: a new one (the phone finds it again through Bonjour)
+          if ((err as NodeJS.ErrnoException).code !== 'EADDRINUSE') throw err
+          server = await startServer(hooks, 0, host)
+        }
+      } catch (err) { listenFailed = true; throw err }
       listenFailed = false
       const port = server.port
       if (port !== saved.port) { saved.port = port; persist() }
@@ -237,7 +250,6 @@ export async function createCompanion(d: CompanionDeps) {
   let refreshing: Promise<void> = Promise.resolve()
   const refresh = () => {
     refreshing = refreshing.then(turn).catch((err) => {
-      if (wanted() && !server) listenFailed = true
       d.log('COMPANION', 'could not turn on or off', (err as NodeJS.ErrnoException).code ?? (err as Error).name)
     })
     return refreshing
@@ -262,17 +274,17 @@ export async function createCompanion(d: CompanionDeps) {
   return {
     /** a new six-digit code for two minutes; the server starts if it wasn't running */
     async startPairing(): Promise<{ code: string; expiresAt: number }> {
+      listenFailed = false
       freshCode()
       pairingClosed = null
       retryAt = 0
       const { code, expiresAt } = pairing!
       emit()
       await refresh()
-      // nothing listens, so no phone could reach the code: closed, and the status says why
-      if (!server && pairing?.code === code) {
-        pairing = null
-        clearTimeout(expiry)
-        await refresh()
+      // nothing listens, so no phone could reach the code: closed, and the status says why (also when it was
+      // cancelled meanwhile, so the caller never hears ok for a code nobody could use)
+      if (!server && listenFailed) {
+        if (pairing?.code === code) { pairing = null; clearTimeout(expiry); await refresh() }
         emit()
         throw new Error('listen')
       }
@@ -280,11 +292,13 @@ export async function createCompanion(d: CompanionDeps) {
       return { code, expiresAt }
     },
     async cancelPairing() {
+      listenFailed = false
       closePairing(null)
       await refresh()
       emit()
     },
     async unpair() {
+      listenFailed = false
       d.store.db.exec('DELETE FROM companion_devices')
       session?.close()
       d.log('COMPANION', 'unpaired')

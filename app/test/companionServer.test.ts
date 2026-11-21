@@ -116,43 +116,42 @@ describe('companion sessions', () => {
     expect(c.status().connected).toBe(true)
   })
 
-  it('a replayed first handshake message neither kicks the phone off nor shows it as connected', async () => {
+  it('a replayed first handshake message gets no answer, neither kicks the phone off nor shows it as connected', async () => {
     const { c, connect, phone, desktopKey } = await paired({ limits: { handshakeMs: 300 } })
     let captured: Uint8Array | undefined
     const first = await session(c.port()!, phone, desktopKey, undefined, { sent: (m) => { captured = m } })
     expect((await first.request('hello', { schema: 1 })).type).toBe('ok')
     first.close()
     await expect.poll(() => c.status().connected).toBe(false)
-    // the attacker replays it: the desktop answers, but nothing is connected and nothing was seen
+    // the attacker replays it: dropped at once, nothing connected and nothing seen
     const seenBefore = c.status().paired!.lastSeen
     const replay = await raw(c.port()!)
     replay.send(captured!)
-    await replay.next()
+    await expect(replay.next()).rejects.toThrow('closed')
     expect(c.status().connected).toBe(false)
     expect(c.status().paired!.lastSeen).toBe(seenBefore)
-    await replay.closed
     // with the real phone connected, a replay doesn't close it
     const live = await connect()
     expect((await live.request('hello', { schema: 1 })).type).toBe('ok')
     const again = await raw(c.port()!)
     again.send(captured!)
-    await again.next()
-    await again.closed
+    await expect(again.next()).rejects.toThrow('closed')
     expect((await live.request('pull', { since: 0, limit: 1 })).type).toBe('ok')
     expect(c.status().connected).toBe(true)
   })
 
-  it('a replayed first handshake message is closed after one step, not the whole handshake time', async () => {
-    const { c, phone, desktopKey } = await paired({ limits: { handshakeMs: 10_000, stepMs: 200 } })
+  it('remembers a bounded number of first messages: an old enough one is answered, then closed after one step', async () => {
+    const { c, phone, desktopKey } = await paired({ limits: { handshakeMs: 10_000, stepMs: 200, replays: 1 } })
     let captured: Uint8Array | undefined
-    const first = await session(c.port()!, phone, desktopKey, undefined, { sent: (m) => { captured = m } })
-    first.close()
+    ;(await session(c.port()!, phone, desktopKey, undefined, { sent: (m) => { captured = m } })).close()
+    // a newer handshake pushes the first one out of the cache
+    ;(await session(c.port()!, phone, desktopKey)).close()
     const replay = await raw(c.port()!)
     replay.send(captured!)
     await replay.next()
     const at = Date.now()
     await replay.closed
-    // a flood of replays can't keep the slots the real phone needs for long
+    // one that never sends a frame that decrypts can't keep a slot the real phone needs for long
     expect(Date.now() - at).toBeLessThan(2000)
   })
 
