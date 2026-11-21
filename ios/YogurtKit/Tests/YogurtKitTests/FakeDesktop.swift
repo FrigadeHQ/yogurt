@@ -191,6 +191,9 @@ func testConfig() -> SyncConfig {
     c.pullLimit = 2
     c.audioChunk = 10
     c.audioFolder = FileManager.default.temporaryDirectory.appendingPathComponent("yogurt-audio-\(UUID().uuidString)")
+    c.uploadFolder = FileManager.default.temporaryDirectory.appendingPathComponent("yogurt-uploads-\(UUID().uuidString)")
+    c.uploadRetryFrom = .milliseconds(150)
+    c.uploadRetryUpTo = .milliseconds(600)
     return c
 }
 

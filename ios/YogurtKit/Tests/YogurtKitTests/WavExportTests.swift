@@ -63,7 +63,7 @@ private func toneM4A(seconds: Double = 1.5, rate: Double = 48000) throws -> URL 
         #expect(String(decoding: sent.prefix(4), as: UTF8.self) == "RIFF")
         #expect(rig.desktop.requests("uploadAudio").allSatisfy { $0["mime"] as? String == "audio/wav" })
         // the WAV is made for the upload and thrown away after it; the phone's m4a stays until it lets it go
-        let leftovers = (try? FileManager.default.contentsOfDirectory(atPath: FileManager.default.temporaryDirectory.appendingPathComponent("Yogurt uploads").path)) ?? []
+        let leftovers = (try? FileManager.default.contentsOfDirectory(atPath: testConfigUploads(rig).path)) ?? []
         #expect(!leftovers.contains { $0.hasPrefix("w1") })
         #expect(FileManager.default.fileExists(atPath: m4a.path))
     }
@@ -80,4 +80,54 @@ private func toneM4A(seconds: Double = 1.5, rate: Double = 48000) throws -> URL 
         #expect(await eventually { rig.store.localRecordings().first?.uploadedAt != nil })
         #expect(rig.desktop.requests("uploadAudio").allSatisfy { $0["mime"] as? String == "audio/mp4" })
     }
+
+    @Test func aFailedUploadKeepsItsWavForTheNextTryAndWaitsBeforeIt() async throws {
+        let rig = try Rig()
+        let m4a = try toneM4A(seconds: 1)
+        defer { try? FileManager.default.removeItem(at: m4a) }
+        rig.desktop.uploadAudioReply = { body in ["received": body["index"] as? Int ?? 0, "done": true] }
+        rig.engine.setForeground(true)
+        #expect(await eventually { rig.connected })
+        try await rig.engine.upload(LocalRecording(id: "w2", title: "Hallway", startedAt: Date(timeIntervalSince1970: 10), endedAt: Date(timeIntervalSince1970: 11),
+                                                   attendees: [], audioURL: m4a, myNotes: "", transcript: [], summary: nil))
+        // it says so, and doesn't send it again at once
+        #expect(rig.engine.status == .error(SyncEngine.uploadFailed("Test Mac")))
+        let cached = testConfigUploads(rig).appendingPathComponent("w2.wav")
+        #expect(FileManager.default.fileExists(atPath: cached.path))
+        await rig.engine.syncNow()
+        #expect(rig.desktop.requests("uploadMeeting").count == 1)
+        // the next try sends the WAV made for the first one
+        let marker = PhoneAudio.header(dataBytes: 4) + Data([1, 2, 3, 4])
+        try marker.write(to: cached)
+        rig.desktop.uploadAudioReply = nil
+        #expect(await eventually { rig.store.localRecordings().first?.uploadedAt != nil })
+        #expect(rig.desktop.importedAudio["w2"] == marker)
+        #expect(!FileManager.default.fileExists(atPath: cached.path))
+        #expect(await eventually { rig.connected })
+    }
+
+    @Test func withoutRoomForTheWavTheRecordingGoesAsItIs() async throws {
+        var config = testConfig()
+        config.freeSpace = { 1000 }
+        let rig = try Rig(config: config)
+        let m4a = try toneM4A(seconds: 1)
+        defer { try? FileManager.default.removeItem(at: m4a) }
+        rig.engine.setForeground(true)
+        #expect(await eventually { rig.connected })
+        try await rig.engine.upload(LocalRecording(id: "w3", title: "Hallway", startedAt: Date(timeIntervalSince1970: 10), endedAt: Date(timeIntervalSince1970: 11),
+                                                   attendees: [], audioURL: m4a, myNotes: "", transcript: [], summary: nil))
+        #expect(await eventually { rig.store.localRecordings().first?.uploadedAt != nil })
+        #expect(rig.desktop.requests("uploadAudio").allSatisfy { $0["mime"] as? String == "audio/mp4" })
+    }
+
+    @Test func uploadFilesLeftByAnEarlierRunAreSweptAtLaunch() throws {
+        let config = testConfig()
+        try FileManager.default.createDirectory(at: config.uploadFolder, withIntermediateDirectories: true)
+        let left = config.uploadFolder.appendingPathComponent("old-1234.wav")
+        try Data([1, 2, 3]).write(to: left)
+        _ = try Rig(config: config)
+        #expect(!FileManager.default.fileExists(atPath: left.path))
+    }
 }
+
+@MainActor private func testConfigUploads(_ rig: Rig) -> URL { rig.engine.uploadFolder }

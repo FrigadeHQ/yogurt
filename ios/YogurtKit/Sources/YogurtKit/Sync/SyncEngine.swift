@@ -79,6 +79,16 @@ public struct SyncConfig: Sendable {
     /// raw bytes per uploadAudio: base64 of 44000 bytes keeps each message under the 60000-byte chunking limit
     public var audioChunk = 44000
     public var audioFolder = URL.cachesDirectory.appending(path: "Yogurt audio", directoryHint: .isDirectory)
+    /// a recording's WAV while it goes to the computer; emptied at launch
+    public var uploadFolder = FileManager.default.temporaryDirectory.appending(path: "Yogurt uploads", directoryHint: .isDirectory)
+    /// bytes free where the WAV is made (nil when iOS won't say)
+    public var freeSpace: @Sendable () -> Int64? = {
+        (try? FileManager.default.temporaryDirectory.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]))?
+            .volumeAvailableCapacityForImportantUsage
+    }
+    /// a recording the computer didn't take waits this long before it's sent again, doubling each time
+    public var uploadRetryFrom: Duration = .seconds(30)
+    public var uploadRetryUpTo: Duration = .seconds(600)
     public init() {}
 }
 
@@ -90,6 +100,7 @@ public final class SyncEngine: SyncEngineProtocol {
     public static let localNetwork = "Allow Local Network for Yogurt in Settings to reach your computer."
     public static let updateNeeded = "Update Yogurt on your iPhone or computer so they can sync again."
     static func syncFailed(_ name: String) -> String { "Couldn't sync with \(name) just now. Trying again soon." }
+    static func uploadFailed(_ name: String) -> String { "Couldn't send a recording to \(name). Trying again soon." }
 
     public private(set) var status: ConnectionStatus
     public private(set) var discovered: [DiscoveredDesktop] = []
@@ -128,6 +139,10 @@ public final class SyncEngine: SyncEngineProtocol {
     @ObservationIgnored private var connectGeneration = 0
     /// pull everything again from 0: the desktop's copy may differ from what is here without a change to tell us
     @ObservationIgnored private var fullPull = false
+    /// recordings the computer didn't take: how many tries so far, and not before when
+    @ObservationIgnored private var uploadWaits: [String: (tries: Int, until: ContinuousClock.Instant)] = [:]
+    @ObservationIgnored private var uploadRetry: Task<Void, Never>?
+    var uploadFolder: URL { config.uploadFolder }
     /// a recording that waits a moment before going to the computer (its draft notes and title are being written)
     @ObservationIgnored public var holdsUpload: @MainActor (String) -> Bool = { _ in false }
 
@@ -141,6 +156,8 @@ public final class SyncEngine: SyncEngineProtocol {
         self.store = store; self.vault = vault; self.network = network; self.defaults = defaults; self.config = config
         backoff = config.retryFrom
         roundBackoff = config.retryFrom
+        // WAVs a killed or crashed run left behind
+        try? FileManager.default.removeItem(at: config.uploadFolder)
         pairing = vault.load()
         status = .notPaired
         if let pairing { status = .offline(pairing.desktopName, lastSync: lastSync) }
@@ -224,6 +241,7 @@ public final class SyncEngine: SyncEngineProtocol {
         session = nil
         keepalive?.cancel()
         roundRetry?.cancel(); roundRetry = nil
+        uploadRetry?.cancel(); uploadRetry = nil
         s?.close()
     }
 
@@ -464,7 +482,18 @@ public final class SyncEngine: SyncEngineProtocol {
         guard session === s else { return }
         if ok {
             roundBackoff = config.retryFrom
-            status = .connected(name, syncing: nil)
+            // a recording the computer didn't take: said so, and sent again after its wait
+            if let next = uploadWaits.values.map(\.until).min() {
+                status = .error(Self.uploadFailed(name))
+                uploadRetry?.cancel()
+                uploadRetry = Task { [weak self] in
+                    try? await Task.sleep(until: next, clock: .continuous)
+                    guard let self, !Task.isCancelled, self.session === s else { return }
+                    self.requestSync()
+                }
+            } else {
+                status = .connected(name, syncing: nil)
+            }
             return
         }
         // never "Synced just now" after a round that didn't finish; lastSync keeps the last one that did
@@ -561,18 +590,28 @@ public final class SyncEngine: SyncEngineProtocol {
     private func sendUploads(_ s: DesktopSession) async throws -> Bool {
         var any = false
         // one still recording (no end yet) waits until it's finished
-        let waiting = store.localRecordings().filter { $0.uploadedAt == nil && $0.endedAt != nil && !holdsUpload($0.id) }
+        let now = ContinuousClock.now
+        let waiting = store.localRecordings().filter {
+            $0.uploadedAt == nil && $0.endedAt != nil && !holdsUpload($0.id) && (uploadWaits[$0.id]?.until ?? now) <= now
+        }
         for (i, rec) in waiting.enumerated() {
             if session === s { status = .connected(name, syncing: waiting.count - i) }
             do {
                 if try await upload(rec, over: s) { any = true }
+                uploadWaits[rec.id] = nil
             } catch let e as SyncError where e == .closed || e == .timeout {
                 throw e
             } catch {
-                // busy, too big, failed or no audio: this one waits, the others go
+                // busy, too big, failed or no audio: this one waits a while, the others go
+                let tries = (uploadWaits[rec.id]?.tries ?? 0) + 1
+                let wait = min(config.uploadRetryFrom * Int(pow(2, Double(min(tries - 1, 10)))), config.uploadRetryUpTo)
+                uploadWaits[rec.id] = (tries, ContinuousClock.now + wait)
                 log.notice("upload \(rec.id, privacy: .public) waits: \(String(describing: error), privacy: .public)")
             }
         }
+        // gone meanwhile (imported, discarded): nothing to wait for
+        let open = Set(store.localRecordings().filter { $0.uploadedAt == nil }.map(\.id))
+        uploadWaits = uploadWaits.filter { open.contains($0.key) }
         return any
     }
 
@@ -596,24 +635,47 @@ public final class SyncEngine: SyncEngineProtocol {
                 }
             }
             try store.markUploaded(rec.id)
+            try? FileManager.default.removeItem(at: wavURL(rec.id))
             revision += 1
             return true
         }
         return false
     }
 
-    private func sendAudio(_ rec: LocalRecording, over s: DesktopSession) async throws {
-        // every computer can transcribe WAV; an m4a only a Mac can. Made off the main actor, thrown away after.
-        let wav = FileManager.default.temporaryDirectory.appending(path: "Yogurt uploads", directoryHint: .isDirectory)
-            .appending(path: "\(rec.id)-\(UUID().uuidString).wav")
-        defer { try? FileManager.default.removeItem(at: wav) }
-        let source = rec.audioURL
-        let converted = await Task.detached(priority: .utility) { () -> Bool in
+    private func wavURL(_ id: String) -> URL { config.uploadFolder.appending(path: "\(id).wav") }
+
+    /// The recording as WAV, made once and kept until the computer has it, so a retry doesn't convert it again.
+    /// nil when it doesn't decode here, or there isn't room for it (32 kB a second, plus some to spare).
+    private func wav(_ rec: LocalRecording) async -> URL? {
+        let wav = wavURL(rec.id)
+        if FileManager.default.fileExists(atPath: wav.path) { return wav }
+        let seconds = max(0, (rec.endedAt ?? rec.startedAt).timeIntervalSince(rec.startedAt))
+        if let free = config.freeSpace(), Double(free) < seconds * 32000 + 50_000_000 {
+            log.notice("upload \(rec.id, privacy: .public): no room for the WAV")
+            return nil
+        }
+        let source = rec.audioURL, part = wav.appendingPathExtension("part")
+        // made off the main actor, under another name until it's whole
+        let made = await Task.detached(priority: .utility) { () -> Bool in
             try? FileManager.default.createDirectory(at: wav.deletingLastPathComponent(), withIntermediateDirectories: true)
-            do { try PhoneAudio.wav(from: source, to: wav); return true } catch { return false }
+            do {
+                try PhoneAudio.wav(from: source, to: part)
+                try FileManager.default.moveItem(at: part, to: wav)
+                return true
+            } catch {
+                try? FileManager.default.removeItem(at: part)
+                return false
+            }
         }.value
-        // audio that doesn't decode here goes as it is: a Mac may still read it
-        let (url, mime) = converted ? (wav, "audio/wav") : (source, "audio/mp4")
+        return made ? wav : nil
+    }
+
+    private func sendAudio(_ rec: LocalRecording, over s: DesktopSession) async throws {
+        // every computer can transcribe WAV; an m4a only a Mac can. Audio that doesn't decode here (or has no room to
+        // be converted) goes as it is: a Mac may still read it.
+        let wav = await wav(rec)
+        try still(s)
+        let (url, mime) = wav.map { ($0, "audio/wav") } ?? (rec.audioURL, "audio/mp4")
         let file = try FileHandle(forReadingFrom: url)
         defer { try? file.close() }
         let size = (try FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int) ?? 0
