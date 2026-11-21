@@ -245,10 +245,13 @@ import Testing
         rig.network.openError = .unrecognised
         rig.engine.setForeground(true)
         #expect(await eventually { rig.engine.status == .error("This computer doesn't recognise this iPhone any more. Pair again.") })
-        // and stops trying until something changes
+        // the message stays while it tries again now and then: someone else on the Wi-Fi can make a computer that
+        // knows this phone close on it, and then it connects once they stop
         let tries = rig.network.opens
-        try await Task.sleep(for: .milliseconds(100))
-        #expect(rig.network.opens == tries)
+        #expect(await eventually { rig.network.opens > tries + 1 })
+        #expect(rig.engine.status == .error(SyncEngine.unrecognised))
+        rig.network.openError = nil
+        #expect(await eventually { rig.connected })
     }
 
     @Test func aComputerOnAnotherVersionSaysToUpdate() async throws {

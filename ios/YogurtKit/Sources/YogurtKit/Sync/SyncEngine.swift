@@ -129,9 +129,10 @@ public final class SyncEngine: SyncEngineProtocol {
     @ObservationIgnored private var sync: Task<Void, Never>?
     @ObservationIgnored private var syncAgain = false
     @ObservationIgnored private var backoff: Duration
-    /// handshakes refused in a row; one could be a dropped connection, two means the desktop doesn't know this key
+    /// handshakes refused in a row; one could be a dropped connection, two most likely means the desktop doesn't know
+    /// this key
     @ObservationIgnored private var refusals = 0
-    /// the desktop refused this phone's key: no more tries until something changes
+    /// the desktop speaks another version of sync: no more tries until something changes
     @ObservationIgnored private var refused = false
     @ObservationIgnored private var roundRetry: Task<Void, Never>?
     @ObservationIgnored private var roundBackoff: Duration
@@ -291,8 +292,8 @@ public final class SyncEngine: SyncEngineProtocol {
     private func connectIfPossible() {
         guard active, let pairing, session == nil, connecting == nil, retry == nil, !blocked,
               let target = found.first(where: { $0.desktop.id == pairing.desktopId }) else { return }
-        // once it has said offline it stays so until a session is up, so retries don't flicker the pill
-        if case .offline = status {} else { status = .connecting(pairing.desktopName) }
+        // once it has said offline (or to pair again) it stays so until a session is up, so retries don't flicker the pill
+        if case .offline = status {} else if status != .error(Self.unrecognised) { status = .connecting(pairing.desktopName) }
         connectGeneration += 1
         let generation = connectGeneration
         connecting = Task { [weak self] in await self?.connect(target, pairing, generation) }
@@ -324,10 +325,11 @@ public final class SyncEngine: SyncEngineProtocol {
             if error as? SyncError == .unrecognised {
                 refusals += 1
                 if refusals >= 2 {
-                    refused = true
                     offlineTimer?.cancel()
                     status = .error(Self.unrecognised)
-                    return
+                    // a computer that lost this phone's key looks the same as one someone else on the Wi-Fi keeps
+                    // busy: the message stays, and it tries again now and then in case it was the second
+                    backoff = config.retryUpTo
                 }
             }
             scheduleRetry()
