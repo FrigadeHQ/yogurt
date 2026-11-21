@@ -6,7 +6,8 @@ import UIKit
 enum Permission: CaseIterable {
     case microphone, speech
 
-    enum Access { case on, off, notAsked }
+    /// restricted: Screen Time or a work or school profile decides; the person can't turn it on here
+    enum Access { case on, off, notAsked, restricted }
 
     var access: Access {
         switch self {
@@ -19,7 +20,8 @@ enum Permission: CaseIterable {
         case .speech:
             switch SFSpeechRecognizer.authorizationStatus() {
             case .authorized: .on
-            case .denied, .restricted: .off
+            case .denied: .off
+            case .restricted: .restricted
             default: .notAsked
             }
         }

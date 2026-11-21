@@ -26,7 +26,7 @@ struct SettingsView: View {
                 Section {
                     Toggle(isOn: $lockWithFaceID) { Label(S.faceIDLock, systemImage: "faceid") }
                         .tint(Theme.primary)
-                        .disabled(!lockAvailable && !lockWithFaceID)
+                        .disabled(!lockAvailable)
                 } header: { Text(S.privacy) } footer: {
                     Text((lockAvailable ? S.faceIDFooter : S.faceIDNeedsPasscode) + " " + S.privacyNote)
                 }
@@ -126,12 +126,14 @@ struct SettingsView: View {
                         Text(S.accessOn).foregroundStyle(Theme.muted)
                     case .off:
                         Button(S.openSettings) { Permission.openSettings() }.foregroundStyle(Theme.accent)
+                    case .restricted:
+                        Text(S.accessRestricted).foregroundStyle(Theme.muted)
                     case .notAsked:
                         Button(S.allow) { Task { _ = await p.request(); recheck() } }.foregroundStyle(Theme.accent)
                     }
                 }
                 .accessibilityElement(children: .combine)
-                .accessibilityValue(a == .on ? S.accessOn : a == .off ? S.accessOff : S.accessNotAsked)
+                .accessibilityValue(a == .on ? S.accessOn : a == .off ? S.accessOff : a == .restricted ? S.accessRestricted : S.accessNotAsked)
             }
         } header: { Text(S.permissions) } footer: { Text(S.permissionsFooter) }
         .listRowBackground(Theme.card)
@@ -141,6 +143,8 @@ struct SettingsView: View {
     private func recheck() {
         access = Dictionary(uniqueKeysWithValues: Permission.allCases.map { ($0, $0.access) })
         lockAvailable = LockController.available
+        // the passcode was removed: the lock can't work, so the switch says so instead of showing On
+        if !lockAvailable { lockWithFaceID = false }
     }
 
     private func isError(_ s: ConnectionStatus) -> Bool { if case .error = s { true } else { false } }

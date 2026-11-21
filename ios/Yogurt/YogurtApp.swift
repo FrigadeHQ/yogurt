@@ -176,15 +176,20 @@ final class AppModel {
 struct RootView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.scenePhase) private var phase
-    @AppStorage("onboarded") private var onboarded = false
+    /// read once: onboarding marks itself seen as soon as it starts, and stays up until it's finished
+    @State private var onboarding = !UserDefaults.standard.bool(forKey: "onboarded")
     @State private var lock = LockController()
 
     var body: some View {
         ZStack {
-            if onboarded {
-                HomeView().transition(.opacity)
+            if onboarding {
+                OnboardingView {
+                    UserDefaults.standard.set(true, forKey: "onboarded")
+                    withAnimation(.easeOut(duration: 0.3)) { onboarding = false }
+                }
+                .transition(.opacity)
             } else {
-                OnboardingView { withAnimation(.easeOut(duration: 0.3)) { onboarded = true } }.transition(.opacity)
+                HomeView().transition(.opacity)
             }
         }
         .background(Theme.bg)
@@ -224,7 +229,9 @@ final class LockController {
         let w = UIWindow(windowScene: scene)
         w.windowLevel = .alert + 1
         let host = UIHostingController(rootView: LockLayer(lock: self))
-        host.view.backgroundColor = .clear
+        // opaque from the first frame, so the app switcher never catches it half drawn
+        host.view.backgroundColor = UIColor(Theme.bg)
+        w.backgroundColor = UIColor(Theme.bg)
         w.rootViewController = host
         w.isHidden = true
         window = w
@@ -232,6 +239,8 @@ final class LockController {
     }
 
     func phaseChanged(_ phase: ScenePhase) {
+        // no scene yet on the first appear: try again now
+        attach()
         switch phase {
         case .active:
             covered = false

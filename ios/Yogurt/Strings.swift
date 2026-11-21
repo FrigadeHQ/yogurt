@@ -15,6 +15,8 @@ enum S {
     static let notNow = "Not now"
     static let openSettings = "Open Settings"
     static let continueOn = "Continue"
+    static let restricted = "This is turned off by a Screen Time or device setting, so Yogurt can't ask for it."
+    static let accessRestricted = "Not allowed on this iPhone"
     static let turnedOffBefore = "This was turned off before, so only Settings can turn it on."
     static let computerTitle = "Already use Yogurt on your computer?"
     static let computerText = "Connect them to see your computer's meetings here, and send what you record on your iPhone back."
