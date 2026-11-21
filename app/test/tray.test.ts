@@ -6,6 +6,7 @@ vi.mock('electron', () => ({
   systemPreferences: { getUserDefault: vi.fn(() => false) },
   powerMonitor: { on: vi.fn(), off: vi.fn() },
   Menu: { buildFromTemplate: (items: unknown) => items },
+  nativeTheme: { get shouldUseDarkColors() { return false }, on: vi.fn(), off: vi.fn() },
   nativeImage: { createFromPath: (path: string) => ({ path, setTemplateImage: vi.fn() }) },
   Tray: class {
     on = vi.fn()
@@ -21,7 +22,7 @@ vi.mock('electron', () => ({
 vi.mock('../src/main/meeting', () => ({ activeMeeting: () => state.meeting, onMeetingChange: (fn: () => void) => { state.change = fn } }))
 vi.mock('../src/main/capture', () => ({ recordingPaused: () => state.paused, onRecordingEvent: (fn: typeof state.recording) => { state.recording = fn } }))
 vi.mock('../src/shared/i18n', async original => ({ ...await original<typeof import('../src/shared/i18n')>(), onLanguage: (fn: () => void) => { state.language = fn } }))
-import { app, powerMonitor, systemPreferences } from 'electron'
+import { app, nativeTheme, powerMonitor, systemPreferences } from 'electron'
 const basename = (p: string) => p.split(/[\\/]/).at(-1)
 import { createTray } from '../src/main/tray'
 
@@ -141,6 +142,26 @@ it('Windows and Linux: a colour icon that turns to the recording one, the time i
   state.paused = true; state.recording({ t: 'paused' })
   expect(basename(icon.setImage.mock.lastCall[0].path)).toBe('tray-color.png')
   expect(tray.accelerators()).toEqual({ 'Settings…': 'Ctrl+,' })
+})
+
+it.each(['linux', 'win32'])('updates the visible %s icon on appearance and recording changes', os => {
+  const theme = vi.mocked(nativeTheme)
+  const appearance = vi.spyOn(theme, 'shouldUseDarkColors', 'get')
+  appearance.mockReturnValue(true)
+  try {
+    const tray = createTray({ show: true, os, ...actions() })
+    const icon = state.trays[0]
+    const update = theme.on.mock.lastCall![1] as () => void
+    expect(basename(icon.image.path)).toBe('tray-color-dark.png')
+    state.meeting = { id: 'm1', title: 'Standup' }; state.change()
+    expect(basename(icon.setImage.mock.lastCall[0].path)).toBe('tray-recording-dark.png')
+    appearance.mockReturnValue(false); update()
+    expect(basename(icon.setImage.mock.lastCall[0].path)).toBe('tray-recording.png')
+    tray.setVisible(false)
+    appearance.mockReturnValue(true); update()
+    state.paused = true; tray.setVisible(true)
+    expect(basename(state.trays[1].image.path)).toBe('tray-color-dark.png')
+  } finally { appearance.mockRestore() }
 })
 
 it('Linux without a tray host (GNOME without its extension) says no icon is shown, so closing minimises', async () => {

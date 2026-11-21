@@ -1,12 +1,11 @@
 import { AudioLines, CalendarDays, Mic, PhoneOff, Plus, Video, X } from './Icons'
 import type { PermissionKind } from '../../../shared/types'
-import { Logo } from './Logo'
+import { AppIcon, Logo } from './Logo'
 import { t } from '../../../shared/i18n'
 import { RecordingPill } from './RecordingPill'
 import rayPhoto from '../assets/onboarding/ray.webp'
 import lincolnPhoto from '../assets/onboarding/lincoln.webp'
 import mayaPhoto from '../assets/onboarding/maya.webp'
-import macIcon from '../../../../build/icon.png'
 
 /*
  * The first run's pictures, built from the app's own surfaces so they match both themes. Each shows what its screen
@@ -99,7 +98,7 @@ function NoticeArt() {
   return (
     <div className="ob-scene ob-notice">
       <div className="ob-prompt" data-testid="notice-art">
-        <img src={macIcon} alt="" className="ob-prompt-icon" />
+        <AppIcon className="ob-prompt-icon" />
         <span className="ob-prompt-copy"><span className="ob-prompt-label">{t('Take notes?')}</span><span className="ob-prompt-title">{t('{app} call', { app: 'Zoom' })}</span></span>
         <span className="ob-prompt-button">{t('Start recording')}</span>
         <X size={13} className="ob-prompt-close" />
