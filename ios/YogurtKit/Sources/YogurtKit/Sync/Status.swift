@@ -69,12 +69,14 @@ public struct AskScope: Sendable, Hashable, Codable {
 /// The computer's answer to `ask`, with the passages it was drawn from.
 public struct RemoteAnswer: Sendable, Hashable, Codable {
     public struct Source: Sendable, Hashable, Codable {
+        /// the number the answer's [n] citations use for it (left out by an older desktop)
+        public var n: Int?
         public var meetingId: String
         public var title: String
         public var atMs: Int?
         public var text: String
-        public init(meetingId: String, title: String, atMs: Int?, text: String) {
-            self.meetingId = meetingId; self.title = title; self.atMs = atMs; self.text = text
+        public init(n: Int? = nil, meetingId: String, title: String, atMs: Int?, text: String) {
+            self.n = n; self.meetingId = meetingId; self.title = title; self.atMs = atMs; self.text = text
         }
     }
     public var answer: String

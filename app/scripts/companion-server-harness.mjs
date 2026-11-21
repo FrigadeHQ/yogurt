@@ -52,7 +52,7 @@ writeFileSync(audio, Buffer.from(Array.from({ length: 100_000 }, (_, i) => i % 2
 const companion = await createCompanion({
   store, userDataDir: dir,
   seal: (s) => s, open: (s) => s,
-  ask: async (question) => ({ answer: `Made-up answer to: ${question}`, sources: [{ meetingId: banana.id, title: 'Banana sync', atMs: 1200, text: 'we chose bananas' }] }),
+  ask: async (question) => ({ answer: `Made-up answer to: ${question}`, sources: [{ n: 1, meetingId: banana.id, title: 'Banana sync', atMs: 1200, text: 'we chose bananas' }] }),
   importRecording: async (meeting, path, draft) => {
     const bytes = statSync(path).size
     store.createMeeting({ ...base, title: meeting.title, startedAt: meeting.startedAt, endedAt: meeting.endedAt }, meeting.id)

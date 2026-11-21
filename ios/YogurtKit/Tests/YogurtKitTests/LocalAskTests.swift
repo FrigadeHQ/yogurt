@@ -141,4 +141,16 @@ private func library() throws -> Store {
         let all = AskAnswer(remote: RemoteAnswer(answer: "Engineers [1].", sources: r.sources))
         #expect(all.sources.map(\.meetingId) == ["hire"])
     }
+
+    @Test func theComputersSourceNumbersAreUsedWhenItSendsThem() {
+        // the numbers say which is which, not their places: [7] is made up, though there is a third source
+        let r = RemoteAnswer(answer: "Forty dollars [5]. Two engineers [2]. Made up [7].", sources: [
+            .init(n: 2, meetingId: "hire", title: "Hiring", atMs: 0, text: "engineers"),
+            .init(n: 5, meetingId: "acme", title: "Acme", atMs: 60000, text: "forty"),
+            .init(n: 6, meetingId: "lunch", title: "Lunch", atMs: nil, text: "soup"),
+        ])
+        let a = AskAnswer(remote: r)
+        #expect(a.text == "Forty dollars [1]. Two engineers [2]. Made up.")
+        #expect(a.sources.map(\.meetingId) == ["acme", "hire"])
+    }
 }

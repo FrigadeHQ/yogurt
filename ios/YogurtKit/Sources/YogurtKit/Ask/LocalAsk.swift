@@ -270,9 +270,19 @@ public struct LocalAsk: Sendable {
 }
 
 extension AskAnswer {
-    /// The computer's answer. It sends only the sources it cited, in number order, without their numbers: when it
-    /// sent fewer than the answer's biggest number, the nth smallest number cited is the nth source.
+    /// The computer's answer. Each source carries the number its citations use. An older desktop sent them without:
+    /// then, when it sent fewer than the answer's biggest number, the nth smallest number cited is the nth source.
     public init(remote r: RemoteAnswer) {
+        if r.sources.allSatisfy({ $0.n != nil }) {
+            let byNumber = Dictionary(r.sources.enumerated().map { ($1.n!, $0) }, uniquingKeysWith: { first, _ in first })
+            let (text, sources) = renumber(r.answer) { n in
+                guard let i = byNumber[n] else { return nil }
+                let s = r.sources[i]
+                return Cited(key: i, meetingId: s.meetingId, title: s.title, atMs: s.atMs, excerpt: s.text)
+            }
+            self.init(text: text, sources: sources, by: .computer)
+            return
+        }
         let cited = Array(Set(citedNumbers(r.answer))).sorted()
         let all = (cited.last ?? 0) <= r.sources.count
         let place: [Int: Int] = all ? [:] : Dictionary(uniqueKeysWithValues: cited.enumerated().map { ($1, $0) })

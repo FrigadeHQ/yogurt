@@ -9,7 +9,12 @@ import { applyOp, changesSince, type Op, type OpDeps } from './records'
 import { CHUNK_BYTES } from './frames'
 
 export type Scope = { folderId?: string; meetingIds?: string[] }
-export type AskSource = { meetingId: string; title: string; atMs?: number | null; text: string }
+/** n: the number the answer's [n] citations use for it */
+export type AskSource = { n: number; meetingId: string; title: string; atMs?: number | null; text: string }
+
+/** An Ask turn's sources as the phone gets them, each with its citation number */
+export const askSources = (sources: { n: number; meetingId: string; title: string; atMs: number | null; excerpt?: string }[]): AskSource[] =>
+  sources.map((s) => ({ n: s.n, meetingId: s.meetingId, title: s.title, atMs: s.atMs, text: s.excerpt ?? '' }))
 /** titleSource: 'default' for the phone's "Meeting at 3:04 PM", 'model' when Apple's model wrote it, 'typed' when the person did */
 export type UploadMeeting = { id: string; title: string; titleSource: 'default' | 'model' | 'typed'; startedAt: number; endedAt: number; attendees: { name: string; email: string | null }[] }
 export type PhoneDraft = { myNotes: string; transcript: { startMs: number; endMs: number; text: string }[]; summary?: string }

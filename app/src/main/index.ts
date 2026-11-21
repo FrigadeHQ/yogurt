@@ -90,6 +90,7 @@ import { AUDIO_SCHEME, audioExts, createAudioHandler, trackFile, type AudioExt }
 import { helperDecode, wavDecode } from './asr/backfill'
 import { finishQuit, hookUpdates, isPreviewBuild, updatesOn } from './updates'
 import { createCompanion, type Companion } from './companion'
+import { askSources } from './companion/handlers'
 import { hookCompanion } from './companion/ipc'
 import { copyFile, mkdir, rename } from 'node:fs/promises'
 import type { NoteSaveResult, StartResult } from '../shared/types'
@@ -1065,7 +1066,7 @@ app.whenReady().then(() => {
       await done
       const turn = conversations.view(id)?.turns.at(-1)
       if (!turn || turn.status !== 'done') throw new Error('no answer')
-      return { answer: turn.answer, sources: turn.sources.map((s) => ({ meetingId: s.meetingId, title: s.title, atMs: s.atMs, text: s.excerpt ?? '' })) }
+      return { answer: turn.answer, sources: askSources(turn.sources) }
     },
     // a meeting recorded on the phone: its audio goes where an imported file's would, then it is transcribed and its
     // notes written the same way; the phone's transcript and draft notes show until this computer's replace them

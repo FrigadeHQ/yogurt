@@ -8,6 +8,7 @@ import { initMeetings } from '../src/main/meeting'
 import { ready } from '../src/main/companion/sodium'
 import { generateKeyPair, type KeyPair } from '../src/main/companion/noise'
 import { notesHash } from '../src/main/companion/records'
+import { askSources } from '../src/main/companion/handlers'
 import { createCompanion, type Companion, type CompanionDeps } from '../src/main/companion'
 import { pairAsPhone, raw, session } from './helpers/companionClient'
 
@@ -312,11 +313,16 @@ describe('companion sessions', () => {
 
   it('ask goes to the desktop Ask, with its scope', async () => {
     const asked: unknown[] = []
-    const { connect } = await paired({ ask: async (q, scope) => { asked.push([q, scope]); return { answer: 'Tuesday [1]', sources: [{ meetingId: 'm1', title: 'Plan', atMs: 1200, text: 'we ship tuesday' }] } } })
+    const { connect } = await paired({ ask: async (q, scope) => { asked.push([q, scope]); return { answer: 'Tuesday [1]', sources: [{ n: 1, meetingId: 'm1', title: 'Plan', atMs: 1200, text: 'we ship tuesday' }] } } })
     const s = await connect()
     const r = await s.request('ask', { question: 'When do we ship?', scope: { folderId: 'f1' } })
-    expect(r).toMatchObject({ type: 'ok', body: { answer: 'Tuesday [1]', sources: [{ meetingId: 'm1', title: 'Plan', atMs: 1200, text: 'we ship tuesday' }] } })
+    expect(r).toMatchObject({ type: 'ok', body: { answer: 'Tuesday [1]', sources: [{ n: 1, meetingId: 'm1', title: 'Plan', atMs: 1200, text: 'we ship tuesday' }] } })
     expect(asked).toEqual([['When do we ship?', { folderId: 'f1' }]])
+  })
+
+  it("an answer's sources carry the numbers its citations use, so the phone maps [n] exactly", () => {
+    const turn = [{ n: 2, meetingId: 'm2', title: 'Pear', startedAt: 1, atMs: null, excerpt: 'pears' }, { n: 5, meetingId: 'm5', title: 'Plum', startedAt: 1, atMs: 900 }]
+    expect(askSources(turn)).toEqual([{ n: 2, meetingId: 'm2', title: 'Pear', atMs: null, text: 'pears' }, { n: 5, meetingId: 'm5', title: 'Plum', atMs: 900, text: '' }])
   })
 
   it('streams a recording as audioChunks', async () => {
