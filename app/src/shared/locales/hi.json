@@ -701,12 +701,9 @@
   "Previous match": "पिछला मेल",
   "Next match": "अगला मेल",
   "Update ready": "अपडेट तैयार है",
-  "Installs when you restart Yogurt": "Yogurt फिर शुरू करने पर इंस्टॉल होगा",
   "You can restart after recording": "रिकॉर्डिंग के बाद फिर शुरू कर सकते हैं",
-  "Later": "बाद में",
   "Restart": "फिर शुरू करें",
   "Yogurt couldn't restart. Try again.": "Yogurt फिर शुरू नहीं हो सका। फिर कोशिश करें।",
-  "Yogurt {version}": "Yogurt {version}",
   "Calendar address": "कैलेंडर का पता",
   "Connect": "कनेक्ट करें",
   "Connect a calendar to see your meetings.": "अपनी मीटिंग देखने के लिए कैलेंडर कनेक्ट करें।",
@@ -743,5 +740,14 @@
   "Stop transcription": "ट्रांसक्रिप्शन रोकें",
   "Audio is unavailable.": "ऑडियो उपलब्ध नहीं है।",
   "Add a calendar by link": "लिंक से कैलेंडर जोड़ें",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Mac के कैलेंडर ऐप के कैलेंडर ऊपर अपने आप दिखाई देते हैं।"
+  "Calendars from the Mac's Calendar app appear above automatically.": "Mac के कैलेंडर ऐप के कैलेंडर ऊपर अपने आप दिखाई देते हैं।",
+  "What's new": "नया क्या है",
+  "New": "नया",
+  "Star us on GitHub": "GitHub पर हमें स्टार दें",
+  "Join Discord": "Discord से जुड़ें",
+  "Send feedback": "फ़ीडबैक भेजें",
+  "Help": "सहायता",
+  "Help and settings": "सहायता और सेटिंग",
+  "Yogurt menu": "Yogurt मेन्यू",
+  "Restart to update · {version}": "अपडेट के लिए रीस्टार्ट करें · {version}"
 }

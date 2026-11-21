@@ -701,12 +701,9 @@
   "Previous match": "Önceki eşleşme",
   "Next match": "Sonraki eşleşme",
   "Update ready": "Güncelleme hazır",
-  "Installs when you restart Yogurt": "Yogurt yeniden başlatıldığında yüklenir",
   "You can restart after recording": "Kayıttan sonra yeniden başlatabilirsiniz",
-  "Later": "Daha sonra",
   "Restart": "Yeniden başlat",
   "Yogurt couldn't restart. Try again.": "Yogurt yeniden başlatılamadı. Tekrar deneyin.",
-  "Yogurt {version}": "Yogurt {version}",
   "Calendar address": "Takvim adresi",
   "Connect": "Bağla",
   "Connect a calendar to see your meetings.": "Toplantılarınızı görmek için bir takvim bağlayın.",
@@ -743,5 +740,14 @@
   "Stop transcription": "Dökümü durdur",
   "Audio is unavailable.": "Ses kullanılamıyor.",
   "Add a calendar by link": "Bağlantıyla takvim ekle",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Mac’in Takvim uygulamasındaki takvimler otomatik olarak yukarıda görünür."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Mac’in Takvim uygulamasındaki takvimler otomatik olarak yukarıda görünür.",
+  "What's new": "Yenilikler",
+  "New": "Yeni",
+  "Star us on GitHub": "GitHub’da bize yıldız verin",
+  "Join Discord": "Discord’a katıl",
+  "Send feedback": "Geri bildirim gönder",
+  "Help": "Yardım",
+  "Help and settings": "Yardım ve ayarlar",
+  "Yogurt menu": "Yogurt menüsü",
+  "Restart to update · {version}": "Güncellemek için yeniden başlat · {version}"
 }

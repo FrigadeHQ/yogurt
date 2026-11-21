@@ -671,12 +671,9 @@
   "Previous match": "Kecocokan sebelumnya",
   "Next match": "Kecocokan berikutnya",
   "Update ready": "Pembaruan siap",
-  "Installs when you restart Yogurt": "Dipasang saat Yogurt dimulai ulang",
   "You can restart after recording": "Anda dapat memulai ulang setelah merekam",
-  "Later": "Nanti",
   "Restart": "Mulai ulang",
   "Yogurt couldn't restart. Try again.": "Yogurt tidak dapat dimulai ulang. Coba lagi.",
-  "Yogurt {version}": "Yogurt {version}",
   "Calendar address": "Alamat kalender",
   "Connect": "Hubungkan",
   "Connect a calendar to see your meetings.": "Hubungkan kalender untuk melihat rapat Anda.",
@@ -713,5 +710,14 @@
   "Stop transcription": "Hentikan transkripsi",
   "Audio is unavailable.": "Audio tidak tersedia.",
   "Add a calendar by link": "Tambahkan kalender melalui tautan",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Kalender dari app Kalender di Mac otomatis muncul di atas."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Kalender dari app Kalender di Mac otomatis muncul di atas.",
+  "What's new": "Yang baru",
+  "New": "Baru",
+  "Star us on GitHub": "Beri kami bintang di GitHub",
+  "Join Discord": "Gabung ke Discord",
+  "Send feedback": "Kirim masukan",
+  "Help": "Bantuan",
+  "Help and settings": "Bantuan dan pengaturan",
+  "Yogurt menu": "Menu Yogurt",
+  "Restart to update · {version}": "Mulai ulang untuk memperbarui · {version}"
 }

@@ -671,12 +671,9 @@
   "Previous match": "上一个匹配项",
   "Next match": "下一个匹配项",
   "Update ready": "更新已就绪",
-  "Installs when you restart Yogurt": "重启 Yogurt 时安装",
   "You can restart after recording": "录音结束后即可重启",
-  "Later": "稍后",
   "Restart": "重启",
   "Yogurt couldn't restart. Try again.": "无法重启 Yogurt。请重试。",
-  "Yogurt {version}": "Yogurt {version}",
   "Calendar address": "日历地址",
   "Connect": "连接",
   "Connect a calendar to see your meetings.": "连接日历后即可查看你的会议。",
@@ -713,5 +710,14 @@
   "Stop transcription": "停止转写",
   "Audio is unavailable.": "音频不可用。",
   "Add a calendar by link": "通过链接添加日历",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Mac 日历 App 中的日历会自动显示在上方。"
+  "Calendars from the Mac's Calendar app appear above automatically.": "Mac 日历 App 中的日历会自动显示在上方。",
+  "What's new": "更新内容",
+  "New": "新",
+  "Star us on GitHub": "在 GitHub 上给我们加星",
+  "Join Discord": "加入 Discord",
+  "Send feedback": "发送反馈",
+  "Help": "帮助",
+  "Help and settings": "帮助和设置",
+  "Yogurt menu": "Yogurt 菜单",
+  "Restart to update · {version}": "重启以更新 · {version}"
 }

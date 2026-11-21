@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -25,7 +26,7 @@ for (const platform of ['win32', 'linux', 'darwin'] as const) {
       // Windows and Linux ask for a calendar link in the first run (the Mac asks for its own calendar, granted here)
       if (!mac) await page.locator('[data-testid="onboarding-step"][data-step="calendar"]').getByTestId('step-later').click({ timeout: 15_000 })
       await expect(page.getByTestId('home')).toBeVisible({ timeout: 15_000 })
-      await page.getByTestId('settings-open').click()
+      await openFromCorner(page, 'settings-open')
       const settings = page.getByTestId('settings')
       const w = WORDS[platform]
       await expect(page.getByTestId('settings-theme').locator('option[value="system"]')).toHaveText(w.theme)

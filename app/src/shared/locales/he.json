@@ -723,12 +723,9 @@
   "Previous match": "ההתאמה הקודמת",
   "Next match": "ההתאמה הבאה",
   "Update ready": "העדכון מוכן",
-  "Installs when you restart Yogurt": "יותקן בהפעלה מחדש של Yogurt",
   "You can restart after recording": "אפשר להפעיל מחדש אחרי ההקלטה",
-  "Later": "מאוחר יותר",
   "Restart": "הפעלה מחדש",
   "Yogurt couldn't restart. Try again.": "לא ניתן היה להפעיל מחדש את Yogurt. נסו שוב.",
-  "Yogurt {version}": "Yogurt {version}",
   "Calendar address": "כתובת היומן",
   "Connect": "חיבור",
   "Connect a calendar to see your meetings.": "חברו יומן כדי לראות את הפגישות שלכם.",
@@ -765,5 +762,14 @@
   "Stop transcription": "עצירת תמלול",
   "Audio is unavailable.": "האודיו אינו זמין.",
   "Add a calendar by link": "הוספת יומן באמצעות קישור",
-  "Calendars from the Mac's Calendar app appear above automatically.": "יומנים מיישום לוח השנה ב-Mac מופיעים למעלה באופן אוטומטי."
+  "Calendars from the Mac's Calendar app appear above automatically.": "יומנים מיישום לוח השנה ב-Mac מופיעים למעלה באופן אוטומטי.",
+  "What's new": "מה חדש",
+  "New": "חדש",
+  "Star us on GitHub": "תנו לנו כוכב ב-GitHub",
+  "Join Discord": "הצטרפות ל-Discord",
+  "Send feedback": "שליחת משוב",
+  "Help": "עזרה",
+  "Help and settings": "עזרה והגדרות",
+  "Yogurt menu": "תפריט Yogurt",
+  "Restart to update · {version}": "הפעלה מחדש לעדכון · {version}"
 }

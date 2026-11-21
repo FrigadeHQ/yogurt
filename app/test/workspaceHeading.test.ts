@@ -8,7 +8,7 @@ afterEach(() => vi.unstubAllGlobals())
 const folders = [{ id: 's1', name: 'Acme & co', createdAt: 1, count: 2, icon: 'folder' as const, color: 'default' as const }]
 function heading(route: string, meeting?: { id: string; title: string }) {
   vi.stubGlobal('window', { matchMedia: () => ({ matches: false }), innerWidth: 1200, addEventListener() {}, removeEventListener() {} })
-  const html = renderToStaticMarkup(createElement(Workspace, { route, meeting, folders, go() {}, search() {}, collapsed: false, sidebarMotion: false, toggleSidebar() {}, children: null }))
+  const html = renderToStaticMarkup(createElement(Workspace, { route, meeting, folders, go() {}, search() {}, shortcuts() {}, collapsed: false, sidebarMotion: false, toggleSidebar() {}, children: null }))
   return html.match(/<header\b[\s\S]*?<\/header>/)?.[0] ?? ''
 }
 

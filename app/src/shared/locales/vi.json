@@ -671,12 +671,9 @@
   "Previous match": "Kết quả trước",
   "Next match": "Kết quả tiếp theo",
   "Update ready": "Bản cập nhật đã sẵn sàng",
-  "Installs when you restart Yogurt": "Cài đặt khi bạn khởi động lại Yogurt",
   "You can restart after recording": "Bạn có thể khởi động lại sau khi ghi âm",
-  "Later": "Để sau",
   "Restart": "Khởi động lại",
   "Yogurt couldn't restart. Try again.": "Không thể khởi động lại Yogurt. Hãy thử lại.",
-  "Yogurt {version}": "Yogurt {version}",
   "Calendar address": "Địa chỉ lịch",
   "Connect": "Kết nối",
   "Connect a calendar to see your meetings.": "Kết nối lịch để xem các cuộc họp của bạn.",
@@ -713,5 +710,14 @@
   "Stop transcription": "Dừng chép lời",
   "Audio is unavailable.": "Âm thanh không khả dụng.",
   "Add a calendar by link": "Thêm lịch bằng liên kết",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Lịch từ ứng dụng Lịch trên Mac tự động xuất hiện ở trên."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Lịch từ ứng dụng Lịch trên Mac tự động xuất hiện ở trên.",
+  "What's new": "Có gì mới",
+  "New": "Mới",
+  "Star us on GitHub": "Tặng sao trên GitHub",
+  "Join Discord": "Tham gia Discord",
+  "Send feedback": "Gửi ý kiến phản hồi",
+  "Help": "Trợ giúp",
+  "Help and settings": "Trợ giúp và cài đặt",
+  "Yogurt menu": "Menu Yogurt",
+  "Restart to update · {version}": "Khởi động lại để cập nhật · {version}"
 }

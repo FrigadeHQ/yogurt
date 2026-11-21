@@ -27,11 +27,11 @@ test('recording controls stay in the header and Ask lives in the footer with sta
     await expect(header.getByTestId('chat-open')).toHaveCount(0)
     await expect(page.locator('.note-footer').getByTestId('chat-open')).toContainText('⌘J')
     await expect(header.getByTestId('note-elapsed')).toMatchAriaSnapshot(String.raw`- timer "Recorded time": /^(?:\d+:)?\d+:\d{2}$/`)
-    const brand = (await page.locator('.workspace-brand').boundingBox())!
+    const corner = (await page.locator('.workspace-corner').boundingBox())!
     const footer = (await page.locator('.note-footer-bar').boundingBox())!
     const content = (await page.locator('.workspace-content').boundingBox())!
-    expect(Math.abs(footer.y - brand.y)).toBeLessThan(1)
-    expect(Math.abs(footer.height - brand.height)).toBeLessThan(1)
+    expect(Math.abs(footer.y - corner.y)).toBeLessThan(1)
+    expect(Math.abs(footer.height - corner.height)).toBeLessThan(1)
     expect(Math.abs(footer.x - content.x)).toBeLessThan(1)
     expect(Math.abs(footer.width - content.width)).toBeLessThan(1)
     await expect.poll(async () => Number(await page.getByTestId('note-wave').getAttribute('data-level')), { timeout: 15_000 }).toBeGreaterThan(0.05)

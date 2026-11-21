@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -33,7 +34,7 @@ test('compact meeting labels stop at three first names and the note keeps every 
     for (const name of names) await expect(page.getByTestId('people-list')).toContainText(name)
     await page.keyboard.press('Escape')
     await page.evaluate(id => window.yogurt.meetings.trash(id), ids.meeting)
-    await page.getByTestId('nav-trash').click()
+    await openFromCorner(page, 'nav-trash')
     await expect(page.getByTestId('past-note-attendees')).toHaveText('Ann, Bo, Cy and 5 more')
   } finally { await app.close() }
 })

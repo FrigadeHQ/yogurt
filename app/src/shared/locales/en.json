@@ -249,12 +249,9 @@
   "Previous match": "Previous match",
   "Next match": "Next match",
   "Update ready": "Update ready",
-  "Installs when you restart Yogurt": "Installs when you restart Yogurt",
   "You can restart after recording": "You can restart after recording",
-  "Later": "Later",
   "Restart": "Restart",
   "Yogurt couldn't restart. Try again.": "Yogurt couldn't restart. Try again.",
-  "Yogurt {version}": "Yogurt {version}",
   "Upload a file": "Upload a file",
   "Audio": "Audio",
   "Transcribe": "Transcribe",
@@ -278,5 +275,14 @@
   "Enter an https:// or webcal:// calendar address.": "Enter an https:// or webcal:// calendar address.",
   "The address stays on this computer.": "The address stays on this computer.",
   "Add a calendar by link": "Add a calendar by link",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Calendars from the Mac's Calendar app appear above automatically."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Calendars from the Mac's Calendar app appear above automatically.",
+  "What's new": "What's new",
+  "New": "New",
+  "Star us on GitHub": "Star us on GitHub",
+  "Join Discord": "Join Discord",
+  "Send feedback": "Send feedback",
+  "Help": "Help",
+  "Help and settings": "Help and settings",
+  "Yogurt menu": "Yogurt menu",
+  "Restart to update · {version}": "Restart to update · {version}"
 }

@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -45,7 +46,7 @@ for (const platform of ['win32', 'linux']) {
       await expect(page.getByTestId('home')).toBeVisible({ timeout: 15_000 })
       expect(await page.evaluate(() => window.yogurt.capabilities)).toEqual({ calendar: true, calendarLink: true, callNames: names, permissionPrompts: false, mediaPause: false })
       await expect(page.getByRole('complementary', { name: 'Agenda' })).toBeVisible()
-      await page.getByTestId('settings-open').click()
+      await openFromCorner(page, 'settings-open')
       await expect(page.getByTestId('settings')).toBeVisible()
       await expect(page.getByTestId('permission-row')).toHaveCount(names ? 4 : 3)
       await expect(page.locator('[data-testid="permission-row"][data-kind="calendar"]')).toHaveCount(0)
@@ -79,7 +80,7 @@ test('@everywhere a Mac keeps the agenda and every permission', async () => {
     await expect(page.getByTestId('home')).toBeVisible({ timeout: 15_000 })
     expect(await page.evaluate(() => window.yogurt.capabilities)).toEqual({ calendar: true, calendarLink: false, callNames: true, permissionPrompts: true, mediaPause: true })
     await expect(page.getByRole('complementary', { name: 'Agenda' })).toBeVisible()
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     await expect(page.getByTestId('permission-row')).toHaveCount(5)
     await expect(page.getByTestId('calendar-settings')).toBeVisible()
   } finally { await app.close() }

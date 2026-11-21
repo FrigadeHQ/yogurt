@@ -713,12 +713,9 @@
   "Previous match": "Forrige resultat",
   "Next match": "Næste resultat",
   "Update ready": "Opdatering klar",
-  "Installs when you restart Yogurt": "Installeres, når du genstarter Yogurt",
   "You can restart after recording": "Du kan genstarte efter optagelsen",
-  "Later": "Senere",
   "Restart": "Genstart",
   "Yogurt couldn't restart. Try again.": "Yogurt kunne ikke genstarte. Prøv igen.",
-  "Yogurt {version}": "Yogurt {version}",
   "Calendar address": "Kalenderadresse",
   "Connect": "Forbind",
   "Connect a calendar to see your meetings.": "Forbind en kalender for at se dine møder.",
@@ -755,5 +752,14 @@
   "Stop transcription": "Stop transskription",
   "Audio is unavailable.": "Lyden er ikke tilgængelig.",
   "Add a calendar by link": "Tilføj en kalender via et link",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Kalendere fra appen Kalender på din Mac vises automatisk ovenfor."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Kalendere fra appen Kalender på din Mac vises automatisk ovenfor.",
+  "What's new": "Nyheder",
+  "New": "Ny",
+  "Star us on GitHub": "Giv os en stjerne på GitHub",
+  "Join Discord": "Deltag på Discord",
+  "Send feedback": "Send feedback",
+  "Help": "Hjælp",
+  "Help and settings": "Hjælp og indstillinger",
+  "Yogurt menu": "Yogurt-menu",
+  "Restart to update · {version}": "Genstart for at opdatere · {version}"
 }

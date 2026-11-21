@@ -719,12 +719,9 @@
   "Previous match": "Edellinen osuma",
   "Next match": "Seuraava osuma",
   "Update ready": "Päivitys valmis",
-  "Installs when you restart Yogurt": "Asennetaan, kun käynnistät Yogurtin uudelleen",
   "You can restart after recording": "Voit käynnistää uudelleen tallennuksen jälkeen",
-  "Later": "Myöhemmin",
   "Restart": "Käynnistä uudelleen",
   "Yogurt couldn't restart. Try again.": "Yogurt ei voinut käynnistyä uudelleen. Yritä uudelleen.",
-  "Yogurt {version}": "Yogurt {version}",
   "Calendar address": "Kalenterin osoite",
   "Connect": "Yhdistä",
   "Connect a calendar to see your meetings.": "Yhdistä kalenteri nähdäksesi tapaamisesi.",
@@ -761,5 +758,14 @@
   "Stop transcription": "Pysäytä litterointi",
   "Audio is unavailable.": "Ääni ei ole saatavilla.",
   "Add a calendar by link": "Lisää kalenteri linkillä",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Macin Kalenteri-apin kalenterit näkyvät automaattisesti yllä."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Macin Kalenteri-apin kalenterit näkyvät automaattisesti yllä.",
+  "What's new": "Uutta",
+  "New": "Uusi",
+  "Star us on GitHub": "Anna meille tähti GitHubissa",
+  "Join Discord": "Liity Discordiin",
+  "Send feedback": "Lähetä palautetta",
+  "Help": "Ohje",
+  "Help and settings": "Ohje ja asetukset",
+  "Yogurt menu": "Yogurt-valikko",
+  "Restart to update · {version}": "Käynnistä uudelleen ja päivitä · {version}"
 }

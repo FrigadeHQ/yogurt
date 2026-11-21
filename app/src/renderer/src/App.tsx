@@ -205,7 +205,7 @@ export function App() {
   const inWorkspace = !starting && ready
   const page = starting
     ? <><TitleBar />{startupError ? <ReadError testId="setup-read-error" retry={() => setSetupAttempt(n => n + 1)} /> : boot}</>
-    : ready ? <Workspace route={route} meeting={meeting} folders={folders} go={go} back={history.current.length ? back : undefined} forward={future.current.length ? forward : undefined} search={() => setSearching(true)} collapsed={sidebarCollapsed} sidebarMotion={sidebarMotion} toggleSidebar={toggleSidebar}>{screen}</Workspace>
+    : ready ? <Workspace route={route} meeting={meeting} folders={folders} go={go} back={history.current.length ? back : undefined} forward={future.current.length ? forward : undefined} search={() => setSearching(true)} shortcuts={openShortcuts} collapsed={sidebarCollapsed} sidebarMotion={sidebarMotion} toggleSidebar={toggleSidebar}>{screen}</Workspace>
     : <><TitleBar />{setup.phase === 'checking' && firstRunDone ? boot : <Onboarding state={setup} plan={plan} onDone={() => setPlan({ intro: false, steps: [] })} />}</>
   return <AskRecordingWait value={recordingWait}>
     {mac && <MacLaunch active={launching} />}

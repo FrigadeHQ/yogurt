@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -329,11 +330,9 @@ test('wide folder and Trash pages centre their headings and empty states on the 
   try {
     await page.setViewportSize({ width: 2560, height: 760 })
     await page.evaluate(() => window.yogurt.folders.create('Planning'))
-    for (const [link, empty] of [
-      [page.getByTestId('sidebar-folder-open').filter({ hasText: 'Planning' }), 'folder-empty'],
-      [page.getByTestId('nav-trash'), 'trash-none'],
-    ] as const) {
-      await link.click()
+    for (const empty of ['folder-empty', 'trash-none'] as const) {
+      if (empty === 'trash-none') await openFromCorner(page, 'nav-trash')
+      else await page.getByTestId('sidebar-folder-open').filter({ hasText: 'Planning' }).click()
       const state = page.getByTestId(empty)
       await expect(state).toBeVisible()
       const boxes = await state.evaluate(el => {
@@ -570,7 +569,7 @@ test('workspace navigation stays usable with the sidebar closed; nothing in it i
     await page.getByTestId('sidebar-expand').click()
     await page.getByRole('button', { name: 'Ask', exact: true }).click()
     await expect(page.getByTestId('chat-page')).toBeVisible()
-    await page.getByRole('button', { name: 'Trash', exact: true }).click()
+    await openFromCorner(page, 'nav-trash')
     await expect(page.getByTestId('trash-page')).toContainText('The Trash is empty')
     await expect(page.getByText('Planned', { exact: true })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'All meetings', exact: true })).toHaveCount(0)

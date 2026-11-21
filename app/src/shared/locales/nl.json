@@ -713,12 +713,9 @@
   "Previous match": "Vorige overeenkomst",
   "Next match": "Volgende overeenkomst",
   "Update ready": "Update gereed",
-  "Installs when you restart Yogurt": "Wordt geïnstalleerd als je Yogurt herstart",
   "You can restart after recording": "Je kunt herstarten na de opname",
-  "Later": "Later",
   "Restart": "Herstarten",
   "Yogurt couldn't restart. Try again.": "Yogurt kon niet herstarten. Probeer het opnieuw.",
-  "Yogurt {version}": "Yogurt {version}",
   "Calendar address": "Agenda-adres",
   "Connect": "Koppelen",
   "Connect a calendar to see your meetings.": "Koppel een agenda om je meetings te zien.",
@@ -755,5 +752,14 @@
   "Stop transcription": "Transcriptie stoppen",
   "Audio is unavailable.": "Audio is niet beschikbaar.",
   "Add a calendar by link": "Agenda toevoegen via een link",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Agenda’s uit de Agenda-app op je Mac verschijnen automatisch hierboven."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Agenda’s uit de Agenda-app op je Mac verschijnen automatisch hierboven.",
+  "What's new": "Wat is er nieuw",
+  "New": "Nieuw",
+  "Star us on GitHub": "Geef ons een ster op GitHub",
+  "Join Discord": "Word lid van onze Discord",
+  "Send feedback": "Feedback sturen",
+  "Help": "Hulp",
+  "Help and settings": "Help en instellingen",
+  "Yogurt menu": "Yogurt-menu",
+  "Restart to update · {version}": "Herstarten om bij te werken · {version}"
 }

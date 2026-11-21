@@ -729,12 +729,9 @@
   "Previous match": "Correspondance précédente",
   "Next match": "Correspondance suivante",
   "Update ready": "Mise à jour prête",
-  "Installs when you restart Yogurt": "S’installe au redémarrage de Yogurt",
   "You can restart after recording": "Vous pourrez redémarrer après l’enregistrement",
-  "Later": "Plus tard",
   "Restart": "Redémarrer",
   "Yogurt couldn't restart. Try again.": "Yogurt n’a pas pu redémarrer. Réessayez.",
-  "Yogurt {version}": "Yogurt {version}",
   "Calendar address": "Adresse du calendrier",
   "Connect": "Connecter",
   "Connect a calendar to see your meetings.": "Connectez un calendrier pour voir vos réunions.",
@@ -771,5 +768,14 @@
   "Stop transcription": "Arrêter la transcription",
   "Audio is unavailable.": "L’audio n’est pas disponible.",
   "Add a calendar by link": "Ajouter un calendrier par lien",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Les calendriers de l’app Calendrier du Mac apparaissent automatiquement ci-dessus."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Les calendriers de l’app Calendrier du Mac apparaissent automatiquement ci-dessus.",
+  "What's new": "Nouveautés",
+  "New": "Nouveau",
+  "Star us on GitHub": "Donnez-nous une étoile sur GitHub",
+  "Join Discord": "Rejoindre Discord",
+  "Send feedback": "Envoyer un commentaire",
+  "Help": "Aide",
+  "Help and settings": "Aide et paramètres",
+  "Yogurt menu": "Menu de Yogurt",
+  "Restart to update · {version}": "Redémarrer pour mettre à jour · {version}"
 }

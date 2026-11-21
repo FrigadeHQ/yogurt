@@ -671,12 +671,9 @@
   "Previous match": "上一個相符項目",
   "Next match": "下一個相符項目",
   "Update ready": "更新已準備就緒",
-  "Installs when you restart Yogurt": "重新啟動 Yogurt 時安裝",
   "You can restart after recording": "錄音結束後即可重新啟動",
-  "Later": "稍後",
   "Restart": "重新啟動",
   "Yogurt couldn't restart. Try again.": "無法重新啟動 Yogurt。請重試。",
-  "Yogurt {version}": "Yogurt {version}",
   "Calendar address": "行事曆地址",
   "Connect": "連接",
   "Connect a calendar to see your meetings.": "連接行事曆即可查看你的會議。",
@@ -713,5 +710,14 @@
   "Stop transcription": "停止轉錄",
   "Audio is unavailable.": "音訊無法使用。",
   "Add a calendar by link": "透過連結加入行事曆",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Mac 行事曆 App 中的行事曆會自動顯示在上方。"
+  "Calendars from the Mac's Calendar app appear above automatically.": "Mac 行事曆 App 中的行事曆會自動顯示在上方。",
+  "What's new": "最新消息",
+  "New": "新",
+  "Star us on GitHub": "在 GitHub 上給我們一顆星",
+  "Join Discord": "加入 Discord",
+  "Send feedback": "傳送意見回饋",
+  "Help": "說明",
+  "Help and settings": "說明與設定",
+  "Yogurt menu": "Yogurt 選單",
+  "Restart to update · {version}": "重新啟動以更新 · {version}"
 }

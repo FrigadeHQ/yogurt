@@ -713,12 +713,9 @@
   "Previous match": "Nakaraang tugma",
   "Next match": "Susunod na tugma",
   "Update ready": "Handa na ang update",
-  "Installs when you restart Yogurt": "Mai-install kapag ni-restart mo ang Yogurt",
   "You can restart after recording": "Maaari kang mag-restart pagkatapos mag-record",
-  "Later": "Mamaya",
   "Restart": "I-restart",
   "Yogurt couldn't restart. Try again.": "Hindi ma-restart ang Yogurt. Subukan muli.",
-  "Yogurt {version}": "Yogurt {version}",
   "Calendar address": "Address ng calendar",
   "Connect": "Ikonekta",
   "Connect a calendar to see your meetings.": "Magkonekta ng calendar para makita ang mga meeting mo.",
@@ -755,5 +752,14 @@
   "Stop transcription": "Itigil ang transkripsiyon",
   "Audio is unavailable.": "Hindi available ang audio.",
   "Add a calendar by link": "Magdagdag ng kalendaryo gamit ang link",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Awtomatikong lalabas sa itaas ang mga kalendaryo mula sa Calendar app ng Mac."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Awtomatikong lalabas sa itaas ang mga kalendaryo mula sa Calendar app ng Mac.",
+  "What's new": "Mga bagong tampok",
+  "New": "Bago",
+  "Star us on GitHub": "Bigyan kami ng star sa GitHub",
+  "Join Discord": "Sumali sa Discord",
+  "Send feedback": "Magpadala ng feedback",
+  "Help": "Tulong",
+  "Help and settings": "Tulong at mga setting",
+  "Yogurt menu": "Menu ng Yogurt",
+  "Restart to update · {version}": "I-restart para mag-update · {version}"
 }

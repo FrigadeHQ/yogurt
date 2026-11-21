@@ -716,12 +716,9 @@
   "Previous match": "Προηγούμενο αποτέλεσμα",
   "Next match": "Επόμενο αποτέλεσμα",
   "Update ready": "Η ενημέρωση είναι έτοιμη",
-  "Installs when you restart Yogurt": "Εγκαθίσταται στην επανεκκίνηση του Yogurt",
   "You can restart after recording": "Μπορείτε να επανεκκινήσετε μετά την εγγραφή",
-  "Later": "Αργότερα",
   "Restart": "Επανεκκίνηση",
   "Yogurt couldn't restart. Try again.": "Το Yogurt δεν μπόρεσε να επανεκκινηθεί. Δοκιμάστε ξανά.",
-  "Yogurt {version}": "Yogurt {version}",
   "Calendar address": "Διεύθυνση ημερολογίου",
   "Connect": "Σύνδεση",
   "Connect a calendar to see your meetings.": "Συνδέστε ένα ημερολόγιο για να βλέπετε τις συσκέψεις σας.",
@@ -758,5 +755,14 @@
   "Stop transcription": "Διακοπή απομαγνητοφώνησης",
   "Audio is unavailable.": "Ο ήχος δεν είναι διαθέσιμος.",
   "Add a calendar by link": "Προσθήκη ημερολογίου μέσω συνδέσμου",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Τα ημερολόγια από την εφαρμογή Ημερολόγιο του Mac εμφανίζονται αυτόματα παραπάνω."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Τα ημερολόγια από την εφαρμογή Ημερολόγιο του Mac εμφανίζονται αυτόματα παραπάνω.",
+  "What's new": "Τι νέο υπάρχει",
+  "New": "Νέο",
+  "Star us on GitHub": "Δώστε μας ένα αστέρι στο GitHub",
+  "Join Discord": "Εγγραφείτε στο Discord",
+  "Send feedback": "Αποστολή σχολίων",
+  "Help": "Βοήθεια",
+  "Help and settings": "Βοήθεια και ρυθμίσεις",
+  "Yogurt menu": "Μενού Yogurt",
+  "Restart to update · {version}": "Επανεκκίνηση για ενημέρωση · {version}"
 }

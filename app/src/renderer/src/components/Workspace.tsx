@@ -4,22 +4,21 @@ import { toasts } from './TrashToast'
 import { askDestination } from '../../../shared/askContext'
 import * as Sidebar from '@animate-ui/react/primitives/sidebar'
 import { useEffect, useState, type ReactNode } from 'react'
-import { ChevronLeft, ChevronRight, Trash2, MeetingFile, AskBubble, Search, SidebarSettings, SidebarToggle } from './Icons'
+import { ChevronLeft, ChevronRight, MeetingFile, AskBubble, Search, SidebarToggle } from './Icons'
 import type { MeetingView, Folder, WidgetView } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
 import { command, keys, onMac } from '../keys'
-import { Wordmark } from './Logo'
 import { LevelBars } from './LevelBars'
 import { RecordingTime } from './RecordingTime'
 import { FoldersNav } from './FoldersNav'
 import { FinishSetup } from './FinishSetup'
 import { NotesSetup } from './NotesSetup'
-import { UpdateReady } from './UpdateReady'
+import { CornerMenu } from './CornerMenu'
 
-export function Workspace({ route, meeting, folders, go, back, forward, search, collapsed, sidebarMotion, toggleSidebar, children }: {
+export function Workspace({ route, meeting, folders, go, back, forward, search, shortcuts, collapsed, sidebarMotion, toggleSidebar, children }: {
   meeting?: Pick<MeetingView, 'id' | 'title'>
   folders?: Folder[]
-  route: string; go: (route: string) => void; back?: () => void; forward?: () => void; search: () => void; children: ReactNode
+  route: string; go: (route: string) => void; back?: () => void; forward?: () => void; search: () => void; shortcuts: () => void; children: ReactNode
   collapsed: boolean; sidebarMotion: boolean; toggleSidebar: (animate?: boolean) => void
 }) {
   const [recording, setRecording] = useState<WidgetView | null>(null)
@@ -59,14 +58,12 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
   const links = [
     { route: '', label: t('Meetings'), Icon: MeetingFile },
     { route: '/chat', label: t('Ask'), Icon: AskBubble },
-    { route: '/trash', label: t('Trash'), Icon: Trash2 },
-    { route: '/settings', label: t('Settings'), Icon: SidebarSettings },
   ]
   const folder = route.startsWith('/folder/') ? folders?.find((s) => route === `/folder/${s.id}`) : undefined
   const current = links.find((link) => link.route === section) ?? (route.startsWith('/folder/') ? { label: folder?.name ?? t('Folder') } : undefined)
-  const label = note ? (meeting && route === `/note/${meeting.id}` ? meeting.title : t('Meeting')) : route.startsWith('/settings') ? t('Settings') : current?.label ?? t('Meetings')
-  const nav = (link: typeof links[number]) => <button key={link.route} data-testid={link.route === '' ? 'nav-home' : link.route === '/chat' ? 'nav-chat' : link.route === '/settings' ? 'settings-open' : 'nav-trash'}
-    data-sidebar="menu-button" aria-label={link.label} title={collapsed ? link.label : undefined} className={`workspace-nav${link.route === '/trash' ? ' workspace-trash' : ''}`} aria-current={section === link.route || link.route === '' && route === '/meetings' ? 'page' : undefined} onClick={() => go(link.route)}>
+  const label = note ? (meeting && route === `/note/${meeting.id}` ? meeting.title : t('Meeting')) : route.startsWith('/settings') ? t('Settings') : route === '/trash' ? t('Trash') : current?.label ?? t('Meetings')
+  const nav = (link: typeof links[number]) => <button key={link.route} data-testid={link.route === '' ? 'nav-home' : 'nav-chat'}
+    data-sidebar="menu-button" aria-label={link.label} title={collapsed ? link.label : undefined} className="workspace-nav" aria-current={section === link.route || link.route === '' && route === '/meetings' ? 'page' : undefined} onClick={() => go(link.route)}>
     <link.Icon size={16} aria-hidden="true" /><span>{link.label}</span>
   </button>
 
@@ -86,15 +83,13 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
       <div className="sidebar-titlebar" />
       <div className="workspace-sidebar-body">
         <button className="workspace-search no-drag" data-testid="search-open" aria-label={t('Search')} title={`${t('Search')} (${keys('⌘K')})`} onClick={search}><Search className="flex-none" size={16} aria-hidden="true" /><span>{t('Search')}</span><kbd>{keys('⌘K')}</kbd></button>
-        <nav aria-label={t('Workspace')}>{links.slice(0, 2).map(nav)}</nav>
+        <nav aria-label={t('Workspace')}>{links.map(nav)}</nav>
         <div className="workspace-folder-label">{t('Your workspace')}</div>
         <FoldersNav collapsed={collapsed} sidebarMotion={sidebarMotion} folders={folders} route={route} go={go} />
       </div>
       <div className="workspace-sidebar-footer">
         <FinishSetup collapsed={collapsed} />
-        {nav(links[2])}
-        {nav(links[3])}
-        <div className="workspace-brand"><span className="workspace-wordmark"><Wordmark height={25} /></span></div>
+        <CornerMenu section={section} recording={recording?.kind === 'recording'} go={go} shortcuts={shortcuts} />
       </div>
       </div>
     </Sidebar.Container>
@@ -107,7 +102,6 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
           </span>
           <span data-testid="workspace-heading" aria-current="page" title={label}>{label}</span>
         </div>
-      <UpdateReady recording={recording?.kind === 'recording'} />
       <NotesSetup go={go} />
       {returnToRecording && <button className="workspace-recording-link no-drag" data-testid="recording-return" data-paused={recording.paused}
         aria-label={t('Open {title}', { title: recording.title })} title={t('Open {title}', { title: recording.title })} onClick={() => go(`/note/${recording.meetingId}`)}>

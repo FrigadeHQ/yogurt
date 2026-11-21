@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test, type ElectronApplication } from '@playwright/test'
 import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -56,7 +57,7 @@ test('the spoken language picker: English only by default, Multi-language for th
 
     // Settings → Language shows the same choice, and changes it back
     await page.getByTestId('note-stop').click()
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     await expect(page.getByTestId('settings-spoken-multi')).toHaveAttribute('aria-checked', 'true')
     await page.getByTestId('settings-spoken-en').click()
     await expect(page.getByTestId('settings-spoken-en')).toHaveAttribute('aria-checked', 'true')

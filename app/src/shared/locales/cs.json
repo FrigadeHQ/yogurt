@@ -744,12 +744,9 @@
   "Previous match": "Předchozí shoda",
   "Next match": "Další shoda",
   "Update ready": "Aktualizace připravena",
-  "Installs when you restart Yogurt": "Nainstaluje se po restartu Yogurtu",
   "You can restart after recording": "Restart bude možný po nahrávání",
-  "Later": "Později",
   "Restart": "Restartovat",
   "Yogurt couldn't restart. Try again.": "Yogurt se nepodařilo restartovat. Zkuste to znovu.",
-  "Yogurt {version}": "Yogurt {version}",
   "Calendar address": "Adresa kalendáře",
   "Connect": "Připojit",
   "Connect a calendar to see your meetings.": "Připojte kalendář, abyste viděli své schůzky.",
@@ -786,5 +783,14 @@
   "Stop transcription": "Zastavit přepis",
   "Audio is unavailable.": "Zvuk není k dispozici.",
   "Add a calendar by link": "Přidat kalendář pomocí odkazu",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Kalendáře z aplikace Kalendář na Macu se automaticky zobrazí výše."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Kalendáře z aplikace Kalendář na Macu se automaticky zobrazí výše.",
+  "What's new": "Co je nového",
+  "New": "Nové",
+  "Star us on GitHub": "Dejte nám hvězdičku na GitHubu",
+  "Join Discord": "Připojit se na Discord",
+  "Send feedback": "Odeslat zpětnou vazbu",
+  "Help": "Nápověda",
+  "Help and settings": "Nápověda a nastavení",
+  "Yogurt menu": "Nabídka Yogurt",
+  "Restart to update · {version}": "Restartovat a aktualizovat · {version}"
 }

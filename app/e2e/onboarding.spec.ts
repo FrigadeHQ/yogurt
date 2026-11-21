@@ -12,7 +12,7 @@ test('first run: progress while the models arrive, then the home screen', async 
   try {
     const page = await app.firstWindow()
     await expect(page.getByTestId('onboarding')).toBeVisible()
-    await expect(page.getByTestId('wordmark')).toBeVisible()
+    await expect(page.getByTestId('onboarding').getByTestId('wordmark')).toBeVisible()
     await expect(page.getByTestId('step-title')).toHaveText('Almost ready')
     const bar = page.getByTestId('setup-progress')
     await expect(bar).toBeVisible()

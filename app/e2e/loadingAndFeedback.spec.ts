@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -24,7 +25,7 @@ test('first reads have skeletons; a loaded transcript stays mounted across tabs'
         ipcMain.handle(channel, async (...args) => { await new Promise(resolve => setTimeout(resolve, 650)); return old(...args) })
       }
     })
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     await expect(page.getByTestId('settings-loading')).toBeVisible()
     await expect(page.getByTestId('settings-heading')).toBeVisible()
     await expect(page.getByTestId('login-toggle')).toHaveCount(0)
@@ -35,7 +36,7 @@ test('first reads have skeletons; a loaded transcript stays mounted across tabs'
     await expect(page.getByTestId('new-note')).toBeVisible()
     expect((await page.getByTestId('workspace-heading').boundingBox())!.x).toBe(startX)
     await expect(page.getByTestId('meetings-loading')).toHaveCount(0)
-    await page.getByTestId('nav-trash').click()
+    await openFromCorner(page, 'nav-trash')
     await expect(page.getByTestId('meetings-loading')).toBeVisible()
     await expect(page.getByTestId('trash-none')).toHaveCount(0)
     await expect(page.getByTestId('trash-none')).toBeVisible()

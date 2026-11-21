@@ -671,12 +671,9 @@
   "Previous match": "รายการก่อนหน้า",
   "Next match": "รายการถัดไป",
   "Update ready": "อัปเดตพร้อมแล้ว",
-  "Installs when you restart Yogurt": "ติดตั้งเมื่อเริ่ม Yogurt ใหม่",
   "You can restart after recording": "คุณเริ่มใหม่ได้หลังบันทึกเสร็จ",
-  "Later": "ภายหลัง",
   "Restart": "เริ่มใหม่",
   "Yogurt couldn't restart. Try again.": "เริ่ม Yogurt ใหม่ไม่ได้ ลองอีกครั้ง",
-  "Yogurt {version}": "Yogurt {version}",
   "Calendar address": "ที่อยู่ปฏิทิน",
   "Connect": "เชื่อมต่อ",
   "Connect a calendar to see your meetings.": "เชื่อมต่อปฏิทินเพื่อดูการประชุมของคุณ",
@@ -713,5 +710,14 @@
   "Stop transcription": "หยุดถอดเสียง",
   "Audio is unavailable.": "ไม่มีเสียงให้ใช้งาน",
   "Add a calendar by link": "เพิ่มปฏิทินด้วยลิงก์",
-  "Calendars from the Mac's Calendar app appear above automatically.": "ปฏิทินจากแอปปฏิทินบน Mac จะแสดงด้านบนโดยอัตโนมัติ"
+  "Calendars from the Mac's Calendar app appear above automatically.": "ปฏิทินจากแอปปฏิทินบน Mac จะแสดงด้านบนโดยอัตโนมัติ",
+  "What's new": "มีอะไรใหม่",
+  "New": "ใหม่",
+  "Star us on GitHub": "ให้ดาวเราบน GitHub",
+  "Join Discord": "เข้าร่วม Discord",
+  "Send feedback": "ส่งความคิดเห็น",
+  "Help": "วิธีใช้",
+  "Help and settings": "ความช่วยเหลือและการตั้งค่า",
+  "Yogurt menu": "เมนู Yogurt",
+  "Restart to update · {version}": "เริ่มใหม่เพื่ออัปเดต · {version}"
 }

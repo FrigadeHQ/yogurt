@@ -701,12 +701,9 @@
   "Previous match": "Előző találat",
   "Next match": "Következő találat",
   "Update ready": "Frissítés kész",
-  "Installs when you restart Yogurt": "A Yogurt újraindításakor települ",
   "You can restart after recording": "A felvétel után újraindítható",
-  "Later": "Később",
   "Restart": "Újraindítás",
   "Yogurt couldn't restart. Try again.": "A Yogurt nem tudott újraindulni. Próbáld újra.",
-  "Yogurt {version}": "Yogurt {version}",
   "Calendar address": "Naptár címe",
   "Connect": "Csatlakoztatás",
   "Connect a calendar to see your meetings.": "Csatlakoztass egy naptárt, hogy lásd a megbeszéléseidet.",
@@ -743,5 +740,14 @@
   "Stop transcription": "Átírás leállítása",
   "Audio is unavailable.": "A hang nem érhető el.",
   "Add a calendar by link": "Naptár hozzáadása hivatkozással",
-  "Calendars from the Mac's Calendar app appear above automatically.": "A Mac Naptár appjában lévő naptárak automatikusan megjelennek fent."
+  "Calendars from the Mac's Calendar app appear above automatically.": "A Mac Naptár appjában lévő naptárak automatikusan megjelennek fent.",
+  "What's new": "Újdonságok",
+  "New": "Új",
+  "Star us on GitHub": "Csillagozz meg minket a GitHubon",
+  "Join Discord": "Csatlakozás a Discordhoz",
+  "Send feedback": "Visszajelzés küldése",
+  "Help": "Súgó",
+  "Help and settings": "Súgó és beállítások",
+  "Yogurt menu": "Yogurt menü",
+  "Restart to update · {version}": "Újraindítás a frissítéshez · {version}"
 }

@@ -671,12 +671,9 @@
   "Previous match": "前の一致",
   "Next match": "次の一致",
   "Update ready": "更新の準備完了",
-  "Installs when you restart Yogurt": "Yogurtの再起動時にインストールされます",
   "You can restart after recording": "録音後に再起動できます",
-  "Later": "後で",
   "Restart": "再起動",
   "Yogurt couldn't restart. Try again.": "Yogurtを再起動できませんでした。もう一度お試しください。",
-  "Yogurt {version}": "Yogurt {version}",
   "Calendar address": "カレンダーのアドレス",
   "Connect": "接続",
   "Connect a calendar to see your meetings.": "カレンダーを接続すると会議が表示されます。",
@@ -713,5 +710,14 @@
   "Stop transcription": "文字起こしを停止",
   "Audio is unavailable.": "音声を利用できません。",
   "Add a calendar by link": "リンクでカレンダーを追加",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Macのカレンダーアプリのカレンダーは上に自動で表示されます。"
+  "Calendars from the Mac's Calendar app appear above automatically.": "Macのカレンダーアプリのカレンダーは上に自動で表示されます。",
+  "What's new": "新着情報",
+  "New": "新着",
+  "Star us on GitHub": "GitHubでスターを付ける",
+  "Join Discord": "Discordに参加",
+  "Send feedback": "フィードバックを送信",
+  "Help": "ヘルプ",
+  "Help and settings": "ヘルプと設定",
+  "Yogurt menu": "Yogurt メニュー",
+  "Restart to update · {version}": "再起動してアップデート · {version}"
 }

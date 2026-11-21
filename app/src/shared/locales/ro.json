@@ -730,12 +730,9 @@
   "Previous match": "Potrivirea anterioară",
   "Next match": "Potrivirea următoare",
   "Update ready": "Actualizare pregătită",
-  "Installs when you restart Yogurt": "Se instalează când repornești Yogurt",
   "You can restart after recording": "Poți reporni după înregistrare",
-  "Later": "Mai târziu",
   "Restart": "Repornește",
   "Yogurt couldn't restart. Try again.": "Yogurt nu a putut reporni. Încearcă din nou.",
-  "Yogurt {version}": "Yogurt {version}",
   "Calendar address": "Adresa calendarului",
   "Connect": "Conectați",
   "Connect a calendar to see your meetings.": "Conectați un calendar ca să vă vedeți întâlnirile.",
@@ -772,5 +769,14 @@
   "Stop transcription": "Oprește transcrierea",
   "Audio is unavailable.": "Fișierul audio nu este disponibil.",
   "Add a calendar by link": "Adaugă un calendar prin link",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Calendarele din aplicația Calendar de pe Mac apar automat mai sus."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Calendarele din aplicația Calendar de pe Mac apar automat mai sus.",
+  "What's new": "Noutăți",
+  "New": "Nou",
+  "Star us on GitHub": "Dă-ne o stea pe GitHub",
+  "Join Discord": "Alătură-te pe Discord",
+  "Send feedback": "Trimite feedback",
+  "Help": "Ajutor",
+  "Help and settings": "Ajutor și setări",
+  "Yogurt menu": "Meniul Yogurt",
+  "Restart to update · {version}": "Repornește pentru actualizare · {version}"
 }

@@ -741,12 +741,9 @@
   "Previous match": "Попередній збіг",
   "Next match": "Наступний збіг",
   "Update ready": "Оновлення готове",
-  "Installs when you restart Yogurt": "Встановиться після перезапуску Yogurt",
   "You can restart after recording": "Можна перезапустити після запису",
-  "Later": "Пізніше",
   "Restart": "Перезапустити",
   "Yogurt couldn't restart. Try again.": "Не вдалося перезапустити Yogurt. Спробуйте ще раз.",
-  "Yogurt {version}": "Yogurt {version}",
   "Calendar address": "Адреса календаря",
   "Connect": "Під’єднати",
   "Connect a calendar to see your meetings.": "Під’єднайте календар, щоб бачити свої зустрічі.",
@@ -783,5 +780,14 @@
   "Stop transcription": "Зупинити транскрибування",
   "Audio is unavailable.": "Аудіо недоступне.",
   "Add a calendar by link": "Додати календар за посиланням",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Календарі з програми «Календар» на Mac автоматично з’являються вище."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Календарі з програми «Календар» на Mac автоматично з’являються вище.",
+  "What's new": "Що нового",
+  "New": "Нове",
+  "Star us on GitHub": "Поставити зірку на GitHub",
+  "Join Discord": "Приєднатися до Discord",
+  "Send feedback": "Надіслати відгук",
+  "Help": "Довідка",
+  "Help and settings": "Довідка й налаштування",
+  "Yogurt menu": "Меню Yogurt",
+  "Restart to update · {version}": "Перезапустити для оновлення · {version}"
 }

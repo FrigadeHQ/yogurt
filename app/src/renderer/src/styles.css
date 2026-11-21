@@ -954,14 +954,6 @@ html:not(.widget) button:focus-visible, html:not(.widget) input:focus-visible { 
 .renderer-recovery-content { display:flex;flex-direction:column;align-items:center;gap:16px;max-width:360px;text-align:center;font-size:14px; }
 .renderer-recovery-content .modal-button { width:auto;min-width:80px; }
 
-/* The update shares the download status pattern, without a progress indicator. */
-.update-ready-status { max-width:35%; }
-.update-ready-menu { width:max-content;min-width:286px;max-width:calc(100vw - 24px); }
-.update-ready-menu h2 { font-size:12px;font-weight:550;line-height:18px; }
-.update-ready-menu .update-ready-description { margin:6px 0 15px;color:var(--muted);font-size:11px;white-space:nowrap;text-wrap:nowrap;overflow:hidden;text-overflow:ellipsis; }
-.update-ready-actions { font-size:12px;line-height:18px;display:flex;justify-content:flex-end;align-items:center;gap:14px; }
-.update-ready-menu [role=alert] { max-width:320px;font-size:11px;color:var(--muted); }
-
 /* Shared actions. Status fields and selection controls keep their own geometry. */
 .text-action,.ghost-btn,.workspace-button { display:inline-flex;align-items:center;justify-content:center;flex:none;gap:6px;box-sizing:border-box;white-space:nowrap;text-decoration:none;line-height:18px; }
 .text-action { padding:4px 0;border:0;border-radius:3px;background:transparent;color:var(--muted);font-size:inherit;line-height:inherit;font-weight:400; }

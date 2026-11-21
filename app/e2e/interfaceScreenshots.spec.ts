@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { randomUUID } from 'node:crypto'
 import { DatabaseSync } from 'node:sqlite'
 import { selectNoteVersion } from './noteVersion'
@@ -288,7 +289,7 @@ async function captureSwitch(app: ElectronApplication, page: Page, id: string, t
 }
 
 scene('01', 'AI access after a rejected save', async ({ app, page, profile, theme }) => {
-  await page.getByTestId('settings-open').click()
+  await openFromCorner(page, 'settings-open')
   const toggle = page.getByTestId('ai-apps-toggle')
   await expect(toggle).toHaveAttribute('aria-checked', 'true')
   await toggle.evaluate(el => el.scrollIntoView({ block: 'center' }))
@@ -312,7 +313,7 @@ for (const [id, control, channel, toast] of [
   ['01-updates', 'updates-toggle', 'updates:set', 'updates-save-retry-error'],
 ] as const) {
   scene(id, 'rejected save for ' + control, async s => {
-    await s.page.getByTestId('settings-open').click()
+    await openFromCorner(s.page, 'settings-open')
     const toggle = s.page.getByTestId(control)
     await expect(toggle).toBeEnabled()
     await toggle.evaluate(el => el.scrollIntoView({ block: 'center' }))
