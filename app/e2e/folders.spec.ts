@@ -118,6 +118,64 @@ test('a folder is made in the sidebar, opens empty, and is renamed in place and 
   } finally { await app.close() }
 })
 
+for (const theme of ['light', 'dark'] as const) test(`add existing meetings from a folder by keyboard in ${theme}`, async () => {
+  const { app, page } = await launch()
+  try {
+    await page.evaluate(theme => window.yogurt.settings.setTheme(theme), theme)
+    await withMeetings(app, page)
+    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(w => !w.webContents.getURL().includes('#'))!.setSize(720, 520))
+    const longTitle = 'Planning'.repeat(25)
+    await page.evaluate(async title => {
+      const [first] = await window.yogurt.meetings.cards({ limit: 1 })
+      await window.yogurt.meetings.rename(first.id, title)
+    }, longTitle)
+    await newFolder(page, 'Reviews')
+    const header = page.locator('.folder-page-heading').getByRole('button', { name: 'Add meetings' })
+    const empty = page.getByTestId('folder-empty').getByRole('button', { name: 'Add meetings' })
+    const dialog = page.getByRole('dialog', { name: 'Add meetings' })
+    const search = dialog.getByRole('textbox', { name: 'Search' })
+    const mod = process.platform === 'darwin' ? 'Meta' : 'Control'
+    await empty.press('Enter')
+    await expect(search).toBeFocused()
+    await search.press(mod + '+j')
+    await search.press(mod + '+n')
+    await expect(search).toBeFocused()
+    await expect(dialog.getByText(longTitle, { exact: true })).toBeVisible()
+    expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
+    const list = dialog.getByRole('group', { name: 'Meetings' })
+    expect(await list.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
+    await search.press('Escape')
+    await expect(empty).toBeFocused()
+    await header.press('Enter')
+    for (const title of ['Weekly sync', 'Customer call with Acme']) {
+      await search.fill(title)
+      await search.press('ArrowDown')
+      const choice = dialog.getByRole('checkbox', { name: new RegExp(title) })
+      await expect(choice).toBeFocused()
+      await choice.press('Space')
+      await expect(choice).toBeChecked()
+    }
+    await page.keyboard.press('Tab')
+    const confirm = dialog.getByRole('button', { name: 'Add 2 meetings to folder' })
+    await expect(confirm).toBeFocused()
+    await confirm.press('Enter')
+    await expect(dialog).toHaveCount(0)
+    await expect(header).toBeFocused()
+    await expect(page.getByTestId('past-note')).toHaveText([/Weekly sync/, /Customer call with Acme/])
+    await header.click()
+    const member = dialog.getByRole('checkbox', { name: /Weekly sync.*In this folder/ })
+    await expect(member).toBeDisabled()
+    await expect(member).toBeChecked()
+    await search.fill('No such meeting')
+    await expect(dialog.getByRole('status')).toContainText('Nothing found')
+    await search.press('Escape')
+    await expect(header).toBeFocused()
+    await header.press(mod + '+j')
+    await expect(page.getByTestId('chat-page')).toBeVisible()
+    await expect(page.getByTestId('ask-scope')).toHaveText('Reviews')
+  } finally { await app.close() }
+})
+
 test('a note goes into folders from its menu and its chip, and a new folder from the menu takes it at once', async () => {
   const { app, page } = await launch()
   try {
@@ -133,6 +191,20 @@ test('a note goes into folders from its menu and its chip, and a new folder from
     await expect(suggested).toHaveText('AcmeSuggested')
     await expect(suggested).toHaveAttribute('aria-checked', 'false')
     await page.keyboard.press('Escape')
+    await app.evaluate(({ ipcMain }) => {
+      const handlers = (ipcMain as typeof ipcMain & { _invokeHandlers: Map<string, (...args: unknown[]) => unknown> })._invokeHandlers
+      const add = handlers.get('folders:add')!
+      let failed = false
+      ipcMain.removeHandler('folders:add')
+      ipcMain.handle('folders:add', (...args) => {
+        if (!failed) { failed = true; throw new Error('fixture write failed') }
+        return add(...args)
+      })
+    })
+    await page.getByTestId('folder-suggestion-confirm').click()
+    await expect(page.getByTestId('folder-suggestion-error')).toBeVisible()
+    await expect(page.getByTestId('folder-suggestion')).toBeVisible()
+    await expect(folder(page, 'Acme').getByTestId('sidebar-folder-count')).toHaveText('0')
     await page.getByTestId('folder-suggestion-confirm').click()
     await expect(page.getByTestId('folder-suggestion')).toHaveCount(0)
     await expect(folder(page, 'Acme').getByTestId('sidebar-folder-count')).toHaveText('1')

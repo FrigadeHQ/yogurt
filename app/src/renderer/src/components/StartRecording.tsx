@@ -14,7 +14,7 @@ import { personName } from './People'
 let lastRecording: boolean | undefined
 
 /** Start or resume from a library destination; main resolves the event's note. */
-export function StartRecording({ onStarted, onGone, emptyActions, compact, testId = 'start-recording' }: { compact?: boolean; emptyActions?: HTMLElement | null; onStarted?: (id: string) => void; onGone?: () => void; testId?: string }) {
+export function StartRecording({ folderId, onUploaded, onGone, emptyActions, compact, testId = 'start-recording' }: { folderId?: string; compact?: boolean; emptyActions?: HTMLElement | null; onUploaded?: (id: string) => void; onGone?: () => void; testId?: string }) {
   const [actions, setActions] = useState<HTMLElement | null>(null)
   const [recording, setRecording] = useState(lastRecording)
   const [starting, setStarting] = useState(false)
@@ -60,13 +60,11 @@ export function StartRecording({ onStarted, onGone, emptyActions, compact, testI
     if (starting || recording !== false) return
     setStarting(true); setOpen(false); toasts.close('start-recording-message')
     try {
-      const result = await window.yogurt.meetings.start(eventId)
+      const result = await window.yogurt.meetings.start(eventId, folderId)
       if ('error' in result) {
         if (result.error === 'gone') { setEvents([]); void load(); onGone?.() }
         toasts.add({ id: 'start-recording-message', data: { testId: 'start-recording-message' }, title: result.error === 'gone' ? t('That meeting is no longer on your calendar.') : t("Yogurt couldn't start the notes. Try again in a moment.") })
-        return
       }
-      if (!result.alreadyRecording && !result.resumeRequested) onStarted?.(result.id)
     } catch {
       toasts.add({ id: 'start-recording-message', data: { testId: 'start-recording-message' }, title: t("Yogurt couldn't start the notes. Try again in a moment.") })
     } finally { setStarting(false) }
@@ -104,7 +102,7 @@ export function StartRecording({ onStarted, onGone, emptyActions, compact, testI
           })}
           {choices.length > 0 && <Menu.Separator className="recording-menu-separator" />}
           <Menu.Item data-testid="recording-unattached" disabled={starting} onClick={() => void start(null)}><Mic className="flex-none" size={14} aria-hidden="true" />{t('New recording')}</Menu.Item>
-          <Menu.Item data-testid="recording-upload" disabled={starting} onClick={() => { setOpen(false); void openAudioUpload(onStarted) }}><Upload size={14} aria-hidden="true" />{t('Upload a file')}</Menu.Item>
+          <Menu.Item data-testid="recording-upload" disabled={starting} onClick={() => { setOpen(false); void openAudioUpload(onUploaded) }}><Upload size={14} aria-hidden="true" />{t('Upload a file')}</Menu.Item>
         </Menu.Popup>
       </Menu.Positioner>
     </Menu.Portal>
