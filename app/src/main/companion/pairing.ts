@@ -1,6 +1,6 @@
 // Pairing over one connection, before any Noise session (the desktop is CPace initiator A):
 //   pairHello {v:1, phoneSession, phoneName} → pairStart {v:1, desktopSession, desktopId, desktopName, ya}
-//   → pairReply {yb} → pairConfirm {box} → pairDone {box} → pairOk {} | pairFail {reason: code | expired | tooMany}
+//   → pairReply {yb} → pairConfirm {box} → pairDone {box} → pairOk {} | pairFail {reason: code | expired | tooMany | busy}
 // sid = desktopSession ‖ phoneSession, CI = "yogurt-pair-v1" ‖ desktopSession ‖ phoneSession, no AD. The boxes are
 // XChaCha20-Poly1305 under pairKeys(ISK) (toPhone, AD "pairConfirm"; toDesktop, AD "pairDone") holding JSON
 // {key, name, id}; opening one is the key confirmation. Binary fields are base64. Every frame has a "type".
@@ -14,7 +14,8 @@ import { sodium } from './sodium'
 export const PAIR_MS = 2 * 60 * 1000
 export const ATTEMPTS = 5
 
-export type PairFail = 'code' | 'expired' | 'tooMany'
+/** busy: another phone is mid-exchange, or a wrong guess was just made (try again in a second) */
+export type PairFail = 'code' | 'expired' | 'tooMany' | 'busy'
 export type PairedPhone = { key: Uint8Array; name: string; id: string }
 
 /** Six digits, every one equally likely */
@@ -25,6 +26,8 @@ export type PairIo = { next: () => Promise<Uint8Array>; send: (msg: object) => v
 export type PairCtx = {
   /** the code now, or null when pairing is closed or the code ran out */
   code: () => string | null
+  /** a wrong guess was made a moment ago: the next one waits */
+  waiting: () => boolean
   /** one guess at the code was made (the phone has a box it can check its guess against): counts against the code */
   guessed: () => void
   /** a counted guess didn't pair: 'tooMany' once the code is used up (the caller makes a new one) */
@@ -100,6 +103,8 @@ export async function pair(io: PairIo, hello: Record<string, unknown>, ctx: Pair
       return { fail: reason }
     }
     paired = true
+    // the window closed (or the code changed) while this ran: the person no longer expects a phone
+    if (ctx.code() !== code) { io.send({ type: 'pairFail', reason: 'expired' }); return { fail: 'expired' } }
     return { phone }
   } catch (err) {
     if (!paired) ctx.failed()

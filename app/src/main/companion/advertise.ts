@@ -2,7 +2,7 @@
 import { Bonjour, type Service } from 'bonjour-service'
 
 export type Advert = { name: string; port: number; txt: Record<string, string> }
-export type Advertiser = { publish: (a: Advert) => void; stop: () => void; destroy?: () => void }
+export type Advertiser = { publish: (a: Advert) => void; stop: () => void; /** says goodbye on the network, then lets go */ destroy?: () => Promise<void> }
 
 /** mDNS through bonjour-service (plain JavaScript, so the same on Mac, Windows and Linux) */
 export function bonjourAdvertiser(log: (...parts: unknown[]) => void): Advertiser {
@@ -30,10 +30,15 @@ export function bonjourAdvertiser(log: (...parts: unknown[]) => void): Advertise
       } catch (err) { log('COMPANION', 'advert failed', (err as Error).name) }
     },
     stop,
-    destroy() {
-      stop()
-      try { bonjour?.destroy() } catch { /* already gone */ }
+    async destroy() {
+      const b = bonjour
       bonjour = null
+      if (!b) return
+      service = null
+      current = ''
+      // unpublishAll sends the goodbye packets; destroy closes the socket only after
+      await new Promise<void>((r) => { try { b.unpublishAll(() => r()) } catch { r() } })
+      await new Promise<void>((r) => { try { b.destroy(() => r()) } catch { r() } })
     },
   }
 }

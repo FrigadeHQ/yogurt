@@ -108,10 +108,48 @@ describe('companion sessions', () => {
     a.raw.socket.write(frame(crypto.getRandomValues(new Uint8Array(40))))
     await a.raw.closed
     const b = await connect()
+    expect((await b.request('hello', { appVersion: '1', schema: 1 })).type).toBe('ok')
     const d = await connect()
+    expect((await d.request('hello', { appVersion: '1', schema: 1 })).type).toBe('ok')
     await b.raw.closed
     expect((await d.request('hello', { appVersion: '1', schema: 1 })).type).toBe('ok')
     expect(c.status().connected).toBe(true)
+  })
+
+  it('a replayed first handshake message neither kicks the phone off nor shows it as connected', async () => {
+    const { c, connect, phone, desktopKey } = await paired({ limits: { handshakeMs: 300 } })
+    let captured: Uint8Array | undefined
+    const first = await session(c.port()!, phone, desktopKey, undefined, { sent: (m) => { captured = m } })
+    expect((await first.request('hello', { schema: 1 })).type).toBe('ok')
+    first.close()
+    await expect.poll(() => c.status().connected).toBe(false)
+    // the attacker replays it: the desktop answers, but nothing is connected and nothing was seen
+    const seenBefore = c.status().paired!.lastSeen
+    const replay = await raw(c.port()!)
+    replay.send(captured!)
+    await replay.next()
+    expect(c.status().connected).toBe(false)
+    expect(c.status().paired!.lastSeen).toBe(seenBefore)
+    await replay.closed
+    // with the real phone connected, a replay doesn't close it
+    const live = await connect()
+    expect((await live.request('hello', { schema: 1 })).type).toBe('ok')
+    const again = await raw(c.port()!)
+    again.send(captured!)
+    await again.next()
+    await again.closed
+    expect((await live.request('pull', { since: 0, limit: 1 })).type).toBe('ok')
+    expect(c.status().connected).toBe(true)
+  })
+
+  it('takes at most two waiting connections from one address, and drops silent ones fast', async () => {
+    const { c, connect } = await paired({ limits: { firstFrameMs: 200 } })
+    const a = await raw(c.port()!), b = await raw(c.port()!)
+    const extra = await raw(c.port()!)
+    await extra.closed
+    await Promise.all([a.closed, b.closed])
+    const s = await connect()
+    expect((await s.request('hello', { schema: 1 })).type).toBe('ok')
   })
 
   it('answers ping with pong, and closes a session that stays quiet', async () => {
@@ -190,13 +228,51 @@ describe('companion sessions', () => {
     expect(await s.request('uploadAudio', chunk(1))).toMatchObject({ type: 'error', body: { code: 'order' } })
     for (const i of [0, 1]) expect(await s.request('uploadAudio', chunk(i))).toMatchObject({ type: 'ok', body: { received: i } })
     expect(imported).toEqual([])
-    expect(await s.request('uploadAudio', chunk(2))).toMatchObject({ type: 'ok', body: { received: 2, done: true } })
+    expect(await s.request('uploadAudio', chunk(2))).toMatchObject({ type: 'ok', body: { received: 2, done: true, imported: true } })
     expect(imported).toEqual([{ id: meeting.id, audio: audio.join(''), notes: 'bring snacks' }])
     // sent once more (the reply was lost): nothing new
-    expect(await s.request('uploadMeeting', body)).toMatchObject({ type: 'ok', body: { accepted: true, already: true } })
+    expect(await s.request('uploadMeeting', body)).toMatchObject({ type: 'ok', body: { accepted: true, imported: true } })
     expect(await s.request('uploadAudio', chunk(2))).toMatchObject({ type: 'ok', body: { done: true } })
     expect(imported).toHaveLength(1)
     expect(store.db.prepare('SELECT COUNT(*) AS n FROM meetings WHERE id = ?').get(meeting.id)).toEqual({ n: 1 })
+  })
+
+  it('an upload sent again while its import is still running waits for it, and is taken afresh if the import failed', async () => {
+    const store = openStore(':memory:')
+    let fail: (e: Error) => void = () => {}
+    let calls = 0
+    const { connect } = await paired({
+      store,
+      importRecording: async (meeting) => {
+        if (++calls === 1) return new Promise<void>((_, reject) => { fail = reject })
+        store.createMeeting({ ...base, title: meeting.title, startedAt: meeting.startedAt, source: 'audio-file' }, meeting.id)
+      },
+    })
+    const meeting = { id: 'phone-meeting-2', title: 'Walk and talk', startedAt: 1000, endedAt: 2000, attendees: [] }
+    const one = { meetingId: meeting.id, chunk: Buffer.from('all of it').toString('base64'), index: 0, of: 1, mime: 'audio/mp4' }
+    const a = await connect()
+    await a.request('uploadMeeting', { meeting, myNotes: '' })
+    const last = a.request('uploadAudio', one).catch((e: Error) => e)
+    await expect.poll(() => calls).toBe(1)
+    // the reply is lost: the phone comes back and sends it again while the import still runs
+    const b = await connect()
+    const again = b.request('uploadMeeting', { meeting, myNotes: '' })
+    await new Promise((r) => setTimeout(r, 50))
+    fail(new Error('disk full'))
+    expect(await again).toMatchObject({ type: 'ok', body: { accepted: true } })
+    expect(((await again).body as { imported?: boolean }).imported).toBeUndefined()
+    void last
+    expect(await b.request('uploadAudio', one)).toMatchObject({ type: 'ok', body: { done: true, imported: true } })
+    expect(store.meeting(meeting.id)).toBeDefined()
+  })
+
+  it('keeps at most four uploads open, and refuses ids Windows keeps for devices', async () => {
+    const { connect } = await paired()
+    const s = await connect()
+    const up = (id: string) => s.request('uploadMeeting', { meeting: { id, title: 'x', startedAt: 1, endedAt: 2, attendees: [] }, myNotes: '' })
+    for (const id of ['u1', 'u2', 'u3', 'u4']) expect((await up(id)).type).toBe('ok')
+    expect(await up('u5')).toMatchObject({ type: 'error', body: { code: 'busy' } })
+    for (const id of ['NUL', 'con', 'COM1', 'lpt9']) expect(await up(id)).toMatchObject({ type: 'error', body: { code: 'bad-request' } })
   })
 
   it('ask goes to the desktop Ask, with its scope', async () => {
@@ -223,6 +299,9 @@ describe('companion sessions', () => {
     expect(chunks.map((x) => x.index)).toEqual([...Array((last.body as { of: number }).of).keys()])
     expect(Buffer.concat(chunks.map((x) => Buffer.from(x.chunk, 'base64')))).toEqual(Buffer.from(bytes))
     expect(await s.request('audio', { meetingId: m.id, track: 'me' })).toMatchObject({ type: 'error', body: { code: 'gone' } })
+    // in the Trash: not served
+    store.trashMeeting(m.id, 5000)
+    expect(await s.request('audio', { meetingId: m.id, track: 'them' })).toMatchObject({ type: 'error', body: { code: 'gone' } })
     rmSync(dir, { recursive: true, force: true })
   })
 
@@ -251,5 +330,18 @@ describe('companion sessions', () => {
     })
     open.push({ c, dir })
     await expect.poll(() => existsSync(join(uploads, 'old.m4a'))).toBe(false)
+  })
+})
+
+describe('companion frames', () => {
+  it('a frame trickling in a byte at a time comes out whole, once', async () => {
+    const { FrameReader } = await import('../src/main/companion/frames')
+    const r = new FrameReader()
+    const payload = randomBytes(65535)
+    const wire = Buffer.concat([frame(payload), frame(Uint8Array.of(7))])
+    const out: Uint8Array[] = []
+    for (let i = 0; i < wire.length; i++) out.push(...r.push(wire.subarray(i, i + 1)))
+    expect(out.map((f) => Buffer.from(f))).toEqual([payload, Buffer.of(7)])
+    expect(r.waiting).toBe(0)
   })
 })

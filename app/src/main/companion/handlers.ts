@@ -1,5 +1,6 @@
 // What a paired phone can ask for once its Noise session is up. Requests are {id, type, body}; each gets
 // {id, type: "ok" | "error", body} (an error body is {code}), except `audio`, which answers with audioChunk messages.
+import { randomUUID } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { mkdir, open, rm, stat, type FileHandle } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -29,6 +30,10 @@ export type Hello = { desktopId: string; desktopName: string; desktopVersion: st
 export const MAX_AUDIO = 2 * 1024 ** 3
 const MAX_CHUNKS = Math.ceil(MAX_AUDIO / 1024)
 const ID = /^[\w-]{1,64}$/
+// names Windows keeps for devices: companion-uploads/NUL.m4a would write nowhere
+const DEVICE = /^(con|prn|aux|nul|com\d|lpt\d)$/i
+/** uploads staged at once (each can be up to MAX_AUDIO on disk) */
+const MAX_UPLOADS = 4
 
 export class RequestError extends Error {}
 /** an error's kind for the log: messages can hold paths with the person's name in them */
@@ -37,7 +42,7 @@ const bad = () => new RequestError('bad-request')
 
 const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
 const str = (v: unknown, max: number): string => { if (typeof v !== 'string' || v.length > max) throw bad(); return v }
-const id = (v: unknown): string => { if (typeof v !== 'string' || !ID.test(v)) throw bad(); return v }
+const id = (v: unknown): string => { if (typeof v !== 'string' || !ID.test(v) || DEVICE.test(v)) throw bad(); return v }
 const int = (v: unknown, min = 0, max = Number.MAX_SAFE_INTEGER): number => { if (!Number.isSafeInteger(v) || (v as number) < min || (v as number) > max) throw bad(); return v as number }
 const ms = (v: unknown): number => int(v, 0, 8.64e15)
 
@@ -86,7 +91,14 @@ type Upload = { meeting: UploadMeeting; draft: PhoneDraft; file?: FileHandle; pa
 /** One phone's requests. `uploadDir` holds audio being received; it's emptied when the handlers are made. */
 export function createHandlers(d: HandlerDeps & { hello: () => Hello; uploadDir: string }) {
   const uploads = new Map<string, Upload>()
-  const importing = new Set<string>()
+  /** imports running now: a re-sent upload waits for its import to say whether the meeting really is in */
+  const importing = new Map<string, Promise<void>>()
+  /** true once the meeting is in for good; false when an import was running and failed (the phone sends it again) */
+  const imported = async (meetingId: string): Promise<boolean> => {
+    const running = importing.get(meetingId)
+    if (running) return running.then(() => true, () => false)
+    return !!d.store.meeting(meetingId)
+  }
   const cleared = rm(d.uploadDir, { recursive: true, force: true }).catch(() => {})
 
   const drop = async (u: Upload) => {
@@ -98,13 +110,15 @@ export function createHandlers(d: HandlerDeps & { hello: () => Hello; uploadDir:
   async function uploadMeeting(body: Record<string, unknown>) {
     const meeting = meetingOf(body.meeting)
     const draft = draftOf(body)
-    // sent again after a dropped connection: the meeting is made once
-    if (d.store.meeting(meeting.id) || importing.has(meeting.id)) return { accepted: true, already: true }
+    // sent again after a dropped connection: the meeting is made once. imported only when it is really in; until
+    // then the phone keeps its copy
+    if (await imported(meeting.id)) return { accepted: true, imported: true }
     const old = uploads.get(meeting.id)
     if (old) await drop(old)
+    else if (uploads.size >= MAX_UPLOADS) throw new RequestError('busy')
     await cleared
     await mkdir(d.uploadDir, { recursive: true })
-    uploads.set(meeting.id, { meeting, draft, path: join(d.uploadDir, `${meeting.id}.m4a`), next: 0, of: 0, size: 0 })
+    uploads.set(meeting.id, { meeting, draft, path: join(d.uploadDir, `${meeting.id}-${randomUUID()}.m4a`), next: 0, of: 0, size: 0 })
     d.log('COMPANION', 'upload', meeting.id)
     return { accepted: true }
   }
@@ -113,7 +127,11 @@ export function createHandlers(d: HandlerDeps & { hello: () => Hello; uploadDir:
     const meetingId = id(body.meetingId)
     const index = int(body.index, 0, MAX_CHUNKS), of = int(body.of, 1, MAX_CHUNKS)
     if (index >= of || (body.mime !== undefined && body.mime !== 'audio/mp4')) throw bad()
-    if (d.store.meeting(meetingId) || importing.has(meetingId)) return { received: index, done: true }
+    if (importing.has(meetingId)) {
+      if (await imported(meetingId)) return { received: index, done: true, imported: true }
+      throw new RequestError('gone')
+    }
+    if (d.store.meeting(meetingId)) return { received: index, done: true, imported: true }
     const u = uploads.get(meetingId)
     if (!u) throw new RequestError('gone')
     const chunk = Buffer.from(str(body.chunk, 4 * CHUNK_BYTES), 'base64')
@@ -128,9 +146,10 @@ export function createHandlers(d: HandlerDeps & { hello: () => Hello; uploadDir:
     if (u.next < of) return { received: index }
     await u.file!.sync(); await u.file!.close(); u.file = undefined
     uploads.delete(meetingId)
-    importing.add(meetingId)
+    const job = d.importRecording(u.meeting, u.path, u.draft)
+    importing.set(meetingId, job)
     try {
-      await d.importRecording(u.meeting, u.path, u.draft)
+      await job
       d.log('COMPANION', 'imported', meetingId, `chunks=${of}`)
     } catch (err) {
       d.log('COMPANION', 'import failed', meetingId, why(err))
@@ -139,7 +158,7 @@ export function createHandlers(d: HandlerDeps & { hello: () => Hello; uploadDir:
       importing.delete(meetingId)
       await rm(u.path, { force: true }).catch(() => {})
     }
-    return { received: index, done: true }
+    return { received: index, done: true, imported: true }
   }
 
   async function op(body: Record<string, unknown>) {
@@ -165,7 +184,8 @@ export function createHandlers(d: HandlerDeps & { hello: () => Hello; uploadDir:
   async function audio(reqId: string, body: Record<string, unknown>, send: (m: object) => Promise<void>) {
     const meetingId = id(body.meetingId)
     if (body.track !== 'me' && body.track !== 'them') throw bad()
-    if (!d.store.meeting(meetingId)) throw new RequestError('gone')
+    const m = d.store.meeting(meetingId)
+    if (!m || m.trashedAt != null) throw new RequestError('gone')
     const file = (await d.audioFiles(meetingId)).find((f) => f.track === body.track)
     if (!file) throw new RequestError('gone')
     const { size } = await stat(file.path)
@@ -218,6 +238,11 @@ export function createHandlers(d: HandlerDeps & { hello: () => Hello; uploadDir:
   return {
     handle,
     /** the connection went: audio half received is dropped (the phone sends it again from the start) */
-    async reset() { for (const u of uploads.values()) await drop(u); uploads.clear() },
+    async reset() {
+      // taken out first: an upload a new session stages meanwhile is its own
+      const old = [...uploads.values()]
+      uploads.clear()
+      for (const u of old) await drop(u)
+    },
   }
 }

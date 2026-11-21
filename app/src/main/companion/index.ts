@@ -15,6 +15,10 @@ import { bonjourAdvertiser, type Advertiser } from './advertise'
 export type CompanionStatus = {
   paired: null | { name: string; lastSeen: number | null }
   pairing: null | { code: string; expiresAt: number; attemptsLeft: number }
+  /** why the last pairing closed without a phone: its two minutes ran out, or too many wrong codes (null otherwise) */
+  pairingClosed: null | 'expired' | 'tooMany'
+  /** the system keychain wouldn't open this computer's key: off, the pairing kept, until a start where it opens */
+  error: null | 'keychain'
   connected: boolean
   syncing: boolean
 }
@@ -43,6 +47,10 @@ type Device = { id: string; name: string; key: Uint8Array; lastSeen: number | nu
 
 /** While recording, a `changed` goes out at most this often */
 const RECORDING_PUSH_MS = 30_000
+/** codes one "Pair a phone" can go through (ATTEMPTS wrong guesses each) before pairing closes */
+const CODES = 3
+/** the pause after a wrong guess before the next one is taken */
+const RETRY_MS = 1000
 
 export async function createCompanion(d: CompanionDeps) {
   await ready()
@@ -51,31 +59,41 @@ export async function createCompanion(d: CompanionDeps) {
   const file = join(d.userDataDir, 'companion.json')
   const advertiser = d.advertiser ?? bonjourAdvertiser(d.log)
 
-  // this computer's id and static key, made once; the private half sealed on disk
-  const { saved, keys } = identity()
-  function identity(): { saved: Saved; keys: KeyPair } {
-    try {
-      if (existsSync(file)) {
-        const s = JSON.parse(readFileSync(file, 'utf8')) as Saved
-        const keys = keyPairFromPrivate(Uint8Array.from(Buffer.from(d.open(s.privateKey), 'base64')))
-        if (keys.privateKey.length === 32 && Buffer.from(keys.publicKey).toString('base64') === s.publicKey) return { saved: s, keys }
-      }
-    } catch (err) { d.log('COMPANION', 'identity unreadable, making a new one', (err as Error).name) }
-    // a new key means the phone has to pair again
-    d.store.db.exec('DELETE FROM companion_devices')
-    const keys = generateKeyPair()
-    const s: Saved = { id: randomUUID(), publicKey: Buffer.from(keys.publicKey).toString('base64'), privateKey: d.seal(Buffer.from(keys.privateKey).toString('base64')) }
-    writeFileSync(file, JSON.stringify(s, null, 2), { mode: 0o600 })
-    return { saved: s, keys }
-  }
-  const persist = () => writeFileSync(file, JSON.stringify(saved, null, 2), { mode: 0o600 })
-
   const device = (): Device | null => {
     const r = d.store.db.prepare('SELECT id, name, public_key, last_seen FROM companion_devices ORDER BY paired_at DESC LIMIT 1').get()
     return r ? { id: String(r.id), name: String(r.name), key: Uint8Array.from(Buffer.from(String(r.public_key), 'base64')), lastSeen: r.last_seen == null ? null : Number(r.last_seen) } : null
   }
 
-  let pairing: { code: string; expiresAt: number; attemptsLeft: number } | null = null
+  // this computer's id and static key, made once; the private half sealed on disk
+  const found = identity()
+  if ('locked' in found) return lockedCompanion(found.locked, device)
+  const { saved, keys } = found
+  function identity(): { saved: Saved; keys: KeyPair } | { locked: string } {
+    let s: Saved | undefined
+    try {
+      const v = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : undefined
+      if (v && typeof v.id === 'string' && typeof v.publicKey === 'string' && typeof v.privateKey === 'string') s = v
+    } catch { /* not JSON: made again below */ }
+    if (s) {
+      let plain: string
+      // the keychain said no (locked, denied, not ready): keep the file and the pairing, try again next start
+      try { plain = d.open(s.privateKey) } catch (err) { d.log('COMPANION', 'keychain would not open the key', (err as Error).name); return { locked: s.id } }
+      const keys = keyPairFromPrivate(Uint8Array.from(Buffer.from(plain, 'base64')))
+      if (keys.privateKey.length === 32 && Buffer.from(keys.publicKey).toString('base64') === s.publicKey) return { saved: s, keys }
+      d.log('COMPANION', 'identity does not match its key, making a new one')
+    }
+    // a new key means the phone has to pair again
+    d.store.db.exec('DELETE FROM companion_devices')
+    const keys = generateKeyPair()
+    const made: Saved = { id: randomUUID(), publicKey: Buffer.from(keys.publicKey).toString('base64'), privateKey: d.seal(Buffer.from(keys.privateKey).toString('base64')) }
+    writeFileSync(file, JSON.stringify(made, null, 2), { mode: 0o600 })
+    return { saved: made, keys }
+  }
+  const persist = () => writeFileSync(file, JSON.stringify(saved, null, 2), { mode: 0o600 })
+
+  let pairing: { code: string; expiresAt: number; attemptsLeft: number; codes: number } | null = null
+  let pairingClosed: CompanionStatus['pairingClosed'] = null
+  let retryAt = 0
   let expiry: NodeJS.Timeout | undefined
   let server: Listening | null = null
   let starting: Promise<void> | null = null
@@ -89,7 +107,9 @@ export async function createCompanion(d: CompanionDeps) {
     const open = openPairing()
     return {
       paired: dev && { name: dev.name, lastSeen: dev.lastSeen },
-      pairing: open && { ...open },
+      pairing: open && { code: open.code, expiresAt: open.expiresAt, attemptsLeft: open.attemptsLeft },
+      pairingClosed,
+      error: null,
       connected: !!session,
       syncing: busy > 0,
     }
@@ -98,23 +118,40 @@ export async function createCompanion(d: CompanionDeps) {
 
   /** the pairing window, if still open: it closes on its own after PAIR_MS */
   function openPairing() {
-    if (pairing && now() >= pairing.expiresAt) { pairing = null; clearTimeout(expiry); void refresh() }
+    if (pairing && now() >= pairing.expiresAt) closePairing('expired')
     return pairing
   }
 
-  function freshCode() {
-    pairing = { code: newCode(), expiresAt: now() + PAIR_MS, attemptsLeft: ATTEMPTS }
+  function closePairing(why: CompanionStatus['pairingClosed']) {
+    pairing = null
+    pairingClosed = why
     clearTimeout(expiry)
-    expiry = setTimeout(() => { openPairing(); emit() }, PAIR_MS + 50)
+    void refresh()
+  }
+
+  /** A new code. One "Pair a phone" keeps its first two minutes, however many codes it goes through. */
+  function freshCode(window?: { expiresAt: number; codes: number }) {
+    const expiresAt = window?.expiresAt ?? now() + PAIR_MS
+    pairing = { code: newCode(), expiresAt, attemptsLeft: ATTEMPTS, codes: (window?.codes ?? 0) + 1 }
+    clearTimeout(expiry)
+    expiry = setTimeout(() => { openPairing(); emit() }, Math.max(0, expiresAt - now()) + 50)
     expiry.unref?.()
   }
 
   const pairCtx = (): PairCtx | null => openPairing() && {
     code: () => openPairing()?.code ?? null,
+    waiting: () => now() < retryAt,
     guessed: () => { if (pairing) pairing.attemptsLeft-- },
     failed: () => {
       d.log('COMPANION', 'pair attempt failed', `left=${pairing?.attemptsLeft ?? 0}`)
-      if (pairing && pairing.attemptsLeft <= 0) { freshCode(); emit(); return 'tooMany' }
+      retryAt = now() + RETRY_MS
+      if (pairing && pairing.attemptsLeft <= 0) {
+        // someone may be guessing: a few codes, then the person has to start pairing again
+        if (pairing.codes >= CODES) closePairing('tooMany')
+        else freshCode(pairing)
+        emit()
+        return 'tooMany'
+      }
       emit()
       return 'code'
     },
@@ -132,10 +169,8 @@ export async function createCompanion(d: CompanionDeps) {
       d.store.db.exec('COMMIT')
     } catch (err) { d.store.db.exec('ROLLBACK'); throw err }
     session?.close()
-    pairing = null
-    clearTimeout(expiry)
+    closePairing(null)
     d.log('COMPANION', 'paired', id)
-    void refresh()
     emit()
   }
 
@@ -203,20 +238,24 @@ export async function createCompanion(d: CompanionDeps) {
     await starting
   }
 
-  /** On while pairing or paired, off otherwise; the advertisement follows */
-  async function refresh() {
-    if (stopped) return
-    const on = !!pairing || !!device()
-    if (!on) {
+  /** On while pairing or paired, off otherwise; the advertisement follows. One at a time, so the last word wins. */
+  let refreshing: Promise<void> = Promise.resolve()
+  const refresh = () => {
+    refreshing = refreshing.then(turn).catch((err) => d.log('COMPANION', 'could not turn on or off', (err as NodeJS.ErrnoException).code ?? (err as Error).name))
+    return refreshing
+  }
+  const wanted = () => !stopped && (!!pairing || !!device())
+  async function turn() {
+    if (wanted()) await listen()
+    // asked again while it started (pairing cancelled, expired): off after all
+    if (!wanted() || !server) {
       advertiser.stop()
-      session?.close()
+      if (!stopped) session?.close()
       const s = server
       server = null
       await s?.close()
       return
     }
-    await listen()
-    if (!server) return
     advertiser.publish({ name: `Yogurt ${saved.id.slice(0, 8)}`, port: saved.port!, txt: { v: '1', id: saved.id, name: d.deviceName(), pairing: pairing ? '1' : '0' } })
   }
 
@@ -226,14 +265,16 @@ export async function createCompanion(d: CompanionDeps) {
     /** a new six-digit code for two minutes; the server starts if it wasn't running */
     async startPairing(): Promise<{ code: string; expiresAt: number }> {
       freshCode()
-      await refresh()
+      pairingClosed = null
+      retryAt = 0
+      const { code, expiresAt } = pairing!
       emit()
+      await refresh()
       d.log('COMPANION', 'pairing opened')
-      return { code: pairing!.code, expiresAt: pairing!.expiresAt }
+      return { code, expiresAt }
     },
     async cancelPairing() {
-      pairing = null
-      clearTimeout(expiry)
+      closePairing(null)
       await refresh()
       emit()
     },
@@ -254,15 +295,33 @@ export async function createCompanion(d: CompanionDeps) {
       stopped = true
       clearInterval(poll)
       clearTimeout(expiry)
-      advertiser.stop()
-      advertiser.destroy?.()
       session?.close()
-      const s = server
-      server = null
-      await s?.close()
+      // goodbye first, so the phone sees this computer leave rather than waiting out the record's lifetime
+      await advertiser.destroy?.()
+      await refresh()
       await handlers.reset()
       sodium().memzero(keys.privateKey)
     },
+  }
+}
+
+
+/** The keychain wouldn't open the key: everything stays as it was, off, and says why. */
+function lockedCompanion(desktopId: string, device: () => { name: string; lastSeen: number | null } | null) {
+  const status = (): CompanionStatus => {
+    const dev = device()
+    return { paired: dev && { name: dev.name, lastSeen: dev.lastSeen }, pairing: null, pairingClosed: null, error: 'keychain', connected: false, syncing: false }
+  }
+  return {
+    async startPairing(): Promise<{ code: string; expiresAt: number }> { throw new Error('keychain') },
+    async cancelPairing() {},
+    async unpair() {},
+    status,
+    onStatus(_cb: (s: CompanionStatus) => void) { return () => {} },
+    port: (): number | null => null,
+    desktopId,
+    publicKey: new Uint8Array(0),
+    async stop() {},
   }
 }
 

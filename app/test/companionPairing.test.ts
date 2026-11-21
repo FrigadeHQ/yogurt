@@ -43,7 +43,7 @@ describe('companion pairing', () => {
     const saved = JSON.parse(readFileSync(join(dir, 'companion.json'), 'utf8'))
     expect(saved.id).toBe(c.desktopId)
     expect(saved.privateKey).toMatch(/^sealed:/)
-    expect(c.status()).toEqual({ paired: null, pairing: null, connected: false, syncing: false })
+    expect(c.status()).toEqual({ paired: null, pairing: null, pairingClosed: null, error: null, connected: false, syncing: false })
   })
 
   it('pairs with the right code: the phone is stored, the advert says pairing=0 and the phone has the desktop key', async () => {
@@ -63,21 +63,104 @@ describe('companion pairing', () => {
     expect((await pairAsPhone(c.port()!, code, generateKeyPair())).result).toEqual({ type: 'pairFail', reason: 'expired' })
   })
 
-  it('a wrong code fails and counts; five wrong codes give tooMany and a fresh code', async () => {
-    const { c, store } = await make()
-    const { code } = await c.startPairing()
-    const wrong = code === '000000' ? '000001' : '000000'
+  const wrongFor = (code: string) => (code === '000000' ? '000001' : '000000')
+
+  it('a wrong code fails and counts; five give tooMany and a fresh code in the same window', async () => {
+    const { c, store, tick } = await make()
+    const { code, expiresAt } = await c.startPairing()
     for (let i = 1; i <= 4; i++) {
-      expect((await pairAsPhone(c.port()!, wrong, generateKeyPair())).result).toEqual({ type: 'pairFail', reason: 'code' })
+      expect((await pairAsPhone(c.port()!, wrongFor(code), generateKeyPair())).result).toEqual({ type: 'pairFail', reason: 'code' })
       expect(c.status().pairing).toMatchObject({ code, attemptsLeft: 5 - i })
+      tick(1000)
     }
-    expect((await pairAsPhone(c.port()!, wrong, generateKeyPair())).result).toEqual({ type: 'pairFail', reason: 'tooMany' })
+    expect((await pairAsPhone(c.port()!, wrongFor(code), generateKeyPair())).result).toEqual({ type: 'pairFail', reason: 'tooMany' })
     const fresh = c.status().pairing!
     expect(fresh.attemptsLeft).toBe(5)
+    // a new code does not buy more time
+    expect(fresh.expiresAt).toBe(expiresAt)
     expect(devices(store)).toEqual([])
-    // the old code is no good any more; the new one is
-    if (fresh.code !== code) expect((await pairAsPhone(c.port()!, code, generateKeyPair())).result).toMatchObject({ type: 'pairFail' })
-    expect((await pairAsPhone(c.port()!, c.status().pairing!.code, generateKeyPair())).result).toEqual({ type: 'pairOk' })
+    tick(1000)
+    expect((await pairAsPhone(c.port()!, fresh.code, generateKeyPair())).result).toEqual({ type: 'pairOk' })
+  })
+
+  it('waits a second after a wrong code before taking another guess', async () => {
+    const { c, tick } = await make()
+    const { code } = await c.startPairing()
+    expect((await pairAsPhone(c.port()!, wrongFor(code), generateKeyPair())).result).toEqual({ type: 'pairFail', reason: 'code' })
+    expect((await pairAsPhone(c.port()!, code, generateKeyPair())).result).toEqual({ type: 'pairFail', reason: 'busy' })
+    expect(c.status().pairing?.attemptsLeft).toBe(4)
+    tick(1000)
+    expect((await pairAsPhone(c.port()!, code, generateKeyPair())).result).toEqual({ type: 'pairOk' })
+  })
+
+  it('after three codes (15 wrong guesses) pairing closes until it is started again', async () => {
+    const { c, tick, adverts } = await make()
+    await c.startPairing()
+    for (let i = 0; i < 15; i++) {
+      const code = c.status().pairing!.code
+      const r = (await pairAsPhone(c.port()!, wrongFor(code), generateKeyPair())).result
+      expect(r).toEqual({ type: 'pairFail', reason: i === 14 || i % 5 === 4 ? 'tooMany' : 'code' })
+      tick(1000)
+    }
+    expect(c.status().pairing).toBeNull()
+    expect(c.status().pairingClosed).toBe('tooMany')
+    // not paired: the server and the advert are off
+    await expect.poll(() => c.port()).toBeNull()
+    expect(adverts.at(-1)).toBeNull()
+    await c.startPairing()
+    expect(c.status()).toMatchObject({ pairingClosed: null, pairing: { attemptsLeft: 5 } })
+  })
+
+  it('a second phone during an exchange is told busy; one that goes quiet after hello frees the slot', async () => {
+    const { c } = await make({ limits: { stepMs: 200 } })
+    const { code } = await c.startPairing()
+    const quiet = await raw(c.port()!)
+    quiet.sendJson({ type: 'pairHello', v: 1, phoneSession: Buffer.alloc(16, 2).toString('base64'), phoneName: 'x' })
+    expect((await quiet.json()).type).toBe('pairStart')
+    expect((await pairAsPhone(c.port()!, code, generateKeyPair())).result).toEqual({ type: 'pairFail', reason: 'busy' })
+    await quiet.closed
+    // nothing guessed, nothing counted
+    expect(c.status().pairing?.attemptsLeft).toBe(5)
+    expect((await pairAsPhone(c.port()!, code, generateKeyPair())).result).toEqual({ type: 'pairOk' })
+  })
+
+  it('a pairing that finishes after the window closed is refused and stores nothing', async () => {
+    const { c, store } = await make()
+    // paired already, so the server stays up when the new pairing is cancelled
+    const first = await c.startPairing()
+    expect((await pairAsPhone(c.port()!, first.code, generateKeyPair(), 'First phone')).result.type).toBe('pairOk')
+    const { code } = await c.startPairing()
+    const r = await pairAsPhone(c.port()!, code, generateKeyPair(), 'Late phone', { beforeDone: () => c.cancelPairing() })
+    expect(r.result).toEqual({ type: 'pairFail', reason: 'expired' })
+    expect(devices(store).map((x) => x.name)).toEqual(['First phone'])
+  })
+
+  it('a stopped then started pairing in a hurry ends off', async () => {
+    const { c, adverts } = await make()
+    const started = c.startPairing()
+    await c.cancelPairing()
+    await started
+    expect(c.port()).toBeNull()
+    expect(adverts.filter(Boolean).length === 0 || adverts.at(-1) === null).toBe(true)
+  })
+
+  it('a keychain that cannot open the key keeps the pairing and stays off with an error', async () => {
+    const { c, store, dir } = await make()
+    const { code } = await c.startPairing()
+    await pairAsPhone(c.port()!, code, generateKeyPair())
+    await c.stop()
+    const before = readFileSync(join(dir, 'companion.json'), 'utf8')
+    const again = await createCompanion({
+      store, userDataDir: dir, seal: (s) => s, open: () => { throw new Error('locked') },
+      ask: async () => ({ answer: '', sources: [] }), importRecording: async () => {}, audioFiles: async () => [],
+      deviceName: () => 'Test Mac', log: () => {}, ops: { notesRewrite: () => {} }, host: '127.0.0.1', advertiser: { publish: () => {}, stop: () => {} },
+    })
+    open.push({ c: again, dir: mkdtempSync(join(tmpdir(), 'companion-pair-')) })
+    expect(again.status()).toMatchObject({ error: 'keychain', paired: { name: 'Test iPhone' } })
+    expect(again.port()).toBeNull()
+    expect(readFileSync(join(dir, 'companion.json'), 'utf8')).toBe(before)
+    expect(devices(store)).toHaveLength(1)
+    await expect(again.startPairing()).rejects.toThrow()
   })
 
   it('a phone that breaks off after its guess still uses up an attempt', async () => {
@@ -101,6 +184,7 @@ describe('companion pairing', () => {
     expect(expiresAt).toBe(1_000_000 + 120_000)
     tick(120_000)
     expect(c.status().pairing).toBeNull()
+    expect(c.status().pairingClosed).toBe('expired')
     await expect.poll(() => adverts.at(-1)).toBeNull()
     // not paired, so the server is off
     await expect.poll(() => c.port()).toBeNull()

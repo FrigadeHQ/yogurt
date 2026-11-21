@@ -19,23 +19,42 @@ export function frame(payload: Uint8Array): Buffer {
   return out
 }
 
-/** Cuts a byte stream into frames. Holds at most one unfinished frame, so a peer can't make it buffer more. */
+/**
+ * Cuts a byte stream into frames. Holds at most one unfinished frame, so a peer can't make it buffer more, and copies
+ * each byte once however finely it trickles in.
+ */
 export class FrameReader {
-  private buf: Buffer = Buffer.alloc(0)
+  private head = Buffer.alloc(2)
+  private headLen = 0
+  private body: Buffer | null = null
+  private filled = 0
 
   push(data: Buffer): Uint8Array[] {
-    this.buf = this.buf.length ? Buffer.concat([this.buf, data]) : data
     const out: Uint8Array[] = []
-    while (this.buf.length >= 2 && this.buf.length >= 2 + this.buf.readUInt16BE(0)) {
-      const len = this.buf.readUInt16BE(0)
-      out.push(Uint8Array.from(this.buf.subarray(2, 2 + len)))
-      this.buf = this.buf.subarray(2 + len)
+    let at = 0
+    while (at < data.length) {
+      if (!this.body) {
+        const n = Math.min(2 - this.headLen, data.length - at)
+        data.copy(this.head, this.headLen, at, at + n)
+        this.headLen += n; at += n
+        if (this.headLen < 2) break
+        this.body = Buffer.alloc(this.head.readUInt16BE(0))
+        this.filled = 0
+        if (!this.body.length) { out.push(new Uint8Array(0)); this.body = null; this.headLen = 0; continue }
+      }
+      const n = Math.min(this.body.length - this.filled, data.length - at)
+      data.copy(this.body, this.filled, at, at + n)
+      this.filled += n; at += n
+      if (this.filled === this.body.length) {
+        out.push(new Uint8Array(this.body.buffer, this.body.byteOffset, this.body.length))
+        this.body = null; this.headLen = 0
+      }
     }
     return out
   }
 
   /** bytes of a frame that hasn't fully arrived */
-  get waiting(): number { return this.buf.length }
+  get waiting(): number { return this.headLen + (this.body ? this.filled : 0) }
 }
 
 const enc = new TextEncoder()

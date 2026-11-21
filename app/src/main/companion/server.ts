@@ -11,14 +11,21 @@ import { SecureChannel, type Rekey } from './session'
 export type Limits = {
   /** pairing or the Noise handshake must be done by then */
   handshakeMs: number
+  /** a new connection says something by then */
+  firstFrameMs: number
+  /** each answer during pairing comes by then */
+  stepMs: number
+  /** connections not yet paired or authenticated, from one address */
+  perAddress: number
   /** a session with nothing from the phone for this long is closed (it pings) */
   idleMs: number
+  /** connections not yet paired or authenticated, in all; an authenticated session never counts here */
   connections: number
   /** requests waiting their turn on one session */
   queued: number
   rekey: Rekey
 }
-export const LIMITS: Limits = { handshakeMs: 10_000, idleMs: 2 * 60 * 1000, connections: 4, queued: 64, rekey: { bytes: 2 ** 30, ms: 60 * 60 * 1000 } }
+export const LIMITS: Limits = { handshakeMs: 10_000, firstFrameMs: 3000, stepMs: 3000, perAddress: 2, idleMs: 2 * 60 * 1000, connections: 4, queued: 64, rekey: { bytes: 2 ** 30, ms: 60 * 60 * 1000 } }
 
 const PROLOGUE = new TextEncoder().encode('yogurt-v1')
 /** requests that may take long run beside the queue, so pings and pulls still get through */
@@ -48,12 +55,24 @@ export type Listening = { port: number; close: () => Promise<void> }
 export function startServer(h: ServerHooks, port: number, host: string): Promise<Listening> {
   let pairingBusy = false
   const sockets = new Set<Socket>()
+  // sockets that haven't proved anything yet, by address: a few strangers can't fill the server for the phone
+  const strangers = new Map<string, number>()
+  let strangersAll = 0
   const server: Server = createServer({ noDelay: true }, (socket) => connection(socket))
-  server.maxConnections = h.limits.connections
 
   function connection(socket: Socket) {
+    const addr = socket.remoteAddress ?? ''
+    if ((strangers.get(addr) ?? 0) >= h.limits.perAddress || strangersAll >= h.limits.connections) { socket.destroy(); return }
+    strangers.set(addr, (strangers.get(addr) ?? 0) + 1); strangersAll++
+    let stranger = true
+    const known = () => {
+      if (!stranger) return
+      stranger = false; strangersAll--
+      const n = (strangers.get(addr) ?? 1) - 1
+      if (n) strangers.set(addr, n); else strangers.delete(addr)
+    }
     sockets.add(socket)
-    socket.on('close', () => sockets.delete(socket))
+    socket.on('close', () => { sockets.delete(socket); known() })
     const reader = new FrameReader()
     const early: Uint8Array[] = []
     let waiter: { resolve: (f: Uint8Array) => void; reject: (e: Error) => void } | undefined
@@ -66,9 +85,11 @@ export function startServer(h: ServerHooks, port: number, host: string): Promise
       socket.destroy()
     }
     const handshake = setTimeout(() => fail('handshake timeout'), h.limits.handshakeMs)
+    const silent = setTimeout(() => fail('silent'), h.limits.firstFrameMs)
     socket.on('close', () => {
       ended = true
       clearTimeout(handshake)
+      clearTimeout(silent)
       waiter?.reject(new Error('closed'))
       waiter = undefined
     })
@@ -79,6 +100,7 @@ export function startServer(h: ServerHooks, port: number, host: string): Promise
       try { frames = reader.push(data) } catch { return fail('bad framing') }
       for (const f of frames) {
         if (ended) return
+        clearTimeout(silent)
         if (onFrame) { onFrame(f); continue }
         if (waiter) { const w = waiter; waiter = undefined; w.resolve(f) }
         // before the handshake the phone waits for each answer, so more than a couple queued is not a phone
@@ -87,6 +109,11 @@ export function startServer(h: ServerHooks, port: number, host: string): Promise
     })
     const next = () => early.length ? Promise.resolve(early.shift()!)
       : ended ? Promise.reject(new Error('closed')) : new Promise<Uint8Array>((resolve, reject) => { waiter = { resolve, reject } })
+    /** the next frame of a pairing exchange, which comes quickly or not at all */
+    const step = () => new Promise<Uint8Array>((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error('slow')), h.limits.stepMs)
+      next().then((f) => { clearTimeout(t); resolve(f) }, (e) => { clearTimeout(t); reject(e) })
+    })
     const sendJson = (msg: object) => { if (!ended) socket.write(frame(new TextEncoder().encode(JSON.stringify(msg)))) }
 
     void (async () => {
@@ -99,11 +126,11 @@ export function startServer(h: ServerHooks, port: number, host: string): Promise
     async function pairing(hello: Record<string, unknown>) {
       const ctx = h.pairing()
       if (!ctx) { sendJson({ type: 'pairFail', reason: 'expired' }); socket.end(); return }
-      // one exchange at a time: a second phone guessing alongside gets nothing
-      if (pairingBusy) return fail('pairing busy')
+      // one exchange at a time, and a pause after a wrong guess
+      if (pairingBusy || ctx.waiting()) { sendJson({ type: 'pairFail', reason: 'busy' }); socket.end(); return }
       pairingBusy = true
       try {
-        const r = await pair({ next, send: sendJson }, hello, ctx)
+        const r = await pair({ next: step, send: sendJson }, hello, ctx)
         if ('phone' in r) {
           h.paired(r.phone)
           sendJson({ type: 'pairOk' })
@@ -124,7 +151,6 @@ export function startServer(h: ServerHooks, port: number, host: string): Promise
       socket.write(frame(noise.writeMessage(new Uint8Array(0))))
       const { send, recv } = noise.split()
       const channel = new SecureChannel(socket, send, recv, h.now, h.limits.rekey)
-      clearTimeout(handshake)
       if (early.length) { channel.close(); return fail('spoke before the handshake ended') }
 
       let idle: NodeJS.Timeout | undefined
@@ -132,7 +158,10 @@ export function startServer(h: ServerHooks, port: number, host: string): Promise
       awake()
       let queue: Promise<void> = Promise.resolve(), queued = 0, beside = 0
       const s: Session = { send: (m) => channel.send(m), close: () => fail('replaced') }
-      socket.on('close', () => { clearTimeout(idle); channel.close(); h.closed(s) })
+      // a replayed message 1 gets this far too; only a phone holding its ephemeral key can send a frame that
+      // decrypts, so that is when it counts as connected (and replaces an older session)
+      let proved = false
+      socket.on('close', () => { clearTimeout(idle); channel.close(); if (proved) h.closed(s) })
       const run = (msg: Record<string, unknown>) => {
         h.busy(1)
         return h.handle(msg, (m) => channel.send(m)).catch(() => fail('reply failed')).finally(() => h.busy(-1))
@@ -141,6 +170,7 @@ export function startServer(h: ServerHooks, port: number, host: string): Promise
         awake()
         let msg: Record<string, unknown> | null
         try { msg = channel.receive(f) } catch { return fail('bad message') }
+        if (!proved) { proved = true; clearTimeout(handshake); known(); h.opened(s) }
         if (!msg) return
         if (msg.type === 'ping') { channel.send({ ...(typeof msg.id === 'string' ? { id: msg.id } : {}), type: 'pong', body: {} }).catch(() => fail('reply failed')); return }
         if (typeof msg.type !== 'string' || typeof msg.id !== 'string') return fail('bad request')
@@ -152,7 +182,6 @@ export function startServer(h: ServerHooks, port: number, host: string): Promise
         if (++queued > h.limits.queued) return fail('too many requests')
         queue = queue.then(() => run(msg)).finally(() => { queued-- })
       }
-      h.opened(s)
     }
   }
 

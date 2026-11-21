@@ -952,7 +952,9 @@ app.whenReady().then(() => {
       const recording = activeMeeting()
       if (recording) stopMeeting(recording.id)
       // Music, recorder files and transcription still receive the same bounded graceful shutdown.
-      await Promise.all([media.resume(), settleRecording().then(() => settleTranscription())])
+      // the companion says goodbye on the network (so the phone sees the computer leave), for half a second at most
+      const companionStopped = Promise.race([companion?.stop(), new Promise((r) => setTimeout(r, 500))])
+      await Promise.all([media.resume(), settleRecording().then(() => settleTranscription()), companionStopped])
       allowQuit = true
       finishQuit()
     })().catch((err) => console.error('quit was cancelled because saving or shutdown failed', err)).finally(() => {
@@ -1046,7 +1048,10 @@ app.whenReady().then(() => {
   // the iPhone companion: off until a phone is paired or Settings starts pairing; tests turn it on with YOGURT_FAKE_COMPANION=1
   app.on('will-quit', () => { void companion?.stop() })
   const meetingsChanged = () => { win?.webContents.send('meetings:changed'); win?.webContents.send('folders:changed') }
-  if (!isFake() || process.env.YOGURT_FAKE_COMPANION === '1') void createCompanion({
+  const companionOn = !isFake() || process.env.YOGURT_FAKE_COMPANION === '1'
+  // Linux without a secret service: the key is only scrambled on disk (the file is the person's own, mode 600)
+  if (companionOn && !safeStorage.isEncryptionAvailable()) console.warn('COMPANION key not sealed: no system keychain')
+  if (companionOn) void createCompanion({
     store, userDataDir: userDataDir(), seal: sealSecret, open: openSecret, appVersion: app.getVersion(),
     deviceName: () => os.hostname().replace(/\.local$/i, ''), recording: () => !!activeMeeting(),
     log: (...parts) => console.info(...parts),

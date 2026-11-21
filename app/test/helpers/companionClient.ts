@@ -54,7 +54,7 @@ export async function raw(port: number): Promise<Raw> {
 export type PairResult = { result: Record<string, unknown>; desktop?: { key: Uint8Array; name: string; id: string } }
 
 /** The phone's side of pairing with this code; a wrong code still sends pairDone (sealed under its own key). */
-export async function pairAsPhone(port: number, code: string, phone: KeyPair, name = 'Test iPhone'): Promise<PairResult> {
+export async function pairAsPhone(port: number, code: string, phone: KeyPair, name = 'Test iPhone', o: { beforeDone?: () => Promise<void> } = {}): Promise<PairResult> {
   const c = await raw(port)
   try {
     const phoneSession = crypto.getRandomValues(new Uint8Array(16))
@@ -73,6 +73,7 @@ export async function pairAsPhone(port: number, code: string, phone: KeyPair, na
       const v = JSON.parse(new TextDecoder().decode(openBox(keys.toPhone, unb64(confirm.box), enc.encode('pairConfirm'))))
       desktop = { key: unb64(v.key), name: v.name, id: v.id }
     } catch { /* wrong code */ }
+    await o.beforeDone?.()
     const mine = enc.encode(JSON.stringify({ key: b64(phone.publicKey), name, id: 'phone-' + b64(phone.publicKey).slice(0, 8).replace(/[^\w]/g, 'x') }))
     c.sendJson({ type: 'pairDone', box: b64(sealBox(keys.toDesktop, mine, enc.encode('pairDone'))) })
     return { result: await c.json(), desktop }
@@ -91,11 +92,13 @@ export type Phone = {
   close: () => void
 }
 
-/** A Noise KK session as the phone (initiator). */
-export async function session(port: number, phone: KeyPair, desktopKey: Uint8Array, rekey?: Rekey): Promise<Phone> {
+/** A Noise KK session as the phone (initiator). `msg1` replaces the first handshake message (a replay). */
+export async function session(port: number, phone: KeyPair, desktopKey: Uint8Array, rekey?: Rekey, o: { sent?: (msg1: Uint8Array) => void } = {}): Promise<Phone> {
   const c = await raw(port)
   const noise = new NoiseKK({ initiator: true, s: phone, rs: desktopKey, prologue: enc.encode('yogurt-v1') })
-  c.send(noise.writeMessage(new Uint8Array(0)))
+  const msg1 = noise.writeMessage(new Uint8Array(0))
+  o.sent?.(msg1)
+  c.send(msg1)
   noise.readMessage(await c.next())
   const { send, recv } = noise.split()
   const channel = new SecureChannel(c.socket, send, recv, Date.now, rekey)
