@@ -161,5 +161,6 @@ struct InteropTests {
         #expect(paired.desktopKey == nil)
         #expect(paired.result["type"] as? String == "pairFail")
         #expect(paired.result["reason"] as? String == "code")
+        #expect(try peer.report()["pairFail"] as? String == "code")
     }
 }

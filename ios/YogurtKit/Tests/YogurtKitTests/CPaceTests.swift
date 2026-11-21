@@ -31,7 +31,7 @@ private let vectors = fixtures.vectors
 
     @Test func scalarMultMatchesTheDraft() throws {
         let s = fixtures.scalarMult
-        #expect(try CPace.scalarMultVfy(Data(hex: s["s"]!), Data(hex: s["X"]!)).hex == s["result"])
+        #expect(try CPace.scalarMultVfy(Data(hex: s["s"]!), Data(hex: s["X"]!)).data.hex == s["result"])
     }
 
     @Test func randomRunsAgreeAndAWrongCodeDoesNot() throws {
@@ -77,7 +77,7 @@ private let vectors = fixtures.vectors
     }
 
     @Test func samplesScalarsBelow2To252() throws {
-        for _ in 0..<20 { #expect(try CPace.start(prs: "1", ci: utf8("ci"), sid: .random(16)).secret.scalar[31] < 0x10) }
+        for _ in 0..<20 { #expect(try CPace.start(prs: "1", ci: utf8("ci"), sid: .random(16)).secret.scalarStorage[31] < 0x10) }
     }
 }
 

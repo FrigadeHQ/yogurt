@@ -19,20 +19,25 @@ public struct PairKeys: Sendable {
 }
 
 /// Noise's HMAC and HKDF over BLAKE2b (spec §4.3): HMAC built from the plain hash, not BLAKE2b's keyed mode.
+/// Every intermediate is SecureBytes, wiped when it goes out of scope.
 enum NoiseHKDF {
     static let blockLen = 128
 
-    static func hmac(key: Data, data: Data) -> Data {
-        var k = Data(count: blockLen)
-        let key = key.count > blockLen ? Sodium.blake2b(key) : key
-        k.replaceSubrange(0..<key.count, with: key)
-        let pad = { (b: UInt8) in Data(k.map { $0 ^ b }) }
-        return Sodium.blake2b(pad(0x5c) + Sodium.blake2b(pad(0x36) + data))
+    static func hmac(key: SecureBytes, _ data: (Feed) -> Void) -> SecureBytes {
+        let k = SecureBytes(count: blockLen)
+        let short = key.count > blockLen ? Sodium.blake2b { $0(key) } : key
+        short.withBytes { k.ptr.update(from: $0, count: short.count) }
+        let inner = SecureBytes(count: blockLen), outer = SecureBytes(count: blockLen)
+        for i in 0..<blockLen { inner[i] = k[i] ^ 0x36; outer[i] = k[i] ^ 0x5c }
+        let ih = Sodium.blake2b { $0(inner); data($0) }
+        return Sodium.blake2b { $0(outer); $0(ih) }
     }
 
-    static func hkdf(ck: Data, ikm: Data) -> (Data, Data) {
-        let temp = hmac(key: ck, data: ikm)
-        let one = hmac(key: temp, data: Data([1]))
-        return (one, hmac(key: temp, data: one + Data([2])))
+    /// The two 64-byte outputs; `ikm` nil means empty (Split).
+    static func hkdf(ck: SecureBytes, ikm: SecureBytes?) -> (SecureBytes, SecureBytes) {
+        let temp = hmac(key: ck) { if let ikm { $0(ikm) } }
+        let one = hmac(key: temp) { $0(Data([1])) }
+        let two = hmac(key: temp) { $0(one); $0(Data([2])) }
+        return (one, two)
     }
 }
