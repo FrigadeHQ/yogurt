@@ -96,6 +96,9 @@ public struct PendingOp: Sendable, Codable, Identifiable, Hashable {
 
 /// A meeting recorded on the phone, kept (with its audio) until the desktop has it.
 public struct LocalRecording: Sendable, Codable, Identifiable, Hashable {
+    /// who gave it its title, so the computer knows whether to name it: the default "Meeting at 3:04 PM", Apple's
+    /// model, or the person (the wire's uploadMeeting titleSource)
+    public enum TitleSource: String, Sendable, Codable { case `default`, model, typed }
     public struct Line: Sendable, Codable, Hashable {
         public var startMs: Int
         public var endMs: Int
@@ -104,6 +107,7 @@ public struct LocalRecording: Sendable, Codable, Identifiable, Hashable {
     }
     public var id: String
     public var title: String
+    public var titleSource: TitleSource = .default
     public var startedAt: Date
     public var endedAt: Date?
     public var attendees: [Attendee]
@@ -114,7 +118,7 @@ public struct LocalRecording: Sendable, Codable, Identifiable, Hashable {
     public var summary: String?
     public var uploadedAt: Date?
 
-    enum CodingKeys: String, CodingKey { case id, title, startedAt, endedAt, attendees, audioPath, myNotes, transcript, summary, uploadedAt }
+    enum CodingKeys: String, CodingKey { case id, title, titleSource, startedAt, endedAt, attendees, audioPath, myNotes, transcript, summary, uploadedAt }
 
     /// The app container's path changes with updates and restores, so the audio is kept relative to it.
     public func encode(to encoder: Encoder) throws {
@@ -124,6 +128,7 @@ public struct LocalRecording: Sendable, Codable, Identifiable, Hashable {
         try c.encode(path.hasPrefix(home) ? String(path.dropFirst(home.count)) : path, forKey: .audioPath)
         try c.encode(id, forKey: .id)
         try c.encode(title, forKey: .title)
+        try c.encode(titleSource, forKey: .titleSource)
         try c.encode(startedAt, forKey: .startedAt)
         try c.encodeIfPresent(endedAt, forKey: .endedAt)
         try c.encode(attendees, forKey: .attendees)
@@ -142,6 +147,7 @@ public struct LocalRecording: Sendable, Codable, Identifiable, Hashable {
         guard !path.isEmpty else { throw DecodingError.dataCorruptedError(forKey: .audioPath, in: c, debugDescription: "no audio path") }
         audioURL = path.hasPrefix("/") ? URL(fileURLWithPath: path) : URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent(path)
         title = try c.decodeIfPresent(String.self, forKey: .title) ?? ""
+        titleSource = (try? c.decodeIfPresent(TitleSource.self, forKey: .titleSource)) ?? .default
         startedAt = try c.decodeIfPresent(Date.self, forKey: .startedAt) ?? Date(timeIntervalSince1970: 0)
         endedAt = try c.decodeIfPresent(Date.self, forKey: .endedAt)
         attendees = try c.decodeIfPresent([Attendee].self, forKey: .attendees) ?? []

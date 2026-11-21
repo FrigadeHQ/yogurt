@@ -186,9 +186,10 @@ final class RecordingController {
         try? FileManager.default.removeItem(at: RecordingsFolder.progressURL(id))
         _ = state.finished()
         model.edited()
-        // paired: it goes to the computer now if they're connected, else the next time they are
-        Task { await model.engine.syncNow() }
+        // first, so the upload waits for the draft notes and title; paired, it goes to the computer now if they're
+        // connected, else the next time they are
         PhoneDrafts.shared.write(rec.id, model: model)
+        Task { await model.engine.syncNow() }
         return rec.id
     }
 
@@ -290,6 +291,8 @@ final class PhoneDrafts {
             await run(id, model: model)
             writing.remove(id)
             model.edited()
+            // it waited for these notes to go to the computer
+            await model.engine.syncNow()
         }
     }
 
@@ -309,7 +312,12 @@ final class PhoneDrafts {
         // read again: it may have been uploaded or renamed meanwhile
         guard var latest = model.store.localRecordings().first(where: { $0.id == id }) else { return }
         if let summary { latest.summary = summary }
-        if let title, model.store.meeting(id)?.title == rec.title { latest.title = title }
+        if let title, model.store.meeting(id)?.title == rec.title, latest.titleSource == .default {
+            latest.title = title
+            latest.titleSource = .model
+            // it reached the computer first (Yogurt opened while it was still to go): the title follows as a rename
+            if latest.uploadedAt != nil { try? model.store.enqueue(PendingOp(Op(kind: .rename, meetingId: id, title: title))) }
+        }
         guard summary != nil || latest.title != rec.title else { return }
         do { try model.store.saveLocalRecording(latest) } catch {
             log.error("saving draft notes failed: \(String(describing: error), privacy: .public)")

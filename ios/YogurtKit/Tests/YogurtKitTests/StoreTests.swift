@@ -552,4 +552,16 @@ let pageOne = """
         // the computer's notes for it are empty: the edit applies cleanly there
         #expect(store.pendingOps().map(\.op.baseHash) == [notesHash("")])
     }
+
+    @Test func aRecordingKnowsWhoGaveItsTitle() throws {
+        let store = try Store(url: tempStoreURL())
+        var rec = Self.rec()
+        #expect(rec.titleSource == .default)
+        rec.title = "Budget walk"
+        rec.titleSource = .model
+        try store.saveLocalRecording(rec)
+        #expect(store.localRecordings().first?.titleSource == .model)
+        try store.enqueue(PendingOp(Op(kind: .rename, meetingId: "p1", title: "Kiwi plans")))
+        #expect(store.localRecordings().first?.titleSource == .typed)
+    }
 }

@@ -10,7 +10,8 @@ import { CHUNK_BYTES } from './frames'
 
 export type Scope = { folderId?: string; meetingIds?: string[] }
 export type AskSource = { meetingId: string; title: string; atMs?: number | null; text: string }
-export type UploadMeeting = { id: string; title: string; startedAt: number; endedAt: number; attendees: { name: string; email: string | null }[] }
+/** titleSource: 'default' for the phone's "Meeting at 3:04 PM", 'model' when Apple's model wrote it, 'typed' when the person did */
+export type UploadMeeting = { id: string; title: string; titleSource: 'default' | 'model' | 'typed'; startedAt: number; endedAt: number; attendees: { name: string; email: string | null }[] }
 export type PhoneDraft = { myNotes: string; transcript: { startMs: number; endMs: number; text: string }[]; summary?: string }
 
 export type HandlerDeps = {
@@ -66,6 +67,8 @@ function meetingOf(v: unknown): UploadMeeting {
   if (!Array.isArray(attendees) || attendees.length > 200) throw bad()
   return {
     id: id(v.id), title: str(v.title, 200).trim() || 'Recording', startedAt, endedAt,
+    // anything else (left out, or from a newer phone) counts as the default title
+    titleSource: v.titleSource === 'model' || v.titleSource === 'typed' ? v.titleSource : 'default',
     attendees: attendees.map((a) => {
       if (!isObject(a)) throw bad()
       return { name: str(a.name ?? '', 200), email: a.email == null ? null : str(a.email, 320) }

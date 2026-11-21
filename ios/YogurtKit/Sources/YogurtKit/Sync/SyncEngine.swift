@@ -127,6 +127,8 @@ public final class SyncEngine: SyncEngineProtocol {
     @ObservationIgnored private var connectGeneration = 0
     /// pull everything again from 0: the desktop's copy may differ from what is here without a change to tell us
     @ObservationIgnored private var fullPull = false
+    /// a recording that waits a moment before going to the computer (its draft notes and title are being written)
+    @ObservationIgnored public var holdsUpload: @MainActor (String) -> Bool = { _ in false }
 
     private static let lastSyncKey = "yogurt.sync.lastSync"
     var lastSync: Date? {
@@ -550,7 +552,7 @@ public final class SyncEngine: SyncEngineProtocol {
     private func sendUploads(_ s: DesktopSession) async throws -> Bool {
         var any = false
         // one still recording (no end yet) waits until it's finished
-        let waiting = store.localRecordings().filter { $0.uploadedAt == nil && $0.endedAt != nil }
+        let waiting = store.localRecordings().filter { $0.uploadedAt == nil && $0.endedAt != nil && !holdsUpload($0.id) }
         for (i, rec) in waiting.enumerated() {
             if session === s { status = .connected(name, syncing: waiting.count - i) }
             do {
@@ -569,7 +571,7 @@ public final class SyncEngine: SyncEngineProtocol {
     private func upload(_ rec: LocalRecording, over s: DesktopSession) async throws -> Bool {
         let ms = { (d: Date) in Int((d.timeIntervalSince1970 * 1000).rounded()) }
         let meeting: [String: Any] = [
-            "id": rec.id, "title": rec.title, "startedAt": ms(rec.startedAt), "endedAt": ms(rec.endedAt ?? rec.startedAt),
+            "id": rec.id, "title": rec.title, "titleSource": rec.titleSource.rawValue, "startedAt": ms(rec.startedAt), "endedAt": ms(rec.endedAt ?? rec.startedAt),
             "attendees": rec.attendees.map { ["name": $0.name ?? "", "email": $0.email as Any? ?? NSNull()] },
         ]
         var body: [String: Any] = ["meeting": meeting, "myNotes": rec.myNotes,

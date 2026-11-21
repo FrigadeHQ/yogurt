@@ -423,4 +423,26 @@ import Testing
         #expect(await eventually { rig.connected })
         #expect(rig.desktop.requests("uploadMeeting").isEmpty)
     }
+
+    @Test func aRecordingWhoseNotesAreBeingWrittenWaitsAndThenGoesWithItsTitle() async throws {
+        let rig = try Rig()
+        var holding = true
+        rig.engine.holdsUpload = { _ in holding }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("p1-\(UUID().uuidString).m4a")
+        try Data([1, 2, 3]).write(to: url)
+        var rec = LocalRecording(id: "p1", title: "Meeting at 3:04 PM", startedAt: Date(timeIntervalSince1970: 10), endedAt: Date(timeIntervalSince1970: 20),
+                                 attendees: [], audioURL: url, myNotes: "", transcript: [], summary: nil)
+        try rig.store.saveLocalRecording(rec)
+        rig.engine.setForeground(true)
+        #expect(await eventually { rig.connected })
+        #expect(rig.desktop.requests("uploadMeeting").isEmpty)
+        rec.title = "Budget walk"
+        rec.titleSource = .model
+        try rig.store.saveLocalRecording(rec)
+        holding = false
+        await rig.engine.syncNow()
+        let meeting = try #require(rig.desktop.requests("uploadMeeting").first?["meeting"] as? [String: Any])
+        #expect(meeting["title"] as? String == "Budget walk")
+        #expect(meeting["titleSource"] as? String == "model")
+    }
 }

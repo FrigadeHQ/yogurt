@@ -297,7 +297,7 @@ public final class Store {
     private func foldIntoRecording(_ op: Op) throws {
         guard op.kind == .setMine || op.kind == .rename,
               var rec = try loadRecordings().first(where: { $0.id == op.meetingId }), rec.uploadedAt == nil else { return }
-        if op.kind == .setMine { rec.myNotes = op.text ?? "" } else if let title = op.title { rec.title = title }
+        if op.kind == .setMine { rec.myNotes = op.text ?? "" } else if let title = op.title { rec.title = title; rec.titleSource = .typed }
         try db.run("UPDATE local_recordings SET data = ? WHERE id = ?", [.text(json(rec)), .text(rec.id)])
     }
 

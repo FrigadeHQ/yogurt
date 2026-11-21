@@ -9,7 +9,7 @@ import { AUDIO_SPEAKER } from '../src/shared/audioUpload'
 
 let store: Store, root: string
 const start = vi.fn(), changed = vi.fn()
-const meeting = { id: 'phone-rec-1', title: 'Meeting at 3:40 PM', startedAt: 1000, endedAt: 61_000, attendees: [] }
+const meeting = { id: 'phone-rec-1', title: 'Meeting at 3:40 PM', titleSource: 'default' as const, startedAt: 1000, endedAt: 61_000, attendees: [] }
 const draft = { myNotes: 'ask about the budget', summary: '## Budget\n- Made-up draft point', transcript: [
   { startMs: 0, endMs: 900, text: 'Made-up first line.' }, { startMs: 1000, endMs: 1900, text: '  ' }, { startMs: 2000, endMs: 2900, text: 'Made-up second line.' }] }
 /** a tenth of a second of made-up 16 kHz mono 16-bit audio, as the phone sends it */
@@ -65,4 +65,13 @@ it('imports once', async () => {
   await importPhoneRecording(deps(), meeting, tinyWav(), draft)
   expect(start).toHaveBeenCalledOnce()
   expect(store.segments(meeting.id)).toHaveLength(2)
+})
+
+it("the phone's default title is the computer's to replace; one its model wrote may be improved; one typed stays", async () => {
+  await importPhoneRecording(deps(), meeting, tinyWav(), draft)
+  expect(store.meeting(meeting.id)!.titleSource).toBe('generic')
+  await importPhoneRecording(deps(), { ...meeting, id: 'phone-rec-2', title: 'Budget walk', titleSource: 'model' }, tinyWav('b.wav'), draft)
+  expect(store.meeting('phone-rec-2')!.titleSource).toBe('auto')
+  await importPhoneRecording(deps(), { ...meeting, id: 'phone-rec-3', title: 'Kiwi plans', titleSource: 'typed' }, tinyWav('c.wav'), draft)
+  expect(store.meeting('phone-rec-3')!.titleSource).toBe('user')
 })

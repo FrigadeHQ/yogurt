@@ -130,6 +130,8 @@ final class AppModel {
         config.appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
         config.phoneName = UIDevice.current.name
         let sync = SyncEngine(store: library.store, vault: KeychainVault(), network: LiveNetwork(), config: config)
+        // a recording goes once its draft notes and title are written, so the computer gets them with it
+        sync.holdsUpload = { PhoneDrafts.shared.isWriting($0) }
         #if DEBUG
         guard let samples = try? Library(folder: support.appending(path: "Yogurt samples", directoryHint: .isDirectory)) else { return nil }
         let model = AppModel(library: library, sync: sync, preview: PreviewSyncEngine(store: samples.store), samples: samples)

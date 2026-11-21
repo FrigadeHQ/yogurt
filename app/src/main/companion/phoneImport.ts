@@ -38,7 +38,10 @@ export async function importPhoneRecording(
   await rename(audioPath, target).catch(async () => { await copyFile(audioPath, target); await rm(audioPath, { force: true }) })
   const lines = draft.transcript.filter((l) => l.text.trim())
   const summary = draft.summary?.trim() ? draft.summary : undefined
-  d.store.createMeeting({ title: m.title, titleSource: 'user', source: 'audio-file',
+  // the phone's default title is this computer's to replace once its notes are written, like a generic one here; a
+  // title Apple's model wrote can be improved the same way; one the person typed stays
+  const titleSource = m.titleSource === 'typed' ? 'user' : m.titleSource === 'model' ? 'auto' : 'generic'
+  d.store.createMeeting({ title: m.title, titleSource, source: 'audio-file',
     startedAt: m.startedAt, endedAt: m.endedAt, durationMs: m.endedAt - m.startedAt, eventId: null, app: null, attendees: m.attendees,
     state: 'stopped', transcriptionPending: true }, m.id)
   if (summary) d.store.updateMeeting(m.id, { sourceId: DRAFT + m.id })
