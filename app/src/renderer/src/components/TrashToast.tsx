@@ -119,9 +119,24 @@ export function TrashToast({ go }: { go: (route: string) => void }) {
   </Toast.Provider>
 }
 
+// Reserve the expanded stack so keyboard focus or hover can expose every action without covering the dock.
+export function toastClearance(shown: ReadonlyArray<{ limited?: boolean; height?: number }>) {
+  const visible = shown.filter(item => !item.limited)
+  if (!visible.length) return ''
+  const height = visible.reduce((sum, item) => sum + (item.height ?? 0), 0)
+  // 20px below the stack, 12px above it, and Animate UI's gap between expanded cards.
+  return `calc(${20 + height + 12}px + ${(visible.length - 1) * 0.75}rem)`
+}
+
 function ToastList() {
   const reduced = useReducedMotion()
   const { toasts: shown } = Toast.useToastManager<{ testId?: string; actionTestId?: string }>()
+  const clearance = toastClearance(shown)
+  useLayoutEffect(() => {
+    if (!clearance) return
+    document.body.style.setProperty('--toast-clearance', clearance)
+    return () => { document.body.style.removeProperty('--toast-clearance') }
+  }, [clearance])
   const front = shown.find(item => item.transitionStatus !== 'ending')
   return shown.map(item => <Toast.Root key={item.id} toast={item} className="app-toast" transition={{ duration: (reduced ? motion.micro : motion.surface) / 1000, ease: motion.softCurve }} exitTransition={{ duration: (reduced ? motion.micro : motion.base) / 1000, ease: motion.out }} swipeDirection={['down', 'right']}
     data-kind={item.data?.testId} data-testid={item.transitionStatus === 'ending' ? undefined : item.data?.testId ?? 'app-toast'}>
