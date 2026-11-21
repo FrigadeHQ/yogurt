@@ -121,7 +121,7 @@ import Testing
     @Test func aMeetingTheDesktopAlreadyHasSendsNoAudio() async throws {
         let rig = try Rig()
         rig.desktop.imported["p1"] = 1
-        let rec = LocalRecording(id: "p1", title: "Walk", startedAt: Date(timeIntervalSince1970: 10), endedAt: nil, attendees: [],
+        let rec = LocalRecording(id: "p1", title: "Walk", startedAt: Date(timeIntervalSince1970: 10), endedAt: Date(timeIntervalSince1970: 20), attendees: [],
                                  audioURL: URL(fileURLWithPath: "/nonexistent/p1.m4a"), myNotes: "", transcript: [], summary: nil)
         try rig.store.saveLocalRecording(rec)
         rig.engine.setForeground(true)
@@ -286,13 +286,83 @@ import Testing
     }
 
     @Test func unpairWipesTheKeysAndTheCopy() async throws {
-        let rig = try Rig { d in d.addMeeting("m1", title: "One") }
+        let rig = try Rig { d in d.addMeeting("m1", title: "One"); d.audioFiles["m1"] = Data("made-up audio".utf8) }
         rig.engine.setForeground(true)
         #expect(await eventually { rig.connected && rig.store.meetings().count == 1 })
+        let audio = try await rig.engine.audioURL(meetingId: "m1")
+        #expect(FileManager.default.fileExists(atPath: audio.path))
         rig.engine.unpair()
+        // the computer's recordings don't stay on the phone either
+        #expect(!FileManager.default.fileExists(atPath: audio.path))
         #expect(rig.engine.status == .notPaired)
         #expect(rig.vault.load() == nil)
         #expect(rig.store.meetings().isEmpty)
         #expect(rig.desktop.sessions.last?.closed == true)
+    }
+
+    @Test func aRoundThatFailsNeverSaysSyncedJustNowAndTriesAgain() async throws {
+        let rig = try Rig { d in d.addMeeting("m1", title: "One"); d.pullError = .remote("failed") }
+        rig.engine.setForeground(true)
+        #expect(await eventually { if case .error = rig.engine.status { true } else { false } })
+        #expect(!rig.engine.status.label.contains("Synced just now"))
+        #expect(rig.engine.lastSync == nil)
+        rig.desktop.pullError = nil
+        #expect(await eventually { rig.connected && rig.store.meetings().count == 1 })
+        #expect(rig.engine.lastSync != nil)
+    }
+
+    @Test func aDeniedLocalNetworkSaysHowToAllowIt() async throws {
+        let rig = try Rig()
+        rig.network.shown = []
+        rig.engine.setForeground(true)
+        rig.network.denyLocalNetwork(true)
+        #expect(rig.engine.status == .error("Allow Local Network for Yogurt in Settings to reach your computer."))
+        #expect(rig.engine.localNetworkDenied)
+        // it doesn't turn into "Not on the same Wi-Fi" later
+        try await Task.sleep(for: .milliseconds(400))
+        #expect(rig.engine.status == .error(SyncEngine.localNetwork))
+        rig.network.denyLocalNetwork(false)
+        #expect(!rig.engine.localNetworkDenied)
+        rig.network.show(FakeNetwork(rig.desktop).shown)
+        #expect(await eventually { rig.connected })
+    }
+
+    @Test func aConnectionRefusedByThePermissionSaysSoToo() async throws {
+        let rig = try Rig()
+        rig.network.openError = .localNetworkDenied
+        rig.engine.setForeground(true)
+        #expect(await eventually { rig.engine.status == .error(SyncEngine.localNetwork) })
+    }
+
+    @Test func unpairedTheDeniedPermissionIsShownWithoutLeavingNotPaired() async throws {
+        let rig = try Rig(paired: false)
+        rig.engine.setForeground(true)
+        rig.network.denyLocalNetwork(true)
+        #expect(rig.engine.status == .notPaired)
+        #expect(rig.engine.localNetworkDenied)
+    }
+
+    @Test func anUploadIsDoneOnlyOnceTheDesktopSaysImported() async throws {
+        let rig = try Rig()
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("p1-\(UUID().uuidString).m4a")
+        try Data([1, 2, 3]).write(to: url)
+        rig.desktop.uploadAudioReply = { body in ["received": body["index"] as? Int ?? 0, "done": true] }
+        let rec = LocalRecording(id: "p1", title: "Walk", startedAt: Date(timeIntervalSince1970: 10), endedAt: Date(timeIntervalSince1970: 20),
+                                 attendees: [], audioURL: url, myNotes: "", transcript: [], summary: nil)
+        try rig.store.saveLocalRecording(rec)
+        rig.engine.setForeground(true)
+        #expect(await eventually { !rig.desktop.requests("uploadAudio").isEmpty })
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(rig.store.localRecordings().first?.uploadedAt == nil)
+    }
+
+    @Test func aRecordingStillGoingIsNotUploaded() async throws {
+        let rig = try Rig()
+        let rec = LocalRecording(id: "p1", title: "Walk", startedAt: Date(timeIntervalSince1970: 10), endedAt: nil, attendees: [],
+                                 audioURL: URL(fileURLWithPath: "/nonexistent/p1.m4a"), myNotes: "", transcript: [], summary: nil)
+        try rig.store.saveLocalRecording(rec)
+        rig.engine.setForeground(true)
+        #expect(await eventually { rig.connected })
+        #expect(rig.desktop.requests("uploadMeeting").isEmpty)
     }
 }

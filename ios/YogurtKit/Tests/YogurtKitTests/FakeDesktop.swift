@@ -21,6 +21,10 @@ import Network
     var staged: [String: (data: Data, next: Int)] = [:]
     var audioFiles: [String: Data] = [:]
     var sessions: [FakeSession] = []
+    /// every pull is refused with this, while set
+    var pullError: SyncError?
+    /// answers uploadAudio instead of the usual staging, while set
+    var uploadAudioReply: (([String: Any]) -> [String: Any])?
 
     func requests(_ type: String) -> [[String: Any]] { requests.filter { $0.type == type }.map(\.body) }
 
@@ -37,6 +41,7 @@ import Network
         switch type {
         case "ping": return [:]
         case "pull":
+            if let pullError { throw pullError }
             let since = body["since"] as? Int ?? 0, limit = body["limit"] as? Int ?? 200
             let page = Array(log.dropFirst(since).prefix(limit))
             let cursor = since + page.count
@@ -49,6 +54,7 @@ import Network
             staged[id] = (Data(), 0)
             return ["accepted": true]
         case "uploadAudio":
+            if let uploadAudioReply { return uploadAudioReply(body) }
             let id = body["meetingId"] as? String ?? "", index = body["index"] as? Int ?? -1, of = body["of"] as? Int ?? 0
             let chunk = Data(base64Encoded: body["chunk"] as? String ?? "") ?? Data()
             guard var u = staged[id] else { throw SyncError.remote("gone") }
@@ -133,6 +139,10 @@ import Network
     func stopBrowsing() { update = nil }
     func show(_ list: [FoundDesktop]) { shown = list; update?(list) }
     func watchPath(_ changed: @escaping @MainActor () -> Void) { pathChanged = changed }
+    private var localNetwork: (@MainActor (Bool) -> Void)?
+    func watchLocalNetwork(_ denied: @escaping @MainActor (Bool) -> Void) { localNetwork = denied }
+    /// what iOS says when the person tapped Don't Allow (true) or turned it on in Settings (false)
+    func denyLocalNetwork(_ denied: Bool) { localNetwork?(denied) }
     func changePath() { pathChanged?() }
 
     func pair(_ at: FoundDesktop, code: String, phoneName: String, phoneKey: Data, phoneId: String) async throws -> PairedDesktop {

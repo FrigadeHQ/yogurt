@@ -163,4 +163,17 @@ private final class DesktopSide: @unchecked Sendable {
         await #expect(throws: SyncError.closed) { _ = try await s.request("pull", ["since": 0], timeout: .seconds(5)) }
         #expect(closed)
     }
+
+    @Test func anEightMegabyteMessageComesBackWholeAndQuickly() throws {
+        let key = Data.random(32)
+        let tx = try CipherState(key: key), inbound = Inbound(rx: try CipherState(key: key))
+        let text = String(repeating: "made-up words ", count: 600_000)
+        let parts = try NoiseSession.split(JSONSerialization.data(withJSONObject: ["id": "1", "type": "ok", "body": ["text": text]]))
+        #expect(parts.count > 180)
+        let start = ContinuousClock.now
+        var whole: [String: Any]?
+        for p in parts { whole = try inbound.take(tx.encrypt(p)) ?? whole }
+        #expect(ContinuousClock.now - start < .seconds(5))
+        #expect((whole?["body"] as? [String: Any])?["text"] as? String == text)
+    }
 }

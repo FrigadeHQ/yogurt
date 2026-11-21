@@ -9,6 +9,8 @@ public protocol SyncNetwork: AnyObject {
     func stopBrowsing()
     /// called when the phone joins or switches networks
     func watchPath(_ changed: @escaping @MainActor () -> Void)
+    /// called with true when iOS refuses the local network (the person tapped Don't Allow), false once it works
+    func watchLocalNetwork(_ denied: @escaping @MainActor (Bool) -> Void)
     func pair(_ at: FoundDesktop, code: String, phoneName: String, phoneKey: Data, phoneId: String) async throws -> PairedDesktop
     /// handshake and hello; throws `SyncError.unrecognised` when the desktop refuses this phone's key
     func open(_ at: FoundDesktop, phone: KeyPair, desktopKey: Data, appVersion: String) async throws -> DesktopSession
@@ -30,11 +32,15 @@ public final class LiveNetwork: SyncNetwork {
         path = p
     }
 
+    public func watchLocalNetwork(_ denied: @escaping @MainActor (Bool) -> Void) {
+        (browser as? BonjourBrowser)?.onDenied = denied
+    }
+
     public func pair(_ at: FoundDesktop, code: String, phoneName: String, phoneKey: Data, phoneId: String) async throws -> PairedDesktop {
         // busy: another phone is mid-exchange, or a wrong guess was just made; the desktop asks for a second's pause
         for attempt in 0..<4 {
             let t: NWTransport
-            do { t = try await NWTransport.connect(to: at.endpoint) } catch { throw PairingError.unreachable }
+            do { t = try await NWTransport.connect(to: at.endpoint) } catch SyncError.localNetworkDenied { throw SyncError.localNetworkDenied } catch { throw PairingError.unreachable }
             defer { t.close() }
             do {
                 return try await pairExchange(t, code: code, phoneName: phoneName, phoneKey: phoneKey, phoneId: phoneId)
@@ -81,10 +87,14 @@ public struct SyncConfig: Sendable {
 @MainActor @Observable
 public final class SyncEngine: SyncEngineProtocol {
     public static let unrecognised = "This computer doesn't recognise this iPhone any more. Pair again."
+    public static let localNetwork = "Allow Local Network for Yogurt in Settings to reach your computer."
+    static func syncFailed(_ name: String) -> String { "Couldn't sync with \(name) just now. Trying again soon." }
 
     public private(set) var status: ConnectionStatus
     public private(set) var discovered: [DiscoveredDesktop] = []
     public private(set) var revision = 0
+    /// iOS refuses the local network for Yogurt: nothing can be found until it's allowed in Settings
+    public private(set) var localNetworkDenied = false
 
     @ObservationIgnored private let store: Store
     @ObservationIgnored private let vault: PairingVault
@@ -107,6 +117,12 @@ public final class SyncEngine: SyncEngineProtocol {
     @ObservationIgnored private var backoff: Duration
     /// handshakes refused in a row; one could be a dropped connection, two means the desktop doesn't know this key
     @ObservationIgnored private var refusals = 0
+    /// the desktop refused this phone's key: no more tries until something changes
+    @ObservationIgnored private var refused = false
+    @ObservationIgnored private var roundRetry: Task<Void, Never>?
+    @ObservationIgnored private var roundBackoff: Duration
+    /// so a connect that was given up on can't clear the handle of the one after it
+    @ObservationIgnored private var connectGeneration = 0
     /// pull everything again from 0: the desktop's copy may differ from what is here without a change to tell us
     @ObservationIgnored private var fullPull = false
 
@@ -119,10 +135,12 @@ public final class SyncEngine: SyncEngineProtocol {
     public init(store: Store, vault: PairingVault, network: SyncNetwork, defaults: UserDefaults = .standard, config: SyncConfig = SyncConfig()) {
         self.store = store; self.vault = vault; self.network = network; self.defaults = defaults; self.config = config
         backoff = config.retryFrom
+        roundBackoff = config.retryFrom
         pairing = vault.load()
         status = .notPaired
         if let pairing { status = .offline(pairing.desktopName, lastSync: lastSync) }
         network.watchPath { [weak self] in self?.networkChanged() }
+        network.watchLocalNetwork { [weak self] in self?.localNetworkChanged($0) }
     }
 
     // MARK: - Foreground and background
@@ -137,6 +155,9 @@ public final class SyncEngine: SyncEngineProtocol {
         active = true
         backoff = config.retryFrom
         refusals = 0
+        refused = false
+        // the Keychain may not have been readable at launch (before the first unlock)
+        if pairing == nil, let p = vault.load() { pairing = p }
         if pairing != nil { lookFor() }
         let delay = pairing == nil ? config.firstBrowseDelay : .zero
         browsing = Task { [weak self] in
@@ -155,20 +176,34 @@ public final class SyncEngine: SyncEngineProtocol {
         discovered = []
         cancelTimers()
         endSession()
-        if let pairing, !isError { status = .offline(pairing.desktopName, lastSync: lastSync) }
+        if let pairing, !blocked { status = .offline(pairing.desktopName, lastSync: lastSync) }
     }
 
-    private var isError: Bool { if case .error = status { true } else { false } }
+    /// a state no retry can get out of by itself
+    private var blocked: Bool { refused || localNetworkDenied }
+
+    private func localNetworkChanged(_ denied: Bool) {
+        guard denied != localNetworkDenied else { return }
+        localNetworkDenied = denied
+        guard pairing != nil, active, session == nil else { return }
+        if denied {
+            cancelTimers()
+            status = .error(Self.localNetwork)
+        } else if status == .error(Self.localNetwork) {
+            lookFor()
+        }
+    }
 
     private func cancelTimers() {
-        for t in [connecting, retry, offlineTimer, keepalive] { t?.cancel() }
-        connecting = nil; retry = nil; offlineTimer = nil; keepalive = nil
+        for t in [connecting, retry, offlineTimer, keepalive, roundRetry] { t?.cancel() }
+        connecting = nil; retry = nil; offlineTimer = nil; keepalive = nil; roundRetry = nil
     }
 
     private func endSession() {
         let s = session
         session = nil
         keepalive?.cancel()
+        roundRetry?.cancel(); roundRetry = nil
         s?.close()
     }
 
@@ -178,7 +213,7 @@ public final class SyncEngine: SyncEngineProtocol {
         retry?.cancel(); retry = nil
         backoff = config.retryFrom
         refusals = 0
-        if isError { lookFor() } else { connectIfPossible() }
+        if refused { refused = false; lookFor() } else { connectIfPossible() }
         network.stopBrowsing()
         network.browse { [weak self] in self?.foundChanged($0) }
     }
@@ -200,6 +235,7 @@ public final class SyncEngine: SyncEngineProtocol {
 
     /// Paired, no session: looking, and offline if nothing works out within `offlineAfter`.
     private func lookFor() {
+        if localNetworkDenied { status = .error(Self.localNetwork); return }
         status = .searching
         armOffline()
         connectIfPossible()
@@ -209,33 +245,40 @@ public final class SyncEngine: SyncEngineProtocol {
         offlineTimer?.cancel()
         offlineTimer = Task { [weak self, config] in
             try? await Task.sleep(for: config.offlineAfter)
-            guard let self, !Task.isCancelled, self.session == nil, let p = self.pairing, !self.isError else { return }
+            guard let self, !Task.isCancelled, self.session == nil, let p = self.pairing, !self.blocked else { return }
             self.status = .offline(p.desktopName, lastSync: self.lastSync)
         }
     }
 
     private func connectIfPossible() {
-        guard active, let pairing, session == nil, connecting == nil, retry == nil, !isError,
+        guard active, let pairing, session == nil, connecting == nil, retry == nil, !blocked,
               let target = found.first(where: { $0.desktop.id == pairing.desktopId }) else { return }
         // once it has said offline it stays so until a session is up, so retries don't flicker the pill
         if case .offline = status {} else { status = .connecting(pairing.desktopName) }
-        connecting = Task { [weak self] in await self?.connect(target, pairing) }
+        connectGeneration += 1
+        let generation = connectGeneration
+        connecting = Task { [weak self] in await self?.connect(target, pairing, generation) }
     }
 
-    private func connect(_ target: FoundDesktop, _ pairing: Pairing) async {
+    private func connect(_ target: FoundDesktop, _ pairing: Pairing, _ generation: Int) async {
         do {
             let s = try await network.open(target, phone: try KeyPair(privateKey: pairing.phonePrivateKey), desktopKey: pairing.desktopKey,
                                            appVersion: config.appVersion)
-            connecting = nil
+            if generation == connectGeneration { connecting = nil }
             guard active, self.pairing == pairing, session == nil else { s.close(); return }
             opened(s)
         } catch {
-            connecting = nil
-            guard active, self.pairing == pairing, !Task.isCancelled else { return }
+            if generation == connectGeneration { connecting = nil }
+            guard active, self.pairing == pairing, !Task.isCancelled, generation == connectGeneration else { return }
+            if error as? SyncError == .localNetworkDenied {
+                localNetworkChanged(true)
+                return
+            }
             log.notice("connect failed: \(String(describing: error), privacy: .public)")
             if error as? SyncError == .unrecognised {
                 refusals += 1
                 if refusals >= 2 {
+                    refused = true
                     offlineTimer?.cancel()
                     status = .error(Self.unrecognised)
                     return
@@ -261,6 +304,9 @@ public final class SyncEngine: SyncEngineProtocol {
         refusals = 0
         backoff = config.retryFrom
         offlineTimer?.cancel()
+        if let p = pairing, !s.hello.desktopId.isEmpty, s.hello.desktopId != p.desktopId {
+            log.notice("hello came from another desktop id")
+        }
         if var p = pairing, !s.hello.desktopName.isEmpty, s.hello.desktopName != p.desktopName {
             p.desktopName = s.hello.desktopName
             try? vault.save(p)
@@ -269,6 +315,7 @@ public final class SyncEngine: SyncEngineProtocol {
         // this computer's database was replaced or started afresh: what is here came from another log
         if let epoch = s.hello.epoch, let mine = store.epoch, epoch != mine {
             try? store.resetForNewEpoch()
+            dropAudio()
             revision += 1
         }
         // "Synced just now" only once the first round has caught up
@@ -306,10 +353,12 @@ public final class SyncEngine: SyncEngineProtocol {
         let keys = KeyPair.generate()
         let phoneId = UUID().uuidString
         let d = try await network.pair(target, code: code, phoneName: config.phoneName, phoneKey: keys.publicKey, phoneId: phoneId)
+        endSession()
         let p = Pairing(phonePrivateKey: keys.privateKey, phoneId: phoneId, desktopId: d.id, desktopName: d.name, desktopKey: d.key)
         try vault.save(p)
         // whatever was here belonged to no computer, or another one
         try? store.forgetDesktop()
+        dropAudio()
         lastSync = nil
         pairing = p
         revision += 1
@@ -324,6 +373,7 @@ public final class SyncEngine: SyncEngineProtocol {
         cancelTimers()
         endSession()
         try? store.forgetDesktop()
+        dropAudio()
         lastSync = nil
         revision += 1
         status = .notPaired
@@ -337,7 +387,7 @@ public final class SyncEngine: SyncEngineProtocol {
             guard active, pairing != nil else { return }
             retry?.cancel(); retry = nil
             backoff = config.retryFrom
-            if isError { refusals = 0; lookFor() } else { connectIfPossible() }
+            if refused { refused = false; refusals = 0; lookFor() } else { connectIfPossible() }
             await connecting?.value
         } else {
             requestSync()
@@ -355,10 +405,14 @@ public final class SyncEngine: SyncEngineProtocol {
                 await self.round(s)
             } while self.syncAgain && self.session === s
             self.sync = nil
+            // asked for by a session that came up while this one's loop was ending
+            if self.syncAgain, self.session != nil, self.session !== s { self.requestSync() }
         }
     }
 
     private func round(_ s: DesktopSession) async {
+        roundRetry?.cancel(); roundRetry = nil
+        var ok = false
         do {
             try await pull(s, from: fullPull ? 0 : nil)
             fullPull = false
@@ -369,20 +423,45 @@ public final class SyncEngine: SyncEngineProtocol {
                 fullPull = false
             }
             lastSync = Date()
+            ok = true
         } catch {
-            // a dropped session ends through onClose; anything else waits for the next round
+            // a dropped session ends through onClose; anything else is tried again with backoff
             log.notice("sync round stopped: \(String(describing: error), privacy: .public)")
         }
-        if session === s { status = .connected(name, syncing: nil) }
+        guard session === s else { return }
+        if ok {
+            roundBackoff = config.retryFrom
+            status = .connected(name, syncing: nil)
+            return
+        }
+        // never "Synced just now" after a round that didn't finish; lastSync keeps the last one that did
+        status = .error(Self.syncFailed(name))
+        let wait = roundBackoff
+        roundBackoff = min(roundBackoff * 2, config.retryUpTo)
+        roundRetry = Task { [weak self] in
+            try? await Task.sleep(for: wait)
+            guard let self, !Task.isCancelled, self.session === s else { return }
+            self.requestSync()
+        }
     }
+
+    /// Still the same session with the same pairing after a wait, so a reply can be written to the Store.
+    private func still(_ s: DesktopSession) throws {
+        guard session === s, pairing != nil else { throw SyncError.closed }
+    }
+
+    /// The computer's audio fetched here goes with its meetings.
+    private func dropAudio() { try? FileManager.default.removeItem(at: config.audioFolder) }
 
     private func pull(_ s: DesktopSession, from: Int?) async throws {
         var since = from ?? store.cursor
         while true {
             let r = try await s.request("pull", ["since": since, "limit": config.pullLimit], timeout: .seconds(60))
+            try still(s)
             let epoch = r["epoch"] as? String
             if let epoch, let mine = store.epoch, epoch != mine {
                 try store.resetForNewEpoch()
+                dropAudio()
                 revision += 1
                 since = 0
                 continue
@@ -410,11 +489,13 @@ public final class SyncEngine: SyncEngineProtocol {
             let body = try JSONSerialization.jsonObject(with: JSONEncoder().encode(p.op)) as? [String: Any] ?? [:]
             do {
                 let r = try await s.request("op", body, timeout: .seconds(30))
+                try still(s)
                 let merged = r["merged"] as? Bool == true
                 try store.markSent(p.id, merged: merged)
                 // both sides had changed My notes: the desktop may not echo, so its text is fetched again
                 if merged { fullPull = true }
             } catch SyncError.remote(let code) {
+                try still(s)
                 if code == "busy" || code == "failed" || (code == "gone" && notUploaded(p.op.meetingId)) {
                     held.insert(p.op.meetingId)
                     continue
@@ -446,7 +527,8 @@ public final class SyncEngine: SyncEngineProtocol {
 
     private func sendUploads(_ s: DesktopSession) async throws -> Bool {
         var any = false
-        let waiting = store.localRecordings().filter { $0.uploadedAt == nil }
+        // one still recording (no end yet) waits until it's finished
+        let waiting = store.localRecordings().filter { $0.uploadedAt == nil && $0.endedAt != nil }
         for (i, rec) in waiting.enumerated() {
             if session === s { status = .connected(name, syncing: waiting.count - i) }
             do {
@@ -474,8 +556,9 @@ public final class SyncEngine: SyncEngineProtocol {
         // order: the desktop lost track of the chunks; gone: it dropped the staged upload. Either way start over, once.
         for attempt in 0..<2 {
             let r = try await s.request("uploadMeeting", body, timeout: .seconds(120))
+            try still(s)
             if r["imported"] as? Bool != true {
-                do { try await sendAudio(rec, over: s) } catch SyncError.remote(let code) where attempt == 0 && (code == "order" || code == "gone") {
+                do { try await sendAudio(rec, over: s); try still(s) } catch SyncError.remote(let code) where attempt == 0 && (code == "order" || code == "gone") {
                     continue
                 }
             }
@@ -496,7 +579,11 @@ public final class SyncEngine: SyncEngineProtocol {
             let r = try await s.request("uploadAudio", ["meetingId": rec.id, "chunk": chunk.base64EncodedString(), "index": index, "of": of, "mime": "audio/mp4"],
                                         // the last one waits for the import
                                         timeout: index == of - 1 ? .seconds(300) : .seconds(30))
-            if r["done"] as? Bool == true { return }
+            // done counts only with imported: until then the phone keeps its copy
+            if r["done"] as? Bool == true {
+                if r["imported"] as? Bool == true { return }
+                throw SyncError.remote("failed")
+            }
         }
         throw SyncError.badMessage
     }
@@ -518,7 +605,8 @@ public final class SyncEngine: SyncEngineProtocol {
         if FileManager.default.fileExists(atPath: file.path) { return file }
         guard let s = session else { throw SyncError.notConnected }
         try FileManager.default.createDirectory(at: config.audioFolder, withIntermediateDirectories: true)
-        let part = file.appendingPathExtension("part")
+        // its own name, so two fetches of the same track can't write into one file
+        let part = config.audioFolder.appending(path: "\(UUID().uuidString).part")
         FileManager.default.createFile(atPath: part.path, contents: nil)
         let out = try FileHandle(forWritingTo: part)
         do {

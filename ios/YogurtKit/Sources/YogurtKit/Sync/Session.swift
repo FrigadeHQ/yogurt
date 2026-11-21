@@ -41,7 +41,8 @@ public final class NoiseSession: DesktopSession {
     public var onClose: (@MainActor () -> Void)?
 
     private let transport: Transport
-    private let tx: CipherState, rx: CipherState
+    private let tx: CipherState
+    private let inbound: Inbound
     private let rekeyBytes: Int, rekeyAfter: Duration
     private var sent = 0
     private var sentSince = ContinuousClock.now
@@ -49,11 +50,10 @@ public final class NoiseSession: DesktopSession {
     private var nextId = 0
     private var waiting: [String: CheckedContinuation<Reply, Error>] = [:]
     private var streams: [String: (each: @MainActor ([String: Any]) throws -> Bool, done: CheckedContinuation<Void, Error>)] = [:]
-    private var parts: [Data] = [], partsOf = 0, partsSize = 0
     private var closed = false
 
     init(transport: Transport, tx: CipherState, rx: CipherState, rekeyBytes: Int, rekeyAfter: Duration) {
-        self.transport = transport; self.tx = tx; self.rx = rx; self.rekeyBytes = rekeyBytes; self.rekeyAfter = rekeyAfter
+        self.transport = transport; self.tx = tx; inbound = Inbound(rx: rx); self.rekeyBytes = rekeyBytes; self.rekeyAfter = rekeyAfter
     }
 
     /// Runs the handshake (the phone initiates) and `hello`. The desktop wants the first transport message within
@@ -179,23 +179,30 @@ public final class NoiseSession: DesktopSession {
 
     // MARK: - Reading
 
+    /// Decrypting and putting chunks together happen off the main actor; only whole messages come back to it.
     private func readLoop() {
-        Task { [weak self, transport] in
+        Task.detached { [weak self, transport, inbound] in
+            defer { inbound.wipe() }
             while true {
-                let ct: Data
-                do { ct = try await transport.receive() } catch { self?.close(); return }
-                guard let self, !self.closed else { return }
-                do { try self.handle(ct) } catch { self.close(); return }
+                let reply: Reply
+                do {
+                    guard let msg = try inbound.take(try await transport.receive()) else { continue }
+                    reply = Reply(body: msg)
+                } catch {
+                    await self?.close()
+                    return
+                }
+                guard let self else { return }
+                await self.deliver(reply)
             }
         }
     }
 
-    private func handle(_ ct: Data) throws {
-        let plain = try rx.decrypt(ct)
-        guard let msg = try reassemble(plain) else { return }
+    private func deliver(_ reply: Reply) {
+        guard !closed else { return }
+        let msg = reply.body
         let type = msg["type"] as? String
         let id = msg["id"] as? String
-        if type == "rekey", id == nil { try rx.rekey(); return }
         if type == "changed", id == nil { onChanged?(); return }
         guard let id else { return }
         let body = msg["body"] as? [String: Any] ?? [:]
@@ -211,36 +218,53 @@ public final class NoiseSession: DesktopSession {
         }
     }
 
-    /// A whole message once all its chunks are in, else nil; throws on anything malformed (the session closes).
-    private func reassemble(_ plain: Data) throws -> [String: Any]? {
-        guard let v = try JSONSerialization.jsonObject(with: plain) as? [String: Any] else { throw SyncError.badMessage }
-        guard let chunk = v["chunk"] else {
-            guard partsOf == 0 else { throw SyncError.badMessage }
-            return v
-        }
-        guard let chunk = chunk as? String, let part = Data(base64Encoded: chunk), let of = v["of"] as? Int, of >= 2,
-              partsOf == 0 || of == partsOf, of <= Self.maxMessage / Self.chunkBytes + 1 else { throw SyncError.badMessage }
-        partsOf = of
-        partsSize += part.count
-        guard partsSize <= Self.maxMessage else { throw SyncError.badMessage }
-        parts.append(part)
-        guard parts.count == partsOf else { return nil }
-        let whole = parts.reduce(Data(), +)
-        parts = []; partsOf = 0; partsSize = 0
-        guard let msg = try JSONSerialization.jsonObject(with: whole) as? [String: Any], msg["chunk"] == nil else { throw SyncError.badMessage }
-        return msg
-    }
-
     public func close() {
         guard !closed else { return }
         closed = true
         transport.close()
+        // the receiving key is wiped by the reader as it stops (it may be mid-decrypt right now)
         tx.wipeKey()
-        rx.wipeKey()
         for id in Array(waiting.keys) { finish(id, .failure(SyncError.closed)) }
         for id in Array(streams.keys) { endStream(id, SyncError.closed) }
         onClose?()
     }
+}
+
+/// The receiving half of a session, used only by its reader task: decrypts, moves the key on `{type: "rekey"}`
+/// (no id), and joins `{chunk, of}` parts into one buffer as they come (each byte copied once).
+final class Inbound: @unchecked Sendable {
+    private let rx: CipherState
+    private var whole = Data(), of = 0, seen = 0
+
+    init(rx: CipherState) { self.rx = rx }
+
+    /// A whole app message, or nil while chunks are still coming (or for a rekey). Throws on anything malformed.
+    func take(_ ct: Data) throws -> [String: Any]? {
+        guard let msg = try reassemble(try rx.decrypt(ct)) else { return nil }
+        if msg["type"] as? String == "rekey", msg["id"] == nil { try rx.rekey(); return nil }
+        return msg
+    }
+
+    private func reassemble(_ plain: Data) throws -> [String: Any]? {
+        guard let v = try JSONSerialization.jsonObject(with: plain) as? [String: Any] else { throw SyncError.badMessage }
+        guard let chunk = v["chunk"] else {
+            guard of == 0 else { throw SyncError.badMessage }
+            return v
+        }
+        guard let chunk = chunk as? String, let part = Data(base64Encoded: chunk), let n = v["of"] as? Int, n >= 2,
+              of == 0 || n == of, n <= NoiseSession.maxMessage / NoiseSession.chunkBytes + 1 else { throw SyncError.badMessage }
+        if of == 0 { of = n; whole = Data(capacity: min(n * NoiseSession.chunkBytes, NoiseSession.maxMessage)) }
+        guard whole.count + part.count <= NoiseSession.maxMessage else { throw SyncError.badMessage }
+        whole.append(part)
+        seen += 1
+        guard seen == of else { return nil }
+        let bytes = whole
+        whole = Data(); of = 0; seen = 0
+        guard let msg = try JSONSerialization.jsonObject(with: bytes) as? [String: Any], msg["chunk"] == nil else { throw SyncError.badMessage }
+        return msg
+    }
+
+    func wipe() { rx.wipeKey() }
 }
 
 /// A reply body handed across a continuation; it never leaves the main actor.

@@ -4,6 +4,8 @@ import Network
 /// Everything sync can fail with. Messages to people are made from these by the engine, never shown raw.
 public enum SyncError: Error, Equatable, Sendable {
     case closed, timeout, badMessage, notConnected, notPaired
+    /// iOS won't let Yogurt use the local network (Settings → Privacy → Local Network)
+    case localNetworkDenied
     /// the desktop answered `{type: "error", body: {code}}`
     case remote(String)
     /// the desktop closed the handshake or it didn't verify: it doesn't know this phone's key (any more)
@@ -51,7 +53,7 @@ public final class NWTransport: Transport, @unchecked Sendable {
                 switch state {
                 case .ready: once.run { c.resume(returning: NWTransport(connection)) }
                 // waiting means it can't connect right now; sync retries on its own schedule instead
-                case .waiting(let e), .failed(let e): fail(e)
+                case .waiting(let e), .failed(let e): fail(isLocalNetworkDenied(e) ? SyncError.localNetworkDenied : e)
                 case .cancelled: fail(SyncError.closed)
                 default: break
                 }
@@ -87,4 +89,10 @@ public final class NWTransport: Transport, @unchecked Sendable {
     }
 
     public func close() { connection.cancel() }
+}
+
+/// What Network.framework reports when the person said no to Local Network for this app.
+public func isLocalNetworkDenied(_ error: NWError) -> Bool {
+    if case .dns(let code) = error { return code == DNSServiceErrorType(kDNSServiceErr_PolicyDenied) }
+    return false
 }

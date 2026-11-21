@@ -42,6 +42,8 @@ public final class KeychainVault: PairingVault {
         q[kSecReturnData as String] = true
         q[kSecMatchLimit as String] = kSecMatchLimitOne
         var out: CFTypeRef?
+        // anything but found (e.g. read before the first unlock) also comes back nil; the engine reads it again on
+        // the next foreground while it has no pairing
         guard SecItemCopyMatching(q as CFDictionary, &out) == errSecSuccess, let data = out as? Data else { return nil }
         return try? JSONDecoder().decode(Pairing.self, from: data)
     }

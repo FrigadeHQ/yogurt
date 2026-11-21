@@ -20,25 +20,49 @@ public protocol DesktopBrowser: AnyObject {
 @MainActor
 public final class BonjourBrowser: DesktopBrowser {
     private var browser: NWBrowser?
+    private var restart: Task<Void, Never>?
+    /// true when iOS refuses the local network, false once browsing works
+    public var onDenied: (@MainActor (Bool) -> Void)?
 
     public init() {}
 
     public func start(_ update: @escaping @MainActor ([FoundDesktop]) -> Void) {
+        start(update, retry: true)
+    }
+
+    private func start(_ update: @escaping @MainActor ([FoundDesktop]) -> Void, retry: Bool) {
         stop()
         let b = NWBrowser(for: .bonjourWithTXTRecord(type: "_yogurt._tcp", domain: nil), using: NWParameters())
         b.browseResultsChangedHandler = { results, _ in
             let found = Self.desktops(results)
             Task { @MainActor in update(found) }
         }
-        b.stateUpdateHandler = { state in
-            // a failed browser (the network went away) is started again by the engine on the next path change
-            if case .failed = state { Task { @MainActor in update([]) } }
+        b.stateUpdateHandler = { [weak self] state in
+            Task { @MainActor in
+                guard let self else { return }
+                switch state {
+                case .ready: self.onDenied?(false)
+                case .waiting(let e) where isLocalNetworkDenied(e): self.onDenied?(true)
+                case .failed(let e):
+                    if isLocalNetworkDenied(e) { self.onDenied?(true) }
+                    update([])
+                    // mDNS restarted or the network blinked: one more try shortly, then the next path change
+                    guard retry else { return }
+                    self.restart = Task { [weak self] in
+                        try? await Task.sleep(for: .seconds(2))
+                        guard !Task.isCancelled else { return }
+                        self?.start(update, retry: false)
+                    }
+                default: break
+                }
+            }
         }
         b.start(queue: .main)
         browser = b
     }
 
     public func stop() {
+        restart?.cancel()
         browser?.cancel()
         browser = nil
     }
