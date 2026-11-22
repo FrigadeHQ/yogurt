@@ -9,6 +9,7 @@ export type AiTask = (typeof AI_TASKS)[number]
 export const AGENTS = [
   { id: 'hermes', name: 'Hermes', install: 'https://github.com/NousResearch/hermes-agent' },
   { id: 'codex', name: 'Codex', install: 'https://github.com/openai/codex' },
+  { id: 'claude', name: 'Claude Code', install: 'https://github.com/anthropics/claude-code' },
 ] as const
 export type AgentId = (typeof AGENTS)[number]['id']
 

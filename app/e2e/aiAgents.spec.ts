@@ -18,7 +18,7 @@ test('Settings → AI models: Ask from an agent app that may only write', async 
     await expect(page.getByTestId('past-note')).toBeVisible()
     await page.evaluate(() => window.yogurt.nav.go('/settings'))
     // this computer first, then each agent app found
-    await expect(page.getByTestId('ai-task-ask').locator('option')).toHaveText(['Yogurt AI on this Mac', 'Hermes', 'Codex'])
+    await expect(page.getByTestId('ai-task-ask').locator('option')).toHaveText(['Yogurt AI on this Mac', 'Hermes', 'Codex', 'Claude Code'])
     await page.getByTestId('ai-task-ask').selectOption('hermes')
     await expect(page.getByTestId('ai-models-elsewhere')).toHaveText('Meeting text goes to Hermes for these. What happens to it there is up to them.')
 

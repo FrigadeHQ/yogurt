@@ -21,7 +21,7 @@ describe('agent apps', () => {
     const d = temp()
     writeFileSync(join(d, 'hermes'), 'not runnable', { mode: 0o644 })
     expect(findIn([d, AGENTS_DIR], 'hermes')).toBe(join(AGENTS_DIR, 'hermes'))
-    expect(findIn([d], 'codex')).toBeUndefined()
+    expect(findIn([d], 'claude')).toBeUndefined()
     expect(asOne('Title?')).toBe('Title?')
     expect(asOne('Title?', ['Notes prompt', 'Notes'])).toBe('<earlier_request>\nNotes prompt\n</earlier_request>\n\n<your_earlier_answer>\nNotes\n</your_earlier_answer>\n\nNow, following on from that:\n\nTitle?')
   })
@@ -49,6 +49,17 @@ describe('agent apps', () => {
     await expect(agents.llm('codex')!.chat('q', () => {})).rejects.toThrow("Codex: You've hit your usage limit")
     await expect(agents.llm('hermes')!.chat('q', () => {})).rejects.toThrow(/hermes stopped|Hermes stopped/)
   })
+  it.skipIf(!unix)('asks Claude Code with no tools and no MCP servers, streamed, and says what it said when it fails', async () => {
+    const log = join(temp(), 'log.jsonl')
+    vi.stubEnv('YOGURT_FAKE_AGENT_LOG', log)
+    const agents = createAgents({ dirs: [AGENTS_DIR] })
+    const tokens: string[] = []
+    expect(await agents.llm('claude')!.chat('<question>When?</question>', (t) => tokens.push(t))).toBe('Claude says: the site goes live on Tuesday.')
+    expect(tokens.length).toBeGreaterThan(1)
+    expect(JSON.parse(readFileSync(log, 'utf8').trim()).args).toEqual(['-p', '--tools', '', '--strict-mcp-config', '--no-session-persistence', '--disable-slash-commands', '--output-format', 'stream-json', '--include-partial-messages', '--verbose'])
+    vi.stubEnv('FAKE_AGENT_FAIL', '1')
+    await expect(agents.llm('claude')!.chat('q', () => {})).rejects.toThrow('Claude Code: Claude usage limit reached.')
+  })
   it('is never found where it is not', () => {
     const agents = createAgents({ dirs: [temp()] })
     expect(agents.found('hermes')).toBe(false)
@@ -69,7 +80,7 @@ describe('Settings → AI models: agent apps', () => {
     const s = hook()
     const status = await s.call('ai:status')
     expect(status.tasks).toEqual({ notes: 'local', ask: 'local', folders: 'local' })
-    expect(status.agents.map((a: { id: string; found: boolean }) => [a.id, a.found])).toEqual([['hermes', unix], ['codex', unix]])
+    expect(status.agents.map((a: { id: string; found: boolean }) => [a.id, a.found])).toEqual([['hermes', unix], ['codex', unix], ['claude', unix]])
     if (!unix) return
     expect((await s.call('ai:set-task', 'ask', 'hermes')).tasks.ask).toBe('hermes')
     expect(s.saved().ai).toEqual({ ask: 'hermes' })
