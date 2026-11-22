@@ -26,6 +26,8 @@ final class NotePlayer {
     private(set) var touched = false
     /// the finger is on the scrubber
     var scrubbing = false
+    /// the audio files being played, once ready: what Share audio sends
+    private(set) var files: [URL] = []
 
     @ObservationIgnored private var player: AVPlayer?
     @ObservationIgnored private var item: AVPlayerItem?
@@ -111,6 +113,7 @@ final class NotePlayer {
             guard try await asset.load(.isPlayable) else { state = .failed(S.audioCantPlay); return }
             let seconds = try await asset.load(.duration).seconds
             guard seconds.isFinite, seconds > 0 else { state = .failed(S.audioCantPlay); return }
+            self.files = files
             attach(AVPlayerItem(asset: asset), duration: seconds)
         } catch is CancellationError {
         } catch {

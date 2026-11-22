@@ -109,6 +109,18 @@ enum S {
     static let audioNone = String(localized: "There's no audio for this meeting.")
     static let audioCantPlay = String(localized: "This recording is in a format the iPhone can't play.")
     static let audioNotLoaded = String(localized: "Couldn't get the audio. Try again.")
+    // Share, from the Note's menu: the files say what desktop's Save Markdown says
+    static let shareSummary = String(localized: "Share summary")
+    static let shareTranscript = String(localized: "Share transcript")
+    static let shareAudio = String(localized: "Share audio")
+    static let nothingToShare = String(localized: "Nothing to share yet")
+    static let audioShareNearby = String(localized: "Audio can be shared when your computer is nearby.")
+    static let audioPreparing = String(localized: "Getting the audio ready…")
+    static let shareFailed = String(localized: "Couldn't share. Try again.")
+    static let you = String(localized: "You")
+    static let meeting = String(localized: "Meeting")
+    static func with(_ names: String) -> String { String(localized: "With: \(names)") }
+    static func recordedWith(_ app: String) -> String { String(localized: "Recorded with \(app)") }
     static let play = String(localized: "Play")
     static let playbackSpeed = String(localized: "Playback speed")
     static let position = String(localized: "Position")

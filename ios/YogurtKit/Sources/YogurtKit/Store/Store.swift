@@ -214,6 +214,11 @@ public final class Store {
             .map { Segment(index: Int($0[0].int ?? 0), startMs: Int($0[1].int ?? 0), endMs: Int($0[2].int ?? 0), speaker: $0[3].string, text: $0[4].string ?? "") }
     }
 
+    /// Whether a meeting has any transcript, without reading it.
+    public func hasSegments(_ meetingId: String) -> Bool {
+        !((try? db.query("SELECT 1 FROM segments WHERE meeting_id = ? LIMIT 1", [.text(meetingId)])) ?? []).isEmpty
+    }
+
     public func folders() -> [Folder] {
         ((try? db.query("SELECT id, name, created_at FROM folders ORDER BY name COLLATE NOCASE, id")) ?? [])
             .map { Folder(id: $0[0].string ?? "", name: $0[1].string ?? "", createdAt: date($0[2].int ?? 0)) }

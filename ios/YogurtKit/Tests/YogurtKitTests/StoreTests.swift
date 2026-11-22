@@ -49,6 +49,8 @@ let pageOne = """
         #expect(store.segments("m1").map(\.text) == ["hello there", "hi back"])
         #expect(store.segments("m1").map(\.speaker) == ["me", nil])
         #expect(store.segments("m1")[1].startMs == 1000)
+        #expect(store.hasSegments("m1"))
+        #expect(!store.hasSegments("nope"))
 
         #expect(store.folders().map(\.name) == ["Fruit"])
         #expect(store.meetings(folder: "f1").map(\.id) == ["m1"])

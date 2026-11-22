@@ -59,6 +59,7 @@ actor StoreReader {
         var notes: Notes?
         var folders: [Folder]
         var inFolders: [String]
+        var hasTranscript = false
     }
 
     struct Found: Sendable, Identifiable {
@@ -68,7 +69,8 @@ actor StoreReader {
     }
 
     func note(_ id: String) -> Note {
-        Note(meeting: store.meeting(id), notes: store.notes(id), folders: store.folders(), inFolders: store.folderIds(of: id))
+        Note(meeting: store.meeting(id), notes: store.notes(id), folders: store.folders(), inFolders: store.folderIds(of: id),
+             hasTranscript: store.hasSegments(id))
     }
 
     func segments(_ id: String) -> [Segment] { store.segments(id) }

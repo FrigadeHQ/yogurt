@@ -19,6 +19,10 @@ struct NoteView: View {
     /// read off the main thread, again each time sync lands something
     @State private var loaded: StoreReader.Note?
     @State private var player = NotePlayer()
+    /// Share audio was tapped: the audio is still coming from the computer, or being made into one file
+    @State private var audioShare: AudioShare?
+
+    enum AudioShare: Equatable { case waiting, preparing }
 
     var body: some View {
         let revision = model.revision
@@ -43,6 +47,15 @@ struct NoteView: View {
         // leaving the note ends its audio. Going to the background doesn't pause what is playing (the audio mode is on);
         // what isn't playing never starts.
         .onDisappear { player.stop() }
+        // Share audio tapped while the audio was still coming: share it once it's here, or say why not
+        .onChange(of: player.state) { _, now in
+            guard audioShare == .waiting, let meeting = loaded?.meeting else { return }
+            switch now {
+            case .ready: shareAudio(meeting)
+            case .downloading, .loading: break
+            default: audioShare = nil; say(audioReason ?? S.shareFailed)
+            }
+        }
     }
 
     private func content(_ meeting: Meeting, _ loaded: StoreReader.Note) -> some View {
@@ -185,6 +198,8 @@ struct NoteView: View {
 
     private func menu(_ m: Meeting, folders: [Folder], inFolders: [Folder]) -> some View {
         Menu {
+            shareItems(m)
+            Divider()
             Button { newTitle = m.title; renaming = true } label: { Label(S.rename, systemImage: "pencil") }
             Menu {
                 if folders.isEmpty { Text(S.noFolders) }
@@ -208,14 +223,85 @@ struct NoteView: View {
             Image(systemName: "ellipsis").accessibilityLabel(S.more)
         }
         .accessibilityLabel(S.more)
+        .accessibilityIdentifier("note-more")
     }
 
-    /// Edits other than My notes show once the computer has taken them, so say when that has to wait.
-    private func change(_ op: Op) {
-        model.send(op)
-        if case .connected = model.engine.status { return }
-        withAnimation { toast = S.changeQueued }
-        // a second change starts the 3 seconds again rather than being cleared early by the first
+    // MARK: - Share
+
+    /// Summary first, as on desktop; each makes a file and opens the share sheet. One that can't share says why.
+    @ViewBuilder private func shareItems(_ m: Meeting) -> some View {
+        let notes = loaded?.notes
+        let hasNotes = notes?.summary?.isEmpty == false || notes?.mine.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+        Button { shareSummary(m) } label: {
+            Label { Text(S.shareSummary); if !hasNotes { Text(S.nothingToShare) } } icon: { Image(systemName: "doc.text") }
+        }
+        .disabled(!hasNotes)
+        .accessibilityIdentifier("share-summary")
+        let hasTranscript = loaded?.hasTranscript == true
+        Button { shareTranscript(m) } label: {
+            Label { Text(S.shareTranscript); if !hasTranscript { Text(S.noTranscript) } } icon: { Image(systemName: "text.quote") }
+        }
+        .disabled(!hasTranscript)
+        .accessibilityIdentifier("share-transcript")
+        let reason = audioReason
+        Button { shareAudio(m) } label: {
+            Label { Text(S.shareAudio); if let reason { Text(reason) } } icon: { Image(systemName: "waveform") }
+        }
+        .disabled(reason != nil && !downloadingAudio || audioShare != nil)
+        .accessibilityIdentifier("share-audio")
+    }
+
+    private var downloadingAudio: Bool { if case .downloading = player.state { true } else { false } }
+
+    /// Why Share audio can't go now, in the player's words; nil when it can (or is on its way)
+    private var audioReason: String? {
+        switch player.state {
+        case .ready: nil
+        case .downloading: S.audioDownloading
+        case .loading: S.audioPreparing
+        case .nearby: S.audioShareNearby
+        case .noAudio: S.audioNone
+        case .failed(let message): message
+        }
+    }
+
+    private func fileName(_ m: Meeting, suffix: String? = nil, ext: String) -> String {
+        ShareExport.fileName(title: m.title, startedAt: m.startedAt, suffix: suffix, ext: ext, fallback: S.meeting)
+    }
+
+    private func shareSummary(_ m: Meeting) {
+        // the Store's notes, so My notes typed a moment ago go too
+        let notes = model.store.notes(meetingId) ?? loaded?.notes
+        let text = ShareExport(meeting: m, labels: ShareFiles.labels).summary(summary: notes?.summary, mine: notes?.mine ?? "")
+        do { ShareFiles.present([try ShareFiles.write(text, name: fileName(m, ext: "md"))]) } catch { say(S.shareFailed) }
+    }
+
+    private func shareTranscript(_ m: Meeting) {
+        Task {
+            let segments = await model.reader.segments(meetingId)
+            guard !segments.isEmpty else { say(S.noTranscript); return }
+            let text = ShareExport(meeting: m, labels: ShareFiles.labels).transcript(segments)
+            do { ShareFiles.present([try ShareFiles.write(text, name: fileName(m, suffix: S.transcript, ext: "md"))]) } catch { say(S.shareFailed) }
+        }
+    }
+
+    /// The audio the player has; still coming from the computer, it's shared as soon as it's here.
+    private func shareAudio(_ m: Meeting) {
+        guard player.isReady, !player.files.isEmpty else {
+            if downloadingAudio { audioShare = .waiting }
+            return
+        }
+        audioShare = .preparing
+        let files = player.files, name = String(fileName(m, ext: "m4a").dropLast(4))
+        Task {
+            defer { audioShare = nil }
+            do { ShareFiles.present([try await ShareFiles.audio(files, name: name)]) } catch { say(S.shareFailed) }
+        }
+    }
+
+    /// A short line at the foot for 3 seconds; a second one starts the 3 seconds again rather than being cleared early.
+    private func say(_ text: String) {
+        withAnimation { toast = text }
         toastTask?.cancel()
         toastTask = Task {
             try? await Task.sleep(for: .seconds(3))
@@ -224,8 +310,34 @@ struct NoteView: View {
         }
     }
 
+    /// Edits other than My notes show once the computer has taken them, so say when that has to wait.
+    private func change(_ op: Op) {
+        model.send(op)
+        if case .connected = model.engine.status { return }
+        say(S.changeQueued)
+    }
+
     @ViewBuilder private var toastView: some View {
-        if let toast {
+        if let audioShare {
+            HStack(spacing: 10) {
+                if audioShare == .waiting, case .downloading(let p) = player.state {
+                    ProgressView(value: p).tint(Theme.primary).frame(width: 80)
+                    Text(S.audioDownloading)
+                } else {
+                    ProgressView().controlSize(.small)
+                    Text(S.audioPreparing)
+                }
+            }
+            .font(.footnote)
+            .foregroundStyle(Theme.ink)
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .background(Theme.float, in: Capsule())
+            .overlay(Capsule().strokeBorder(Theme.line))
+            .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
+            .padding(.bottom, 16).padding(.horizontal, 20)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .accessibilityIdentifier("share-audio-progress")
+        } else if let toast {
             Text(toast)
                 .font(.footnote)
                 .foregroundStyle(Theme.ink)
