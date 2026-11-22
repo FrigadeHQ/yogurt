@@ -1,0 +1,794 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSFaceIDUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt can ask for Face ID before showing your meetings."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يمكن أن يطلب Yogurt بصمة الوجه Face ID قبل عرض اجتماعاتك."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনার মিটিং দেখানোর আগে Yogurt Face ID চাইতে পারে।"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt může požádat o Face ID, než ukáže vaše schůzky."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt kan bede om Face ID, før dine møder vises."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt kann nach Face ID fragen, bevor deine Meetings angezeigt werden."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Το Yogurt μπορεί να ζητήσει Face ID πριν δείξει τις συσκέψεις σας."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt puede pedir Face ID antes de mostrar tus reuniones."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt voi pyytää Face ID:tä ennen kuin kokouksesi näytetään."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puwedeng humingi ang Yogurt ng Face ID bago ipakita ang mga meeting mo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt peut demander Face ID avant d’afficher vos réunions."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt יכול לבקש Face ID לפני שהוא מציג את הפגישות שלך."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt आपकी मीटिंग दिखाने से पहले Face ID माँग सकता है।"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Yogurt Face ID-t kérhet, mielőtt megmutatja a megbeszéléseidet."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt bisa meminta Face ID sebelum menampilkan rapat Anda."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt può chiedere Face ID prima di mostrare le tue riunioni."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurtはミーティングを表示する前にFace IDを求めることができます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt는 회의를 보여 주기 전에 Face ID를 요청할 수 있어요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt boleh meminta Face ID sebelum menunjukkan mesyuarat anda."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt kan be om Face ID før møtene dine vises."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt kan om Face ID vragen voordat je meetings worden getoond."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt może poprosić o Face ID, zanim pokaże Twoje spotkania."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Yogurt pode pedir o Face ID antes de mostrar suas reuniões."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt poate cere Face ID înainte să vă arate întâlnirile."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt может попросить Face ID, прежде чем показать ваши встречи."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt kan be om Face ID innan dina möten visas."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt สามารถขอ Face ID ก่อนแสดงการประชุมของคุณ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt toplantılarınızı göstermeden önce Face ID isteyebilir."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt може попросити Face ID, перш ніж показати ваші зустрічі."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt có thể yêu cầu Face ID trước khi hiện các cuộc họp."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt 可以在显示你的会议前要求面容 ID。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt 可以在顯示你的會議前要求 Face ID。"
+          }
+        }
+      }
+    },
+    "NSLocalNetworkUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt finds your computer on this Wi-Fi to keep your meetings in sync. Nothing goes through the internet."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يجد Yogurt الكمبيوتر على شبكة Wi-Fi هذه لمزامنة اجتماعاتك. لا شيء يمر عبر الإنترنت."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনার মিটিং সিঙ্ক রাখতে Yogurt এই Wi-Fi-তে আপনার কম্পিউটার খোঁজে। কিছুই ইন্টারনেট দিয়ে যায় না।"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt hledá váš počítač na této Wi-Fi, aby synchronizoval schůzky. Nic nejde přes internet."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt finder din computer på dette wi-fi for at holde dine møder synkroniseret. Intet går via internettet."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt findet deinen Computer in diesem WLAN, um deine Meetings abzugleichen. Nichts geht über das Internet."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Το Yogurt βρίσκει τον υπολογιστή σας σε αυτό το Wi-Fi για να συγχρονίζει τις συσκέψεις σας. Τίποτα δεν περνά από το διαδίκτυο."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt busca tu ordenador en esta Wi-Fi para mantener tus reuniones sincronizadas. Nada pasa por internet."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt etsii tietokoneesi tästä Wi-Fi-verkosta pitääkseen kokoukset synkronoituina. Mitään ei kulje internetin kautta."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hinahanap ng Yogurt ang computer mo sa Wi-Fi na ito para manatiling naka-sync ang mga meeting mo. Walang dumadaan sa internet."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt trouve votre ordinateur sur ce Wi-Fi pour synchroniser vos réunions. Rien ne passe par Internet."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt מוצא את המחשב שלך ברשת ה-Wi-Fi הזו כדי לסנכרן את הפגישות. שום דבר לא עובר דרך האינטרנט."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt आपकी मीटिंग सिंक रखने के लिए इस Wi-Fi पर आपका कंप्यूटर खोजता है। कुछ भी इंटरनेट से नहीं जाता।"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Yogurt ezen a Wi-Fin keresi meg a számítógéped, hogy szinkronban tartsa a megbeszéléseidet. Semmi sem megy át az interneten."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt mencari komputer Anda di Wi-Fi ini agar rapat Anda tetap sinkron. Tidak ada yang lewat internet."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt trova il tuo computer su questa Wi-Fi per tenere sincronizzate le riunioni. Niente passa da internet."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurtはミーティングを同期するために、このWi-Fi上のコンピュータを探します。インターネットを経由するものはありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt는 회의를 동기화하기 위해 이 Wi-Fi에서 컴퓨터를 찾아요. 인터넷을 거치는 것은 없어요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt mencari komputer anda pada Wi-Fi ini untuk menyegerakkan mesyuarat anda. Tiada apa-apa melalui internet."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt finner datamaskinen din på dette wifi-nettet for å holde møtene synkronisert. Ingenting går via internett."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt zoekt je computer op dit wifi om je meetings te synchroniseren. Er gaat niets via internet."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt znajduje Twój komputer w tej sieci Wi-Fi, aby synchronizować spotkania. Nic nie przechodzi przez internet."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Yogurt encontra seu computador nesta Wi-Fi para manter suas reuniões sincronizadas. Nada passa pela internet."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt găsește computerul în această rețea Wi-Fi ca să vă sincronizeze întâlnirile. Nimic nu trece prin internet."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt находит ваш компьютер в этой сети Wi-Fi, чтобы синхронизировать встречи. Ничего не идёт через интернет."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt hittar din dator på det här wifi-nätverket för att hålla dina möten synkade. Inget går via internet."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt หาคอมพิวเตอร์ของคุณใน Wi-Fi นี้เพื่อซิงค์การประชุม ไม่มีอะไรผ่านอินเทอร์เน็ต"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt, toplantılarınızı eşzamanlı tutmak için bu Wi-Fi’da bilgisayarınızı bulur. Hiçbir şey internetten geçmez."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt знаходить ваш комп’ютер у цій мережі Wi-Fi, щоб синхронізувати зустрічі. Нічого не йде через інтернет."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt tìm máy tính của bạn trên Wi-Fi này để đồng bộ cuộc họp. Không có gì đi qua internet."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt 会在这个 Wi-Fi 上寻找你的电脑，让会议保持同步。任何内容都不经过互联网。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt 會在這個 Wi-Fi 上尋找你的電腦，讓會議保持同步。任何內容都不經過網際網路。"
+          }
+        }
+      }
+    },
+    "NSMicrophoneUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt records your meetings so it can write the transcript and notes."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يسجّل Yogurt اجتماعاتك ليكتب النص والملاحظات."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ট্রান্সক্রিপ্ট ও নোট লিখতে Yogurt আপনার মিটিং রেকর্ড করে।"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt nahrává vaše schůzky, aby z nich napsal přepis a poznámky."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt optager dine møder for at skrive transskriptionen og noterne."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt nimmt deine Meetings auf, um Transkript und Notizen zu schreiben."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Το Yogurt ηχογραφεί τις συσκέψεις σας για να γράψει την απομαγνητοφώνηση και τις σημειώσεις."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt graba tus reuniones para escribir la transcripción y las notas."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt tallentaa kokouksesi kirjoittaakseen litteroinnin ja muistiinpanot."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nire-record ng Yogurt ang mga meeting mo para isulat ang transcript at notes."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt enregistre vos réunions pour en écrire la transcription et les notes."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt מקליט את הפגישות שלך כדי לכתוב את התמלול והסיכום."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt ट्रांसक्रिप्ट और नोट्स लिखने के लिए आपकी मीटिंग रिकॉर्ड करता है।"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Yogurt felveszi a megbeszéléseidet, hogy megírja az átiratot és a jegyzeteket."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt merekam rapat Anda untuk menulis transkrip dan catatannya."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt registra le tue riunioni per scriverne la trascrizione e le note."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurtはミーティングを録音して、文字起こしとノートを作成します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt는 녹취록과 노트를 쓰기 위해 회의를 녹음해요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt merakam mesyuarat anda untuk menulis transkrip dan nota."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt tar opp møtene dine for å skrive transkripsjonen og notatene."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt neemt je meetings op om het transcript en de notities te schrijven."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt nagrywa Twoje spotkania, aby napisać transkrypcję i notatki."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Yogurt grava suas reuniões para escrever a transcrição e as notas."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt vă înregistrează întâlnirile ca să scrie transcrierea și notițele."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt записывает ваши встречи, чтобы написать расшифровку и заметки."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt spelar in dina möten för att skriva transkriptionen och anteckningarna."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt อัดเสียงการประชุมเพื่อเขียนคำถอดความและโน้ต"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt transkripti ve notları yazmak için toplantılarınızı kaydeder."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt записує ваші зустрічі, щоб написати розшифровку і нотатки."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt ghi âm cuộc họp để viết bản chép lời và ghi chú."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt 会录下你的会议，用来写文字记录和笔记。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt 會錄下你的會議，用來寫逐字稿和筆記。"
+          }
+        }
+      }
+    },
+    "NSSpeechRecognitionUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt turns your recordings into a transcript on this iPhone."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يحوّل Yogurt تسجيلاتك إلى نص على هذا الـiPhone."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt এই iPhone-এ আপনার রেকর্ডিংকে ট্রান্সক্রিপ্টে বদলায়।"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt na tomto iPhonu mění vaše nahrávky v přepis."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt gør dine optagelser til en transskription på denne iPhone."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt macht aus deinen Aufnahmen ein Transkript auf diesem iPhone."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Το Yogurt μετατρέπει τις ηχογραφήσεις σας σε απομαγνητοφώνηση σε αυτό το iPhone."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt convierte tus grabaciones en una transcripción en este iPhone."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt tekee tallenteistasi litteroinnin tällä iPhonella."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ginagawang transcript ng Yogurt ang mga recording mo sa iPhone na ito."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt transforme vos enregistrements en transcription sur cet iPhone."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt הופך את ההקלטות שלך לתמלול ב-iPhone הזה."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt इस iPhone पर आपकी रिकॉर्डिंग को ट्रांसक्रिप्ट में बदलता है।"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Yogurt átirattá alakítja a felvételeidet ezen az iPhone-on."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt mengubah rekaman Anda menjadi transkrip di iPhone ini."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt trasforma le tue registrazioni in una trascrizione su questo iPhone."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "YogurtはこのiPhoneで録音を文字起こしします。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt는 이 iPhone에서 녹음을 녹취록으로 바꿔요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt menukar rakaman anda menjadi transkrip pada iPhone ini."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt gjør opptakene dine om til en transkripsjon på denne iPhonen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt maakt van je opnames een transcript op deze iPhone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt zamienia Twoje nagrania w transkrypcję na tym iPhonie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Yogurt transforma suas gravações em transcrição neste iPhone."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt transformă înregistrările dvs. în transcriere pe acest iPhone."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt превращает ваши записи в расшифровку на этом iPhone."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt gör om dina inspelningar till en transkription på den här iPhonen."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt เปลี่ยนเสียงที่อัดเป็นคำถอดความบน iPhone เครื่องนี้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt kayıtlarınızı bu iPhone’da transkripte dönüştürür."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt перетворює ваші записи на розшифровку на цьому iPhone."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt biến bản ghi của bạn thành bản chép lời trên iPhone này."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt 会在这台 iPhone 上把你的录音转成文字记录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yogurt 會在這支 iPhone 上把你的錄音轉成逐字稿。"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

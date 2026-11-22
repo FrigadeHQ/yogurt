@@ -5,6 +5,7 @@ options:
   deploymentTarget:
     iOS: "26.0"
   createIntermediateGroups: true
+  developmentLanguage: en
 packages:
   YogurtKit:
     path: YogurtKit
@@ -39,6 +40,40 @@ targets:
       path: Yogurt/Info.plist
       properties:
         CFBundleDisplayName: Yogurt
+        # the languages Localizable.xcstrings has, the same as desktop Yogurt's: iOS shows its per-app Language picker
+        CFBundleLocalizations:
+          - en
+          - ar
+          - bn
+          - cs
+          - da
+          - de
+          - el
+          - es
+          - fi
+          - fil
+          - fr
+          - he
+          - hi
+          - hu
+          - id
+          - it
+          - ja
+          - ko
+          - ms
+          - nb
+          - nl
+          - pl
+          - pt-BR
+          - ro
+          - ru
+          - sv
+          - th
+          - tr
+          - uk
+          - vi
+          - zh-Hans
+          - zh-Hant
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         ITSAppUsesNonExemptEncryption: false
