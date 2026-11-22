@@ -26,6 +26,7 @@ const APPS: Record<string, { kind: CallKind; ids: string[] }> = {
   Chrome: { kind: 'meet', ids: ['com.google.Chrome', 'chrome', 'google-chrome', 'chrome.exe'] },
   Arc: { kind: 'meet', ids: ['company.thebrowser.Browser', 'arc.exe'] },
   Ardia: { kind: 'meet', ids: ['com.ardia.browser'] },
+  Dia: { kind: 'meet', ids: ['company.thebrowser.dia'] },
   Brave: { kind: 'meet', ids: ['com.brave.Browser', 'brave', 'brave.exe'] },
   Edge: { kind: 'meet', ids: ['com.microsoft.edgemac', 'msedge', 'com.microsoft.Edge', 'msedge.exe'] },
   Safari: { kind: 'meet', ids: ['com.apple.Safari'] },

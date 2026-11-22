@@ -202,7 +202,7 @@ func browserTitle(_ id: String) -> String? {
     return axText(axAttr(window as! AXUIElement, kAXTitleAttribute))
   }
   let safari = id == "com.apple.Safari"
-  guard ["com.google.Chrome", "company.thebrowser.Browser", "com.ardia.browser", "com.microsoft.edgemac", "com.brave.Browser", "com.apple.Safari"].contains(id),
+  guard ["com.google.Chrome", "company.thebrowser.Browser", "com.ardia.browser", "company.thebrowser.dia", "com.microsoft.edgemac", "com.brave.Browser", "com.apple.Safari"].contains(id),
         !NSRunningApplication.runningApplications(withBundleIdentifier: id).isEmpty else { return nil }
   let src = "tell application id \"\(id)\" to get " + (safari ? "name of current tab of front window" : "title of active tab of front window")
   var err: NSDictionary?
@@ -218,7 +218,7 @@ func browserTitle(_ id: String) -> String? {
  * an assistive app asks, so they are asked the way screen readers do (AXManualAccessibility): see askTree.
  */
 let axKeys = [kAXRoleAttribute, kAXSubroleAttribute, kAXDescriptionAttribute, kAXTitleAttribute, kAXValueAttribute, kAXIdentifierAttribute, "AXDOMClassList", kAXChildrenAttribute, kAXSizeAttribute] as [String]
-let chromium: Set<String> = ["com.google.Chrome", "company.thebrowser.Browser", "com.ardia.browser", "com.brave.Browser", "com.microsoft.edgemac", "com.microsoft.teams", "com.microsoft.teams2"]
+let chromium: Set<String> = ["com.google.Chrome", "company.thebrowser.Browser", "com.ardia.browser", "company.thebrowser.dia", "com.brave.Browser", "com.microsoft.edgemac", "com.microsoft.teams", "com.microsoft.teams2"]
 var askedTree = Set<pid_t>()
 
 /// Asks a Chromium or Electron app to build its page's accessibility tree, once per process. A browser is asked only

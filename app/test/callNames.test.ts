@@ -91,6 +91,9 @@ describe('watchIds: only the call app the meeting is in', () => {
     // Ardia, a Chromium browser on the Mac (#123): a hand-started recording reads its Meet tab too
     expect(watchIds('Ardia')).toEqual(['com.ardia.browser'])
     expect(watchIds(null)).toContain('com.ardia.browser')
+    // Dia (The Browser Company, Chromium) too (#131)
+    expect(watchIds('Dia')).toEqual(['company.thebrowser.dia'])
+    expect(watchIds(null)).toContain('company.thebrowser.dia')
   })
 })
 

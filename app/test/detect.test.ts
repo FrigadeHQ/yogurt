@@ -93,7 +93,7 @@ describe('real bundle ids', () => {
   ])('%s is %s', (id, name) => expect(p(id)).toBe(name))
   it.each([
     ['com.google.Chrome', 'Chrome'], ['company.thebrowser.Browser', 'Arc'], ['com.microsoft.edgemac', 'Edge'],
-    ['org.mozilla.firefox', 'Firefox'], ['com.brave.Browser', 'Brave'], ['com.ardia.browser', 'Ardia'],
+    ['org.mozilla.firefox', 'Firefox'], ['com.brave.Browser', 'Brave'], ['com.ardia.browser', 'Ardia'], ['company.thebrowser.dia', 'Dia'],
     ['com.apple.Safari', 'Safari'], ['com.apple.WebKit.WebContent', 'Safari'], ['com.apple.WebKit.GPU', 'Safari'],
   ])('browser %s is %s once the tab is a call', (id, name) => expect(p(id, { title: 'Zoom Meeting' })).toBe(name))
   it('safari\'s web process without a call sign: nothing', () => expect(p('com.apple.WebKit.WebContent', { title: 'YouTube' })).toBeUndefined())

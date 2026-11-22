@@ -26,6 +26,7 @@ const MAC_APPS: CallApp[] = [
   { id: 'com.google.Chrome', name: 'Chrome', browser: true },
   { id: 'company.thebrowser.Browser', name: 'Arc', browser: true },
   { id: 'com.ardia.browser', name: 'Ardia', browser: true },
+  { id: 'company.thebrowser.dia', name: 'Dia', browser: true },
   { id: 'com.apple.Safari', name: 'Safari', browser: true },
   { id: 'com.microsoft.edgemac', name: 'Edge', browser: true },
   { id: 'org.mozilla.firefox', name: 'Firefox', browser: true },
