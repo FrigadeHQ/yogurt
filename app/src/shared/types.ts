@@ -43,6 +43,10 @@ export type YogurtApi = {
     retry(): Promise<void>
     skipUpgrade(): Promise<void>
     downloadUpgrade(): Promise<void>
+    /** Settings → Transcription: what is picked and what there is to pick; undefined until setup has looked */
+    speechModels(): Promise<SpeechModels | undefined>
+    /** a speech model's id, or null for Auto; it downloads, then takes over once nothing is recorded or transcribed */
+    setSpeechModel(id: string | null): Promise<void>
     removeUpgrade(): Promise<void>
   }
   /** the "Take notes?" and "Stop recording?" card */
@@ -338,11 +342,19 @@ export type YogurtApi = {
 }
 
 /** First-run setup: the models this Mac needs. Ready (recording works) once the speech model is in place; the notes models keep downloading after. */
+/** Settings → Transcription: the speech model picked (null: Auto), what Auto means here, and every one there is, best first */
+export type SpeechModels = { choice: string | null; auto?: { id: string; name: string }; models: Array<{ id: string; name: string; bytes: number }> }
 export type SetupState = {
   phase: 'checking' | 'downloading' | 'ready' | 'error'
   /** 0 to 1 over what ready waits for */
   fraction: number
   message?: string
+  /** the speech model transcribing now (catalog id) */
+  speechModel?: string
+  /** Settings → Transcription: the one picked downloading, then waiting for meetings to finish being transcribed */
+  speechSwitch?: { id: string; fraction: number }
+  speechSwitchPending?: string
+  speechSwitchError?: string
   /** Speech is ready, but the first notes-model download failed. Recording and transcription still work. */
   notesError?: string
   /** First notes-model progress (0 to 1), retained on failure until retry or completion. */

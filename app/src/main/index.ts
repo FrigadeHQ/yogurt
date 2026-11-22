@@ -129,6 +129,8 @@ function openExternally(url: string) {
 
 let updateWidgetVisibility = () => {}
 let recordingPillChanged = (_on: boolean) => {}
+/** a meeting is recorded or transcribed: a new speech model waits for it (set once transcription is wired) */
+let speechBusy = () => true
 let sendWidgetTranscript = (_channel: string, _value: unknown) => {}
 function createWindow() {
   // the size and place it was left at (windowState.ts); test runs (fake mode) always start at the default, so one
@@ -202,6 +204,7 @@ function createSetup(): SetupController {
     getCatalog: async () => loadCatalog({ bundled: bundledCatalog, licenses }),
     download: isFake() ? fakeDownloadDeps({ stepMs: Number(process.env.YOGURT_FAKE_STEP_MS ?? 5), notesMs: Number(process.env.YOGURT_FAKE_NOTES_MODEL_MS ?? 0), notesFailOnce: process.env.YOGURT_FAKE_NOTES_MODEL_FAIL_ONCE === '1' }) : realDeps,
     ...(isFake() ? { sha256Override: 'FAKE' } : {}),
+    speechChoice: () => loadSettings(join(userDataDir(), 'settings.json')).speechModel, speechBusy: () => speechBusy(),
     // Windows and Linux: speech models timed on this computer (asr/speedCheck.ts); a Mac never is
     ...(platform === 'darwin' ? {} : { speed: { ...speedStore(speedFile()), measure: isFake() ? fakeMeasure() : (model: string) => measureSpeed(model, { binary: whisperServerPath(), vadModel: vadModelPath(), clip: speedClipPath() ?? '' }) } }),
   })
@@ -579,6 +582,13 @@ app.whenReady().then(() => {
   ipcMain.handle('setup:retry', () => setup.retry())
   ipcMain.handle('setup:skip-upgrade', () => setup.skipUpgrade())
   ipcMain.handle('setup:download-upgrade', () => setup.downloadUpgrade())
+  ipcMain.handle('setup:speech-models', () => setup.speechModels())
+  // Settings → Transcription: a catalog id, or null for Auto (the pick for this computer); it downloads, then takes over
+  ipcMain.handle('setup:set-speech', (_e, id: unknown) => {
+    if (id !== null && !setup.speechModels()?.models.some((m) => m.id === id)) throw new Error('Invalid speech model')
+    updateSettings(join(userDataDir(), 'settings.json'), { speechModel: id === null ? undefined : (id as string) })
+    return setup.switchSpeech()
+  })
   const store = openStore(join(userDataDir(), 'yogurt.db'))
   storeRef = store
   store.markInterrupted()
@@ -722,6 +732,7 @@ app.whenReady().then(() => {
     changed: (id,replaced) => {win?.webContents.send('meetings:changed');if(replaced){win?.webContents.send('transcript:replaced',id);void indexer.schedule()}},
     summarize: id => {void notes.writeAgain(id)},
   })
+  speechBusy = () => !!activeMeeting() || !!resumingId || finishing || savedTranscriptions.busy() || transcriptionBacklogMs() > 0
   const uploads = hookAudioUploads({
     root: join(userDataDir(), 'meetings'), store, window: () => win, exiting: () => allowQuit,
     recording: () => !!activeMeeting() || !!resumingId || finishing,

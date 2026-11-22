@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Check, ChevronDown, Copy, Download, ExternalLink, Globe, Lock, Upload, FileText } from '../components/Icons'
 import type { Access, AppVisibility, McpStatus, PermissionKind, PermissionStatus, SetupState, Theme, UpdateStatus } from '../../../shared/types'
 import { notesDownloadText, notesUpgradeSize } from '../notesSetup'
+import { SpeechModel } from '../components/SpeechModel'
 import { permissionCopy } from '../permissionCopy'
 import { LOCALES, t } from '../../../shared/i18n'
 import { onMac, osWords } from '../keys'
@@ -248,6 +249,7 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
                 }}><span className="settings-toggle-knob" /></button>
             </div>
             <NotesModel reveal={focus === 'notes-model'} />
+            <SpeechModel />
           </LoadingContent></div>
 
           <h2 className="settings-section-heading">{t('What Yogurt can use')}</h2>

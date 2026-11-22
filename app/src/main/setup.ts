@@ -3,7 +3,7 @@ import { rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { ChecksumError, DiskSpaceError, ensureFile, fileNameFor, isVerified, partialDownloadGB, type DownloadDeps } from './downloader'
-import type { SetupState } from '../shared/types'
+import type { SetupState, SpeechModels } from '../shared/types'
 import { t } from '../shared/i18n'
 import { tooSlow, tooWeak } from './localCheck'
 
@@ -32,6 +32,12 @@ export type SetupDeps = {
   upgradePreference?: { load(): boolean; save(skipped: boolean): void }
   /** Windows and Linux: the speed check picks the speech model (a Mac never has it: turbo, as always) */
   speed?: SpeedDeps
+  /** Settings → Transcription: the catalog id picked, instead of the pick for this computer (and its speed check) */
+  speechChoice?: () => string | undefined
+  /** something is being recorded or transcribed: a new speech model waits, so no meeting changes model halfway */
+  speechBusy?: () => boolean
+  /** how often a waiting speech model looks again (5 s) */
+  speechWaitMs?: number
 }
 
 /** Where the models ended up, for the parts of the app that use them; llm once the first notes model is in (after ready) */
@@ -77,6 +83,11 @@ export class SetupController {
   private embedding: Promise<void> | undefined
   /** Try again after an error: time the speech models again instead of trusting what was stored */
   private recheck = false
+  /** what the last check found: the catalog to switch within, and what Auto means here */
+  private catalog: Catalog | undefined
+  private autoAsr: CatalogAsr | undefined
+  private speechAbort: AbortController | undefined
+  private speechTimer: NodeJS.Timeout | undefined
 
   constructor(private deps: SetupDeps) {}
 
@@ -230,10 +241,15 @@ export class SetupController {
       this.recheck = false
       const known = saved?.key === key ? saved : undefined
       const candidates = speed ? asrCandidates(hw, catalog) : []
-      if (speed && (known?.model === null || !candidates.length)) return this.set({ phase: 'error', fraction: 0, message: tooSlow(hw.os) })
       const keep = known && candidates.find((a) => a.id === known.model)
+      // Auto: the pick for a Mac, the speed check's on Windows and Linux. One picked in Settings goes before both
+      this.catalog = catalog
+      this.autoAsr = speed ? keep : asr.model
+      const chosen = catalog.asr.find((a) => a.id === this.deps.speechChoice?.())
+      if (chosen) asr = { model: chosen, ...(asr.model !== chosen ? { fallback: asr.model } : {}) }
+      if (!chosen && speed && (known?.model === null || !candidates.length)) return this.set({ phase: 'error', fraction: 0, message: tooSlow(hw.os) })
 
-      const waitFor: Item[] = [asrItem(speed ? keep ?? candidates[0] : asr.model)]
+      const waitFor: Item[] = [asrItem(chosen ?? (speed ? keep ?? candidates[0] : asr.model))]
       const total = waitFor.reduce((n, i) => n + i.bytes, 0)
       // room for the first notes model too, so it never runs out of disk after ready
       await this.checkDisk([...waitFor, ...(hasUpgrade ? [] : [starterItem]), embedItem])
@@ -250,15 +266,17 @@ export class SetupController {
 
       // speech: if the first choice downloads corrupted twice, the smaller one takes its place
       const tried: string[] = []
-      let asrPath: string | undefined
-      if (speed && keep) asrPath = await get(asrItem(keep))
-      else if (speed) {
+      let asrPath: string | undefined, speechModel = asr.model.id
+      if (!chosen && speed && keep) { asrPath = await get(asrItem(keep)); speechModel = keep.id }
+      else if (!chosen && speed) {
         const r = await this.timeSpeech(speed, candidates, get, asrItem)
         speed.save({ key, ...r.result, at: Date.now() })
         if (!r.path) return this.set({ phase: 'error', fraction: this._state.fraction, message: tooSlow(hw.os) })
-        asrPath = r.path
+        asrPath = r.path; speechModel = r.result.model ?? speechModel
+        this.autoAsr = candidates.find((a) => a.id === r.result.model)
       }
       while (!asrPath) {
+        speechModel = asr.model.id
         try { asrPath = await get(asrItem(asr.model)) } catch (err) {
           if (!(err instanceof ChecksumError) || !asr.fallback) throw err
           tried.push(asr.model.id)
@@ -270,7 +288,7 @@ export class SetupController {
         this.paths.recommendedLlm = join(bigger!.dir, bigger!.fileName)
         if (isVerified(starterItem.dir, starterItem.fileName, this.sha(starterItem))) this.paths.llm = join(starterItem.dir, starterItem.fileName)
       }
-      this.set({ phase: 'ready', fraction: 1, notesUpgradeBytes: bigger?.bytes, notesUpgradeSkipped: skipped, notesUpgradeInstalled: hasUpgrade })
+      this.set({ phase: 'ready', fraction: 1, speechModel, notesUpgradeBytes: bigger?.bytes, notesUpgradeSkipped: skipped, notesUpgradeInstalled: hasUpgrade })
       this.startNotes(starterItem, embedItem)
     } catch (err) {
       console.error('setup failed', err)
@@ -393,6 +411,59 @@ export class SetupController {
       this.set({ ...this._state, notesUpgradeDownloading: undefined, notesUpgradeEtaSec: undefined, notesUpgradeError: friendly(err) })
     }).finally(() => { this.upgradeAbort = undefined })
     return this.upgradeDownload
+  }
+
+  /** Settings → Transcription: Auto's speech model, and every one there is to pick */
+  speechModels(): SpeechModels | undefined {
+    if (!this.catalog?.asr.length) return undefined
+    const choice = this.deps.speechChoice?.()
+    return {
+      choice: this.catalog.asr.some((a) => a.id === choice) ? choice! : null,
+      auto: this.autoAsr && { id: this.autoAsr.id, name: this.autoAsr.name },
+      models: this.catalog.asr.map((a) => ({ id: a.id, name: a.name, bytes: a.bytes })),
+    }
+  }
+
+  /**
+   * The Transcription choice changed: its model downloads now, while Yogurt goes on with the one it has, and takes
+   * over once nothing is recorded or transcribed (no meeting changes model halfway). The old one is removed then.
+   */
+  async switchSpeech() {
+    if (this._state.phase !== 'ready' || !this.catalog || !this.paths) return
+    clearTimeout(this.speechTimer)
+    this.speechAbort?.abort()
+    const target = this.catalog.asr.find((a) => a.id === this.deps.speechChoice?.()) ?? this.autoAsr
+    if (!target || target.id === this._state.speechModel) {
+      this.set({ ...this._state, speechSwitch: undefined, speechSwitchPending: undefined, speechSwitchError: undefined })
+      return
+    }
+    const item: Item = { url: target.url, sha256: target.sha256, bytes: target.bytes, dir: join(this.deps.modelsDir, 'asr'), fileName: fileNameFor(target.url) }
+    const abort = new AbortController()
+    this.speechAbort = abort
+    this.set({ ...this._state, speechSwitch: { id: target.id, fraction: 0 }, speechSwitchPending: undefined, speechSwitchError: undefined })
+    try {
+      await this.checkDisk([item])
+      const path = await this.fetch(item, (p) => { if (!abort.signal.aborted) this.set({ ...this._state, speechSwitch: { id: target.id, fraction: p.fraction } }) }, abort.signal)
+      this.useSpeech(target.id, path, abort.signal)
+    } catch (err) {
+      if (abort.signal.aborted) return
+      console.warn('the speech model did not download', err)
+      this.set({ ...this._state, speechSwitch: undefined, speechSwitchError: friendly(err) })
+    }
+  }
+
+  private useSpeech(id: string, path: string, signal: AbortSignal) {
+    if (signal.aborted) return
+    if (this.deps.speechBusy?.()) {
+      if (this._state.speechSwitchPending !== id) this.set({ ...this._state, speechSwitch: undefined, speechSwitchPending: id })
+      this.speechTimer = setTimeout(() => this.useSpeech(id, path, signal), this.deps.speechWaitMs ?? 5000)
+      return
+    }
+    const old = this.paths?.asr
+    this.paths = { ...this.paths!, asr: path }
+    if (old && old !== path) { try { this.removeFiles(old) } catch (e) { console.warn('could not remove the earlier speech model', e) } }
+    console.info('SPEECH', `transcribing with ${id} from now on`)
+    this.set({ ...this._state, speechModel: id, speechSwitch: undefined, speechSwitchPending: undefined })
   }
 
   private async checkDisk(items: Item[]) {

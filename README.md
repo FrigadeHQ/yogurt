@@ -148,7 +148,7 @@ Meeting data stays local; Yogurt goes online for model downloads and update chec
 
 <br>
 
-> Yogurt uses Whisper large-v3-turbo on computers that can run it, the same family of models many cloud services use, so English accuracy is close to cloud transcription. Smaller computers get a smaller Whisper model, which is faster but makes more mistakes, especially outside English. You can add names and words to a custom vocabulary so they're spelled right.
+> Yogurt uses Whisper large-v3-turbo on computers that can run it, the same family of models many cloud services use, so English accuracy is close to cloud transcription. Smaller computers get a smaller Whisper model, which is faster but makes more mistakes, especially outside English. You can pick the Whisper model yourself in **Settings → Transcription**, and add names and words to a custom vocabulary so they're spelled right.
 
 </details>
 
