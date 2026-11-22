@@ -87,7 +87,7 @@ export function importHandlers({ d, folderOf, log }: Ctx): Record<string, (a: Ar
     if (already) return { id: already.id, title: already.title, already_imported: true }
     const timed = timedLines(m.lines)
     const meeting = s.createMeeting({ title: m.title, titleSource: 'user', startedAt: m.startedAt, endedAt: m.endedAt ?? m.startedAt + (timed.at(-1)?.endMs ?? 0),
-      eventId: null, app: null, attendees: m.attendees, keepAttendees: true, state: 'done', source: 'import', ...(m.sourceId ? { sourceId: m.sourceId } : {}) })
+      eventId: null, app: null, attendees: m.attendees, state: 'done', source: 'import', ...(m.sourceId ? { sourceId: m.sourceId } : {}) })
     try {
       if (timed.length) s.addSegments(toSegments(meeting.id, timed, d.me()))
       // the other app's summary counts as edited, so new people never have it rewritten by itself

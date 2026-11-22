@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { setup, call, json } from './mcpRig'
+import { initMeetings, linkEvent, setAttendees } from '../src/main/meeting'
+import { setup, call, json, EVENT } from './mcpRig'
 
 const granola = {
   title: 'Vendor call', started_at: '2026-10-20T14:00:00Z', attendees: [{ name: 'Ann Lee', email: 'ann@acme.com' }, { name: 'Raj Patel' }],
@@ -8,6 +9,26 @@ const granola = {
 }
 
 describe('bringing meetings in from other notes apps', () => {
+  it.each(['create_meeting', 'import_meetings'])('%s takes calendar people only when the import brought none', async (tool) => {
+    const { mcp, store } = setup({ changes: true, app: {
+      linkEvent: async (id) => !!linkEvent(id, EVENT),
+      setAttendees: (id, people) => !!setAttendees(id, people),
+    } })
+    initMeetings(store)
+    for (const attendees of [undefined, [], granola.attendees]) {
+      const meeting = { ...granola, attendees }
+      const got = await json(mcp, tool, tool === 'import_meetings' ? { meetings: [meeting] } : meeting)
+      const id = (Array.isArray(got) ? got[0] : got).id
+      const before = store.meeting(id)!
+      await json(mcp, 'link_calendar_event', { id, event_id: EVENT.id })
+      expect(store.meeting(id)).toMatchObject({ eventId: EVENT.id, title: before.title, startedAt: before.startedAt,
+        attendees: attendees?.length ? before.attendees : EVENT.attendees })
+      // a list cleared by hand stays empty, even on an imported meeting
+      await json(mcp, 'set_attendees', { id, attendees: [] })
+      await json(mcp, 'link_calendar_event', { id, event_id: EVENT.id })
+      expect(store.meeting(id)?.attendees).toEqual([])
+    }
+  })
   it('creates a finished meeting with its transcript, notes and summary, shown and searchable like one recorded here', async () => {
     const { mcp, store, calls } = setup({ changes: true })
     const got = await json(mcp, 'create_meeting', granola)
