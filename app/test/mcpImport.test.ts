@@ -1,6 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { initMeetings, linkEvent, setAttendees } from '../src/main/meeting'
+import { hookNotes } from '../src/main/notes'
+import { createQueue } from '../src/main/notes/queue'
 import { setup, call, json, EVENT } from './mcpRig'
+
+afterEach(() => vi.useRealTimers())
 
 const granola = {
   title: 'Vendor call', started_at: '2026-10-20T14:00:00Z', attendees: [{ name: 'Ann Lee', email: 'ann@acme.com' }, { name: 'Raj Patel' }],
@@ -27,6 +31,40 @@ describe('bringing meetings in from other notes apps', () => {
       await json(mcp, 'set_attendees', { id, attendees: [] })
       await json(mcp, 'link_calendar_event', { id, event_id: EVENT.id })
       expect(store.meeting(id)?.attendees).toEqual([])
+    }
+  })
+  it.each(['set_attendees', 'link_calendar_event'])('%s keeps the other app\'s summary, but refreshes one Yogurt wrote', async (tool) => {
+    vi.useFakeTimers()
+    for (const writeSummary of [false, true]) {
+      let written: Promise<void> | undefined
+      const { mcp, store } = setup({ changes: true, app: {
+        setAttendees: (id, people) => { if (!setAttendees(id, people)) return false; notes.applyPeople(id); return true },
+        linkEvent: async (id) => { if (!linkEvent(id, EVENT)) return false; notes.applyPeople(id); return true },
+        rewriteSummary: (id) => { written = notes.writeAgain(id); return 'queued' },
+      } })
+      initMeetings(store)
+      const chat = vi.fn(async (prompt: string) => `## Plan\n- ${prompt.includes('Dana Smith') ? 'Dana' : 'Someone'} ships Tuesday.\n## Next steps\n- **You:** Ship.`)
+      const notes = hookNotes({
+        store, queue: createQueue({ recording: () => false, smallMac: false }),
+        model: { llm: async () => ({ contextSize: 32_000, count: async (xs) => xs.map((x) => x.length), chat }) },
+        transcribed: async () => {}, language: () => null, onStop: () => {}, send: () => {}, changed: () => {},
+      })
+      const [got] = await json(mcp, 'import_meetings', { meetings: [{ ...granola, attendees: [],
+        summary: writeSummary ? undefined : granola.summary, write_summary: writeSummary }] })
+      await written
+      const before = store.notes(got.id)
+      expect(before.edited).toBe(!writeSummary)
+      await json(mcp, tool, { id: got.id, attendees: EVENT.attendees, event_id: EVENT.id })
+      await vi.runAllTimersAsync()
+      expect(store.meeting(got.id)?.attendees).toEqual(EVENT.attendees)
+      if (writeSummary) {
+        expect(chat).toHaveBeenCalledTimes(2)
+        expect(store.notes(got.id).enhanced).toContain('Dana ships Tuesday.')
+      } else {
+        expect(chat).not.toHaveBeenCalled()
+        expect(store.notes(got.id)).toEqual(before)
+        expect(store.notes(got.id).enhanced).toBe(granola.summary)
+      }
     }
   })
   it('creates a finished meeting with its transcript, notes and summary, shown and searchable like one recorded here', async () => {
