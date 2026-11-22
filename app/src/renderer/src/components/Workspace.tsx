@@ -74,7 +74,7 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
     <link.Icon size={16} aria-hidden="true" /><span>{link.label}</span>
   </button>
 
-  return <div className={`workspace ${collapsed ? 'sidebar-collapsed' : ''}`} data-testid="workspace" data-sidebar-motion={sidebarMotion} data-peeking={peek.open} data-peek-motion={peek.pointerMotion}>
+  return <div className={`workspace ${collapsed ? 'sidebar-collapsed' : ''}`} data-testid="workspace" {...peek.buttonPathHandlers} data-sidebar-motion={sidebarMotion} data-peeking={peek.open} data-peek-motion={peek.pointerMotion}>
     <div className="workspace-window-bar" onPointerEnter={peek.cancel} onPointerLeave={peek.leave}>
       <div className="workspace-drag-region drag" data-testid="titlebar" aria-hidden="true" />
       <Tooltip.Root>

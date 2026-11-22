@@ -137,8 +137,11 @@ it.each(['ltr', 'rtl'])('peeks after a 100ms dwell within the leading 16px below
   panel().onPointerEnter()
   vi.runAllTimers()
   expect(panel().inert).toBe(false)
+  expect(find(render(), 'workspace').props.onPointerMoveCapture).toBeUndefined()
   panel().onPointerLeave()
-  vi.runAllTimers()
+  vi.advanceTimersByTime(79)
+  expect(panel().inert).toBe(false)
+  vi.advanceTimersByTime(1)
   expect(panel().inert).toBe(true)
   content().onPointerMoveCapture(pointer)
   vi.runAllTimers()
@@ -147,7 +150,7 @@ it.each(['ltr', 'rtl'])('peeks after a 100ms dwell within the leading 16px below
   expect(panel().inert).toBe(true)
 })
 
-it('peeks on a deliberate Show sidebar hover and stays open from the button into the panel', () => {
+it('peeks on a deliberate Show sidebar hover', () => {
   vi.useFakeTimers()
   const querySelector = vi.fn()
   vi.stubGlobal('document', { activeElement: {}, querySelector })
@@ -176,14 +179,54 @@ it('peeks on a deliberate Show sidebar hover and stays open from the button into
   expect(panel().inert).toBe(true)
   vi.advanceTimersByTime(1)
   expect(panel().inert).toBe(false)
-  find(render(), 'workspace-window-bar').props.onPointerLeave()
-  vi.advanceTimersByTime(40)
-  panel().onPointerEnter()
-  vi.runAllTimers()
-  expect(panel().inert).toBe(false)
-  panel().onPointerLeave()
-  vi.runAllTimers()
-  expect(panel().inert).toBe(true)
+})
+
+it.each([
+  { dir: 'ltr', crossing: 25 }, { dir: 'ltr', crossing: 450 }, { dir: 'rtl', crossing: 450 },
+])('keeps a button peek through a $crossing ms crossing in $dir and closes on the page', ({ dir, crossing }) => {
+  vi.useFakeTimers()
+  vi.stubGlobal('document', { documentElement: { dir }, activeElement: {}, querySelector: () => null })
+  vi.stubGlobal('window', { innerWidth: 720 })
+  const render = renderer(() => Workspace({ route: '', go() {}, search() {}, shortcuts() {}, collapsed: true, sidebarMotion: true, toggleSidebar() {}, children: null }))
+  const props = (name: string) => find(render(), name).props
+  const move = (clientX: number, clientY: number) => props('workspace').onPointerMoveCapture({ clientX, clientY })
+  props('workspace-sidebar').ref.current = { offsetLeft: dir === 'rtl' ? 512 : 0, offsetWidth: 208, offsetTop: 52, contains: () => false }
+  props('sidebar-expand').ref.current = { getBoundingClientRect: () => ({ left: 88, right: 116 }) }
+  props('sidebar-expand').onPointerEnter({ pointerType: 'mouse', buttons: 0 })
+  vi.advanceTimersByTime(180)
+  expect(props('workspace-sidebar').inert).toBe(false)
+
+  // Cross the native title bar beyond the 124px window bar before entering the moving panel.
+  props('workspace-window-bar').onPointerLeave()
+  move(150, 47)
+  vi.advanceTimersByTime(crossing)
+  expect(props('workspace-sidebar').inert).toBe(false)
+  move(dir === 'rtl' ? 550 : 170, 64)
+  vi.advanceTimersByTime(100)
+  expect(props('workspace-sidebar').inert).toBe(false)
+  props('workspace-sidebar').onPointerEnter()
+
+  // Native window chrome can interrupt renderer events on the way back to the button.
+  props('workspace').onPointerLeave()
+  vi.advanceTimersByTime(300)
+  expect(props('workspace-sidebar').inert).toBe(false)
+  props('workspace').onPointerEnter()
+  move(101, 27)
+  vi.advanceTimersByTime(100)
+  expect(props('workspace-sidebar').inert).toBe(false)
+
+  // Re-entering cancels dismissal. Further moves on the page don't extend its 80ms delay.
+  move(350, 110)
+  vi.advanceTimersByTime(50)
+  move(dir === 'rtl' ? 550 : 170, 110)
+  vi.advanceTimersByTime(100)
+  expect(props('workspace-sidebar').inert).toBe(false)
+  move(350, 110)
+  vi.advanceTimersByTime(79)
+  move(365, 110)
+  expect(props('workspace-sidebar').inert).toBe(false)
+  vi.advanceTimersByTime(1)
+  expect(props('workspace-sidebar').inert).toBe(true)
 })
 
 it.each(['edge', 'button'])('keeps a %s peek open across the titlebar and docks directly from it', trigger => {
