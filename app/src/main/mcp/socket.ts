@@ -62,8 +62,12 @@ export async function serveMcp(path: string, mcp: Mcp, onClients: (names: string
   if (!pipe) chmodSync(path, 0o600)
   return {
     clients: () => [...names.values()],
-    /** an app removed in Settings: its open connections end now */
-    drop: (appId: string) => { for (const [s, a] of apps) if (a.id === appId) s.destroy() },
+    /** an app removed in Settings: its open connections end now, and are off the list at once (the reply to the removal reads it before the sockets report closing) */
+    drop: (appId: string) => {
+      let listed = false
+      for (const [s, a] of apps) if (a.id === appId) { apps.delete(s); if (names.delete(s)) listed = true; s.destroy() }
+      if (listed) changed()
+    },
     close: () => new Promise<void>((resolve) => {
       for (const s of names.keys()) s.destroy()
       server.close(() => resolve())

@@ -185,6 +185,8 @@ describe('the MCP socket', () => {
       expect(seenBy.sort()).toEqual(['Hermes', undefined].sort())
       expect(server.clients().sort()).toEqual(['Hermes', 'claude-code'])
       server.drop('app-1')
+      // right away, not once the socket has closed: Settings reads this list in the reply to the removal
+      expect(server.clients()).toEqual(['claude-code'])
       await added.closed
       await expect.poll(() => server.clients()).toEqual(['claude-code'])
       wrong.sock.end()
