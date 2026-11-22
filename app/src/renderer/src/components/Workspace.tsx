@@ -82,7 +82,7 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
           onClick={e => { peek.cancel(); toggleSidebar(e.detail > 0) }}
           onKeyDown={e => { if (collapsed && e.key === 'ArrowDown') { e.preventDefault(); peek.keyboard() } }}
           aria-expanded={sidebarVisible} aria-controls="workspace-sidebar" aria-keyshortcuts={onMac() ? 'Control+Meta+S' : 'Control+Shift+S'}
-          aria-label={sidebarLabel} delay={180}>
+          aria-label={sidebarLabel} delay={1000}>
           <SidebarToggle className="flex-none sidebar-toggle-glyph rtl:-scale-x-100" size={16} aria-hidden="true" />
         </Tooltip.Trigger>
         <ActionTooltipPopup label={`${sidebarLabel} (${keys('⌃⌘S')})`} />
