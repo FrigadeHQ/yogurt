@@ -9,9 +9,11 @@ struct PhoneDraftNotice: View {
     private var drafts: PhoneDrafts { .shared }
 
     var body: some View {
-        let available = AppleIntelligence.available()
-        let notice = DraftNotice.for(hasSummary: false, writing: drafts.isWriting(meetingId), modelAvailable: available, modelPreparing: AppleIntelligence.preparing,
-                                     paired: model.engine.status != .notPaired)
+        let locale = model.store.localRecordings().first(where: { $0.id == meetingId })?.spokenLocale ?? Spoken.current
+        let reads = AppleIntelligence.reads(locale)
+        let available = AppleIntelligence.modelAvailable && reads
+        let notice = DraftNotice.for(hasSummary: false, writing: drafts.isWriting(meetingId), modelAvailable: AppleIntelligence.modelAvailable,
+                                     modelPreparing: AppleIntelligence.preparing, languageSupported: reads, paired: model.engine.status != .notPaired)
         VStack(alignment: .leading, spacing: 12) {
             switch notice {
             case .writing:
@@ -23,6 +25,9 @@ struct PhoneDraftNotice: View {
                 Label(S.notesFromComputer, systemImage: "laptopcomputer").font(.subheadline).foregroundStyle(Theme.muted)
             case .needsAppleIntelligence:
                 Label(S.notesNeedAppleIntelligence, systemImage: "iphone").font(.subheadline).foregroundStyle(Theme.muted)
+            case .languageNotSupported:
+                Label(S.notesNeedLanguage(SpokenLanguage.name(of: locale, in: .current)), systemImage: "iphone")
+                    .font(.subheadline).foregroundStyle(Theme.muted)
             case .modelPreparing:
                 Label(S.notesWhenModelReady, systemImage: "iphone").font(.subheadline).foregroundStyle(Theme.muted)
             case .notWritten, nil:

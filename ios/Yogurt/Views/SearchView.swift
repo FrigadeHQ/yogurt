@@ -71,7 +71,7 @@ struct SearchView: View {
                 }
             }
             if hit.field != .title {
-                Text(S.foundIn(field(hit.field))).font(.caption.weight(.medium)).foregroundStyle(Theme.muted)
+                Text(foundIn(hit.field)).font(.caption.weight(.medium)).foregroundStyle(Theme.muted)
                 highlighted(hit).font(.subheadline).foregroundStyle(Theme.written).lineLimit(3)
             }
         }
@@ -91,12 +91,12 @@ struct SearchView: View {
         return Text(s)
     }
 
-    private func field(_ f: SearchHit.Field) -> String {
+    private func foundIn(_ f: SearchHit.Field) -> String {
         switch f {
-        case .title: S.fieldTitle
-        case .mine: S.fieldMine
-        case .summary: S.fieldSummary
-        case .transcript: S.fieldTranscript
+        case .title: S.foundInTitle
+        case .mine: S.foundInMine
+        case .summary: S.foundInSummary
+        case .transcript: S.foundInTranscript
         }
     }
 }

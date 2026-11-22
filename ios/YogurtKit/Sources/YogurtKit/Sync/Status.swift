@@ -15,16 +15,19 @@ public enum ConnectionStatus: Sendable, Hashable {
 
     public var label: String { label(now: Date()) }
 
+    // Looked up in the app's Localizable.xcstrings (the main bundle); English, the keys, where there is none (tests).
     public func label(now: Date) -> String {
         switch self {
         // not a problem: the phone works on its own, a computer is optional
-        case .notPaired: "On this iPhone only"
-        case .searching: "Looking for your computer…"
-        case .connecting(let name): "Connecting to \(name)…"
-        case .connected(let name, nil): "Connected to \(name) · Synced just now"
-        case .connected(_, let n?): n == 0 ? "Syncing…" : n == 1 ? "Syncing 1 meeting…" : "Syncing \(n) meetings…"
-        case .offline(_, let last?): "Not on the same Wi-Fi · last synced \(relativeTime(last, now: now))"
-        case .offline(_, nil): "Not on the same Wi-Fi · not synced yet"
+        case .notPaired: String(localized: "On this iPhone only")
+        case .searching: String(localized: "Looking for your computer…")
+        case .connecting(let name): String(localized: "Connecting to \(name)…")
+        case .connected(let name, nil): String(localized: "Connected to \(name) · Synced just now")
+        // one has its own sentence; the rest use the catalog's plural forms
+        case .connected(_, let n?): n == 0 ? String(localized: "Syncing…") : n == 1 ? String(localized: "Syncing 1 meeting…")
+            : String(localized: "Syncing \(n) meetings…")
+        case .offline(_, let last?): String(localized: "Not on the same Wi-Fi · last synced \(relativeTime(last, now: now))")
+        case .offline(_, nil): String(localized: "Not on the same Wi-Fi · not synced yet")
         case .error(let message): message
         }
     }
@@ -32,12 +35,12 @@ public enum ConnectionStatus: Sendable, Hashable {
     /// The same, without the computer's name, for when the full one doesn't fit beside Home's buttons.
     public func shortLabel(now: Date) -> String {
         switch self {
-        case .notPaired: "This iPhone only"
-        case .searching: "Looking…"
-        case .connecting: "Connecting…"
-        case .connected(_, nil): "Synced just now"
-        case .offline(_, let last?): "Offline · synced \(relativeTime(last, now: now))"
-        case .offline(_, nil): "Offline · not synced yet"
+        case .notPaired: String(localized: "This iPhone only")
+        case .searching: String(localized: "Looking…")
+        case .connecting: String(localized: "Connecting…")
+        case .connected(_, nil): String(localized: "Synced just now")
+        case .offline(_, let last?): String(localized: "Offline · synced \(relativeTime(last, now: now))")
+        case .offline(_, nil): String(localized: "Offline · not synced yet")
         case .connected, .error: label(now: now)
         }
     }
@@ -55,11 +58,11 @@ public enum ConnectionStatus: Sendable, Hashable {
 public func relativeTime(_ date: Date, now: Date = Date()) -> String {
     let s = max(0, now.timeIntervalSince(date))
     switch s {
-    case ..<60: return "just now"
-    case ..<3600: return "\(Int(s / 60)) min ago"
-    case ..<86400: return "\(Int(s / 3600)) h ago"
-    case ..<(2 * 86400): return "yesterday"
-    default: return "\(Int(s / 86400)) days ago"
+    case ..<60: return String(localized: "just now")
+    case ..<3600: let n = Int(s / 60); return String(localized: "\(n) min ago")
+    case ..<86400: let n = Int(s / 3600); return String(localized: "\(n) h ago")
+    case ..<(2 * 86400): return String(localized: "yesterday")
+    default: let n = Int(s / 86400); return String(localized: "\(n) days ago")
     }
 }
 

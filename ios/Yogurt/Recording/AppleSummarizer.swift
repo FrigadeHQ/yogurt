@@ -25,10 +25,12 @@ struct AppleModel: TextModel {
 
 enum AppleIntelligence {
     /// The model is on this iPhone, turned on, ready, and reads this language.
-    static func available(for locale: Locale = .current) -> Bool {
-        let model = SystemLanguageModel.default
-        return model.availability == .available && model.supportsLocale(locale)
-    }
+    static func available(for locale: Locale = .current) -> Bool { modelAvailable && reads(locale) }
+
+    /// The model is on this iPhone, turned on and ready, whatever the language.
+    static var modelAvailable: Bool { SystemLanguageModel.default.availability == .available }
+
+    static func reads(_ locale: Locale) -> Bool { SystemLanguageModel.default.supportsLocale(locale) }
 
     /// Turned on but still downloading: notes are written once it's ready.
     static var preparing: Bool { SystemLanguageModel.default.availability == .unavailable(.modelNotReady) }

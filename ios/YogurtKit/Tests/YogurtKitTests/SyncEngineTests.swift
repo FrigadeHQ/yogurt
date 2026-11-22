@@ -105,7 +105,7 @@ import Testing
         #expect(await eventually { rig.connected })
         let rec = LocalRecording(id: "p1", title: "Walk", startedAt: Date(timeIntervalSince1970: 10), endedAt: Date(timeIntervalSince1970: 70),
                                  attendees: [Attendee(name: "Ada", email: nil)], audioURL: url, myNotes: "remember kiwis",
-                                 transcript: [.init(startMs: 0, endMs: 900, text: "hello")], summary: "Draft.")
+                                 transcript: [.init(startMs: 0, endMs: 900, text: "hello")], summary: "Draft.", language: "de-DE")
         try await rig.engine.upload(rec)
         #expect(await eventually { rig.store.localRecordings().first?.uploadedAt != nil })
         #expect(rig.desktop.imported == ["p1": 1])
@@ -116,6 +116,8 @@ import Testing
         #expect((meeting["meeting"] as? [String: Any])?["endedAt"] as? Int == 70_000)
         #expect(meeting["myNotes"] as? String == "remember kiwis")
         #expect(meeting["summary"] as? String == "Draft.")
+        // so the computer transcribes it in the language it was spoken in
+        #expect((meeting["meeting"] as? [String: Any])?["language"] as? String == "de-DE")
     }
 
     @Test func aMeetingTheDesktopAlreadyHasSendsNoAudio() async throws {

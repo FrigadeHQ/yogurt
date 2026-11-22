@@ -106,13 +106,17 @@ public enum DraftNotice: Sendable, Equatable {
     case notWritten
     /// on its own, and Apple's model is still getting ready on this iPhone
     case modelPreparing
+    /// on its own, and Apple's model doesn't write the language it was recorded in
+    case languageNotSupported
 
-    public static func `for`(hasSummary: Bool, writing: Bool, modelAvailable: Bool, modelPreparing: Bool = false, paired: Bool) -> DraftNotice? {
+    public static func `for`(hasSummary: Bool, writing: Bool, modelAvailable: Bool, modelPreparing: Bool = false, languageSupported: Bool = true,
+                             paired: Bool) -> DraftNotice? {
         if hasSummary { return nil }
         if writing { return .writing }
         if paired { return .computerWillWrite }
         if modelPreparing { return .modelPreparing }
-        return modelAvailable ? .notWritten : .needsAppleIntelligence
+        if !modelAvailable { return .needsAppleIntelligence }
+        return languageSupported ? .notWritten : .languageNotSupported
     }
 }
 
@@ -125,6 +129,8 @@ public struct RecordingInProgress: Sendable, Codable, Equatable {
     public var audioFile: String
     public var myNotes: String = ""
     public var lines: [LocalRecording.Line] = []
+    /// the spoken language it is transcribed in (BCP-47); nil from an older build
+    public var language: String?
 
     public init(id: String, startedAt: Date, audioFile: String) {
         self.id = id; self.startedAt = startedAt; self.audioFile = audioFile
@@ -135,7 +141,7 @@ public struct RecordingInProgress: Sendable, Codable, Equatable {
         let ms = durationMs ?? lines.map(\.endMs).max() ?? 0
         return LocalRecording(id: id, title: title, startedAt: startedAt, endedAt: startedAt.addingTimeInterval(Double(ms) / 1000),
                               attendees: [], audioURL: folder.appendingPathComponent(audioFile), myNotes: myNotes,
-                              transcript: lines, summary: nil)
+                              transcript: lines, summary: nil, language: language)
     }
 }
 

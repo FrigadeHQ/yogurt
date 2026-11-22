@@ -154,7 +154,7 @@ final class AppModel {
         case "offline": preview.show(.offline(PreviewSyncEngine.computerName, lastSync: Date().addingTimeInterval(-7200)))
         case "syncing": preview.show(.connected(PreviewSyncEngine.computerName, syncing: 12))
         case "searching": preview.show(.searching)
-        case "error": preview.show(.error("This computer doesn't recognise this iPhone any more. Pair again."))
+        case "error": preview.show(.error(SyncEngine.unrecognised))
         default: break
         }
     }

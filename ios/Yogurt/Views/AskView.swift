@@ -327,7 +327,7 @@ private struct SourcesView: View {
                 }
             }
             Spacer(minLength: 4)
-            Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(Theme.muted)
+            Image(systemName: "chevron.forward").font(.caption.weight(.semibold)).foregroundStyle(Theme.muted)
         }
         .padding(.vertical, 10).padding(.horizontal, 8)
         .frame(maxWidth: .infinity, alignment: .leading)

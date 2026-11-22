@@ -96,11 +96,11 @@ public struct SyncConfig: Sendable {
 /// pill shows, which only ever says what is true right now.
 @MainActor @Observable
 public final class SyncEngine: SyncEngineProtocol {
-    public static let unrecognised = "This computer doesn't recognise this iPhone any more. Pair again."
-    public static let localNetwork = "Allow Local Network for Yogurt in Settings to reach your computer."
-    public static let updateNeeded = "Update Yogurt on your iPhone or computer so they can sync again."
-    static func syncFailed(_ name: String) -> String { "Couldn't sync with \(name) just now. Trying again soon." }
-    static func uploadFailed(_ name: String) -> String { "Couldn't send a recording to \(name). Trying again soon." }
+    public static let unrecognised = String(localized: "This computer doesn't recognise this iPhone any more. Pair again.")
+    public static let localNetwork = String(localized: "Allow Local Network for Yogurt in Settings to reach your computer.")
+    public static let updateNeeded = String(localized: "Update Yogurt on your iPhone or computer so they can sync again.")
+    static func syncFailed(_ name: String) -> String { String(localized: "Couldn't sync with \(name) just now. Trying again soon.") }
+    static func uploadFailed(_ name: String) -> String { String(localized: "Couldn't send a recording to \(name). Trying again soon.") }
 
     public private(set) var status: ConnectionStatus
     public private(set) var discovered: [DiscoveredDesktop] = []
@@ -621,10 +621,12 @@ public final class SyncEngine: SyncEngineProtocol {
     /// True once the desktop has the meeting for good.
     private func upload(_ rec: LocalRecording, over s: DesktopSession) async throws -> Bool {
         let ms = { (d: Date) in Int((d.timeIntervalSince1970 * 1000).rounded()) }
-        let meeting: [String: Any] = [
+        var meeting: [String: Any] = [
             "id": rec.id, "title": rec.title, "titleSource": rec.titleSource.rawValue, "startedAt": ms(rec.startedAt), "endedAt": ms(rec.endedAt ?? rec.startedAt),
             "attendees": rec.attendees.map { ["name": $0.name ?? "", "email": $0.email as Any? ?? NSNull()] },
         ]
+        // the computer transcribes it again in the language it was spoken in, instead of its own setting
+        if let language = rec.language { meeting["language"] = language }
         var body: [String: Any] = ["meeting": meeting, "myNotes": rec.myNotes,
                                    "transcript": rec.transcript.map { ["startMs": $0.startMs, "endMs": $0.endMs, "text": $0.text] }]
         if let summary = rec.summary { body["summary"] = summary }

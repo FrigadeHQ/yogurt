@@ -7,6 +7,9 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var phase
     @AppStorage("lockWithFaceID") private var lockWithFaceID = false
+    /// empty: the iPhone's language
+    @AppStorage(SpokenLanguage.defaultsKey) private var spoken = ""
+    @State private var languages: [SpokenLanguage.Option] = []
     @State private var confirmUnpair = false
     @State private var syncing = false
     @State private var connecting = false
@@ -22,6 +25,7 @@ struct SettingsView: View {
         NavigationStack {
             List {
                 computer(status, name: name)
+                spokenLanguage
                 permissions
                 Section {
                     Toggle(isOn: $lockWithFaceID) { Label(S.faceIDLock, systemImage: "faceid") }
@@ -51,7 +55,7 @@ struct SettingsView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button(S.done) { dismiss() } }
             }
-            .confirmationDialog(S.unpairTitle(name ?? S.computer.lowercased()), isPresented: $confirmUnpair, titleVisibility: .visible) {
+            .confirmationDialog(name.map(S.unpairTitle) ?? S.unpairTitleNoName, isPresented: $confirmUnpair, titleVisibility: .visible) {
                 Button(S.unpair, role: .destructive) { model.engine.unpair(); AskSession.shared.clear(); dismiss() }
                 Button(S.cancel, role: .cancel) {}
             } message: {
@@ -65,6 +69,7 @@ struct SettingsView: View {
             let folder = model.storeFolder
             space = await Task.detached(priority: .utility) { Library.spaceUsed(in: folder) }.value
         }
+        .task { languages = SpokenLanguage.options(await Spoken.supported(), in: .current) }
         .onAppear(perform: recheck)
         .onChange(of: phase) { _, now in if now == .active { recheck() } }
     }
@@ -114,6 +119,24 @@ struct SettingsView: View {
         } header: { Text(S.computer) } footer: {
             if status == .notPaired { Text(S.connectFooter) }
         }
+        .listRowBackground(Theme.card)
+    }
+
+    private var spokenLanguage: some View {
+        Section {
+            Picker(selection: $spoken) {
+                Text(S.sameAsIPhone(SpokenLanguage.name(of: .current, in: .current))).tag("")
+                // a pick this iPhone no longer lists still shows, so the row never reads blank
+                if !spoken.isEmpty, !languages.contains(where: { $0.id == spoken }) {
+                    Text(Locale.current.localizedString(forIdentifier: spoken) ?? spoken).tag(spoken)
+                }
+                ForEach(languages) { Text($0.name).tag($0.id) }
+            } label: {
+                Label(S.spokenLanguage, systemImage: "waveform.and.mic").foregroundStyle(Theme.ink)
+            }
+            .pickerStyle(.navigationLink)
+            .accessibilityIdentifier("settings-spoken-language")
+        } footer: { Text(S.spokenFooter) }
         .listRowBackground(Theme.card)
     }
 

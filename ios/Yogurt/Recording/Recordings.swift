@@ -34,6 +34,8 @@ final class RecordingController {
     private(set) var transcriptNotice: String?
     let id = UUID().uuidString.lowercased()
     private(set) var startedAt = Date()
+    /// the spoken language picked when it started: the transcript, the draft notes and the computer all use it
+    private let language = Spoken.current
 
     @ObservationIgnored private let recorder = Recorder()
     @ObservationIgnored private let relay = TranscriberRelay()
@@ -106,7 +108,7 @@ final class RecordingController {
         let events = TranscriberEvents(
             result: { [weak self] text, start, end, final in self?.transcript.update(text, startMs: start, endMs: end, isFinal: final) },
             notice: { [weak self] in self?.transcriptNotice = $0 })
-        Task { [relay] in await LiveTranscription.start(locale: .current, events: events, relay: relay) }
+        Task { [relay, language] in await LiveTranscription.start(locale: language, events: events, relay: relay) }
     }
 
     func pause() {
@@ -258,6 +260,7 @@ final class RecordingController {
         var p = RecordingInProgress(id: id, startedAt: startedAt, audioFile: "\(id).m4a")
         p.myNotes = myNotes
         p.lines = transcript.settled
+        p.language = language.identifier(.bcp47)
         return p
     }
 
@@ -286,9 +289,11 @@ final class PhoneDrafts {
 
     func isWriting(_ id: String) -> Bool { writing.contains(id) }
 
-    /// Writes the notes and a title, unless Apple's model isn't on this iPhone (the computer writes them instead).
+    /// Writes the notes and a title, unless Apple's model isn't on this iPhone or doesn't write the language it was
+    /// recorded in (the computer writes them instead; on its own, the transcript is kept).
     func write(_ id: String, model: AppModel) {
-        guard !writing.contains(id), AppleIntelligence.available() else { return }
+        guard !writing.contains(id), let rec = model.store.localRecordings().first(where: { $0.id == id }),
+              AppleIntelligence.available(for: rec.spokenLocale) else { return }
         tried.insert(id)
         writing.insert(id)
         model.edited()
@@ -303,7 +308,7 @@ final class PhoneDrafts {
 
     private func run(_ id: String, model: AppModel) async {
         guard let rec = model.store.localRecordings().first(where: { $0.id == id }) else { return }
-        let summarizer = AppleIntelligence.summarizer()
+        let summarizer = AppleIntelligence.summarizer(locale: rec.spokenLocale)
         let segments = rec.segments
         var summary: String?
         do {

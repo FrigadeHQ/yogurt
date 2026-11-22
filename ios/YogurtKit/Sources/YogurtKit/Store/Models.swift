@@ -128,8 +128,10 @@ public struct LocalRecording: Sendable, Codable, Identifiable, Hashable {
     /// the phone's draft notes
     public var summary: String?
     public var uploadedAt: Date?
+    /// the spoken language (BCP-47) it was transcribed in, for its notes and the computer; nil from an older build
+    public var language: String?
 
-    enum CodingKeys: String, CodingKey { case id, title, titleSource, startedAt, endedAt, attendees, audioPath, myNotes, transcript, summary, uploadedAt }
+    enum CodingKeys: String, CodingKey { case id, title, titleSource, startedAt, endedAt, attendees, audioPath, myNotes, transcript, summary, uploadedAt, language }
 
     /// The app container's path changes with updates and restores, so the audio is kept relative to it.
     public func encode(to encoder: Encoder) throws {
@@ -147,6 +149,7 @@ public struct LocalRecording: Sendable, Codable, Identifiable, Hashable {
         try c.encode(transcript, forKey: .transcript)
         try c.encodeIfPresent(summary, forKey: .summary)
         try c.encodeIfPresent(uploadedAt, forKey: .uploadedAt)
+        try c.encodeIfPresent(language, forKey: .language)
     }
 
     /// Every field but the id and audio has a default, so a recording saved by an older build still loads.
@@ -166,12 +169,14 @@ public struct LocalRecording: Sendable, Codable, Identifiable, Hashable {
         transcript = try c.decodeIfPresent([Line].self, forKey: .transcript) ?? []
         summary = try c.decodeIfPresent(String.self, forKey: .summary)
         uploadedAt = try c.decodeIfPresent(Date.self, forKey: .uploadedAt)
+        language = try c.decodeIfPresent(String.self, forKey: .language)
     }
 
     public init(id: String, title: String, startedAt: Date, endedAt: Date?, attendees: [Attendee], audioURL: URL,
-                myNotes: String, transcript: [Line], summary: String?, uploadedAt: Date? = nil) {
+                myNotes: String, transcript: [Line], summary: String?, uploadedAt: Date? = nil, language: String? = nil) {
         self.id = id; self.title = title; self.startedAt = startedAt; self.endedAt = endedAt; self.attendees = attendees
         self.audioURL = audioURL; self.myNotes = myNotes; self.transcript = transcript; self.summary = summary; self.uploadedAt = uploadedAt
+        self.language = language
     }
 }
 

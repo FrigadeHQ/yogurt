@@ -161,7 +161,7 @@ struct PairingView: View {
                     .foregroundStyle(d.pairing ? Theme.live : Theme.muted)
             }
             Spacer()
-            if d.pairing { Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(Theme.muted) }
+            if d.pairing { Image(systemName: "chevron.forward").font(.footnote.weight(.semibold)).foregroundStyle(Theme.muted) }
         }
         .padding(.vertical, 10).padding(.horizontal, 8)
         .opacity(d.pairing ? 1 : 0.6)
@@ -184,7 +184,7 @@ struct CodeEntry: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Button(action: back) {
-                Label(S.otherComputer, systemImage: "chevron.left").font(.subheadline.weight(.medium))
+                Label(S.otherComputer, systemImage: "chevron.backward").font(.subheadline.weight(.medium))
             }
             .foregroundStyle(Theme.accent)
             .padding(.bottom, 28)

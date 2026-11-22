@@ -1,6 +1,7 @@
 @preconcurrency import AVFoundation
 import os
 @preconcurrency import Speech
+import YogurtKit
 
 private let log = Logger(subsystem: "so.yogurt.ios", category: "transcript")
 
@@ -115,7 +116,7 @@ final class AnalyzerTranscriber: LiveTranscriber, @unchecked Sendable {
     /// Gets the language's model onto the iPhone the first time, then listens until finish().
     func run() async throws {
         if await AssetInventory.status(forModules: [transcriber]) != .installed {
-            await events.notice(S.transcriptDownloading(languageName(locale)))
+            await events.notice(S.transcriptDownloading(SpokenLanguage.name(of: locale, in: .current)))
             if let request = try await AssetInventory.assetInstallationRequest(supporting: [transcriber]) {
                 try await request.downloadAndInstall()
             }
@@ -248,7 +249,7 @@ private func ms(_ t: CMTime) -> Int {
     return s.isFinite ? max(0, Int((s * 1000).rounded())) : 0
 }
 
-/// "English", for the notice and for the notes model.
+/// "English", for the notes model's instructions (which are in English).
 func languageName(_ locale: Locale) -> String {
     let code = locale.language.languageCode?.identifier ?? "en"
     return Locale(identifier: "en").localizedString(forLanguageCode: code) ?? "English"
