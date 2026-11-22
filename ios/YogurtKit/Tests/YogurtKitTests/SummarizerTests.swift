@@ -206,4 +206,70 @@ private func longTranscript(_ n: Int) -> [Segment] {
         let s = MapReduceSummarizer(model: model, language: "English", maxChars: 2000)
         await #expect(throws: SummaryError.noNotes) { try await s.summarize(transcript: longTranscript(30), myNotes: "") }
     }
+
+    // MARK: - As long as desktop's notes
+
+    @Test func lengthGuidanceGrowsWithTheMeetingLikeDesktopsFewerSectionsForAShortOne() {
+        #expect(NotesPrompt.length(minutes: 5).contains("1 to 3 \"## \" sections"))
+        #expect(NotesPrompt.length(minutes: 25).contains("2 to 4 \"## \" sections"))
+        #expect(NotesPrompt.length(minutes: 45).contains("3 to 5 \"## \" sections"))
+        #expect(NotesPrompt.length(minutes: 120).contains("4 to 6 \"## \" sections"))
+        for m in [5, 25, 45, 120] { #expect(NotesPrompt.length(minutes: m).contains("bullets each")) }
+        // words in all grow too, and stay short
+        #expect(NotesPrompt.length(minutes: 5).contains("150 words"))
+        #expect(NotesPrompt.length(minutes: 120).contains("450 words"))
+    }
+
+    @Test func theNotesPromptHasDesktopsShapeAndALengthForThisMeeting() {
+        let p = NotesPrompt.notes(transcript: "hi", parts: false, myNotes: "", minutes: 25, language: "English")
+        #expect(p.contains("Length: about 25 minutes."))
+        #expect(p.contains(NotesPrompt.length(minutes: 25)))
+        #expect(p.contains("Bring together what was said about one topic at different times."))
+        #expect(p.contains("never \"The team discussed\""))
+        #expect(p.contains("**Bold** rarely"))
+        #expect(p.contains("More detail goes in \"  - \" bullets under it."))
+    }
+
+    @Test func combiningPartsCondensesThemIntoOneSetOfNotes() {
+        let p = NotesPrompt.notes(transcript: "Part 1:\n### A\n- x", parts: true, myNotes: "", minutes: 70, language: "English")
+        #expect(p.contains("each topic once"))
+        #expect(p.contains("not the parts one after another"))
+        #expect(p.contains(NotesPrompt.length(minutes: 70)))
+        #expect(NotesPrompt.merge("### A\n- x", language: "English").contains("shorter"))
+    }
+
+    @Test func theLengthIsFromTheFirstWordToTheLastRoundedLikeDesktop() async throws {
+        let model = FakeModel { _, _ in "## A\n- b" }
+        let s = MapReduceSummarizer(model: model, language: "English")
+        // 0:20 to 1:50: about 2 minutes (desktop rounds; it never says 0)
+        let lines = [Segment(index: 0, startMs: 20_000, endMs: 25_000, speaker: nil, text: "Hello."),
+                     Segment(index: 1, startMs: 100_000, endMs: 110_000, speaker: nil, text: "Bye.")]
+        _ = try await s.summarize(transcript: lines, myNotes: "")
+        #expect(await model.prompts[0].contains("Length: about 2 minutes."))
+        _ = try await s.summarize(transcript: [seg(0, "Hi.")], myNotes: "")
+        #expect(await model.prompts[1].contains("Length: about 1 minute."))
+    }
+
+    @Test func partsAreNumberedForTheCombineStep() async throws {
+        let model = FakeModel { prompt, n in prompt.contains("Here is part") ? "### T\(n)\n- p" : "## Final\n- done" }
+        let s = MapReduceSummarizer(model: model, language: "English", maxChars: 2000)
+        _ = try await s.summarize(transcript: longTranscript(60), myNotes: "")
+        let combine = await model.prompts.last!
+        #expect(combine.contains("Part 1:\n### T1"))
+        #expect(combine.contains("Part 2:\n### T2"))
+    }
+
+    @Test func whenTheLastStepFailsThePartsAreCondensedBeforeTheyAreTheNotes() async throws {
+        let model = FakeModel { prompt, n in
+            // each part's notes long, so all of them one after another would run far past desktop's length
+            if prompt.contains("Here is part") { return "### Topic \(n)\n- " + String(repeating: "point ", count: 150) }
+            if prompt.contains("consecutive parts") { return "### Merged\n- short" }
+            throw TextModelError.refused
+        }
+        let s = MapReduceSummarizer(model: model, language: "English", maxChars: 2000)
+        let notes = try await s.summarize(transcript: longTranscript(60), myNotes: "")
+        #expect(notes.hasPrefix("## Merged\n- short"))
+        #expect(!notes.contains("point point"))
+        #expect(!notes.contains("Part 1:"))
+    }
 }

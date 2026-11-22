@@ -40,6 +40,8 @@ public struct MapReduceSummarizer: Summarizer {
     static let myNotesLimit = 1500
     static let notesTokens = 900
     static let partTokens = 400
+    /// the parts' notes used as the notes when the last step fails: about what desktop's notes run to
+    static let fallbackChars = 2500
 
     public init(model: TextModel, language: String, maxChars: Int = 6000) {
         self.model = model; self.language = language; self.maxChars = maxChars
@@ -48,7 +50,9 @@ public struct MapReduceSummarizer: Summarizer {
     public func summarize(transcript: [Segment], myNotes: String) async throws -> String {
         let chunks = Chunker.chunks(transcript, maxChars: maxChars)
         guard !chunks.isEmpty else { throw SummaryError.nothingSaid }
-        let minutes = (transcript.map(\.endMs).max() ?? 0) / 60000
+        // desktop's length: from the first word to the last, rounded, never 0
+        let first = transcript.map(\.startMs).min() ?? 0, last = transcript.map(\.endMs).max() ?? 0
+        let minutes = max(1, Int((Double(last - first) / 60_000).rounded()))
         let mine = String(myNotes.trimmingCharacters(in: .whitespacesAndNewlines).prefix(Self.myNotesLimit))
         if chunks.count == 1 {
             let prompt = NotesPrompt.notes(transcript: chunks[0], parts: false, myNotes: mine, minutes: minutes, language: language)
@@ -93,7 +97,9 @@ public struct MapReduceSummarizer: Summarizer {
         var parts: [String] = []
         for chunk in chunks { parts += await summarizePart(chunk, startingAt: parts.count + 1, depth: 0) }
         guard !parts.isEmpty else { throw SummaryError.noNotes }
-        let joined = await mergeUntilFits(parts.joined(separator: "\n\n"), limit: maxChars)
+        // numbered as desktop does, so the last step reads them as parts of one meeting
+        let numbered = parts.enumerated().map { "Part \($0.offset + 1):\n\($0.element)" }.joined(separator: "\n\n")
+        let joined = await mergeUntilFits(numbered, limit: maxChars)
         var context = joined
         for _ in 0..<3 {
             let prompt = NotesPrompt.notes(transcript: context, parts: true, myNotes: mine, minutes: minutes, language: language)
@@ -106,8 +112,8 @@ public struct MapReduceSummarizer: Summarizer {
                 break
             }
         }
-        // the parts' own notes are notes too
-        return partsAsNotes(joined)
+        // the parts' own notes are notes too, made shorter first: put one after another they'd run long
+        return partsAsNotes(await mergeUntilFits(joined, limit: Self.fallbackChars))
     }
 
     /// Neighbouring parts' notes merged until they fit the limit. A group that can't be merged stays as it was.
@@ -148,9 +154,13 @@ public struct MapReduceSummarizer: Summarizer {
         }
     }
 
-    /// "### Topic" part notes as the notes' "## " sections.
+    /// "### Topic" part notes as the notes' "## " sections, without the "Part 2:" labels.
     private func partsAsNotes(_ text: String) -> String {
-        text.components(separatedBy: "\n").map { $0.hasPrefix("### ") ? String($0.dropFirst()) : $0 }.joined(separator: "\n")
+        text.components(separatedBy: "\n")
+            .filter { $0.range(of: #"^Part \d+:$"#, options: .regularExpression) == nil }
+            .map { $0.hasPrefix("### ") ? String($0.dropFirst()) : $0 }.joined(separator: "\n")
+            .replacingOccurrences(of: #"\n{3,}"#, with: "\n\n", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func halves(_ text: String) -> [String] {
@@ -173,14 +183,17 @@ public struct MapReduceSummarizer: Summarizer {
 
 // MARK: - Prompts
 
-/// Desktop's notes instructions (app/src/main/notes/enhance.ts), shortened for a small model, for a meeting heard on
-/// one iPhone in a room. Prompts go to the model, so they are never translated.
+/// Desktop's notes instructions (app/src/main/notes/enhance.ts), for a meeting heard on one iPhone in a room. Apple's
+/// model writes longer than desktop's, so the length desktop gets from "a short meeting gets fewer sections" is said
+/// as numbers here. Prompts go to the model, so they are never translated.
 enum NotesPrompt {
     static func notes(transcript: String, parts: Bool, myNotes: String, minutes: Int, language: String) -> String {
         var p: [String] = []
         if parts {
             p += ["You will write the notes for a meeting that just ended. It was long, so here are notes on each part of it, in order:",
-                  "<transcript>", transcript, "</transcript>"]
+                  "<transcript>", transcript, "</transcript>",
+                  "",
+                  "These part notes overlap and repeat. Condense them into one set of notes with each topic once, keeping what matters later: not the parts one after another."]
         } else {
             p += ["Here is the transcript of a meeting, recorded on one iPhone in a room, so the lines don't say who spoke:",
                   "<transcript>", transcript, "</transcript>"]
@@ -193,15 +206,17 @@ enum NotesPrompt {
                   "<notes>", myNotes, "</notes>"]
         }
         p += ["",
-              "How to write them:",
+              "How to write them, so they read at a glance:",
               "- Write in \(language), headings too.",
               "- Markdown only. Start right away with the first \"## \" topic: no title, no introduction, nothing after the last bullet.",
-              "- One \"## \" section per topic, most important first, named in a few specific words (like \"Pricing for Acme renewal\"), never \"Discussion\" or \"Updates\".",
-              "- Under each topic, \"- \" bullets with real substance: what was said, decided or proposed, and why. Keep names, numbers, prices, dates and tools. One point per bullet, up to about 20 words.",
+              "- Notes are about the work: plans, problems, numbers, prices, what was decided. Leave out small talk, greetings, personal chat and talk about the recording itself.",
+              "- One \"## \" section per topic, most important first, named in a few specific words (like \"Pricing for Acme renewal\"), never \"Discussion\" or \"Updates\". Bring together what was said about one topic at different times.",
+              "- Under each topic, \"- \" bullets with real substance: what was said, decided or proposed, and why. Keep names, numbers, prices, dates and tools. A bullet is one point of up to about 20 words, starting with the point (never \"The team discussed\"). More detail goes in \"  - \" bullets under it.",
               "- A decision or open question goes in its topic, said plainly (\"Decided: no paid ads for now\").",
-              "- Leave out small talk, greetings and talk about the recording itself.",
+              "- **Bold** rarely: a deadline, a big number or a key term, a few times in all.",
               "- Use a person's name only when the transcript says it. Never make up a name, a fact or a number.",
-              "- Cover the whole meeting, the end as well. A short meeting gets fewer sections, not thinner ones."]
+              "- Cover the whole meeting, the end as well. A short meeting gets fewer sections, not thinner ones.",
+              length(minutes: minutes)]
         if !myNotes.isEmpty {
             p.append("- What their notes flag gets a topic or a bullet of its own, in your own words. Never copy their lines or give their notes a section of their own.")
         }
@@ -228,7 +243,19 @@ enum NotesPrompt {
         ["Here are notes on consecutive parts of a long meeting, in order:",
          "<notes>", group, "</notes>",
          "",
-         "Merge them into one set of compact notes, in \(language), in the same shape: \"### \" lines naming each topic, with short \"- \" bullets. Bring together what was said about one topic, keep every concrete detail, decision and task. Nothing else: no introduction, no closing line."].joined(separator: "\n")
+         "Merge them into one shorter set of compact notes, in \(language), in the same shape: \"### \" lines naming each topic, with short \"- \" bullets. Bring together what was said about one topic and drop repeats; keep the decisions, tasks and concrete details that matter. Nothing else: no introduction, no closing line."].joined(separator: "\n")
+    }
+
+    /// How long the notes should be for a meeting this long. Desktop's notes run to about this (a few sections of a
+    /// few bullets); Apple's model, told only "fewer sections", writes about twice as much.
+    static func length(minutes: Int) -> String {
+        let (sections, bullets, words): (String, String, Int) = switch minutes {
+        case ..<15: ("1 to 3", "2 to 4", 150)
+        case ..<35: ("2 to 4", "2 to 5", 250)
+        case ..<75: ("3 to 5", "3 to 5", 350)
+        default: ("4 to 6", "3 to 6", 450)
+        }
+        return "- Length: \(sections) \"## \" sections with \(bullets) bullets each, about \(words) words in all (next steps not counted). Brief beats complete: leave out a point that won't matter later rather than add one more bullet."
     }
 
     static func title(language: String) -> String {
