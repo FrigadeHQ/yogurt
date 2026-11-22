@@ -22,7 +22,7 @@ import { capabilities, micListHelper, platformOf, supportedKinds } from '../shar
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, Notification, protocol, safeStorage, screen, shell } from 'electron'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
-import { basename, join } from 'node:path'
+import { basename, delimiter, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { isFake, userDataDir } from './paths'
 import { logToFile } from './log'
@@ -71,6 +71,7 @@ import { installAppMenu } from './appMenu'
 import { UtilityEngine } from './engine'
 import { createNotesModel } from './notes/model'
 import { hookAi } from './ai'
+import { createAgents } from './ai/agents'
 import { FakeEngine } from './notes/fake'
 import { hookNotes } from './notes'
 import { hookReadAhead, readAheadAllowed } from './notes/readAhead'
@@ -665,9 +666,10 @@ app.whenReady().then(() => {
   const smallMac = isFake() ? process.env.YOGURT_FAKE_SMALL_MAC === '1' : isSmallMac(os.totalmem())
   const memory = notesMemory(smallMac)
   const model = createNotesModel({ engine, modelPath: () => setup.notesPath(), onLoaded: path => setup.notesModelLoaded(path), contextSize: memory.contextSize, ...(memory.releaseSpeech ? { beforeLoad: releaseIdleSpeech } : {}) })
-  // Settings → AI models: each task's model, the one on this computer unless the person picked their own server
+  // Settings → AI models: each task's model, the one on this computer unless the person picked their server or an agent app
   const ai = hookAi({
     file: settingsFile, local: model, hasLocal: () => !!setup.notesPath(), seal, open: unseal,
+    agents: createAgents(isFake() ? { dirs: (process.env.YOGURT_FAKE_AGENTS ?? '').split(delimiter).filter(Boolean) } : {}),
     changed: () => { queue.modelArrived(); conversations.refresh() },
   })
   // first run: the notes model lands after recording already works; jobs wait in the queue for it

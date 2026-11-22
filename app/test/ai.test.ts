@@ -135,7 +135,7 @@ describe('Settings → AI models', () => {
   it('saves a choice per task, and only ones that exist', async () => {
     const s = hook()
     const status = await s.call('ai:status')
-    expect(status).toEqual({ tasks: { notes: 'local', ask: 'local', folders: 'local' }, server: null, local: true })
+    expect(status).toMatchObject({ tasks: { notes: 'local', ask: 'local', folders: 'local' }, server: null, local: true })
     // the server picked before it is saved: this computer's model, until it is
     expect((await s.call('ai:set-task', 'ask', 'server')).tasks.ask).toBe('local')
     expect(s.saved().ai).toEqual({ ask: 'server' })

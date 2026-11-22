@@ -10,17 +10,18 @@ const label = (task: AiTask) => task === 'notes' ? t('Summaries and titles') : t
 const description = (task: AiTask) => task === 'notes' ? t('Written after each meeting, and when you write a summary again.')
   : task === 'ask' ? t('Answers to your questions about meetings.') : t('A folder suggested for each new meeting.')
 
-/** what can write a task's text: this computer, and the server once saved */
+/** what can write a task's text: this computer, the server once saved, and each agent app found */
 export function aiOptions(s: AiStatus): Array<{ value: Provider; label: string }> {
   return [
     { value: 'local', label: osWords({ mac: t('Yogurt AI on this Mac'), other: t('Yogurt AI on this computer') }) },
     ...(s.server?.model ? [{ value: 'server' as const, label: t('Your server · {model}', { model: s.server.model }) }] : []),
+    ...s.agents.filter((a) => a.found).map((a) => ({ value: a.id, label: a.name })),
   ]
 }
 
 /** the names meeting text goes to, in the order picked, once each */
 export function aiElsewhere(s: AiStatus): string[] {
-  const names = AI_TASKS.map((task) => s.tasks[task]).filter((p) => p !== 'local').map(() => t('your server'))
+  const names = AI_TASKS.map((task) => s.tasks[task]).filter((p) => p !== 'local').map((p) => p === 'server' ? t('your server') : s.agents.find((a) => a.id === p)?.name ?? p)
   return [...new Set(names)]
 }
 

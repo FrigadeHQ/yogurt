@@ -1,18 +1,19 @@
 import { ipcMain } from 'electron'
 import { loadSettings, updateSettings } from '../settings'
-import { AI_TASKS, isProvider, isTask, MAX_SERVER_CONTEXT, MIN_SERVER_CONTEXT, SERVER_CONTEXT, type AiStatus } from '../../shared/ai'
+import { AGENTS, AI_TASKS, isProvider, isTask, MAX_SERVER_CONTEXT, MIN_SERVER_CONTEXT, SERVER_CONTEXT, type AiStatus } from '../../shared/ai'
 import { createRouter, type Model } from './router'
 import { serverLlm, serverModels, serverUrl, type Server } from './server'
+import type { Agents } from './agents'
 
 const contextOf = (n: unknown) => (Number.isInteger(n) && (n as number) >= MIN_SERVER_CONTEXT && (n as number) <= MAX_SERVER_CONTEXT ? (n as number) : SERVER_CONTEXT)
 const modelName = (x: unknown) => (typeof x === 'string' && x.trim() && x.length <= 200 ? x.trim() : undefined)
 
 /**
- * Settings → AI models: what writes each task's text (shared/ai.ts), and the person's own server. Returns the router
+ * Settings → AI models: what writes each task's text (shared/ai.ts), the person's own server and the agent apps. Returns the router
  * every caller of the notes model goes through. changed: a choice changed, so jobs waiting for a model may run now.
  */
 export function hookAi(o: {
-  file: string; local: Model; hasLocal: () => boolean; changed: () => void
+  file: string; local: Model; hasLocal: () => boolean; agents?: Agents; changed: () => void
   /** the server's key, kept with the system's keychain where it has one */
   seal: (plain: string) => string; open: (sealed: string) => string
 }) {
@@ -28,7 +29,8 @@ export function hookAi(o: {
   const router = createRouter({
     local: o.local, hasLocal: o.hasLocal,
     choice: (task) => { const c = saved().ai?.[task]; return isProvider(c) ? c : 'local' },
-    remote: (_provider, signal) => {
+    remote: (p, signal) => {
+      if (p !== 'server') return o.agents?.llm(p, signal)
       const s = server()
       return s && serverLlm(s, signal)
     },
@@ -38,11 +40,12 @@ export function hookAi(o: {
     return {
       tasks: Object.fromEntries(AI_TASKS.map((t) => [t, router.chosen(t)])) as AiStatus['tasks'],
       server: s && url ? { url, model: s.model ?? '', contextSize: contextOf(s.contextSize), hasKey: !!s.key } : null,
+      agents: AGENTS.map((a) => ({ id: a.id, name: a.name, found: !!o.agents?.found(a.id) })),
       local: o.hasLocal(),
     }
   }
 
-  ipcMain.handle('ai:status', () => status())
+  ipcMain.handle('ai:status', async () => { await o.agents?.refresh(); return status() })
   ipcMain.handle('ai:set-task', (_e, task: unknown, provider: unknown) => {
     if (!isTask(task) || !isProvider(provider)) throw new Error('Invalid AI choice')
     updateSettings(o.file, { ai: { ...saved().ai, [task]: provider === 'local' ? undefined : provider } })
