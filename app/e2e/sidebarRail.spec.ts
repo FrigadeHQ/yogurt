@@ -33,6 +33,11 @@ test('the hidden sidebar peeks over a full-width page and keeps folder actions a
     await toggle.hover()
     await expect(page.getByRole('tooltip')).toHaveText('Show sidebar (⌃⌘S)')
     await expect(panel).toBeVisible()
+    await expect(panel).toHaveCSS('pointer-events', 'auto')
+    // Pause beyond the old 80ms deadline in the strip above the panel, outside the 124px window bar.
+    await page.mouse.move(190, 47, { steps: 5 })
+    await page.waitForTimeout(180)
+    await expect(panel).toBeVisible()
     await panel.getByTestId('search-open').hover()
     await expect(toggle).toHaveAttribute('aria-expanded', 'true')
     await page.mouse.move(500, 200)
