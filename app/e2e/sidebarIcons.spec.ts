@@ -1,3 +1,4 @@
+import { ICON_STROKE_WIDTH } from '../src/renderer/src/components/Icons'
 import { _electron as electron, expect, test, type Locator } from '@playwright/test'
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -49,15 +50,22 @@ for (const theme of ['light', 'dark'] as const) test(`sidebar icon scope and mot
       await expect.poll(() => names(svg)).toEqual([])
       await page.emulateMedia({ colorScheme: theme, reducedMotion: 'no-preference' })
     }
-    for (const id of ['nav-home', 'nav-chat', 'settings-open']) await hover(id)
+    for (const id of ['nav-home', 'nav-chat']) await hover(id)
+    const corner = page.getByTestId('corner-menu-button')
+    await corner.hover()
+    await expect(page.getByRole('tooltip')).toHaveText('Help and settings')
+    await corner.click()
+    await expect(page.getByRole('tooltip')).toBeHidden()
+    await hover('settings-open')
     await hover('nav-trash')
+    await page.keyboard.press('Escape')
     await hover('search-open')
     await page.evaluate(() => window.yogurt.folders.create('Project'))
     await hover('sidebar-folder-open')
     await page.mouse.move(600, 80)
     const search = page.getByTestId('search-open').locator('svg')
     await expect(search).toHaveAttribute('width', '16')
-    await expect(search).toHaveAttribute('stroke-width', '1.75')
+    await expect(search).toHaveAttribute('stroke-width', String(ICON_STROKE_WIDTH))
     if (capture) {
       const svg = await search.evaluate(el => {
         const copy = el.cloneNode(true) as SVGElement

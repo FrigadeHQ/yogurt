@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from 'react'
 import {Popover} from '@base-ui/react/popover'
-import {CalendarDays,ChevronLeft,ChevronRight} from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight } from './Icons'
 import {language,t} from '../../../shared/i18n'
 import {noteDateLabel} from '../../../shared/dates'
 import {uploadDate,uploadDateTime,uploadTime,uploadDayAllowed,stepUploadClock} from '../../../shared/audioUpload'

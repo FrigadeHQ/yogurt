@@ -1,4 +1,4 @@
-import { AudioLines, Bell, CalendarDays, Mic, Users, type LucideIcon } from 'lucide-react'
+import { AudioLines, Bell, CalendarDays, Mic, Users } from './components/Icons'
 import type { PermissionKind } from '../../shared/types'
 import { osWords } from './keys'
 import { t } from '../../shared/i18n'
@@ -7,7 +7,7 @@ import { t } from '../../shared/i18n'
  * What each permission gives the person: reason is the explanation Settings shows. pane and where
  * say where System Settings keeps it, for the guide. The first run's own words are in screenCopy.
  */
-export const permissionCopy = (k: PermissionKind): { icon: LucideIcon; name: string; reason: string; pane: string; where: string } => {
+export const permissionCopy = (k: PermissionKind): { icon: typeof Mic; name: string; reason: string; pane: string; where: string } => {
   switch (k) {
     case 'mic': return {
       icon: Mic, name: t('Microphone'), reason: t('Yogurt transcribes your voice.'),

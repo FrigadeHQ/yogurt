@@ -1,4 +1,4 @@
-import { AudioLines, CalendarDays, Mic, PhoneOff, Plus, Video, X } from 'lucide-react'
+import { AudioLines, CalendarDays, Mic, PhoneOff, Plus, Video, X } from './Icons'
 import type { PermissionKind } from '../../../shared/types'
 import { Logo } from './Logo'
 import { t } from '../../../shared/i18n'
@@ -61,7 +61,7 @@ function RecordArt({ active }: { active: 'mic' | 'systemAudio' }) {
       <div className="ob-card ob-record">
         {lanes.map(({ kind, Icon, who, from }, i) => (
           <div key={kind} className="ob-lane" data-active={kind === active} data-channel={kind} style={d(i)}>
-            <span className="ob-lane-icon"><Icon size={15} strokeWidth={1.9} /></span>
+            <span className="ob-lane-icon"><Icon size={15} /></span>
             <span className="ob-lane-copy"><span className="ob-lane-who">{who}</span><span className="ob-lane-from">{from}</span></span>
             <span className="ob-wave">{[.54, .8, 1, .72, .42].map((peak, j) =>
               <i key={j} style={{ ['--peak' as string]: peak, ['--lag' as string]: `${-j * 30}ms` }} />)}</span>
@@ -78,14 +78,14 @@ function CalendarArt() {
   return (
     <div className="ob-scene ob-calendar">
       <div className="ob-card ob-day">
-        <div className="ob-card-head"><CalendarDays size={12} strokeWidth={2} />{t('Today')}</div>
+        <div className="ob-card-head"><CalendarDays size={12} />{t('Today')}</div>
         <div className="ob-hours">
           {['9:00', '10:00', '11:00', '12:00'].map((h) => <span key={h} className="ob-hour">{h}</span>)}
           <span className="ob-event"><span className="ob-event-title">{t('Design review')}</span><span className="ob-event-time">10:00</span></span>
         </div>
       </div>
       <div className="ob-card ob-meeting-note">
-        <p className="ob-note-meta"><CalendarDays size={11} strokeWidth={2} />{t('Today, 10:00')}</p>
+        <p className="ob-note-meta"><CalendarDays size={11} />{t('Today, 10:00')}</p>
         <p className="ob-doc-title">{t('Design review')}</p>
         <ul className="ob-people">{people.map((p, i) => <li key={p} style={d(i)}><span>{p.slice(0, 1)}</span>{p}</li>)}</ul>
         <span className="ob-skeleton" /><span className="ob-skeleton ob-skeleton-short" />
@@ -147,7 +147,7 @@ export function SettingsWindowArt({ pane, section }: { pane: string; section?: s
             <span className="ob-settings-app">Yogurt</span>
             <span className="ob-switch ob-switch-on" />
           </div>
-          <div className="ob-settings-tools"><Plus size={11} strokeWidth={2.25} /><span className="ob-settings-minus" /></div>
+          <div className="ob-settings-tools"><Plus size={11} /><span className="ob-settings-minus" /></div>
         </div>
       </div>
     </div>

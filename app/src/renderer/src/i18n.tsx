@@ -16,3 +16,6 @@ export function tx(text: string, parts: Record<string, ReactNode>): ReactNode[] 
   const plain = Object.fromEntries(Object.keys(parts).map((k) => [k, `\u0000${k}\u0000`]))
   return t(text, plain).split('\u0000').map((piece, i) => (i % 2 ? <Fragment key={i}>{parts[piece]}</Fragment> : piece))
 }
+
+/** The plus stays before the digits next to either LTR or RTL names. */
+export const compactCount = (count: number) => <bdi dir="ltr">{`+${count}`}</bdi>

@@ -26,8 +26,8 @@ it('shows the current folder icon and color in the picker and the selected scope
 it.each([
   [[], 'Searched all meetings'],
   [[folder], 'Searched Planning'],
-  [[folder, meeting], 'Searched Planning and 1 other'],
-  [[folder, meeting, { ...meeting, id: 'next' }], 'Searched Planning and 2 others'],
+  [[folder, meeting], 'Searched Planning and 1 more'],
+  [[folder, meeting, { ...meeting, id: 'next' }], 'Searched Planning and 2 more'],
 ] as [ContextTarget[], string][])('labels the searched scope %j', (chips, expected) => {
   const html = renderToStaticMarkup(createElement(AnswerScope, { chips }))
   expect(html).toContain('<span aria-hidden="true">·</span>')

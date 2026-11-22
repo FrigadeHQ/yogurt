@@ -369,8 +369,8 @@ export class Store {
     const ownEmail = m.eventId ? ownAddress(m.ownEmail) : null
     this.rememberOwnEmail(ownEmail)
     const titleSource = m.titleSource ?? sourceOf(m.title, m.eventId)
-    this.db.prepare('INSERT INTO meetings (id, title, started_at, ended_at, event_id, app, attendees, state, language, title_source, duration_ms, event_started_at, event_ended_at, event_title, event_calendar_name, event_calendar_source, source, transcription_pending, own_email, keep_attendees) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      .run(id, m.title, m.startedAt, m.endedAt, m.eventId, m.app, JSON.stringify(m.attendees), m.state, language, titleSource, m.durationMs ?? null, m.eventStartedAt ?? null, m.eventEndedAt ?? null, m.eventTitle ?? null, m.eventCalendarName ?? null, m.eventCalendarSource ?? null, m.source ?? null, Number(!!m.transcriptionPending), ownEmail, Number(!!m.keepAttendees))
+    this.db.prepare('INSERT INTO meetings (id, title, started_at, ended_at, event_id, app, attendees, state, language, title_source, duration_ms, event_started_at, event_ended_at, event_title, event_calendar_name, event_calendar_source, source, source_id, transcription_pending, own_email, keep_attendees) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(id, m.title, m.startedAt, m.endedAt, m.eventId, m.app, JSON.stringify(m.attendees), m.state, language, titleSource, m.durationMs ?? null, m.eventStartedAt ?? null, m.eventEndedAt ?? null, m.eventTitle ?? null, m.eventCalendarName ?? null, m.eventCalendarSource ?? null, m.source ?? null, m.sourceId ?? null, Number(!!m.transcriptionPending), ownEmail, Number(!!m.keepAttendees))
     rememberPeople(this.db, m.attendees)
     return this.meeting(id)!
   }
@@ -438,6 +438,11 @@ export class Store {
     const r = this.db.prepare('SELECT * FROM meetings WHERE id = ?').get(id) as Row | undefined
     return r ? this.readMeeting(r) : undefined
   }
+  /** a meeting brought in from another app, by that app's own id for it (backups and imports keep it) */
+  meetingFromSource(source: string, sourceId: string): Meeting | undefined {
+    const r = this.db.prepare('SELECT * FROM meetings WHERE source = ? AND source_id = ? LIMIT 1').get(source, sourceId) as Row | undefined
+    return r ? this.readMeeting(r) : undefined
+  }
   /** EventKit ids include the occurrence date, so recurring meetings keep separate notes. */
   meetingForEvent(eventId: string): Meeting | undefined {
     const r = this.db.prepare('SELECT * FROM meetings WHERE event_id = ? AND trashed_at IS NULL ORDER BY started_at DESC, rowid DESC LIMIT 1').get(eventId) as Row | undefined
@@ -450,6 +455,11 @@ export class Store {
     return (rows as Row[]).map(r => this.readMeeting(r))
   }
 
+  /** Waiting or queued labels on meetings with nothing left to transcribe (recordings, not uploads or replacements): cleared, their ids returned */
+  clearFinishedTranscriptionStates(): string[] {
+    return (this.db.prepare(`UPDATE meetings SET transcription_state=NULL WHERE transcription_pending=0 AND transcription_again=0 AND COALESCE(source,'')!='audio-file'
+      AND transcription_state IN ('queued','transcribing','waiting-model','waiting-recording') RETURNING id`).all() as Array<{ id: string }>).map(r => r.id)
+  }
   clearTranscriptionState(id:string) { this.db.prepare('UPDATE meetings SET transcription_state=NULL,transcription_again=0 WHERE id=?').run(id);this.clearTranscriptionDraft(id) }
   interruptAudioPreparations() {
     this.db.prepare("UPDATE meetings SET transcription_state='error',transcription_pending=0 WHERE source='audio-file' AND transcription_state='preparing'").run()

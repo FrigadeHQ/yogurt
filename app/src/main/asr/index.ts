@@ -24,6 +24,8 @@ import type { Chunk } from './chunker'
 type Session = { complete?: () => boolean; pipeline: Pipeline | null; priorLines: Set<number>; done?: Promise<void>; store?: SessionStore; refresh?: (id: string) => void
   /** a saved recording that could not be read to the end (transcribeRecorded): the meeting keeps waiting */
   failed?: boolean
+  /** a live meeting whose speech engine was there: a transcript left incomplete is queued for its saved recording */
+  liveEngine?: boolean
   replacement?: boolean
   /** Apple's speech listens in this locale for the meeting (null: whisper only); off once whisper hears another language */
   speech?: string | null
@@ -124,6 +126,9 @@ export const SERVER_IDLE_MS = 10 * 60_000
 let idleTimer: NodeJS.Timeout | undefined
 let idleMs = SERVER_IDLE_MS
 
+/** a live meeting's transcript came out incomplete and its saved recording is queued (savedTranscription picks it up) */
+let queuedListener: ((id: string) => void) | undefined
+
 /** whisper-server left the graphics card during a meeting (Windows and Linux) */
 let gpuOffListener: (() => void) | undefined
 export function onWhisperGpuOff(cb: () => void) { gpuOffListener = cb }
@@ -184,8 +189,11 @@ export function hookTranscription(p: {
   speech?: { host: SpeechHost; binary: string; ui: () => string; last: () => string | null; locales?: () => Promise<SpeechLocales>; install?: (locale: string) => Promise<boolean> }
   /** the spoken language picked in Settings or the note (English only when left out) */
   spoken?: () => Spoken
+  /** a live transcript came out incomplete (whisper-server died, #127): its saved recording waits to be transcribed */
+  queued?: (meetingId: string) => void
 }): () => void {
   idleMs = p.serverIdleMs ?? SERVER_IDLE_MS
+  queuedListener = p.queued
   spokenNow = p.spoken ?? (() => 'en')
   if (p.speech && appleSpeechAvailable(p.speech.host)) {
     const sp = p.speech
@@ -243,7 +251,7 @@ export function hookTranscription(p: {
     }
     const s: Session = {
       complete: () => !!transcribe && !pendingBefore && !saveFailed && !warned.has('transcribe-failed') && !s.failed && !options?.signal?.aborted,
-      replacement: !!options?.save, store: p.store, refresh: p.refresh, speech: speechLocaleFor(id), priorLines: new Set(p.store.segments?.(id).map((s) => s.id) ?? []),
+      replacement: !!options?.save, liveEngine: !later && !!transcribe, store: p.store, refresh: p.refresh, speech: speechLocaleFor(id), priorLines: new Set(p.store.segments?.(id).map((s) => s.id) ?? []),
       pipeline: transcribe ? createPipeline({ meetingId: id, transcribe, save: (segs) => {
         try { if(options?.save) options.save(segs); else p.store.addSegments(segs) } catch (e) { saveFailed = true; throw e }
         if (segs.some(s => s.hidden)) p.refresh?.(id)
@@ -343,9 +351,13 @@ function sweepEcho(id: string, s: Session) {
 /** After the recorder is done (no more audio coming), the pipeline finishes what it has, then echoes are swept */
 function finishSession(id: string, s: Session, audioDone: () => Promise<void> = () => Promise.resolve(), store?: SessionStore): Promise<void> {
   s.store ??= store
+  let queued = false
   s.done ??= audioDone().then(() => s.pipeline?.finish()).then(() => {
     if (!s.replacement) sweepEcho(id, s)
     if (!s.replacement && s.complete?.()) s.store?.updateMeeting(id, { transcriptionPending: false })
+    // whisper-server went down partway (#127): the audio is all in the saved recording, so the rest is transcribed from
+    // there, from where the lines end. Queued (not left as is) because a meeting with some lines is otherwise never picked up.
+    else if (s.liveEngine) { s.store?.updateMeeting(id, { transcriptionState: 'queued' }); queued = true; console.warn('ASR the transcript is incomplete: the rest is transcribed from the saved recording') }
   }).catch((e) => { s.failed = true; console.error('finishing the transcript failed', e) }).finally(() => {
     // the meeting's main language is kept with it, for notes written later (after a restart too)
     const lang = meetingLanguage(id)
@@ -353,9 +365,13 @@ function finishSession(id: string, s: Session, audioDone: () => Promise<void> = 
     heard.delete(id)
     if (sessions.get(id) === s) sessions.delete(id)
     armServerIdle()
+    if (queued) { try { queuedListener?.(id) } catch (e) { console.error('queueing the saved recording failed', e) } }
   })
   return s.done
 }
+
+/** The meeting's live transcript is still being worked on or finished: its saved recording must wait */
+export const transcriptOpen = (id: string): boolean => sessions.has(id)
 
 /** Resolves when the meeting's transcript is all saved (after it stops); at once when there is nothing left to do */
 export const transcriptFinished = (id: string): Promise<void> => sessions.get(id)?.done ?? Promise.resolve()

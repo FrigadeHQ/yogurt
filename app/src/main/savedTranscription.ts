@@ -7,6 +7,8 @@ import type { TranscriptionState } from '../shared/transcription'
 /** One queue for uploaded audio and saved recordings. Stopping never deletes either. */
 export function createSavedTranscriptions(d: {
   store: Store; ready: () => boolean; recording: () => boolean
+  /** its live transcript is still being finished: reading the saved recording now would race it (#127) */
+  live?: (id: string) => boolean
   tracks: (id: string) => Promise<Partial<Record<Track,AsyncIterable<Float32Array>>>>
   transcribe: (id: string, tracks: Partial<Record<Track,AsyncIterable<Float32Array>>>, options: RecordedOptions) => Promise<boolean>
   draft?: (id:string) => void
@@ -20,11 +22,14 @@ export function createSavedTranscriptions(d: {
     if(draining||quitting)return
     draining=true
     try {
+      // a waiting label on a meeting whose transcript got done some other way would stay up for good (#127)
+      for(const id of d.store.clearFinishedTranscriptionStates())d.changed(id)
       for(const meeting of d.store.untranscribedMeetings()) {
         if(quitting)break
         const id=meeting.id
         const current=d.store.meeting(id)
         if(!current||current.trashedAt!=null||['stopped','error','preparing','done'].includes(current.transcriptionState??''))continue
+        if(d.live?.(id))continue
         if(d.recording()){set(id,'waiting-recording');continue}
         if(!d.ready()){set(id,'waiting-model');continue}
         const job={id,abort:new AbortController(),stopped:false};running=job;set(id,'transcribing')

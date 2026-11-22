@@ -1,3 +1,6 @@
+import { CalendarDays, Check, FileText, ICON_STROKE_WIDTH } from '../src/renderer/src/components/Icons'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { App } from '../src/renderer/src/App'
 import { afterEach, expect, it, vi } from 'vitest'
 import { useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import { useDialogFocus } from '../src/renderer/src/useDialogFocus'
@@ -229,6 +232,30 @@ it.each([false, true])('retries the last requested AI access setting (reopen Set
   } finally { view.unmount() }
 })
 
+it('offers letting AI apps make changes only once they can read, off until turned on', async () => {
+  const { Settings } = await import('../src/renderer/src/screens/Settings')
+  let saved = { enabled: false, changes: false, command: 'test', clients: [] as string[] }
+  const setChanges = vi.fn(async (changes: boolean) => (saved = { ...saved, changes }))
+  vi.stubGlobal('window', { yogurt: { capabilities: {}, mcp: { status: async () => saved, onClients: () => () => {}, set: vi.fn(), setChanges } } })
+  const panel = find(renderer(() => Settings({}))(), 'AiApps')
+  const mount = async () => {
+    const render = renderer(() => (panel.type as Function)(panel.props))
+    render()
+    vi.mocked(useEffect).mock.calls.map(([effect]) => effect())
+    await Promise.resolve()
+    return render
+  }
+  let render = await mount()
+  expect(() => find(render(), 'ai-apps-changes-toggle')).toThrow('Missing')
+  saved = { ...saved, enabled: true }
+  render = await mount()
+  const toggle = () => find(render(), 'ai-apps-changes-toggle').props
+  expect(toggle()['aria-checked']).toBe(false)
+  await toggle().onClick()
+  expect(setChanges).toHaveBeenCalledWith(true)
+  expect(toggle()['aria-checked']).toBe(true)
+})
+
 it('opens a command-search question as a draft when recording prevents an answer', async () => {
   vi.stubGlobal('document', { activeElement: null })
   vi.stubGlobal('HTMLButtonElement', class {})
@@ -258,7 +285,7 @@ it.each([true, false])('offers and runs the date command only with an agenda (ca
   if (!calendar) { expect(() => find(tree, 'command-agenda-date')).toThrow('Missing'); return }
   const row = find(tree, 'command-agenda-date')
   expect(row.props['aria-selected']).toBe(true)
-  expect(row.props.children[0].type.displayName).toBe('CalendarDays')
+  expect(row.props.children[0].type).toBe(CalendarDays)
   expect(row.props.children[1].props.children[0]).toBe('Go to Nov 11, 2028')
   find(tree, 'search').props.onKeyDown({ key: 'Enter', nativeEvent: {}, preventDefault() {} })
   expect(onNavigate).toHaveBeenCalledExactlyOnceWith('', new Date(2028, 10, 11).getTime())
@@ -378,7 +405,7 @@ it('keeps initial search results still, ignores stationary hover, and scrolls on
   tree = render(); scroll()
   expect(find(tree, 'command-meetings').props['aria-selected']).toBe(true)
   expect(() => find(tree, 'search-intent-icon')).toThrow('Missing')
-  expect(find(tree, 'command-meetings').props.children[0].type.displayName).toBe('FileText')
+  expect(find(tree, 'command-meetings').props.children[0].type).toBe(FileText)
   expect(scrollIntoView).not.toHaveBeenCalled()
   find(tree, 'search').props.onKeyDown({ key: 'ArrowDown', nativeEvent: {}, preventDefault() {} })
   tree = render(); scroll()
@@ -423,7 +450,10 @@ it('keeps row glyphs stable across typing, filters, and keyboard selection witho
       if (icons.has(props.id)) expect(icon.type).toBe(icons.get(props.id))
       icons.set(props.id, icon.type)
       if (icon.props.appearance) expect(icon.props.appearance).toBe(folders[0])
-      else expect(icon.props).toMatchObject({ size: 16, strokeWidth: 1.75, 'aria-hidden': 'true' })
+      else {
+        expect(icon.props).toMatchObject({ size: 16, 'aria-hidden': 'true' })
+        expect(renderToStaticMarkup(icon)).toContain(`stroke-width="${ICON_STROKE_WIDTH}"`)
+      }
     }
     inspect(props.children)
   }
@@ -444,6 +474,21 @@ it('keeps row glyphs stable across typing, filters, and keyboard selection witho
   expect([...icons.keys()]).toEqual(expect.arrayContaining(['search-m1', 'search-ask', 'command-agenda-date', 'command-folder-f1', 'command-theme-light', 'search-person-email%3Aparticipant%40example.test']))
 })
 
+it.each(['/chat', '/chat/saved'])('focuses Ask without a conversation lookup or navigation on %s', async route => {
+  const current = vi.fn().mockResolvedValue('other'), go = vi.fn(), focus = vi.fn()
+  const keydown = vi.fn(), onAsk = vi.fn(), takeAsk = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true)
+  vi.stubGlobal('window', { addEventListener: keydown, yogurt: { os: 'win32', conversations: { current }, nav: { onAsk, takeAsk } } })
+  vi.stubGlobal('document', { querySelector: () => null, getElementById: (id: string) => id === 'library-question' ? { focus } : null })
+  renderer(() => Workspace({ route, go, search() {}, shortcuts() {}, collapsed: false, sidebarMotion: false, toggleSidebar() {}, children: null }))()
+  vi.mocked(useEffect).mock.lastCall![0]()
+  keydown.mock.calls[0][1]({ code: 'KeyJ', ctrlKey: true, preventDefault() {} })
+  onAsk.mock.calls[0][0]()
+  await Promise.resolve()
+  expect(focus.mock.calls).toEqual([[{ preventScroll: true }], [{ preventScroll: true }]])
+  expect(current).not.toHaveBeenCalled()
+  expect(go).not.toHaveBeenCalled()
+})
+
 it.each(['darwin', 'win32'])('toggles the meeting panel once per shortcut press on %s', os => {
   const listeners = new Map<string, (e: any) => void>()
   vi.stubGlobal('window', { matchMedia: () => ({ matches: false }), addEventListener: (name: string, fn: (e: any) => void) => listeners.set(name, fn), removeEventListener() {},
@@ -453,7 +498,7 @@ it.each(['darwin', 'win32'])('toggles the meeting panel once per shortcut press 
   const click = vi.fn(() => { find(tree, 'chat-open').props.onClick(); tree = renderAsk() })
   const querySelector = vi.fn().mockReturnValue(null)
   vi.stubGlobal('document', { querySelector, getElementById: () => ({ click }) })
-  const renderWorkspace = renderer(() => Workspace({ route: '/note/m1', go() {}, search() {}, collapsed: false, sidebarMotion: false, toggleSidebar() {}, children: null }))
+  const renderWorkspace = renderer(() => Workspace({ route: '/note/m1', go() {}, search() {}, shortcuts() {}, collapsed: false, sidebarMotion: false, toggleSidebar() {}, children: null }))
   renderWorkspace()
   vi.mocked(useEffect).mock.lastCall![0]()
   const press = (extra = {}) => listeners.get('keydown')!({ code: 'KeyJ', metaKey: os === 'darwin', ctrlKey: os !== 'darwin', preventDefault() {}, ...extra })
@@ -472,25 +517,26 @@ it.each(['darwin', 'win32'])('toggles the meeting panel once per shortcut press 
   expect(click).toHaveBeenCalledTimes(3)
 })
 
-it.each([false, true])('keeps the composer clip inside the growing shape through open, close and reversal (narrow: %s)', narrow => {
+it.each([[false, false], [true, false], [false, true], [true, true]])('clips the suggestions and composer with the moving surface (narrow %s, reduced motion %s)', async (narrow, reduced) => {
   const rect = (x: number, y: number, width: number, height: number) => ({ x, y, width, height, top: y, left: x, right: x + width, bottom: y + height })
   const to = narrow ? rect(16, 16, 328, 640) : rect(760, 200, 420, 440)
   // Exercise a button outside the final panel, anchored on either side.
   const from = narrow ? rect(20, 700, 140, 30) : rect(1040, 670, 140, 30)
-  const box = rect(to.x + 1, to.y + 1, to.width - 2, to.height - 2)
   const node = (bounds: ReturnType<typeof rect>, computed: Record<string, string>) => ({
-    getBoundingClientRect: () => bounds, computed,
-    animate: vi.fn((_frames: Keyframe[], _options: KeyframeAnimationOptions) => ({
-      playState: 'running', cancel() { this.playState = 'idle' }, finished: new Promise<void>(() => {}),
-    })),
+    getBoundingClientRect: () => bounds, computed, style: { overflow: '' },
+    animate: vi.fn((_frames: Keyframe[], _options: KeyframeAnimationOptions) => {
+      let finish!: () => void
+      const finished = new Promise<void>(resolve => { finish = resolve })
+      return { playState: 'running', cancel() { this.playState = 'idle' }, finished, finish }
+    }),
   })
   const button = { ...node(from, { opacity: '1', borderRadius: '6px' }), focus: vi.fn() }
   const shell = node(to, { left: '-1px', top: '-1px', width: `${to.width}px`, height: `${to.height}px`, borderRadius: '12px', opacity: '1' })
-  const body = node(box, { clipPath: 'none', opacity: '1' })
+  const body = node(to, { opacity: '1' })
   const input = { focus: vi.fn() }
   const dialog = { ...node(to, { opacity: '1' }), style: { setProperty() {} }, show() {}, showModal() {}, close() {}, querySelector: () => input }
   const anchor = { getBoundingClientRect: () => to } as HTMLElement
-  vi.stubGlobal('window', { matchMedia: (query: string) => ({ matches: query.includes('max-width') && narrow }), addEventListener() {}, removeEventListener() {} })
+  vi.stubGlobal('window', { matchMedia: (query: string) => ({ matches: query.includes('max-width') ? narrow : reduced }), addEventListener() {}, removeEventListener() {} })
   vi.stubGlobal('innerHeight', 800)
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
   vi.stubGlobal('getComputedStyle', (element: { computed: Record<string, string> }) => element.computed)
@@ -501,60 +547,58 @@ it.each([false, true])('keeps the composer clip inside the growing shape through
   tree = render()
   const panel = find(tree, 'chat-panel')
   panel.props.ref.current = dialog
-  panel.props.children[0].props.ref.current = shell
-  panel.props.children[1].props.ref.current = body
-  // The conversation mounts before its ID resolves; clipping must not postpone the editable composer.
-  expect(panel.props.children[1].props.children[1].props).toMatchObject({ id: '', panel: true, pendingDraftKey: 'meeting/morph' })
+  const surface = find(panel, 'chat-morph-surface')
+  surface.props.ref.current = shell
+  find(surface, 'chat-panel-contents').props.ref.current = body
+  const conversation = find(surface, 'AskConversation')
+  expect(surface.props['aria-hidden']).toBeUndefined()
+  expect(conversation.props).toMatchObject({ id: '', panel: true, pendingDraftKey: 'meeting/morph' })
   vi.mocked(useLayoutEffect).mock.lastCall![0]()
   expect(input.focus).toHaveBeenCalledWith({ preventScroll: true })
+  const view = renderer(() => AskConversation(conversation.props))()
+  expect(find(view, 'chat-suggestions')).toBeDefined()
+  expect(find(view, 'chat-box').type).toBe('form')
 
-  const lerp = (a: string, b: string, p: number) => parseFloat(a) + (parseFloat(b) - parseFloat(a)) * p
-  const clip = (value: string) => {
-    const n = value.match(/-?\d+(?:\.\d+)?/g)!.map(Number)
-    return n.length === 2 ? [n[0], n[0], n[0], n[0], n[1]] : n
+  const toggle = () => find(tree, 'chat-open').props.onClick()
+  if (reduced) {
+    expect(dialog.animate.mock.lastCall?.[0]).toEqual([{ opacity: 0 }, { opacity: 1 }])
+    toggle()
+    expect(dialog.animate.mock.lastCall?.[0].at(-1)).toEqual({ opacity: 0 })
+    expect(dialog.animate.mock.lastCall?.[1].duration).toBe(120)
+    expect(shell.animate).not.toHaveBeenCalled()
+    expect(shell.style.overflow).toBe('')
+    return
   }
-  const check = (expand: boolean) => {
-    const [shape, shapeTiming] = shell.animate.mock.calls.at(-2)!
-    const [crop, cropTiming] = body.animate.mock.calls.at(-2)!
-    expect(shapeTiming.duration).toBe(cropTiming.duration)
-    expect(shapeTiming.easing).toBe(cropTiming.easing)
-    expect(cropTiming.fill).toBe(expand ? 'backwards' : 'forwards')
-    expect(shapeTiming.fill).toBe('both')
-    expect(shape[1].width).toBe(expand ? 'calc(100% + 2px)' : `${from.width}px`)
-    expect(shape.every(frame => !frame.transform)).toBe(true)
-    const at = (p: number) => {
-      const used = (frame: Keyframe, key: string) => String(frame[key]).includes('100%') ? `${to[key as 'width' | 'height']}px` : String(frame[key])
-      const bounds = Object.fromEntries(['left', 'top', 'width', 'height', 'borderRadius'].map(key => [key, lerp(used(shape[0], key), used(shape[1], key), p)]))
-      const start = clip(String(crop[0].clipPath)), end = clip(String(crop[1].clipPath))
-      const inset = start.map((value, i) => value + (end[i] - value) * p)
-      return { bounds, inset }
-    }
-    // All intermediate rectangles AND rounded corners agree, not just the two endpoints.
-    for (let frame = 0; frame <= 100; frame++) {
-      const { bounds, inset: [top, right, bottom, left, radius] } = at(frame / 100)
-      expect(box.left + left).toBeCloseTo(to.left + 1 + bounds.left + 1)
-      expect(box.top + top).toBeCloseTo(to.top + 1 + bounds.top + 1)
-      expect(box.right - right).toBeCloseTo(to.left + 1 + bounds.left + bounds.width - 1)
-      expect(box.bottom - bottom).toBeCloseTo(to.top + 1 + bounds.top + bounds.height - 1)
-      expect(radius).toBeCloseTo(bounds.borderRadius - 1)
-    }
-    // A fast toggle resumes from the same on-screen bounds and radius.
-    const { bounds, inset } = at(.4)
-    Object.assign(shell.computed, Object.fromEntries(Object.entries(bounds).map(([key, value]) => [key, `${value}px`])))
-    body.computed.clipPath = `inset(${inset.slice(0, 4).map(n => `${n}px`).join(' ')} round ${inset[4]}px)`
+  const collapsed = { '--ask-left': `${from.left - to.left - 1}px`, '--ask-top': `${from.top - to.top - 1}px`, width: `${from.width}px`, height: `${from.height}px`, borderRadius: '6px' }
+  const expanded = { '--ask-left': '-1px', '--ask-top': '-1px', width: 'calc(100% + 2px)', height: 'calc(100% + 2px)', borderRadius: '12px' }
+  const shape = () => shell.animate.mock.calls.at(-2)!
+  expect(shape()[0]).toEqual([collapsed, expanded])
+  expect(shape()[1].duration).toBe(180)
+  expect(shell.style.overflow).toBe('clip')
+  expect(body.animate.mock.calls.flatMap(([frames]) => frames).every(frame => Object.keys(frame).every(k => k === 'opacity'))).toBe(true)
+  const first = shell.animate.mock.results.at(-2)!.value
+
+  // Reverse from the painted bounds. A late completion from the first opening cannot release the new clip.
+  const midway = { left: '40px', top: '80px', width: '210px', height: '140px', borderRadius: '8px' }
+  Object.assign(shell.computed, midway)
+  toggle()
+  const resumed = { '--ask-left': midway.left, '--ask-top': midway.top, width: midway.width, height: midway.height, borderRadius: midway.borderRadius }
+  expect(shape()[0]).toEqual([resumed, collapsed])
+  expect(shape()[1].duration).toBe(150)
+  toggle()
+  expect(shape()[0]).toEqual([resumed, expanded])
+  first.finish()
+  await Promise.resolve()
+  expect(shell.style.overflow).toBe('clip')
+  shell.animate.mock.results.at(-2)!.value.finish()
+  await Promise.resolve()
+  expect(shell.style.overflow).toBe('')
+  for (const el of [shell, body, button]) {
+    for (const result of el.animate.mock.results) result.value.playState = 'finished'
   }
-  check(true)
-  find(tree, 'chat-open').props.onClick()
-  check(false)
-  find(tree, 'chat-open').props.onClick()
-  check(true)
-  for (const element of [shell, body, button, dialog]) {
-    for (const result of element.animate.mock.results) result.value.playState = 'finished'
-  }
-  Object.assign(shell.computed, { left: '-1px', top: '-1px', width: `${to.width}px`, height: `${to.height}px`, borderRadius: '12px' })
-  body.computed.clipPath = 'none'
-  find(tree, 'chat-open').props.onClick()
-  check(false)
+  toggle()
+  expect(shape()[0]).toEqual([expanded, collapsed])
+  expect(shell.style.overflow).toBe('clip')
 })
 
 
@@ -803,6 +847,21 @@ it.each([false, true].flatMap(panel => [false, true].flatMap(inline => [
   },
 )
 
+it.each([true, false])('focuses the first available Share action when a summary exists: %s', async hasEnhanced => {
+  const { ShareMenu } = await import('../src/renderer/src/components/ShareMenu')
+  vi.stubGlobal('document', new EventTarget())
+  const render = renderer(() => ShareMenu({ id: 'note', shown: 'mine', status: 'idle', hasEnhanced, beforeUse: async () => true }))
+  find(render(), 'share-button').props.onClick({ detail: 0 })
+  const menu = find(render(), 'share-menu')
+  const items = menu.props.children.filter((item: ReactElement<any>) => item.props.role === 'menuitem')
+  expect(items.map((item: ReactElement<any>) => item.props['data-testid'])).toEqual(['share-copy-summary', 'share-copy-notes', 'share-copy-transcript', 'share-export'])
+  const focused = vi.fn()
+  for (const item of items) item.props.ref({ disabled: item.props.disabled, focus: () => focused(item.props['data-testid']) })
+  const cleanup = vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.includes('keyboard'))![0]()
+  expect(focused).toHaveBeenCalledExactlyOnceWith(hasEnhanced ? 'share-copy-summary' : 'share-copy-notes')
+  if (typeof cleanup === 'function') cleanup()
+})
+
 it('retains an export error and reopens the file save action on retry', async () => {
   vi.useFakeTimers()
   const toast = watchRetryToast()
@@ -842,10 +901,10 @@ it.each([0, 1, 2, 5])('labels a scope of %s items without truncating its count',
   const chips = Array.from({ length: count }, (_, i) => ({ kind: 'meeting' as const, id: String(i), title: 'A very long meeting title '.repeat(20) }))
   const label = scopeLabel(chips)
   expect(label.name).toBe(count ? chips[0].title.trim() : 'All meetings')
-  expect(label.others).toBe(count > 1 ? `and ${count - 1} ${count === 2 ? 'other' : 'others'}` : '')
+  expect(label.others).toBe(count > 1 ? `and ${count - 1} more` : '')
   const contents = AskContext({ chips })
   expect(find(contents, 'ask-scope-name').props.children).toBe(label.name)
-  if (count > 1) expect(find(contents, 'ask-scope-others').props.children).toBe(` ${label.others}`)
+  if (count > 1) expect(find(contents, 'ask-scope-others').props.children[1].props).toMatchObject({ dir: 'ltr', children: `+${count - 1}` })
 })
 
 it('caps selected scope at three, reveals the rest, and gives query matches the full list', async () => {
@@ -854,7 +913,7 @@ it('caps selected scope at three, reveals the rest, and gives query matches the 
   c.popup().onOpenChange(true)
   await c.lookup()
   expect(find(c.render(), 'In this chat').props.children[1]).toHaveLength(3)
-  expect(find(c.render(), `${c.prefix}-context-3`).props.children[1].props.children).toBe('2 more')
+  expect(find(c.render(), `${c.prefix}-context-3`).props.children[1].props.children).toBe('and 2 more')
   expect(find(c.render(), `${c.prefix}-context-4`).props.children[1].props.children).toBe('Already attached')
   find(c.render(), `${c.prefix}-context-3`).props.onClick()
   expect(find(c.render(), 'In this chat').props.children[1]).toHaveLength(5)
@@ -1020,7 +1079,7 @@ it('checks an inline match already in scope and consumes its mention without add
   c.type('@Already')
   await c.lookup()
   const row = find(c.render(), `${c.prefix}-context-0`).props
-  expect(row.children[2].type.displayName).toBe('Check')
+  expect(row.children[2].type).toBe(Check)
   c.key(c.input(), 'Enter')
   await c.flush()
   expect(c.context).not.toHaveBeenCalled()
@@ -1044,4 +1103,36 @@ it.each([false, true])('keeps Copy on the current answer without revealing older
   initial.turns[2].status = 'failed'
   initial.turns[2].answer = ''
   expect(turns().map(turn => turn.props.showCopy)).toEqual([false, false, true])
+})
+
+it('hands the same shell from the Mac launch to a read error, checking and the ready workspace', async () => {
+  vi.useFakeTimers()
+  let checking!: (s: { phase: string }) => void
+  vi.stubGlobal('window', { innerWidth: 1100, yogurt: { platform: 'darwin',
+    setup: { state: vi.fn().mockRejectedValue(new Error('read')), onState: (update: typeof checking) => { checking = update; return () => {} } },
+    onboarding: { plan: async () => ({ steps: [], intro: false }) },
+  } })
+  const render = renderer(App)
+  let tree = render()
+  expect(find(tree, 'MacLaunch').props.active).toBe(true)
+  const shell = find(tree, 'app-shell')
+  expect(shell.props.inert).toBe(true)
+  const [readSetup, readPlan] = vi.mocked(useEffect).mock.calls.slice(2, 4)
+  readSetup[0](); readPlan[0]()
+  await Promise.resolve()
+  tree = render()
+  expect(find(tree, 'MacLaunch').props.active).toBe(false)
+  expect(find(tree, 'ReadError').props.testId).toBe('setup-read-error')
+  checking({ phase: 'checking' })
+  expect(find(render(), 'MacLaunch').props.active).toBe(true)
+  checking({ phase: 'ready' })
+  render()
+  vi.mocked(useEffect).mock.calls[4][0]() // readiness releases the launch hold
+  vi.runAllTimers()
+  tree = render()
+  expect(find(tree, 'app-shell').type).toBe(shell.type)
+  expect(find(tree, 'app-shell').props.inert).toBeUndefined()
+  expect(find(tree, 'MacLaunch').props.active).toBe(false)
+  const workspace = find(tree, 'Workspace')
+  expect(workspace.props.route).toBe('')
 })

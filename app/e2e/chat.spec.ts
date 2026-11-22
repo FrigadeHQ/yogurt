@@ -381,6 +381,21 @@ test('Ask grows from its button identically for either trigger and keeps typing 
     expect(parseFloat(String(motion[0].frames[0].width))).toBeCloseTo((await trigger.boundingBox())!.width)
     expect(String(motion[0].frames.at(-1)!.width)).toContain('100%')
     expect(motion[0].frames.every(frame => !frame.transform)).toBe(true)
+    // Sample the opening itself, including the frame where the shell is still on the button.
+    const insets = await surface.evaluate(el => {
+      const shape = el.getAnimations().find(a => (a.effect as KeyframeEffect).getKeyframes().some(f => f.width))!
+      const dialog = el.closest('dialog')!.getBoundingClientRect()
+      const body = el.querySelector('.chat-panel-contents')!, composer = body.querySelector('.chat-composer')!
+      shape.pause()
+      const samples = [0, 45, 90, 180].map(ms => {
+        shape.currentTime = ms
+        const bounds = body.getBoundingClientRect()
+        return [bounds.left - dialog.left, bounds.top - dialog.top, dialog.right - bounds.right, dialog.bottom - composer.getBoundingClientRect().bottom]
+      })
+      shape.finish()
+      return samples
+    })
+    for (const sample of insets) for (const inset of sample) expect(inset).toBeCloseTo(1, 1)
     await expect(page.getByTestId('chat-input')).toBeFocused()
     await expect(page.locator('.chat-panel-contents')).toHaveCSS('transform', 'none')
     await expect(page.locator('.chat-panel-contents')).toHaveCSS('filter', 'none')
@@ -435,8 +450,22 @@ for (const width of [1100, 720]) test(`Command-J toggles Ask from any focus at $
     await fake(app, 'go', '')
     await expect(page.getByTestId('home')).toBeVisible()
     await page.keyboard.press('Meta+j')
-    await expect(page.locator('#library-question')).toBeVisible()
-    await page.keyboard.press('Meta+j')
-    await expect(page.locator('#library-question')).toBeFocused()
+    await expect(page.getByTestId('chat-page-input')).toBeEditable()
+    await expect.poll(() => page.evaluate(() => window.yogurt.nav.current())).toMatch(/^\/chat\/.+/)
+
+    await page.getByTestId('nav-chat').click()
+    await expect(page.getByTestId('chat-empty')).toBeVisible()
+    const field = page.locator('textarea#library-question')
+    await field.fill('Keep this draft')
+    await field.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(5, 9))
+    for (const invoke of [() => page.keyboard.press('Meta+j'), () => fake(app, 'trayClick', 'ask')]) {
+      await page.getByTestId('chat-recent').focus()
+      await invoke()
+      await expect(field).toBeFocused()
+      await page.keyboard.press('Meta+j')
+      await expect(field).toHaveValue('Keep this draft')
+      expect(await field.evaluate((el: HTMLTextAreaElement) => [el.selectionStart, el.selectionEnd])).toEqual([5, 9])
+      expect(await page.evaluate(() => window.yogurt.nav.current())).toBe('/chat')
+    }
   } finally { await app.close() }
 })

@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { Menu } from '@base-ui/react/menu'
-import { Ellipsis, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Ellipsis, Pencil, Plus, Trash2 } from './Icons'
 import { t } from '../../../shared/i18n'
 import { osWords } from '../keys'
 import { Modal, ModalClose } from './Modal'

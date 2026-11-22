@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -14,15 +15,21 @@ test('the compact sidebar keeps navigation and folder actions available, includi
     await page.getByTestId('folder-create').click()
     await page.getByTestId('folder-name-input').fill('Standup')
     await page.getByTestId('folder-name-save').click()
-    const trashY = (await page.getByTestId('nav-trash').boundingBox())!.y
-    const settingsY = (await page.getByTestId('settings-open').boundingBox())!.y
+    const corner = page.getByTestId('corner-menu-button')
+    const footer = page.locator('.workspace-corner')
+    await expect(footer).toHaveCSS('border-top-width', '1px')
+    const markInset = () => corner.locator('svg path').evaluate(mark =>
+      Math.round(mark.getBoundingClientRect().left - mark.closest('.workspace-corner')!.getBoundingClientRect().left))
+    await expect.poll(markInset).toBe(21)
+    const cornerY = (await corner.boundingBox())!.y
     await page.getByTestId('sidebar-collapse').click()
     await expect(page.getByTestId('nav-chat')).toBeVisible()
     await expect.poll(async () => (await page.locator('#workspace-sidebar').boundingBox())!.width).toBe(56)
-    await expect(page.locator('.workspace-wordmark')).toHaveCSS('opacity', '1')
-    expect((await page.locator('.workspace-wordmark').boundingBox())!.width).toBeGreaterThan(16)
-    expect((await page.getByTestId('nav-trash').boundingBox())!.y).toBeCloseTo(trashY, 0)
-    expect((await page.getByTestId('settings-open').boundingBox())!.y).toBeCloseTo(settingsY, 0)
+    await expect.poll(markInset).toBe(17)
+    await expect(corner).toHaveAccessibleName('Help and settings')
+    expect((await corner.boundingBox())!.y).toBeCloseTo(cornerY, 0)
+    await expect(page.getByTestId('nav-trash')).toHaveCount(0)
+    await expect(page.getByTestId('settings-open')).toHaveCount(0)
     await expect(page.getByTestId('nav-chat')).toHaveAccessibleName('Ask')
     await page.getByTestId('nav-chat').click()
     await expect(page.getByTestId('workspace-heading')).toHaveText('Ask')
@@ -38,9 +45,9 @@ test('the compact sidebar keeps navigation and folder actions available, includi
     await page.getByTestId('search-open').click()
     await expect(page.getByTestId('search-input')).toBeVisible()
     await page.keyboard.press('Escape')
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     await expect(page.getByTestId('settings')).toBeVisible()
-    await page.getByTestId('nav-trash').click()
+    await openFromCorner(page, 'nav-trash')
     await expect(page.getByTestId('workspace-heading')).toHaveText('Trash')
     await page.getByTestId('nav-chat').hover()
     const sidebar = page.locator('#workspace-sidebar')
@@ -68,11 +75,17 @@ test('the compact sidebar keeps navigation and folder actions available, includi
     expect(content!.x).toBe(rail!.x + rail!.width)
     expect(await page.locator('.workspace').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
     expect(await page.locator('.workspace-sidebar-body').evaluate(el => getComputedStyle(el).overflowX)).toBe('hidden')
-    await page.evaluate(() => { document.documentElement.dir = 'rtl' })
-    const logoClip = (await page.locator('.workspace-wordmark').boundingBox())!
-    const mark = (await page.getByTestId('wordmark').locator('path').first().boundingBox())!
-    expect(mark.x).toBeGreaterThanOrEqual(logoClip.x)
-    expect(mark.x + mark.width).toBeLessThanOrEqual(logoClip.x + logoClip.width)
-
+    await page.evaluate(() => window.yogurt.settings.setLanguage('ar'))
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')
+    const box = (await corner.boundingBox())!
+    const mark = (await corner.locator('svg path').boundingBox())!
+    expect(mark.x).toBeGreaterThanOrEqual(box.x)
+    expect(mark.x + mark.width).toBeLessThanOrEqual(box.x + box.width)
+    await corner.click()
+    const menu = page.getByTestId('corner-menu')
+    await expect(menu).toBeVisible()
+    const popup = (await menu.boundingBox())!
+    expect(popup.x).toBeGreaterThanOrEqual(0)
+    expect(popup.y + popup.height).toBeLessThanOrEqual(box.y)
   } finally { await app.close() }
 })

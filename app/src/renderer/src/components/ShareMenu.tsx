@@ -1,8 +1,7 @@
 import { usePopoverPresence } from '../motion'
 import { retryToast, toasts } from './TrashToast'
-import { Copy } from './Icons'
+import { Copy, Check, CircleAlert, FileDown, ShareTray } from './Icons'
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { Check, CircleAlert, FileDown, ChevronDown } from 'lucide-react'
 import { t } from '../../../shared/i18n'
 import { command, onMac } from '../keys'
 import { flushOpenNotes } from '../noteAutosave'
@@ -76,7 +75,7 @@ export function ShareMenu({ id, shown, status, hasEnhanced, beforeUse }: { id: s
 
   useEffect(() => {
     if (!open) return
-    items.current[0]?.focus()
+    items.current.find(item => item && !item.disabled)?.focus()
     const away = (e: MouseEvent) => { if (!root.current?.contains(e.target as Node)) setOpen(false) }
     document.addEventListener('mousedown', away)
     return () => document.removeEventListener('mousedown', away)
@@ -102,32 +101,33 @@ export function ShareMenu({ id, shown, status, hasEnhanced, beforeUse }: { id: s
       <span data-testid="share-said" data-tone={said?.kind} role="status" aria-live="polite" aria-atomic="true"
         className={`pointer-events-none absolute end-0 top-full z-20 mt-2 flex w-max max-w-[min(280px,calc(100vw-48px))] items-start gap-1.5 rounded-md text-xs text-muted ${said ? 'border border-line bg-float px-2.5 py-1.5 shadow-[var(--shadow-soft)]' : ''}`}>
         {said && <>
-          {(said.kind === 'copied' || said.kind === 'saved') && <Check data-testid="share-success" size={12} strokeWidth={1.75} aria-hidden="true" className="mt-px shrink-0" />}
-          {said.kind === 'error' && <CircleAlert size={12} strokeWidth={1.75} aria-hidden="true" className="mt-px shrink-0 text-danger" />}
+          {(said.kind === 'copied' || said.kind === 'saved') && <Check data-testid="share-success" size={12} aria-hidden="true" className="mt-px shrink-0" />}
+          {said.kind === 'error' && <CircleAlert size={12} aria-hidden="true" className="mt-px shrink-0 text-danger" />}
           {said.text}
         </>}
       </span>
-      <button ref={button} data-testid="share-button" data-state={copied ? 'copied' : 'idle'} aria-haspopup="menu" aria-expanded={!!open} title={t('Copy and export')}
+      <button ref={button} data-testid="share-button" data-state={copied ? 'copied' : 'idle'} aria-haspopup="menu" aria-expanded={!!open} title={t('Share')}
+        onKeyDown={(e) => { if (e.key === 'ArrowDown') { e.preventDefault(); setOpen('keyboard') } }}
         onClick={(e) => setOpen((o) => o ? false : e.detail > 0 ? 'pointer' : 'keyboard')} className="ghost-btn">
         {/* the status under the button confirms a copy; the button itself stays put */}
-        <Copy size={13} strokeWidth={1.75} aria-hidden="true" />{t('Copy')}
-        <ChevronDown size={12} strokeWidth={1.75} aria-hidden="true" />
+        <ShareTray size={14} aria-hidden="true" />{t('Share')}
       </button>
       {presence.value && (
-        <div data-testid="share-menu" {...presence.props} role="menu" aria-label={t('Copy and export')} onKeyDown={onMenuKey}
+        <div data-testid="share-menu" {...presence.props} role="menu" aria-label={t('Share')} onKeyDown={onMenuKey}
           className="menu-entry absolute end-0 top-full z-30 mt-2 w-60 rounded-xl border border-line bg-float p-1.5 text-ink shadow-[var(--shadow)]">
-          <button ref={(el) => { items.current[0] = el }} role="menuitem" data-testid="share-copy-notes" onClick={() => run(() => void copy('notes', 'mine'))} className={row}>
-            <Copy size={15} strokeWidth={1.75} aria-hidden="true" className="text-muted" /><span className="flex-1">{t('Copy my notes')}</span>
-          </button>
-          <button ref={(el) => { items.current[1] = el }} role="menuitem" data-testid="share-copy-summary" disabled={!hasEnhanced && !writing}
+          <button ref={(el) => { items.current[0] = el }} role="menuitem" data-testid="share-copy-summary" disabled={!hasEnhanced && !writing}
             onClick={() => run(() => void copy('notes', 'enhanced'))} className={`${row} disabled:opacity-40`}>
-            <Copy size={15} strokeWidth={1.75} aria-hidden="true" className="text-muted" />{t('Copy summary')}
+            <Copy size={15} aria-hidden="true" className="flex-none text-muted" />{t('Copy summary')}
+          </button>
+          <button ref={(el) => { items.current[1] = el }} role="menuitem" data-testid="share-copy-notes" onClick={() => run(() => void copy('notes', 'mine'))} className={row}>
+            <Copy size={15} aria-hidden="true" className="flex-none text-muted" /><span className="flex-1">{t('Copy my notes')}</span>
           </button>
           <button ref={(el) => { items.current[2] = el }} role="menuitem" data-testid="share-copy-transcript" onClick={() => run(() => void copy('transcript'))} className={row}>
-            <Copy size={15} strokeWidth={1.75} aria-hidden="true" className="text-muted" />{t('Copy transcript')}
+            <Copy size={15} aria-hidden="true" className="flex-none text-muted" />{t('Copy transcript')}
           </button>
+          <div role="separator" className="meeting-menu-divider" />
           <button ref={(el) => { items.current[3] = el }} role="menuitem" data-testid="share-export" onClick={() => run(() => void save())} className={row}>
-            <FileDown size={15} strokeWidth={1.75} aria-hidden="true" className="text-muted" />{t('Export Markdown…')}
+            <FileDown size={15} aria-hidden="true" className="text-muted" />{t('Save Markdown…')}
           </button>
         </div>
       )}

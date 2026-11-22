@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronDown, ChevronUp, Search, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, Search, X } from './Icons'
 import { t } from '../../../shared/i18n'
 import { stepTranscriptMatch, transcriptMatchIndex, transcriptFindScrollTop, type TranscriptMatch } from '../../../shared/transcriptFind'
 import { useLanguage } from '../i18n'
@@ -121,10 +121,10 @@ export function TranscriptFind({ lines, list, active, playbackInset, beforeScrol
   const control = <div ref={controlRef} className="transcript-toolbar"><div className="transcript-find" data-open={open} onBlur={event => {
     if (open && !event.currentTarget.contains(event.relatedTarget) && !searching) { setOpen(false); onFinding(false) }
   }}>
-    <button ref={trigger} type="button" data-testid="transcript-find-open" className="ghost-btn transcript-find-trigger" aria-label={t('Search the transcript')} title={`${t('Search the transcript')} (${keys('⌘F')})`} aria-expanded={open} aria-hidden={open} aria-controls={fieldId} tabIndex={open ? -1 : 0} onClick={show}><Search size={14} strokeWidth={1.75} aria-hidden="true" /></button>
+    <button ref={trigger} type="button" data-testid="transcript-find-open" className="ghost-btn transcript-find-trigger" aria-label={t('Search the transcript')} title={`${t('Search the transcript')} (${keys('⌘F')})`} aria-expanded={open} aria-hidden={open} aria-controls={fieldId} tabIndex={open ? -1 : 0} onClick={show}><Search size={14} aria-hidden="true" /></button>
     <div id={fieldId} className="transcript-find-clip" inert={!open} aria-hidden={!open}>
       <div className="transcript-search-field">
-        <Search size={14} strokeWidth={1.75} aria-hidden="true" className="shrink-0 text-muted" />
+        <Search size={14} aria-hidden="true" className="shrink-0 text-muted" />
         <input ref={input} data-testid="transcript-search" value={query} onChange={event => { reveal.current = true; setSelected(null); setQuery(event.target.value) }} onKeyDown={event => {
           if (event.nativeEvent.isComposing) return
           if (event.key === 'Enter') { event.preventDefault(); move(event.shiftKey ? -1 : 1) }
@@ -137,11 +137,11 @@ export function TranscriptFind({ lines, list, active, playbackInset, beforeScrol
           <span id={countId} data-testid="transcript-find-count" role="status" aria-live="polite" aria-atomic="true">{searching ? matches.length ? t('{current} of {count}', { current: index + 1, count: matches.length }) : t('No matches') : ''}</span>
         </span>
         <span className="transcript-find-arrows">
-          <button type="button" data-testid="transcript-find-previous" className="ghost-btn workspace-icon" disabled={!matches.length} aria-label={t('Previous match')} title={`${t('Previous match')} (⇧Enter · ${keys('⇧⌘G')})`} aria-keyshortcuts={`Shift+Enter ${onMac() ? 'Meta' : 'Control'}+Shift+G`} onClick={() => move(-1)}><ChevronUp size={14} strokeWidth={1.75} aria-hidden="true" /></button>
-          <button type="button" data-testid="transcript-find-next" className="ghost-btn workspace-icon" disabled={!matches.length} aria-label={t('Next match')} title={`${t('Next match')} (Enter · ${keys('⌘G')})`} aria-keyshortcuts={`Enter ${onMac() ? 'Meta' : 'Control'}+G`} onClick={() => move(1)}><ChevronDown size={14} strokeWidth={1.75} aria-hidden="true" /></button>
+          <button type="button" data-testid="transcript-find-previous" className="ghost-btn workspace-icon" disabled={!matches.length} aria-label={t('Previous match')} title={`${t('Previous match')} (⇧Enter · ${keys('⇧⌘G')})`} aria-keyshortcuts={`Shift+Enter ${onMac() ? 'Meta' : 'Control'}+Shift+G`} onClick={() => move(-1)}><ChevronUp size={14} aria-hidden="true" /></button>
+          <button type="button" data-testid="transcript-find-next" className="ghost-btn workspace-icon" disabled={!matches.length} aria-label={t('Next match')} title={`${t('Next match')} (Enter · ${keys('⌘G')})`} aria-keyshortcuts={`Enter ${onMac() ? 'Meta' : 'Control'}+G`} onClick={() => move(1)}><ChevronDown size={14} aria-hidden="true" /></button>
         </span>
         </span>
-        <button type="button" data-testid="transcript-find-close" className="ghost-btn workspace-icon transcript-find-close" aria-label={t('Close')} title={`${t('Close')} (Esc)`} aria-keyshortcuts="Escape" onClick={close}><X size={14} strokeWidth={1.75} aria-hidden="true" /></button>
+        <button type="button" data-testid="transcript-find-close" className="ghost-btn workspace-icon transcript-find-close" aria-label={t('Close')} title={`${t('Close')} (Esc)`} aria-keyshortcuts="Escape" onClick={close}><X size={14} aria-hidden="true" /></button>
         </span>
       </div>
     </div>

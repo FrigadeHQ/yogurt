@@ -2,8 +2,7 @@ import { openAudioUpload } from './AudioUpload'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Menu } from '@base-ui/react/menu'
-import { ChevronDown, Upload } from 'lucide-react'
-import { Mic } from './Icons'
+import { ChevronDown, Upload, Mic } from './Icons'
 import { toasts } from './TrashToast'
 import { t } from '../../../shared/i18n'
 import { resumesNote } from '../../../shared/agendaNote'
@@ -15,7 +14,7 @@ import { personName } from './People'
 let lastRecording: boolean | undefined
 
 /** Start or resume from a library destination; main resolves the event's note. */
-export function StartRecording({ onStarted, onGone, emptyActions, testId = 'start-recording' }: { emptyActions?: HTMLElement | null; onStarted?: (id: string) => void; onGone?: () => void; testId?: string }) {
+export function StartRecording({ onStarted, onGone, emptyActions, compact, testId = 'start-recording' }: { compact?: boolean; emptyActions?: HTMLElement | null; onStarted?: (id: string) => void; onGone?: () => void; testId?: string }) {
   const [actions, setActions] = useState<HTMLElement | null>(null)
   const [recording, setRecording] = useState(lastRecording)
   const [starting, setStarting] = useState(false)
@@ -80,11 +79,11 @@ export function StartRecording({ onStarted, onGone, emptyActions, testId = 'star
   const resuming = live.length === 1 && resumesNote(live[0].note)
   const label = live.length === 1 ? live[0].note?.source === 'audio-file' ? t('Open {title}', { title }) : resuming ? t('Resume notes · {title}', { title }) : t('Take notes · {title}', { title })
     : live.length > 1 ? t('Take notes · {count} now', { count: live.length }) : t('Start recording')
-  const content = <><Mic size={14} aria-hidden="true" /><span className="recording-label">{label}</span></>
+  const content = <><Mic className="flex-none" size={14} aria-hidden="true" /><span className={compact ? 'sr-only' : 'recording-label'}>{label}</span></>
   const button = { 'data-testid': testId, disabled: starting, title: label, className: 'workspace-button primary recording-main no-drag' }
   return createPortal(<Menu.Root modal={false} open={open} onOpenChange={setOpen}>
     {emptyActions && createPortal(<button type="button" disabled={starting} data-testid="empty-start-recording" className="workspace-button" onClick={() => void start(null)}>
-      <Mic size={14} aria-hidden="true" />{t('Start recording')}
+      <Mic className="flex-none" size={14} aria-hidden="true" />{t('Start recording')}
     </button>, emptyActions)}
     <div ref={root} className="recording-split no-drag" data-split={true}>
       {live.length > 1 ? <Menu.Trigger {...button}>{content}</Menu.Trigger>
@@ -98,13 +97,13 @@ export function StartRecording({ onStarted, onGone, emptyActions, testId = 'star
             const resume = resumesNote(event.note), title = event.title || t('Meeting')
             const label = event.note?.source === 'audio-file' ? t('Open {title}', { title }) : resume ? t('Resume notes · {title}', { title }) : title
             return <Menu.Item key={event.id} data-testid="recording-meeting" label={title} disabled={starting} onClick={() => void start(event.id)}>
-              <Mic size={14} aria-hidden="true" />
+              <Mic className="flex-none" size={14} aria-hidden="true" />
               <span className="recording-meeting-copy"><span title={label}>{label}</span>{event.attendees.length > 0 && <small>{event.attendees.map(person => personName(person.name)).join(', ')}</small>}</span>
               <span className="recording-timing">{eventPhase(event, now) === 'live' ? t('Now') : t('in {count} min', { count: Math.ceil((event.start - now) / 60_000) })}</span>
             </Menu.Item>
           })}
           {choices.length > 0 && <Menu.Separator className="recording-menu-separator" />}
-          <Menu.Item data-testid="recording-unattached" disabled={starting} onClick={() => void start(null)}><Mic size={14} aria-hidden="true" />{t('New recording')}</Menu.Item>
+          <Menu.Item data-testid="recording-unattached" disabled={starting} onClick={() => void start(null)}><Mic className="flex-none" size={14} aria-hidden="true" />{t('New recording')}</Menu.Item>
           <Menu.Item data-testid="recording-upload" disabled={starting} onClick={() => { setOpen(false); void openAudioUpload(onStarted) }}><Upload size={14} aria-hidden="true" />{t('Upload a file')}</Menu.Item>
         </Menu.Popup>
       </Menu.Positioner>

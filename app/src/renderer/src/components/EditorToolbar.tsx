@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useEditorState, type Editor } from '@tiptap/react'
 import { BubbleMenu, type BubbleMenuProps } from '@tiptap/react/menus'
 import { closeHistory } from '@tiptap/pm/history'
-import { Bold, Heading, Italic, List, ListOrdered } from 'lucide-react'
+import { Bold, Heading, Italic, List, ListOrdered } from './Icons'
 import { dirOf, t } from '../../../shared/i18n'
 import { useLanguage } from '../i18n'
 

@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { ExternalLink, LoaderCircle } from 'lucide-react'
+import { ExternalLink, LoaderCircle } from './Icons'
 import { calendarAddress } from '../../../shared/calendarLink'
 import { t } from '../../../shared/i18n'
 

@@ -2,7 +2,7 @@ import { AboutYogurt } from '../components/AboutYogurt'
 import { retryToast, toasts } from '../components/TrashToast'
 import { LoadingContent } from '../components/LoadingContent'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Check, ChevronDown, Copy, Download, ExternalLink, Globe, Lock, Upload, FileText } from 'lucide-react'
+import { Check, ChevronDown, Copy, Download, ExternalLink, Globe, Lock, Upload, FileText } from '../components/Icons'
 import type { Access, AppVisibility, McpStatus, PermissionKind, PermissionStatus, SetupState, Theme, UpdateStatus } from '../../../shared/types'
 import { notesDownloadText, notesUpgradeSize } from '../notesSetup'
 import { permissionCopy } from '../permissionCopy'
@@ -233,6 +233,21 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
               await window.yogurt.settings.setKeepRecordings(on)
               setPrefs(p => p && { ...p, keepRecordings: on })
             }} />
+            <div className="settings-row">
+              <div className="settings-row-copy">
+                <label htmlFor="recording-credit" className="settings-label">{t('Add “{credit}”', { credit: t('Recorded with {app}', { app: 'Yogurt' }) })}</label>
+                <p id="recording-credit-description" className="settings-description">{t('On copied summaries and saved Markdown files.')}</p>
+              </div>
+              <button id="recording-credit" role="switch" aria-checked={prefs?.includeRecordingCredit ?? true} aria-describedby="recording-credit-description"
+                disabled={!prefs || general.busy} className="settings-toggle" onClick={() => {
+                  if (!prefs) return
+                  const on = !prefs.includeRecordingCredit
+                  void general.save(async () => {
+                    await window.yogurt.settings.setIncludeRecordingCredit(on)
+                    setPrefs(p => p && { ...p, includeRecordingCredit: on })
+                  }, 'recording-credit-retry')
+                }}><span className="settings-toggle-knob" /></button>
+            </div>
             <NotesModel reveal={focus === 'notes-model'} />
           </LoadingContent></div>
 
@@ -325,7 +340,7 @@ function AppLanguage() {
   const system = LOCALES.find((l) => l.id === s?.systemLocale)?.name ?? 'English'
   return (
     <LoadingContent pending={!s} testId="language-loading"><div className="settings-row">
-      <span className="settings-permission-icon"><Globe size={17} strokeWidth={1.75} aria-hidden="true" /></span>
+      <span className="settings-permission-icon"><Globe size={17} aria-hidden="true" /></span>
       <div className="settings-row-copy">
         <label htmlFor="settings-app-language" className="settings-label">{t('App language')}</label>
         <p className="settings-description">{t("This changes the language of Yogurt's menus and buttons.")}</p>
@@ -351,7 +366,7 @@ function SummaryLanguage() {
   }
   return (
     <LoadingContent pending={language === undefined}><div className="settings-row">
-      <span className="settings-permission-icon"><FileText size={17} strokeWidth={1.75} aria-hidden="true" /></span>
+      <span className="settings-permission-icon"><FileText size={17} aria-hidden="true" /></span>
       <div className="settings-row-copy">
         <label htmlFor="settings-summary-language" className="settings-label">{t('Summary language')}</label>
         <p id="settings-summary-language-description" className="settings-description">{t('Used for new summaries and when you write them again.')}</p>
@@ -375,7 +390,7 @@ export function PermissionRow({ kind, status, onAsk }: { kind: PermissionKind; s
   const granted = status === 'granted'
   return (
     <li data-testid="permission-row" data-kind={kind} data-status={status ?? ''} className="settings-row">
-      <span className="settings-permission-icon"><Icon size={17} strokeWidth={1.75} aria-hidden="true" /></span>
+      <span className="settings-permission-icon"><Icon size={17} aria-hidden="true" /></span>
       <div className="settings-row-copy">
         <p className="settings-permission-label">
           {c.name}
@@ -466,7 +481,7 @@ function Backup({ onImported }: { onImported(): void }) {
   )
 }
 
-/** AI apps on this Mac reading meetings through MCP: off until turned on, with what that means */
+/** AI apps on this Mac using meetings through MCP: reading off until turned on, changes off until turned on too, with what that means */
 function AiApps() {
   const [status, setStatus] = useState<McpStatus>()
   const [copied, setCopied] = useState(false)
@@ -476,6 +491,7 @@ function AiApps() {
   }, [])
   const change = useSettingSave('ai-apps-retry', useCallback(() => { void window.yogurt.mcp.status().then(setStatus) }, []))
   const toggle = () => status && change.save(async () => { setStatus(await window.yogurt.mcp.set(!status.enabled)) })
+  const toggleChanges = () => status && change.save(async () => { setStatus(await window.yogurt.mcp.setChanges(!status.changes)) })
   const copy = () => { if (status) void navigator.clipboard.writeText(status.command).then(() => setCopied(true)) }
   const on = !!status?.enabled
   return (
@@ -492,6 +508,17 @@ function AiApps() {
           </button>
         </div>
 
+        {on && status &&
+          <div className="settings-row">
+            <div className="settings-row-copy">
+              <p className="settings-label">{t('Let AI apps make changes')}</p>
+              <p className="settings-description">{t('They can file and rename meetings, edit notes, start and stop recording, and bring in meetings from other notes apps. Nothing is deleted for good: removed meetings go to the Trash.')}</p>
+            </div>
+            <button data-testid="ai-apps-changes-toggle" disabled={change.busy} role="switch" aria-checked={status.changes} aria-label={t('Let AI apps make changes')} onClick={toggleChanges} className="settings-toggle">
+              <span className="settings-toggle-knob" />
+            </button>
+          </div>
+        }
         {on && status &&
           <div className="settings-row">
             <div className="settings-row-copy">

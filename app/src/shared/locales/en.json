@@ -1,9 +1,12 @@
 {
   "I'll review it that afternoon.": "I'll review it that afternoon.",
   "Then I can get the final copy ready for Tuesday.": "Then I can get the final copy ready for Tuesday.",
+  "Hide Agenda": "Hide Agenda",
+  "Show Agenda": "Show Agenda",
   "About Yogurt": "About Yogurt",
   "Like Yogurt? Sharing it or starring it on GitHub helps us keep building it.": "Like Yogurt? Sharing it or starring it on GitHub helps us keep building it.",
   "Copy link": "Copy link",
+  "Share": "Share",
   "Share…": "Share…",
   "View on GitHub": "View on GitHub",
   "Yogurt couldn't open the share menu.": "Yogurt couldn't open the share menu.",
@@ -12,6 +15,8 @@
   "Stop": "Stop",
   "Stopping…": "Stopping…",
   "Stop recording": "Stop recording",
+  "Add “{credit}”": "Add “{credit}”",
+  "On copied summaries and saved Markdown files.": "On copied summaries and saved Markdown files.",
   "Stop recording when the call ends": "Stop recording when the call ends",
   "Your notes, transcript, and previous audio are kept. Your edited summary will be replaced when you stop recording.": "Your notes, transcript, and previous audio are kept. Your edited summary will be replaced when you stop recording.",
   "Yogurt reads speaker names from supported call windows and adds them to the transcript.": "Yogurt reads speaker names from supported call windows and adds them to the transcript.",
@@ -151,12 +156,8 @@
   "Choose meetings or folders": "Choose meetings or folders",
   "In this chat": "In this chat",
   "and {count} others": {
-    "one": "and {count} other",
-    "other": "and {count} others"
-  },
-  "{count} more": {
-    "one": "{count} more",
-    "other": "{count} more"
+    "one": "and {count} more",
+    "other": "and {count} more"
   },
   "Clear": "Clear",
   "Searched {name}": "Searched {name}",
@@ -166,7 +167,7 @@
   "Connected apps · {apps}": "Connected apps · {apps}",
   "Custom words": "Custom words",
   "Export Markdown": "Export Markdown",
-  "Export Markdown…": "Export Markdown…",
+  "Save Markdown…": "Save Markdown…",
   "Export backup": "Export backup",
   "Now · {title}": "Now · {title}",
   "{title} · in {time}": "{title} · in {time}",
@@ -248,12 +249,9 @@
   "Previous match": "Previous match",
   "Next match": "Next match",
   "Update ready": "Update ready",
-  "Installs when you restart Yogurt": "Installs when you restart Yogurt",
   "You can restart after recording": "You can restart after recording",
-  "Later": "Later",
   "Restart": "Restart",
   "Yogurt couldn't restart. Try again.": "Yogurt couldn't restart. Try again.",
-  "Yogurt {version}": "Yogurt {version}",
   "Upload a file": "Upload a file",
   "Audio": "Audio",
   "Transcribe": "Transcribe",
@@ -277,5 +275,14 @@
   "Enter an https:// or webcal:// calendar address.": "Enter an https:// or webcal:// calendar address.",
   "The address stays on this computer.": "The address stays on this computer.",
   "Add a calendar by link": "Add a calendar by link",
-  "Calendars from the Mac's Calendar app appear above automatically.": "Calendars from the Mac's Calendar app appear above automatically."
+  "Calendars from the Mac's Calendar app appear above automatically.": "Calendars from the Mac's Calendar app appear above automatically.",
+  "What's new": "What's new",
+  "New": "New",
+  "Star us on GitHub": "Star us on GitHub",
+  "Join Discord": "Join Discord",
+  "Send feedback": "Send feedback",
+  "Help": "Help",
+  "Help and settings": "Help and settings",
+  "Yogurt menu": "Yogurt menu",
+  "Restart to update · {version}": "Restart to update · {version}"
 }

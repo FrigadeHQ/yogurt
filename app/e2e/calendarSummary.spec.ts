@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -14,7 +15,7 @@ test('calendar disclosure summarizes the enabled selection and stays useful when
     await app.evaluate(() => (globalThis as any).__fake__.calendarEvents(['Work', 'Personal', 'Family'].map((name, i) => ({
       id: `event-${i}`, title: name, calendarId: name.toLowerCase(), calendar: name, calendarSource: 'Example account', calendarColor: '#3478F6', start: new Date().toISOString(), end: new Date(Date.now() + 3600000).toISOString(),
     }))))
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     const toggle = page.getByTestId('calendar-settings-toggle'), section = page.getByTestId('calendar-settings'), summary = page.getByTestId('calendar-settings-summary')
     if (!before) {
       await expect(section.getByRole('heading', { name: 'Calendars', exact: true })).toBeVisible()

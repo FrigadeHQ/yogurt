@@ -1,6 +1,6 @@
 import { LoadingContent } from './LoadingContent'
 import { useEffect, useState } from 'react'
-import { Languages } from 'lucide-react'
+import { Languages } from './Icons'
 import { SPOKEN, type Spoken } from '../../../shared/spoken'
 import { t } from '../../../shared/i18n'
 
@@ -22,7 +22,7 @@ export function SpokenSetting() {
   }
   return (
     <LoadingContent pending={!spoken}><div className="settings-row" data-kind="spoken">
-      <span className="settings-permission-icon"><Languages size={17} strokeWidth={1.75} aria-hidden="true" /></span>
+      <span className="settings-permission-icon"><Languages size={17} aria-hidden="true" /></span>
       <div className="settings-row-copy">
         <p className="settings-label">{t('Spoken language')}</p>
         <p className="settings-description">{t('English only is faster and more accurate. Pick Multi-language for meetings in other languages.')}</p>

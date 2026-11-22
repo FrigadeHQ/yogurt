@@ -256,6 +256,28 @@ export function hookConversations(p: Deps) {
       p.library.deleteConversation(id)
       p.sendList(list())
     },
+    /**
+     * One question from another app (MCP): answered the same way, then the conversation goes, so Ask's list keeps
+     * only the person's own. It never waits for a download or a recording to end: it says so instead. A long answer
+     * is stopped after timeoutMs, with what was written.
+     */
+    async askOnce(question: string, chips: import('../../shared/askContext').ContextChip[], o: { timeoutMs?: number } = {}):
+      Promise<{ unavailable: 'model' | 'recording' } | { answer: string; sources: LibrarySource[]; stopped?: true }> {
+      if (p.waitsForModel()) return { unavailable: 'model' }
+      if (p.waitsForMeeting()) return { unavailable: 'recording' }
+      const cid = p.library.current(chips, true)
+      try {
+        const { done } = ask(cid, question)
+        let timer: NodeJS.Timeout | undefined
+        await Promise.race([done, new Promise<void>((r) => { timer = setTimeout(() => { running.get(cid)?.abort(); r() }, o.timeoutMs ?? 120_000) })])
+        clearTimeout(timer)
+        await done
+        const turn = turns(cid).at(-1)
+        if (!turn || turn.status === 'failed') throw new Error('The answer failed')
+        const cited = new Set(citedIn(turn.answer))
+        return { answer: turn.answer, sources: turn.sources.filter((s) => cited.has(s.n)), ...(turn.status === 'stopped' ? { stopped: true as const } : {}) }
+      } finally { api.remove(cid) }
+    },
     /** Imports may bring waiting questions too; open conversations hear when the model arrives. */
     refresh() { recover(); for (const id of open.keys()) push(id) },
   }

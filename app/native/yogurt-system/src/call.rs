@@ -36,10 +36,14 @@ fn control_label(s: &str) -> String {
     s.trim().to_ascii_lowercase()
 }
 
-/// Whether a tree has a call control: the calendar and chat views have no Leave or Mute, the call window always does
+/// Whether a tree has a call control: the calendar and chat views have no Leave or Mute, the call window always does.
+/// Teams' hang-up button keeps its page id in every language, so that counts too, as on the Mac (#83).
 pub fn is_call_tree(tree: &Value) -> bool {
     fn walk(n: &Value) -> bool {
         let Some(o) = n.as_object() else { return false };
+        if o.get("i").and_then(Value::as_str) == Some("hangup-button") {
+            return true;
+        }
         let role = o.get("r").and_then(Value::as_str).unwrap_or("");
         if matches!(role, "button" | "push button" | "toggle button" | "menu item") {
             for key in ["t", "d"] {
@@ -130,5 +134,13 @@ mod tests {
         let muted = json!({ "r": "frame", "k": [{ "r": "toggle button", "t": "Unmute mic (Ctrl+Shift+M)" }] });
         assert!(is_call_tree(&muted));
         assert!(!is_call_tree(&json!({ "r": "frame", "k": [{ "r": "button", "t": "Leave chat (Ctrl+Shift+L)" }] })));
+    }
+
+    #[test]
+    fn the_hang_up_id_is_a_call_in_any_language() {
+        // Teams in Portuguese labels Leave "Sair": its page id stays "hangup-button", as the Mac reader matches (#83)
+        let call = json!({ "r": "frame", "k": [{ "r": "button", "t": "Sair (Ctrl+Shift+H)", "i": "hangup-button" }] });
+        assert!(is_call_tree(&call));
+        assert!(!is_call_tree(&json!({ "r": "frame", "k": [{ "r": "button", "t": "Sair", "i": "leave-chat-button" }] })));
     }
 }

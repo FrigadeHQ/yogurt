@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test, type ElectronApplication } from '@playwright/test'
 import { mkdtempSync, writeFileSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -26,7 +27,7 @@ test('calendar selection persists, filters matching copies, and keeps separate t
     await fake(app, 'calendarEvents', [row, { ...row, id: 'personal-copy', calendarId: 'personal', calendar: 'Personal' }, { ...row, id: 'next-slot', start: new Date(+at + 7200000).toISOString(), end: new Date(+at + 10800000).toISOString() }])
     await page.reload()
     await expect(page.getByTestId('event')).toHaveCount(2)
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     const calendars = page.getByTestId('calendar-settings-toggle')
     await expect(calendars).toHaveAttribute('aria-expanded', 'false')
     await expect(page.getByTestId('calendar-choice').first()).not.toBeVisible()

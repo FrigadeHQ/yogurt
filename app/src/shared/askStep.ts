@@ -1,4 +1,4 @@
-import { t } from './i18n'
+import { moreItems, t } from './i18n'
 import type { AskStep } from './types'
 
 /** a step that runs long says it is still on it this often */
@@ -19,6 +19,6 @@ function wordings(step: AskStep | undefined): string[] {
   const next = t('Still reading…')
   const title = step.title?.trim() || t('Untitled meeting')
   // several meetings: named like the scope pill, the closest match first
-  if (step.meetings && step.meetings > 1) return [t('Reading {title} {others}…', { title, others: t('and {count} others', { count: step.meetings - 1 }) }), next]
+  if (step.meetings && step.meetings > 1) return [t('Reading {title} {others}…', { title, others: moreItems(step.meetings - 1) }), next]
   return [t('Reading {title}…', { title }), t('Still reading {title}…', { title }), next]
 }

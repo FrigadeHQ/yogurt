@@ -1,7 +1,7 @@
 import { usePopoverPresence } from '../motion'
 import { Component, createRef, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { ScrollFade } from './ScrollFade'
-import { CalendarDays, Plus, ChevronDown, ChevronLeft, ChevronRight, Clock, ExternalLink, Link2Off } from 'lucide-react'
+import { CalendarDays, Plus, ChevronDown, ChevronLeft, ChevronRight, Clock, ExternalLink, Link2Off } from './Icons'
 import type { CalEvent, CalendarStatus, Meeting } from '../../../shared/types'
 import { language, t } from '../../../shared/i18n'
 import { noteDateLabel, timeOf } from '../dates'
@@ -11,6 +11,37 @@ import { useNoteCalendar, type NoteCalendar } from '../useNoteCalendar'
 import { useNotePopover } from '../useNotePopover'
 import { useLoadingState } from '../useLoadingState'
 import { nearestEvents, shiftCalendarDay } from '../../../shared/calendarPicker'
+
+/** Give the linked name the space left after the other chips and actions choose their widths. */
+function fitNoteEventName(name: HTMLSpanElement | null) {
+  const button = name?.closest('button')
+  const chips = button?.closest('.note-metadata')
+  const row = chips?.closest('.note-meta-row')
+  const actions = row?.querySelector('.note-header-actions')
+  if (!name || !button || !row || !chips || !actions) return
+  const context = document.createElement('canvas').getContext('2d')!
+  const width = (el: Element) => el.getBoundingClientRect().width
+  const gap = (el: Element) => parseFloat(getComputedStyle(el).columnGap)
+  const fit = () => {
+    context.font = getComputedStyle(name).font
+    const minimum = context.measureText('0').width * 8
+    let onChipsLine = width(row) - (width(button) - width(name))
+    const chipGap = gap(chips)
+    for (const chip of chips.children) {
+      if (chip === button.parentElement) continue
+      observer.observe(chip)
+      if (chip.getClientRects().length) onChipsLine -= width(chip) + chipGap
+    }
+    const besideActions = onChipsLine - width(actions) - gap(row)
+    // When actions need their own line, give their space back to the name.
+    const budget = besideActions >= minimum ? besideActions : Math.max(minimum, onChipsLine)
+    name.style.maxInlineSize = `${budget}px`
+  }
+  const observer = new ResizeObserver(fit)
+  for (const el of [row, chips, actions, ...button.children]) observer.observe(el)
+  fit()
+  return () => observer.disconnect()
+}
 
 export function NoteDate({ m }: { m: Meeting }) {
   const [open, setOpen] = useState<false | 'pointer' | 'keyboard'>(false)
@@ -25,10 +56,10 @@ export function NoteDate({ m }: { m: Meeting }) {
   return <div className="relative note-date-anchor">
     <button ref={chip} title={eventTitle} data-testid="note-date" aria-label={eventTitle ? `${date} ${eventTitle}` : undefined} aria-haspopup="dialog" aria-expanded={!!open} onClick={e => setOpen(o => o ? false : e.detail > 0 ? 'pointer' : 'keyboard')}
       className="note-chip note-date-chip flex items-center gap-1.5 rounded-md border border-line px-2.5 text-[13px] text-muted">
-      <CalendarDays size={14} strokeWidth={1.75} aria-hidden="true" /><span>{date}</span>
+      <CalendarDays size={14} aria-hidden="true" /><span>{date}</span>
       {eventTitle && <>
         <span aria-hidden="true" className={color ? 'note-date-chip-dot' : undefined} style={{ backgroundColor: color }}>{color ? null : ' · '}</span>
-        <span className="note-date-chip-name" dir="auto">{eventTitle}</span>
+        <span ref={fitNoteEventName} className="note-date-chip-name" dir="auto">{eventTitle}</span>
       </>}
     </button>
     {presence.value && <DateCard key={m.id} m={m} details={details} event={event} eventTitle={eventTitle} color={color} refreshLinked={refresh} chip={chip} motionProps={presence.props} onClose={close} />}

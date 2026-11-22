@@ -95,3 +95,7 @@ it('does not turn a failed owner lookup into a false call end', async () => {
   const x = createSignals({ helper: async args => args[0] === 'mic-apps' ? [{ bundleId: 'com.apple.avconferenced' }] : null, events: async () => [] })
   await expect(x.read(0)).rejects.toThrow('Could not read running call apps')
 })
+it('keeps the pid of the process on the mic, so names are read from that process only (#98)', async () => {
+  const x = createSignals({ helper: async (args) => args[0] === 'mic-apps' ? [{ bundleId: 'us.zoom.xos', name: 'zoom.us', pid: 501 }] : [], events: async () => [] })
+  expect((await x.read(0)).micApps).toEqual([{ bundleId: 'us.zoom.xos', name: 'zoom.us', pid: 501 }])
+})

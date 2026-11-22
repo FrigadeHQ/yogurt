@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -42,7 +43,7 @@ for (const theme of ['light', 'dark'] as const) for (const width of [1200, 720])
         await page.screenshot({ path: info.outputPath(`empty-${label}-${theme}-${width}.png`) })
       }
       await check('past-empty', 'meetings')
-      await page.getByTestId('nav-trash').click()
+      await openFromCorner(page, 'nav-trash')
       await check('trash-none', 'trash')
       await page.getByTestId('folder-create').click()
       await page.getByTestId('folder-name-input').fill('Projects')

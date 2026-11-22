@@ -1,3 +1,4 @@
+import { meterHeights } from './meterGeometry'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -260,11 +261,11 @@ test('hints retain both unavailable recording inputs', async () => {
   } finally { await app.close() }
 })
 
-test('with reduced motion the meter stays three static dots', async () => {
+test('reduced motion keeps five visible bars without travel', async () => {
   const { app, page } = await launch()
   try {
     const w = await record(app, page)
-    const drawn = (id: string) => w.getByTestId(id).evaluate((c: HTMLCanvasElement) => c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data.some((v, i) => i % 4 === 3 && v > 0))
+    const drawn = async (id: string) => (await meterHeights(w.getByTestId(id))).filter(h => h > 0).length === 5
     // the setting changing while the widget is up is picked up
     await w.emulateMedia({ reducedMotion: 'reduce' })
     await expect.poll(() => drawn('widget-wave')).toBe(true)

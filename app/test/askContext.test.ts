@@ -176,11 +176,11 @@ it('unions live folder membership without duplicates or widening an empty/delete
   expect(chipScope([], () => true, () => [])).toBeUndefined()
 })
 
-it('routes Command-J to the current note/folder/global conversation, and a fresh global one from Ask', () => {
-  expect(askDestination('/note/n')).toEqual({ panel: true, fresh: false, chips: [{ kind: 'meeting', id: 'n' }] })
-  expect(askDestination('/folder/f')).toEqual({ panel: false, fresh: false, chips: [{ kind: 'folder', id: 'f' }] })
-  for (const route of ['', '/trash', '/settings']) expect(askDestination(route)).toEqual({ panel: false, fresh: false, chips: [] })
-  for (const route of ['/chat', '/chat/c']) expect(askDestination(route)).toEqual({ panel: false, fresh: true, chips: [] })
+it('focuses the composer on both Ask routes and opens Ask in context elsewhere', () => {
+  for (const route of ['/chat', '/chat/c']) expect(askDestination(route)).toEqual({ kind: 'focus' })
+  expect(askDestination('/note/n')).toEqual({ kind: 'panel' })
+  expect(askDestination('/folder/f')).toEqual({ kind: 'conversation', chips: [{ kind: 'folder', id: 'f' }] })
+  for (const route of ['', '/trash', '/settings']) expect(askDestination(route)).toEqual({ kind: 'conversation', chips: [] })
 })
 
 it('finds a mention at the caret without treating emails as chips or consuming text after the caret', () => {

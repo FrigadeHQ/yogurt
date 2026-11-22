@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { selectNoteVersion } from './noteVersion'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs'
@@ -469,7 +470,7 @@ test('delete from the note menu: not while it records; to the Trash with Undo; d
     await page.getByTestId('note-delete').click()
     await expect(page.getByTestId('home')).toBeVisible()
     // Delete forever, from the Trash: asks first, Cancel focused
-    await page.getByTestId('nav-trash').click()
+    await openFromCorner(page, 'nav-trash')
     await expect(page.getByTestId('trash-row')).toHaveCount(1)
     await page.getByTestId('trash-row').hover()
     await page.getByTestId('trash-delete').click()

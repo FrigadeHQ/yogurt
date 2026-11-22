@@ -13,7 +13,8 @@ import { readCall, summarize, type AxWindow, type CallKind } from './parse'
 
 /** what yogurt-mac call-watch prints each time it reads: the call windows, or why it could not */
 export type WatchLine = { t: number; app?: string; windows?: AxWindow[]; error?: string }
-export type Watch = (ids: string[], onLine: (l: WatchLine) => void) => { stop(): void }
+/** pids: read only these processes' windows (the call app's processes on the mic); none known, the app's frontmost with a call */
+export type Watch = (ids: string[], onLine: (l: WatchLine) => void, pids?: number[]) => { stop(): void }
 
 /** the call apps that can be read, by the name meeting detection gives them (detect.ts), and the kind of window each
  * has. A Mac's ids are bundle ids; Linux's are program names or Flatpak app ids; Windows's are program file names,
@@ -25,6 +26,7 @@ const APPS: Record<string, { kind: CallKind; ids: string[] }> = {
   Chrome: { kind: 'meet', ids: ['com.google.Chrome', 'chrome', 'google-chrome', 'chrome.exe'] },
   Arc: { kind: 'meet', ids: ['company.thebrowser.Browser', 'arc.exe'] },
   Ardia: { kind: 'meet', ids: ['com.ardia.browser'] },
+  Dia: { kind: 'meet', ids: ['company.thebrowser.dia'] },
   Brave: { kind: 'meet', ids: ['com.brave.Browser', 'brave', 'brave.exe'] },
   Edge: { kind: 'meet', ids: ['com.microsoft.edgemac', 'msedge', 'com.microsoft.Edge', 'msedge.exe'] },
   Safari: { kind: 'meet', ids: ['com.apple.Safari'] },
@@ -55,7 +57,7 @@ const MAX_RESTARTS = 20
 const LOGGED_CHANGES = 30
 
 type Sample = Omit<CallSample, 'ms'> & { t: number }
-type Session = { app: string | null; ids: string[]; heardAt: number; restarts: number; samples: Sample[]; priorLines: Set<number>; watch?: { stop(): void }; everyApp: boolean; offset?: number; startedAt: number; pictured: boolean; errors: Set<string>; last: string; logged: number }
+type Session = { app: string | null; ids: string[]; pids?: number[]; heardAt: number; restarts: number; samples: Sample[]; priorLines: Set<number>; watch?: { stop(): void }; everyApp: boolean; offset?: number; startedAt: number; pictured: boolean; errors: Set<string>; last: string; logged: number }
 
 export function hookCallNames(p: {
   store: Pick<Store, 'meeting' | 'segments' | 'setSegmentSpeakers' | 'updateMeeting'>
@@ -69,6 +71,8 @@ export function hookCallNames(p: {
   onStart: (fn: (m: RecordingStart) => void) => unknown
   onStop: (fn: (m: Meeting) => void) => unknown
   onCapture: (fn: (c: { on(e: 'pcm', fn: (track: 'me' | 'them', ms: number, samples: Float32Array) => void): unknown }, meetingId: string) => void) => unknown
+  /** the processes of a call app on the mic now (detect.ts micPids): two Zoom meetings are two processes (#98) */
+  micPids?: (app: string) => number[]
   /** a recording started by hand learned its call app from the mic (watch.ts, CALL bind) */
   onBind?: (fn: (m: Meeting) => void) => unknown
   log?: (msg: string) => void
@@ -112,12 +116,20 @@ export function hookCallNames(p: {
     s.last = said
   }
 
+  /** Starts the session's reader. With its app's process on the mic known, only that one is read: another meeting open
+   * in the same app (a second Zoom process) never gives this one its names or people (#98). */
+  const begin = (id: string, s: Session) => {
+    const pids = s.pids ?? (s.app ? p.micPids?.(s.app) : undefined)
+    s.pids = pids?.length ? pids : undefined
+    try { s.watch = p.watch(s.ids, (l) => onLine(id, s, l), s.pids) } catch (e) { console.error('call names: the watch did not start', e) }
+  }
+
   p.onStart((m) => {
     const ids = watchIds(m.app)
     const s: Session = { app: m.app, ids, heardAt: now(), restarts: 0, everyApp: !m.app, samples: [], priorLines: new Set(p.store.segments(m.id, { hidden: true }).map((line) => line.id)), startedAt: m.resume ? m.resume.startedAt - m.resume.startMs : m.startedAt, pictured: false, errors: new Set(), last: '', logged: 0 }
     sessions.set(m.id, s)
     if (!ids.length) { log(`call names: ${m.app} can't be read, the other side is Them`); return }
-    try { s.watch = p.watch(ids, (l) => onLine(m.id, s, l)) } catch (e) { console.error('call names: the watch did not start', e) }
+    begin(m.id, s)
   })
 
   // A recording started by hand reads every call app, the frontmost with a call first; another app's window (a Teams
@@ -133,7 +145,7 @@ export function hookCallNames(p: {
     log(`call names: the call is in ${m.app}, reading only it`)
     if (!ids.length) return
     s.pictured = false
-    try { s.watch = p.watch(ids, (l) => onLine(m.id, s, l)) } catch (e) { console.error('call names: the watch did not start', e) }
+    begin(m.id, s)
   })
 
   // meeting time 0 on the wall clock: the earliest any audio could have been heard (each frame arrives a little after it was said)
@@ -173,12 +185,21 @@ export function hookCallNames(p: {
   /** a reader that stopped sending readings is stopped and started again (the cause is logged where it's known) */
   function checkQuiet() {
     for (const [id, s] of sessions) {
+      // the app came on the mic after the reader started: from now on only that process, and what was read before
+      // may be another meeting's (#98)
+      if (s.watch && s.app && !s.pids && p.micPids?.(s.app).length) {
+        log(`call names: ${s.app} is on the mic now, reading only its process`)
+        s.watch.stop(); s.watch = undefined
+        s.samples = []; s.heardAt = now(); s.pictured = false
+        begin(id, s)
+        continue
+      }
       if (!s.watch || !s.ids.length || now() - s.heardAt <= QUIET_MS || s.restarts >= MAX_RESTARTS) continue
       log(`call names: the reader went quiet for ${Math.round((now() - s.heardAt) / 1000)} s; starting it again`)
       s.restarts++
       s.watch.stop(); s.watch = undefined
       s.heardAt = now()
-      try { s.watch = p.watch(s.ids, (l) => onLine(id, s, l)) } catch (e) { console.error('call names: the watch did not start', e) }
+      begin(id, s)
     }
   }
   ;(p.every ?? ((fn, ms) => setInterval(fn, ms).unref()))(checkQuiet, 2000)

@@ -1,6 +1,6 @@
 import type { CalEvent } from './calendar'
 
-export type MicApp = { bundleId: string; name: string; /** the window's title, when known */ title?: string }
+export type MicApp = { bundleId: string; name: string; /** the process on the mic */ pid?: number; /** the window's title, when known */ title?: string }
 export type Signals = { micApps: MicApp[]; events: CalEvent[]; recording: boolean; /** owners confirmed by NSRunningApplication */ runningApps?: string[] }
 export type Prompt = { key: string; /** the event's title; empty with no event (the window words it) */ title: string; app: string | null; event: CalEvent | null }
 /** keys of prompts the person closed */
@@ -26,6 +26,7 @@ const MAC_APPS: CallApp[] = [
   { id: 'com.google.Chrome', name: 'Chrome', browser: true },
   { id: 'company.thebrowser.Browser', name: 'Arc', browser: true },
   { id: 'com.ardia.browser', name: 'Ardia', browser: true },
+  { id: 'company.thebrowser.dia', name: 'Dia', browser: true },
   { id: 'com.apple.Safari', name: 'Safari', browser: true },
   { id: 'com.microsoft.edgemac', name: 'Edge', browser: true },
   { id: 'org.mozilla.firefox', name: 'Firefox', browser: true },
@@ -93,6 +94,10 @@ const micApp = (bundleId: string, runningApps: readonly string[] = []) => {
 }
 /** Helpers count only while their owning app is running. Direct app mic holders prove their own presence. */
 export const callAppName = (bundleId: string, runningApps?: readonly string[]): string | null => micApp(bundleId, runningApps)?.name ?? null
+
+/** The processes of a call app on the mic now, its helpers too: with two Zoom meetings open, the one being recorded (#98) */
+export const micPids = (micApps: readonly MicApp[], runningApps: readonly string[] | undefined, app: string): number[] =>
+  micApps.flatMap((m) => (m.pid !== undefined && callAppName(m.bundleId, runningApps) === app ? [m.pid] : []))
 
 /** The browser to ask for the front tab's name when this process is on the mic; null for apps that are not browsers */
 export const tabTitleApp = (bundleId: string): string | null => {

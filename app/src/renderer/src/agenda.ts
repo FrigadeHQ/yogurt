@@ -1,5 +1,14 @@
 import type { AgendaEvent } from '../../shared/types'
 
+const agendaOpenKey = 'home.agendaOpen'
+
+export function readAgendaOpen(): boolean {
+  try { return window.localStorage.getItem(agendaOpenKey) !== 'false' } catch { return true }
+}
+export function saveAgendaOpen(open: boolean) {
+  try { window.localStorage.setItem(agendaOpenKey, String(open)) } catch { /* The toggle still works for this visit. */ }
+}
+
 /** Local noon avoids shifting the selected date at daylight-saving boundaries. */
 export function shiftDay(at: number, offset: number): number {
   const date = new Date(at)

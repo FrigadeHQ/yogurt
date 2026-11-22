@@ -44,7 +44,7 @@ const disposers: Array<() => void> = []
 afterEach(async () => { disposers.splice(0).forEach((d) => d()); await settleTranscription(2000); stopTranscriptionServer() })
 
 /** both hooks over one shared start/stop fan-out, registered in the order asked for */
-function rig(order: 'capture-first' | 'transcription-first', t: { transcriber?: (c: Chunk, heard?: (language: string, chars: number) => void) => Promise<Line[]> | Line[]; modelPath?: () => string | undefined; refresh?: (id: string) => void; holdMs?: number } = {}) {
+function rig(order: 'capture-first' | 'transcription-first', t: { transcriber?: (c: Chunk, heard?: (language: string, chars: number) => void) => Promise<Line[]> | Line[]; modelPath?: () => string | undefined; refresh?: (id: string) => void; holdMs?: number; queued?: (id: string) => void } = {}) {
   const starts: Array<(m: Meeting) => void> = [], stops: Array<(m: Meeting) => void> = []
   const onStart = (fn: (m: Meeting) => void) => { starts.push(fn); return () => {} }
   const onStop = (fn: (m: Meeting) => void) => { stops.push(fn); return () => {} }
@@ -52,7 +52,7 @@ function rig(order: 'capture-first' | 'transcription-first', t: { transcriber?: 
   const sent: string[] = [], warns: string[] = []
   const hookT = () => disposers.push(hookTranscription({
     store, modelPath: t.modelPath ?? (() => '/model.bin'), send: (s) => sent.push(`${s.track}:${s.text}`), warn: (c) => warns.push(c),
-    refresh: t.refresh, holdMs: t.holdMs, transcriber: 'transcriber' in t ? t.transcriber : async (c) => says(c), onStart, onStop, pidFile: undefined,
+    refresh: t.refresh, holdMs: t.holdMs, queued: t.queued, transcriber: 'transcriber' in t ? t.transcriber : async (c) => says(c), onStart, onStop, pidFile: undefined,
   }))
   const hookC = () => hookCapture({
     dirOf: (id) => `/m/${id}`, onStart, onStop, stopMeeting: (id) => stops.forEach((f) => f({ id } as Meeting)),
@@ -433,15 +433,20 @@ describe('a meeting recorded before the speech model was in (#30)', () => {
     expect(await transcribeRecorded(m.id, { them: track(1) })).toBe(false)
     expect(store.meeting(m.id)?.transcriptionPending).toBe(true)
   })
-  it('a meeting with some transcript is never transcribed again (no lines twice)', async () => {
-    const r = rig('transcription-first', { transcriber: async () => { throw new Error('whisper fell over') } })
+  it('whisper failing partway through a live meeting queues the rest of its saved recording for later (#127)', async () => {
+    let calls = 0
+    const queued: string[] = []
+    const r = rig('transcription-first', { transcriber: async (c) => { if (calls++) throw new Error('whisper-server exited (SIGKILL)'); return says(c) }, queued: (id) => queued.push(id) })
     const m = meeting()
-    r.begin(m); r.procs[0].say('them', 500)
+    r.begin(m); r.procs[0].say('them', 500); r.procs[0].say('them', 4000)
+    await tick()
     await r.stop(m)
     store.updateMeeting(m.id, { state: 'stopped' })
-    store.addSegments([{ meetingId: m.id, track: 'them', startMs: 0, endMs: 900, text: 'one line made it', speaker: null }])
-    expect(store.meeting(m.id)?.transcriptionPending).toBe(true)
-    expect(store.untranscribedMeetings()).toEqual([])
+    expect(store.segments(m.id)).toHaveLength(1)
+    expect(store.meeting(m.id)).toMatchObject({ transcriptionPending: true, transcriptionState: 'queued' })
+    // the saved recording carries on from where its lines end (savedTranscription's fromMs), so no line comes twice
+    expect(store.untranscribedMeetings().map((x) => x.id)).toEqual([m.id])
+    expect(queued).toEqual([m.id])
   })
   it('without the model yet, nothing happens and the meeting keeps waiting', async () => {
     rig('transcription-first', { modelPath: () => undefined })

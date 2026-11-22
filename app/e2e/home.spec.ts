@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -8,8 +9,7 @@ import { selectUpcomingAgendaDay } from './agendaDate'
 
 const main = join(import.meta.dirname, '../out/main/index.js')
 
-async function launch(env: Record<string, string> = {}) {
-  const userData = mkdtempSync(join(tmpdir(), 'yogurt-e2e-'))
+async function launch(env: Record<string, string> = {}, userData = mkdtempSync(join(tmpdir(), 'yogurt-e2e-'))) {
   const app = await electron.launch({ args: [main], env: { ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: userData, ...env } })
   const page = await app.firstWindow()
   await expect(page.getByTestId('home')).toBeVisible()
@@ -211,6 +211,146 @@ test('no meetings yet: plain words and one button', async () => {
   } finally { await app.close() }
 })
 
+test('Home remembers a hidden Agenda after relaunch and keeps the recording menu available', async () => {
+  const env = { YOGURT_FAKE_CALENDAR: 'notDetermined' }
+  const first = await launch(env)
+  try {
+    await expect(first.page.getByTestId('calendar-off')).toBeVisible()
+    const list = first.page.locator('.native-home .native-library')
+    const width = await list.evaluate(el => el.clientWidth)
+    await first.page.getByRole('button', { name: 'Hide Agenda' }).click()
+    await expect(first.page.getByRole('complementary', { name: 'Agenda' })).toHaveCount(0)
+    await expect.poll(() => list.evaluate(el => el.clientWidth)).toBeGreaterThan(width)
+  } finally { await first.app.close() }
+  const { app, page } = await launch(env, first.userData)
+  try {
+    const toggle = page.locator('#home-agenda-toggle')
+    await expect(toggle).toHaveAccessibleName('Show Agenda')
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    const record = page.locator('#workspace-actions').getByTestId('new-note')
+    await expect(record).toHaveAccessibleName('Start recording')
+    await expect(record).toHaveAttribute('title', 'Start recording')
+    await page.getByTestId('recording-choices').click()
+    await expect(page.getByTestId('recording-unattached')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await toggle.click()
+    const connect = page.getByTestId('calendar-off').getByRole('button')
+    await expect(connect).toBeVisible()
+    await connect.focus()
+    const mac = await page.evaluate(() => window.yogurt.os === 'darwin')
+    await expect(toggle).toHaveAttribute('aria-keyshortcuts', mac ? 'Control+Meta+A' : 'Control+Shift+A')
+    await page.keyboard.press(mac ? 'Control+Meta+a' : 'Control+Shift+a')
+    await expect(toggle).toBeFocused()
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    await expect(page.getByTestId('calendar-off')).toHaveCount(0)
+
+    // With the left sidebar open, a 720px window puts Agenda below the list.
+    const win = await app.browserWindow(page)
+    await win.evaluate(w => w.setContentSize(720, 650))
+    const expand = page.getByTestId('sidebar-expand')
+    await expect(expand).toBeVisible()
+    await expand.click()
+    const list = page.locator('.native-home .native-library')
+    const height = await list.evaluate(el => el.clientHeight)
+    await toggle.click()
+    const agenda = page.getByRole('complementary', { name: 'Agenda' })
+    await expect(agenda).toBeVisible()
+    const above = (await list.boundingBox())!, below = (await agenda.boundingBox())!
+    expect(below.y).toBeCloseTo(above.y + above.height, 0)
+    expect(below.height).toBe(200)
+    await toggle.click()
+    await expect.poll(() => list.evaluate(el => el.clientHeight)).toBe(height)
+  } finally { await app.close() }
+})
+
+test('meeting rows fill a laptop pane and stay centred in their own column through Agenda motion', async () => {
+  const { app, page } = await launch()
+  try {
+    await fake(app, 'manyMeetings', 2)
+    await page.reload()
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
+    const row = page.getByTestId('past-note').first()
+    await expect(row).toBeVisible()
+    const gap = page.locator('.workspace-sidebar-gap')
+    for (const direction of ['ltr', 'rtl']) {
+      await page.evaluate(dir => { document.documentElement.dir = dir }, direction)
+      for (const [width, sidebar] of [[720, 208], [868, 208], [1728, 208], [1728, 56], [1920, 208], [2560, 208]]) {
+        await page.setViewportSize({ width, height: 760 })
+        // Let the automatic sidebar collapse on crossing 900px finish before choosing a state.
+        await page.evaluate(() => new Promise<void>(done => requestAnimationFrame(() => requestAnimationFrame(() => done()))))
+        const changeSidebar = page.getByTestId(sidebar === 208 ? 'sidebar-expand' : 'sidebar-collapse')
+        if (await changeSidebar.count()) await changeSidebar.press('Enter')
+        await expect.poll(() => gap.evaluate(el => el.getBoundingClientRect().width)).toBe(sidebar)
+        const result = await row.evaluate(async card => {
+          const home = card.closest<HTMLElement>('.native-home')!
+          const list = card.closest<HTMLElement>('.native-library')!
+          const hover = card.closest('.native-meeting-row')!
+          const toggle = document.getElementById('home-agenda-toggle')!
+          const title = list.querySelector('h1')!, day = list.querySelector('[data-testid="past-day"]')!
+          let error = 0
+          function measure() {
+            const css = getComputedStyle(list)
+            const left = list.getBoundingClientRect().left + list.clientLeft + parseFloat(css.paddingLeft)
+            const available = list.clientWidth - parseFloat(css.paddingLeft) - parseFloat(css.paddingRight)
+            const width = Math.min(available + 16, innerWidth <= 1728 ? Infinity : 1520)
+            const centre = left + available / 2
+            const row = hover.getBoundingClientRect()
+            error = Math.max(error, Math.abs(row.left - (centre - width / 2)), Math.abs(row.width - width))
+            for (const el of [title, day]) {
+              const box = el.getBoundingClientRect()
+              error = Math.max(error, Math.abs(box.left - row.left - 8), Math.abs(row.right - box.right - 8))
+            }
+          }
+          const listWidths = [list.getBoundingClientRect().width]
+          measure()
+          for (const open of [false, true]) {
+            toggle.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }))
+            do {
+              await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+              measure()
+            } while (home.dataset.agendaMotion === 'true')
+            if (toggle.getAttribute('aria-expanded') !== String(open)) throw new Error('Agenda did not toggle')
+            listWidths.push(list.getBoundingClientRect().width)
+          }
+          return { error, listWidths }
+        })
+        // clientWidth rounds fractional grid widths to whole pixels at intermediate frames.
+        expect(result.error, `${direction}, ${width}px window / ${sidebar}px sidebar`).toBeLessThan(1)
+        const pane = width - sidebar
+        const agenda = pane <= 520 ? 0 : pane <= 700 ? 235 : 270
+        expect(result.listWidths).toEqual([pane - agenda, pane, pane - agenda])
+      }
+    }
+  } finally { await app.close() }
+})
+
+test('wide folder and Trash pages centre their headings and empty states on the same measure', async () => {
+  const { app, page } = await launch()
+  try {
+    await page.setViewportSize({ width: 2560, height: 760 })
+    await page.evaluate(() => window.yogurt.folders.create('Planning'))
+    for (const empty of ['folder-empty', 'trash-none'] as const) {
+      if (empty === 'trash-none') await openFromCorner(page, 'nav-trash')
+      else await page.getByTestId('sidebar-folder-open').filter({ hasText: 'Planning' }).click()
+      const state = page.getByTestId(empty)
+      await expect(state).toBeVisible()
+      const boxes = await state.evaluate(el => {
+        const list = el.closest<HTMLElement>('.native-library')!
+        const centre = list.getBoundingClientRect().left + list.clientLeft + list.clientWidth / 2
+        return [list.firstElementChild!, el].map(item => {
+          const { left, width } = item.getBoundingClientRect()
+          return { width, offset: left + width / 2 - centre }
+        })
+      })
+      for (const box of boxes) {
+        expect(box.width).toBe(1520 - 16)
+        expect(Math.abs(box.offset)).toBeLessThan(1)
+      }
+    }
+  } finally { await app.close() }
+})
+
 test('calendar not asked yet: one button asks, then the meetings show', async () => {
   const { app, page } = await launch({ YOGURT_FAKE_CALENDAR: 'notDetermined' })
   try {
@@ -227,6 +367,9 @@ test('calendar access turned off: the one button opens the Mac settings', async 
   try {
     const off = page.getByTestId('calendar-off')
     await expect(off).toBeVisible()
+    await page.getByRole('button', { name: 'Hide Agenda' }).click()
+    await page.getByRole('button', { name: 'Show Agenda' }).click()
+    await expect(off.getByRole('button')).toHaveAccessibleName('Open System Settings')
     await expect(off.getByRole('button')).toHaveCount(1)
     await off.getByRole('button').click()
     await expect.poll(async () => (await fake<{ settingsOpened: number }>(app, 'main')).settingsOpened).toBe(1)
@@ -426,7 +569,7 @@ test('workspace navigation stays usable with the sidebar closed; nothing in it i
     await page.getByTestId('sidebar-expand').click()
     await page.getByRole('button', { name: 'Ask', exact: true }).click()
     await expect(page.getByTestId('chat-page')).toBeVisible()
-    await page.getByRole('button', { name: 'Trash', exact: true }).click()
+    await openFromCorner(page, 'nav-trash')
     await expect(page.getByTestId('trash-page')).toContainText('The Trash is empty')
     await expect(page.getByText('Planned', { exact: true })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'All meetings', exact: true })).toHaveCount(0)

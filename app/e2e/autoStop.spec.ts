@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -92,7 +93,7 @@ test('the grace can be shortened in fake mode', async () => {
 test('switched off in Settings: it asks as before', async () => {
   const { app, page, userData } = await launch()
   try {
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     const toggle = page.getByTestId('autostop-toggle')
     await expect(toggle).toHaveAttribute('aria-checked', 'true')
     await toggle.click()

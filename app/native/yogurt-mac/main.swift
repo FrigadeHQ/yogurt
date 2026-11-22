@@ -16,8 +16,10 @@
 //   yogurt-mac media-resume ID...    → {"resumed":[bundle ids]}: plays those again, unless they are already playing
 //   yogurt-mac mic-devices           → {"devices":[{"uid","name","default":bool}]}: every microphone, and which one the Mac uses now
 //   yogurt-mac ax-auth               → asks for Accessibility once (the system's own prompt), then {"trusted":bool}
-//   yogurt-mac call-watch MS ID...   → one JSON line every MS ms until stdin closes: the call app's meeting windows as
-//                                       accessibility trees {"t","app","windows":[{"title","id","tree"}]}, or {"t","error"}
+//   yogurt-mac call-watch MS [--pid N]... ID...
+//                                    → one JSON line every MS ms until stdin closes: the call app's meeting windows as
+//                                       accessibility trees {"t","app","windows":[{"title","id","tree"}]}, or {"t","error"};
+//                                       with --pid, only the app processes those mic processes belong to
 import AVFoundation
 import AppKit
 import CoreAudio
@@ -200,7 +202,7 @@ func browserTitle(_ id: String) -> String? {
     return axText(axAttr(window as! AXUIElement, kAXTitleAttribute))
   }
   let safari = id == "com.apple.Safari"
-  guard ["com.google.Chrome", "company.thebrowser.Browser", "com.ardia.browser", "com.microsoft.edgemac", "com.brave.Browser", "com.apple.Safari"].contains(id),
+  guard ["com.google.Chrome", "company.thebrowser.Browser", "com.ardia.browser", "company.thebrowser.dia", "com.microsoft.edgemac", "com.brave.Browser", "com.apple.Safari"].contains(id),
         !NSRunningApplication.runningApplications(withBundleIdentifier: id).isEmpty else { return nil }
   let src = "tell application id \"\(id)\" to get " + (safari ? "name of current tab of front window" : "title of active tab of front window")
   var err: NSDictionary?
@@ -216,7 +218,7 @@ func browserTitle(_ id: String) -> String? {
  * an assistive app asks, so they are asked the way screen readers do (AXManualAccessibility): see askTree.
  */
 let axKeys = [kAXRoleAttribute, kAXSubroleAttribute, kAXDescriptionAttribute, kAXTitleAttribute, kAXValueAttribute, kAXIdentifierAttribute, "AXDOMClassList", kAXChildrenAttribute, kAXSizeAttribute] as [String]
-let chromium: Set<String> = ["com.google.Chrome", "company.thebrowser.Browser", "com.ardia.browser", "com.brave.Browser", "com.microsoft.edgemac", "com.microsoft.teams", "com.microsoft.teams2"]
+let chromium: Set<String> = ["com.google.Chrome", "company.thebrowser.Browser", "com.ardia.browser", "company.thebrowser.dia", "com.brave.Browser", "com.microsoft.edgemac", "com.microsoft.teams", "com.microsoft.teams2"]
 var askedTree = Set<pid_t>()
 
 /// Asks a Chromium or Electron app to build its page's accessibility tree, once per process. A browser is asked only
@@ -368,7 +370,20 @@ func callWindows(_ app: AXUIElement, _ id: String) -> (wins: [AXUIElement], tab:
   return ([w as! AXUIElement], title)
 }
 
-func watchCalls(every: Int, ids: [String]) {
+/// The app a process on the mic belongs to: itself, or the app above it (Zoom's CptHost runs under zoom.us)
+func owningApp(_ pid: pid_t, ids: [String]) -> NSRunningApplication? {
+  var pid = pid
+  for _ in 0..<8 {
+    if let r = NSRunningApplication(processIdentifier: pid), let id = r.bundleIdentifier, ids.contains(id) { return r }
+    var info = proc_bsdinfo()
+    let size = Int32(MemoryLayout<proc_bsdinfo>.size)
+    guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, size) == size, info.pbi_ppid > 1 else { return nil }
+    pid = pid_t(info.pbi_ppid)
+  }
+  return nil
+}
+
+func watchCalls(every: Int, ids: [String], pids: [pid_t] = []) {
   // Yogurt closes stdin to stop the watch (and a crashed Yogurt closes it too)
   DispatchQueue.global().async { _ = FileHandle.standardInput.readDataToEndOfFile(); DispatchQueue.main.sync { resetTrees() }; exit(0) }
   let line = { (v: [String: Any]) in
@@ -384,7 +399,9 @@ func watchCalls(every: Int, ids: [String]) {
       // the frontmost of the apps asked about that shows a call, else the first one that does
       lastControlLook = ""
       let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
-      let running = ids.compactMap { NSRunningApplication.runningApplications(withBundleIdentifier: $0).first }
+      // With the processes on the mic given, only their apps: two Zoom meetings are two processes, and the one not
+      // being recorded must never give this meeting its names (#98)
+      let running = (pids.isEmpty ? ids.compactMap { NSRunningApplication.runningApplications(withBundleIdentifier: $0).first } : pids.compactMap { owningApp($0, ids: ids) })
         .sorted { a, _ in a.processIdentifier == front }
       var found: (NSRunningApplication, AXUIElement, [AXUIElement], String?)?
       for r in running {
@@ -510,10 +527,12 @@ case "media-resume":
 case "ax-auth":
   out(["trusted": AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)])
 case "call-watch":
-  guard args.count >= 3, let every = Int(args[1]) else { fail("call-watch MS BUNDLE_ID...") }
-  watchCalls(every: max(100, every), ids: Array(args.dropFirst(2)))
+  guard args.count >= 3, let every = Int(args[1]) else { fail("call-watch MS [--pid N]... BUNDLE_ID...") }
+  var rest = Array(args.dropFirst(2)), pids: [pid_t] = []
+  while rest.count >= 2, rest[0] == "--pid", let pid = pid_t(rest[1]) { pids.append(pid); rest.removeFirst(2) }
+  watchCalls(every: max(100, every), ids: rest, pids: pids)
 case "mic-devices":
   out(["devices": inputDevices()])
 default:
-  fail("usage: yogurt-mac calendar-status | calendar-auth | events FROM TO | mic-apps | running-apps ID... | browser-title ID | permissions | media-auth | mic-auth | audio-auth | media-pause | media-resume ID... | mic-devices | ax-auth | call-watch MS ID...")
+  fail("usage: yogurt-mac calendar-status | calendar-auth | events FROM TO | mic-apps | running-apps ID... | browser-title ID | permissions | media-auth | mic-auth | audio-auth | media-pause | media-resume ID... | mic-devices | ax-auth | call-watch MS [--pid N]... ID...")
 }

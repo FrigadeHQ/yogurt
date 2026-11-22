@@ -2,7 +2,7 @@ import { useEffect, useImperativeHandle, useRef, useState, type Ref } from 'reac
 import { Menu } from '@base-ui/react/menu'
 import { Modal, ModalClose } from './Modal'
 import { InlineError } from './InlineError'
-import { Ellipsis, Pause, Play, Trash2 } from 'lucide-react'
+import { Ellipsis, Pause, Play, Trash2 } from './Icons'
 import { language, t } from '../../../shared/i18n'
 import { clock } from '../../../shared/transcript'
 import { Swap } from './Swap'

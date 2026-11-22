@@ -1,3 +1,5 @@
+import { openFromCorner } from './cornerNavigation'
+import { ICON_STROKE_WIDTH } from '../src/renderer/src/components/Icons'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -60,14 +62,15 @@ test('@everywhere search returns focus with the same ring the opener had', async
 test('a future date command opens Meetings on that agenda day and its week', async () => {
   const { app, page } = await launch()
   try {
-    await page.clock.install({ time: new Date(2026, 10, 14, 12) })
+    await page.clock.setFixedTime(new Date(2026, 10, 14, 12))
     await app.evaluate(({ ipcMain }) => {
       ipcMain.removeHandler('calendar:day')
       ipcMain.handle('calendar:day', (_event, at: number) => ({ status: 'granted', events: [
         { id: 'example', title: 'Example event', start: at, end: at + 60_000, attendees: [], url: null },
       ] }))
     })
-    await page.getByTestId('nav-trash').click()
+    await page.getByRole('button', { name: 'Hide Agenda' }).click()
+    await openFromCorner(page, 'nav-trash')
     const jump = async () => {
       await page.keyboard.press('Meta+k')
       await page.getByTestId('search-input').fill('November 11, 2028')
@@ -92,6 +95,9 @@ test('a future date command opens Meetings on that agenda day and its week', asy
     await expect(agenda.getByRole('button', { name: 'Sunday, November 12', exact: true })).toHaveAttribute('aria-pressed', 'true')
     await jump()
     await expect(agenda.getByRole('button', { name: 'Saturday, November 11', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await openFromCorner(page, 'nav-trash')
+    await page.getByTestId('nav-home').click()
+    await expect(page.getByRole('button', { name: 'Show Agenda' })).toBeVisible()
   } finally { await app.close() }
 })
 
@@ -376,7 +382,7 @@ test('the input stays icon-free, row icons and hints stay fixed, and the seconda
     const commandColor = glyphs.find(glyph => !glyph.folderColor)?.color
     for (const glyph of glyphs) {
       expect(glyph.size).toEqual([16, 16])
-      expect(glyph.stroke).toBe('1.75')
+      expect(glyph.stroke).toBe(String(ICON_STROKE_WIDTH))
       expect(glyph.color).toBe(glyph.folderColor ?? commandColor)
     }
     const hints = await page.locator('.search-footer').textContent()

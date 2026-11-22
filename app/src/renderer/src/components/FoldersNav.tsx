@@ -1,7 +1,7 @@
 import { Loading } from './Loading'
 import { LoadingContent } from './LoadingContent'
 import { useEffect, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type RefObject } from 'react'
-import { ArrowDown, ArrowUp, Ellipsis, Palette, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Ellipsis, Palette, Pencil, Plus, Trash2 } from './Icons'
 import { Reorder, useDragControls } from 'motion/react'
 import { useReducedMotion, usePopoverPresence } from '../motion'
 import type { Folder } from '../../../shared/types'
@@ -59,7 +59,7 @@ export function FoldersNav({ folders, route, go, collapsed = false, sidebarMotio
         })}
       </Reorder.Group></LoadingContent>
       <button data-testid="folder-create" data-sidebar="menu-button" aria-label={t('New folder')} title={collapsed ? t('New folder') : undefined} className="workspace-nav workspace-folder-new" onClick={() => setNaming({})}>
-        <Plus size={16} strokeWidth={1.7} aria-hidden="true" /><span>{t('New folder')}</span>
+        <Plus size={16} aria-hidden="true" /><span>{t('New folder')}</span>
       </button>
     </nav>
     {appearance && <FolderAppearanceDialog folder={appearance} onDone={() => setAppearance(undefined)} />}

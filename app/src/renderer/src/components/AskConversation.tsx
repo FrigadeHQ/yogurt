@@ -2,15 +2,14 @@ import { InlineError } from './InlineError'
 import { useContext, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { Popover } from '@base-ui/react/popover'
-import { ArrowDown, ArrowUp, Check, Ellipsis, Maximize2, Square, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Check, Ellipsis, Maximize2, Square, X, Copy } from './Icons'
 import { attachContext, mentionAt, type ContextTarget } from '../../../shared/askContext'
 import type { AskStep, ConversationTurn, ConversationView, LibrarySource } from '../../../shared/types'
-import { t } from '../../../shared/i18n'
+import { moreItems, t } from '../../../shared/i18n'
 import { stepText, STEP_EVERY_MS } from '../../../shared/askStep'
 import { dayLabel } from '../dates'
 import { useSmoothText } from '../useSmoothText'
 import { AnswerText } from './AnswerText'
-import { Copy } from './Icons'
 import { Loading } from './Loading'
 import { LoadingContent } from './LoadingContent'
 import { NotesModelWait } from './NotesModelWait'
@@ -60,6 +59,8 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
   const [expanded, setExpanded] = useState(false)
   const [scopeExpanded, setScopeExpanded] = useState(false)
   const chips = chat ? attachContext(chat.chips, chat.draftChips) : []
+  const chooseScope = t('Choose meetings or folders')
+  const scopeName = chips.length > 1 ? `${chooseScope} · ${chipTitle(chips[0])} ${moreItems(chips.length - 1)}` : chooseScope
   const inScope = (c: ContextTarget) => chips.some(x => x.kind === c.kind && x.id === c.id)
   const items = (targetResults?.items ?? []).filter(c => query ? true : !inScope(c))
   const meetings = items.filter(c => c.kind === 'meeting')
@@ -285,7 +286,7 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
         onMouseDown={e => e.preventDefault()} onClick={() => void remove(chips)}>{t('Clear')}</button></h3>
         {scoped.map((c, i) => targetRow(c, i))}
         {!!scopeMore && <button type="button" role="option" tabIndex={-1} aria-selected={false} data-active={selected === offset - 1 || undefined} id={`${prefix}-context-${offset - 1}`}
-          onMouseDown={e => e.preventDefault()} onClick={() => setScopeExpanded(true)}><Ellipsis size={14} aria-hidden="true" /><span>{t('{count} more', { count: scopeMore })}</span></button>}
+          onMouseDown={e => e.preventDefault()} onClick={() => setScopeExpanded(true)}><Ellipsis size={14} aria-hidden="true" /><span>{moreItems(scopeMore)}</span></button>}
       </div>}
     </>}
     {(['meeting', 'folder'] as const).map(kind => targets.some(c => c.kind === kind) && <div key={kind} role="group" aria-label={kind === 'meeting' ? t('Meetings') : t('Folders')}>
@@ -352,7 +353,7 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
             setSelector(open ? { query: '' } : undefined)
           }}>
             <span className="ask-scope-group">
-              <Popover.Trigger type="button" className="ask-scope" data-testid="ask-scope" onPointerEnter={prefetch} onFocus={prefetch} disabled={busy} aria-label={t('Choose meetings or folders')} title={t('Choose meetings or folders')}><AskContext chips={chips} /></Popover.Trigger>
+              <Popover.Trigger type="button" className="ask-scope" data-testid="ask-scope" onPointerEnter={prefetch} onFocus={prefetch} disabled={busy} aria-label={scopeName} title={chooseScope}><AskContext chips={chips} /></Popover.Trigger>
               {!!chips.length && <button type="button" className="ask-scope-clear" data-testid="ask-scope-clear" disabled={busy} aria-label={t('Clear')} title={t('Clear')}
                 onClick={() => { void remove(chips); input.current?.focus({ preventScroll: true }) }}><X size={12} aria-hidden="true" /></button>}
             </span>
@@ -392,7 +393,7 @@ function Turn({ turn, chat, panel, showCopy, onSource, onRetry, retryDisabled }:
     {answer && <div data-testid={`${prefix}-answer`} dir="auto" data-streaming={live || undefined} className={`note-prose chat-answer${live ? ' stream-caret' : ''}`}><AnswerText md={answer} live={live} sources={turn.sources} onSource={onSource} /></div>}
     {answer && !live && <div className="chat-answer-actions"><button className="text-action chat-copy-action" data-testid="chat-copy-answer" aria-label={copied ? t('Copied') : t('Copy answer')} onClick={() => {
       void navigator.clipboard.writeText(turn.answer).then(() => { setCopied(true); setFailed(false) }).catch(() => setFailed(true))
-    }}><Swap show={copied ? 'done' : 'copy'} options={{ copy: <Copy size={13} />, done: <Check size={13} /> }} /><SwapText text={copied ? t('Copied') : t('Copy')} /></button>{turn.scope && <AnswerScope chips={turn.scope} />}<span role="status" className={failed ? 'text-danger' : 'sr-only'}>{failed ? t("Yogurt couldn't copy.") : copied ? t('Copied') : ''}</span></div>}
+    }}><Swap show={copied ? 'done' : 'copy'} options={{ copy: <Copy className="flex-none" size={13} />, done: <Check size={13} /> }} /><SwapText text={copied ? t('Copied') : t('Copy')} /></button>{turn.scope && <AnswerScope chips={turn.scope} />}<span role="status" className={failed ? 'text-danger' : 'sr-only'}>{failed ? t("Yogurt couldn't copy.") : copied ? t('Copied') : ''}</span></div>}
     {turn.status === 'stopped' && <p className="text-xs text-muted">{answer ? t('Stopped') : t('Stopped before answering')}</p>}
     {turn.status === 'failed' && <InlineError testId="chat-answer-error"><span>{t("Yogurt couldn't answer that.")}</span><button type="button" className="workspace-button" disabled={retryDisabled} onClick={onRetry}>{t('Try again')}</button></InlineError>}
   </div>

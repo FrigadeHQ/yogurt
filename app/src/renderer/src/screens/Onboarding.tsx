@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
-import { LoaderCircle } from 'lucide-react'
+import { LoaderCircle } from '../components/Icons'
 import type { OnboardingPlan, OnboardingStep, PermissionKind, SetupState } from '../../../shared/types'
 import { screensOf, type OnboardingScreen } from '../../../shared/onboarding'
 import { Wordmark } from '../components/Logo'

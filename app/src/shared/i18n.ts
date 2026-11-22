@@ -102,3 +102,6 @@ export function onLanguage(l: () => void) {
 export const t = (text: string, vars?: Vars) => translate(tables, current, text, vars)
 /** Marks text to translate where it's shown (lists and constants); returns it unchanged */
 export const msg = (text: string) => text
+
+/** Some languages use different counters for items and people. */
+export const moreItems = (count: number) => t('and {count} others', { count })

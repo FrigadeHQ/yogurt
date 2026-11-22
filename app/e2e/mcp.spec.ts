@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test, type ElectronApplication } from '@playwright/test'
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { mkdirSync, mkdtempSync, rmdirSync } from 'node:fs'
@@ -45,7 +46,7 @@ test('an AI app on this Mac reads meetings through yogurt-mcp only once Settings
     expect(off.isError).toBe(true)
     expect(off.text).toContain('Settings')
 
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     const toggle = page.getByTestId('ai-apps-toggle')
     await expect(toggle).toHaveAttribute('aria-checked', 'false')
     await toggle.click()
@@ -86,7 +87,7 @@ test('an AI app on this Mac reads meetings through yogurt-mcp only once Settings
     } finally { rmdirSync(tempSettings) }
     await page.getByTestId('nav-home').click()
     await expect(page.getByTestId('home')).toBeVisible()
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     await expect(toggle).toHaveAttribute('aria-checked', 'true')
     await page.getByTestId('ai-apps-retry').click()
     await expect(toggle).toHaveAttribute('aria-checked', 'false')

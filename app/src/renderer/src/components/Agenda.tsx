@@ -3,7 +3,7 @@ import { InlineError } from './InlineError'
 import { ScrollFade } from './ScrollFade'
 import { LoadingContent } from './LoadingContent'
 import { LevelBars } from './LevelBars'
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, ExternalLink, FileText, Mic, UsersRound, X } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, ExternalLink, FileText, Mic, UsersRound, X } from './Icons'
 import type { AgendaEvent, CalendarStatus, MeetingCard } from '../../../shared/types'
 import { rememberedScroll, useScrollMemory } from '../useScrollMemory'
 import { language, t } from '../../../shared/i18n'
@@ -158,7 +158,7 @@ export function Agenda({ revision, recording, onStart, onOpen, jumpTo }: Actions
         </InlineError>}
         <div data-testid="coming-up" className="agenda-events">
         {calendar.events.length === 0 ? <div className="agenda-status" data-testid={failedCalendar ? 'calendar-error' : undefined} role={failedCalendar ? 'alert' : undefined}>
-          <CalendarDays size={18} strokeWidth={1.75} aria-hidden="true" />
+          <CalendarDays size={18} aria-hidden="true" />
           <h3>{failedCalendar ?? t('No meetings')}</h3>
           {failedCalendar && <button type="button" className="workspace-button" onClick={() => void load()}>{t('Try again')}</button>}
         </div>
@@ -195,7 +195,7 @@ export function Event({ event, me, now, near, initial, selected, onInspect, reco
       <div className="agenda-heading">
         <h3><button disabled={loading} data-testid={loading ? undefined : "event-details"} className="agenda-title" aria-expanded={selected} aria-controls={selected ? "agenda-event-details" : undefined} onClick={e => onInspect(e.currentTarget, e.detail > 0)}>{loading ? <span className="loading-bar" style={{ width: '85%' }} /> : event.title || t('Meeting')}</button></h3>
         {!loading && marker && <span className="agenda-marker" role="img" aria-label={marker}>
-          {mine ? <LevelBars height={14} className="agenda-levels" testId="agenda-recording-levels" paused={recording.paused} stillBars /> : <FileText size={13} strokeWidth={1.75} aria-hidden="true" />}
+          {mine ? <LevelBars height={14} className="agenda-levels" testId="agenda-recording-levels" paused={recording.paused} stillBars /> : <FileText size={13} aria-hidden="true" />}
         </span>}
       </div>
       {(loading || (phase === 'live' || mine) && event.attendees.length > 0) && <p className="agenda-people" title={event.attendees.map((p) => p.name).join(', ')}>{loading ? <span className="loading-bar" style={{ width: '60%' }} /> : peopleSummary(event.attendees, me)}</p>}

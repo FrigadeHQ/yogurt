@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { X } from 'lucide-react'
+import { X } from '../components/Icons'
 import type { PromptView } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
 import macIcon from '../../../../build/icon.png'
@@ -51,7 +51,7 @@ export function Prompt() {
         )}
       </div>
       <button data-testid={start ? 'prompt-close' : 'prompt-dismiss-stop'} aria-label={t(start ? 'Not now' : 'Close')} title={start ? undefined : t('Close')} className="ghost-btn workspace-icon" onClick={() => window.yogurt.prompt.act('close')}>
-        <X size={16} strokeWidth={1.5} aria-hidden="true" />
+        <X size={16} aria-hidden="true" />
       </button>
     </div>
   )

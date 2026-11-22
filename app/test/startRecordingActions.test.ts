@@ -135,7 +135,7 @@ it.each(['stopped', 'done'] as const)('labels a %s note for resume in the title 
   const html = renderToStaticMarkup(row.props.children as ReactNode)
   expect(html).toContain('Resume notes · Planning live')
   // resume keeps the mic: a counterclockwise arrow reads as undo
-  expect(html).not.toContain('lucide-rotate-ccw')
+  expect(html).not.toContain('data-icon="RotateCcw"')
   expect(html).toContain('<svg')
   expect(html).toContain('Now')
   start.mockResolvedValue({ id: 'existing', resumeRequested: true })
@@ -150,7 +150,7 @@ it('keeps the take-notes label and start path for a prepared note', async () => 
   expect(label(tree)).toContain('Take notes · Planning prepared')
   const html = renderToStaticMarkup(find(tree, 'recording-meeting').props.children as ReactNode)
   expect(html).not.toContain('Resume notes')
-  expect(html).not.toContain('lucide-rotate-ccw')
+  expect(html).not.toContain('data-icon="RotateCcw"')
   expect(html).toContain('<svg')
   await click(find(tree, 'start-recording'))
   expect(start).toHaveBeenCalledExactlyOnceWith('prepared')

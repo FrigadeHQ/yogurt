@@ -7,18 +7,17 @@ import { isFake } from './paths'
 import { t } from '../shared/i18n'
 import { projectWebsite } from '../shared/project'
 
-type Side = 'mine' | 'enhanced'
 /** the notes on the side shown, falling back to the person's own when the enhanced ones are not there */
-function notesOf(store: Pick<Store, 'notes'>, id: string, side: unknown): string {
-  const n = store.notes(id)
-  return side === 'enhanced' && n.enhanced != null ? n.enhanced : n.mine
+function notesOf(store: Pick<Store, 'notes'>, id: string, side: unknown) {
+  const { mine, enhanced } = store.notes(id)
+  return side === 'enhanced' && enhanced != null ? { md: enhanced, summary: true } : { md: mine, summary: false }
 }
 
 /**
  * Copy and export. The window only says which meeting and which side; the text is built here from what is saved,
  * and the file goes where the save dialog says, never to a path the window made up.
  */
-export function hookShare(d: { store: Pick<Store, 'meeting' | 'notes' | 'segments'>; window: () => BrowserWindow | undefined }) {
+export function hookShare(d: { store: Pick<Store, 'meeting' | 'notes' | 'segments'>; window: () => BrowserWindow | undefined; includeRecordingCredit: () => boolean }) {
   ipcMain.handle('share:app-link', (event, x: unknown, y: unknown) => {
     const win = d.window()
     if (process.platform !== 'darwin' || !win || win.isDestroyed() || win.webContents !== event.sender || event.senderFrame !== event.sender.mainFrame) return false
@@ -34,9 +33,10 @@ export function hookShare(d: { store: Pick<Store, 'meeting' | 'notes' | 'segment
   })
   ipcMain.handle('share:copy', async (_e, id: unknown, what: unknown, side: unknown): Promise<'copied' | 'nothing' | 'failed'> => {
     if (typeof id !== 'string' || (what !== 'notes' && what !== 'transcript')) return 'nothing'
-    const data = what === 'transcript'
-      ? transcriptClipboard(d.store.segments(id))
-      : toClipboard(notesOf(d.store, id, side))
+    const notes = what === 'notes' ? notesOf(d.store, id, side) : null
+    const data = notes
+      ? toClipboard(notes.md, notes.summary && d.includeRecordingCredit())
+      : transcriptClipboard(d.store.segments(id))
     if (!data.text.trim()) return 'nothing'
     try {
       await clipboard.write([new ClipboardItem({ 'text/plain': data.text, 'text/html': data.html })])
@@ -63,7 +63,7 @@ export function hookShare(d: { store: Pick<Store, 'meeting' | 'notes' | 'segment
       // Stage on the destination's filesystem: a failed write must not truncate an earlier export.
       staging = await mkdtemp(join(dirname(path), '.yogurt-export-'))
       const file = join(staging, 'notes.md')
-      await writeFile(file, toMarkdownFile(m, notesOf(d.store, m.id, side as Side), d.store.segments(m.id)), 'utf8')
+      await writeFile(file, toMarkdownFile(m, notesOf(d.store, m.id, side).md, d.store.segments(m.id), d.includeRecordingCredit()), 'utf8')
       await rename(file, path)
       return 'saved'
     } catch (err) {

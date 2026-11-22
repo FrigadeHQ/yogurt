@@ -1,3 +1,4 @@
+import type { MeterPacket } from '../shared/speechWave'
 import { audioUpload } from './audioUpload'
 import type { WidgetLayout } from '../shared/widgetMorph'
 import { contextBridge, ipcRenderer } from 'electron'
@@ -35,7 +36,7 @@ const api: YogurtApi = {
       return () => { ipcRenderer.removeListener('widget:state', on) }
     },
     onLevel: (cb) => {
-      const on = (_e: unknown, lv: { me: number; them: number }) => cb(lv)
+      const on = (_e: unknown, lv: MeterPacket) => cb(lv)
       ipcRenderer.on('widget:level', on)
       return () => { ipcRenderer.removeListener('widget:level', on) }
     },
@@ -226,6 +227,7 @@ const api: YogurtApi = {
   mcp: {
     status: () => ipcRenderer.invoke('mcp:status'),
     set: (on) => ipcRenderer.invoke('mcp:set', on),
+    setChanges: (on) => ipcRenderer.invoke('mcp:set-changes', on),
     onClients: (fn) => { const f = (_e: unknown, c: string[]) => fn(c); ipcRenderer.on('mcp:clients', f); return () => { ipcRenderer.off('mcp:clients', f) } },
   },
   companion: {
@@ -259,6 +261,7 @@ const api: YogurtApi = {
     setOpenAtLogin: (on) => ipcRenderer.invoke('settings:login', on),
     setName: (name) => ipcRenderer.invoke('settings:name', name),
     setStopWhenCallEnds: (on) => ipcRenderer.invoke('settings:auto-stop', on),
+    setIncludeRecordingCredit: (on) => ipcRenderer.invoke('settings:recording-credit', on),
     setRecordingReminder: (on) => ipcRenderer.invoke('settings:recording-reminder', on),
     setKeepRecordings: (on) => ipcRenderer.invoke('settings:keep-recordings', on),
     setJargon: (terms) => ipcRenderer.invoke('settings:jargon', terms),

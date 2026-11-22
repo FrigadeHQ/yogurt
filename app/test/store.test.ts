@@ -530,3 +530,11 @@ it('a store already marked by 0.3.31 (only stopped meetings) is marked again for
   s.close()
   rmSync(dir, { recursive: true, force: true })
 })
+
+it('keeps where an imported meeting came from, and its id there, so it is brought in once', () => {
+  const s = fresh()
+  const m = s.createMeeting({ ...base, state: 'done', startedAt: 1000, source: 'import', sourceId: 'granola-123' })
+  expect(s.meeting(m.id)).toMatchObject({ source: 'import', sourceId: 'granola-123' })
+  expect(s.meetingFromSource('import', 'granola-123')?.id).toBe(m.id)
+  expect(s.meetingFromSource('import', 'other')).toBeUndefined()
+})

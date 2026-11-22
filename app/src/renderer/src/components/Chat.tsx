@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom'
 import type { LibrarySource } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
 import { keys, onMac } from '../keys'
-import { MessageCircle } from './Icons'
+import { AskBubble } from './Icons'
 import { setToastDialog } from './TrashToast'
 import { AskConversation } from './AskConversation'
 import { motion as timing } from '../motion'
@@ -39,16 +39,17 @@ export function Ask({ id, recording, anchor, onSource }: { id: string; recording
     void window.yogurt.conversations.current([{ kind: 'meeting', id }]).then(cid => { if (active) setConversationId(cid) }).catch(() => { if (active) setError(true) })
     return () => { active = false }
   }, [open, id, conversationId, attempt])
-  // Ask grows out of its button and folds back into it. Only the empty surface resizes; the chat stays at its final size,
-  // cropped to the surface so none of it shows outside, and the button and the surface trade places where they meet.
+  // Ask grows out of its button and folds back into it. The surface clips its own full-size conversation as its border moves.
   const morph = (expand: boolean, animate = true) => {
     const shell = surface.current, body = contents.current, dialog = panel.current, button = trigger.current
     if (!shell || !body || !dialog || !button) return
     const running = animations.current.some(animation => animation.playState === 'running')
     const style = getComputedStyle(shell)
-    const was = { left: style.left, top: style.top, width: style.width, height: style.height, borderRadius: style.borderRadius, shell: style.opacity,
-      dialog: getComputedStyle(dialog).opacity, body: getComputedStyle(body).opacity, clip: getComputedStyle(body).clipPath, button: getComputedStyle(button).opacity }
+    const interrupted = running ? { '--ask-left': style.left, '--ask-top': style.top, width: style.width, height: style.height, borderRadius: style.borderRadius } : undefined
+    const was = { shell: style.opacity,
+      dialog: getComputedStyle(dialog).opacity, body: getComputedStyle(body).opacity, button: getComputedStyle(button).opacity }
     animations.current.forEach(animation => animation.cancel()); animations.current = []
+    shell.style.overflow = ''
     if (!animate) return
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       const fade = dialog.animate([{ opacity: running ? was.dialog : expand ? 0 : 1 }, { opacity: expand ? 1 : 0 }],
@@ -56,27 +57,26 @@ export function Ask({ id, recording, anchor, onSource }: { id: string; recording
       animations.current = [fade]
       return fade
     }
-    const from = button.getBoundingClientRect(), to = dialog.getBoundingClientRect(), box = body.getBoundingClientRect()
+    const from = button.getBoundingClientRect(), to = dialog.getBoundingClientRect()
     const buttonRadius = parseFloat(getComputedStyle(button).borderRadius)
-    const collapsed = { left: `${from.x - to.x - 1}px`, top: `${from.y - to.y - 1}px`, width: `${from.width}px`, height: `${from.height}px`, borderRadius: `${buttonRadius}px` }
-    const expanded = { left: '-1px', top: '-1px', width: 'calc(100% + 2px)', height: 'calc(100% + 2px)', borderRadius: '12px' }
-    const cropped = `inset(${from.top + 1 - box.top}px ${box.right - from.right + 1}px ${box.bottom - from.bottom + 1}px ${from.left + 1 - box.left}px round ${Math.max(0, buttonRadius - 1)}px)`
-    const uncropped = 'inset(0px round 11px)'
-    // Equal bounds/radius interpolation keeps the clip one border pixel inside the surface at every frame.
+    const collapsed = { '--ask-left': `${from.x - to.x - 1}px`, '--ask-top': `${from.y - to.y - 1}px`, width: `${from.width}px`, height: `${from.height}px`, borderRadius: `${buttonRadius}px` }
+    const expanded = { '--ask-left': '-1px', '--ask-top': '-1px', width: 'calc(100% + 2px)', height: 'calc(100% + 2px)', borderRadius: '12px' }
+    shell.style.overflow = 'clip'
     const duration = expand ? timing.base : timing.askExit, easing = timing.ease, handoff = timing.micro
     const shape = shell.animate([
-      running ? { left: was.left, top: was.top, width: was.width, height: was.height, borderRadius: was.borderRadius } : expand ? collapsed : expanded,
+      interrupted ?? (expand ? collapsed : expanded),
       expand ? expanded : collapsed,
     ], { duration, easing, fill: 'both' })
-    const crop = body.animate([{ clipPath: running && was.clip !== 'none' ? was.clip : expand ? cropped : uncropped }, { clipPath: expand ? uncropped : cropped }],
-      { duration, easing, fill: expand ? 'backwards' : 'forwards' })
     const content = body.animate([{ opacity: running ? was.body : expand ? 0 : 1 }, { opacity: expand ? 1 : 0 }],
       { duration: timing.micro, easing, fill: 'both' })
     // opening: the button fades as the surface appears over it; closing: the surface fades as it lands on the button
     const trade = { duration: handoff, delay: expand ? 0 : duration - handoff, easing, fill: 'both' as const }
     const cover = shell.animate([{ opacity: running ? was.shell : expand ? 0 : 1 }, { opacity: expand ? 1 : 0 }], trade)
     const label = button.animate([{ opacity: running ? was.button : expand ? 1 : 0 }, { opacity: expand ? 0 : 1 }], trade)
-    animations.current = [shape, crop, content, cover, label]
+    animations.current = [shape, content, cover, label]
+    if (expand) void shape.finished.then(() => {
+      if (animations.current.includes(shape)) shell.style.overflow = ''
+    }, () => {})
     return shape
   }
   useEffect(() => () => animations.current.forEach((animation) => animation.cancel()), [])
@@ -119,15 +119,18 @@ export function Ask({ id, recording, anchor, onSource }: { id: string; recording
     aria-labelledby="meeting-chat-title" aria-modal={narrow || undefined}
     onKeyDown={event => { if (event.key === 'Escape' && !event.defaultPrevented && !panel.current?.querySelector('.citation-card:not([data-ending-style])') && !(event.target as HTMLElement).closest('[role="alertdialog"], [role="dialog"], [role="menu"]')) { event.preventDefault(); event.stopPropagation(); close() } }}
     onCancel={event => { event.preventDefault(); close() }}>
-    <div ref={surface} className="chat-morph-surface" aria-hidden="true" />
-    <div ref={contents} className="chat-panel-contents">
-      {error && <InlineError testId="chat-open-error"><span>{t("Couldn't load this conversation.")}</span>
-        <button className="workspace-button" onClick={() => setAttempt(n => n + 1)}>{t('Try again')}</button>
-      </InlineError>}
-      <AskConversation key={`${id}/${conversationVersion}`} id={conversationId ?? ''} pendingDraftKey={`meeting/${id}`} loadError={error} panel recording={recording} onSelect={next => { setConversationId(next); setConversationVersion(version => version + 1) }} onClose={() => close()}
-        onExpand={conversationId ? () => { rememberScrollPositions(); close(false); window.yogurt.nav.go(`/chat/${conversationId}`) } : undefined}
-        onDeleted={() => { close(false); setConversationId(undefined); window.yogurt.nav.go('/chat') }}
-        onSource={(source, match) => { close(false); onSource(source, match) }} />
+    <div className="chat-panel-viewport">
+      <div ref={surface} className="chat-morph-surface">
+        <div ref={contents} className="chat-panel-contents">
+          {error && <InlineError testId="chat-open-error"><span>{t("Couldn't load this conversation.")}</span>
+            <button className="workspace-button" onClick={() => setAttempt(n => n + 1)}>{t('Try again')}</button>
+          </InlineError>}
+          <AskConversation key={`${id}/${conversationVersion}`} id={conversationId ?? ''} pendingDraftKey={`meeting/${id}`} loadError={error} panel recording={recording} onSelect={next => { setConversationId(next); setConversationVersion(version => version + 1) }} onClose={() => close()}
+            onExpand={conversationId ? () => { rememberScrollPositions(); close(false); window.yogurt.nav.go(`/chat/${conversationId}`) } : undefined}
+            onDeleted={() => { close(false); setConversationId(undefined); window.yogurt.nav.go('/chat') }}
+            onSource={(source, match) => { close(false); onSource(source, match) }} />
+        </div>
+      </div>
     </div>
   </dialog>
   return <>
@@ -138,7 +141,7 @@ export function Ask({ id, recording, anchor, onSource }: { id: string; recording
         if (closing.current) { closing.current = false; morph(true) }
         animateOpen.current = true; setError(false); setOpen(true)
         panel.current?.querySelector('textarea')?.focus({ preventScroll: true })
-      }}><MessageCircle size={16} strokeWidth={1.75} aria-hidden="true" /><span>{t('Ask Yogurt')}</span><kbd aria-hidden="true">{keys('⌘J')}</kbd></button>
+      }}><AskBubble className="flex-none" size={16} aria-hidden="true" /><span>{t('Ask Yogurt')}</span><kbd aria-hidden="true">{keys('⌘J')}</kbd></button>
     {anchor && createPortal(conversation, anchor)}
   </>
 }

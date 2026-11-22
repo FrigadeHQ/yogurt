@@ -4,7 +4,7 @@ import { widgetDragDelta, isWidgetClick, type WidgetPress } from '../../../share
 import { Loading } from '../components/Loading'
 import { bubbles, turns, withLive } from '../../../shared/transcript'
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { ArrowDown } from 'lucide-react'
+import { ArrowDown } from '../components/Icons'
 import type { Segment, TranscriptPartial, WidgetView } from '../../../shared/types'
 import { formatElapsed } from '../../../shared/wave'
 import { t } from '../../../shared/i18n'

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 const menus = [
-  { trigger: 'share-button', surface: 'share-menu', first: 'share-copy-notes', logical: false },
+  { trigger: 'share-button', surface: 'share-menu', first: 'share-copy-summary', logical: false },
   { trigger: 'note-menu-button', surface: 'note-menu', first: 'note-rename', logical: true, end: true },
   { trigger: 'note-date', surface: 'note-date-card', first: 'note-date-heading', logical: true },
   { trigger: 'note-attendees', surface: 'people-card', first: 'people-add', logical: true },

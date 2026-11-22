@@ -15,7 +15,7 @@ import { command, onMac } from './keys'
 import { TrashToast } from './components/TrashToast'
 import { Trash } from './screens/Trash'
 import { ChatPage } from './screens/ChatPage'
-import { BootScreen } from './components/BootScreen'
+import { BootScreen, MacLaunch } from './components/BootScreen'
 import { bootHoldMs } from '../../shared/onboarding'
 import { Folder } from './screens/Folder'
 import { AskRecordingWait, watchRecordingWait } from './askAvailability'
@@ -141,7 +141,13 @@ export function App() {
       const mac = onMac()
       if (e.isComposing || !command(e) || e.altKey || (mac && e.shiftKey) || document.querySelector('dialog:modal, .app-modal[aria-modal="true"]')) return
       if (mac ? e.ctrlKey : e.shiftKey) {
-        if (e.code === 'KeyS' && !document.querySelector('[aria-modal="true"]')) {
+        if (document.querySelector('[aria-modal="true"]')) return
+        const agenda = e.code === 'KeyA' && document.getElementById('home-agenda-toggle')
+        if (agenda) {
+          e.preventDefault(); e.stopPropagation(); if (!e.repeat) agenda.click()
+          return
+        }
+        if (e.code === 'KeyS') {
           e.preventDefault(); e.stopPropagation(); if (!e.repeat) toggleSidebar()
         }
         return
@@ -177,8 +183,6 @@ export function App() {
     open(s.meetingId)
   }
 
-  // still starting, or checking what is on disk: the launch screen, so a finished install never flashes the first-run screen
-  if (!setup || !plan || holding) return <div data-testid="app-shell" className="flex h-full flex-col bg-bg"><TitleBar />{!setup && setupFailed ? <ReadError testId="setup-read-error" retry={() => setSetupAttempt(n => n + 1)} /> : <BootScreen />}</div>
   const noteId = route.startsWith('/note/') ? route.slice(6) : null
   const settings = route === '/settings' || route.startsWith('/settings/')
   const trash = route === '/trash'
@@ -193,15 +197,25 @@ export function App() {
     folderSuggestion={suggestedFolder ? { folder: suggestedFolder, dismiss: () => dismissFolderSuggestion(noteId) } : undefined} />
     : chatId !== undefined ? <ChatPage id={chatId} go={go} openSource={openSource} />
     : trash ? <Trash open={open} /> : folderScreen || <Home open={open} openFolder={(id) => go(`/folder/${id}`)} agendaJump={agendaJump} />
-  return (
-    <AskRecordingWait value={recordingWait}><div data-testid="app-shell" className={`h-full text-ink ${ready ? 'bg-transparent' : 'bg-bg'}`}>
-      {ready ? <Workspace route={route} meeting={meeting} folders={folders} go={go} back={history.current.length ? back : undefined} forward={future.current.length ? forward : undefined} search={() => setSearching(true)} collapsed={sidebarCollapsed} sidebarMotion={sidebarMotion} toggleSidebar={toggleSidebar}>{screen}</Workspace>
-        : <><TitleBar />{setup.phase === 'checking' && firstRunDone ? <BootScreen /> : <Onboarding state={setup} plan={plan} onDone={() => setPlan({ intro: false, steps: [] })} />}</>}
-      {ready && searching && <Search folder={folder} folders={folders} onOpen={open} onNavigate={go} onShortcuts={openShortcuts} onSettingsChange={() => setSettingsRevision((v) => v + 1)} onClose={() => setSearching(false)} sidebarCollapsed={sidebarCollapsed} onToggleSidebar={() => toggleSidebar()} />}
-      {ready && shortcuts && <Shortcuts onClose={() => setShortcuts(false)} />}
-      {ready && <TrashToast go={go} />}
-    </div></AskRecordingWait>
-  )
+  const mac = window.yogurt.platform === 'darwin'
+  const startupError = !setup && setupFailed
+  const launching = mac && !startupError && (!booted || holding)
+  const boot = mac ? null : <BootScreen />
+  const starting = !setup || !plan || holding
+  const inWorkspace = !starting && ready
+  const page = starting
+    ? <><TitleBar />{startupError ? <ReadError testId="setup-read-error" retry={() => setSetupAttempt(n => n + 1)} /> : boot}</>
+    : ready ? <Workspace route={route} meeting={meeting} folders={folders} go={go} back={history.current.length ? back : undefined} forward={future.current.length ? forward : undefined} search={() => setSearching(true)} shortcuts={openShortcuts} collapsed={sidebarCollapsed} sidebarMotion={sidebarMotion} toggleSidebar={toggleSidebar}>{screen}</Workspace>
+    : <><TitleBar />{setup.phase === 'checking' && firstRunDone ? boot : <Onboarding state={setup} plan={plan} onDone={() => setPlan({ intro: false, steps: [] })} />}</>
+  return <AskRecordingWait value={recordingWait}>
+    {mac && <MacLaunch active={launching} />}
+    <div data-testid="app-shell" inert={launching || undefined} className={starting ? 'app-shell flex h-full flex-col bg-bg' : `app-shell h-full text-ink ${ready ? 'bg-transparent' : 'bg-bg'}`}>
+      {page}
+      {inWorkspace && searching && <Search folder={folder} folders={folders} onOpen={open} onNavigate={go} onShortcuts={openShortcuts} onSettingsChange={() => setSettingsRevision((v) => v + 1)} onClose={() => setSearching(false)} sidebarCollapsed={sidebarCollapsed} onToggleSidebar={() => toggleSidebar()} />}
+      {inWorkspace && shortcuts && <Shortcuts onClose={() => setShortcuts(false)} />}
+      {inWorkspace && <TrashToast go={go} />}
+    </div>
+  </AskRecordingWait>
 }
 
 /** Keep the native traffic-light strip clear during setup; draggable, and the page's own colour so first run reads as one surface. */

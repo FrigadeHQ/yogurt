@@ -1,7 +1,13 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { readAgendaOpen, saveAgendaOpen } from '../src/renderer/src/agenda'
+import { Home } from '../src/renderer/src/screens/Home'
 import { pickNext } from '../src/shared/comingUp'
 import { loadUpTo } from '../src/renderer/src/paging'
 import type { CalEvent } from '../src/shared/types'
+
+vi.mock('../src/renderer/src/components/LoadingContent', () => ({ LoadingContent: () => null }))
 
 const MIN = 60_000
 const ev = (id: string, start: number, end: number): CalEvent => ({ id, title: id, start, end, attendees: [], url: null })
@@ -41,5 +47,28 @@ describe('loadUpTo', () => {
     const end = await loadUpTo(fetch, 5000, 40)
     expect(end.cards).toHaveLength(1234)
     expect(end.more).toBe(false)
+  })
+})
+
+describe('Home Agenda', () => {
+  afterEach(() => vi.unstubAllGlobals())
+  it('starts shown and restores the chosen layout when Home remounts', () => {
+    const stored = new Map<string, string>()
+    const capabilities = { calendar: true }
+    vi.stubGlobal('window', {
+      yogurt: { capabilities }, matchMedia: () => ({ matches: true }),
+      localStorage: { getItem: (k: string) => stored.get(k) ?? null, setItem: (k: string, v: string) => stored.set(k, v) },
+    })
+    const render = () => renderToStaticMarkup(createElement(Home, { open() {} }))
+    expect(readAgendaOpen()).toBe(true)
+    expect(render()).toContain('class="native-agenda"')
+    saveAgendaOpen(false)
+    expect(render()).toContain('class="home-agenda-panel" inert=""')
+    expect(render()).not.toContain('class="native-agenda"')
+    saveAgendaOpen(true)
+    expect(render()).toContain('class="native-agenda"')
+    capabilities.calendar = false
+    expect(render()).toContain('native-home no-agenda')
+    expect(render()).not.toContain('id="home-agenda"')
   })
 })

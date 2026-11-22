@@ -1,7 +1,7 @@
 import { Tooltip } from '@base-ui/react/tooltip'
 import { usePopoverPresence } from '../motion'
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
-import { AudioLines, ChevronRight, Ellipsis, FolderIcon, Pencil, RotateCcw, Trash2 } from 'lucide-react'
+import { AudioLines, ChevronRight, Ellipsis, Folder as FolderIcon, Pencil, RotateCcw, Trash2 } from './Icons'
 import { RegenerateForm } from './RegenerateForm'
 import { t } from '../../../shared/i18n'
 
@@ -56,7 +56,7 @@ export function NoteMenu({ transcription, recording, savePending, onRename, onDe
   return (
     <div ref={root} className="relative">
       <button ref={button} data-testid="note-menu-button" aria-haspopup={rewriteOpen ? "dialog" : "menu"} aria-expanded={!!open || rewriteOpen} aria-label={t('More')} title={t('More')}
-        onClick={(e) => { if (rewriteOpen) close(); else setOpen((o) => o ? false : e.detail > 0 ? 'pointer' : 'keyboard') }} className="ghost-btn workspace-icon"><Ellipsis size={17} strokeWidth={1.75} aria-hidden="true" /></button>
+        onClick={(e) => { if (rewriteOpen) close(); else setOpen((o) => o ? false : e.detail > 0 ? 'pointer' : 'keyboard') }} className="ghost-btn workspace-icon"><Ellipsis size={17} aria-hidden="true" /></button>
       {presence.value === 'rewrite' ? (
         <div key="rewrite" role="dialog" data-testid="note-regenerate" aria-label={hasSummary ? t('Regenerate summary') : t('Generate summary')}
           aria-describedby={edited ? 'note-rewrite-description' : undefined} {...presence.props} data-anchor="end"
@@ -69,7 +69,7 @@ export function NoteMenu({ transcription, recording, savePending, onRename, onDe
           className="menu-entry absolute end-0 top-full z-30 mt-2 w-max min-w-60 max-w-[calc(100vw-32px)] rounded-xl border border-line bg-float p-1.5 shadow-[var(--shadow)]">
           {inFolders && folders ? folders(() => { setOpen(false); button.current?.focus() }) : <>
           <button ref={first} role="menuitem" data-testid="note-rename" onClick={() => run(onRename)} className={row}>
-            <Pencil size={15} strokeWidth={1.75} aria-hidden="true" className="text-muted" />{t('Rename')}
+            <Pencil size={15} aria-hidden="true" className="text-muted" />{t('Rename')}
           </button>
           {folders && <button role="menuitem" data-testid="note-add-to-folder" aria-haspopup="menu" onClick={() => {
             setInFolders(true)
@@ -83,14 +83,14 @@ export function NoteMenu({ transcription, recording, savePending, onRename, onDe
             aria-description={generation.reason}
             onClick={() => { if (generation.reason) return; setOpen(false); setRewriteOpen(true) }}
             className={`${row} whitespace-nowrap aria-disabled:opacity-50 aria-disabled:hover:bg-transparent`}>
-            <RotateCcw size={15} strokeWidth={1.75} aria-hidden="true" className="text-muted" />{generation.label}
+            <RotateCcw size={15} aria-hidden="true" className="text-muted" />{generation.label}
           </Tooltip.Trigger>
             <Tooltip.Portal><Tooltip.Positioner side="left" align="center" sideOffset={6} collisionPadding={12} className="z-[80]">
               <Tooltip.Popup role="tooltip" className="rounded-md border border-line bg-float px-2 py-1 text-xs whitespace-nowrap text-ink shadow-[var(--shadow)]">{generation.reason}</Tooltip.Popup>
             </Tooltip.Positioner></Tooltip.Portal>
           </Tooltip.Root>}
           <button role="menuitem" data-testid="note-delete" disabled={recording || savePending} onClick={() => run(() => { button.current?.focus(); onDelete() })} className={`${row} text-danger`}>
-            <Trash2 size={15} strokeWidth={1.75} aria-hidden="true" />
+            <Trash2 size={15} aria-hidden="true" />
             <span className="flex flex-col">
               {trashed ? t('Delete forever') : t('Delete note')}
               {recording && <span className="text-xs text-muted">{t('Stop the recording first')}</span>}

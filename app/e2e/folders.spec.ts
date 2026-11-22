@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -41,7 +42,9 @@ test('folder and Trash icons stay still on hover in either sidebar size and resp
     await newFolder(page, 'Standup')
     for (const compact of [false, true]) {
       if (compact) await page.getByTestId('sidebar-collapse').click()
-      for (const row of [page.getByTestId('sidebar-folder-open'), page.getByTestId('nav-trash')]) {
+      for (const id of ['sidebar-folder-open', 'nav-trash']) {
+        if (id === 'nav-trash') await page.getByTestId('corner-menu-button').click()
+        const row = page.getByTestId(id)
         await page.mouse.move(700, 300)
         const svg = row.locator('svg').first()
         await expect(svg).toHaveCSS('animation-name', 'none')
@@ -51,6 +54,7 @@ test('folder and Trash icons stay still on hover in either sidebar size and resp
         await page.emulateMedia({ reducedMotion: 'reduce' })
         await expect(svg).toHaveCSS('animation-name', 'none')
         await page.emulateMedia({ reducedMotion: 'no-preference' })
+        if (id === 'nav-trash') await page.keyboard.press('Escape')
       }
     }
   } finally { await app.close() }
@@ -158,7 +162,8 @@ test('a note goes into folders from its menu and its chip, and a new folder from
     await page.getByTestId('note-menu-folders').getByTestId('folder-new').click()
     await page.getByTestId('folder-name-input').fill('Board')
     await page.keyboard.press('Enter')
-    await expect(page.getByTestId('note-folders-summary')).toHaveText('Acme + 1')
+    await expect(page.getByTestId('note-folders-summary')).toHaveText('Acme +1')
+    await expect(page.getByTestId('note-folders')).toHaveAccessibleName('Acme and 1 more')
     await expect(folder(page, 'Board').getByTestId('sidebar-folder-count')).toHaveText('1')
 
     // the chip: same list; taking it out of Acme
@@ -433,7 +438,7 @@ test('a backup carries folders and which meetings are in them', async () => {
     await expect(folder(a.page, 'Partners').getByTestId('sidebar-folder-count')).toHaveText('1')
     await newFolder(a.page, 'Zulu')
     await a.page.evaluate(async () => { const folders = await window.yogurt.folders.list(); await window.yogurt.folders.reorder(folders.map(f => f.id).reverse()) })
-    await a.page.getByTestId('settings-open').click()
+    await openFromCorner(a.page, 'settings-open')
     await a.page.getByTestId('backup-export').click()
     await expect(a.page.getByTestId('backup-said')).toContainText('Exported 4 meetings')
   } finally { await a.app.close() }
@@ -441,7 +446,7 @@ test('a backup carries folders and which meetings are in them', async () => {
   const b = await launch({ YOGURT_BACKUP_PATH: file })
   try {
     await expect(b.page.getByTestId('sidebar-folder')).toHaveCount(0)
-    await b.page.getByTestId('settings-open').click()
+    await openFromCorner(b.page, 'settings-open')
     await b.page.getByTestId('backup-import').click()
     await expect(b.page.getByTestId('backup-said')).toHaveText('Added 4 meetings.')
     await expect(b.page.getByTestId('sidebar-folder-open')).toHaveText([/Zulu/, /Partners/])

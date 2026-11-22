@@ -1,4 +1,4 @@
-import { AudioLines, TextAlignStart } from 'lucide-react'
+import { AudioLines, TextAlignStart } from './Icons'
 import { t } from '../../../shared/i18n'
 
 const Bar = ({ width = '60%' }: { width?: string }) => <span className="loading-bar" style={{ width }} />

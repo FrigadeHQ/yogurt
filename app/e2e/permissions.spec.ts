@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test, type ElectronApplication } from '@playwright/test'
 import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -88,7 +89,7 @@ test('settings: granted permissions offer Manage, with open at login and theme c
   try {
     const page = await app.firstWindow()
     await expect(page.getByTestId('home')).toBeVisible()
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     await expect(page.getByTestId('settings')).toBeVisible()
     const rows = page.getByTestId('permission-row')
     await expect(rows).toHaveCount(5)
@@ -133,7 +134,7 @@ test('settings: your name, the Mac\'s full name until changed; cleared, it goes 
   try {
     const page = await app.firstWindow()
     await expect(page.getByTestId('home')).toBeVisible()
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     const name = page.getByTestId('settings-name')
     await expect(name).toHaveValue('Dana Reyes')
     await name.fill('  Dana  R. ')
@@ -262,7 +263,7 @@ test('managed Macs and notifications already asked read plainly in Settings', as
     await expect(page.getByTestId('onboarding-step')).toHaveAttribute('data-step', 'accessibility')
     await page.getByTestId('step-later').click()
     await expect(page.getByTestId('home')).toBeVisible({ timeout: 15_000 })
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     const mic = page.locator('[data-testid="permission-row"][data-kind="mic"]')
     await expect(mic).toHaveAttribute('data-status', 'restricted')
     await expect(mic).toContainText('Managed by your organization')
@@ -284,7 +285,7 @@ test('names from calls: optional, asked with the Mac\'s own prompt once, then on
     await page.getByTestId('step-later').click()
     await expect(page.getByTestId('home')).toBeVisible({ timeout: 15_000 })
     expect(settingsOf(dir).axAsked).toBe(true)
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     const row = page.locator('[data-testid="permission-row"][data-kind="accessibility"]')
     await expect(row).toHaveAttribute('data-status', 'denied')
     await expect(row).toContainText('Names from your calls')
@@ -323,7 +324,7 @@ test('Accessibility is rechecked on return from Settings before continuing', asy
     await expect(page.getByTestId('step-title')).toHaveText('All set')
     await page.getByTestId('step-allow').click()
     await expect(page.getByTestId('home')).toBeVisible()
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     const row = page.locator('[data-testid="permission-row"][data-kind="accessibility"]')
     await expect(row).toHaveAttribute('data-status', 'granted')
     await fake(app, 'accessibility', false)

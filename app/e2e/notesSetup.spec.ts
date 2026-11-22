@@ -41,7 +41,7 @@ async function go(page: Page, route: string) {
 async function expectClear(page: Page) {
   await expect.poll(() => page.getByTestId('notes-setup-open').evaluate(el => {
     const box = el.getBoundingClientRect()
-    const others = document.querySelectorAll('.workspace-sidebar-toggle, [data-testid="recording-return"], [data-testid="note-menu-button"], #workspace-actions button')
+    const others = document.querySelectorAll('.workspace-sidebar-toggle, [data-testid="recording-return"], [data-testid="note-menu-button"], .workspace-toolbar-actions button')
     return box.width >= 44 && box.x >= 0 && box.right <= innerWidth && [...others].every(other => {
       const rect = other.getBoundingClientRect()
       return rect.width > 0 && rect.x >= 0 && rect.right <= innerWidth
@@ -92,7 +92,7 @@ test('both AI stages live beside recording, open below, retry failures and disap
       await setSetup(app, state)
       await expect(trigger).toHaveAccessibleName(`${label} · 27%`)
       await expect(trigger).toHaveAttribute('title', `${label} · 27%`)
-      await expect(trigger.locator('.lucide-chevron-down')).toHaveCount(0)
+      await expect(trigger.locator('[data-icon="ChevronDown"]')).toHaveCount(0)
       await expect(page.locator('.workspace-toolbar').getByTestId('notes-setup-open')).toHaveCount(1)
       await expect(trigger).toHaveCSS('font-weight', '400')
       const start = (await page.getByTestId('new-note').boundingBox())!

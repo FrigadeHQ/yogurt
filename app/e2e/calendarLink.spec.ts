@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync, readFileSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
@@ -55,7 +56,7 @@ test('@everywhere on win32: the agenda sends you to Settings, a calendar link co
     await page.getByTestId('nav-back').click()
     await expect(page.getByTestId('event').filter({ hasText: 'Launch planning' })).toBeVisible()
     // removed: no calendar, and the form is back
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     await page.getByTestId('calendar-link-remove').click()
     await expect(page.getByTestId('calendar-link-form')).toBeVisible()
     await expect(page.getByTestId('calendar-choice')).toHaveCount(0)
@@ -81,7 +82,7 @@ test('@everywhere a Mac keeps its own calendar and can add a calendar link next 
   try {
     const page = await app.firstWindow()
     await expect(page.getByTestId('home')).toBeVisible({ timeout: 15_000 })
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     const settings = page.getByTestId('calendar-settings')
     if (await settings.getByTestId('calendar-settings-toggle').getAttribute('aria-expanded') !== 'true') await settings.getByTestId('calendar-settings-toggle').click()
     await expect(settings.getByTestId('calendar-link-add')).toContainText('Add a calendar by link')

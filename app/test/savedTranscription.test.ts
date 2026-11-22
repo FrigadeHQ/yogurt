@@ -94,3 +94,18 @@ it("a phone recording is transcribed in the language the phone said it was spoke
  expect(transcribe.mock.calls[0][2].language).toBe('de')
  expect(transcribe.mock.calls[1][2].language).toBeUndefined()
 })
+
+it('leaves a meeting alone while its live transcript is still being finished (#127)',async()=>{
+ const id=note().id;store.updateMeeting(id,{transcriptionPending:true});let live=true
+ jobs=createSavedTranscriptions({store,ready:()=>model,recording:()=>recording,live:()=>live,tracks:async()=>({them:(async function*(){yield new Float32Array(1600)})()}),transcribe,summarize,changed})
+ recording=true;await jobs.pump();recording=false;await jobs.pump()
+ expect(transcribe).not.toHaveBeenCalled();expect(store.meeting(id)?.transcriptionState).toBeUndefined()
+ live=false;await jobs.pump();await vi.waitFor(()=>expect(store.meeting(id)?.transcriptionState).toBe('done'))
+})
+it('clears a waiting label left on a meeting whose transcript is already done (#127)',async()=>{
+ const id=note().id;store.updateMeeting(id,{state:'done',transcriptionPending:false,transcriptionState:'waiting-recording'})
+ const upload=note().id;store.db.prepare('UPDATE meetings SET source=? WHERE id=?').run('audio-file',upload);store.updateMeeting(upload,{transcriptionPending:false,transcriptionState:'preparing'})
+ await jobs.pump()
+ expect(store.meeting(id)?.transcriptionState).toBeUndefined();expect(changed).toHaveBeenCalledWith(id)
+ expect(store.meeting(upload)?.transcriptionState).toBe('preparing')
+})

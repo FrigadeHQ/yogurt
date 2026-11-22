@@ -1,51 +1,12 @@
-import { afterEach, describe, expect, it } from 'vitest'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { describe, expect, it } from 'vitest'
+import { writeFileSync } from 'node:fs'
 import { connect } from 'node:net'
-import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { openStore, type Store } from '../src/main/store'
-import { createMcp, MCP_TOOLS, type Mcp } from '../src/main/mcp/server'
+import { MCP_TOOLS } from '../src/main/mcp/server'
+import { setup, call, json } from './mcpRig'
 import { serveMcp } from '../src/main/mcp/socket'
 import { mcpAddress } from '../src/main/mcp/paths'
 import { randomBytes } from 'node:crypto'
-
-const dirs: string[] = []
-const stores: Store[] = []
-afterEach(() => {
-  stores.splice(0).forEach((s) => s.close())
-  dirs.splice(0).forEach((d) => rmSync(d, { recursive: true, force: true }))
-})
-const tmp = () => { const d = mkdtempSync(join(tmpdir(), 'yogurt-mcp-')); dirs.push(d); return d }
-
-function setup(o: { enabled?: boolean; platform?: string } = {}) {
-  const dir = tmp()
-  const store = openStore(join(dir, 'yogurt.db')); stores.push(store)
-  const base = { endedAt: null, eventId: null, app: 'Zoom', state: 'done' as const }
-  const older = store.createMeeting({ ...base, title: 'Budget review', startedAt: Date.parse('2026-11-01T17:00:00Z'), endedAt: Date.parse('2026-11-01T17:25:00Z'), attendees: [{ name: 'Ann Lee', email: 'ann@acme.com' }] })
-  const newer = store.createMeeting({ ...base, title: 'Launch plan', startedAt: Date.parse('2026-11-02T16:00:00Z'), attendees: [] })
-  store.addSegments([
-    { meetingId: older.id, track: 'me', startMs: 5_000, endMs: 7_000, text: 'Can we keep travel flat?', speaker: 'me' },
-    { meetingId: older.id, track: 'them', startMs: 65_000, endMs: 68_000, text: 'Travel spend is down a little.', speaker: 'Ann Lee' },
-    { meetingId: older.id, track: 'them', startMs: 70_000, endMs: 71_000, text: 'Sure.', speaker: null },
-    { meetingId: older.id, track: 'me', startMs: 72_000, endMs: 73_000, text: 'an echo', speaker: 'me', hidden: true },
-  ])
-  store.setNotes(older.id, { mine: 'travel flat', enhanced: '## Budget\n- Travel stays flat.' })
-  const audioDir = join(dir, 'meetings', older.id); mkdirSync(audioDir, { recursive: true })
-  writeFileSync(join(audioDir, 'me.m4a'), 'x'); writeFileSync(join(audioDir, 'them.m4a'), 'x')
-  let on = o.enabled ?? true
-  const clients: string[] = []
-  const mcp = createMcp({
-    store, enabled: () => on, me: () => 'Sam Rivera', version: '0.1.0', platform: o.platform,
-    audio: async (id) => id === older.id ? [{ track: 'me', path: join(audioDir, 'me.m4a') }, { track: 'them', path: join(audioDir, 'them.m4a') }] : [],
-  })
-  return { store, mcp, older, newer, dir, clients, turn: (v: boolean) => { on = v } }
-}
-
-const call = async (mcp: Mcp, name: string, args: Record<string, unknown> = {}) => {
-  const r = await mcp.handle({ jsonrpc: '2.0', id: 7, method: 'tools/call', params: { name, arguments: args } }) as { result: { content: Array<{ text: string }>; isError?: boolean } }
-  return { text: r.result.content.map((c) => c.text).join('\n'), isError: !!r.result.isError }
-}
-const json = async (mcp: Mcp, name: string, args: Record<string, unknown> = {}) => JSON.parse((await call(mcp, name, args)).text)
 
 describe('the MCP server', () => {
   it('says who it is and that it has tools, in the protocol version the app asked for when it knows it', async () => {
@@ -55,12 +16,20 @@ describe('the MCP server', () => {
     const odd = await mcp.handle({ jsonrpc: '2.0', id: 2, method: 'initialize', params: { protocolVersion: '1999-01-01' } }) as { result: { protocolVersion: string } }
     expect(odd.result.protocolVersion).toBe('2025-06-18')
   })
-  it('lists its tools, all of them only reading', async () => {
+  it('lists its tools: the reading ones read only, the rest marked as changes, and removing or replacing ones as destructive', async () => {
     const { mcp } = setup()
-    const r = await mcp.handle({ jsonrpc: '2.0', id: 3, method: 'tools/list' }) as { result: { tools: Array<{ name: string; annotations: { readOnlyHint: boolean } }> } }
-    expect(r.result.tools.map((t) => t.name)).toEqual(['list_folders', 'list_meetings', 'get_meeting', 'get_transcript', 'search', 'get_audio'])
-    expect(r.result.tools.every((t) => t.annotations.readOnlyHint)).toBe(true)
-    expect(MCP_TOOLS).toHaveLength(6)
+    const r = await mcp.handle({ jsonrpc: '2.0', id: 3, method: 'tools/list' }) as { result: { tools: Array<{ name: string; annotations: { readOnlyHint: boolean; destructiveHint: boolean } }> } }
+    const tools = r.result.tools
+    const reading = ['list_folders', 'list_meetings', 'get_meeting', 'get_transcript', 'search', 'ask', 'list_people', 'upcoming_meetings', 'calendar_day', 'list_trash', 'get_settings', 'export_meeting', 'get_audio']
+    expect(tools.filter((t) => t.annotations.readOnlyHint).map((t) => t.name)).toEqual(reading)
+    expect(tools.filter((t) => !t.annotations.readOnlyHint).map((t) => t.name)).toEqual(['create_folder', 'rename_folder', 'delete_folder', 'add_to_folder', 'remove_from_folder',
+      'accept_folder_suggestion', 'dismiss_folder_suggestion', 'rename_meeting', 'set_attendees', 'link_calendar_event', 'unlink_calendar_event', 'trash_meeting', 'restore_meeting',
+      'set_my_notes', 'set_summary', 'rewrite_summary', 'start_recording', 'pause_recording', 'resume_recording', 'stop_recording', 'set_custom_words', 'set_spoken_language',
+      'set_summary_language', 'create_meeting', 'import_meetings'])
+    expect(tools.filter((t) => t.annotations.destructiveHint).map((t) => t.name)).toEqual(['delete_folder', 'set_attendees', 'trash_meeting', 'set_my_notes', 'set_summary', 'rewrite_summary', 'stop_recording', 'set_custom_words'])
+    // never anything that deletes for good
+    expect(tools.map((t) => t.name).filter((n) => /empty|purge|delete_meeting|delete_audio|forever/.test(n))).toEqual([])
+    expect(MCP_TOOLS).toEqual(tools)
   })
   it("tells other apps' models about the Mac on a Mac, and about Ogg files on Windows and Linux", async () => {
     const audioText = async (platform?: string) => {
@@ -70,15 +39,16 @@ describe('the MCP server', () => {
       return [init.result.instructions, list.result.tools.find((t) => t.name === 'get_audio')!.description]
     }
     const mac = "A meeting's recording as files on this Mac: one per side (track me: the person's microphone; them: the other side of the call), AAC in .m4a. Gives paths, which apps on this Mac can open."
-    expect(await audioText()).toEqual(["Yogurt holds the person's meeting notes, transcripts and recordings on this Mac. Use list_meetings or search to find a meeting, then get_meeting, get_transcript or get_audio.", mac])
-    expect(await audioText('darwin')).toEqual(await audioText())
+    const here = await audioText()
+    expect(here).toEqual([expect.stringMatching(/^Yogurt holds the person's meeting notes, transcripts and recordings on this Mac\. Use list_meetings or search to find a meeting, then get_meeting, get_transcript or get_audio\./), mac])
+    expect(await audioText('darwin')).toEqual(here)
     for (const p of ['win32', 'linux']) {
       const [instructions, audio] = await audioText(p)
       expect(instructions).toContain('on this computer.')
       expect(audio).toContain('Ogg Opus in .ogg')
       expect(`${instructions} ${audio}`).not.toMatch(/this Mac/)
     }
-  }, 30_000) // five databases: under a second on a Mac, over 5 s on GitHub's Windows runners
+  }, 120_000) // four databases: under a second on a Mac, but up to ~40 s on GitHub's Windows runners
   it('answers notifications with nothing, pings with an empty result, and anything else with method not found', async () => {
     const { mcp } = setup()
     expect(await mcp.handle({ jsonrpc: '2.0', method: 'notifications/initialized' })).toBeNull()

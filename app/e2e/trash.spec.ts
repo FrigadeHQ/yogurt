@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
 import { existsSync, mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -178,7 +179,7 @@ test('the toast countdown pauses on hover and focus, then dismisses when time ru
     await expect(toast).toBeVisible()
     await page.getByTestId('search-open').focus()
     await expect(toast).toHaveCount(0, { timeout: 10_000 })
-    await page.getByTestId('nav-trash').click()
+    await openFromCorner(page, 'nav-trash')
     await expect(page.getByTestId('trash-row')).toContainText('Weekly sync')
     const trashRow = page.getByTestId('trash-row')
     await page.mouse.move(0, 0)
@@ -227,7 +228,7 @@ test('the Trash: deleted meetings wait there, out of Meetings, folders and searc
     await expect(count).toHaveText('0')
     expect((await page.evaluate(() => window.yogurt.search.query('Weekly'))).map((h) => h.title)).toEqual([])
 
-    await page.getByTestId('nav-trash').click()
+    await openFromCorner(page, 'nav-trash')
     await expect(page.getByTestId('workspace-heading')).toHaveText('Trash')
     await expect(page.getByTestId('trash-page')).toContainText('deleted for good after 30 days')
     // the last deleted first
@@ -239,7 +240,7 @@ test('the Trash: deleted meetings wait there, out of Meetings, folders and searc
     await expect(page.getByTestId('note-resume')).toHaveCount(0)
     await page.getByTestId('note-restore').click()
     await expect(page.getByTestId('note-trashed')).toHaveCount(0)
-    await page.getByTestId('nav-trash').click()
+    await openFromCorner(page, 'nav-trash')
     await expect(page.getByTestId('trash-row')).toHaveText([/Weekly sync/])
 
     await page.getByTestId('trash-row').hover()
@@ -259,7 +260,7 @@ test('Empty Trash asks first, then deletes every meeting in it for good, recordi
     await withMeetings(app, page)
     const ids = await page.evaluate(async () => (await window.yogurt.meetings.cards({ limit: 2 })).map((c) => c.id))
     for (const id of ids) expect(await page.evaluate((id) => window.yogurt.meetings.trash(id), id)).toBe('trashed')
-    await page.getByTestId('nav-trash').click()
+    await openFromCorner(page, 'nav-trash')
     await expect(page.getByTestId('trash-row')).toHaveCount(2)
     await page.getByTestId('trash-empty').click()
     const confirm = page.getByTestId('trash-empty-confirm')

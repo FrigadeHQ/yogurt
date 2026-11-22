@@ -1,3 +1,4 @@
+import { meterHeights } from './meterGeometry'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -58,9 +59,10 @@ test('the header recorder returns from every other page and follows pause, renam
     await expect(page.getByTestId('note-pause')).toHaveAccessibleName('Resume recording')
     await go('/chat')
     await expect(link).toHaveAttribute('data-paused', 'true')
-    const pausedWave = await link.getByTestId('recording-return-wave').evaluate((el) => (el as HTMLCanvasElement).toDataURL())
+    const pausedWave = await meterHeights(link.getByTestId('recording-return-wave'))
+    expect(pausedWave.map(Math.round)).toEqual([3, 3, 3, 3, 3])
     await page.waitForTimeout(150)
-    expect(await link.getByTestId('recording-return-wave').evaluate((el) => (el as HTMLCanvasElement).toDataURL())).toBe(pausedWave)
+    expect(await meterHeights(link.getByTestId('recording-return-wave'))).toEqual(pausedWave)
     await page.reload()
     await expect(link).toHaveAttribute('data-paused', 'true')
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => !w.webContents.getURL().includes('#'))!.setSize(720, 600))

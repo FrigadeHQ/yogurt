@@ -315,6 +315,19 @@ export function hookNotes(p: {
       stampBefore.delete(id)
       p.send(view(id))
     },
+    /**
+     * Another app (MCP) replaces a side. It leaves the editor's revisions alone, so the next keystroke still saves, and
+     * never overwrites an edit not saved yet or a summary being written.
+     */
+    replace(id: string, side: NoteSide, md: string): 'saved' | 'busy' | 'too-long' | 'failed' {
+      if (!p.store.meeting(id)) return 'failed'
+      if (md.length > NOTES_MAX) return 'too-long'
+      const status = live.get(id)?.status
+      if (edits.get(id)?.[side]?.text !== undefined || (side === 'enhanced' && (status === 'waiting' || status === 'writing'))) return 'busy'
+      try { p.store.setNotes(id, side === 'mine' ? { mine: md } : { enhanced: md, edited: true }) } catch (e) { console.error('notes from another app were not saved', id, side, e); return 'failed' }
+      p.send(view(id))
+      return 'saved'
+    },
     setMine: (id: string, md: string, revision?: number) => saveEdit(id, 'mine', md, revision),
     /** My notes from the iPhone: a new revision, and an open editor hears what they replaced so it can take them */
     phoneMine: (id: string, md: string) => saveEdit(id, 'mine', md, undefined, { mineFrom: currentNotes(id).mine }),

@@ -1,3 +1,4 @@
+import { meterHeights } from './meterGeometry'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -16,7 +17,7 @@ test('recording controls stay in the header and Ask lives in the footer with sta
     const header = page.locator('.note-header'), controls = header.getByTestId('note-state')
     await expect(header.getByTestId('note-elapsed')).toHaveAccessibleName('Recorded time')
     await expect(header.getByTestId('note-elapsed')).toBeVisible()
-    await expect(controls.locator('time, canvas')).toHaveCount(0)
+    await expect(controls.locator('time, [data-testid="note-wave"]')).toHaveCount(0)
     await expect(controls).toHaveAccessibleName('Recording')
     await expect(controls.getByTestId('note-pause')).toBeVisible()
     await expect(controls.getByTestId('note-stop')).toBeVisible()
@@ -26,11 +27,11 @@ test('recording controls stay in the header and Ask lives in the footer with sta
     await expect(header.getByTestId('chat-open')).toHaveCount(0)
     await expect(page.locator('.note-footer').getByTestId('chat-open')).toContainText('⌘J')
     await expect(header.getByTestId('note-elapsed')).toMatchAriaSnapshot(String.raw`- timer "Recorded time": /^(?:\d+:)?\d+:\d{2}$/`)
-    const brand = (await page.locator('.workspace-brand').boundingBox())!
+    const corner = (await page.locator('.workspace-corner').boundingBox())!
     const footer = (await page.locator('.note-footer-bar').boundingBox())!
     const content = (await page.locator('.workspace-content').boundingBox())!
-    expect(Math.abs(footer.y - brand.y)).toBeLessThan(1)
-    expect(Math.abs(footer.height - brand.height)).toBeLessThan(1)
+    expect(Math.abs(footer.y - corner.y)).toBeLessThan(1)
+    expect(Math.abs(footer.height - corner.height)).toBeLessThan(1)
     expect(Math.abs(footer.x - content.x)).toBeLessThan(1)
     expect(Math.abs(footer.width - content.width)).toBeLessThan(1)
     await expect.poll(async () => Number(await page.getByTestId('note-wave').getAttribute('data-level')), { timeout: 15_000 }).toBeGreaterThan(0.05)
@@ -59,7 +60,7 @@ test('recording controls stay in the header and Ask lives in the footer with sta
         const gaps = await page.getByTestId('rec-bar').evaluate(bar => {
           const digits = document.createRange()
           digits.selectNodeContents(bar.querySelector('time')!)
-          const [left, middle, right] = [bar.querySelector('canvas')!.getBoundingClientRect(),
+          const [left, middle, right] = [bar.querySelector('[data-testid="note-wave"]')!.getBoundingClientRect(),
             digits.getBoundingClientRect(), bar.querySelector('[data-testid="note-state"]')!.getBoundingClientRect()]
             .sort((a, b) => a.left - b.left)
           return [Math.round(middle.left - left.right), Math.round(right.left - middle.right)]
@@ -98,9 +99,10 @@ test('recording controls stay in the header and Ask lives in the footer with sta
     await expect(page.getByTestId('note-pause')).toHaveAccessibleName('Resume recording')
     await expect(controls).toHaveAccessibleName('Paused')
     expect(Math.abs((await controls.boundingBox())!.width - recordingWidth)).toBeLessThan(1)
-    const pausedWave = await page.getByTestId('note-wave').evaluate(el => (el as HTMLCanvasElement).toDataURL())
+    const pausedWave = await meterHeights(page.getByTestId('note-wave'))
+    expect(pausedWave.map(Math.round)).toEqual([3, 3, 3, 3, 3])
     await page.waitForTimeout(150)
-    expect(await page.getByTestId('note-wave').evaluate(el => (el as HTMLCanvasElement).toDataURL())).toBe(pausedWave)
+    expect(await meterHeights(page.getByTestId('note-wave'))).toEqual(pausedWave)
     await page.getByTestId('note-pause').focus()
     await page.keyboard.press('Tab')
     await expect(page.getByTestId('note-stop')).toBeFocused()

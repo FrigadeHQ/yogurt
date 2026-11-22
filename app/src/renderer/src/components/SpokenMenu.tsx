@@ -1,6 +1,6 @@
 import { usePopoverPresence } from '../motion'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { Check, ChevronDown, Info, Languages } from 'lucide-react'
+import { Check, ChevronDown, Info, Languages } from './Icons'
 import { WHISPER_LANGUAGES, type Spoken } from '../../../shared/spoken'
 import { t } from '../../../shared/i18n'
 
