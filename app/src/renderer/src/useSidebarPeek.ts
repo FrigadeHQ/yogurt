@@ -2,9 +2,11 @@ import { useEffect, useRef, useState, type PointerEvent } from 'react'
 
 const childPopupOpen = () => document.querySelector('dialog[open]:not([data-testid="chat-panel"]), [role="menu"]:not([inert]), [aria-modal="true"]')
 
+type PeekMode = 'edge' | 'button' | 'keyboard'
+
 /** A peek never changes the window's docked sidebar setting or the width of the page. */
 export function useSidebarPeek(collapsed: boolean, route: string) {
-  const [mode, setMode] = useState<'pointer' | 'keyboard' | null>(null)
+  const [mode, setMode] = useState<PeekMode | null>(null)
   const panel = useRef<HTMLDivElement>(null)
   const toggle = useRef<HTMLButtonElement>(null)
   const previousFocus = useRef<HTMLElement | null>(null)
@@ -24,30 +26,48 @@ export function useSidebarPeek(collapsed: boolean, route: string) {
     }
     setMode(null)
   }
-  const reveal = (how: 'pointer' | 'keyboard') => {
+  const reveal = (how: PeekMode) => {
     if (!open) previousFocus.current = document.activeElement as HTMLElement | null
-    pointerMotion.current = how === 'pointer'
+    pointerMotion.current = how !== 'keyboard'
     setMode(how)
   }
-  const schedulePeek = (event: PointerEvent, dwell: number) => {
+  const schedulePeek = (event: PointerEvent, from: 'edge' | 'button') => {
     if (event.pointerType !== 'mouse' || event.buttons) return cancel()
     if (timer.current === undefined) timer.current = setTimeout(() => {
       timer.current = undefined
-      if (!childPopupOpen()) reveal('pointer')
-    }, dwell)
+      if (!childPopupOpen()) reveal(from)
+    }, from === 'edge' ? 100 : 180)
   }
   // Observe the page so the edge never takes a click or scrollbar drag from it.
   const trackEdge = (event: PointerEvent) => {
     const atEdge = document.documentElement.dir === 'rtl' ? event.clientX >= window.innerWidth - 16 : event.clientX < 16
     if (!atEdge || event.clientY < 52) return cancel()
     if ((event.target as Element).closest('button, a[href], input, select, textarea, [contenteditable=true], [role=button], [role=scrollbar]')) return cancel()
-    schedulePeek(event, 100)
+    schedulePeek(event, 'edge')
+  }
+  const closeAfter = (delay: number) => {
+    if (timer.current === undefined) timer.current = setTimeout(() => {
+      timer.current = undefined
+      if (!childPopupOpen()) dismiss()
+    }, delay)
   }
   const leave = () => {
+    if (mode === 'button') return
     cancel()
-    if (mode === 'pointer') timer.current = setTimeout(() => {
-      if (!childPopupOpen()) dismiss()
-    }, 80)
+    if (mode === 'edge') closeAfter(80)
+  }
+  const trackButtonPath = (event: PointerEvent) => {
+    const sidebar = panel.current
+    if (!sidebar) return
+    // Layout offsets describe the entire destination even on the first frame of the slide.
+    let left = sidebar.offsetLeft, right = left + sidebar.offsetWidth
+    if (event.clientY < sidebar.offsetTop && toggle.current) {
+      const button = toggle.current.getBoundingClientRect()
+      left = Math.min(left, button.left)
+      right = Math.max(right, button.right)
+    }
+    if (event.clientX >= left && event.clientX < right) cancel()
+    else closeAfter(80)
   }
   useEffect(() => {
     pointerMotion.current = false
@@ -82,8 +102,13 @@ export function useSidebarPeek(collapsed: boolean, route: string) {
     onPointerDownCapture: cancel, onPointerCancel: cancel, onWheelCapture: cancel,
   } : undefined
   const buttonHandlers = collapsed && !open ? {
-    onPointerEnter: (event: PointerEvent) => schedulePeek(event, 180),
+    onPointerEnter: (event: PointerEvent) => schedulePeek(event, 'button'),
     onPointerLeave: cancel, onPointerDown: cancel, onPointerCancel: cancel,
   } : undefined
-  return { open, pointerMotion: pointerMotion.current, panel, toggle, edgeHandlers, buttonHandlers, leave, cancel, dismiss, keyboard: () => { cancel(); reveal('keyboard') } }
+  const buttonPathHandlers = open && mode === 'button' ? {
+    onPointerMoveCapture: trackButtonPath, onPointerEnter: cancel,
+    // macOS can stop sending renderer events while the pointer crosses the draggable title bar.
+    onPointerLeave: () => closeAfter(360),
+  } : undefined
+  return { open, buttonPathHandlers, pointerMotion: pointerMotion.current, panel, toggle, edgeHandlers, buttonHandlers, leave, cancel, dismiss, keyboard: () => { cancel(); reveal('keyboard') } }
 }
