@@ -11,6 +11,7 @@ import type { CalEvent, CalendarSource, CalendarStatus } from '../main/calendar'
 export type CalendarLinkInfo = { id: string; name: string; host: string }
 import type { Access, PermissionKind, PermissionStatus } from '../main/permissions'
 import type { Capabilities } from './platform'
+import type { AiStatus, AiTask, Provider } from './ai'
 export type { Access, PermissionKind, PermissionStatus }
 /** one first-run question: a permission, or open at login last */
 export type OnboardingStep = { kind: PermissionKind; status: Access }
@@ -155,6 +156,15 @@ export type YogurtApi = {
     copy(meetingId: string, what: 'notes' | 'transcript', side: 'mine' | 'enhanced'): Promise<'copied' | 'nothing' | 'failed'>
     /** asks where to save a Markdown file, then writes it */
     save(meetingId: string, side: 'mine' | 'enhanced'): Promise<'saved' | 'cancelled' | 'failed'>
+  }
+  /** Settings → AI models: what writes each task's text, and the person's own server */
+  ai: {
+    status(): Promise<AiStatus>
+    setTask(task: AiTask, provider: Provider): Promise<AiStatus>
+    /** null: no server. key: left out keeps the saved one for the same address, '' removes it */
+    setServer(server: { url: string; model: string; contextSize: number; key?: string } | null): Promise<AiStatus>
+    /** Test connection: the models the server offers */
+    serverModels(server: { url: string; key?: string }): Promise<{ models: string[] } | { error: 'address' | 'unreachable'; detail?: string }>
   }
   /** every meeting in one file and back (Settings): import adds the ones that are not here, never changes one that is */
   /** AI apps on this Mac reading meetings through MCP (Settings) */

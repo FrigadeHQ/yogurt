@@ -23,6 +23,11 @@
 .settings-permission-status { display:inline-flex;align-items:center;padding:1px 6px;border-radius:4px;font-size:11px;line-height:16px;font-weight:400;color:var(--muted);background:var(--control); }
 .settings-action { flex:none; }
 .settings-name-field { flex:none;width:185px;max-width:100%;height:32px;padding:0 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:13px; }
+.settings-ai-server { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:11px; }
+.settings-ai-server label { display:flex;flex-direction:column;gap:4px;min-width:0;font-size:12px;line-height:18px;color:var(--muted); }
+.settings-ai-server input { height:32px;min-width:0;padding:0 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:13px; }
+.settings-ai-actions { display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:11px;font-size:12px;line-height:18px;color:var(--muted); }
+@media (max-width:560px) { .settings-ai-server { grid-template-columns:minmax(0,1fr); } }
 .settings-select-wrap { position:relative;display:inline-flex;flex:none;max-width:100%; }
 .settings-select { appearance:none;width:auto;min-width:170px;max-width:100%;height:34px;padding-inline:12px 34px;border:1px solid var(--line);border-radius:7px;background:var(--control);color:var(--ink);font-size:13px; }
 .settings-select:hover:not(:disabled) { background:var(--control-hover); }
