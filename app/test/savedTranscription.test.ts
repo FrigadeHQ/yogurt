@@ -85,3 +85,12 @@ it('rewrites the notes of a phone recording once its transcript is replaced, the
  transcribe.mockImplementationOnce(async(_id,_tracks,options)=>{options.save([line(id,0,300,'Again')]);return true})
  await jobs.start(id,true);await vi.waitFor(()=>expect(store.segments(id)[0]?.text).toBe('Again'));expect(summarize).toHaveBeenCalledOnce()
 })
+
+it("a phone recording is transcribed in the language the phone said it was spoken in; other meetings follow the setting", async () => {
+ const phone=note().id;store.updateMeeting(phone,{language:'german',sourceId:`phone:${phone}`})
+ const other=note().id;store.updateMeeting(other,{language:'french'})
+ await jobs.start(phone);await vi.waitFor(()=>expect(store.meeting(phone)?.transcriptionState).toBe('done'))
+ await jobs.start(other);await vi.waitFor(()=>expect(store.meeting(other)?.transcriptionState).toBe('done'))
+ expect(transcribe.mock.calls[0][2].language).toBe('de')
+ expect(transcribe.mock.calls[1][2].language).toBeUndefined()
+})

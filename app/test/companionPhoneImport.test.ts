@@ -75,3 +75,10 @@ it("the phone's default title is the computer's to replace; one its model wrote 
   await importPhoneRecording(deps(), { ...meeting, id: 'phone-rec-3', title: 'Kiwi plans', titleSource: 'typed' }, tinyWav('c.wav'), draft)
   expect(store.meeting('phone-rec-3')!.titleSource).toBe('user')
 })
+
+it('a recording said to be in German is kept as German, so this computer transcribes and writes its notes in it', async () => {
+  await importPhoneRecording(deps(), { ...meeting, language: 'de' }, tinyWav(), draft)
+  expect(store.meeting(meeting.id)!.language).toBe('german')
+  await importPhoneRecording(deps(), { ...meeting, id: 'phone-rec-2' }, tinyWav('b.wav'), { myNotes: '', transcript: [] })
+  expect(store.meeting('phone-rec-2')!.language).toBeNull()
+})

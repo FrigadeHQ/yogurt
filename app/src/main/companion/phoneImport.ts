@@ -5,12 +5,16 @@ import { mkdir, open, rename, copyFile, rm } from 'node:fs/promises'
 import { extname, join } from 'node:path'
 import type { Meeting, Store } from '../store'
 import { AUDIO_SPEAKER } from '../../shared/audioUpload'
+import { languageCode, languageName } from '../asr/appleSpeech'
 import type { PhoneDraft, UploadMeeting } from './handlers'
 
 /** sourceId of a phone meeting whose notes are still the phone's draft: the computer's notes replace them once */
 const DRAFT = 'phone-draft:'
 
 export const isPhoneDraft = (m: Pick<Meeting, 'sourceId'> | undefined): boolean => !!m?.sourceId?.startsWith(DRAFT)
+/** The language a phone recording was spoken in, as whisper's code: the phone said so, so it is not guessed */
+export const phoneLanguage = (m: Pick<Meeting, 'sourceId' | 'language'> | undefined): string | undefined =>
+  (m?.sourceId?.startsWith('phone') && languageCode(m.language)) || undefined
 /** the computer is writing its own notes now: the draft mark goes, so later transcriptions keep them */
 export const phoneDraftReplaced = (store: Pick<Store, 'updateMeeting'>, id: string) => store.updateMeeting(id, { sourceId: `phone:${id}` })
 
@@ -43,8 +47,9 @@ export async function importPhoneRecording(
   const titleSource = m.titleSource === 'typed' ? 'user' : m.titleSource === 'model' ? 'auto' : 'generic'
   d.store.createMeeting({ title: m.title, titleSource, source: 'audio-file',
     startedAt: m.startedAt, endedAt: m.endedAt, durationMs: m.endedAt - m.startedAt, eventId: null, app: null, attendees: m.attendees,
-    state: 'stopped', transcriptionPending: true }, m.id)
-  if (summary) d.store.updateMeeting(m.id, { sourceId: DRAFT + m.id })
+    state: 'stopped', transcriptionPending: true, language: m.language ? languageName(m.language) : null }, m.id)
+  // marked as the phone's, so its language is kept when it is transcribed (phoneLanguage)
+  d.store.updateMeeting(m.id, { sourceId: summary ? DRAFT + m.id : `phone:${m.id}` })
   if (draft.myNotes.trim() || summary) d.store.setNotes(m.id, { mine: draft.myNotes, ...(summary ? { enhanced: summary } : {}) })
   // one microphone in a room: nobody is named, like an uploaded file
   if (lines.length) d.store.addSegments(lines.map((l) => ({ meetingId: m.id, track: 'them' as const, startMs: l.startMs, endMs: l.endMs, text: l.text.trim(), speaker: AUDIO_SPEAKER })))

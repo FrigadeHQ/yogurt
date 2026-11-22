@@ -16,7 +16,8 @@ export type AskSource = { n: number; meetingId: string; title: string; atMs?: nu
 export const askSources = (sources: { n: number; meetingId: string; title: string; atMs: number | null; excerpt?: string }[]): AskSource[] =>
   sources.map((s) => ({ n: s.n, meetingId: s.meetingId, title: s.title, atMs: s.atMs, text: s.excerpt ?? '' }))
 /** titleSource: 'default' for the phone's "Meeting at 3:04 PM", 'model' when Apple's model wrote it, 'typed' when the person did */
-export type UploadMeeting = { id: string; title: string; titleSource: 'default' | 'model' | 'typed'; startedAt: number; endedAt: number; attendees: { name: string; email: string | null }[] }
+/** language: the code of the language it was spoken in ('de'), as whisper takes it; left out when the phone didn't say */
+export type UploadMeeting = { id: string; title: string; titleSource: 'default' | 'model' | 'typed'; startedAt: number; endedAt: number; attendees: { name: string; email: string | null }[]; language?: string }
 export type PhoneDraft = { myNotes: string; transcript: { startMs: number; endMs: number; text: string }[]; summary?: string }
 
 export type HandlerDeps = {
@@ -64,14 +65,23 @@ function scopeOf(v: unknown): Scope | undefined {
   return out
 }
 
+/** The phone's BCP-47 language ('de-DE') as a language code; anything else is no language (whisper then listens for it) */
+function languageOf(v: unknown): string | undefined {
+  if (typeof v !== 'string' || !/^[a-z]{2,3}(-[a-z0-9]{2,8})*$/i.test(v)) return undefined
+  const code = v.split('-')[0].toLowerCase()
+  // whisper calls Norwegian Bokmål "no"
+  return code === 'nb' ? 'no' : code
+}
+
 function meetingOf(v: unknown): UploadMeeting {
   if (!isObject(v)) throw bad()
   const startedAt = ms(v.startedAt), endedAt = ms(v.endedAt)
   if (endedAt < startedAt) throw bad()
   const attendees = v.attendees ?? []
   if (!Array.isArray(attendees) || attendees.length > 200) throw bad()
+  const language = languageOf(v.language)
   return {
-    id: id(v.id), title: str(v.title, 200).trim() || 'Recording', startedAt, endedAt,
+    id: id(v.id), title: str(v.title, 200).trim() || 'Recording', startedAt, endedAt, ...(language ? { language } : {}),
     // anything else (left out, or from a newer phone) counts as the default title
     titleSource: v.titleSource === 'model' || v.titleSource === 'typed' ? v.titleSource : 'default',
     attendees: attendees.map((a) => {

@@ -273,6 +273,30 @@ describe('companion sessions', () => {
     expect(paths[0].endsWith('.wav')).toBe(true)
   })
 
+  it("an upload says the language it was spoken in: the import gets its code; one left out or made up is no language", async () => {
+    const languages: (string | undefined)[] = []
+    const store = openStore(':memory:')
+    const { connect } = await paired({
+      store,
+      importRecording: async (meeting) => {
+        languages.push(meeting.language)
+        store.createMeeting({ ...base, title: meeting.title, startedAt: meeting.startedAt, source: 'audio-file' }, meeting.id)
+      },
+    })
+    const s = await connect()
+    const send = async (id: string, language?: unknown) => {
+      await s.request('uploadMeeting', { meeting: { id, title: 'Made-up walk', startedAt: 1000, endedAt: 2000, attendees: [], language }, myNotes: '' })
+      await s.request('uploadAudio', { meetingId: id, chunk: Buffer.from('all of it').toString('base64'), index: 0, of: 1, mime: 'audio/mp4' })
+    }
+    await send('lang-1', 'de-DE')
+    await send('lang-2', 'nb-NO')
+    await send('lang-3')
+    await send('lang-4', 'not a language; rm -rf')
+    await send('lang-5', 42)
+    // whisper calls Norwegian Bokmål "no"
+    expect(languages).toEqual(['de', 'no', undefined, undefined, undefined])
+  })
+
   it('an upload sent again while its import is still running waits for it, and is taken afresh if the import failed', async () => {
     const store = openStore(':memory:')
     let fail: (e: Error) => void = () => {}
