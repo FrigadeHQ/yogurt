@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ChevronDown } from './Icons'
 import { LoadingContent } from './LoadingContent'
 import { retryToast, toasts } from './TrashToast'
 import { AI_TASKS, SERVER_CONTEXT, type AiStatus, type AiTask, type Provider } from '../../../shared/ai'
-import { t } from '../../../shared/i18n'
+import { language, t } from '../../../shared/i18n'
+import type { SetupState } from '../../../shared/types'
 import { osWords } from '../keys'
+import { notesUpgradeSize } from '../notesSetup'
 
 const label = (task: AiTask) => task === 'notes' ? t('Summaries and titles') : task === 'ask' ? t('Ask') : t('Folder suggestions')
 const description = (task: AiTask) => task === 'notes' ? t('Written after each meeting, and when you write a summary again.')
@@ -13,7 +15,7 @@ const description = (task: AiTask) => task === 'notes' ? t('Written after each m
 /** what can write a task's text: this computer, and the server once saved */
 export function aiOptions(s: AiStatus): Array<{ value: Provider; label: string }> {
   return [
-    { value: 'local', label: osWords({ mac: t('Yogurt AI on this Mac'), other: t('Yogurt AI on this computer') }) },
+    { value: 'local', label: s.local ? osWords({ mac: t('Yogurt AI on this Mac'), other: t('Yogurt AI on this computer') }) : t('Yogurt AI (not on this computer)') },
     ...(s.server?.model ? [{ value: 'server' as const, label: t('Your server · {model}', { model: s.server.model }) }] : []),
   ]
 }
@@ -62,9 +64,49 @@ export function AiModels() {
         {elsewhere.length > 0 && <div className="settings-row"><p data-testid="ai-models-elsewhere" role="status" className="settings-description">
           {t('Meeting text goes to {names} for these. What happens to it there is up to them.', { names: elsewhere.join(', ') })}
         </p></div>}
+        {status && <LocalSetting onChange={setStatus} />}
         {status && <ServerSetting key={status.server?.url ?? ''} status={status} onChange={setStatus} />}
       </div></LoadingContent>
     </>
+  )
+}
+
+const percent = (fraction: number) => new Intl.NumberFormat(language(), { style: 'percent', maximumFractionDigits: 0 }).format(fraction)
+
+/** Yogurt AI kept on this computer or not: Remove frees its space (tasks on it wait), Download brings it back */
+function LocalSetting({ onChange }: { onChange: (s: AiStatus) => void }) {
+  const [setup, setSetup] = useState<SetupState>()
+  const [busy, setBusy] = useState(false)
+  const downloading = useRef(false)
+  useEffect(() => {
+    void window.yogurt.setup.state().then(setSetup)
+    return window.yogurt.setup.onState((s) => {
+      setSetup(s)
+      // the notes model just landed: the choices say so
+      if (downloading.current && !s.notesDownloading) void window.yogurt.ai.status().then(onChange)
+      downloading.current = !!s.notesDownloading
+    })
+  }, [])
+  if (setup?.phase !== 'ready') return null
+  const keep = async (on: boolean) => {
+    setBusy(true)
+    try { await attempt(async () => onChange(await window.yogurt.ai.setLocal(on)), 'ai-local-retry') } finally { setBusy(false) }
+  }
+  const off = !!setup.localNotesOff
+  const note = setup.localNotesUnavailable ? t('No notes model fits this computer: pick another AI above for each task.')
+    : off ? t('Not on this computer. Tasks set to it wait until you download it.')
+    : setup.notesDownloading ? t('Downloading AI · {percent}', { percent: percent(setup.notesFraction ?? 0) })
+    : t('On this computer, so it works offline. Remove it to free its space.')
+  return (
+    <div data-testid="ai-local" className="settings-row">
+      <div className="settings-row-copy">
+        <p className="settings-label">{osWords({ mac: t('Yogurt AI on this Mac'), other: t('Yogurt AI on this computer') })}</p>
+        <p data-testid="ai-local-status" role="status" className="settings-description">{note}</p>
+      </div>
+      {!setup.localNotesUnavailable && (off
+        ? <button data-testid="ai-local-download" disabled={busy} onClick={() => void keep(true)} className="workspace-button settings-action">{t('Download ({size} GB)', { size: notesUpgradeSize(setup.localNotesBytes ?? 0) })}</button>
+        : <button data-testid="ai-local-remove" disabled={busy} onClick={() => void keep(false)} className="workspace-button settings-action">{t('Remove')}</button>)}
+    </div>
   )
 }
 

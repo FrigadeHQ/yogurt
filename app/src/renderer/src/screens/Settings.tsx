@@ -300,7 +300,8 @@ function NotesModel({ reveal = false }: { reveal?: boolean }) {
     void window.yogurt.setup.state().then(state => { if (active && !current) setSetup(state) })
     return () => { active = false; off() }
   }, [])
-  if (!setup?.notesUpgradeBytes) return null
+  // Yogurt AI is off: there is no notes model to upgrade
+  if (!setup?.notesUpgradeBytes || setup.localNotesOff) return null
   const downloading = setup.notesUpgradePending || setup.notesUpgradeDownloading
   const act = async () => {
     setBusy(true); setFailed(false)

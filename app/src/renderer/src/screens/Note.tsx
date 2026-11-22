@@ -12,6 +12,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEve
 import { useScrollMemory } from '../useScrollMemory'
 import { Lock, RotateCcw, Trash2, Mic, Pause, Play } from '../components/Icons'
 import type { MeetingView, NoteSaveResult, NoteSide, NoteView, SetupState, WidgetView } from '../../../shared/types'
+import type { Provider } from '../../../shared/ai'
 import { t } from '../../../shared/i18n'
 import { osWords } from '../keys'
 import { Modal, ModalClose } from '../components/Modal'
@@ -94,6 +95,8 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   const [notes, setNotes] = useState<NoteView>()
   const [hasTranscript, setHasTranscript] = useState(false)
   const [setup, setSetup] = useState<SetupState>()
+  // Yogurt AI not on this computer: what writes summaries instead (nothing, while that is still this computer)
+  const [notesAi, setNotesAi] = useState<Provider>()
   useEffect(() => {
     let active = true, revision = 0
     setHasTranscript(false)
@@ -115,6 +118,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
     void window.yogurt.setup.state().then(state => { if (active && !received) setSetup(state) })
     return () => { active = false; off() }
   }, [])
+  useEffect(() => { if (setup?.localNotesOff) void window.yogurt.ai.status().then((a) => setNotesAi(a.tasks.notes)).catch(() => {}) }, [setup?.localNotesOff])
   const [viewState, setView] = useState<'mine' | 'enhanced'>(() => readingViews.get(id)?.view ?? 'mine')
   const [finishRequested, requestFinish] = useState(false)
   const reducedMotion = useReducedMotion()
@@ -358,7 +362,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   const transcribing=transcriptionBusy(m.transcriptionState)
   const runTranscript=async(again=false)=>{if(!await saveAll())return;try{const started=await window.yogurt.transcript.run(id,again);if(started)setPrimary('transcript')}catch{toasts.add({title:t("Yogurt couldn't transcribe this file.")})}}
   const transcriptReason=recording||m.stopSavePending?t('Available after recording'):transcribing?t('Transcribing…'):summarizing?t('Summarizing…'):!hasAudio?t('Audio is unavailable.'):undefined
-  const generation = summaryAction({ hasSummary, hasContent: hasTranscript || !!notes.mine.trim(), recording, busy: summarizing, downloading: !!(setup?.notesDownloading || setup?.notesError), trashed })
+  const generation = summaryAction({ hasSummary, hasContent: hasTranscript || !!notes.mine.trim(), recording, busy: summarizing, downloading: !!(setup?.notesDownloading || setup?.notesError), trashed, noModel: !!setup?.localNotesOff && notesAi === 'local' })
   if(generation&&transcribing)generation.reason=t('Transcribing…')
   const requestRewrite = () => {
     if (!generation || generation.reason) return

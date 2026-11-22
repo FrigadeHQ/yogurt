@@ -42,6 +42,12 @@ Yogurt's own model on your computer writes summaries and titles, answers Ask, an
 
 If your server fails before it writes anything, Yogurt's own model answers instead, when the question fits it. Settings says where meeting text goes while any task uses something else.
 
+## Yogurt AI on your computer
+
+In **Settings → AI models**, **Yogurt AI on this Mac** (or computer) shows whether Yogurt's own notes model is on your computer. **Remove** frees the space it takes, and **Download** brings it back. While it is removed, tasks still set to it wait, and their menu items say to pick another AI.
+
+A computer with too little memory for any notes model can still be set up: choose **Continue without Yogurt AI**, then pick another AI for your summaries in **Settings → AI models**.
+
 ## Your data
 
 Meetings, recordings, settings and downloaded models live here:

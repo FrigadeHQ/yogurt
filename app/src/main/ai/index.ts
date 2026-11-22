@@ -15,6 +15,8 @@ export function hookAi(o: {
   file: string; local: Model; hasLocal: () => boolean; changed: () => void
   /** the server's key, kept with the system's keychain where it has one */
   seal: (plain: string) => string; open: (sealed: string) => string
+  /** Yogurt AI on this computer turned on or off (setup.ts setLocalNotes) */
+  keepLocal?: (on: boolean) => Promise<void>
 }) {
   const saved = () => loadSettings(o.file)
   const key = (sealed?: string) => {
@@ -46,6 +48,13 @@ export function hookAi(o: {
   ipcMain.handle('ai:set-task', (_e, task: unknown, provider: unknown) => {
     if (!isTask(task) || !isProvider(provider)) throw new Error('Invalid AI choice')
     updateSettings(o.file, { ai: { ...saved().ai, [task]: provider === 'local' ? undefined : provider } })
+    o.changed()
+    return status()
+  })
+  ipcMain.handle('ai:set-local', async (_e, on: unknown) => {
+    if (typeof on !== 'boolean') throw new Error('Invalid choice')
+    updateSettings(o.file, { localNotes: on ? undefined : false })
+    await o.keepLocal?.(on)
     o.changed()
     return status()
   })

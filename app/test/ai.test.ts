@@ -124,11 +124,11 @@ describe('each task its model', () => {
 })
 
 describe('Settings → AI models', () => {
-  const hook = () => {
+  const hook = (o: { keepLocal?: (on: boolean) => Promise<void>; hasLocal?: boolean } = {}) => {
     const file = join(temp(), 'settings.json')
     const changed = vi.fn()
     const local: Llm = { contextSize: 8192, count: async (xs) => xs.map((x) => x.length), chat: async () => 'local' }
-    const router = hookAi({ file, local: { llm: async () => local }, hasLocal: () => true, changed, seal: (p) => `sealed:${p}`, open: (s) => s.replace(/^sealed:/, '') })
+    const router = hookAi({ file, local: { llm: async () => local }, hasLocal: () => o.hasLocal ?? true, changed, seal: (p) => `sealed:${p}`, open: (s) => s.replace(/^sealed:/, ''), keepLocal: o.keepLocal })
     const call = (channel: string, ...args: unknown[]) => handlers.get(channel)!({}, ...args)
     return { file, changed, router, call, saved: () => JSON.parse(readFileSync(file, 'utf8')) }
   }
@@ -146,6 +146,26 @@ describe('Settings → AI models', () => {
     expect(s.saved().ai).toEqual({})
     await expect(async () => s.call('ai:set-task', 'ask', 'gpt')).rejects.toThrow()
     await expect(async () => s.call('ai:set-task', 'titles', 'local')).rejects.toThrow()
+  })
+  it('turns Yogurt AI on this computer off and on, and says so once the model is gone', async () => {
+    const keepLocal = vi.fn(async () => {})
+    const s = hook({ keepLocal })
+    const status = await s.call('ai:set-local', false)
+    expect(s.saved().localNotes).toBe(false)
+    expect(keepLocal).toHaveBeenLastCalledWith(false)
+    expect(status.local).toBe(true)
+    expect(s.changed).toHaveBeenCalled()
+    await s.call('ai:set-local', true)
+    expect(s.saved().localNotes).toBeUndefined()
+    expect(keepLocal).toHaveBeenLastCalledWith(true)
+    await expect(async () => s.call('ai:set-local', 'off')).rejects.toThrow()
+    // gone: the task that is still on it waits, and one on the server does not
+    const gone = hook({ hasLocal: false })
+    expect(gone.router.ready('notes')).toBe(false)
+    await gone.call('ai:set-server', { url: 'http://localhost:1234/v1', model: 'qwen', contextSize: 32_768 })
+    await gone.call('ai:set-task', 'notes', 'server')
+    expect(gone.router.ready('notes')).toBe(true)
+    expect(gone.router.ready('ask')).toBe(false)
   })
   it('keeps the key sealed, never shows it, and never sends it to another address', async () => {
     const s = hook()

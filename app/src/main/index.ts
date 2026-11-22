@@ -201,6 +201,7 @@ function createSetup(): SetupController {
     getHardware: isFake() ? () => fakeHardware(platform) : async () => toHardware(await readSysInfo(userDataDir()), process.platform === 'darwin' ? undefined : await probeGpu()),
     // the one in this build: new models come with app updates
     getCatalog: async () => loadCatalog({ bundled: bundledCatalog, licenses }),
+    localNotes: () => loadSettings(join(userDataDir(), 'settings.json')).localNotes !== false,
     download: isFake() ? fakeDownloadDeps({ stepMs: Number(process.env.YOGURT_FAKE_STEP_MS ?? 5), notesMs: Number(process.env.YOGURT_FAKE_NOTES_MODEL_MS ?? 0), notesFailOnce: process.env.YOGURT_FAKE_NOTES_MODEL_FAIL_ONCE === '1' }) : realDeps,
     ...(isFake() ? { sha256Override: 'FAKE' } : {}),
     // Windows and Linux: speech models timed on this computer (asr/speedCheck.ts); a Mac never is
@@ -579,6 +580,8 @@ app.whenReady().then(() => {
   setup.onState((st) => win?.webContents.send('setup:state', st))
   ipcMain.handle('setup:state', () => setup.state)
   ipcMain.handle('setup:retry', () => setup.retry())
+  // no notes model fits here: setup goes on without one, and summaries wait for the AI picked in Settings → AI models
+  ipcMain.handle('setup:skip-local', () => { if (!setup.state.notesSkippable) return; updateSettings(join(userDataDir(), 'settings.json'), { localNotes: false }); return setup.retry() })
   ipcMain.handle('setup:skip-upgrade', () => setup.skipUpgrade())
   ipcMain.handle('setup:download-upgrade', () => setup.downloadUpgrade())
   const store = openStore(join(userDataDir(), 'yogurt.db'))
@@ -669,6 +672,7 @@ app.whenReady().then(() => {
   const ai = hookAi({
     file: settingsFile, local: model, hasLocal: () => !!setup.notesPath(), seal, open: unseal,
     changed: () => { queue.modelArrived(); conversations.refresh() },
+    keepLocal: (on) => setup.setLocalNotes(on, remove => queue.enqueue(async () => { await model.unload(); remove() }, 'enhance')),
   })
   // first run: the notes model lands after recording already works; jobs wait in the queue for it
   // the embedding model (meaning search across meetings) runs in the same worker and is let go with the notes model

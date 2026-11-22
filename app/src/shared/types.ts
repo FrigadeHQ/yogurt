@@ -45,6 +45,8 @@ export type YogurtApi = {
     skipUpgrade(): Promise<void>
     downloadUpgrade(): Promise<void>
     removeUpgrade(): Promise<void>
+    /** no notes model fits here: go on without Yogurt AI, for another AI to write summaries (Settings → AI models) */
+    skipLocal(): Promise<void>
   }
   /** the "Take notes?" and "Stop recording?" card */
   prompt: {
@@ -161,6 +163,8 @@ export type YogurtApi = {
   ai: {
     status(): Promise<AiStatus>
     setTask(task: AiTask, provider: Provider): Promise<AiStatus>
+    /** Yogurt AI on this computer: off stops its download and removes it; on downloads it again */
+    setLocal(on: boolean): Promise<AiStatus>
     /** null: no server. key: left out keeps the saved one for the same address, '' removes it */
     setServer(server: { url: string; model: string; contextSize: number; key?: string } | null): Promise<AiStatus>
     /** Test connection: the models the server offers */
@@ -355,6 +359,13 @@ export type SetupState = {
   message?: string
   /** Speech is ready, but the first notes-model download failed. Recording and transcription still work. */
   notesError?: string
+  /** Settings → AI models: Yogurt AI is not kept on this computer (summaries come from the AI picked for them) */
+  localNotesOff?: boolean
+  /** what Yogurt AI downloads first on this computer; unavailable: no notes model fits here */
+  localNotesBytes?: number
+  localNotesUnavailable?: boolean
+  /** no notes model fits here: setup can go on without one (setup:skip-local) */
+  notesSkippable?: boolean
   /** First notes-model progress (0 to 1), retained on failure until retry or completion. */
   notesFraction?: number
   /** Size of the first notes model; ETA is absent until the downloader has an estimate. */
