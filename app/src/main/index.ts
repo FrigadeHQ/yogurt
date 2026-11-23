@@ -70,6 +70,7 @@ import { setGenericTitles } from './titles'
 import { installAppMenu } from './appMenu'
 import { UtilityEngine } from './engine'
 import { createNotesModel } from './notes/model'
+import { hookAi } from './ai'
 import { FakeEngine } from './notes/fake'
 import { hookNotes } from './notes'
 import { hookReadAhead, readAheadAllowed } from './notes/readAhead'
@@ -200,6 +201,7 @@ function createSetup(): SetupController {
     getHardware: isFake() ? () => fakeHardware(platform) : async () => toHardware(await readSysInfo(userDataDir()), process.platform === 'darwin' ? undefined : await probeGpu()),
     // the one in this build: new models come with app updates
     getCatalog: async () => loadCatalog({ bundled: bundledCatalog, licenses }),
+    localNotes: () => loadSettings(join(userDataDir(), 'settings.json')).localNotes !== false,
     download: isFake() ? fakeDownloadDeps({ stepMs: Number(process.env.YOGURT_FAKE_STEP_MS ?? 5), notesMs: Number(process.env.YOGURT_FAKE_NOTES_MODEL_MS ?? 0), notesFailOnce: process.env.YOGURT_FAKE_NOTES_MODEL_FAIL_ONCE === '1' }) : realDeps,
     ...(isFake() ? { sha256Override: 'FAKE' } : {}),
     // Windows and Linux: speech models timed on this computer (asr/speedCheck.ts); a Mac never is
@@ -208,6 +210,13 @@ function createSetup(): SetupController {
 }
 /** what the speed check found (Windows and Linux) */
 const speedFile = () => join(userDataDir(), 'speech-speed.json')
+/**
+ * Secrets in settings.json (calendar links, the AI server's key), kept with the system keychain. No keychain (Linux
+ * without a secret service): scrambled, not encrypted, so they aren't readable at a glance.
+ */
+const seal = (plain: string) => (safeStorage.isEncryptionAvailable() ? `k:${safeStorage.encryptString(plain).toString('base64')}` : `b:${Buffer.from(plain).toString('base64')}`)
+const unseal = (sealed: string) => (sealed.startsWith('k:') ? safeStorage.decryptString(Buffer.from(sealed.slice(2), 'base64'))
+  : sealed.startsWith('b:') ? Buffer.from(sealed.slice(2), 'base64').toString() : sealed.replace(/^p:/, ''))
 
 /** What this computer can do (fake mode can pretend with YOGURT_FAKE_PLATFORM): Windows and Linux read their calendar from a calendar link */
 const platform = platformOf(process.platform, process.env)
@@ -542,13 +551,7 @@ app.whenReady().then(() => {
   if (!isFake()) syncLoginItem(settings.openAtLogin)
   // Windows and Linux: the calendar is a pasted private calendar address, kept sealed with the system keychain
   // a Mac: the same links, next to its own calendars (Settings → Calendars → Add a calendar link)
-  const calendarLinks = caps.calendar ? createCalendarLinks({
-    file: join(userDataDir(), 'settings.json'), get: getCalendar,
-    // no keychain (Linux without a secret service): scrambled, not encrypted, so the address isn't readable at a glance
-    seal: (plain) => (safeStorage.isEncryptionAvailable() ? `k:${safeStorage.encryptString(plain).toString('base64')}` : `b:${Buffer.from(plain).toString('base64')}`),
-    open: (sealed) => (sealed.startsWith('k:') ? safeStorage.decryptString(Buffer.from(sealed.slice(2), 'base64'))
-      : sealed.startsWith('b:') ? Buffer.from(sealed.slice(2), 'base64').toString() : sealed.replace(/^p:/, '')),
-  }) : null
+  const calendarLinks = caps.calendar ? createCalendarLinks({ file: join(userDataDir(), 'settings.json'), get: getCalendar, seal, open: unseal }) : null
   if (calendarLinks) setCalendarLinkSource(calendarLinks, { alongside: !caps.calendarLink })
   const preferences = hookPreferences({
     recordingPillChanged: on => recordingPillChanged(on),
@@ -584,6 +587,8 @@ app.whenReady().then(() => {
   setup.onState((st) => win?.webContents.send('setup:state', st))
   ipcMain.handle('setup:state', () => setup.state)
   ipcMain.handle('setup:retry', () => setup.retry())
+  // no notes model fits here: setup goes on without one, and summaries wait for the AI picked in Settings → AI models
+  ipcMain.handle('setup:skip-local', () => { if (!setup.state.notesSkippable) return; updateSettings(join(userDataDir(), 'settings.json'), { localNotes: false }); return setup.retry() })
   ipcMain.handle('setup:skip-upgrade', () => setup.skipUpgrade())
   ipcMain.handle('setup:download-upgrade', () => setup.downloadUpgrade())
   const store = openStore(join(userDataDir(), 'yogurt.db'))
@@ -670,10 +675,16 @@ app.whenReady().then(() => {
   const smallMac = isFake() ? process.env.YOGURT_FAKE_SMALL_MAC === '1' : isSmallMac(os.totalmem())
   const memory = notesMemory(smallMac)
   const model = createNotesModel({ engine, modelPath: () => setup.notesPath(), onLoaded: path => setup.notesModelLoaded(path), contextSize: memory.contextSize, ...(memory.releaseSpeech ? { beforeLoad: releaseIdleSpeech } : {}) })
+  // Settings → AI models: each task's model, the one on this computer unless the person picked their own server
+  const ai = hookAi({
+    file: settingsFile, local: model, hasLocal: () => !!setup.notesPath(), seal, open: unseal,
+    changed: () => { queue.modelArrived(); conversations.refresh() },
+    keepLocal: (on) => setup.setLocalNotes(on, remove => queue.enqueue(async () => { await model.unload(); remove() }, 'enhance')),
+  })
   // first run: the notes model lands after recording already works; jobs wait in the queue for it
   // the embedding model (meaning search across meetings) runs in the same worker and is let go with the notes model
   const embedder = createEmbedder({ engine, modelPath: () => setup.installed()?.embed, id: bundledCatalog.embedding.id, dims: bundledCatalog.embedding.dims })
-  const queue = createQueue({ recording: () => !!activeMeeting(), smallMac, idleMs: memory.idleMs, backlogMs: transcriptionBacklogMs, onIdle: () => { void model.unload().catch(e => console.error('letting the notes model go failed', e)); void embedder.unload() }, modelReady: () => !!setup.notesPath() })
+  const queue = createQueue({ recording: () => !!activeMeeting(), smallMac, idleMs: memory.idleMs, backlogMs: transcriptionBacklogMs, onIdle: () => { void model.unload().catch(e => console.error('letting the notes model go failed', e)); void embedder.unload() }, modelReady: (kind) => kind === 'enhance' ? ai.ready('notes') : kind === 'chat' ? ai.ready('ask') : kind === 'folder' ? ai.ready('folders') : !!setup.notesPath() })
   ipcMain.handle('setup:remove-upgrade', () => setup.removeUpgrade(remove => queue.enqueue(async () => {
     await model.unload()
     remove()
@@ -687,11 +698,12 @@ app.whenReady().then(() => {
   onMeetingStart(() => queue.recordingChanged())
   onMeetingStop(() => queue.recordingChanged())
   // the meeting is read into the model as it happens, so its notes start within seconds of stopping
+  // a summary written elsewhere isn't read ahead: that model has no readAhead, so nothing is read in
   const readAhead = hookReadAhead({
-    store, queue, model, live: readsAhead, backlogMs: transcriptionBacklogMs, language: meetingLanguage,
+    store, queue, model: ai.model('notes'), live: readsAhead, backlogMs: transcriptionBacklogMs, language: meetingLanguage,
     transcribed: async (id) => { await recordingFinished(id); await transcriptFinished(id) }, onStart: onMeetingStart, onStop: onMeetingStop,
   })
-  const folderSuggestions = createFolderSuggestions({ store, queue, model, changed: () => win?.webContents.send('folders:changed') })
+  const folderSuggestions = createFolderSuggestions({ store, queue, model: ai.model('folders'), changed: () => win?.webContents.send('folders:changed') })
   let resumingId: string | null = null
   const removeRecording = (id: string, automatic = false) => deleteRecording(id, {
     store, dirOf: id => join(userDataDir(), 'meetings', id),
@@ -705,7 +717,7 @@ app.whenReady().then(() => {
     // Windows and Linux: a note waiting while the model loads says so (a Mac shows what it always did)
     showLoading: platform !== 'darwin',
     summaryLanguage: () => summaryLanguageSetting(loadSettings(settingsFile)),
-    store, queue, model, language: meetingLanguage, onStop: onMeetingStopSaved, named: (id) => callNames.finished(id), earlier: (id) => readAhead.parts(id), me,
+    store, queue, model: ai.model('notes'), language: meetingLanguage, onStop: onMeetingStopSaved, named: (id) => callNames.finished(id), earlier: (id) => readAhead.parts(id), me,
     transcribed: async (id) => { await recordingFinished(id); await transcriptFinished(id) },
     send: (v) => win?.webContents.send('notes:changed', v),
     // the notes are written: the meeting goes into the library for chat across meetings
@@ -794,12 +806,12 @@ app.whenReady().then(() => {
   }
   // Both Ask surfaces share saved conversations and the same recording-first model queue.
   const conversations = hookConversations({
-    store, library, indexer, embedder, queue, model,
+    store, library, indexer, embedder, queue, model: ai.model('ask'),
     send: (v) => {
       win?.webContents.send('conversations:changed', v)
       if (v.chips.length === 1 && v.chips[0].kind === 'meeting') win?.webContents.send('chat:changed', { ...v, meetingId: v.chips[0].id })
     }, sendList: (l) => win?.webContents.send('conversations:list', l),
-    waitsForMeeting, waitsForModel: () => !setup.notesPath(),
+    waitsForMeeting, waitsForModel: () => !ai.ready('ask'),
     // a meeting read in ahead during a recording only where reading ahead is allowed (32 GB and up; the fake Mac is big)
     warmAllowed: () => !activeMeeting() || (isFake() ? !smallMac : readAheadAllowed(os.totalmem())),
   })
@@ -890,7 +902,7 @@ app.whenReady().then(() => {
       setMyNotes: (id, md) => noteSaved(id, notes.replace(id, 'mine', md)),
       setSummary: (id, md) => noteSaved(id, notes.replace(id, 'enhanced', md)),
       rewriteSummary: (id, instruction) => (['waiting', 'writing'].includes(notes.view(id).status) || !writeAgain(id, instruction) ? 'busy' : 'queued'),
-      notesReady: () => !!setup.notesPath(),
+      notesReady: () => ai.ready('notes'),
       startRecording: (o) => recordingControls?.start(o) ?? Promise.resolve({ error: 'failed' as const }),
       pauseRecording: (id, paused) => recordingControls?.pause(id, paused) ?? false,
       stopRecording: (id) => { if (activeMeeting()?.id !== id) return false; stopMeeting(id, 'ai-app'); return true },

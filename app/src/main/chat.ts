@@ -39,7 +39,7 @@ const HITS_USED = 8
 type Count = (s: string) => number
 const CJK = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/gu
 /** a safe guess at tokens where the model's count isn't known: Chinese, Japanese and Korean take about one a character */
-const guess: Count = (s) => { const n = s.match(CJK)?.length ?? 0; return n + Math.ceil((s.length - n) / 3) }
+export const guess: Count = (s) => { const n = s.match(CJK)?.length ?? 0; return n + Math.ceil((s.length - n) / 3) }
 
 /** turns as the notes prompt has them, with the lines under each */
 function turnsOf(segments: Segment[]): Array<{ text: string; ids: number[] }> {

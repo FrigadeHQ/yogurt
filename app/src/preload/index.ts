@@ -22,6 +22,7 @@ const api: YogurtApi = {
     skipUpgrade: () => ipcRenderer.invoke('setup:skip-upgrade'),
     downloadUpgrade: () => ipcRenderer.invoke('setup:download-upgrade'),
     removeUpgrade: () => ipcRenderer.invoke('setup:remove-upgrade'),
+    skipLocal: () => ipcRenderer.invoke('setup:skip-local'),
   },
   prompt: {
     state: () => ipcRenderer.invoke('prompt:state'),
@@ -223,6 +224,13 @@ const api: YogurtApi = {
     nudge: () => ipcRenderer.invoke('onboarding:nudge'),
     dismissNudge: () => ipcRenderer.invoke('onboarding:dismiss-nudge'),
     restoreNudge: () => ipcRenderer.invoke('onboarding:restore-nudge'),
+  },
+  ai: {
+    status: () => ipcRenderer.invoke('ai:status'),
+    setTask: (task, provider) => ipcRenderer.invoke('ai:set-task', task, provider),
+    setLocal: (on) => ipcRenderer.invoke('ai:set-local', on),
+    setServer: (server) => ipcRenderer.invoke('ai:set-server', server),
+    serverModels: (server) => ipcRenderer.invoke('ai:server-models', server),
   },
   mcp: {
     status: () => ipcRenderer.invoke('mcp:status'),

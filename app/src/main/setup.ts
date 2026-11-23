@@ -30,6 +30,8 @@ export type SetupDeps = {
   /** the first notes model downloads after ready: the waits between tries when it fails (the last one repeats) */
   notesRetryMs?: number[]
   upgradePreference?: { load(): boolean; save(skipped: boolean): void }
+  /** Settings → AI models: Yogurt AI (the notes model) is kept on this computer; on unless turned off */
+  localNotes?: () => boolean
   /** Windows and Linux: the speed check picks the speech model (a Mac never has it: turbo, as always) */
   speed?: SpeedDeps
 }
@@ -70,6 +72,10 @@ export class SetupController {
   private upgradeChange: Promise<void> | undefined
   private backgroundFailed = false
   private retryNotes: (() => void) | undefined
+  /** the embedding model, for downloading the notes model again later */
+  private embedItem: Item | undefined
+  /** the notes model was turned off: its download stops, and nothing more is fetched for it */
+  private notesAbort: AbortController | undefined
   private paths: Installed | undefined
   private notesListeners = new Set<() => void>()
   private embedListeners = new Set<() => void>()
@@ -202,26 +208,31 @@ export class SetupController {
       const [hw, catalog] = await Promise.all([this.deps.getHardware(), this.deps.getCatalog()])
       const llm = pick(hw, catalog.models)
       const weak = tooWeak(hw, !!llm.recommended)
-      if (!llm.recommended || weak) return this.set({ phase: 'error', fraction: 0, message: weak ?? '' })
+      const local = this.deps.localNotes?.() !== false
+      // too slow for a meeting as it happens: nothing helps that
+      if (weak && llm.recommended) return this.set({ phase: 'error', fraction: 0, message: weak })
+      // no notes model fits: setup can go on without one, once the person picks another AI for their summaries
+      if (!llm.recommended && local) return this.set({ phase: 'error', fraction: 0, message: weak ?? '', notesSkippable: true })
 
       // The first notes model is the starter when it downloads faster than the pick; otherwise the pick itself.
-      const starter = llm.starter && llm.starter.build.sizeGB < llm.recommended.build.sizeGB ? llm.starter : llm.recommended
-      const later = starter === llm.recommended ? undefined : llm.recommended
-      console.info('NOTES', `notes models for this computer: ${starter.model.id}${later ? `, then ${later.model.id}` : ''} (graphics ${hw.gpu.kind}${hw.gpu.name ? ` ${hw.gpu.name}` : ''}, ${hw.totalRamGB} GB)`)
+      const starter = llm.recommended ? (llm.starter && llm.starter.build.sizeGB < llm.recommended.build.sizeGB ? llm.starter : llm.recommended) : undefined
+      const later = !starter || starter === llm.recommended ? undefined : llm.recommended ?? undefined
+      if (starter) console.info('NOTES', `notes models for this computer: ${starter.model.id}${later ? `, then ${later.model.id}` : ''}${local ? '' : ' (not kept on this computer)'} (graphics ${hw.gpu.kind}${hw.gpu.name ? ` ${hw.gpu.name}` : ''}, ${hw.totalRamGB} GB)`)
       const dirs = { asr: join(this.deps.modelsDir, 'asr'), llm: join(this.deps.modelsDir, 'llm'), embed: join(this.deps.modelsDir, 'embed') }
 
       // Speech first: ready (recording works) once it is in. The notes models come after.
       let asr = pickAsr(hw, catalog)
       const asrItem = (m: CatalogAsr): Item => ({ url: m.url, sha256: m.sha256, bytes: m.bytes, dir: dirs.asr, fileName: fileNameFor(m.url) })
       // whisper-server is built into the app (catalog.whisperServer.bundled), so only the speech model is downloaded for it.
-      const starterItem = llmItem(dirs.llm, starter)
+      const starterItem = starter && llmItem(dirs.llm, starter)
       this.firstItem = starterItem
       this.backgroundItem = later && llmItem(dirs.llm, later)
       const bigger = this.backgroundItem
-      const hasUpgrade = !!bigger && isVerified(bigger.dir, bigger.fileName, this.sha(bigger))
+      const hasUpgrade = local && !!bigger && isVerified(bigger.dir, bigger.fileName, this.sha(bigger))
       const skipped = this.deps.upgradePreference?.load() ?? false
       const e = catalog.embedding
       const embedItem: Item = { url: e.url, sha256: e.sha256, bytes: e.bytes, dir: dirs.embed, fileName: fileNameFor(e.url) }
+      this.embedItem = embedItem
 
       // Windows and Linux: the speed check's stored pick for this computer, or the models it will time, best first
       const speed = hw.os === 'darwin' ? undefined : this.deps.speed
@@ -236,7 +247,7 @@ export class SetupController {
       const waitFor: Item[] = [asrItem(speed ? keep ?? candidates[0] : asr.model)]
       const total = waitFor.reduce((n, i) => n + i.bytes, 0)
       // room for the first notes model too, so it never runs out of disk after ready
-      await this.checkDisk([...waitFor, ...(hasUpgrade ? [] : [starterItem]), embedItem])
+      await this.checkDisk([...waitFor, ...(hasUpgrade || !local || !starterItem ? [] : [starterItem]), embedItem])
 
       let done = 0
       const report = (item: Item, fraction: number) => this.set({ phase: 'downloading', fraction: Math.min(1, (done + item.bytes * fraction) / total) })
@@ -268,10 +279,13 @@ export class SetupController {
       this.paths = { asr: asrPath }
       if (hasUpgrade) {
         this.paths.recommendedLlm = join(bigger!.dir, bigger!.fileName)
-        if (isVerified(starterItem.dir, starterItem.fileName, this.sha(starterItem))) this.paths.llm = join(starterItem.dir, starterItem.fileName)
+        if (starterItem && isVerified(starterItem.dir, starterItem.fileName, this.sha(starterItem))) this.paths.llm = join(starterItem.dir, starterItem.fileName)
       }
-      this.set({ phase: 'ready', fraction: 1, notesUpgradeBytes: bigger?.bytes, notesUpgradeSkipped: skipped, notesUpgradeInstalled: hasUpgrade })
-      this.startNotes(starterItem, embedItem)
+      this.set({ phase: 'ready', fraction: 1, notesUpgradeBytes: bigger?.bytes, notesUpgradeSkipped: skipped, notesUpgradeInstalled: hasUpgrade,
+        ...(local ? {} : { localNotesOff: true }), ...(starterItem ? { localNotesBytes: starterItem.bytes } : { localNotesUnavailable: true }) })
+      // without a notes model, search across meetings still gets its embedding model
+      if (local && starterItem) this.startNotes(starterItem, embedItem)
+      else this.background = this.startEmbedding(embedItem)
     } catch (err) {
       console.error('setup failed', err)
       this.set({ phase: 'error', fraction: this._state.fraction, message: friendly(err) })
@@ -307,6 +321,8 @@ export class SetupController {
    * meanwhile get their notes then). The bigger one follows.
    */
   private startNotes(first: Item, embed: Item) {
+    const abort = new AbortController()
+    this.notesAbort = abort
     this.background = (async () => {
       const waits = this.deps.notesRetryMs ?? NOTES_RETRY_MS
       // Waiting notes show whole percents; every 10% goes in the log.
@@ -318,16 +334,18 @@ export class SetupController {
       }
       const already = isVerified(first.dir, first.fileName, this.sha(first))
       if (!already && !this.paths?.recommendedLlm) console.info('NOTES', `downloading the notes model ${first.fileName}`)
-      for (let i = 0; !this.paths?.recommendedLlm; i++) {
+      for (let i = 0; !this.paths?.recommendedLlm && !abort.signal.aborted; i++) {
         shown = -1
         this.set({ ...this._state, notesError: undefined, ...(already ? {} : { notesDownloading: true, notesFraction: 0, notesTotalBytes: first.bytes, notesEtaSec: undefined }) })
         try {
-          const path = await this.fetch(first, already ? undefined : progress)
+          const path = await this.fetch(first, already ? undefined : progress, abort.signal)
+          if (abort.signal.aborted) break
           if (this.paths) this.paths = { ...this.paths, llm: path }
           if (!already) console.info('NOTES', 'the notes model is in')
           this.set({ ...this._state, notesFraction: undefined, notesDownloading: undefined, notesTotalBytes: undefined, notesEtaSec: undefined, notesUpgradePending: !!this.backgroundItem && !this._state.notesUpgradeSkipped })
           break
         } catch (err) {
+          if (abort.signal.aborted) break
           console.warn('the notes model did not download yet, trying again', err)
           await new Promise<void>((resolve) => {
             const wake = () => { clearTimeout(timer); this.retryNotes = undefined; resolve() }
@@ -337,10 +355,36 @@ export class SetupController {
           })
         }
       }
-      for (const l of this.notesListeners) { try { l() } catch (e) { console.error('notes model listener failed', e) } }
+      if (!abort.signal.aborted) for (const l of this.notesListeners) { try { l() } catch (e) { console.error('notes model listener failed', e) } }
     })()
     this.background = this.background.then(() => this.startEmbedding(embed))
-    this.background = this.background.then(() => { if (this.backgroundItem) return this.startBackground(this.backgroundItem) })
+    this.background = this.background.then(() => { if (this.backgroundItem && !abort.signal.aborted) return this.startBackground(this.backgroundItem) })
+  }
+
+  /**
+   * Settings → AI models: Yogurt AI kept on this computer or not. Off: its downloads stop, and its files go once nothing
+   * uses them (release: let the model go in the model queue, then remove). On again: it downloads as it did at first.
+   */
+  async setLocalNotes(on: boolean, release: (remove: () => void) => Promise<void>) {
+    if (this._state.phase !== 'ready' || !this.paths) return
+    if (on) {
+      if (!this._state.localNotesOff || !this.firstItem || !this.embedItem) return
+      this.set({ ...this._state, localNotesOff: undefined })
+      this.startNotes(this.firstItem, this.embedItem)
+      return
+    }
+    if (this._state.localNotesOff) return
+    this.notesAbort?.abort()
+    this.retryNotes?.()
+    this.upgradeAbort?.abort()
+    this.set({ ...this._state, localNotesOff: true, notesDownloading: undefined, notesFraction: undefined, notesTotalBytes: undefined, notesEtaSec: undefined, notesError: undefined,
+      notesUpgradeDownloading: undefined, notesUpgradeFraction: undefined, notesUpgradeTotalBytes: undefined, notesUpgradeEtaSec: undefined, notesUpgradeError: undefined, notesUpgradePending: undefined, notesUpgradeInstalled: false })
+    await release(() => {
+      const files = [this.paths?.llm, this.paths?.recommendedLlm, ...[this.firstItem, this.backgroundItem].map((i) => i && join(i.dir, i.fileName))]
+      for (const file of new Set(files)) if (file) { try { this.removeFiles(file) } catch (e) { console.warn('could not remove a notes model', e) } }
+      this.paths = { ...this.paths!, llm: undefined, recommendedLlm: undefined }
+      console.info('NOTES', 'Yogurt AI is no longer kept on this computer')
+    })
   }
 
   /**

@@ -799,3 +799,46 @@ describe('optional better notes model', () => {
     expect(c.state.notesUpgradeChanging).toBeUndefined()
   })
 })
+
+describe('Settings → AI models: Yogurt AI kept on this computer or not', () => {
+  const mac4: Hardware = { ...mac8, totalRamGB: 4, gpu: { kind: 'unified', name: 'Apple M1', vramGB: 3 } }
+  it('lets a computer no notes model fits go on without one, with speech and search across meetings only', async () => {
+    const weak = setup({ getHardware: async () => mac4 })
+    await weak.c.start()
+    expect(weak.c.state).toMatchObject({ phase: 'error', notesSkippable: true, message: 'Yogurt needs a Mac with at least 8 GB of memory.' })
+    const off = setup({ getHardware: async () => mac4, localNotes: () => false })
+    await off.c.start()
+    expect(off.c.state).toMatchObject({ phase: 'ready', localNotesOff: true, localNotesUnavailable: true })
+    await vi.waitFor(() => expect(off.c.installed()?.embed).toBeTruthy())
+    expect(off.c.notesPath()).toBeUndefined()
+    expect(off.rec.asked.some((u) => catalog.models.some((m) => m.builds.some((b) => b.url === u)))).toBe(false)
+    // nothing fits: turning it on has nothing to download
+    await off.c.setLocalNotes(true, async (remove) => remove())
+    expect(off.c.state.localNotesOff).toBe(true)
+  })
+  it('turned off on a computer that runs it: no notes model downloads; turned on, it does', async () => {
+    const s = setup({ localNotes: () => false })
+    await s.c.start()
+    expect(s.c.state).toMatchObject({ phase: 'ready', localNotesOff: true, localNotesBytes: expect.any(Number) })
+    await vi.waitFor(() => expect(s.c.installed()?.embed).toBeTruthy())
+    expect(s.rec.asked).not.toContain(starterUrl)
+    await s.c.setLocalNotes(true, async (remove) => remove())
+    expect(s.c.state.localNotesOff).toBeUndefined()
+    await vi.waitFor(() => expect(s.c.notesPath()).toBeTruthy())
+  })
+  it('stops a notes download when turned off, lets the model go first, and removes its files', async () => {
+    const rec = recorder((url) => url === starterUrl)
+    const s = setup({ download: rec.deps })
+    await s.c.start()
+    await vi.waitFor(() => expect(s.c.state.notesDownloading).toBe(true))
+    const released: string[] = []
+    await s.c.setLocalNotes(false, async (remove) => { released.push('unloaded'); remove() })
+    rec.release()
+    expect(released).toEqual(['unloaded'])
+    expect(s.c.state).toMatchObject({ localNotesOff: true })
+    expect(s.c.state.notesDownloading).toBeUndefined()
+    await new Promise((r) => setTimeout(r, 20))
+    expect(s.c.notesPath()).toBeUndefined()
+    expect(existsSync(join(s.root, 'llm', name(starterUrl)))).toBe(false)
+  })
+})

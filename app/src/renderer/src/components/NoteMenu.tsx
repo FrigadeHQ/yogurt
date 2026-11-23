@@ -6,13 +6,15 @@ import { RegenerateForm } from './RegenerateForm'
 import { t } from '../../../shared/i18n'
 
 /** Only show generation when it can produce a summary; explain temporary waits. */
-export function summaryAction({ hasSummary, hasContent, recording, busy, downloading, trashed }: {
+export function summaryAction({ hasSummary, hasContent, recording, busy, downloading, trashed, noModel = false }: {
   hasSummary: boolean; hasContent: boolean; recording: boolean; busy: boolean; downloading: boolean; trashed: boolean
+  /** Yogurt AI isn't on this computer and no other AI is picked for summaries (Settings → AI models) */
+  noModel?: boolean
 }) {
   if (trashed || (!hasSummary && !hasContent)) return undefined
   return {
     label: hasSummary ? t('Regenerate summary') : t('Generate summary'),
-    reason: recording ? t('Available after recording') : downloading ? t('Waiting for Yogurt AI to download') : busy ? t('Writing the summary') : undefined,
+    reason: recording ? t('Available after recording') : noModel ? t('Pick an AI model for summaries in Settings') : downloading ? t('Waiting for Yogurt AI to download') : busy ? t('Writing the summary') : undefined,
   }
 }
 

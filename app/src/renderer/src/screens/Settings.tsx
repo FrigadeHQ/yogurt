@@ -15,6 +15,7 @@ import { SpokenSetting } from '../components/SpokenSetting'
 import { useScrollMemory } from '../useScrollMemory'
 import { appShortcuts } from '../components/Shortcuts'
 import { CalendarSettings } from '../components/CalendarSettings'
+import { AiModels } from '../components/AiModels'
 import { supportedKinds, settingsPage } from '../../../shared/platform'
 import { Swap, SwapText } from '../components/Swap'
 
@@ -267,6 +268,8 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
 
           <Backup onImported={() => { void window.yogurt.settings.get().then(setPrefs) }} />
 
+          <AiModels />
+
           <AiApps />
 
           <Updates />
@@ -297,7 +300,8 @@ function NotesModel({ reveal = false }: { reveal?: boolean }) {
     void window.yogurt.setup.state().then(state => { if (active && !current) setSetup(state) })
     return () => { active = false; off() }
   }, [])
-  if (!setup?.notesUpgradeBytes) return null
+  // Yogurt AI is off: there is no notes model to upgrade
+  if (!setup?.notesUpgradeBytes || setup.localNotesOff) return null
   const downloading = setup.notesUpgradePending || setup.notesUpgradeDownloading
   const act = async () => {
     setBusy(true); setFailed(false)

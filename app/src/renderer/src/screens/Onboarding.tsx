@@ -208,9 +208,12 @@ function Ready({ state }: { state: SetupState }) {
     <Layout
       testId="setup-ready" motionKey={error ? 'error' : 'ready'} art={<ReadyArt fraction={state.fraction} paused={error} onShown={setShown} />}
       title={error ? t("Couldn't finish setting up") : c.title} text={error ? state.message ?? '' : c.text} textTestId={error ? 'setup-error' : undefined}
-      actions={error ? (
-        <button data-testid="setup-retry" className="ob-button primary no-drag" onClick={() => void window.yogurt.setup.retry()}>{t('Try again')}</button>
+      note={error && state.notesSkippable ? <p data-testid="setup-skip-local-text" className="ob-note-line">{t('You can still record and transcribe here, and have your own server or an AI app write the summaries (Settings → AI models).')}</p> : undefined}
+      actions={error ? (state.notesSkippable ? (
+        <button data-testid="setup-skip-local" className="ob-button primary no-drag" onClick={() => void window.yogurt.setup.skipLocal()}>{t('Continue without Yogurt AI')}</button>
       ) : (
+        <button data-testid="setup-retry" className="ob-button primary no-drag" onClick={() => void window.yogurt.setup.retry()}>{t('Try again')}</button>
+      )) : (
         <div className="ob-progress">
           <div data-testid="setup-progress" role="progressbar" aria-label={transcriptionPhase(state)} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} className="ob-progress-track">
             <div className="ob-progress-fill" style={{ transform: `scaleX(${pct / 100})` }} />
