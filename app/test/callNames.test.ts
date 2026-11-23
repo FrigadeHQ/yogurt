@@ -308,6 +308,18 @@ describe('hookCallNames', () => {
     expect(s.logs.filter((l) => l.includes('not-trusted'))).toHaveLength(1)
   })
 
+  it('a Teams that shows no call window still has its windows pictured in the log, once, without names (#138)', () => {
+    const s = setup({ app: 'Teams' })
+    s.start()
+    const windows = [{ title: 'Chat | Dana Smith | Microsoft Teams', tree: { r: 'AXWindow', k: [{ r: 'AXGroup', k: [{ r: 'AXButton', d: 'Dana Smith' }] }] } }]
+    for (let t = 1_000_000; t < 1_002_000; t += 500) s.emit({ t, error: 'no-call-window (search unavailable)', app: 'com.microsoft.teams2', windows })
+    const pictured = s.logs.filter((l) => l.startsWith('call names: no call window in com.microsoft.teams2, its windows in short:'))
+    expect(pictured).toHaveLength(1)
+    expect(pictured[0]).toContain('AXButton')
+    expect(s.logs.join('\n')).not.toContain('Dana Smith')
+    expect(s.logs.filter((l) => l === 'call names: no-call-window (search unavailable)')).toHaveLength(1)
+  })
+
   it('a meeting in an app it can\'t read starts no watch', async () => {
     const s = setup({ app: 'FaceTime' })
     s.start()

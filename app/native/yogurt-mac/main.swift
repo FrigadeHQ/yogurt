@@ -227,15 +227,16 @@ var askedTree = Set<pid_t>()
 func askTree(_ app: AXUIElement, _ r: NSRunningApplication, force: Bool = false) {
   guard let id = r.bundleIdentifier, chromium.contains(id), !askedTree.contains(r.processIdentifier) else { return }
   guard force || id.hasPrefix("com.microsoft.teams") else { return }
-  AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, kCFBooleanTrue)
-  // Chrome itself (not Electron) can ignore AXManualAccessibility and show only its tabs and toolbar, never the Meet
-  // page: a Meet call read 0 names that way. Screen readers ask with AXEnhancedUserInterface, which Chrome honours. It
-  // can slow window animations in that app, so it is turned back off when the watch ends (resetTrees).
-  if !id.hasPrefix("com.microsoft.teams") {
-    AXUIElementSetAttributeValue(app, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue)
-    enhanced.append(r.processIdentifier)
-  }
-  askedTree.insert(r.processIdentifier)
+  let manual = AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+  // AXManualAccessibility is Electron's. Chrome, and the new Teams (Chromium in a web view, not Electron), can ignore it
+  // and show only their own frame, never the page: a Meet call read 0 names that way, and a Teams call never had a Leave
+  // button (#138). Screen readers ask with AXEnhancedUserInterface, which Chromium honours. It can slow window
+  // animations in that app, so it is turned back off when the watch ends (resetTrees).
+  let asked = AXUIElementSetAttributeValue(app, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue)
+  if asked == .success { enhanced.append(r.processIdentifier) }
+  // a busy app (Teams joining a call) can time out: it is asked again on the next reading until it answers
+  if manual == .success || asked == .success { askedTree.insert(r.processIdentifier) }
+  else { lastControlLook = "asking for the tree failed (\(asked.rawValue))" }
 }
 
 /// the browsers asked with AXEnhancedUserInterface, to turn it back off when the watch ends
@@ -313,26 +314,44 @@ func isCallControl(_ e: AXUIElement) -> Bool {
 /// What the last look for call controls found, for the log when no window is a call (#111)
 var lastControlLook = ""
 
-/// Whether a window has a button that only a call has. A Teams meeting window is a whole web page: its Leave button sits
-/// thousands of elements in, past any walk that stays cheap (#111). Chromium can search its own page for buttons in one
-/// call, so that comes first; a walk of at most `budget` elements is the fallback.
-func hasCallControl(_ w: AXUIElement, budget: Int = 1500) -> Bool {
+/// Chromium's own search of a page for its buttons, in one call
+func searchButtons(_ e: AXUIElement) -> (AXError, [AXUIElement]) {
   let predicate: [String: Any] = ["AXSearchKey": "AXButtonSearchKey", "AXResultsLimit": 500, "AXDirection": "AXDirectionNext", "AXImmediateDescendantsOnly": false, "AXVisibleOnly": false]
   var found: AnyObject?
-  if AXUIElementCopyParameterizedAttributeValue(w, "AXUIElementsForSearchPredicate" as CFString, predicate as CFTypeRef, &found) == .success, let buttons = found as? [AXUIElement] {
-    if buttons.contains(where: isCallControl) { lastControlLook = "search found it"; return true }
-    lastControlLook = "search saw buttons, none a call control"
+  let err = AXUIElementCopyParameterizedAttributeValue(e, "AXUIElementsForSearchPredicate" as CFString, predicate as CFTypeRef, &found)
+  return (err, (found as? [AXUIElement]) ?? [])
+}
+
+/// Whether a window has a button that only a call has. A Teams meeting window is a whole web page: its Leave button sits
+/// thousands of elements in, past any walk that stays cheap (#111). Chromium can search its own page for buttons in one
+/// call, so that comes first; a walk of at most `budget` elements is the fallback. The window itself can refuse the
+/// search while the page in it (its AXWebArea) answers, so the walk searches the first pages it meets (#138).
+func hasCallControl(_ w: AXUIElement, budget: Int = 1500) -> Bool {
+  var note: String
+  let (err, buttons) = searchButtons(w)
+  if err == .success {
+    if buttons.contains(where: isCallControl) { return true }
+    note = "search saw buttons, none a call control"
   } else {
-    lastControlLook = "search unavailable"
+    note = "search unavailable (\(err.rawValue))"
   }
-  var left = budget, queue = [w]
+  var left = budget, queue = [w], pages = 0
   while !queue.isEmpty && left > 0 {
     let e = queue.removeFirst(); left -= 1
     let role = axText(axAttr(e, kAXRoleAttribute)) ?? ""
     if (role == "AXButton" || role == "AXMenuItem" || role == "AXCheckBox") && isCallControl(e) { return true }
+    if role == "AXWebArea" && err != .success && pages < 2 {
+      pages += 1
+      let (pageErr, pageButtons) = searchButtons(e)
+      if pageButtons.contains(where: isCallControl) { return true }
+      note += pageErr == .success ? "; page search saw buttons, none a call control" : "; page search unavailable (\(pageErr.rawValue))"
+    }
     queue.append(contentsOf: (axAttr(e, kAXChildrenAttribute) as? [AXUIElement]) ?? [])
   }
-  lastControlLook += left <= 0 ? "; walk stopped at \(budget) elements" : "; walk saw the whole window"
+  // no page in the window at all means the app never built it: what an unasked Chromium shows (#138)
+  note += left <= 0 ? "; walk stopped at \(budget) elements" : pages == 0 ? "; walk saw the whole window, no page in it" : "; walk saw the whole window"
+  // every window looked at, each said once, so the log says what each one gave
+  if !lastControlLook.contains(note) { lastControlLook += (lastControlLook.isEmpty ? "" : " | ") + note }
   return false
 }
 
@@ -351,7 +370,12 @@ func callWindows(_ app: AXUIElement, _ id: String) -> (wins: [AXUIElement], tab:
   }
   // Teams keeps its chat and calendar in windows shaped like the call's: only a window with a call control (Leave,
   // Mute) is a call, so an open chat can't hide a call in another app (#72). The same controls as Linux (calls.rs).
-  if id.hasPrefix("com.microsoft.teams") { return (all.filter { hasCallControl($0) }, nil) }
+  // Each window is asked for its page too, one cheap call each: that made Ardia build its page (#123), and the app-wide
+  // ask alone left Teams with no Leave button (#138).
+  if id.hasPrefix("com.microsoft.teams") {
+    for w in all.prefix(8) { AXUIElementSetAttributeValue(w, "AXManualAccessibility" as CFString, kCFBooleanTrue) }
+    return (all.filter { hasCallControl($0) }, nil)
+  }
   // Webex's meeting surfaces have stable accessibility identifiers; exclude its home window so it cannot hide another
   // call app when a recording was started by hand.
   if id == "Cisco-Systems.Spark" || id == "com.cisco.webexmeetingsapp" {
@@ -390,6 +414,9 @@ func watchCalls(every: Int, ids: [String], pids: [pid_t] = []) {
     guard let d = try? JSONSerialization.data(withJSONObject: v) else { return }
     FileHandle.standardOutput.write(d); FileHandle.standardOutput.write("\n".data(using: .utf8)!)
   }
+  // Teams windows that are no call are pictured once, a few readings in (once asked, a page takes a moment to build), so
+  // the log shows what Teams gives when its call is missed (#138)
+  var misses = 0
   while true {
     let started = Date()
     let t = Int(started.timeIntervalSince1970 * 1000)
@@ -404,12 +431,14 @@ func watchCalls(every: Int, ids: [String], pids: [pid_t] = []) {
       let running = (pids.isEmpty ? ids.compactMap { NSRunningApplication.runningApplications(withBundleIdentifier: $0).first } : pids.compactMap { owningApp($0, ids: ids) })
         .sorted { a, _ in a.processIdentifier == front }
       var found: (NSRunningApplication, AXUIElement, [AXUIElement], String?)?
+      var teams: (String, AXUIElement)?
       for r in running {
         let app = AXUIElementCreateApplication(r.processIdentifier)
         AXUIElementSetMessagingTimeout(app, 0.3)
         askTree(app, r)
         let (wins, tab) = callWindows(app, r.bundleIdentifier ?? "")
         if !wins.isEmpty { found = (r, app, wins, tab); break }
+        if teams == nil, let id = r.bundleIdentifier, id.hasPrefix("com.microsoft.teams") { teams = (id, app) }
       }
       if let (target, app, wins, tab) = found, let id = target.bundleIdentifier {
         askTree(app, target, force: true)
@@ -435,7 +464,20 @@ func watchCalls(every: Int, ids: [String], pids: [pid_t] = []) {
         line(["t": t, "app": id, "windows": out])
       } else {
         // which windows were looked at and how, so a log can say why a call was missed (#111)
-        line(["t": t, "error": running.isEmpty ? "not-running" : lastControlLook.isEmpty ? "no-call-window" : "no-call-window (\(lastControlLook))"])
+        var o: [String: Any] = ["t": t, "error": running.isEmpty ? "not-running" : lastControlLook.isEmpty ? "no-call-window" : "no-call-window (\(lastControlLook))"]
+        if let (id, app) = teams {
+          misses += 1
+          if misses == 10 {
+            var budget = 1500
+            o["app"] = id
+            o["windows"] = ((axAttr(app, kAXWindowsAttribute) as? [AXUIElement]) ?? []).prefix(4).map { w -> [String: Any] in
+              var x: [String: Any] = ["tree": axCopy(w, depth: 0, maxDepth: 40, budget: &budget, zoom: false)]
+              if let title = axText(axAttr(w, kAXTitleAttribute)) { x["title"] = title }
+              return x
+            }
+          }
+        }
+        line(o)
       }
     }
     // a slow app (a big page) is read less often, so the reading never takes much of the Mac

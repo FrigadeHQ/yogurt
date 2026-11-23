@@ -60,7 +60,7 @@ const MAX_RESTARTS = 20
 const LOGGED_CHANGES = 30
 
 type Sample = Omit<CallSample, 'ms'> & { t: number }
-type Session = { app: string | null; ids: string[]; pids?: number[]; heardAt: number; quietMs: number; restarts: number; samples: Sample[]; priorLines: Set<number>; watch?: { stop(): void }; everyApp: boolean; offset?: number; startedAt: number; pictured: boolean; errors: Set<string>; last: string; logged: number }
+type Session = { app: string | null; ids: string[]; pids?: number[]; heardAt: number; quietMs: number; restarts: number; samples: Sample[]; priorLines: Set<number>; watch?: { stop(): void }; everyApp: boolean; offset?: number; startedAt: number; pictured: boolean; missPictured?: boolean; errors: Set<string>; last: string; logged: number }
 
 export function hookCallNames(p: {
   store: Pick<Store, 'meeting' | 'segments' | 'setSegmentSpeakers' | 'updateMeeting'>
@@ -101,6 +101,8 @@ export function hookCallNames(p: {
     if (l.error || !l.app || !l.windows) {
       const why = l.error ?? 'nothing read'
       if (!s.errors.has(why)) { s.errors.add(why); log(`call names: ${why}${why === 'not-trusted' ? ' (no Accessibility permission): the other side stays Them' : ''}`) }
+      // a call app with no call window sends its windows once, so the log shows what it gives when a call is missed (#138)
+      if (l.app && l.windows && !s.missPictured) { s.missPictured = true; log(`call names: no call window in ${l.app}, its windows in short:\n${summarize(l.windows)}`) }
       s.samples.push({ t: l.t, speaking: [], participants: [], me: null, ok: false })
       return
     }
