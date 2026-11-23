@@ -47,3 +47,8 @@ output/
 # Swift package builds
 ios/YogurtKit/.build/
 ios/YogurtKit/.swiftpm/
+
+# plans, specs and agent notes stay local
+docs/superpowers/
+AGENTS.md
+CLAUDE.md
