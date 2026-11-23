@@ -755,7 +755,7 @@
   "Under \"Publish a calendar\", choose your calendar and \"Can view all details\", then Publish.": "In \"Publish a calendar\", scegli il tuo calendario e \"Can view all details\", poi Publish.",
   "Under \"Settings for my calendars\", choose your calendar, then \"Integrate calendar\".": "In \"Settings for my calendars\", scegli il tuo calendario, poi \"Integrate calendar\".",
   "Yogurt couldn't reach that address. Check your connection and the address.": "Yogurt non è riuscito a raggiungere quell’indirizzo. Controlla la connessione e l’indirizzo.",
-  "This calendar is too big for Yogurt to read. Try a link that only shares upcoming events.": "Questo calendario è troppo grande perché Yogurt possa leggerlo. Prova un link che condivida solo gli eventi in arrivo.",
+  "This calendar is too big for Yogurt to read.": "Questo calendario è troppo grande perché Yogurt possa leggerlo.",
   "{name} is connected. You can change this any time in Settings.": "{name} è collegato. Puoi cambiarlo quando vuoi in Impostazioni.",
   "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Quello è l’indirizzo pubblico, che funziona solo se il calendario è pubblico. Copia invece \"Secret address in iCal format\".",
   "Upload a file": "Carica un file",

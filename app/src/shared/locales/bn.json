@@ -724,7 +724,7 @@
   "Under \"Publish a calendar\", choose your calendar and \"Can view all details\", then Publish.": "\"Publish a calendar\"-এর নিচে আপনার ক্যালেন্ডার এবং \"Can view all details\" বেছে নিন, তারপর Publish করুন।",
   "Under \"Settings for my calendars\", choose your calendar, then \"Integrate calendar\".": "\"Settings for my calendars\"-এর নিচে আপনার ক্যালেন্ডার বেছে নিন, তারপর \"Integrate calendar\"।",
   "Yogurt couldn't reach that address. Check your connection and the address.": "Yogurt ওই ঠিকানায় পৌঁছাতে পারেনি। আপনার সংযোগ ও ঠিকানাটি দেখুন।",
-  "This calendar is too big for Yogurt to read. Try a link that only shares upcoming events.": "এই ক্যালেন্ডারটি Yogurt-এর পড়ার জন্য অনেক বড়। এমন একটি লিংক দিয়ে দেখুন যা শুধু আসন্ন ইভেন্টগুলো শেয়ার করে।",
+  "This calendar is too big for Yogurt to read.": "এই ক্যালেন্ডারটি Yogurt-এর পড়ার জন্য অনেক বড়।",
   "{name} is connected. You can change this any time in Settings.": "{name} যুক্ত হয়েছে। সেটিংসে যেকোনো সময় এটি বদলাতে পারেন।",
   "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "এটি পাবলিক ঠিকানা, যা শুধু আপনার ক্যালেন্ডার পাবলিক হলে কাজ করে। এর বদলে \"Secret address in iCal format\" কপি করুন।",
   "Upload a file": "একটি ফাইল আপলোড করুন",

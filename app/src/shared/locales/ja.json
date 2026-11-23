@@ -694,7 +694,7 @@
   "Under \"Publish a calendar\", choose your calendar and \"Can view all details\", then Publish.": "「Publish a calendar」でカレンダーと「Can view all details」を選び、Publish をクリックします。",
   "Under \"Settings for my calendars\", choose your calendar, then \"Integrate calendar\".": "「Settings for my calendars」でカレンダーを選び、「Integrate calendar」を開きます。",
   "Yogurt couldn't reach that address. Check your connection and the address.": "Yogurt はそのアドレスにアクセスできませんでした。接続とアドレスを確認してください。",
-  "This calendar is too big for Yogurt to read. Try a link that only shares upcoming events.": "このカレンダーは大きすぎて Yogurt では読み込めません。今後の予定だけを共有するリンクを試してください。",
+  "This calendar is too big for Yogurt to read.": "このカレンダーは大きすぎて Yogurt では読み込めません。",
   "{name} is connected. You can change this any time in Settings.": "{name}を接続しました。設定でいつでも変更できます。",
   "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "それは公開アドレスで、カレンダーが公開されている場合にしか使えません。代わりに「Secret address in iCal format」をコピーしてください。",
   "Upload a file": "ファイルをアップロード",

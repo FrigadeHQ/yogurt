@@ -76,7 +76,7 @@ it('says plainly when a calendar is too big to read, not that it could not be re
  h.get('calendar-link-input').props.onChange({target:{value:'https://example.com/cal.ics'}});h.run()
  h.get('calendar-link-form').props.onSubmit({preventDefault(){}});h.run()
  finish({ok:false,error:'too-big'});await Promise.resolve();await Promise.resolve();h.run()
- expect(h.get('calendar-link-error').props.children).toContain('too big')
+ expect(h.get('calendar-link-error').props.children).toBe('This calendar is too big for Yogurt to read.')
  expect(h.get('calendar-link-error').props.children).not.toContain("couldn't reach")
 })
 it('uses the same keyboard dismissal in setup while keeping its existing extra action',()=>{
