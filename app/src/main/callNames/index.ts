@@ -12,7 +12,8 @@ import { readCall, summarize, type AxWindow, type CallKind } from './parse'
  */
 
 /** what yogurt-mac call-watch prints each time it reads: the call windows, or why it could not */
-export type WatchLine = { t: number; app?: string; windows?: AxWindow[]; error?: string }
+/** macWindows: how many normal windows of the app the Mac itself shows, beside the ones accessibility lists (#138) */
+export type WatchLine = { t: number; app?: string; windows?: AxWindow[]; error?: string; macWindows?: number }
 /** pids: read only these processes' windows (the call app's processes on the mic); none known, the app's frontmost with a call */
 export type Watch = (ids: string[], onLine: (l: WatchLine) => void, pids?: number[]) => { stop(): void }
 
@@ -104,7 +105,7 @@ export function hookCallNames(p: {
       const why = l.error ?? 'nothing read'
       if (!s.errors.has(why)) { s.errors.add(why); log(`call names: ${why}${why === 'not-trusted' ? ' (no Accessibility permission): the other side stays Them' : ''}`) }
       // a call app with no call window sends its windows once, so the log shows what it gives when a call is missed (#138)
-      if (l.app && l.windows && !s.missPictured) { s.missPictured = true; log(`call names: no call window in ${l.app}, its windows in short:\n${summarize(l.windows)}`) }
+      if (l.app && l.windows && !s.missPictured) { s.missPictured = true; log(`call names: no call window in ${l.app}${l.macWindows === undefined ? '' : ` (the Mac shows ${l.macWindows} of its windows)`}, its windows in short:\n${summarize(l.windows)}`) }
       s.samples.push({ t: l.t, speaking: [], participants: [], me: null, ok: false })
       return
     }

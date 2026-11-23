@@ -59,4 +59,19 @@ describe('call-watch on the Teams desktop app (#111)', () => {
     const loop = swift.slice(swift.indexOf('func watchCalls'))
     expect(loop).toMatch(/"error": [\s\S]*"windows"/)
   })
+  it("takes Teams' not-implemented answer to the ask as final: only a busy Teams is asked again, so the log is not stuck on it (#138)", () => {
+    const ask = swift.slice(swift.indexOf('func askTree'), swift.indexOf('func resetTrees'))
+    expect(ask).toContain('.cannotComplete')
+  })
+  it('pictures every Teams window, minimised ones and ones only listed as children of the app too, and counts what the Mac shows (#138)', () => {
+    const dump = swift.slice(swift.indexOf('func missedWindows'), swift.indexOf('func watchCalls'))
+    expect(dump).toContain('kAXMinimizedAttribute')
+    expect(dump).toContain('kAXChildrenAttribute')
+    expect(dump).toContain('CGWindowListCopyWindowInfo')
+    expect(swift.slice(swift.indexOf('func watchCalls'))).toContain('missedWindows(')
+  })
+  it('says when the page shows only a popup, which hides the rest of the page from accessibility (#138)', () => {
+    const look = swift.slice(swift.indexOf('func hasCallControl'), swift.indexOf('func isMeetTitle'))
+    expect(look).toContain('page shows only a popup')
+  })
 })

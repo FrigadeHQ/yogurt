@@ -7,7 +7,7 @@
 
 /** one element of the tree as the helper copies it: role, subrole, description, title, value, identifier, DOM classes, size */
 export type AxNode = { r: string; s?: string; d?: string; t?: string; v?: string; i?: string; c?: string[]; w?: number; h?: number; k?: AxNode[] }
-export type AxWindow = { title?: string; id?: string; tree: AxNode }
+export type AxWindow = { title?: string; id?: string; tree: AxNode; minimized?: boolean }
 export type CallKind = 'zoom' | 'teams' | 'meet' | 'webex'
 /** byMute: `speaking` is only the one other person not muted (Teams meetings mark nobody), not a mark of the app */
 export type CallReading = { speaking: string[]; participants: string[]; me: string | null; byMute?: boolean }
@@ -440,7 +440,7 @@ export function summarize(windows: AxWindow[], max = 60): string {
   const roles = new Map<string, number>()
   const lines: string[] = []
   for (const w of windows) {
-    lines.push(`window "${redact(w.title ?? '')}"${w.id ? ` id=${w.id}` : ''}`)
+    lines.push(`window "${redact(w.title ?? '')}"${w.id ? ` id=${w.id}` : ''}${w.minimized ? ' minimized' : ''}`)
     walk(w.tree, (n, up) => {
       roles.set(n.r, (roles.get(n.r) ?? 0) + 1)
       const said = texts(n).map(redact)

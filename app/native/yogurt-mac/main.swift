@@ -234,9 +234,10 @@ func askTree(_ app: AXUIElement, _ r: NSRunningApplication, force: Bool = false)
   // animations in that app, so it is turned back off when the watch ends (resetTrees).
   let asked = AXUIElementSetAttributeValue(app, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue)
   if asked == .success { enhanced.append(r.processIdentifier) }
-  // a busy app (Teams joining a call) can time out: it is asked again on the next reading until it answers
-  if manual == .success || asked == .success { askedTree.insert(r.processIdentifier) }
-  else { lastControlLook = "asking for the tree failed (\(asked.rawValue))" }
+  // A busy app (Teams joining a call) can time out: it is asked again on the next reading until it answers. The new Teams
+  // answers neither ask (not implemented) and builds its page anyway, so that answer is final and not worth a log (#138).
+  if manual == .cannotComplete && asked == .cannotComplete { lastControlLook = "asking for the tree timed out" }
+  else { askedTree.insert(r.processIdentifier) }
 }
 
 /// the browsers asked with AXEnhancedUserInterface, to turn it back off when the watch ends
@@ -340,6 +341,15 @@ func hasCallControl(_ w: AXUIElement, budget: Int = 1500) -> Bool {
     let e = queue.removeFirst(); left -= 1
     let role = axText(axAttr(e, kAXRoleAttribute)) ?? ""
     if (role == "AXButton" || role == "AXMenuItem" || role == "AXCheckBox") && isCallControl(e) { return true }
+    // Chromium hides the rest of a page from accessibility while a modal popup is open in it (aria-modal): a Teams call
+    // with a popup open shows only the popup, never its Leave button (#138)
+    if role == "AXWebArea", let kids = axAttr(e, kAXChildrenAttribute) as? [AXUIElement], kids.count == 1 {
+      let classes = (axAttr(kids[0], "AXDOMClassList") as? [String]) ?? []
+      let sub = axText(axAttr(kids[0], kAXSubroleAttribute)) ?? ""
+      if sub == "AXApplicationDialog" || sub == "AXDialog" || classes.contains(where: { $0.contains("Popover") || $0.contains("Dialog") }) {
+        if !note.contains("page shows only a popup") { note += "; page shows only a popup" }
+      }
+    }
     if role == "AXWebArea" && err != .success && pages < 2 {
       pages += 1
       let (pageErr, pageButtons) = searchButtons(e)
@@ -407,6 +417,30 @@ func owningApp(_ pid: pid_t, ids: [String]) -> NSRunningApplication? {
   return nil
 }
 
+/// Every window of an app that showed no call, for the log: the ones accessibility lists, any it lists only as the app's
+/// children, minimised ones marked, and how many normal windows the Mac itself has for the app (other Spaces, minimised),
+/// so a call in a window accessibility leaves out shows (#138)
+func missedWindows(_ app: AXUIElement, _ pid: pid_t) -> (windows: [[String: Any]], mac: Int) {
+  var all = (axAttr(app, kAXWindowsAttribute) as? [AXUIElement]) ?? []
+  for k in (axAttr(app, kAXChildrenAttribute) as? [AXUIElement]) ?? [] where axText(axAttr(k, kAXRoleAttribute)) == "AXWindow" && !all.contains(where: { CFEqual($0, k) }) {
+    all.append(k)
+  }
+  var budget = 1500
+  let windows = all.prefix(6).map { w -> [String: Any] in
+    var x: [String: Any] = ["tree": axCopy(w, depth: 0, maxDepth: 40, budget: &budget, zoom: false)]
+    if let title = axText(axAttr(w, kAXTitleAttribute)) { x["title"] = title }
+    if (axAttr(w, kAXMinimizedAttribute) as? Bool) == true { x["minimized"] = true }
+    return x
+  }
+  let info = (CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]) ?? []
+  let mac = info.filter { w in
+    guard (w[kCGWindowOwnerPID as String] as? Int) == Int(pid), (w[kCGWindowLayer as String] as? Int) == 0 else { return false }
+    let b = w[kCGWindowBounds as String] as? [String: Any]
+    return ((b?["Width"] as? Double) ?? 0) > 100 && ((b?["Height"] as? Double) ?? 0) > 100
+  }.count
+  return (windows, mac)
+}
+
 func watchCalls(every: Int, ids: [String], pids: [pid_t] = []) {
   // Yogurt closes stdin to stop the watch (and a crashed Yogurt closes it too)
   DispatchQueue.global().async { _ = FileHandle.standardInput.readDataToEndOfFile(); DispatchQueue.main.sync { resetTrees() }; exit(0) }
@@ -431,14 +465,14 @@ func watchCalls(every: Int, ids: [String], pids: [pid_t] = []) {
       let running = (pids.isEmpty ? ids.compactMap { NSRunningApplication.runningApplications(withBundleIdentifier: $0).first } : pids.compactMap { owningApp($0, ids: ids) })
         .sorted { a, _ in a.processIdentifier == front }
       var found: (NSRunningApplication, AXUIElement, [AXUIElement], String?)?
-      var teams: (String, AXUIElement)?
+      var teams: (String, AXUIElement, pid_t)?
       for r in running {
         let app = AXUIElementCreateApplication(r.processIdentifier)
         AXUIElementSetMessagingTimeout(app, 0.3)
         askTree(app, r)
         let (wins, tab) = callWindows(app, r.bundleIdentifier ?? "")
         if !wins.isEmpty { found = (r, app, wins, tab); break }
-        if teams == nil, let id = r.bundleIdentifier, id.hasPrefix("com.microsoft.teams") { teams = (id, app) }
+        if teams == nil, let id = r.bundleIdentifier, id.hasPrefix("com.microsoft.teams") { teams = (id, app, r.processIdentifier) }
       }
       if let (target, app, wins, tab) = found, let id = target.bundleIdentifier {
         askTree(app, target, force: true)
@@ -465,16 +499,11 @@ func watchCalls(every: Int, ids: [String], pids: [pid_t] = []) {
       } else {
         // which windows were looked at and how, so a log can say why a call was missed (#111)
         var o: [String: Any] = ["t": t, "error": running.isEmpty ? "not-running" : lastControlLook.isEmpty ? "no-call-window" : "no-call-window (\(lastControlLook))"]
-        if let (id, app) = teams {
+        if let (id, app, pid) = teams {
           misses += 1
           if misses == 10 {
-            var budget = 1500
-            o["app"] = id
-            o["windows"] = ((axAttr(app, kAXWindowsAttribute) as? [AXUIElement]) ?? []).prefix(4).map { w -> [String: Any] in
-              var x: [String: Any] = ["tree": axCopy(w, depth: 0, maxDepth: 40, budget: &budget, zoom: false)]
-              if let title = axText(axAttr(w, kAXTitleAttribute)) { x["title"] = title }
-              return x
-            }
+            let (windows, mac) = missedWindows(app, pid)
+            o["app"] = id; o["windows"] = windows; o["macWindows"] = mac
           }
         }
         line(o)

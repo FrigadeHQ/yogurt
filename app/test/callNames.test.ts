@@ -357,11 +357,17 @@ describe('hookCallNames', () => {
     s.start()
     const windows = [{ title: 'Chat | Dana Smith | Microsoft Teams', tree: { r: 'AXWindow', k: [{ r: 'AXGroup', k: [{ r: 'AXButton', d: 'Dana Smith' }] }] } }]
     for (let t = 1_000_000; t < 1_002_000; t += 500) s.emit({ t, error: 'no-call-window (search unavailable)', app: 'com.microsoft.teams2', windows })
-    const pictured = s.logs.filter((l) => l.startsWith('call names: no call window in com.microsoft.teams2, its windows in short:'))
+    const pictured = s.logs.filter((l) => l.startsWith('call names: no call window in com.microsoft.teams2') && l.includes('its windows in short:'))
     expect(pictured).toHaveLength(1)
     expect(pictured[0]).toContain('AXButton')
     expect(s.logs.join('\n')).not.toContain('Dana Smith')
     expect(s.logs.filter((l) => l === 'call names: no-call-window (search unavailable)')).toHaveLength(1)
+  })
+  it('says how many windows the Mac shows for Teams next to the ones it pictures, so a window accessibility leaves out shows (#138)', () => {
+    const s = setup({ app: 'Teams' })
+    s.start()
+    s.emit({ t: 1_000_000, error: 'no-call-window', app: 'com.microsoft.teams2', windows: [{ title: 'Microsoft Teams', tree: { r: 'AXWindow' } }], macWindows: 3 })
+    expect(s.logs.some((l) => l.startsWith('call names: no call window in com.microsoft.teams2 (the Mac shows 3 of its windows), its windows in short:'))).toBe(true)
   })
 
   it('a meeting in an app it can\'t read starts no watch', async () => {

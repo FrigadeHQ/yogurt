@@ -359,4 +359,9 @@ describe('summarize: a short picture of the tree for the log', () => {
     expect(s).toContain('window "Meet - ‹12›"')
     expect(s).not.toContain('abc-defg-hij')
   })
+  it('says which windows are minimised, so a call hidden in one shows in the log (#138)', () => {
+    const s = summarize([{ ...win(node('AXWindow', {}), 'Microsoft Teams'), minimized: true }, win(node('AXWindow', {}), 'Microsoft Teams')])
+    expect(s).toContain('window "Microsoft Teams" minimized')
+    expect(s.split('\n').filter((l) => l.startsWith('window ') && !l.includes('minimized'))).toHaveLength(1)
+  })
 })
