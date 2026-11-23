@@ -30,6 +30,12 @@
 ; Not asked on updates (silent), or when models are already somewhere: nothing is ever moved.
 !include nsDialogs.nsh
 
+; An installer with pages would first ask "Anyone who uses this computer" or "Only for me"; the first needs an admin.
+; Yogurt is always installed just for this person (perMachine: false), so that page is skipped.
+!macro customInstallMode
+  StrCpy $isForceCurrentInstall "1"
+!macroend
+
 !ifndef BUILD_UNINSTALLER
 Var ModelsDir
 Var ModelsField

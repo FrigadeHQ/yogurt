@@ -191,6 +191,8 @@ function createWindow() {
 let probeGpu: () => Promise<GpuProbe | null> = async () => null
 function createSetup(): SetupController {
   const modelsDir = modelsFolder()
+  // the Windows installer may have put them on another drive: the log says where they are looked for
+  console.info(`MODELS dir=${modelsDir}`)
   return new SetupController({
     modelsDir,
     upgradePreference: {

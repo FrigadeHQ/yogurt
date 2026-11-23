@@ -13,6 +13,10 @@ describe('Windows installer', () => {
     expect(builder).toMatch(/perMachine: false/)
     expect(builder).toMatch(/include: build\/installer\.nsh/)
   })
+  it('never offers "Anyone who uses this computer" (that one needs an admin): always just this person', () => {
+    const body = nsh.match(/!macro customInstallMode\b([\s\S]*?)!macroend/)?.[1] ?? ''
+    expect(body).toMatch(/StrCpy \$isForceCurrentInstall "1"/)
+  })
   it('asks where the models go after the install folder, never on an update or when models already exist, and saves it where the app reads it', () => {
     expect(nsh).toContain('!macro customPageAfterChangeDir')
     expect(nsh).toContain('${If} ${Silent}')
