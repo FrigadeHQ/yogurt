@@ -159,6 +159,7 @@ def click_through(label: str, app_dir: Path | None, models_dir: Path | None, exp
     text = page_text(win)
     if expect_models_page:
         text = wait_page(win, 'AI models', 30)
+        check(f'{label}: the models page has its own heading', 'Choose where the AI models go' in text and 'Choose Install Location' not in text, text[:200])
         field = visible_edit(win)
         default = field.window_text()
         check(f'{label}: the models page offers the profile folder by default', default.lower() == str(PROFILE / 'models').lower(), default)

@@ -24,4 +24,9 @@ describe('Windows installer', () => {
     expect(nsh).toContain('$APPDATA\\Yogurt\\models-dir.txt')
     expect(nsh).toContain('FileWriteUTF16LE')
   })
+  it('the models page has its own heading, not the install folder page\'s', () => {
+    const create = nsh.match(/Function modelsPageCreate([\s\S]*?)FunctionEnd/)?.[1] ?? ''
+    expect(create).toMatch(/GetDlgItem \$\d \$HWNDPARENT 1037[\s\S]*WM_SETTEXT[\s\S]*AI models/)
+    expect(create).toMatch(/GetDlgItem \$\d \$HWNDPARENT 1038[\s\S]*WM_SETTEXT/)
+  })
 })

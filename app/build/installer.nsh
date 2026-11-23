@@ -51,6 +51,11 @@ Function modelsPageCreate
     Abort
   ${EndIf}
   StrCpy $ModelsDir "$APPDATA\Yogurt\models"
+  ; the heading above the page (MUI2 isn't loaded yet where this file is included, so set directly)
+  GetDlgItem $0 $HWNDPARENT 1037
+  SendMessage $0 ${WM_SETTEXT} 0 "STR:Choose where the AI models go"
+  GetDlgItem $0 $HWNDPARENT 1038
+  SendMessage $0 ${WM_SETTEXT} 0 "STR:They're big, so pick a drive with space."
   nsDialogs::Create 1018
   Pop $0
   ${NSD_CreateLabel} 0 0 100% 36u "Yogurt downloads its AI models once, about 5 to 12 GB. Choose where to keep them. A drive with room to spare is best."
