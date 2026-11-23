@@ -44,11 +44,11 @@ for (const theme of ['light', 'dark'] as const) test(`speaker colours agree acro
     for (let i = 0; i < names.length; i++) await expect(previewNames.filter({ hasText: names[i] })).toHaveAttribute('data-color', String(i))
     await expect(previewNames.filter({ hasText: 'You' }).first()).not.toHaveAttribute('data-color')
     await preview.getByTestId('widget-preview-text').evaluate(el => { el.scrollTop = el.scrollHeight })
-    // Violet follows the app appearance on both surfaces, including the charcoal recorder.
+    // Violet follows the app appearance in the note; the charcoal recorder keeps the light brand purple.
     const noteColour = await noteNames.filter({ hasText: names[0] }).last().evaluate(el => getComputedStyle(el).color)
     const previewColour = await previewNames.filter({ hasText: names[0] }).evaluate(el => getComputedStyle(el).color)
     expect(noteColour).toBe(theme === 'dark' ? 'rgb(183, 128, 255)' : 'rgb(111, 0, 255)')
-    expect(previewColour).toBe(noteColour)
+    expect(previewColour).toBe('rgb(183, 128, 255)')
     await preview.reload()
     await preview.getByTestId('widget').hover()
     await expect(preview.locator('.widget-preview-speaker').filter({ hasText: names[0] })).toHaveAttribute('data-color', '0')

@@ -15,7 +15,7 @@ function StillMeter() {
 export function RecordingPill({ time, warning, illustration, className = '', children, ...props }: Props) {
   return <div {...props} data-illustration={illustration || undefined} className={`widget-pill ${className}`}>
     <div className="widget-details" aria-hidden="true">
-      <span className="text-[var(--pill-accent)]">{warning ? <TriangleAlert data-testid="widget-warning" size={18} /> : <Logo size={18} />}</span>
+      <span className="text-[var(--pill-accent)]">{warning ? <TriangleAlert data-testid="widget-warning" size={18} /> : <Logo size={18} className="text-[var(--pill-accent)]" />}</span>
       {illustration ? <StillMeter /> : <LevelBars testId="widget-wave" height={16} className="text-[var(--pill-accent)]" />}
       <span data-testid="widget-time" className="widget-time">{time}</span>
     </div>
