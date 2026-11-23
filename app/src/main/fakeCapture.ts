@@ -61,7 +61,7 @@ const SPEECH: Array<{ track: Track; at: number; finalMs: number; text: string }>
   { track: 'them', at: 13_300, finalMs: 2000, text: 'She will send a draft by Friday.' },
 ]
 
-export function fakeCaptureProc(meetingDir: string, startMs = 0, o: { speech?: boolean; part?: number; mic?: string | null } = {}): CaptureProc {
+export function fakeCaptureProc(meetingDir: string, startMs = 0, o: { speech?: boolean; part?: number; mic?: string | null; micMuted?: boolean } = {}): CaptureProc {
   const ev = new EventEmitter()
   const stdout = new PassThrough(), stdin = new PassThrough()
   const audio: Record<Track, Float32Array> = {
@@ -70,6 +70,7 @@ export function fakeCaptureProc(meetingDir: string, startMs = 0, o: { speech?: b
   }
   const started = Date.now()
   if (o.part) writeFileSync(join(meetingDir, `part.${o.part}.json`), JSON.stringify({ startMs }))
+  let muted = !!o.micMuted, micFrom = 0
   let sent = 0, paused = false, ended = false
   // like the helper: the chosen mic if it is here, else Auto; each start or switch says which mic records
   const here = (uid: string) => fakeMicList().some((m) => m.uid === uid)
@@ -93,6 +94,7 @@ export function fakeCaptureProc(meetingDir: string, startMs = 0, o: { speech?: b
   const speechAt = (ms: number) => {
     if (!o.speech) return
     for (const e of SPEECH) {
+      if (e.track === 'me' && (muted || e.at < micFrom)) continue
       const since = ms - e.at
       if (since < SPEECH_STEP_MS) continue
       const words = e.text.split(' ')
@@ -118,37 +120,59 @@ export function fakeCaptureProc(meetingDir: string, startMs = 0, o: { speech?: b
 
   const finish = (code: number | null, signal: NodeJS.Signals | null) => {
     if (ended) return
+    playUntil(elapsedSamples())
     ended = true; clearInterval(timer)
     for (const track of ['me', 'them'] as const) writeFileSync(join(meetingDir, o.part ? `${track}.${o.part}.wav` : `${track}.wav`), wavOf(played[track]))
     stdout.end()
     setImmediate(() => ev.emit('exit', code, signal))
   }
-  const timer = setInterval(() => {
-    checkMics()
+  const playUntil = (target: number) => {
     // everything due by now, in 100 ms chunks, so slow timers don't slow the audio
-    while (sent + CHUNK <= ((Date.now() - started) * RATE) / 1000) {
+    while (sent < target) {
+      const count = Math.min(CHUNK, target - sent)
       const ms = startMs + (sent / RATE) * 1000
-      sent += CHUNK
+      sent += count
       // like the helper: a pause is silence in the files, so file time stays meeting time
-      if (paused) { played.me.push(new Float32Array(CHUNK)); played.them.push(new Float32Array(CHUNK)); continue }
+      if (paused) { played.me.push(new Float32Array(count)); played.them.push(new Float32Array(count)); continue }
       const lv = { me: 0, them: 0 }
       for (const track of ['me', 'them'] as const) {
-        const src = audio[track], from = sent - CHUNK
-        const samples = new Float32Array(CHUNK)
-        if (from < src.length) samples.set(src.subarray(from, Math.min(sent, src.length)))
+        const src = audio[track], from = sent - count
+        const samples = new Float32Array(count)
+        if ((track === 'them' || !muted) && from < src.length) samples.set(src.subarray(from, Math.min(sent, src.length)))
         lv[track] = level(samples)
         played[track].push(samples)
+        if (track === 'me' && muted) continue
         stdout.write(encodeFrame({ t: 'pcm', track, ms, samples }))
       }
       stdout.write(encodeFrame({ t: 'level', ...lv }))
       speechAt(ms - startMs)
     }
+  }
+  const elapsedSamples = () => Math.max(sent, Math.floor((Date.now() - started) * RATE / 1000))
+  const timer = setInterval(() => {
+    checkMics()
+    playUntil(sent + Math.floor((elapsedSamples() - sent) / CHUNK) * CHUNK)
   }, 50)
+
+  const applyMute = (cmd: string) => {
+    if (ended) return
+    playUntil(elapsedSamples())
+    const ms = sent / RATE * 1000
+    muted = cmd.startsWith('mute ') || (muted && process.env.YOGURT_FAKE_MIC_ACK === 'stay-off')
+    micFrom = ms
+    settled.me = startMs + ms
+    stdout.write(encodeFrame({ t: 'mic-muted', id: Number(cmd.split(' ')[1]), muted, ms: startMs + ms }))
+  }
 
   stdin.on('data', (d: Buffer) => {
     for (const cmd of d.toString().split('\n')) {
       if (cmd === 'pause') paused = true
       else if (cmd === 'resume') paused = false
+      else if (/^(un)?mute [0-9]+$/.test(cmd)) {
+        if (process.env.YOGURT_FAKE_MIC_ACK === 'missing') continue
+        if (process.env.YOGURT_FAKE_MIC_ACK === 'slow') setTimeout(() => applyMute(cmd), 1200)
+        else applyMute(cmd)
+      }
       else if (cmd.startsWith('mic ')) {
         const uid = cmd.slice(4).trim()
         if (uid === 'auto' || here(uid)) mic = uid === 'auto' ? null : uid

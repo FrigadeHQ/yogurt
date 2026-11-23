@@ -95,6 +95,7 @@ export type YogurtApi = {
     stop(id: string): void
     /** pauses or resumes this active recording without finishing the note */
     setPaused(id: string, paused: boolean): Promise<boolean>
+    setMicMuted(id: string, muted: boolean): Promise<boolean>
     /** retries saving the original stop time without stopping or finalizing the capture again */
     retryStopSave(id: string): Promise<boolean>
     /** the person's own title (tidied; blank keeps the old one) */
@@ -439,7 +440,11 @@ export type MicDevice = { id: string; name: string; isDefault: boolean }
 export type MicsView = { devices: MicDevice[]; choice: string | null; using: string | null; defaultName: string | null }
 
 /** What the recording widget shows: recording (time, hints) or the card after stopping */
+export type MicState = 'on' | 'muting' | 'off' | 'unmuting' | 'still-off' | 'unconfirmed'
+export const micIsOff = (state?: MicState) => state === 'off' || state === 'still-off'
+
 export type WidgetView = {
+  micState?: MicState
   kind: 'recording' | 'captured'
   paused?: true
   meetingId: string

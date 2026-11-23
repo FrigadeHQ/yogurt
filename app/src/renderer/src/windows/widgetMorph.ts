@@ -3,11 +3,13 @@ import { motion } from '../motion'
 import { WidgetIntent, widgetContains, widgetExpanded, type WidgetLayout } from '../../../shared/widgetMorph'
 
 /** The same surface and details travel between the two shapes. */
-export function useWidgetMorph(card: React.RefObject<HTMLDivElement | null>, warning: boolean, time: string) {
+export function useWidgetMorph(card: React.RefObject<HTMLDivElement | null>, warning: boolean, time: string, muted: boolean) {
   const intent = useRef(new WidgetIntent()).current
   const [open, setOpen] = useState(false)
   const [layout, setLayout] = useState<WidgetLayout | null>(null)
   const pointer = useRef({ x: -1, y: -1 })
+  const keyboardFocus = useRef(false)
+  const collapsedWidth = useRef(0)
   const animations = useRef<Animation[]>([])
   const resumeAt = useRef<number | null>(null)
   const morph = useRef((immediate = false) => { void immediate })
@@ -26,6 +28,7 @@ export function useWidgetMorph(card: React.RefObject<HTMLDivElement | null>, war
     void window.yogurt.widget.layout().then(v => { if (alive) setLayout(v) })
     const offPointer = window.yogurt.widget.onPointer(p => { pointer.current = p; wake.current() })
     const offReset = window.yogurt.widget.onReset(() => {
+      keyboardFocus.current = false
       intent.open = false; intent.over = false; intent.pressed = false; intent.due = null
       resumeAt.current = null; setOpen(false); morph.current(true); wake.current()
     })
@@ -56,7 +59,7 @@ export function useWidgetMorph(card: React.RefObject<HTMLDivElement | null>, war
         if (!immediate && (!reduced || 'opacity' in to)) animations.current.push(node.animate([from, to] as Keyframe[], { duration: reduced ? motion.micro : ms, easing: ease, delay: reduced ? 0 : delay, fill: 'both' }))
       }
       animate(el, { left: `${box.x}px`, top: `${box.y}px`, width: `${box.width}px`, height: `${box.height}px`, borderRadius: opened ? '16px' : '10px' })
-      const positions = opened ? [[16, 17], [box.width - timerWidth - 43, 18], [box.width - timerWidth - 16, 18.5]] : [[12, 11], [42, 12], [69, 12.5]]
+      const positions = opened ? [[16, 17], [box.width - timerWidth - 75, 18], [box.width - timerWidth - 48, 18.5]] : [[12, 11], [42, 12], [69, 12.5]]
       items.forEach((item, i) => animate(item, { transform: `translate(${positions[i][0]}px,${positions[i][1]}px)` }))
       body.style.width = `${expanded.width - 2}px`; body.style.height = `${expanded.height - 54}px`
       animate(body, { transform: opened ? 'translateX(0) scale(1)' : 'translateX(40px) scale(.97)', filter: opened ? 'blur(0px)' : 'blur(2px)' }, duration, motion.ease)
@@ -75,10 +78,11 @@ export function useWidgetMorph(card: React.RefObject<HTMLDivElement | null>, war
     wake.current()
   }, [layout, warning])
   useLayoutEffect(() => {
-    if (intent.pressed) return
     const timer = card.current?.querySelector<HTMLElement>('[data-testid="widget-time"]')
-    if (timer) window.yogurt.widget.size(83 + timer.getBoundingClientRect().width, 42)
-  }, [time, open, layout?.pill.width])
+    if (!timer) return
+    collapsedWidth.current = 83 + timer.getBoundingClientRect().width + (muted ? 20 : 0)
+    if (!intent.pressed) window.yogurt.widget.size(collapsedWidth.current, 42)
+  }, [time, open, layout?.pill.width, muted])
   useEffect(() => {
     let frame = 0, lastPoint = { x: -1, y: -1 }, lastSurface = ''
     const tick = (now: number) => {
@@ -86,7 +90,7 @@ export function useWidgetMorph(card: React.RefObject<HTMLDivElement | null>, war
       const el = card.current
       if (el && el.style.visibility === 'visible') {
         const r = el.getBoundingClientRect(), surface = { x: r.x, y: r.y, width: r.width, height: r.height, radius: parseFloat(getComputedStyle(el).borderRadius) }
-        const p = pointer.current, inside = widgetContains(surface, p.x, p.y)
+        const p = pointer.current, inside = keyboardFocus.current || widgetContains(surface, p.x, p.y)
         if (inside !== intent.over) inside ? intent.enter(now) : intent.leave(now)
         else if (inside && (p.x !== lastPoint.x || p.y !== lastPoint.y)) intent.move(now)
         lastPoint = p
@@ -94,7 +98,10 @@ export function useWidgetMorph(card: React.RefObject<HTMLDivElement | null>, war
         if (next !== null) { setOpen(next); morph.current(); resumeAt.current = null }
         else if (!intent.pressed && resumeAt.current !== null && now >= resumeAt.current) { resumeAt.current = null; morph.current() }
         const key = JSON.stringify(surface)
-        if (key !== lastSurface) { lastSurface = key; window.yogurt.widget.surface(surface) }
+        if (key !== lastSurface) {
+          lastSurface = key; window.yogurt.widget.surface(surface)
+          if (!intent.open && !intent.pressed && surface.height === 42 && collapsedWidth.current) window.yogurt.widget.size(collapsedWidth.current, 42)
+        }
       }
       // Keep running only while a hover deadline is pending or the shape is moving.
       if (intent.due || resumeAt.current !== null || animations.current.some(a => a.playState === 'running')) frame = requestAnimationFrame(tick)
@@ -108,6 +115,7 @@ export function useWidgetMorph(card: React.RefObject<HTMLDivElement | null>, war
   }, [])
   return {
     open,
+    focus: (focused: boolean) => { keyboardFocus.current = focused; wake.current() },
     pointer: (x: number, y: number) => {
       pointer.current = { x, y }
       wake.current()
@@ -123,8 +131,7 @@ export function useWidgetMorph(card: React.RefObject<HTMLDivElement | null>, war
       resumeAt.current = performance.now() + (dragged ? 650 : 0)
       wake.current()
       window.yogurt.widget.pressed(false)
-      const timer = card.current?.querySelector<HTMLElement>('[data-testid="widget-time"]')
-      if (timer) window.yogurt.widget.size(83 + timer.getBoundingClientRect().width, 42)
+      if (collapsedWidth.current) window.yogurt.widget.size(collapsedWidth.current, 42)
     },
   }
 }

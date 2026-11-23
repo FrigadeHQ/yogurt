@@ -2,7 +2,7 @@ import { AUDIO_SPEAKER } from '../src/shared/audioUpload'
 import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { Capture, encodeFrame, hookCapture, setRecordingPaused, recordingFinished, type CaptureProc } from '../src/main/capture'
+import { Capture, encodeFrame, hookCapture, setMicMuted, setRecordingPaused, recordingFinished, type CaptureProc } from '../src/main/capture'
 import { liveSilentMs, hookTranscription, transcribeRecorded, settleTranscription, speechLocaleFor, spokenChanged, stopTranscriptionServer, transcribing, releaseIdleSpeech } from '../src/main/asr'
 import type { Spoken } from '../src/shared/spoken'
 import type { TranscriptPartial } from '../src/shared/types'
@@ -48,7 +48,7 @@ const disposers: Array<() => void> = []
 afterEach(async () => { disposers.splice(0).forEach((d) => d()); await settleTranscription(2000); stopTranscriptionServer() })
 
 /** both hooks over one shared start/stop fan-out, registered in the order asked for */
-function rig(order: 'capture-first' | 'transcription-first', t: { transcriber?: (c: Chunk, heard?: (language: string, chars: number) => void) => Promise<Line[]> | Line[]; modelPath?: () => string | undefined; refresh?: (id: string) => void; holdMs?: number; queued?: (id: string) => void } = {}) {
+function rig(order: 'capture-first' | 'transcription-first', t: { transcriber?: (c: Chunk, heard?: (language: string, chars: number) => void, opts?: { partial?: boolean }) => Promise<Line[]> | Line[]; sendPartial?: (p: TranscriptPartial) => void; modelPath?: () => string | undefined; refresh?: (id: string) => void; holdMs?: number; queued?: (id: string) => void } = {}) {
   const starts: Array<(m: Meeting) => void> = [], stops: Array<(m: Meeting) => void> = []
   const onStart = (fn: (m: Meeting) => void) => { starts.push(fn); return () => {} }
   const onStop = (fn: (m: Meeting) => void) => { stops.push(fn); return () => {} }
@@ -56,7 +56,7 @@ function rig(order: 'capture-first' | 'transcription-first', t: { transcriber?: 
   const sent: string[] = [], warns: string[] = []
   const hookT = () => disposers.push(hookTranscription({
     store, modelPath: t.modelPath ?? (() => '/model.bin'), send: (s) => sent.push(`${s.track}:${s.text}`), warn: (c) => warns.push(c),
-    refresh: t.refresh, holdMs: t.holdMs, queued: t.queued, transcriber: 'transcriber' in t ? t.transcriber : async (c) => says(c), onStart, onStop, pidFile: undefined,
+    sendPartial: t.sendPartial, refresh: t.refresh, holdMs: t.holdMs, queued: t.queued, transcriber: 'transcriber' in t ? t.transcriber : async (c) => says(c), onStart, onStop, pidFile: undefined,
   }))
   const hookC = () => hookCapture({
     dirOf: (id) => `/m/${id}`, onStart, onStop, stopMeeting: (id) => stops.forEach((f) => f({ id } as Meeting)),
@@ -73,6 +73,26 @@ function rig(order: 'capture-first' | 'transcription-first', t: { transcriber?: 
 }
 
 describe('live transcription of a meeting', () => {
+  it('finishes eligible pre-mute words but fences a delayed Whisper partial after unmute', async () => {
+    const parts: TranscriptPartial[] = []
+    let finishRead!: (lines: Line[]) => void
+    const r = rig('transcription-first', { sendPartial: p => parts.push(p), transcriber: (chunk, _hear, opts) =>
+      opts?.partial ? new Promise(resolve => { finishRead = resolve }) : says(chunk) })
+    const m = meeting()
+    r.begin(m)
+    const out = r.procs[0].proc.stdout as PassThrough
+    try {
+      out.write(encodeFrame({ t: 'pcm', track: 'me', ms: 0, samples: tone(0.9) }))
+      expect(finishRead).toBeTypeOf('function')
+      setMicMuted(m.id, true); out.write(encodeFrame({ t: 'mic-muted', id: 1, muted: true, ms: 900 }))
+      setMicMuted(m.id, false); out.write(encodeFrame({ t: 'mic-muted', id: 2, muted: false, ms: 950 }))
+      finishRead([{ track: 'me', startMs: 0, endMs: 800, text: 'Old partial' }])
+      await tick()
+      expect(parts.every(p => !p.text.includes('Old partial'))).toBe(true)
+    } finally { await r.stop(m) }
+    expect(r.sent).toEqual(['me:me said it at 0'])
+  })
+
   it('only clears pending audio after transcription saves, and retains older unfinished sessions', async () => {
     const r = rig('transcription-first'), m = meeting()
     r.begin(m)
@@ -329,6 +349,23 @@ describe('the spoken language picked', () => {
     return { m, procs, parts, speak, stop: async () => { stops.forEach((f) => f(m)); procs[0].exit(0); await recordingFinished(m.id); await settleTranscription(2000) } }
   }
 
+  it('clears the live mic partial and ignores delayed Apple words across a short mute', async () => {
+    const r = await speechRig(() => 'en')
+    const out = r.procs[0].proc.stdout as PassThrough
+    const say = (track: 'me' | 'them', startMs: number, text: string) =>
+      out.write(encodeFrame({ t: 'speech', track, final: false, startMs, endMs: startMs + 200, text }))
+    try {
+      say('me', 100, 'Before'); say('them', 200, 'Remote')
+      setMicMuted(r.m.id, true); out.write(encodeFrame({ t: 'mic-muted', id: 1, muted: true, ms: 350 }))
+      say('me', 100, 'Late mic reading'); say('them', 350, 'Remote continues')
+      expect(r.parts.filter(p => p.track === 'me').map(p => p.text)).toEqual(['Before', ''])
+      setMicMuted(r.m.id, false); out.write(encodeFrame({ t: 'mic-muted', id: 2, muted: false, ms: 400 }))
+      say('me', 100, 'Old interval'); say('me', 450, 'After')
+      expect(r.parts.filter(p => p.track === 'me').at(-1)?.text).toBe('After')
+      expect(r.parts.filter(p => p.track === 'them').at(-1)?.text).toBe('Remote continues')
+    } finally { await r.stop() }
+  })
+
   it("English only: Apple's speech listens in English, in the interface's region, whatever the last meeting was in", async () => {
     const r = await speechRig(() => 'en')
     expect(r.procs[0].locale).toBe('en-GB')
@@ -469,7 +506,7 @@ describe('live silence for call detection', () => {
     const r = rig('transcription-first', { transcriber: () => [] }), m = meeting()
     r.begin(m)
     const output = r.procs[0].proc.stdout as PassThrough
-    const frame = (voice?: 'me' | 'them', tracks = ['me', 'them'] as const) => {
+    const frame = (voice?: 'me' | 'them', tracks: readonly ('me' | 'them')[] = ['me', 'them']) => {
       now += 100; ms += 100
       for (const track of tracks) output.write(encodeFrame({ t: 'pcm', track, ms, samples: voice === track ? tone(0.1) : new Float32Array(1600) }))
     }
@@ -497,6 +534,12 @@ describe('live silence for call detection', () => {
       for (let i = 0; i < 31; i++) { now += 100; ms += 100; output.write(encodeFrame({ t: 'pcm', track: 'me', ms, samples: new Float32Array(1600) })) }
       expect(liveSilentMs(m.id)).toBe(0)
       frame(); expect(liveSilentMs(m.id)).toBe(0)
+      setMicMuted(m.id, true)
+      output.write(encodeFrame({ t: 'mic-muted', id: 1, muted: true, ms }))
+      expect(liveSilentMs(m.id)).toBe(0)
+      for (let i = 0; i < 610; i++) frame(undefined, ['them'])
+      expect(liveSilentMs(m.id)).toBeGreaterThanOrEqual(60_000)
+      frame('them', ['them']); expect(liveSilentMs(m.id)).toBe(0)
     } finally { time.mockRestore(); await r.stop(m) }
     expect(liveSilentMs(m.id)).toBe(0)
   })

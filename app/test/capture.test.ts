@@ -4,8 +4,9 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Capture, captureArgs, foldersToJoin, hookCapture, recordingBusy, recordingFinished, recordingPaused, recordingSettled, rejoinInterrupted, setRecordingPaused, settleRecording, encodeFrame, FrameParser, type CaptureOpts, type CaptureProc, type Frame } from '../src/main/capture'
-import { fakeAudioDuration, fakeCaptureProc, joinFakeParts } from '../src/main/fakeCapture'
+import { Capture, captureArgs, foldersToJoin, hookCapture, recordingBusy, recordingFinished, recordingPaused, recordingSettled, rejoinInterrupted, onRecordingEvent, setMicMuted, setRecordingPaused, settleRecording, encodeFrame, FrameParser, type CaptureOpts, type CaptureProc, type Frame } from '../src/main/capture'
+import { fakeAudioDuration, fakeCaptureProc, joinFakeParts, readWav, wavOf } from '../src/main/fakeCapture'
+import { feedRecording, wavDecode } from '../src/main/asr/backfill'
 import { fakeMicList, setFakeMics } from '../src/main/fake'
 import { openStore } from '../src/main/store'
 
@@ -138,6 +139,50 @@ describe('fake capture', () => {
     expect(frames.length).toBeGreaterThan(before)
     expect(frames[before]).toBeGreaterThan(at + 200)
     await c.stop()
+  })
+
+  it('saves silence at the confirmed boundaries, with continuous call PCM and speech through Stop', async () => {
+    dir = mkdtempSync(join(tmpdir(), 'yogurt-cap-muted-'))
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(0)
+    try {
+      const c = new Capture(fakeCaptureProc(dir, 0, { speech: true }))
+      const acks: number[] = [], mine: Array<[number, number]> = [], theirs: number[] = [], speech: string[] = []
+      c.on('mic-muted', ack => acks.push(ack.ms))
+      c.on('pcm', (track, ms, samples) => {
+        if (track === 'me') mine.push([ms, ms + samples.length / 16])
+        else theirs.push(samples.length)
+      })
+      c.on('speech', f => { if (f.final) speech.push(f.track) })
+      clock.mockReturnValue(2000); c.setMicMuted(true, 1)
+      clock.mockReturnValue(2050); c.setMic('BuiltInMicrophoneDevice'); c.setMicMuted(false, 2)
+      clock.mockReturnValue(3000); c.setMicMuted(true, 3)
+      clock.mockReturnValue(9500); await c.stop()
+      expect(acks).toEqual([2000, 2050, 3000])
+      expect(mine.every(([a,b]) => b <= 2000 || (a >= 2050 && b <= 3000))).toBe(true)
+      expect(theirs.reduce((a,b) => a + b, 0)).toBe(9500 * 16)
+      expect(speech).toEqual(['them'])
+      // Re-transcription decodes the saved tracks in 100 ms pieces, including the 50 ms cut inside one piece.
+      const heard = { me: [] as number[], them: [] as number[] }
+      const duration = await feedRecording({
+        tracks: { me: wavDecode(join(dir, 'me.wav')), them: wavDecode(join(dir, 'them.wav')) },
+        backlogMs: () => 0,
+        push: (track, ms, samples) => {
+          if (samples.some(x => x !== 0)) heard[track].push(ms)
+          if (track === 'me' && ms === 2000) expect(samples.subarray(0, 50 * 16).every(x => x === 0)).toBe(true)
+        },
+      })
+      expect(duration).toBe(9500)
+      expect(heard.me.some(ms => ms >= 3000)).toBe(false)
+      expect(heard.them.some(ms => ms >= 3000)).toBe(true)
+      for (const track of ['me', 'them']) {
+        const original = readWav(join(__dirname, '../e2e/fixtures', 'meeting-' + track + '.wav')).slice(0, 9500 * 16)
+        if (track === 'me') {
+          expect(original.subarray(2000 * 16, 2050 * 16).some(x => x !== 0)).toBe(true)
+          original.fill(0, 2000 * 16, 2050 * 16); original.fill(0, 3000 * 16)
+        }
+        expect(readFileSync(join(dir, track + '.wav')).equals(wavOf([original]))).toBe(true)
+      }
+    } finally { clock.mockRestore() }
   })
 
   it('append parts preserve the complete original PCM prefix and carry forward timeline after reopening', async () => {
@@ -299,6 +344,80 @@ describe('restart after a crash', () => {
     })
     return { starts, procs, joined, stopped, begin: (id: string) => startFn({ id }), stop: (id: string) => stopFn({ id }) }
   }
+
+  it('serializes both controls, checks replies, and starts each recording with its mic on', async () => {
+    const r = rig(), states: string[] = []
+    const off = onRecordingEvent(e => { if (e.t === 'mic-state') states.push(e.state) })
+    try {
+      r.begin('meeting')
+      const reply = (id: number, muted: boolean) => r.procs[0].out.write(encodeFrame({ t: 'mic-muted', id, ms: 120, muted }))
+      expect(setMicMuted('other', true)).toBe(false)
+      expect(setMicMuted('meeting', true)).toBe(true)
+      expect(setMicMuted('meeting', true)).toBe(true)
+      expect(setMicMuted('meeting', false)).toBe(false)
+      reply(9, true)
+      expect(states).toEqual(['muting'])
+      reply(1, true)
+      expect(setRecordingPaused('meeting', true)).toBe(true)
+      expect(setMicMuted('meeting', false)).toBe(false)
+      expect(setRecordingPaused('meeting', false)).toBe(true)
+      setMicMuted('meeting', false); reply(2, true)
+      setMicMuted('meeting', false); reply(3, false)
+      expect(states).toEqual(['muting', 'off', 'unmuting', 'still-off', 'unmuting', 'on'])
+      expect(r.procs[0].commands).toEqual(['mute 1', 'pause', 'resume', 'unmute 2', 'unmute 3'])
+      setMicMuted('meeting', true); reply(4, true)
+      setMicMuted('meeting', false)
+      r.stop('meeting'); reply(5, false); r.procs[0].exit(0)
+      await recordingFinished('meeting')
+      expect(states.at(-1)).toBe('unmuting')
+      r.begin('meeting')
+      expect(r.starts[1].opts).toBeUndefined()
+      expect(setMicMuted('meeting', false)).toBe(true)
+      expect(r.procs[1].commands).toEqual([])
+      r.stop('meeting'); r.procs[1].exit(0)
+      await recordingFinished('meeting')
+    } finally { off() }
+  })
+
+  it.each(['muting', 'off', 'unmuting'])('restarts from silence after the helper dies while %s', async (state) => {
+    const r = rig(), states: string[] = []
+    const off = onRecordingEvent(e => { if (e.t === 'mic-state') states.push(e.state) })
+    try {
+      r.begin('meeting'); setMicMuted('meeting', true)
+      const ack = (proc: number, id: number, muted: boolean) => r.procs[proc].out.write(encodeFrame({ t: 'mic-muted', id, ms: 200, muted }))
+      if (state !== 'muting') ack(0, 1, true)
+      if (state === 'unmuting') setMicMuted('meeting', false)
+      r.procs[0].exit(null, 'SIGKILL')
+      expect(captureArgs('folder', r.starts[1].opts)).toContain('--mic-muted')
+      const id = state === 'unmuting' ? 3 : 2
+      expect(r.procs[1].commands).toEqual(['mute ' + id])
+      ack(0, id, true)
+      expect(states.at(-1)).toBe('muting')
+      ack(1, id, true)
+      expect(states.at(-1)).toBe('off')
+      r.stop('meeting'); r.procs[1].exit(0)
+      await recordingFinished('meeting')
+    } finally { off() }
+  })
+
+  it('stops on a missing acknowledgment and waits for exit before ending the meeting', async () => {
+    vi.useFakeTimers()
+    const r = rig(), states: string[] = []
+    const off = onRecordingEvent(e => { if (e.t === 'mic-state') states.push(e.state) })
+    try {
+      r.begin('meeting'); setMicMuted('meeting', true)
+      vi.advanceTimersByTime(5000)
+      expect(states).toEqual(['muting', 'unconfirmed'])
+      expect(r.procs[0].commands).toEqual(['mute 1', 'stop'])
+      r.procs[0].out.write(encodeFrame({ t: 'mic-muted', id: 1, ms: 12, muted: true }))
+      expect(states.at(-1)).toBe('unconfirmed')
+      expect(r.stopped).toEqual([])
+      vi.advanceTimersByTime(10000)
+      expect(r.stopped).toEqual(['meeting'])
+      expect(r.starts).toHaveLength(1)
+      await recordingFinished('meeting')
+    } finally { off(); vi.useRealTimers() }
+  })
 
   it('pause targets only the active session, is idempotent, and survives a helper restart', async () => {
     const r = rig()

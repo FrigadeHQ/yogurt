@@ -8,6 +8,7 @@ import { fakeAudioDuration, fakeCaptureProc, joinFakeParts } from './fakeCapture
 import type { RecordingStart } from './meeting'
 import { createCrashPolicy } from './crashPolicy'
 import { createLevelLog } from './levelLog'
+import { micIsOff, type MicState } from '../shared/types'
 import { helperFile } from '../shared/platform'
 
 /**
@@ -31,7 +32,9 @@ export type Level = { me: number; them: number }
 export type SpeechFrame = { t: 'speech'; track: Track; final: boolean; startMs: number; endMs: number; text: string
   /** each word's time (a volatile reading is one run for all its words) */
   words?: Array<{ text: string; startMs: number; endMs: number }> }
+type MicAck = { t: 'mic-muted'; id: number; muted: boolean; ms: number }
 export type Frame =
+  | MicAck
   | { t: 'pcm'; track: Track; ms: number; samples: Float32Array }
   | ({ t: 'level' } & Level)
   | { t: 'warn'; code: WarnCode }
@@ -88,6 +91,8 @@ function readLine(line: string): Header | null {
   try { m = JSON.parse(line) } catch { console.error('capture: unreadable line', line.slice(0, 200)); return null }
   if (m.t === 'pcm' && (m.track === 'me' || m.track === 'them') && Number.isInteger(m.n) && (m.n as number) >= 0)
     return { t: 'pcm', track: m.track, ms: Number(m.ms), n: m.n as number }
+  if (m.t === 'mic-muted' && typeof m.id === 'number' && Number.isSafeInteger(m.id) && m.id > 0 && typeof m.muted === 'boolean' && typeof m.ms === 'number' && Number.isFinite(m.ms) && m.ms >= 0)
+    return { t: 'mic-muted', id: m.id, muted: m.muted, ms: m.ms }
   if (m.t === 'level') return { t: 'level', me: Number(m.me) || 0, them: Number(m.them) || 0 }
   if (m.t === 'warn' && typeof m.code === 'string' && WARN_CODES.includes(m.code)) return { t: 'warn', code: m.code as WarnCode }
   if (m.t === 'speech-off') return { t: 'speech-off' }
@@ -108,6 +113,8 @@ export interface CaptureProc {
 }
 
 export interface Capture {
+  on(e: 'mic-muted', fn: (ack: MicAck) => void): this
+  on(e: 'mic-boundary', fn: (ack: MicAck) => void): this
   on(e: 'pcm', fn: (track: Track, ms: number, samples: Float32Array) => void): this
   on(e: 'level', fn: (lv: Level) => void): this
   on(e: 'warn', fn: (code: WarnCode) => void): this
@@ -136,6 +143,7 @@ export class Capture extends EventEmitter {
         else if (f.t === 'speech') this.emit('speech', f)
         else if (f.t === 'speech-off') this.emit('speech-off')
         else if (f.t === 'speech-ready') this.emit('speech-ready', f.tracks)
+        else if (f.t === 'mic-muted') { if (!this.exited) this.emit('mic-muted', f) }
         else if (f.t === 'mic') this.emit('mic', { uid: f.uid, name: f.name })
         else this.emit('warn', f.code)
       }
@@ -159,6 +167,7 @@ export class Capture extends EventEmitter {
     if (this.exited || this.proc.stdin.destroyed || !this.proc.stdin.writable) return false
     try { this.proc.stdin.write(cmd + '\n'); return true } catch { return false }
   }
+  setMicMuted(muted: boolean, request: number) { return !this.stopping && this.send((muted ? 'mute ' : 'unmute ') + request) }
   pause() { return !this.stopping && this.send('pause') }
   resume() { return !this.stopping && this.send('resume') }
   /** records from this mic from now on (null: Auto), without stopping */
@@ -193,13 +202,13 @@ function speechWords(x: unknown): { words?: SpeechFrame['words'] } {
 }
 
 /** A restart is the next part of the same meeting's files, starting at meeting time startMs; speech: Apple's live words in this locale; mic: the chosen mic's UID (none: Auto) */
-export type CaptureOpts = { part?: number; startMs?: number; speech?: string | null; mic?: string | null }
+export type CaptureOpts = { part?: number; startMs?: number; speech?: string | null; mic?: string | null; micMuted?: boolean }
 export const captureArgs = (dir: string, o?: CaptureOpts): string[] =>
-  ['record', '--dir', dir, ...(o?.part ? ['--part', String(o.part), '--start-ms', String(Math.round(o.startMs ?? 0))] : []), ...(o?.speech ? ['--speech', o.speech] : []), ...(o?.mic ? ['--mic', o.mic] : [])]
+  ['record', '--dir', dir, ...(o?.part ? ['--part', String(o.part), '--start-ms', String(Math.round(o.startMs ?? 0))] : []), ...(o?.speech ? ['--speech', o.speech] : []), ...(o?.mic ? ['--mic', o.mic] : []), ...(o?.micMuted ? ['--mic-muted'] : [])]
 
 export function startCapture(meetingDir: string, o?: CaptureOpts): Capture {
   mkdirSync(meetingDir, { recursive: true })
-  if (isFake()) return new Capture(fakeCaptureProc(meetingDir, o?.startMs ?? 0, { speech: !!o?.speech, part: o?.part, mic: o?.mic }), { startMs: o?.startMs })
+  if (isFake()) return new Capture(fakeCaptureProc(meetingDir, o?.startMs ?? 0, { speech: !!o?.speech, part: o?.part, mic: o?.mic, micMuted: o?.micMuted }), { startMs: o?.startMs })
   // straight from Yogurt, never through a shell: Windows leaves the helper's parent's process tree (Yogurt) out of the call audio
   const child = spawn(audioHelperPath(), captureArgs(meetingDir, o), { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true })
   child.stderr.on('data', (d: Buffer) => console.error('yogurt-audio:', d.toString().trim()))
@@ -246,6 +255,7 @@ export type RecordingEvent =
   | { t: 'warn'; code: WarnCode | TranscribeWarn }
   | { t: 'hiccup' }
   | { t: 'gave-up' }
+  | { t: 'mic-state'; meetingId: string; state: MicState }
   | { t: 'paused'; meetingId: string; paused: boolean; at: number }
 const recordingListeners: Array<(e: RecordingEvent) => void> = []
 export const onRecordingEvent = (fn: (e: RecordingEvent) => void) => { recordingListeners.push(fn); return () => { const i = recordingListeners.indexOf(fn); if (i >= 0) recordingListeners.splice(i, 1) } }
@@ -258,7 +268,10 @@ export const onCaptureStart = (fn: (c: Capture, meetingId: string) => void) => {
  * The meeting being recorded: its folder, how many restarts it has had (each restart is a part), and its "files are
  * final" promise, made when it starts so a hook that runs before ours on Stop still waits for the recorder
  */
-let session: { id: string; dir: string; parts: number; paused: boolean; startedAt: number; restart?: () => void; join: (dir: string) => Promise<void>; settled: Promise<void>; settle: () => void } | null = null
+let session: { id: string; dir: string; parts: number; paused: boolean; startedAt: number; micState: MicState; requestMic(muted: boolean): boolean; micTimer?: NodeJS.Timeout; restart?: () => void; join: (dir: string) => Promise<void>; settled: Promise<void>; settle: () => void } | null = null
+export function setMicMuted(id: string, muted: boolean): boolean {
+  return !!session && session.id === id && !session.paused && session.requestMic(muted)
+}
 export const recordingPaused = (id: string): boolean => session?.id === id && session.paused
 /** Pause the current helper without ending its files, transcript session or meeting. */
 export function setRecordingPaused(id: string, paused: boolean): boolean {
@@ -284,6 +297,7 @@ function finish(): Promise<void> {
   const s = session, c = active
   active = null; session = null
   if (!s) return Promise.resolve()
+  clearTimeout(s.micTimer)
   inFlight.add(s.settled)
   void (async () => {
     try { await c?.stop(); if (s.parts > 0) await s.join(s.dir) } catch (e) { console.error('finishing the recording failed', e) }
@@ -358,7 +372,30 @@ export function hookCapture(p: {
     const dir = p.dirOf(m.id)
     let settle!: () => void
     const settled: Promise<void> = new Promise<void>((r) => { settle = r }).finally(() => { inFlight.delete(settled); if (finished.get(m.id) === settled) finished.delete(m.id) })
-    const s: NonNullable<typeof session> = session = { id: m.id, dir, parts: m.resume?.part ?? 0, paused: false, startedAt: Date.now() - (m.resume?.startMs ?? 0), join: p.join ?? joinParts, settled, settle }
+    let request = 0
+    const micState = (state: MicState) => {
+      s.micState = state
+      tell({ t: 'mic-state', meetingId: m.id, state })
+    }
+    const unconfirmed = (c: Capture) => {
+      if (active !== c || session !== s) return
+      clearTimeout(s.micTimer)
+      micState('unconfirmed')
+      // Exit (including the kill fallback) is the boundary when a helper cannot confirm.
+      void c.stop()
+    }
+    const requestMic = (muted: boolean, restore = false): boolean => {
+      const c = active
+      if (!c || session !== s || s.micState === 'unconfirmed') return false
+      if (s.micTimer) return s.micState === (muted ? 'muting' : 'unmuting')
+      if (!restore && muted === micIsOff(s.micState)) return true
+      const id = ++request
+      micState(muted ? 'muting' : 'unmuting')
+      s.micTimer = setTimeout(() => unconfirmed(c), 5000)
+      if (!c.setMicMuted(muted, id)) unconfirmed(c)
+      return true
+    }
+    const s: NonNullable<typeof session> = session = { id: m.id, dir, parts: m.resume?.part ?? 0, paused: false, micState: 'on', requestMic, startedAt: Date.now() - (m.resume?.startMs ?? 0), join: p.join ?? joinParts, settled, settle }
     finished.set(m.id, settled)
     const speech = p.speech?.(m.id) ?? null
     const micOpt = () => { const mic = p.mic?.() ?? null; return mic ? { mic } : {} }
@@ -368,7 +405,8 @@ export function hookCapture(p: {
         const prev = active!
         const restart = () => {
           const startMs = Math.max(prev.endMs, Date.now() - s.startedAt)
-          attach(begin(dir, { part: s.parts + 1, startMs, ...(speech ? { speech } : {}), ...micOpt() })); s.parts++
+          const restoreOff = s.micState !== 'on'
+          attach(begin(dir, { ...(restoreOff ? { micMuted: true } : {}), part: s.parts + 1, startMs, ...(speech ? { speech } : {}), ...micOpt() }), restoreOff); s.parts++
         }
         if (s.paused) s.restart = restart
         else restart()
@@ -378,8 +416,18 @@ export function hookCapture(p: {
     })
     // how loud each side got, once a minute in main.log (levelLog.ts)
     const levels = createLevelLog()
-    const attach = (c: Capture) => {
+    const attach = (c: Capture, restoreOff = false) => {
       active = c
+      c.on('mic-muted', ack => {
+        if (active !== c || session !== s || !s.micTimer || ack.id !== request) return
+        const state = s.micState
+        if (state !== 'muting' && state !== 'unmuting') return
+        clearTimeout(s.micTimer)
+        delete s.micTimer
+        if (state === 'muting' && !ack.muted) { unconfirmed(c); return }
+        c.emit('mic-boundary', ack)
+        micState(ack.muted ? state === 'unmuting' ? 'still-off' : 'off' : 'on')
+      })
       c.on('warn', (code) => { console.warn('capture warning', code); tell({ t: 'warn', code }) })
       c.on('level', (lv) => {
         tell({ t: 'level', me: s.paused ? 0 : lv.me, them: s.paused ? 0 : lv.them })
@@ -389,11 +437,16 @@ export function hookCapture(p: {
       c.on('ended', (e) => {
         // a capture that was stopped on purpose or replaced is not ours to judge
         if (active !== c) return
+        clearTimeout(s.micTimer)
+        delete s.micTimer
+        if (s.micState === 'unconfirmed') { tell({ t: 'gave-up' }); void finish(); p.stopMeeting(m.id); return }
+        if (s.paused && s.micState === 'unmuting') micState('off')
         if (!e.crashed) { active = null; session = null; s.settle(); return }
         console.error('capture ended unexpectedly', m.id)
         policy.ended(e)
       })
       for (const fn of [...captureListeners]) { try { fn(c, m.id) } catch (err) { console.error('capture listener failed', err) } }
+      if (restoreOff) requestMic(true, true)
     }
     const base = m.resume ? { part: m.resume.part, startMs: m.resume.startMs, ...(speech ? { speech } : {}) } : speech ? { speech } : undefined
     const mic = micOpt()

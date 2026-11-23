@@ -142,6 +142,8 @@ export function chunker(onChunk: (c: Chunk) => void, onPartial?: (c: Chunk) => v
     /** ms is meeting time of samples[0]; frames may be any size */
     push(track: Track, ms: number, samples: Float32Array) {
       const st = tracks[track]
+      // A recorder boundary ends only this input, even for a mute shorter than GAP_MS.
+      if (!samples.length) { flushTrack(track); return }
       if (st.next !== null && Math.abs(ms - st.next) > GAP_MS) flushTrack(track)
       if (st.next === null) { st.winStart = ms; st.rest = new Float32Array(0) }
       st.next = ms + samples.length / 16

@@ -31,7 +31,7 @@ type Session = { complete?: () => boolean; pipeline: Pipeline | null; priorLines
   /** Apple's speech listens in this locale for the meeting (null: whisper only); off once whisper hears another language */
   speech?: string | null
   /** Live input only: saved-file transcription must never influence call detection. */
-  live?: { quietSince: number; frames: Partial<Record<Track, number>> } }
+  live?: { quietSince: number; micFrom?: number; frames: Partial<Record<Track, number>> } }
 
 /**
  * The saved transcript comes from whisper; Apple's words are the live view. Languages listed here are the ones where Apple's
@@ -98,7 +98,8 @@ const sessions = new Map<string, Session>()
 export function liveSilentMs(id: string, now = Date.now()): number {
   const s = sessions.get(id), live = s?.live
   if (!s?.pipeline || !live || recordingPaused(id)) return 0
-  if (['me', 'them'].some(track => now - (live.frames[track as Track] ?? -Infinity) > 3000)) return 0
+  const tracks: Track[] = live.micFrom === Infinity ? ['them'] : ['me', 'them']
+  if (tracks.some(track => now - (live.frames[track] ?? -Infinity) > 3000)) return 0
   return Math.max(0, now - live.quietSince)
 }
 
@@ -240,6 +241,13 @@ export function hookTranscription(p: {
         setTimeout(() => warnOnce('no-speech-model'), NO_MODEL_NOTE_DELAY_MS)
       }
     }
+    if (transcribe && !later) {
+      const read = transcribe
+      transcribe = async (chunk, opts) => {
+        const lines = await read(chunk, opts)
+        return opts?.partial && chunk.track === 'me' && chunk.startMs < (s.live?.micFrom ?? 0) ? [] : lines
+      }
+    }
     if (transcribe && options) {
       const read = transcribe
       transcribe = async (chunk, opts) => {
@@ -291,11 +299,20 @@ export function hookTranscription(p: {
   // each capture of a meeting (a restarted recorder is a new one) feeds that meeting's session
   const offCapture = onCaptureStart((c, meetingId) => {
     const s = open(meetingId)
-    s.live = { quietSince: Date.now(), frames: {} }
+    const live: NonNullable<Session['live']> = { quietSince: Date.now(), micFrom: s.live?.micFrom, frames: {} }
+    s.live = live
+    let appleMic = !!s.speech
+    c.on('mic-boundary', ({ muted, ms }) => {
+      if (s.live !== live) return
+      live.micFrom = muted ? Infinity : ms
+      live.quietSince = Date.now()
+      s.pipeline?.push('me', ms, new Float32Array(0))
+      s.pipeline?.setQuickReads(!muted && !(s.speech && appleMic), 'me')
+    })
     c.on('pcm', (track, ms, samples) => {
-      if (!samples.length) return
+      if (s.live !== live || !samples.length || (track === 'me' && ms < (live.micFrom ?? 0))) return
       s.pipeline?.push(track, ms, samples)
-      const now = Date.now(), live = s.live!
+      const now = Date.now()
       // A gap, restart or pause must earn a new quiet minute, not count missing audio as silence.
       if (now - (live.frames[track] ?? -Infinity) > 3000 || recordingPaused(meetingId) || s.pipeline?.talking('me') || s.pipeline?.talking('them')) live.quietSince = now
       live.frames[track] = now
@@ -303,16 +320,23 @@ export function hookTranscription(p: {
     // Apple's speech that never speaks up: the helper says so, or someone has talked for a while with no word from it
     c.on('speech-off', () => speechOff(s, 'the helper could not run it'))
     // Apple listening on one track only: whisper's own quick readings cover the other
-    c.on('speech-ready', (tracks) => { if (!s.speech || !s.pipeline) return; for (const t of ['me', 'them'] as const) if (!tracks.includes(t)) s.pipeline.setQuickReads(true, t) })
+    c.on('speech-ready', (tracks) => {
+      if (s.live !== live || !s.speech || !s.pipeline) return
+      const heardMic = tracks.includes('me')
+      if (!heardMic || heardMic !== appleMic) s.pipeline.setQuickReads(!heardMic && live.micFrom !== Infinity, 'me')
+      appleMic = heardMic
+      if (!tracks.includes('them')) s.pipeline.setQuickReads(true, 'them')
+    })
     let heardSpeech = false, talkedPolls = 0
     const watch = setInterval(() => {
       if (!s.speech || heardSpeech || !s.pipeline) { clearInterval(watch); return }
       if (s.pipeline.talking('me') || s.pipeline.talking('them')) talkedPolls++
       if (talkedPolls >= SPEECH_WATCH_POLLS) { clearInterval(watch); speechOff(s, 'no words came while people talked') }
     }, 1000)
-    c.on('ended', () => { clearInterval(watch); if (s.live) s.live.frames = {} })
+    c.on('ended', () => { clearInterval(watch); live.frames = {} })
     // Apple's words: the live view (whisper's line replaces them), or the saved line too where Apple measured as good
     c.on('speech', (f) => {
+      if (s.live !== live || (f.track === 'me' && f.startMs < (live.micFrom ?? 0))) return
       heardSpeech = true
       if (s.live && f.text.trim()) s.live.quietSince = Date.now()
       if (!s.speech || !s.pipeline) return
