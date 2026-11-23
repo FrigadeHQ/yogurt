@@ -2,7 +2,7 @@ import { AboutYogurt } from '../components/AboutYogurt'
 import { retryToast, toasts } from '../components/TrashToast'
 import { LoadingContent } from '../components/LoadingContent'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Check, ChevronDown, Copy, Download, ExternalLink, Globe, Lock, Upload, FileText } from '../components/Icons'
+import { Check, ChevronDown, Copy, Download, ExternalLink, Globe, Lock, Upload, FileText, X } from '../components/Icons'
 import type { Access, AppVisibility, McpStatus, PermissionKind, PermissionStatus, SetupState, Theme, UpdateStatus } from '../../../shared/types'
 import { notesDownloadText, notesUpgradeSize } from '../notesSetup'
 import { permissionCopy } from '../permissionCopy'
@@ -478,10 +478,23 @@ function Backup({ onImported }: { onImported(): void }) {
   )
 }
 
-/** AI apps on this Mac using meetings through MCP: reading off until turned on, changes off until turned on too, with what that means */
+/** a copy button whose label says Copied for a moment after a successful copy */
+function CopyButton({ text, testId, label }: { text: string | (() => Promise<string | null>); testId: string; label?: string }) {
+  const [copied, setCopied] = useState(false)
+  const copy = () => void Promise.resolve(typeof text === 'function' ? text() : text).then((v) => { if (v) void navigator.clipboard.writeText(v).then(() => setCopied(true)) })
+  const idle = label ?? t('Copy')
+  return (
+    <button data-testid={testId} onClick={copy} className="workspace-button shrink-0">
+      <Swap show={copied ? 'done' : 'copy'} options={{ copy: <Copy size={14} className="text-muted" />, done: <Check size={14} className="text-muted" /> }} /><SwapText text={copied ? t('Copied') : idle} widest={t('Copied').length > idle.length ? t('Copied') : idle} />
+    </button>
+  )
+}
+
+/** AI apps on this Mac using meetings through MCP: reading off until turned on, changes off until turned on too, with what that means; each app added here gets its own key */
 function AiApps() {
   const [status, setStatus] = useState<McpStatus>()
-  const [copied, setCopied] = useState(false)
+  const [name, setName] = useState('')
+  const [added, setAdded] = useState<{ name: string; setup: string }>()
   useEffect(() => {
     void window.yogurt.mcp.status().then(setStatus)
     return window.yogurt.mcp.onClients((clients) => setStatus((s) => s && { ...s, clients }))
@@ -489,8 +502,14 @@ function AiApps() {
   const change = useSettingSave('ai-apps-retry', useCallback(() => { void window.yogurt.mcp.status().then(setStatus) }, []))
   const toggle = () => status && change.save(async () => { setStatus(await window.yogurt.mcp.set(!status.enabled)) })
   const toggleChanges = () => status && change.save(async () => { setStatus(await window.yogurt.mcp.setChanges(!status.changes)) })
-  const copy = () => { if (status) void navigator.clipboard.writeText(status.command).then(() => setCopied(true)) }
+  const toggleKeys = () => status && change.save(async () => { setStatus(await window.yogurt.mcp.requireKey(!status.requiresKey)) })
+  const add = () => {
+    const label = name.trim()
+    if (label) void change.save(async () => { const r = await window.yogurt.mcp.add(label); setStatus(r.status); if (r.setup) { setAdded({ name: label, setup: r.setup }); setName('') } })
+  }
+  const remove = (a: { id: string; name: string }) => change.save(async () => { if (added?.name === a.name) setAdded(undefined); setStatus(await window.yogurt.mcp.remove(a.id)) })
   const on = !!status?.enabled
+  const keys = !!status?.requiresKey
   return (
     <>
       <h2 className="settings-section-heading">{t('AI apps')}</h2>
@@ -516,22 +535,52 @@ function AiApps() {
             </button>
           </div>
         }
-        {on && status &&
+        {on && status && <>
           <div className="settings-row">
             <div className="settings-row-copy">
-              <p className="settings-description">{t('Copy this command and add it as a local MCP server in your AI app.')}</p>
+              <p className="settings-label">{t('Only apps added here')}</p>
+              <p className="settings-description">{osWords({ mac: t('Each app gets its own key, and other apps on this Mac can’t read anything.'), other: t('Each app gets its own key, and other apps on this computer can’t read anything.') })}</p>
+            </div>
+            <button data-testid="ai-apps-keys-toggle" disabled={change.busy} role="switch" aria-checked={keys} aria-label={t('Only apps added here')} onClick={toggleKeys} className="settings-toggle">
+              <span className="settings-toggle-knob" />
+            </button>
+          </div>
+          <div className="settings-row">
+            <div className="settings-row-copy">
+              <p className="settings-description">{keys ? t('Add each app here, then paste its setup into the app as a local MCP server.') : t('Copy this command and add it as a local MCP server in your AI app.')}</p>
               <div className="mt-3 flex min-w-0 items-center gap-2 rounded-md border border-line bg-bg p-1.5">
                 <input data-testid="ai-apps-command" aria-label={t('MCP command')} dir="ltr" readOnly value={status.command} className="min-w-0 flex-1 bg-transparent px-2 font-mono text-[12px] text-muted" />
-                <button data-testid="ai-apps-copy" onClick={copy} className="workspace-button shrink-0">
-                  <Swap show={copied ? 'done' : 'copy'} options={{ copy: <Copy size={14} className="text-muted" />, done: <Check size={14} className="text-muted" /> }} /><SwapText text={copied ? t('Copied') : t('Copy')} widest={t('Copied')} />
-                </button>
+                <CopyButton testId="ai-apps-copy" text={status.command} />
               </div>
+              {keys && <>
+                <ul data-testid="ai-apps-list" aria-label={t('Only apps added here')} className="mt-3 flex flex-col gap-1.5">
+                  {status.apps.length === 0 && <li data-testid="ai-apps-empty" className="text-[12px] leading-[18px] text-muted">{t('No apps added yet.')}</li>}
+                  {status.apps.map((a) => (
+                    <li key={a.id} data-testid="ai-apps-app" className="flex min-w-0 items-center gap-2">
+                      <span data-testid="ai-apps-app-name" dir="auto" className="min-w-0 flex-1 truncate text-[13px]">{a.name}</span>
+                      <CopyButton testId="ai-apps-app-setup" label={t('Copy setup')} text={() => window.yogurt.mcp.setup(a.id)} />
+                      <button data-testid="ai-apps-app-remove" aria-label={t('Remove {name}', { name: a.name })} disabled={change.busy} onClick={() => remove(a)} className="workspace-button shrink-0">
+                        <X size={14} aria-hidden="true" className="text-muted" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-3 flex min-w-0 items-center gap-2">
+                  <input data-testid="ai-apps-name" aria-label={t('App name')} placeholder={t('App name')} value={name} maxLength={60} autoComplete="off" spellCheck={false}
+                    onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') add() }} className="settings-name-field min-w-0 flex-1" />
+                  <button data-testid="ai-apps-add" onClick={add} disabled={!name.trim() || change.busy} className="workspace-button shrink-0">{t('Add an app')}</button>
+                </div>
+                {added && <div data-testid="ai-apps-added" className="mt-3 flex min-w-0 items-center gap-2 rounded-md border border-line bg-bg p-1.5">
+                  <p dir="auto" className="min-w-0 flex-1 px-2 text-[12px] leading-[18px] text-muted">{t('Paste this setup into {name}. It holds the app’s key, so keep it private.', { name: added.name })}</p>
+                  <CopyButton testId="ai-apps-added-copy" label={t('Copy setup')} text={added.setup} />
+                </div>}
+              </>}
               {status.clients.length > 0 && <p data-testid="ai-apps-clients" aria-live="polite" className="mt-3 text-[12px] leading-[18px] text-muted">
                 {t('Connected apps · {apps}', { apps: [...new Set(status.clients)].join(', ') })}
               </p>}
             </div>
           </div>
-        }
+        </>}
       </div></LoadingContent>
     </>
   )

@@ -1,6 +1,7 @@
 import { chmodSync, existsSync, unlinkSync } from 'node:fs'
 import { createServer, type Socket } from 'node:net'
 import type { Mcp } from './server'
+import type { AiApp } from './tokens'
 import { t } from '../../shared/i18n'
 
 /** one message is never this big; a client sending more is cut off rather than growing memory */
@@ -9,10 +10,12 @@ const MAX_LINE = 1024 * 1024
 /**
  * The MCP server on a Unix socket in the profile folder (a named pipe on Windows), one JSON message a line (MCP's stdio framing, which the
  * yogurt-mcp helper passes through). Only this Mac's user can open it. clients: the apps connected now, by the
- * name they gave (onClients hears every change, for Settings).
+ * name they were added with in Settings, or the name they gave (onClients hears every change, for Settings).
+ * check: the app a key belongs to; the helper sends the key first, as a yogurt/auth notification.
  */
-export async function serveMcp(path: string, mcp: Mcp, onClients: (names: string[]) => void) {
+export async function serveMcp(path: string, mcp: Mcp, onClients: (names: string[]) => void, check: (token: string) => AiApp | undefined = () => undefined) {
   const names = new Map<Socket, string>()
+  const apps = new Map<Socket, AiApp>()
   const changed = () => { try { onClients([...names.values()]) } catch (e) { console.error('mcp: telling about clients failed', e) } }
   const server = createServer((sock) => {
     let buf = ''
@@ -29,19 +32,25 @@ export async function serveMcp(path: string, mcp: Mcp, onClients: (names: string
         if (!line) continue
         let msg: unknown
         try { msg = JSON.parse(line) } catch { msg = null }
-        const m = msg as { method?: string; params?: { clientInfo?: { name?: unknown } } } | null
+        const m = msg as { method?: string; params?: { clientInfo?: { name?: unknown }; token?: unknown } } | null
+        if (m?.method === 'yogurt/auth') {
+          const app = typeof m.params?.token === 'string' ? check(m.params.token) : undefined
+          if (app) apps.set(sock, app); else apps.delete(sock)
+          if (names.has(sock)) { names.set(sock, app?.name ?? names.get(sock)!); changed() }
+          continue
+        }
         if (m?.method === 'initialize') {
           const name = m.params?.clientInfo?.name
-          names.set(sock, typeof name === 'string' && name.trim() ? name.trim().slice(0, 60) : t('An AI app'))
+          names.set(sock, apps.get(sock)?.name ?? (typeof name === 'string' && name.trim() ? name.trim().slice(0, 60) : t('An AI app')))
           changed()
         }
         chain = chain.then(async () => {
-          const reply = msg === null ? { jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Not JSON' } } : await mcp.handle(msg)
+          const reply = msg === null ? { jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Not JSON' } } : await mcp.handle(msg, apps.get(sock))
           if (reply && !sock.destroyed) sock.write(JSON.stringify(reply) + '\n')
         }).catch((e) => console.error('mcp: answering failed', e))
       }
     })
-    const gone = () => { if (names.delete(sock)) changed() }
+    const gone = () => { apps.delete(sock); if (names.delete(sock)) changed() }
     sock.on('close', gone)
     sock.on('error', gone)
   })
@@ -53,6 +62,12 @@ export async function serveMcp(path: string, mcp: Mcp, onClients: (names: string
   if (!pipe) chmodSync(path, 0o600)
   return {
     clients: () => [...names.values()],
+    /** an app removed in Settings: its open connections end now, and are off the list at once (the reply to the removal reads it before the sockets report closing) */
+    drop: (appId: string) => {
+      let listed = false
+      for (const [s, a] of apps) if (a.id === appId) { apps.delete(s); if (names.delete(s)) listed = true; s.destroy() }
+      if (listed) changed()
+    },
     close: () => new Promise<void>((resolve) => {
       for (const s of names.keys()) s.destroy()
       server.close(() => resolve())

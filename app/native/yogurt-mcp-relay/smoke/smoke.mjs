@@ -123,7 +123,23 @@ if (launches) {
   if (alive(pid)) process.kill(pid)
 }
 
-// 5. Linux: a profile path too long for a Unix socket
+// 5. a key from Settings → AI apps goes to Yogurt first; something that isn't a key is refused before connecting
+{
+  const dir = profile(), server = await startServer(dir)
+  const key = 'yog_' + 'k'.repeat(43)
+  const r = run(dir, { YOGURT_MCP_NO_LAUNCH: '1', YOGURT_MCP_TOKEN: key })
+  r.send(init)
+  check(await until(() => r.lines.length === 1), 'with a key, the first message still gets its answer')
+  const log = readFileSync(join(dir, 'server.log'), 'utf8').split('\n')
+  check(log[0] === 'connected' && log[1] === `auth ${key}`, 'and Yogurt hears the key before anything else')
+  r.p.stdin.end()
+  await exitsWithin(r, 3000)
+  const bad = run(dir, { YOGURT_MCP_NO_LAUNCH: '1', YOGURT_MCP_TOKEN: 'not a key' })
+  check(await exitsWithin(bad, 3000) === 1 && bad.err.startsWith("YOGURT_MCP_TOKEN isn't a Yogurt key."), 'a malformed key: exit 1, saying where to copy it again')
+  server.kill()
+}
+
+// 6. Linux: a profile path too long for a Unix socket
 if (!win) {
   let dir = profile()
   while (join(dir, 'mcp.sock').length < 120) { dir = join(dir, 'a'.repeat(40)); mkdirSync(dir) }

@@ -792,5 +792,14 @@
   "Send feedback": "Надіслати відгук",
   "Help and settings": "Довідка й налаштування",
   "Yogurt menu": "Меню Yogurt",
-  "Restart to update · {version}": "Перезапустити для оновлення · {version}"
+  "Restart to update · {version}": "Перезапустити для оновлення · {version}",
+  "Only apps added here": "Лише програми, додані тут",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "Кожна програма отримує власний ключ, а інші програми на цьому Mac нічого не можуть прочитати.",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "Кожна програма отримує власний ключ, а інші програми на цьому комп’ютері нічого не можуть прочитати.",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "Додайте тут кожну програму, а потім вставте її налаштування в програму як локальний MCP-сервер.",
+  "No apps added yet.": "Програми ще не додано.",
+  "Copy setup": "Скопіювати налаштування",
+  "App name": "Назва програми",
+  "Add an app": "Додати програму",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "Вставте це налаштування в {name}. У ньому ключ програми, тож нікому його не показуйте."
 }

@@ -752,5 +752,14 @@
   "Send feedback": "Geri bildirim gönder",
   "Help and settings": "Yardım ve ayarlar",
   "Yogurt menu": "Yogurt menüsü",
-  "Restart to update · {version}": "Güncellemek için yeniden başlat · {version}"
+  "Restart to update · {version}": "Güncellemek için yeniden başlat · {version}",
+  "Only apps added here": "Yalnızca buraya eklenen uygulamalar",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "Her uygulama kendi anahtarını alır ve bu Mac’teki diğer uygulamalar hiçbir şey okuyamaz.",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "Her uygulama kendi anahtarını alır ve bu bilgisayardaki diğer uygulamalar hiçbir şey okuyamaz.",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "Her uygulamayı buraya ekleyin, ardından kurulumunu uygulamaya yerel bir MCP sunucusu olarak yapıştırın.",
+  "No apps added yet.": "Henüz uygulama eklenmedi.",
+  "Copy setup": "Kurulumu kopyala",
+  "App name": "Uygulama adı",
+  "Add an app": "Uygulama ekle",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "Bu kurulumu {name} uygulamasına yapıştırın. Uygulamanın anahtarını içerir, bu yüzden kimseyle paylaşmayın."
 }

@@ -800,5 +800,14 @@
   "Send feedback": "Wyślij opinię",
   "Help and settings": "Pomoc i ustawienia",
   "Yogurt menu": "Menu Yogurt",
-  "Restart to update · {version}": "Uruchom ponownie, aby zaktualizować · {version}"
+  "Restart to update · {version}": "Uruchom ponownie, aby zaktualizować · {version}",
+  "Only apps added here": "Tylko aplikacje dodane tutaj",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "Każda aplikacja dostaje własny klucz, a inne aplikacje na tym Macu nie mogą niczego odczytać.",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "Każda aplikacja dostaje własny klucz, a inne aplikacje na tym komputerze nie mogą niczego odczytać.",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "Dodaj tutaj każdą aplikację, a potem wklej jej konfigurację do aplikacji jako lokalny serwer MCP.",
+  "No apps added yet.": "Nie dodano jeszcze żadnych aplikacji.",
+  "Copy setup": "Kopiuj konfigurację",
+  "App name": "Nazwa aplikacji",
+  "Add an app": "Dodaj aplikację",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "Wklej tę konfigurację do aplikacji {name}. Zawiera klucz aplikacji, więc nikomu jej nie pokazuj."
 }

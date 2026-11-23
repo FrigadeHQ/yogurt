@@ -228,6 +228,10 @@ const api: YogurtApi = {
     status: () => ipcRenderer.invoke('mcp:status'),
     set: (on) => ipcRenderer.invoke('mcp:set', on),
     setChanges: (on) => ipcRenderer.invoke('mcp:set-changes', on),
+    requireKey: (on) => ipcRenderer.invoke('mcp:require-key', on),
+    add: (name) => ipcRenderer.invoke('mcp:add', name),
+    setup: (id) => ipcRenderer.invoke('mcp:setup', id),
+    remove: (id) => ipcRenderer.invoke('mcp:remove', id),
     onClients: (fn) => { const f = (_e: unknown, c: string[]) => fn(c); ipcRenderer.on('mcp:clients', f); return () => { ipcRenderer.off('mcp:clients', f) } },
   },
   updates: {

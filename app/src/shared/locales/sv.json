@@ -764,5 +764,14 @@
   "Send feedback": "Skicka feedback",
   "Help and settings": "Hjälp och inställningar",
   "Yogurt menu": "Yogurt-menyn",
-  "Restart to update · {version}": "Starta om för att uppdatera · {version}"
+  "Restart to update · {version}": "Starta om för att uppdatera · {version}",
+  "Only apps added here": "Bara appar som lagts till här",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "Varje app får en egen nyckel, och andra appar på den här Macen kan inte läsa något.",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "Varje app får en egen nyckel, och andra appar på den här datorn kan inte läsa något.",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "Lägg till varje app här och klistra sedan in dess inställning i appen som en lokal MCP-server.",
+  "No apps added yet.": "Inga appar har lagts till än.",
+  "Copy setup": "Kopiera inställning",
+  "App name": "Appens namn",
+  "Add an app": "Lägg till en app",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "Klistra in den här inställningen i {name}. Den innehåller appens nyckel, så håll den privat."
 }

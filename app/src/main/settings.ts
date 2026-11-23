@@ -34,6 +34,11 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   aiApps?: boolean
   /** those AI apps may also change meetings, notes and a few settings (never delete for good); off unless turned on */
   aiAppChanges?: boolean
+  /** only AI apps added in Settings (each with its own key) may use the tools; whether they may change things is the switch above, for them too. Written on the first launch that has keys:
+   * off for a profile that already had AI apps on, so the apps it connected keep working; on otherwise (firstKeysSetting) */
+  aiAppsRequireToken?: boolean
+  /** the AI apps added in Settings, each key sealed with the system keychain where there is one (mcp/tokens.ts) */
+  aiAppTokens?: Array<{ id: string; name: string; token: string }>
   /** a recording stops by itself when its call ends; on unless turned off (false: ask first) */
   stopWhenCallEnds?: boolean
   /** a quiet reminder to ask everyone before recording; on unless turned off */
@@ -73,6 +78,13 @@ export const keepsRecording = (s: Settings, endedAt: number | null): boolean =>
   s.keepRecordings !== false || typeof s.recordingsOffAt !== 'number' || !Number.isFinite(s.recordingsOffAt) || endedAt == null || endedAt <= s.recordingsOffAt
 
 export const autoUpdateOn = (s: Settings): boolean => s.autoUpdate !== false
+
+/** AI apps need a key added in Settings: on by default */
+export const requiresAppKeys = (s: Settings): boolean => s.aiAppsRequireToken !== false
+/** Written once, on the first launch that has keys: a profile that let AI apps in before keys existed keeps them
+ * working until the person turns keys on; every other profile needs keys from now on. null: already written. */
+export const firstKeysSetting = (s: Settings): Partial<Settings> | null =>
+  s.aiAppsRequireToken === undefined ? { aiAppsRequireToken: s.aiApps !== true } : null
 
 /** The Dock icon and the menu bar icon, as the person sees them: at least one stays visible, so the app always has an entry point. */
 export type Visibility = { showInMenuBar: boolean; showInDock: boolean; showRecordingPill: boolean }

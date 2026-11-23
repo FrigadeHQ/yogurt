@@ -774,5 +774,14 @@
   "Send feedback": "שליחת משוב",
   "Help and settings": "עזרה והגדרות",
   "Yogurt menu": "תפריט Yogurt",
-  "Restart to update · {version}": "הפעלה מחדש לעדכון · {version}"
+  "Restart to update · {version}": "הפעלה מחדש לעדכון · {version}",
+  "Only apps added here": "רק אפליקציות שנוספו כאן",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "כל אפליקציה מקבלת מפתח משלה, ואפליקציות אחרות ב-Mac הזה לא יכולות לקרוא דבר.",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "כל אפליקציה מקבלת מפתח משלה, ואפליקציות אחרות במחשב הזה לא יכולות לקרוא דבר.",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "יש להוסיף כאן כל אפליקציה, ואז להדביק את ההגדרה שלה באפליקציה כשרת MCP מקומי.",
+  "No apps added yet.": "עדיין לא נוספו אפליקציות.",
+  "Copy setup": "העתקת ההגדרה",
+  "App name": "שם האפליקציה",
+  "Add an app": "הוספת אפליקציה",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "יש להדביק את ההגדרה הזו ב-{name}. היא כוללת את המפתח של האפליקציה, לכן אין לשתף אותה."
 }

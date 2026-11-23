@@ -752,5 +752,14 @@
   "Send feedback": "Visszajelzés küldése",
   "Help and settings": "Súgó és beállítások",
   "Yogurt menu": "Yogurt menü",
-  "Restart to update · {version}": "Újraindítás a frissítéshez · {version}"
+  "Restart to update · {version}": "Újraindítás a frissítéshez · {version}",
+  "Only apps added here": "Csak az itt hozzáadott appok",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "Minden app saját kulcsot kap, és a Macen lévő többi app semmit sem olvashat.",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "Minden app saját kulcsot kap, és a számítógépen lévő többi app semmit sem olvashat.",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "Add hozzá itt az egyes appokat, majd illeszd be a beállításukat az appba helyi MCP-szerverként.",
+  "No apps added yet.": "Még nincs hozzáadott app.",
+  "Copy setup": "Beállítás másolása",
+  "App name": "App neve",
+  "Add an app": "App hozzáadása",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "Illeszd be ezt a beállítást ide: {name}. Az app kulcsát tartalmazza, ezért ne oszd meg."
 }

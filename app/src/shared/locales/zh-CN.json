@@ -722,5 +722,14 @@
   "Send feedback": "发送反馈",
   "Help and settings": "帮助和设置",
   "Yogurt menu": "Yogurt 菜单",
-  "Restart to update · {version}": "重启以更新 · {version}"
+  "Restart to update · {version}": "重启以更新 · {version}",
+  "Only apps added here": "仅限在此添加的应用",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "每个应用都有自己的密钥，这台 Mac 上的其他应用无法读取任何内容。",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "每个应用都有自己的密钥，这台电脑上的其他应用无法读取任何内容。",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "在此添加每个应用，然后将其设置作为本地 MCP 服务器粘贴到应用中。",
+  "No apps added yet.": "尚未添加任何应用。",
+  "Copy setup": "复制设置",
+  "App name": "应用名称",
+  "Add an app": "添加应用",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "将此设置粘贴到 {name} 中。其中包含该应用的密钥，请勿分享。"
 }

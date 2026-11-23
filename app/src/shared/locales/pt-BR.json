@@ -780,5 +780,14 @@
   "Send feedback": "Enviar feedback",
   "Help and settings": "Ajuda e configurações",
   "Yogurt menu": "Menu do Yogurt",
-  "Restart to update · {version}": "Reiniciar para atualizar · {version}"
+  "Restart to update · {version}": "Reiniciar para atualizar · {version}",
+  "Only apps added here": "Só os apps adicionados aqui",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "Cada app recebe a própria chave, e outros apps neste Mac não conseguem ler nada.",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "Cada app recebe a própria chave, e outros apps neste computador não conseguem ler nada.",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "Adicione cada app aqui e depois cole a configuração dele no app como servidor MCP local.",
+  "No apps added yet.": "Nenhum app adicionado ainda.",
+  "Copy setup": "Copiar configuração",
+  "App name": "Nome do app",
+  "Add an app": "Adicionar um app",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "Cole esta configuração no {name}. Ela contém a chave do app, então mantenha-a privada."
 }

@@ -26,7 +26,7 @@ import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { isFake, userDataDir } from './paths'
 import { logToFile } from './log'
-import { includesRecordingCredit, loadSettings, localeOf, keepsRecording, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings, visibilityOf, summaryLanguageSetting } from './settings'
+import { firstKeysSetting, includesRecordingCredit, loadSettings, localeOf, requiresAppKeys, keepsRecording, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings, visibilityOf, summaryLanguageSetting } from './settings'
 import { CALL_GONE_MS, micPids, useCallApps, watchEveryMs, type MicApp } from './detect'
 import { systemLocale } from './locale'
 import { language as uiLanguage, onLanguage, setLanguage, t } from '../shared/i18n'
@@ -83,6 +83,7 @@ import { hookShare } from './share'
 import { hookBackup } from './backupIpc'
 import { hookFolders } from './foldersIpc'
 import { hookMcp } from './mcp'
+import { createAiApps } from './mcp/tokens'
 import { startedHidden } from './mcp/paths'
 import { deleteRecording } from './deleteRecording'
 import { AUDIO_SCHEME, audioExts, createAudioHandler, trackFile, type AudioExt } from './audio'
@@ -542,13 +543,11 @@ app.whenReady().then(() => {
   if (!isFake()) syncLoginItem(settings.openAtLogin)
   // Windows and Linux: the calendar is a pasted private calendar address, kept sealed with the system keychain
   // a Mac: the same links, next to its own calendars (Settings → Calendars → Add a calendar link)
-  const calendarLinks = caps.calendar ? createCalendarLinks({
-    file: join(userDataDir(), 'settings.json'), get: getCalendar,
-    // no keychain (Linux without a secret service): scrambled, not encrypted, so the address isn't readable at a glance
-    seal: (plain) => (safeStorage.isEncryptionAvailable() ? `k:${safeStorage.encryptString(plain).toString('base64')}` : `b:${Buffer.from(plain).toString('base64')}`),
-    open: (sealed) => (sealed.startsWith('k:') ? safeStorage.decryptString(Buffer.from(sealed.slice(2), 'base64'))
-      : sealed.startsWith('b:') ? Buffer.from(sealed.slice(2), 'base64').toString() : sealed.replace(/^p:/, '')),
-  }) : null
+  // no keychain (Linux without a secret service): scrambled, not encrypted, so it isn't readable at a glance
+  const seal = (plain: string) => (safeStorage.isEncryptionAvailable() ? `k:${safeStorage.encryptString(plain).toString('base64')}` : `b:${Buffer.from(plain).toString('base64')}`)
+  const open = (sealed: string) => (sealed.startsWith('k:') ? safeStorage.decryptString(Buffer.from(sealed.slice(2), 'base64'))
+    : sealed.startsWith('b:') ? Buffer.from(sealed.slice(2), 'base64').toString() : sealed.replace(/^p:/, ''))
+  const calendarLinks = caps.calendar ? createCalendarLinks({ file: join(userDataDir(), 'settings.json'), get: getCalendar, seal, open }) : null
   if (calendarLinks) setCalendarLinkSource(calendarLinks, { alongside: !caps.calendarLink })
   const preferences = hookPreferences({
     recordingPillChanged: on => recordingPillChanged(on),
@@ -869,10 +868,15 @@ app.whenReady().then(() => {
     beforeExport: () => { notes.retryDrafts(); return notes.pendingDraftId() } })
   // AI apps change things only through the functions behind the app's own buttons
   const noteSaved = (id: string, r: ReturnType<typeof notes.replace>) => { if (r === 'saved') win?.webContents.send('meetings:changed'); return r }
+  // apps connected before keys existed keep working until the person turns keys on (Settings → AI apps)
+  const firstKeys = firstKeysSetting(loadSettings(settingsFile))
+  if (firstKeys) updateSettings(settingsFile, firstKeys)
   void hookMcp({
     store, profile: userDataDir(), me, version: app.getVersion(),
     enabled: () => !!loadSettings(settingsFile).aiApps, setEnabled: (on) => { updateSettings(settingsFile, { aiApps: on || undefined }) },
     changesEnabled: () => !!loadSettings(settingsFile).aiAppChanges, setChangesEnabled: (on) => { updateSettings(settingsFile, { aiAppChanges: on || undefined }) },
+    apps: createAiApps({ file: settingsFile, seal, open }),
+    requiresKey: () => requiresAppKeys(loadSettings(settingsFile)), setRequiresKey: (on) => { updateSettings(settingsFile, { aiAppsRequireToken: on }) },
     app: {
       ask: (question, chips) => conversations.askOnce(question, chips),
       comingUp: () => calendarComingUp(),

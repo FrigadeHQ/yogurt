@@ -722,5 +722,14 @@
   "Send feedback": "Hantar maklum balas",
   "Help and settings": "Bantuan dan tetapan",
   "Yogurt menu": "Menu Yogurt",
-  "Restart to update · {version}": "Mulakan semula untuk mengemas kini · {version}"
+  "Restart to update · {version}": "Mulakan semula untuk mengemas kini · {version}",
+  "Only apps added here": "Hanya app yang ditambah di sini",
+  "Each app gets its own key, and other apps on this Mac can’t read anything.": "Setiap app mendapat kuncinya sendiri, dan app lain pada Mac ini tidak boleh membaca apa-apa.",
+  "Each app gets its own key, and other apps on this computer can’t read anything.": "Setiap app mendapat kuncinya sendiri, dan app lain pada komputer ini tidak boleh membaca apa-apa.",
+  "Add each app here, then paste its setup into the app as a local MCP server.": "Tambah setiap app di sini, kemudian tampal persediaannya ke dalam app sebagai pelayan MCP setempat.",
+  "No apps added yet.": "Belum ada app yang ditambah.",
+  "Copy setup": "Salin persediaan",
+  "App name": "Nama app",
+  "Add an app": "Tambah app",
+  "Paste this setup into {name}. It holds the app’s key, so keep it private.": "Tampal persediaan ini ke dalam {name}. Ia mengandungi kunci app, jadi rahsiakannya."
 }
