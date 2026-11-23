@@ -144,7 +144,10 @@ export function pauseMeetingClock(id: string, paused: boolean) {
   else if (!paused && clock.pausedAt !== null) { clock.pausedMs += Math.max(0, now - clock.pausedAt); clock.pausedAt = null }
 }
 
-export function stopMeeting(id: string): MeetingView | undefined {
+/** What ended a recording, for main.log: a Stop button (the note, the widget, the menu bar, the stop card), the call
+ *  ending, the recorder giving up, quitting, or an AI app */
+export type StopBy = 'note' | 'widget' | 'menu' | 'card' | 'call-ended' | 'recorder' | 'quit' | 'ai-app'
+export function stopMeeting(id: string, by?: StopBy): MeetingView | undefined {
   if (!store) return undefined
   const pending = pendingStops.get(id)
   if (pending) return { ...pending, stopSavePending: true }
@@ -154,6 +157,8 @@ export function stopMeeting(id: string): MeetingView | undefined {
   const endedAt = Date.now()
   const durationMs = active?.id === id && clock?.measured ? Math.max(0, clock.before + (clock.pausedAt ?? endedAt) - clock.startedAt - clock.pausedMs) : undefined
   const m: Meeting = { ...cur, state: 'stopped', endedAt, ...(durationMs == null ? {} : { durationMs }) }
+  // #127: a recording that ended a second in left no trace of what ended it
+  console.info(`CALL stop meeting=${id} app=${cur.app ?? 'none'} by=${by ?? 'unknown'} after_ms=${Math.max(0, endedAt - cur.startedAt)}`)
   pendingStops.set(id, m)
   if (active?.id === id) { active = null; clock = null }
   run(stops, m)

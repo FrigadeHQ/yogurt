@@ -11,6 +11,18 @@ beforeEach(() => { store = openStore(':memory:'); initMeetings(store) })
 const event = { id: 'e1', title: 'Design review', start: 1000, end: 2000, attendees: [{ name: 'Ann', email: 'ann@x.com' }], url: null }
 
 describe('meeting lifecycle', () => {
+  // #127: a recording ended a second after it started, and nothing in main.log said what ended it
+  it('says in the log what stopped a recording, and how long after it started', () => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {})
+    try {
+      const m = startMeeting({ title: '', event: null, app: 'Teams' })
+      stopMeeting(m.id, 'note')
+      expect(info.mock.calls.map((c) => c.join(' ')).join('\n')).toMatch(new RegExp(`CALL stop meeting=${m.id} app=Teams by=note after_ms=\\d+`))
+      info.mockClear()
+      stopMeeting(m.id, 'menu')
+      expect(info).not.toHaveBeenCalled()
+    } finally { info.mockRestore() }
+  })
   it('files new notes and recordings before their first change, and reuses a written note when recording', () => {
     const folder = store.createFolder('Reviews')
     const firstRead: string[][] = []

@@ -328,7 +328,7 @@ function startDetection() {
     read: async (at) => (lastReading = await signals.read(at)), now, active: activeMeeting, bindApp: bindMeetingApp,
     offer: (p) => prompts.offer(p), askStop: (m) => prompts.askStop(m), hide: () => prompts.hide(),
     // the call ended: the same stop as the widget's Stop button, then say so
-    autoStop: (m) => { widget.callEnded(m.id); stopMeeting(m.id); prompts.stopped(m) },
+    autoStop: (m) => { widget.callEnded(m.id); stopMeeting(m.id, 'call-ended'); prompts.stopped(m) },
     silentMs: () => { if (isFake() && fakeSilence !== undefined) return fakeSilence; const m = activeMeeting(); return m ? liveSilentMs(m.id) : 0 },
     autoStopOn: () => stopsWhenCallEnds(loadSettings(join(userDataDir(), 'settings.json'))),
     // no "Take notes?" while onboarding is still on screen
@@ -340,7 +340,7 @@ function startDetection() {
   const prompts = createPrompts({
     windowVisible: () => !!win && win.isVisible() && !win.isMinimized(),
     takeNotes: (p) => begin({ title: p.title || t('{app} call', { app: p.app ?? '' }).trim(), event: p.event, app: p.app }),
-    stop: (id) => { stopMeeting(id) },
+    stop: (id) => { stopMeeting(id, 'card') },
     dismissed: (key) => watcher.dismiss(key),
     keepGoing: () => watcher.keepGoing(),
     dismissStop: () => watcher.dismissStop(),
@@ -354,7 +354,7 @@ function startDetection() {
     showRecordingPill: () => showRecordingPill,
     os: platform, windowOs: process.platform,
     open: (id) => goTo(`/note/${id}`),
-    stop: (id) => { stopMeeting(id) },
+    stop: (id) => { stopMeeting(id, 'widget') },
     foreground: () => !!win && !win.isDestroyed() && win.isVisible() && !win.isMinimized() && win.isFocused(),
   })
   onMeetingStart(() => { prompts.hide(); watcher.cleared() })
@@ -431,7 +431,7 @@ function startDetection() {
     }
   })
   // the note's own Stop button: the same stop as the widget and the menu bar
-  ipcMain.on('meetings:stop', (_e, id: unknown) => { if (isId(id) && activeMeeting()?.id === id) stopMeeting(id) })
+  ipcMain.on('meetings:stop', (_e, id: unknown) => { if (isId(id) && activeMeeting()?.id === id) stopMeeting(id, 'note') })
   const pauseRecording = (id: unknown, paused: unknown) => {
     if (!isId(id) || typeof paused !== 'boolean' || activeMeeting()?.id !== id) return false
     const changed = setRecordingPaused(id, paused)
@@ -447,7 +447,7 @@ function startDetection() {
     showRecordingPill: () => showRecordingPill,
     open: () => { presented++; showMain() },
     newNote: () => { if (!activeMeeting()) begin({ title: '', event: null, app: null }) },
-    stop: (id) => { stopMeeting(id) },
+    stop: (id) => { stopMeeting(id, 'menu') },
     pause: pauseRecording,
     ask: askFromMenu, settings: () => goTo('/settings'),
     openNote: (id) => { const note = storeRef?.meeting(id); if (note && note.trashedAt == null) goTo(`/note/${id}`) },
@@ -657,7 +657,7 @@ app.whenReady().then(() => {
   hookCapture({ dirOf: (id) => join(userDataDir(), 'meetings', id), onStart: onMeetingStart, onStop: onMeetingStop, speech: (id) => speechLocaleFor(id),
     mic: () => loadSettings(settingsFile).mic ?? null,
     // recording that can't go on ends the meeting, with the notes kept
-    stopMeeting: (id) => { stopMeeting(id) } })
+    stopMeeting: (id) => { stopMeeting(id, 'recorder') } })
   // 32 GB and up: the notes model reads each meeting in as it happens (notes/readAhead.ts)
   const readsAhead = !isFake() && readAheadAllowed(os.totalmem())
   // the notes model: one job at a time, recording first; loaded when needed, the best one downloaded
@@ -893,7 +893,7 @@ app.whenReady().then(() => {
       notesReady: () => !!setup.notesPath(),
       startRecording: (o) => recordingControls?.start(o) ?? Promise.resolve({ error: 'failed' as const }),
       pauseRecording: (id, paused) => recordingControls?.pause(id, paused) ?? false,
-      stopRecording: (id) => { if (activeMeeting()?.id !== id) return false; stopMeeting(id); return true },
+      stopRecording: (id) => { if (activeMeeting()?.id !== id) return false; stopMeeting(id, 'ai-app'); return true },
       recording: () => activeMeeting(),
       setJargon: (terms) => preferences.setJargon(terms),
       setSpoken: (v) => preferences.setSpoken(v),
@@ -983,6 +983,8 @@ app.whenReady().then(() => {
     e.preventDefault()
     if (finishing) return
     finishing = true
+    // #127: a quit left no line of its own, so what it stopped (whisper-server loading) looked like a crash
+    console.info('APP quitting')
      savedTranscriptions.shutdown()
     void (async () => {
       const flushed = await flushRenderer()
@@ -1001,7 +1003,7 @@ app.whenReady().then(() => {
       }
       // If final unload is vetoed, the resumed UI must describe the same stopped capture.
       const recording = activeMeeting()
-      if (recording) stopMeeting(recording.id)
+      if (recording) stopMeeting(recording.id, 'quit')
       // Music, recorder files and transcription still receive the same bounded graceful shutdown.
       await Promise.all([media.resume(), settleRecording().then(() => settleTranscription())])
       allowQuit = true
