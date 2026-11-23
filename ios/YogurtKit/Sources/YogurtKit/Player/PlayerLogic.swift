@@ -8,15 +8,19 @@ public enum AudioSource: Equatable, Sendable {
     case cached
     /// not here yet, but the computer is
     case computer
+    /// not here, and the paired computer isn't nearby to fetch it from
+    case computerAway
+    /// none anywhere: a phone on its own has only what it recorded
     case none
 }
 
 /// What the Note screen's player decides, apart from AVFoundation: source, time, scrubber, speed.
 public enum PlayerLogic {
-    public static func source(phoneFile: Bool, cached: Bool, connected: Bool) -> AudioSource {
+    public static func source(phoneFile: Bool, cached: Bool, connected: Bool, paired: Bool) -> AudioSource {
         if phoneFile { return .phone }
         if cached { return .cached }
-        return connected ? .computer : .none
+        if connected { return .computer }
+        return paired ? .computerAway : .none
     }
 
     /// "3:05", or "1:02:03" from an hour.

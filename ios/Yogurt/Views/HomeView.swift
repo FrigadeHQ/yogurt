@@ -19,7 +19,6 @@ struct HomeView: View {
     @State private var showConnect = false
     @State private var showRecord = false
     @Environment(\.scenePhase) private var phase
-    @AppStorage("connectHintHidden") private var connectHintHidden = false
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -50,7 +49,7 @@ struct HomeView: View {
         let shownFolder = folders.contains { $0.id == folder } ? folder : nil
         let meetings = model.store.meetings(folder: shownFolder)
         let filed = shownFolder == nil ? folderMap(folders) : [:]
-        let alone = model.engine.status == .notPaired
+        let alone = !model.engine.status.isPaired
         let recordings = Dictionary(model.store.localRecordings().map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         return ScrollView {
             VStack(alignment: .leading, spacing: 0) {
@@ -58,13 +57,6 @@ struct HomeView: View {
                     .font(Theme.brand(32, relativeTo: .largeTitle))
                     .foregroundStyle(Theme.heading)
                     .padding(.top, 6)
-                if alone && !connectHintHidden {
-                    ConnectHint(connect: { showConnect = true }, hide: {
-                        withAnimation(.easeOut(duration: 0.2)) { connectHintHidden = true }
-                    })
-                    .padding(.top, 16)
-                    .transition(.opacity)
-                }
                 if !folders.isEmpty {
                     FolderFilter(folders: folders, selected: shownFolder) { picked in
                         withAnimation(.easeOut(duration: 0.18)) { folder = picked }
@@ -72,7 +64,7 @@ struct HomeView: View {
                     .padding(.top, 14)
                 }
                 if meetings.isEmpty {
-                    EmptyMeetings(inFolder: shownFolder != nil, alone: alone).padding(.top, alone && !connectHintHidden ? 48 : 72)
+                    EmptyMeetings(inFolder: shownFolder != nil, alone: alone).padding(.top, 72)
                 } else {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(days(meetings), id: \.label) { day in
@@ -104,11 +96,11 @@ struct HomeView: View {
 
     private var header: some View {
         HStack(spacing: 0) {
-            // not paired: the pill is the way to connect; otherwise it opens the connection in Settings
-            StatusPill(status: model.engine.status) {
-                if model.engine.status == .notPaired { showConnect = true } else { showSettings = true }
+            // only once paired: on its own the phone doesn't talk about a computer here (Settings has Connect)
+            if model.engine.status.showsPill {
+                StatusPill(status: model.engine.status) { showSettings = true }
+                    .layoutPriority(1)
             }
-                .layoutPriority(1)
             Spacer(minLength: 4)
             IconButton(symbol: "bubble.left.and.text.bubble.right", label: S.ask) { path.append(.ask(nil)) }
                 .accessibilityIdentifier("ask")
@@ -243,41 +235,5 @@ struct EmptyMeetings: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 24)
-    }
-}
-
-/// Home's quiet nudge while the phone has no computer: Connect, or put it away for good.
-struct ConnectHint: View {
-    let connect: () -> Void
-    let hide: () -> Void
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "laptopcomputer")
-                .font(.body)
-                .foregroundStyle(Theme.art)
-                .frame(width: 36, height: 36)
-                .background(Theme.artSoft, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-                .accessibilityHidden(true)
-            Text(S.connectHint)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(Theme.ink)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .fixedSize(horizontal: false, vertical: true)
-            Button(S.connect, action: connect)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.accent)
-                .frame(minHeight: 44)
-                .accessibilityIdentifier("connect-hint")
-            Button(action: hide) {
-                Image(systemName: "xmark").font(.footnote.weight(.semibold)).foregroundStyle(Theme.muted)
-                    .frame(minWidth: 32, minHeight: 44)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(S.hide)
-        }
-        .padding(.leading, 12).padding(.trailing, 6)
-        .background(Theme.card, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }

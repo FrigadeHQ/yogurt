@@ -55,12 +55,14 @@ final class NotePlayer {
     private func run(_ id: String, _ model: AppModel) async {
         let sync = model.sync
         let connected: Bool = { if case .connected = model.engine.status { true } else { false } }()
+        let paired = model.engine.status.isPaired
         let phone = Self.phoneFile(id, model)
         let cached = [sync.cachedAudio(meetingId: id, track: "them"), sync.cachedAudio(meetingId: id, track: "me")].compactMap { $0 }
-        switch PlayerLogic.source(phoneFile: phone != nil, cached: !cached.isEmpty, connected: connected) {
+        switch PlayerLogic.source(phoneFile: phone != nil, cached: !cached.isEmpty, connected: connected, paired: paired) {
         case .phone: await prepare([phone!])
         case .cached: await prepare(cached)
-        case .none: state = .nearby
+        case .computerAway: state = .nearby
+        case .none: state = .noAudio
         case .computer:
             state = .downloading(0)
             do {

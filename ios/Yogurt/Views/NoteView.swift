@@ -201,17 +201,20 @@ struct NoteView: View {
             shareItems(m)
             Divider()
             Button { newTitle = m.title; renaming = true } label: { Label(S.rename, systemImage: "pencil") }
-            Menu {
-                if folders.isEmpty { Text(S.noFolders) }
-                ForEach(folders) { f in
-                    let member = inFolders.contains(f)
-                    Button {
-                        change(Op(kind: member ? .removeFromFolder : .addToFolder, meetingId: meetingId, folderId: f.id))
-                    } label: {
-                        if member { Label(f.name, systemImage: "checkmark") } else { Text(f.name) }
+            // folders are made on the computer: a phone on its own has none, so no menu that points there
+            if model.engine.status.isPaired || !folders.isEmpty {
+                Menu {
+                    if folders.isEmpty { Text(S.noFolders) }
+                    ForEach(folders) { f in
+                        let member = inFolders.contains(f)
+                        Button {
+                            change(Op(kind: member ? .removeFromFolder : .addToFolder, meetingId: meetingId, folderId: f.id))
+                        } label: {
+                            if member { Label(f.name, systemImage: "checkmark") } else { Text(f.name) }
+                        }
                     }
-                }
-            } label: { Label(S.addToFolder, systemImage: "folder") }
+                } label: { Label(S.addToFolder, systemImage: "folder") }
+            }
             if m.trashedAt == nil {
                 Divider()
                 Button(role: .destructive) {
@@ -313,6 +316,8 @@ struct NoteView: View {
     /// Edits other than My notes show once the computer has taken them, so say when that has to wait.
     private func change(_ op: Op) {
         model.send(op)
+        // on its own there is no computer to wait for
+        guard model.engine.status.isPaired else { return }
         if case .connected = model.engine.status { return }
         say(S.changeQueued)
     }
@@ -355,11 +360,13 @@ struct NoteView: View {
 
 struct SummaryPane: View {
     let notes: Notes?
+    @Environment(AppModel.self) private var model
     var body: some View {
         if let summary = notes?.summary, !summary.isEmpty {
             VStack(alignment: .leading, spacing: 14) {
                 if notes?.summarySource == .phoneDraft {
-                    Label(S.draftSummary, systemImage: "iphone")
+                    // on its own no computer writes a final one
+                    Label(model.engine.status.isPaired ? S.draftSummary : S.writtenHere, systemImage: "iphone")
                         .font(.footnote)
                         .foregroundStyle(Theme.muted)
                 }
@@ -370,7 +377,7 @@ struct SummaryPane: View {
         } else {
             VStack(alignment: .leading, spacing: 6) {
                 Text(S.noSummary).font(.body.weight(.medium)).foregroundStyle(Theme.ink)
-                Text(S.noSummaryBody).font(.subheadline).foregroundStyle(Theme.muted)
+                if model.engine.status.isPaired { Text(S.noSummaryBody).font(.subheadline).foregroundStyle(Theme.muted) }
             }
         }
     }

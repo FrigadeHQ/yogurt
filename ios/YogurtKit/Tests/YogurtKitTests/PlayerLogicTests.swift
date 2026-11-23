@@ -4,10 +4,15 @@ import Testing
 
 @Suite struct PlayerLogicTests {
     @Test func theSourceIsThePhonesOwnRecordingThenTheCacheThenTheComputer() {
-        #expect(PlayerLogic.source(phoneFile: true, cached: true, connected: true) == .phone)
-        #expect(PlayerLogic.source(phoneFile: false, cached: true, connected: false) == .cached)
-        #expect(PlayerLogic.source(phoneFile: false, cached: false, connected: true) == .computer)
-        #expect(PlayerLogic.source(phoneFile: false, cached: false, connected: false) == .none)
+        #expect(PlayerLogic.source(phoneFile: true, cached: true, connected: true, paired: true) == .phone)
+        #expect(PlayerLogic.source(phoneFile: false, cached: true, connected: false, paired: true) == .cached)
+        #expect(PlayerLogic.source(phoneFile: false, cached: false, connected: true, paired: true) == .computer)
+        #expect(PlayerLogic.source(phoneFile: false, cached: false, connected: false, paired: true) == .computerAway)
+    }
+
+    @Test func onItsOwnThePhoneNeverWaitsForAComputer() {
+        #expect(PlayerLogic.source(phoneFile: true, cached: false, connected: false, paired: false) == .phone)
+        #expect(PlayerLogic.source(phoneFile: false, cached: false, connected: false, paired: false) == .none)
     }
 
     @Test func timeReadsAsMinutesAndSecondsThenHours() {

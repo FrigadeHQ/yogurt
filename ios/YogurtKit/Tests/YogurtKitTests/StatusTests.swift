@@ -17,7 +17,7 @@ import Testing
     }
 
     @Test func shortLabelsForANarrowScreenKeepWhatMatters() {
-        #expect(ConnectionStatus.notPaired.shortLabel(now: now) == "This iPhone only")
+        #expect(ConnectionStatus.notPaired.shortLabel(now: now) == "On this iPhone only")
         #expect(ConnectionStatus.searching.shortLabel(now: now) == "Looking…")
         #expect(ConnectionStatus.connecting("A long computer name").shortLabel(now: now) == "Connecting…")
         #expect(ConnectionStatus.connected("A long computer name", syncing: nil).shortLabel(now: now) == "Synced just now")
@@ -25,6 +25,18 @@ import Testing
         #expect(ConnectionStatus.offline("MacBook", lastSync: now.addingTimeInterval(-7200)).shortLabel(now: now) == "Offline · synced 2 h ago")
         #expect(ConnectionStatus.offline("MacBook", lastSync: nil).shortLabel(now: now) == "Offline · not synced yet")
         #expect(ConnectionStatus.error("Pair again.").shortLabel(now: now) == "Pair again.")
+    }
+
+    @Test func onlyAPairedPhoneShowsAConnectionOnHome() {
+        // on its own the phone says nothing about a computer outside Settings
+        #expect(!ConnectionStatus.notPaired.isPaired)
+        #expect(!ConnectionStatus.notPaired.showsPill)
+        let paired: [ConnectionStatus] = [.searching, .connecting("MacBook"), .connected("MacBook", syncing: nil),
+                                          .connected("MacBook", syncing: 3), .offline("MacBook", lastSync: nil), .error("Pair again.")]
+        for s in paired {
+            #expect(s.isPaired)
+            #expect(s.showsPill)
+        }
     }
 
     @Test func offlineSaysWhenItLastSynced() {

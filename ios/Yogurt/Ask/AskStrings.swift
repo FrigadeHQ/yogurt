@@ -19,6 +19,7 @@ extension S {
     static let askByPhone = String(localized: "Answered on this iPhone")
     static let askFailed = String(localized: "Yogurt couldn't answer that.")
     static let askNeedsModel = String(localized: "Ask needs Apple Intelligence on this iPhone, or your computer nearby.")
+    static let askNeedsModelAlone = String(localized: "Ask needs Apple Intelligence on this iPhone.")
     static let askSearchInstead = String(localized: "You can still search your meetings.")
     static let searchMeetings = String(localized: "Search your meetings")
     static let askSources = String(localized: "Sources")

@@ -40,7 +40,6 @@ enum S {
     static let artLine1 = String(localized: "I'll send a draft by Friday.")
     static let artLine2 = String(localized: "Great, I'll review it that afternoon.")
     static let artWritten = String(localized: "Written on this iPhone")
-    static let artSynced = String(localized: "Same Wi-Fi")
     static let artMeeting2 = String(localized: "Weekly planning")
     static let artWhen2 = String(localized: "Yesterday · 9:30")
 
@@ -75,8 +74,6 @@ enum S {
     static let emptyTitle = String(localized: "Your meetings will show up here")
     static let emptyBody = String(localized: "They come over from your computer when both are on the same Wi-Fi.")
     static let emptyBodyAlone = String(localized: "Tap Record when a meeting starts. Yogurt writes the notes on this iPhone.")
-    static let connectHint = String(localized: "Use Yogurt on your computer too?")
-    static let hide = String(localized: "Hide")
     static let emptyFolder = String(localized: "No meetings in this folder yet")
     static let search = String(localized: "Search")
     static let settings = String(localized: "Settings")
@@ -85,9 +82,6 @@ enum S {
     static let yesterday = String(localized: "Yesterday")
     static func minutes(_ n: Int) -> String { String(localized: "\(n) min") }
     static func andMore(_ names: String, _ more: Int) -> String { String(localized: "\(names) + \(more)") }
-    static let recordingSoonTitle = String(localized: "Recording is on its way")
-    static let recordingSoonBody = String(localized: "Soon you can record meetings right on this iPhone.")
-    static let ok = String(localized: "OK")
 
     // Note
     static let summary = String(localized: "Summary")
@@ -96,6 +90,7 @@ enum S {
     static let noSummary = String(localized: "The summary isn't written yet.")
     static let noSummaryBody = String(localized: "Your computer writes it after the meeting. It shows up here once both are on the same Wi-Fi.")
     static let draftSummary = String(localized: "Draft from this iPhone. Your computer will write the final summary.")
+    static let writtenHere = String(localized: "Written on this iPhone")
     static let myNotesPlaceholder = String(localized: "Type your notes here.")
     static let savedHere = String(localized: "Saved on this iPhone")
     static let saving = String(localized: "Saving…")
@@ -129,7 +124,6 @@ enum S {
     static let title = String(localized: "Title")
     static let save = String(localized: "Save")
     static let cancel = String(localized: "Cancel")
-    static let folders = String(localized: "Folders")
     static let addToFolder = String(localized: "Add to folder")
     static let noFolders = String(localized: "No folders yet. Make them on your computer.")
     static let moveToTrash = String(localized: "Move to Trash")

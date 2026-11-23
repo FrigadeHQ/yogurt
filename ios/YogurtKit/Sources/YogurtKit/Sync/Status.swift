@@ -35,7 +35,7 @@ public enum ConnectionStatus: Sendable, Hashable {
     /// The same, without the computer's name, for when the full one doesn't fit beside Home's buttons.
     public func shortLabel(now: Date) -> String {
         switch self {
-        case .notPaired: String(localized: "This iPhone only")
+        case .notPaired: label(now: now)
         case .searching: String(localized: "Looking…")
         case .connecting: String(localized: "Connecting…")
         case .connected(_, nil): String(localized: "Synced just now")
@@ -44,6 +44,12 @@ public enum ConnectionStatus: Sendable, Hashable {
         case .connected, .error: label(now: now)
         }
     }
+
+    /// Paired with a computer, whether or not it's reachable right now.
+    public var isPaired: Bool { self != .notPaired }
+
+    /// Home's pill is all about the computer, so a phone on its own shows none: only Settings mentions connecting.
+    public var showsPill: Bool { isPaired }
 
     /// The paired computer's name, when the status knows it.
     public var computerName: String? {

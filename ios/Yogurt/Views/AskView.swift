@@ -76,7 +76,8 @@ struct AskView: View {
     /// No computer nearby and no Apple Intelligence here: say so, and offer Search, which always works.
     private var unavailable: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label(S.askNeedsModel, systemImage: "iphone")
+            // on its own the phone doesn't mention a computer outside Settings
+            Label(model.engine.status.isPaired ? S.askNeedsModel : S.askNeedsModelAlone, systemImage: "iphone")
                 .font(.subheadline.weight(.medium)).foregroundStyle(Theme.ink)
                 .fixedSize(horizontal: false, vertical: true)
             Text(S.askSearchInstead).font(.subheadline).foregroundStyle(Theme.muted)
