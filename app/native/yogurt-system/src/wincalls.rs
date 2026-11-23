@@ -16,7 +16,7 @@ use windows::Win32::UI::Accessibility::{
     UIA_HelpTextPropertyId, UIA_NamePropertyId,
 };
 
-use crate::call::{call_window, is_call_tree, kind, now_ms, to_read, Kind};
+use crate::call::{call_window, is_call_tree, kind, look, now_ms, to_read, Kind, Look};
 use crate::parse;
 
 /// at most this many call windows of the app per reading
@@ -179,11 +179,14 @@ fn read_once(u: &Uia, ids: &[String], last: &mut Option<u64>) -> Value {
     let mut checked = None;
     if alone {
         let (hwnd, (id, title)) = &first[0];
-        match u.tree(*hwnd) {
-            Some(tree) if is_call_tree(&tree) => return json!({ "t": t, "app": id, "windows": [{ "title": title, "tree": tree }] }),
+        let tree = u.tree(*hwnd);
+        match look(tree.as_ref(), crate::win::out_of_sight(*hwnd)) {
+            Look::Call => return json!({ "t": t, "app": id, "windows": [{ "title": title, "tree": tree }] }),
             // it did not answer in time: the other windows would be as slow, so this reading is skipped
-            None => return json!({ "t": t, "error": "slow-call-window" }),
-            Some(_) => {
+            Look::Slow => return json!({ "t": t, "error": "slow-call-window" }),
+            // minimised or on another desktop: kept, and Yogurt is told the call is not over (#83: auto end on Windows)
+            Look::Hidden => return json!({ "t": t, "error": "no-call-window", "hidden": true }),
+            Look::Gone => {
                 *last = None;
                 checked = Some(*hwnd);
             }

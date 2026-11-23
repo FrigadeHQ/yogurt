@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { EventEmitter } from 'node:events'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { openStore, type Meeting, type Store } from '../src/main/store'
@@ -408,6 +408,15 @@ describe('hookCallNames', () => {
 
 // #auto-end: Christian's Zoom call (Nov 23) never stopped by itself. A call window seen and then gone is a second sign the
 // call ended, beside the mic, which Zoom can keep after a meeting.
+describe('auto end by the call window on Windows (#83)', () => {
+  it("ends a call on Windows too once its window is gone: the Windows reader says when the window is only minimised or on another desktop", () => {
+    const main = readFileSync(join(__dirname, '../src/main/index.ts'), 'utf8')
+    expect(main).toMatch(/process\.platform === 'darwin' \|\| process\.platform === 'win32'\) callWindowOf = /)
+    const rust = readFileSync(join(__dirname, '../native/yogurt-system/src/wincalls.rs'), 'utf8')
+    expect(rust).toContain('Look::Hidden => return json!({ "t": t, "error": "no-call-window", "hidden": true })')
+  })
+})
+
 describe('callWindow: the call window seen, then gone', () => {
   const gone = (t: number, extra: Partial<WatchLine> = {}): WatchLine => ({ t, app: 'us.zoom.xos', error: 'no-call-window', ...extra })
   it('a Zoom meeting window with people that goes away counts how long it has been gone, and says so in the log', () => {

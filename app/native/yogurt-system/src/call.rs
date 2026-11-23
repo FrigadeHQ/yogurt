@@ -85,6 +85,29 @@ pub fn to_read<T>(mut windows: Vec<(u64, T)>, last: Option<u64>) -> (Vec<(u64, T
     }
 }
 
+/// What a reading of the window that was the call says about it
+#[derive(Debug, PartialEq)]
+pub enum Look {
+    /// still the call
+    Call,
+    /// it did not answer in time: nothing can be told
+    Slow,
+    /// minimised or on another desktop: Yogurt must not take that for the call ending (#83)
+    Hidden,
+    /// open and in sight, with no call controls: the call is over
+    Gone,
+}
+
+#[cfg_attr(not(windows), allow(dead_code))]
+pub fn look(tree: Option<&Value>, out_of_sight: bool) -> Look {
+    match tree {
+        Some(t) if is_call_tree(t) => Look::Call,
+        _ if out_of_sight => Look::Hidden,
+        None => Look::Slow,
+        Some(_) => Look::Gone,
+    }
+}
+
 pub fn now_ms() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
 }
@@ -154,6 +177,18 @@ mod tests {
         // closed, or none yet: every window, top first
         assert_eq!(to_read(wins.clone(), Some(9)), (wins.clone(), false));
         assert_eq!(to_read(wins.clone(), None), (wins, false));
+    }
+
+    #[test]
+    fn a_minimised_call_window_is_hidden_not_gone() {
+        let call = json!({ "r": "frame", "k": [{ "r": "button", "t": "Leave", "i": "hangup-button" }] });
+        let after = json!({ "r": "frame", "k": [{ "r": "button", "t": "Rejoin" }] });
+        assert_eq!(look(Some(&call), false), Look::Call);
+        assert_eq!(look(Some(&call), true), Look::Call);
+        assert_eq!(look(Some(&after), true), Look::Hidden);
+        assert_eq!(look(None, true), Look::Hidden);
+        assert_eq!(look(None, false), Look::Slow);
+        assert_eq!(look(Some(&after), false), Look::Gone);
     }
 
     #[test]

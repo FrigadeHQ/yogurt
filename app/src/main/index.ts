@@ -336,8 +336,9 @@ let recordingControls: { start(o: { eventId?: string; title?: string }): Promise
 /** the processes of a call app on the mic at the last reading (set once detection starts): names come only from them (#98) */
 let micPidsNow: (app: string) => number[] = () => []
 
-/** the meeting's call window as the call names reader sees it (set once call names start). Mac only: its reader also
- * says when the call window is just on another desktop, so that is never taken for the call ending */
+/** the meeting's call window as the call names reader sees it (set once call names start). Mac and Windows: their
+ * readers also say when the call window is just minimised or on another desktop, so that is never taken for the call
+ * ending (#83: on Windows a recording started from the agenda never ended by itself) */
 let callWindowOf: (meetingId: string) => { goneMs: number } | null = () => null
 
 /** fake mode's hooks reach the store and the notes through these */
@@ -648,7 +649,7 @@ app.whenReady().then(() => {
     changed: (id) => { win?.webContents.send('transcript:speakers', id); sendWidgetTranscript('transcript:speakers', id); win?.webContents.send('meetings:changed'); notes.applyPeople(id) },
     onStart: onMeetingStart, onStop: onMeetingStop, onCapture: onCaptureStart, onBind: onMeetingBound, micPids: (app) => micPidsNow(app),
   })
-  if (process.platform === 'darwin') callWindowOf = (id) => callNames.callWindow(id)
+  if (process.platform === 'darwin' || process.platform === 'win32') callWindowOf = (id) => callNames.callWindow(id)
   // Windows and Linux: whisper left the graphics card in a meeting, so the speed check (timed with it) runs again next start
   onWhisperGpuOff(() => speedStore(speedFile()).forget())
   hookTranscription({ store, modelPath: () => setup.installed()?.asr, send: (seg) => {
