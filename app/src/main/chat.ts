@@ -4,6 +4,7 @@ import type { NotesModel } from './notes/model'
 import type { Queue } from './notes/queue'
 import { transcriptHead, transcriptText } from './notes/enhance'
 import { meetingWords, respell, spellingLine } from './vocab'
+import { aboutAsk } from './askAbout'
 import type { AskStep, ChatTurn, ChatView } from '../shared/types'
 
 /**
@@ -131,6 +132,9 @@ export function chatPrompt(i: { context: string; question: string; history: Hist
     ...(i.recording ? ['The meeting is still going on: the transcript is what has been said so far.'] : []),
     'Answer the question below about this meeting, for the person who recorded it ("You" in the transcript).',
     ...(i.history.length ? ['', 'Earlier in this chat:', ...i.history.flatMap((h) => ['<asked>', h.question, '</asked>', '<answered>', h.answer, '</answered>'])] : []),
+    '',
+    // after the transcript, not before it: the start stays the notes prompt's, so the model keeps the meeting read
+    aboutAsk,
     '',
     'How to answer:',
     '- Answer in the language the question is written in.',

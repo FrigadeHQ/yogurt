@@ -2,6 +2,7 @@ import { peopleRule } from '../notes/enhance'
 import { clock } from '../../shared/transcript'
 import type { Item } from './retrieve'
 import { CITE } from '../../shared/citations'
+import { aboutAsk } from '../askAbout'
 
 /**
  * The prompt for a question across meetings. It starts with the same instructions every time, byte for byte, so the
@@ -10,6 +11,8 @@ import { CITE } from '../../shared/citations'
  * translated.
  */
 export const libraryHead = [
+  aboutAsk,
+  '',
   'You answer questions about the person\'s own meetings. After these instructions come parts of their meetings that were found for the question, grouped by meeting, each part numbered like [1]: pieces of transcripts, or the notes written after a meeting. In a transcript each line starts with who said it: "You" is the person asking, a name is someone on the call, and "Them" is the other side of the call when no name is known.',
   '',
   'How to answer:',
