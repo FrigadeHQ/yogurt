@@ -15,7 +15,7 @@ settings:
     DEVELOPMENT_TEAM: 2JNSQVN3N8
     CODE_SIGN_STYLE: Automatic
     MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: "4"
+    CURRENT_PROJECT_VERSION: "5"
 targets:
   Yogurt:
     type: application
