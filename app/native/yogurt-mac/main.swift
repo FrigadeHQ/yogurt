@@ -5,6 +5,8 @@
 //   yogurt-mac calendar-auth         → asks once (the system's own prompt), then the status
 //   yogurt-mac events FROM TO        → meetings between two ISO dates (all-day and cancelled ones left out)
 //   yogurt-mac mic-apps              → [{"bundleId","name","pid"}] of processes using audio input right now
+//   yogurt-mac mic-watch             → the same as mic-apps, one JSON line at start and on each change, until stdin closes:
+//                                       one Core Audio client for Yogurt's whole life instead of one per reading (#143)
 //   yogurt-mac running-apps ID...    → the supplied bundle IDs currently present in NSRunningApplication
 //   yogurt-mac browser-title ID      → {"title":string|null}: the front tab's name in Chrome, Arc, Edge, Brave or Safari (only if running)
 //   yogurt-mac permissions           → {"mic":"authorized"|"denied"|"restricted"|"notDetermined","systemAudio":0|1|2,"calendar":…,
@@ -516,6 +518,49 @@ func watchCalls(every: Int, ids: [String], pids: [pid_t] = []) {
   }
 }
 
+/// Listens for apps starting and stopping input instead of being asked again and again: each new helper was a new
+/// Core Audio client with privacy checks in coreaudiod, and after about an hour of that powerd refused every power
+/// assertion and the displays never woke (#143).
+func watchMic() {
+  // Yogurt closes stdin to stop the watch (and a crashed Yogurt closes it too)
+  DispatchQueue.global().async { _ = FileHandle.standardInput.readDataToEndOfFile(); exit(0) }
+  let sys = AudioObjectID(kAudioObjectSystemObject)
+  var listAddr = address(kAudioHardwarePropertyProcessObjectList)
+  var inputAddr = address(kAudioProcessPropertyIsRunningInput)
+  var watched = Set<AudioObjectID>()
+  var last: Data?
+  var pending = false
+  let parent = getppid()
+  let emit = {
+    guard let d = try? JSONSerialization.data(withJSONObject: audioApps(input: true), options: [.sortedKeys]), d != last else { return }
+    last = d
+    FileHandle.standardOutput.write(d); FileHandle.standardOutput.write("\n".data(using: .utf8)!)
+  }
+  // a call starting touches several processes at once: one line for the lot
+  let changed: AudioObjectPropertyListenerBlock = { _, _ in
+    if pending { return }
+    pending = true
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { pending = false; emit() }
+  }
+  // the same block each time, so removing it finds it
+  let follow = {
+    let now = Set(audioProcesses())
+    for gone in watched.subtracting(now) { AudioObjectRemovePropertyListenerBlock(gone, &inputAddr, .main, changed) }
+    for new in now.subtracting(watched) { AudioObjectAddPropertyListenerBlock(new, &inputAddr, .main, changed) }
+    watched = now
+  }
+  let listChanged: AudioObjectPropertyListenerBlock = { a, b in follow(); changed(a, b) }
+  AudioObjectAddPropertyListenerBlock(sys, &listAddr, .main, listChanged)
+  follow()
+  emit()
+  // in case a change was never told: read again now and then, and end if Yogurt is gone without closing stdin
+  let safety = DispatchSource.makeTimerSource(queue: .main)
+  safety.schedule(deadline: .now() + 30, repeating: 30)
+  safety.setEventHandler { if getppid() != parent { exit(0) }; follow(); emit() }
+  safety.resume()
+  dispatchMain()
+}
+
 let args = Array(CommandLine.arguments.dropFirst())
 switch args.first {
 case "calendar-status":
@@ -571,6 +616,8 @@ case "events":
   })
 case "mic-apps":
   out(audioApps(input: true))
+case "mic-watch":
+  watchMic()
 case "running-apps":
   out(args.dropFirst().filter(running))
 case "browser-title":
@@ -605,5 +652,5 @@ case "call-watch":
 case "mic-devices":
   out(["devices": inputDevices()])
 default:
-  fail("usage: yogurt-mac calendar-status | calendar-auth | events FROM TO | mic-apps | running-apps ID... | browser-title ID | permissions | media-auth | mic-auth | audio-auth | media-pause | media-resume ID... | mic-devices | ax-auth | call-watch MS [--pid N]... ID...")
+  fail("usage: yogurt-mac calendar-status | calendar-auth | events FROM TO | mic-apps | mic-watch | running-apps ID... | browser-title ID | permissions | media-auth | mic-auth | audio-auth | media-pause | media-resume ID... | mic-devices | ax-auth | call-watch MS [--pid N]... ID...")
 }

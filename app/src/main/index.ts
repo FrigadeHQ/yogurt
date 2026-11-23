@@ -51,6 +51,7 @@ import { calendars, eventIds, matchesEvent, setCalendarSelection, setCalendarOwn
 import { createCalendarLinks } from './calendarLink'
 import { getCalendar } from './calendarLink/get'
 import { createSignals } from './detectSignals'
+import { createMicWatch, spawnMicWatch } from './micWatch'
 import { Watcher } from './watch'
 import { createPrompts } from './prompts'
 import { activeMeeting, bindMeetingApp, getMeeting, initMeetings, onMeetingBound, onMeetingChange, onMeetingStart, onMeetingStop, onMeetingStopSaved, createFolderNote, refreshEventSnapshots, linkEvent, unlinkEvent, prepareMeeting, startPreparedMeeting, resumeMeeting, pauseMeetingClock, renameMeeting, retryStopSave, setAttendees, startMeeting, stopMeeting, stopSavePending, withStopState } from './meeting'
@@ -317,7 +318,12 @@ let indexerRef: { schedule(): Promise<unknown> } | undefined
 /** Notice calls, offer to take notes, stop when the call ends (or ask, with that setting off). Starts nothing without a click. */
 function startDetection() {
   if (isFake()) setHelper(fakeHelper)
-  const signals = createSignals({ helper: runHelper, events: readCalendar })
+  // On a Mac one mic watch runs for Yogurt's whole life: a new helper per reading wore out coreaudiod and powerd (#143)
+  const micWatch = process.platform === 'darwin' && !isFake()
+    ? createMicWatch({ start: spawnMicWatch(helperPath), poll: () => runHelper(['mic-apps']), recording: () => !!activeMeeting() })
+    : undefined
+  app.on('will-quit', () => micWatch?.stop())
+  const signals = createSignals({ helper: runHelper, micApps: micWatch?.read, events: readCalendar })
   refreshCalendarConsumers = () => signals.invalidateCalendar()
   let lastReading: { micApps: MicApp[]; runningApps?: string[] } | undefined
   // yogurt-system (Windows, Linux) reads no single process yet; the Mac helper does
