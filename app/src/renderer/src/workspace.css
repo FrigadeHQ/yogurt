@@ -58,7 +58,7 @@
 .workspace-folder-header:is(:hover,:focus-within) { background:var(--row-hover);color:var(--ink); }
 .workspace-folder-toggle { display:flex;align-items:center;gap:6px;width:100%;height:28px;padding-inline:var(--nav-inset) 30px;border-radius:inherit;text-align:start;font:inherit; }
 .workspace-folder-toggle>span { min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis; }
-.workspace-folder-caret { flex:none;position:relative;top:1px;direction:ltr;transform-origin:center;transform:rotate(0deg);transition:transform 160ms ease; }
+.workspace-folder-caret { flex:none;direction:ltr;transform-origin:center;transform:rotate(0deg);transition:transform 160ms ease; }
 .workspace-folder-toggle:dir(rtl) .workspace-folder-caret { transform:rotate(180deg); }
 .workspace-folder-toggle[aria-expanded=true] .workspace-folder-caret { transform:rotate(90deg); }
 .workspace-folder-header .workspace-folder-new { position:absolute;inset-inline-end:2px;top:2px;display:grid;place-items:center;width:24px;height:24px;opacity:0; }

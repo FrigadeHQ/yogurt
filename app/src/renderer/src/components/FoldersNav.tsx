@@ -63,7 +63,7 @@ export function FoldersNav({ folders, route, go }: { folders?: Folder[]; route: 
             aria-controls="workspace-folder-panel" onClick={() => setSectionOpen(!expanded)}>
             <span>{foldersLabel}</span>
             <svg className="workspace-folder-caret" width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
-              <path d="M9 5 3 8.464V1.536Z" stroke="currentColor" strokeWidth="1" strokeLinejoin="round" />
+              <path d="M7.6 5 3.2 7.8V2.2Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
             </svg>
           </button>
         </h2>
