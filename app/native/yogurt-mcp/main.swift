@@ -26,9 +26,10 @@ func connectOnce() -> Int32? {
 var fd = connectOnce()
 if fd == nil && env["YOGURT_MCP_NO_LAUNCH"] == nil {
   // -g: in the background, so starting a chat never pulls Yogurt in front; --hidden: and Yogurt opens no window (#54)
+  // --started-by=ai-app: and it watches for no calls until the person opens it (#147)
   let open = Process()
   open.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-  open.arguments = ["-g", "-b", "so.yogurt.app", "--args", "--hidden"]
+  open.arguments = ["-g", "-b", "so.yogurt.app", "--args", "--hidden", "--started-by=ai-app"]
   try? open.run(); open.waitUntilExit()
   for _ in 0..<60 { if let f = connectOnce() { fd = f; break }; usleep(500_000) }
 }

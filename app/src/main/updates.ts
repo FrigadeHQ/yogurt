@@ -35,7 +35,7 @@ export function finishQuit(): void {
  * available: false in a build that never updates (see updatesOn); Settings then shows only the version.
  * DOES NOT WORK WHILE RECORDING.
  */
-export async function hookUpdates(d: { file: string; available: boolean; recording(): boolean; /** fake mode: a version already downloaded */ fake?: { version: string; restarted(): void } }): Promise<void> {
+export async function hookUpdates(d: { file: string; available: boolean; recording(): boolean; /** started by an AI app and not opened yet: no notification (#147) */ quiet?(): boolean; /** fake mode: a version already downloaded */ fake?: { version: string; restarted(): void } }): Promise<void> {
   let runningVersion = app.getVersion()
   let state: UpdateStatus['state'] = 'idle'
   let next: string | undefined, dismissedVersion: string | undefined
@@ -92,7 +92,7 @@ export async function hookUpdates(d: { file: string; available: boolean; recordi
   updater.on('update-available', (info) => set('downloading', info.version))
   updater.on('update-downloaded', (info) => {
     set('ready', info.version)
-    if (!Notification.isSupported()) return
+    if (!Notification.isSupported() || d.quiet?.()) return
     new Notification({ title: t('Yogurt {version} is ready', { version: info.version }), body: t('It installs the next time you quit Yogurt.') }).show()
   })
   updater.on('error', (err) => {

@@ -85,7 +85,8 @@ import { hookShare } from './share'
 import { hookBackup } from './backupIpc'
 import { hookFolders } from './foldersIpc'
 import { hookMcp } from './mcp'
-import { startedHidden } from './mcp/paths'
+import { createQuietStart } from './quietStart'
+import { startArgs, startReason, type StartReason } from './startReason'
 import { deleteRecording } from './deleteRecording'
 import { AUDIO_SCHEME, audioExts, createAudioHandler, trackFile, type AudioExt } from './audio'
 import { helperDecode, wavDecode } from './asr/backfill'
@@ -127,8 +128,20 @@ let updateMainMenu = () => {}
 let menuBar: ReturnType<typeof createTray> | undefined
 /** test runs: no window on screen, never takes focus from what the person is doing */
 const BACKGROUND = process.env.YOGURT_BACKGROUND === '1'
-// an AI app's yogurt-mcp starting Yogurt while it was still opening (--hidden) brings no window forward
-app.on('second-instance', (_e, argv) => { if (app.isReady() && !startedHidden(process.platform, argv)) showMain() })
+/** how this Yogurt started (#147): an AI app's start waits quietly, with no call watching, until the person opens it */
+let quietStart: ReturnType<typeof createQuietStart> | undefined
+/** work a quiet Yogurt waits for before quitting by itself (set once notes and setup exist) */
+let busyNow = () => !!activeMeeting()
+/** Linux: the program that started Yogurt (an older yogurt-mcp passed only --hidden); elsewhere it costs a process to ask */
+const parentName = () => { if (process.platform !== 'linux') return undefined; try { return readFileSync(`/proc/${process.ppid}/comm`, 'utf8').trim() } catch { return undefined } }
+// an AI app's yogurt-mcp or the login item starting Yogurt while it was still opening (--hidden) brings no window forward
+app.on('second-instance', (_e, argv) => {
+  if (!app.isReady()) return
+  const why: StartReason = startReason({ argv, env: {} })
+  console.info('APP', `started again by=${why} args=${startArgs(argv)}`)
+  if (why === 'ai-app' || why === 'login') quietStart?.startedAgain(why)
+  else showMain()
+})
 
 /** Links open in the user's browser, never inside the app window. */
 function openExternally(url: string) {
@@ -251,6 +264,7 @@ const permissions = createPermissions({
 
 /** Reuse the hidden main window, including its route, scroll, drafts and position. */
 function showMain() {
+  quietStart?.opened()
   if (!win) { createWindow(); presented++ }
   presentMain(true)
 }
@@ -265,6 +279,7 @@ function askFromMenu() {
   win?.webContents.send('nav:ask')
 }
 function goTo(next: string, resume = false) {
+  quietStart?.opened()
   route = next
   resumeRequested = resume
   if (!win) createWindow()
@@ -496,7 +511,7 @@ function startDetection() {
   }
   // cheap, and only while Yogurt runs; more often while recording, so the end of a quiet call is noticed promptly
   let timer: NodeJS.Timeout | undefined
-  const watchLoop = () => { timer = setTimeout(() => { void watcher.tick().catch((e) => console.error('detect failed', e)).finally(watchLoop) }, watchEveryMs(!!activeMeeting())) }
+  const watchLoop = () => { timer = setTimeout(() => { void quietStart!.detect(() => watcher.tick()).catch((e) => console.error('detect failed', e)).finally(watchLoop) }, watchEveryMs(!!activeMeeting())) }
   watchLoop()
   app.on('will-quit', () => clearTimeout(timer))
   if (isFake()) {
@@ -538,6 +553,10 @@ function startDetection() {
 
 app.whenReady().then(() => {
   console.info('APP', `trusting ${systemCerts} certificates from the system on top of the built-in ones`)
+  // #147: which start this was (login, an AI app, an update, the person), so a log says what opened Yogurt
+  const started = startReason({ argv: process.argv, env: process.env, parent: parentName(), openedAtLogin: openedAtLogin() })
+  console.info('APP', `started by=${started} args=${startArgs(process.argv)}`)
+  quietStart = createQuietStart({ reason: started, quit: () => app.quit(), busy: () => busyNow() })
   // Local Electron launches need the same Dock icon as the packaged application.
   if (!app.isPackaged && process.platform === 'darwin') app.dock?.setIcon(join(__dirname, '../../build/icon.png'))
   const settings = loadSettings(join(userDataDir(), 'settings.json'))
@@ -734,6 +753,7 @@ app.whenReady().then(() => {
     changed: () => { win?.webContents.send('meetings:changed'); void indexer.schedule() },
   })
   let finishing = false, discardUnsaved = false
+  busyNow = () => !!activeMeeting() || queue.busy() || setup.state.phase === 'checking' || setup.state.phase === 'downloading'
   const savedTranscriptions = createSavedTranscriptions({
     store, ready: () => !!setup.installed()?.asr, recording: () => !!activeMeeting() || !!resumingId || finishing, live: transcriptOpen,
     tracks: async id => {
@@ -925,7 +945,7 @@ app.whenReady().then(() => {
       await rejoined; await recordingSettled(id)
       return (['me', 'them'] as const).flatMap((track) => { const path = trackFile(meetingDir(id), track, audioKinds); return path ? [{ track, path }] : [] })
     },
-    send: (clients) => win?.webContents.send('mcp:clients', clients),
+    send: (clients) => { quietStart?.clients(clients.length); win?.webContents.send('mcp:clients', clients) },
   })
   // notes only for a meeting that exists: saving one for an unknown id would throw (its row must exist)
   const known = (id: unknown): id is string => isId(id) && !!store.meeting(id)
@@ -1278,16 +1298,16 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('nav:current', () => route)
   ipcMain.handle('nav:take-ask', () => { const pending = pendingAsk; pendingAsk = false; return pending })
-  // opened by the Mac at login: just the menu bar, until a call or a click
-  // opened by an AI app's yogurt-mcp off a Mac (--hidden): the same, so no window jumps in front of it
-  if (!openedAtLogin() && !startedHidden(process.platform, process.argv)) createWindow()
+  // opened at login: just the menu bar, until a call or a click
+  // opened by an AI app's yogurt-mcp: the same, so no window jumps in front of it, and no call watching either (#147)
+  if (quietStart!.window()) createWindow()
   startDetection()
   void setup.start()
   // new versions from GitHub Releases, downloaded in the background and installed on quit
   const updatesAvailable = updatesOn({ packaged: app.isPackaged, fake: isFake(), profile: !!process.env.YOGURT_USER_DATA, platform: process.platform, appImage: !!process.env.APPIMAGE,
     feed: app.isPackaged && existsSync(join(process.resourcesPath, 'app-update.yml')),
     preview: app.isPackaged && isPreviewBuild((() => { try { return readFileSync(join(app.getAppPath(), 'package.json'), 'utf8') } catch { return '' } })()) })
-  hookUpdates({ file: join(userDataDir(), 'settings.json'), available: updatesAvailable, recording: () => !!activeMeeting(),
+  hookUpdates({ file: join(userDataDir(), 'settings.json'), available: updatesAvailable, recording: () => !!activeMeeting(), quiet: () => !!quietStart?.quiet(),
     // fake mode: a test pretends a version downloaded
     fake: isFake() && process.env.YOGURT_FAKE_UPDATE ? { version: process.env.YOGURT_FAKE_UPDATE, restarted: () => { updateRestarts++ } } : undefined })
     .catch((err) => console.warn("couldn't start looking for new versions", err))
