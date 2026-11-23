@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import ICAL from 'ical.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createCalendarLinks } from '../src/main/calendarLink'
+import { CalendarTooBig } from '../src/main/calendarLink/get'
 
 const ics = (name: string) => `BEGIN:VCALENDAR\nVERSION:2.0\nX-WR-CALNAME:${name}\nBEGIN:VEVENT\nUID:a@example.com\nSUMMARY:Standup\nDTSTART:20261117T170000Z\nDTEND:20261117T171500Z\nEND:VEVENT\nEND:VCALENDAR\n`
 const dirs: string[] = []
@@ -44,6 +45,10 @@ describe('calendar links (Windows and Linux): a private calendar address, kept o
     expect(await rig(() => '').links.add('ftp://example.com/cal.ics')).toEqual({ ok: false, error: 'bad-url' })
     expect(await rig(() => { throw new Error('offline') }).links.add('https://example.com/cal.ics')).toEqual({ ok: false, error: 'unreachable' })
     expect(await rig(() => '<html>Sign in</html>').links.add('https://example.com/cal.ics')).toEqual({ ok: false, error: 'not-calendar' })
+  })
+  it('a calendar too big or too slow to read says so, and a network failure still says it could not be reached (#146)', async () => {
+    expect(await rig(() => { throw new CalendarTooBig() }).links.add('https://example.com/cal.ics')).toEqual({ ok: false, error: 'too-big' })
+    expect(await rig(() => { throw new TypeError('fetch failed') }).links.add('https://example.com/cal.ics')).toEqual({ ok: false, error: 'unreachable' })
   })
   it("Google's public address says so when it fails (it works only for a public calendar), and works when the calendar is public", async () => {
     const pub = 'https://calendar.google.com/calendar/ical/alex%40example.com/public/basic.ics'

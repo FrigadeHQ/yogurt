@@ -764,6 +764,7 @@
   "Under \"Publish a calendar\", choose your calendar and \"Can view all details\", then Publish.": "У розділі «Publish a calendar» виберіть свій календар і «Can view all details», потім Publish.",
   "Under \"Settings for my calendars\", choose your calendar, then \"Integrate calendar\".": "У розділі «Settings for my calendars» виберіть свій календар, потім «Integrate calendar».",
   "Yogurt couldn't reach that address. Check your connection and the address.": "Yogurt не зміг відкрити цю адресу. Перевірте з’єднання та адресу.",
+  "This calendar is too big for Yogurt to read. Try a link that only shares upcoming events.": "Цей календар завеликий, щоб Yogurt міг його прочитати. Спробуйте посилання, яке відкриває доступ лише до майбутніх подій.",
   "{name} is connected. You can change this any time in Settings.": "{name}: під’єднано. Це можна змінити будь-коли в Параметрах.",
   "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Це загальнодоступна адреса, вона працює лише для загальнодоступного календаря. Скопіюйте натомість «Secret address in iCal format».",
   "Upload a file": "Завантажити файл",

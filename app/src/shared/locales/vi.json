@@ -694,6 +694,7 @@
   "Under \"Publish a calendar\", choose your calendar and \"Can view all details\", then Publish.": "Trong \"Publish a calendar\", chọn lịch của bạn và \"Can view all details\", rồi Publish.",
   "Under \"Settings for my calendars\", choose your calendar, then \"Integrate calendar\".": "Trong \"Settings for my calendars\", chọn lịch của bạn, rồi \"Integrate calendar\".",
   "Yogurt couldn't reach that address. Check your connection and the address.": "Yogurt không truy cập được địa chỉ đó. Hãy kiểm tra kết nối và địa chỉ.",
+  "This calendar is too big for Yogurt to read. Try a link that only shares upcoming events.": "Lịch này quá lớn nên Yogurt không đọc được. Hãy thử một liên kết chỉ chia sẻ các sự kiện sắp tới.",
   "{name} is connected. You can change this any time in Settings.": "Đã kết nối {name}. Bạn có thể đổi bất cứ lúc nào trong Cài đặt.",
   "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Đó là địa chỉ công khai, chỉ dùng được khi lịch của bạn ở chế độ công khai. Hãy sao chép \"Secret address in iCal format\" thay vào đó.",
   "Upload a file": "Tải tệp lên",

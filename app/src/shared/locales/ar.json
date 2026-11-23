@@ -792,6 +792,7 @@
   "Under \"Publish a calendar\", choose your calendar and \"Can view all details\", then Publish.": "ضمن \"Publish a calendar\"، اختر تقويمك و\"Can view all details\"، ثم Publish.",
   "Under \"Settings for my calendars\", choose your calendar, then \"Integrate calendar\".": "ضمن \"Settings for my calendars\"، اختر تقويمك، ثم \"Integrate calendar\".",
   "Yogurt couldn't reach that address. Check your connection and the address.": "لم يتمكن Yogurt من الوصول إلى هذا العنوان. تحقق من اتصالك ومن العنوان.",
+  "This calendar is too big for Yogurt to read. Try a link that only shares upcoming events.": "هذا التقويم أكبر من أن يقرأه Yogurt. جرّب رابطًا يشارك الأحداث القادمة فقط.",
   "{name} is connected. You can change this any time in Settings.": "تم ربط {name}. يمكنك تغيير ذلك في أي وقت من الإعدادات.",
   "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "هذا هو العنوان العام، ولا يعمل إلا إذا كان تقويمك عامًا. انسخ \"Secret address in iCal format\" بدلًا منه.",
   "Upload a file": "رفع ملف",

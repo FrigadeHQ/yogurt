@@ -694,6 +694,7 @@
   "Under \"Publish a calendar\", choose your calendar and \"Can view all details\", then Publish.": "\"Publish a calendar\"에서 캘린더와 \"Can view all details\"를 고른 뒤 Publish를 누르세요.",
   "Under \"Settings for my calendars\", choose your calendar, then \"Integrate calendar\".": "\"Settings for my calendars\"에서 캘린더를 고른 뒤 \"Integrate calendar\"로 가세요.",
   "Yogurt couldn't reach that address. Check your connection and the address.": "Yogurt가 그 주소에 연결하지 못했어요. 인터넷 연결과 주소를 확인하세요.",
+  "This calendar is too big for Yogurt to read. Try a link that only shares upcoming events.": "이 캘린더는 너무 커서 Yogurt가 읽을 수 없어요. 다가오는 일정만 공유하는 링크를 사용해 보세요.",
   "{name} is connected. You can change this any time in Settings.": "{name}이(가) 연결됐어요. 설정에서 언제든 바꿀 수 있어요.",
   "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "그건 공개 주소라서 캘린더가 공개일 때만 작동해요. 대신 \"Secret address in iCal format\"을 복사하세요.",
   "Upload a file": "파일 업로드",

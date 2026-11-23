@@ -694,6 +694,7 @@
   "Under \"Publish a calendar\", choose your calendar and \"Can view all details\", then Publish.": "Di \"Publish a calendar\", pilih kalender Anda dan \"Can view all details\", lalu Publish.",
   "Under \"Settings for my calendars\", choose your calendar, then \"Integrate calendar\".": "Di \"Settings for my calendars\", pilih kalender Anda, lalu \"Integrate calendar\".",
   "Yogurt couldn't reach that address. Check your connection and the address.": "Yogurt tidak bisa menjangkau alamat itu. Periksa koneksi dan alamatnya.",
+  "This calendar is too big for Yogurt to read. Try a link that only shares upcoming events.": "Kalender ini terlalu besar untuk dibaca Yogurt. Coba tautan yang hanya membagikan acara mendatang.",
   "{name} is connected. You can change this any time in Settings.": "{name} terhubung. Anda bisa mengubahnya kapan saja di Pengaturan.",
   "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Itu alamat publik, yang hanya berfungsi jika kalender Anda publik. Salin \"Secret address in iCal format\" sebagai gantinya.",
   "Upload a file": "Unggah file",

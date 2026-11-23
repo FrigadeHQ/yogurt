@@ -739,6 +739,7 @@
   "Under \"Publish a calendar\", choose your calendar and \"Can view all details\", then Publish.": "Στο «Publish a calendar», επιλέξτε το ημερολόγιό σας και «Can view all details», και μετά Publish.",
   "Under \"Settings for my calendars\", choose your calendar, then \"Integrate calendar\".": "Στο «Settings for my calendars», επιλέξτε το ημερολόγιό σας και μετά «Integrate calendar».",
   "Yogurt couldn't reach that address. Check your connection and the address.": "Το Yogurt δεν μπόρεσε να φτάσει σε αυτή τη διεύθυνση. Ελέγξτε τη σύνδεση και τη διεύθυνση.",
+  "This calendar is too big for Yogurt to read. Try a link that only shares upcoming events.": "Αυτό το ημερολόγιο είναι πολύ μεγάλο για να το διαβάσει το Yogurt. Δοκιμάστε έναν σύνδεσμο που κοινοποιεί μόνο τα επερχόμενα συμβάντα.",
   "{name} is connected. You can change this any time in Settings.": "Το {name} συνδέθηκε. Μπορείτε να το αλλάξετε όποτε θέλετε στις Ρυθμίσεις.",
   "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Αυτή είναι η δημόσια διεύθυνση, που λειτουργεί μόνο αν το ημερολόγιό σας είναι δημόσιο. Αντιγράψτε το «Secret address in iCal format».",
   "Upload a file": "Μεταφόρτωση αρχείου",

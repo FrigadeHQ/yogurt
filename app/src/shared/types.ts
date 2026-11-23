@@ -268,7 +268,7 @@ export type YogurtApi = {
     /** Windows and Linux: the calendar links connected (never their addresses) */
     links(): Promise<CalendarLinkInfo[]>
     /** connect a private calendar address; why not when it can't be */
-    addLink(url: string): Promise<{ ok: true; id: string; name: string } | { ok: false; error: 'bad-url' | 'unreachable' | 'not-calendar' | 'public-address' }>
+    addLink(url: string): Promise<{ ok: true; id: string; name: string } | { ok: false; error: 'bad-url' | 'unreachable' | 'not-calendar' | 'public-address' | 'too-big' }>
     removeLink(id: string): Promise<boolean>
   }
   /** what Yogurt may use: read it, ask for it (the Mac's own prompt), or open its pane of System Settings */

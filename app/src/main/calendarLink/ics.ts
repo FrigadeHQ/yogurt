@@ -53,6 +53,37 @@ function people(c: ICAL.Component, me: string | null): RawEvent['attendees'] {
   return out
 }
 
+const DAY_MS = 86_400_000
+const WEEKDAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA']
+
+/**
+ * Where to start walking a series so it reaches the window in a few steps (#146: years of daily meetings walked one
+ * by one from their first day, each read). Daily and weekly rules repeat every whole number of weeks, so their start
+ * moves forward by that many weeks and the same occurrences follow, in their own time zone. null: the series ended
+ * before the window. Other rules (monthly, counted, with extra dates) start where they start: they're a few a year.
+ */
+function nearWindow(ev: ICAL.Event, fromMs: number): ICAL.Time | null {
+  const start = ev.startDate
+  const rules = ev.component.getAllProperties('rrule')
+  if (rules.length !== 1 || ev.component.hasProperty('rdate')) return start
+  const rule = rules[0].getFirstValue() as ICAL.Recur
+  // a day's room: an end given as a date alone means the whole of that day
+  if (rule.until && !rule.count && rule.until.toJSDate().getTime() + DAY_MS < fromMs) return null
+  if (rule.count || (rule.freq !== 'DAILY' && rule.freq !== 'WEEKLY')) return start
+  const parts = Object.keys(rule.parts)
+  if (parts.some((p) => p !== 'BYDAY')) return start
+  // the first day itself counts as an occurrence, so the moved one must be a real one too
+  const byday = rule.parts.BYDAY as string[] | undefined
+  if (byday && !byday.includes(WEEKDAYS[start.dayOfWeek() - 1])) return start
+  const period = 7 * (rule.interval || 1)
+  // a period short of the window, so a change of clocks on the way can't step past its first occurrence
+  const periods = Math.floor((fromMs - start.toJSDate().getTime()) / (period * DAY_MS)) - 1
+  if (periods <= 0) return start
+  const moved = start.clone()
+  moved.adjust(periods * period, 0, 0, 0)
+  return moved
+}
+
 /** how far either side of a read the occurrences are worked out at once, so the next reads (each minute) reuse them */
 const SPAN_MS = 7 * 86_400_000
 
@@ -106,8 +137,9 @@ export function icsFeed(text: string, link: LinkRef) {
       // working out an occurrence (its moved copy, its end) is the slow part: only for ones that can reach the window
       const lasts = ev.duration.toSeconds() * 1000
       const moved = new Set(Object.keys(ev.exceptions))
-      const it = ev.iterator()
-      for (let i = 0, next = it.next(); next && i < MAX_STEPS; i++, next = it.next()) {
+      const startAt = nearWindow(ev, fromMs - lasts)
+      const it = startAt && ev.iterator(startAt)
+      for (let i = 0, next = it ? it.next() : null; it && next && i < MAX_STEPS; i++, next = it.next()) {
         const at = next.toJSDate().getTime()
         if (at >= toMs) break
         if (at + lasts <= fromMs || moved.has(next.toString())) continue
@@ -125,6 +157,8 @@ export function icsFeed(text: string, link: LinkRef) {
 
   let kept: { fromMs: number; toMs: number; events: RawEvent[] } | null = null
   return {
+    /** the feed's own name (Google names a person's calendar after them) */
+    name,
     /** Events that overlap [fromMs, toMs), all-day and cancelled ones left out */
     events(fromMs: number, toMs: number): RawEvent[] {
       if (!kept || fromMs < kept.fromMs || toMs > kept.toMs) {

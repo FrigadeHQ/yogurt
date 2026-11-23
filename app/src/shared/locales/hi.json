@@ -724,6 +724,7 @@
   "Under \"Publish a calendar\", choose your calendar and \"Can view all details\", then Publish.": "\"Publish a calendar\" में अपना कैलेंडर और \"Can view all details\" चुनें, फिर Publish करें।",
   "Under \"Settings for my calendars\", choose your calendar, then \"Integrate calendar\".": "\"Settings for my calendars\" में अपना कैलेंडर चुनें, फिर \"Integrate calendar\"।",
   "Yogurt couldn't reach that address. Check your connection and the address.": "Yogurt उस पते तक नहीं पहुंच सका। अपना कनेक्शन और पता जांचें।",
+  "This calendar is too big for Yogurt to read. Try a link that only shares upcoming events.": "यह कैलेंडर Yogurt के पढ़ने के लिए बहुत बड़ा है। ऐसा लिंक आज़माएं जो सिर्फ़ आने वाले इवेंट शेयर करे।",
   "{name} is connected. You can change this any time in Settings.": "{name} कनेक्ट हो गया है। आप इसे कभी भी सेटिंग्स में बदल सकते हैं।",
   "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "यह पब्लिक पता है, जो सिर्फ तभी काम करता है जब आपका कैलेंडर पब्लिक हो। इसकी जगह \"Secret address in iCal format\" कॉपी करें।",
   "Upload a file": "फ़ाइल अपलोड करें",

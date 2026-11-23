@@ -736,6 +736,7 @@
   "Under \"Publish a calendar\", choose your calendar and \"Can view all details\", then Publish.": "Under ”Publish a calendar” väljer du din kalender och ”Can view all details”, sedan Publish.",
   "Under \"Settings for my calendars\", choose your calendar, then \"Integrate calendar\".": "Under ”Settings for my calendars” väljer du din kalender, sedan ”Integrate calendar”.",
   "Yogurt couldn't reach that address. Check your connection and the address.": "Yogurt nådde inte den adressen. Kontrollera anslutningen och adressen.",
+  "This calendar is too big for Yogurt to read. Try a link that only shares upcoming events.": "Den här kalendern är för stor för Yogurt att läsa. Prova en länk som bara delar kommande händelser.",
   "{name} is connected. You can change this any time in Settings.": "{name} är ansluten. Du kan ändra det när som helst i Inställningar.",
   "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "Det är den offentliga adressen, som bara fungerar om kalendern är offentlig. Kopiera ”Secret address in iCal format” i stället.",
   "Upload a file": "Ladda upp en fil",

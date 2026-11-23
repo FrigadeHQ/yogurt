@@ -694,6 +694,7 @@
   "Under \"Publish a calendar\", choose your calendar and \"Can view all details\", then Publish.": "在“Publish a calendar”下选择你的日历和“Can view all details”，然后点 Publish。",
   "Under \"Settings for my calendars\", choose your calendar, then \"Integrate calendar\".": "在“Settings for my calendars”下选择你的日历，然后打开“Integrate calendar”。",
   "Yogurt couldn't reach that address. Check your connection and the address.": "Yogurt 无法访问该地址。请检查网络连接和地址。",
+  "This calendar is too big for Yogurt to read. Try a link that only shares upcoming events.": "这个日历太大，Yogurt 无法读取。请试试只共享即将到来的活动的链接。",
   "{name} is connected. You can change this any time in Settings.": "{name}已连接。你随时可以在设置中更改。",
   "That's the public address, which only works if your calendar is public. Copy \"Secret address in iCal format\" instead.": "这是公开地址，只有日历公开时才能使用。请改为复制“Secret address in iCal format”。",
   "Upload a file": "上传文件",

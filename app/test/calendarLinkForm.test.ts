@@ -69,6 +69,16 @@ it('holds dismissal during connection and keeps a failed address for correction'
  expect(h.get('calendar-link-error').props.children).toContain("isn't a calendar")
  expect(h.get('calendar-link-input').props.value).toBe('https://calendar.example/private');expect(busy).toHaveBeenLastCalledWith(false);expect(connected).not.toHaveBeenCalled()
 })
+it('says plainly when a calendar is too big to read, not that it could not be reached (#146)',async()=>{
+ let finish:(v:unknown)=>void=()=>{}
+ vi.stubGlobal('window',{yogurt:{calendar:{addLink:vi.fn(()=>new Promise(r=>{finish=r}))}}})
+ const h=harness(()=>CalendarLinkForm({only:'other',onConnected:vi.fn()}))
+ h.get('calendar-link-input').props.onChange({target:{value:'https://example.com/cal.ics'}});h.run()
+ h.get('calendar-link-form').props.onSubmit({preventDefault(){}});h.run()
+ finish({ok:false,error:'too-big'});await Promise.resolve();await Promise.resolve();h.run()
+ expect(h.get('calendar-link-error').props.children).toContain('too big')
+ expect(h.get('calendar-link-error').props.children).not.toContain("couldn't reach")
+})
 it('uses the same keyboard dismissal in setup while keeping its existing extra action',()=>{
  const cancel=vi.fn(),h=harness(()=>CalendarLinkForm({variant:'onboarding',extra:'Not now',onConnected:vi.fn(),onCancel:cancel}))
  expect(h.get('calendar-link-cancel')).toBeUndefined()

@@ -2,7 +2,8 @@ import { calendarAddress as normalize } from '../../shared/calendarLink'
 export { normalize }
 import { randomUUID } from 'node:crypto'
 import { loadSettings, updateSettings } from '../settings'
-import { icsFeed, icsName, type IcsFeed, type RawEvent } from './ics'
+import { CalendarTooBig } from './get'
+import { icsFeed, type IcsFeed, type RawEvent } from './ics'
 
 /**
  * Calendar links: Windows and Linux have no system calendar Yogurt can read, so the person pastes their calendar's
@@ -11,7 +12,7 @@ import { icsFeed, icsName, type IcsFeed, type RawEvent } from './ics'
  * come out in the Mac helper's shape, so the agenda, call detection and attendees work as on a Mac (calendar.ts).
  */
 
-export type LinkError = 'bad-url' | 'unreachable' | 'not-calendar' | 'public-address'
+export type LinkError = 'bad-url' | 'unreachable' | 'not-calendar' | 'public-address' | 'too-big'
 export type AddResult = { ok: true; id: string; name: string } | { ok: false; error: LinkError }
 type Stored = { id: string; name: string; host: string; url: string }
 
@@ -65,14 +66,20 @@ export function createCalendarLinks(d: {
       // Google's public address only answers for a public calendar; work accounts often have no secret one to use instead
       const publicGoogle = url.hostname === 'calendar.google.com' && /\/public\/[^/]*\.ics$/i.test(url.pathname)
       let t: string
-      try { t = await d.get(url.toString()) } catch { return { ok: false, error: publicGoogle ? 'public-address' : 'unreachable' } }
-      let name: string | null
-      try { name = icsName(t).name } catch { return { ok: false, error: publicGoogle ? 'public-address' : 'not-calendar' } }
+      try { t = await d.get(url.toString()) } catch (e) {
+        // reached, but more than Yogurt reads (#146): saying it couldn't be reached sent people checking their connection
+        if (e instanceof CalendarTooBig) return { ok: false, error: 'too-big' }
+        return { ok: false, error: publicGoogle ? 'public-address' : 'unreachable' }
+      }
       const id = randomUUID()
+      // parsed once here, and kept: a feed with years of history takes a moment to read
+      const ref = { id, name: '' }
+      let f: IcsFeed
+      try { f = icsFeed(t, ref) } catch { return { ok: false, error: publicGoogle ? 'public-address' : 'not-calendar' } }
       const host = url.hostname
-      const label = name ?? host
+      const label = ref.name = f.name ?? host
       updateSettings(d.file, { calendarLinks: [...stored(), { id, name: label, host, url: d.seal(url.toString()) }] })
-      cache.set(id, { text: t, at: now() })
+      cache.set(id, { text: t, at: now(), feed: f })
       return { ok: true, id, name: label }
     },
     remove(id: string) {
