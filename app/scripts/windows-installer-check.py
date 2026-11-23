@@ -97,9 +97,12 @@ def uninstall_entries(root) -> list[dict]:
             except OSError:
                 continue
             if str(name).startswith('Yogurt'):
-                try: loc = winreg.QueryValueEx(sub, 'InstallLocation')[0]
-                except OSError: loc = ''
-                out.append({'name': name, 'location': loc})
+                # electron-builder leaves InstallLocation out: the uninstaller's path says where it is
+                try: un = winreg.QueryValueEx(sub, 'UninstallString')[0]
+                except OSError: un = ''
+                m = re.match(r'"([^"]+)"', un)
+                entry = {'name': name, 'location': str(Path(m.group(1)).parent) if m else ''}
+                if entry not in out: out.append(entry)
     return out
 
 
