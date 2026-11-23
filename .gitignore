@@ -43,3 +43,8 @@ output/
 *.p8
 
 # written by next dev
+
+# plans, specs and agent notes stay local
+docs/superpowers/
+AGENTS.md
+CLAUDE.md
