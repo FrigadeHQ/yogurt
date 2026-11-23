@@ -265,6 +265,8 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
             <Jargon />
           </div>
 
+          <SummaryPrompt />
+
           <Backup onImported={() => { void window.yogurt.settings.get().then(setPrefs) }} />
 
           <AiApps />
@@ -351,6 +353,43 @@ function AppLanguage() {
       <ChevronDown size={14} aria-hidden="true" />
       </span>
     </div></LoadingContent>
+  )
+}
+
+/**
+ * The prompts summaries are written with, to read (not to change): the same text the notes model gets, each meeting's
+ * own details shown as <placeholders>. Read again each time it opens, so a new summary language shows at once.
+ */
+function SummaryPrompt() {
+  const [prompts, setPrompts] = useState<{ summary: string; part: string }>()
+  const [failed, setFailed] = useState(false)
+  const load = () => { setFailed(false); void window.yogurt.notes.promptPreview().then(setPrompts, () => setFailed(true)) }
+  return (
+    <>
+      <h2 className="settings-section-heading">{t('Summary prompt')}</h2>
+      <div data-testid="settings-summary-prompt" className="settings-group">
+        <p className="settings-description settings-prompt-intro">{t('What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.')}</p>
+        <PromptBlock testId="settings-prompt-summary" label={t('Summary')} text={prompts?.summary} failed={failed} onOpen={load} />
+        <PromptBlock testId="settings-prompt-part" label={t('Each part of a long meeting, summarized first')} text={prompts?.part} failed={failed} onOpen={load} />
+      </div>
+    </>
+  )
+}
+
+function PromptBlock({ testId, label, text, failed, onOpen }: { testId: string; label: string; text?: string; failed: boolean; onOpen: () => void }) {
+  const [copied, setCopied] = useState(false)
+  const copy = () => { if (text) void navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500) }, () => {}) }
+  return (
+    <details data-testid={testId} className="settings-prompt" onToggle={(e) => { if (e.currentTarget.open) onOpen() }}>
+      <summary className="settings-prompt-summary"><ChevronDown size={14} aria-hidden="true" className="settings-prompt-chevron" />{label}</summary>
+      {failed ? <p className="settings-description">{t("Yogurt couldn't show the prompt. Try again.")}</p>
+        : <div className="settings-prompt-body">
+          <button type="button" data-testid={`${testId}-copy`} className="ghost-btn settings-prompt-copy" disabled={!text} onClick={copy} aria-label={t('Copy')} title={t('Copy')}>
+            {copied ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+          </button>
+          <pre dir="ltr" lang="en" className="settings-prompt-text">{text ?? '…'}</pre>
+        </div>}
+    </details>
   )
 }
 

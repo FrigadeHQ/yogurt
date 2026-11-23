@@ -192,7 +192,7 @@ const startMeeting = async (app: ElectronApplication, page: Page) => {
   await page.getByRole('tab', { name: 'Transcript', exact: true }).click()
 }
 const audioOf = (page: Page) => page.locator('[data-testid^="player-audio-"]')
-const audioState = (page: Page) => audioOf(page).evaluateAll((els) => (els as HTMLAudioElement[]).map((a) => ({ track: a.dataset.track, time: a.currentTime, paused: a.paused, rate: a.playbackRate })))
+const audioState = (page: Page) => audioOf(page).evaluateAll((els) => (els as HTMLAudioElement[]).map((a) => ({ track: a.dataset.track, time: a.currentTime, paused: a.paused, rate: a.playbackRate, muted: a.muted })))
 
 test('each line shows when it was said, from the start of the meeting; no player while recording', async () => {
   const { app, page } = await launch()
@@ -236,7 +236,7 @@ test('the transcript follows new lines, unless the person scrolled up to read', 
   } finally { await app.close() }
 })
 
-test('after the meeting, clicking a line plays both sides from a second before it, with pause and speed', async () => {
+test('after the meeting, clicking a line plays just that line on its own side, then play goes on with both, with pause and speed', async () => {
   const { app, page } = await launch()
   try {
     await startMeeting(app, page)
@@ -247,10 +247,19 @@ test('after the meeting, clicking a line plays both sides from a second before i
     await page.getByTestId('note-transcript-toggle').click()
     await expect(page.getByTestId('player')).toBeVisible({ timeout: 15_000 })
     await expect(audioOf(page)).toHaveCount(2)
-    // the line at 13.3 s plays from 12.3 s, on both tracks
+    // their line at 13.3-14.8 s plays from 13.05 s with only their side heard, and stops by itself just after it ends
     await lines.filter({ hasText: 'She will send a draft' }).getByText('She will send a draft').click()
-    await expect.poll(async () => (await audioState(page)).every((a) => !a.paused && a.time >= 12.2 && a.time < 14.5)).toBe(true)
+    await expect.poll(async () => (await audioState(page)).every((a) => !a.paused && a.time >= 13 && a.time < 14.8)).toBe(true)
+    expect((await audioState(page)).map((a) => [a.track, a.muted]).sort()).toEqual([['me', true], ['them', false]])
+    await expect.poll(async () => (await audioState(page)).every((a) => a.paused && a.time >= 14.8 && a.time < 15.8), { timeout: 8_000 }).toBe(true)
+    await expect(page.getByTestId('player-toggle')).toHaveAttribute('aria-label', 'Play')
+    // play goes on from there with both sides heard
+    await page.getByTestId('player-toggle').click()
+    await expect.poll(async () => (await audioState(page)).every((a) => !a.paused && !a.muted && a.time >= 14.8)).toBe(true)
     await expect(page.getByTestId('player-toggle')).toHaveAttribute('aria-label', 'Pause')
+    // back to 5 s (the fake meeting ends soon after the line), still playing
+    await page.getByTestId('player-scrubber').fill('5')
+    await expect.poll(async () => (await audioState(page)).every((a) => !a.paused && a.time >= 5 && a.time < 8)).toBe(true)
     // faster, on both
     await page.getByTestId('player-speed').click()
     await expect(page.getByTestId('player-speed')).toHaveText('1.5×')
@@ -260,11 +269,11 @@ test('after the meeting, clicking a line plays both sides from a second before i
     // the line being played is marked, theirs as well as yours
     const playingLine = page.locator('[data-testid="transcript-line"][data-playing]')
     await expect(playingLine).toHaveCount(1)
-    await expect(playingLine).toContainText('She will send a draft')
     await page.getByTestId('player-toggle').click()
     await expect.poll(async () => (await audioState(page)).every((a) => a.paused)).toBe(true)
     // paused, the mark stays where it stopped
-    await expect(playingLine).toContainText('She will send a draft')
+    const stoppedAt = await playingLine.textContent()
+    await expect(playingLine).toHaveText(stoppedAt ?? '')
     // the scrubber moves both, and the mark jumps with it at once, while paused too
     await page.getByTestId('player-scrubber').fill('3')
     await expect.poll(async () => (await audioState(page)).map((a) => Math.round(a.time))).toEqual([3, 3])
@@ -502,9 +511,9 @@ test('playing follows along: the line being played moves down the list and stays
   const { app, page } = await launch()
   try {
     const { playingNo, where, comfy, scrollTop, scrollUp } = await playingLong(app, page)
-    // the mark moves line to line, from a second before the one clicked
-    await page.getByTestId('transcript-line').nth(4).click()
-    await expect.poll(playingNo).toBeGreaterThanOrEqual(4)
+    // Play moves the mark line to line (a clicked line plays only itself: see 'clicking a line plays just that line')
+    await page.getByTestId('player-toggle').click()
+    await expect.poll(playingNo).toBeGreaterThanOrEqual(1)
     const first = await playingNo()
     await expect.poll(playingNo).toBeGreaterThan(first + 2)
     // past the first screenful the list scrolls, keeping the line clear of the edges
@@ -558,12 +567,15 @@ test('paused, the mark stays and nothing scrolls; clicking a line follows again;
     expect(await playingNo()).toBe(stoppedAt)
     expect(await scrollTop()).toBe(top)
 
-    // scrolled away, then playing again: it doesn't pull them back; clicking a line plays from it and follows again
+    // scrolled away, then playing again: it doesn't pull them back; clicking a line plays it and follows again,
+    // and Play carries on from there
     await scrollUp()
     await page.getByTestId('player-toggle').click()
     await expect(page.getByTestId('transcript-follow')).toBeVisible()
     await page.getByTestId('transcript-line').nth(2).click()
     await expect(page.getByTestId('transcript-follow')).toHaveCount(0)
+    await expect(page.getByTestId('player-toggle')).toHaveAttribute('aria-label', 'Play')
+    await page.getByTestId('player-toggle').click()
     await expect.poll(playingNo, { timeout: 15_000 }).toBeGreaterThan(20)
     await expect.poll(comfy).toBe(true)
 

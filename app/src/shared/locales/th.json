@@ -722,5 +722,22 @@
   "Send feedback": "ส่งความคิดเห็น",
   "Help and settings": "ความช่วยเหลือและการตั้งค่า",
   "Yogurt menu": "เมนู Yogurt",
-  "Restart to update · {version}": "เริ่มใหม่เพื่ออัปเดต · {version}"
+  "Restart to update · {version}": "เริ่มใหม่เพื่ออัปเดต · {version}",
+  "All lines marked Them": "ทุกบรรทัดที่ระบุว่า “คนอื่น”",
+  "All of {name}'s lines": "ทุกบรรทัดของ {name}",
+  "Attendees": "ผู้เข้าร่วม",
+  "Change to {name}": "เปลี่ยนเป็น {name}",
+  "Change who is speaking": "เปลี่ยนผู้พูด",
+  "Each part of a long meeting, summarized first": "แต่ละช่วงของการประชุมที่ยาว สรุปก่อน",
+  "Just this turn": "เฉพาะช่วงนี้",
+  "New name": "ชื่อใหม่",
+  "New name…": "ชื่อใหม่…",
+  "Speakers": "ผู้พูด",
+  "Summary prompt": "พรอมต์สรุป",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "สิ่งที่ Yogurt ขอจากโมเดลบันทึกเมื่อเขียนสรุป คำใน <วงเล็บมุม> จะเติมจากแต่ละการประชุม",
+  "Who is speaking?": "ใครกำลังพูด",
+  "Yogurt couldn't show the prompt. Try again.": "Yogurt แสดงพรอมต์ไม่ได้ ลองอีกครั้ง",
+  "Getting the voice model…": "กำลังดาวน์โหลดโมเดลเสียง…",
+  "Matching voices…": "กำลังจับคู่เสียง…",
+  "Telling voices apart…": "กำลังแยกเสียงพูด…"
 }

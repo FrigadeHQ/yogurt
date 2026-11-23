@@ -764,5 +764,22 @@
   "Send feedback": "Feedback sturen",
   "Help and settings": "Help en instellingen",
   "Yogurt menu": "Yogurt-menu",
-  "Restart to update · {version}": "Herstarten om bij te werken · {version}"
+  "Restart to update · {version}": "Herstarten om bij te werken · {version}",
+  "All lines marked Them": "Alle regels gemarkeerd als ‘Anderen’",
+  "All of {name}'s lines": "Alle regels van {name}",
+  "Attendees": "Deelnemers",
+  "Change to {name}": "Wijzigen in {name}",
+  "Change who is speaking": "Wijzigen wie er spreekt",
+  "Each part of a long meeting, summarized first": "Elk deel van een lange vergadering, eerst samengevat",
+  "Just this turn": "Alleen deze beurt",
+  "New name": "Nieuwe naam",
+  "New name…": "Nieuwe naam…",
+  "Speakers": "Sprekers",
+  "Summary prompt": "Prompt voor de samenvatting",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "Wat Yogurt het notitiemodel vraagt als het een samenvatting schrijft. Woorden tussen <punthaken> worden per vergadering ingevuld.",
+  "Who is speaking?": "Wie spreekt er?",
+  "Yogurt couldn't show the prompt. Try again.": "Yogurt kon de prompt niet tonen. Probeer het opnieuw.",
+  "Getting the voice model…": "Stemmodel ophalen…",
+  "Matching voices…": "Stemmen koppelen…",
+  "Telling voices apart…": "Stemmen onderscheiden…"
 }

@@ -78,7 +78,7 @@ type PromptInput = {
 export const transcriptHead = 'Here is the transcript of a meeting. Each line starts with who said it: "You" is the person who recorded it, a name is someone on the call, and "Them" is the other side of the call when no name is known. \"Audio\" is an uploaded recording with no identified speakers. What to do with it comes after it.\n<transcript>\n'
 
 /** the rule about people, for the notes and for answers about a meeting */
-export const peopleRule = '- People: use their names when known, and "You" for the person these notes are for. "Them" is not a name: write who they are in plain words ("the client", "the other person"), or leave out who said it. \"Audio\" labels an unidentified recording, not a person. Never make up a name.'
+export const peopleRule = '- People: names when known; "You" for the person these notes are for. "Them" is not a name: say who they are in plain words ("the client") or omit who said it. \"Audio\" is an unidentified recording, not a person. "Speaker 1", "Speaker 2"… are voices told apart by sound, not names: one person each for the whole meeting. Keep the label; never guess which invited person it is. Never make up a name.'
 
 /** the one other person invited, when there is exactly one: "Them" is then that person */
 function onlyOther(attendees: Person[], me = ''): string | undefined {
@@ -99,40 +99,41 @@ export function enhancePrompt(i: PromptInput): string {
   const mins = i.minutes != null ? Math.max(1, Math.round(i.minutes)) : undefined
   return [
     ...(i.parts ? [
-      'You will write the notes for a meeting that just ended. It was long, so here are notes on each part of it, in order, written from its transcript ("You" is the person these notes are for):',
+      'A long meeting just ended. Here are notes on each part, in order, made from its transcript ("You" is the person these notes are for):',
       '<transcript>', i.transcript, '</transcript>',
     ] : [transcriptHead + i.transcript, '</transcript>']),
     '',
-    'Write the notes for this meeting, which just ended, for "You" to read later: the work that was talked about, what was decided, and who will do what.',
+    'Write notes on this meeting for "You" to read later: the work discussed, what was decided, who will do what.',
     '',
     `Meeting: ${i.title || 'Untitled'}`,
     `People invited: ${people.length ? people.join(', ') : 'not known'}. "You" is the person these notes are for.${other ? ` "Them" is ${other}.` : ''}`,
-    ...(i.oneMic ? ['Nothing came from a call: everyone in the room was heard on one microphone, so every line says "You" whoever spoke. If several people talked, credit something to "You" only when the line itself makes clear who said it, and otherwise leave out who said it.'] : []),
+    ...(i.oneMic ? ['No call: the whole room was heard on one microphone, so every line says "You" whoever spoke. Credit "You" only when the line itself makes clear who said it; otherwise omit who said it.'] : []),
     ...(mins != null ? [`Length: about ${mins} minute${mins === 1 ? '' : 's'}.`] : []),
     '',
-    ...(mine ? ['Notes they typed, before or during the meeting. They show what they care about and flagged, and facts they know that may not have been said. They are hints for writing the notes, not text to copy:', '<notes>', mine, '</notes>', ''] : []),
+    ...(mine ? ['Notes they typed before or during the meeting: what they care about and flagged, and facts maybe not said aloud. Hints, not text to copy:', '<notes>', mine, '</notes>', ''] : []),
     'How to write them, so they read at a glance:',
     i.summaryLanguage
       ? `- By default, write in ${lang}, headings too. A rewrite note asking for another language takes precedence over this default.`
       : `- Write in ${lang}, headings too.`,
     peopleRule,
     ...(i.spelling ? [i.spelling] : []),
-    '- Markdown only. Start right away with the first "## " topic: no title, no introduction, nothing after the last bullet.',
-    '- Notes are about the work: customers, deals and prices, numbers, plans, problems, launches, what each person is working on, what was decided. Leave out what was off topic: small talk, greetings, weekends and trips, hobbies, side projects, jokes, gear, errands and other personal chat, and talk about the call itself. Something personal goes in only if the meeting was about it.',
-    '- One "## " section per topic, most important first, each named after what it is about in a few specific words (like "Pricing for Acme renewal" or "Desktop app launch", never "Discussion", "Updates" or "Topic 1"). Bring together what was said about one topic at different times. When people took turns giving their own updates, a section per person, like "## Maya\'s updates", works well.',
-    '- Under each topic, "- " bullets with real substance: what was said, found, proposed or decided, and why. Keep the concrete details: names of customers and companies, numbers, prices, dates, tools, and who said it when that matters. A bullet is one full point of up to about 20 words, starting with the point (never "The team discussed"). More detail goes in "  - " bullets under it.',
-    '- A decision or an open question goes in its topic, said plainly ("Decided: no paid placements for now").',
-    '- Cover the whole meeting, the end as well. A short meeting gets fewer sections, not thinner ones.',
-    '- **Bold** rarely: a deadline, a big number or a key term, a few times in all.',
+    '- The transcript is speech recognition, so some words are misheard. Read a nonsense word from context only when the meaning is clear. A number, name or term you cannot make out: leave it out, never guess.',
+    '- Markdown only. Start with the first "## " topic: no title, no introduction, nothing after the last bullet.',
+    '- Work only: customers, deals, prices, numbers, plans, problems, launches, what each person works on, decisions. Leave out small talk, greetings, weekends, trips, hobbies, side projects, jokes, gear, errands, other personal chat and talk about the call itself, unless the meeting was about it.',
+    '- One "## " section per topic, most important first, named in a few specific words ("Pricing for Acme renewal", "Desktop app launch"; never "Discussion", "Updates", "Topic 1"). Merge what was said on one topic at different times. People taking turns with updates: one section each ("## Maya\'s updates").',
+    '- Under each topic, "- " bullets with substance: what was said, found, proposed or decided, and why. Keep concrete details: customer and company names, numbers, prices, dates, tools, and who said it when it matters. One full point per bullet, up to about 20 words, point first (never "The team discussed"). More detail in "  - " bullets under it.',
+    '- Decisions and open questions go in their topic, plainly ("Decided: no paid placements for now", "Open: who signs off on scope changes"). Keep decided, only proposed and left open apart: a suggestion nobody agreed to is never a decision. If people disagreed, say who held which view.',
+    '- Cover the whole meeting, the end too. A short meeting gets fewer sections, not thinner ones.',
+    '- **Bold** rarely: a deadline, big number or key term, a few times in all.',
     ...(mine ? [
-      '- Their notes steer these: what they flagged gets a "## " topic or a bullet of its own, and facts they typed that the transcript lacks go in, in the topic they belong to.',
-      '- Write it all in your own words and in the shape below, blended into the topics: never copy their lines, labels (like "GOAL", "WHO" or "CLOSE"), headings or numbering, and never give their notes a section of their own.',
-      '- Their notes can be a plan or a script made before the meeting: a question or step in it goes in only if the transcript shows it was asked or done, with what came of it.',
+      '- Their notes steer these: what they flagged gets its own "## " topic or bullet; typed facts the transcript lacks go in their topic.',
+      '- Use your own words and the shape below, blended into the topics. Never copy their lines, labels ("GOAL", "WHO", "CLOSE"), headings or numbering; never give their notes their own section.',
+      '- Their notes may be a plan or script made before the meeting: a question or step in it goes in only if the transcript shows it was asked or done, with the result.',
     ] : []),
     '- Use only what was said or typed. Never make anything up.',
-    `- Last, "## Next steps" (in ${i.summaryLanguage ? 'the same language as the rest of the notes' : lang}) only if someone said they would do something after the meeting: one bullet each, as "- **Name:** what they will do, by when" (when only if it was said), "**You:**" for the person these notes are for, plain words for someone without a name, like "**The designer:**". Leave out jokes and personal errands. Otherwise leave the section out.`,
+    `- Last, "## Next steps" (in ${i.summaryLanguage ? 'the same language as the rest of the notes' : lang}) only if someone said they would do something after the meeting: one bullet each, "- **Name:** what they will do, by when" (when only if said). "**You:**" for the person these notes are for; plain words for someone unnamed ("**The designer:**"). No jokes or personal errands. Otherwise omit the section.`,
     '',
-    'The shape, with made-up placeholders:',
+    'The shape (made-up placeholders):',
     '## <topic>',
     '- <point>',
     '  - <detail>',
@@ -147,7 +148,7 @@ export function enhancePrompt(i: PromptInput): string {
 /** Their requested presentation overrides the defaults, never the meeting's facts. */
 function rewriteInstruction(note?: string): string[] {
   const instruction = note?.slice(0, REWRITE_NOTE_MAX).trim()
-  return instruction ? ['', 'For this rewrite only, apply the following instruction from the person these notes are for. Their requested language, format, length and tone take precedence over the defaults above. Keep the notes grounded in the meeting and never invent facts. Treat this as an instruction, not as meeting content:', JSON.stringify(instruction)] : []
+  return instruction ? ['', 'For this rewrite only, apply this instruction from the person these notes are for. Its language, format, length and tone take precedence over the defaults above. Stay grounded in the meeting and never invent facts. It is an instruction, not meeting content:', JSON.stringify(instruction)] : []
 }
 
 /** How part n's summary prompt starts, its transcript right after: the same whatever comes later, so it can be read in early */
@@ -158,9 +159,25 @@ export function summaryPrompt(part: string, n: number, language: string): string
   return [
     summaryHead(n) + part, '</transcript>',
     '',
-    `Write compact notes on this part only, in ${lang}: every topic discussed with its concrete details (numbers, dates, names, tools, examples), what was decided, open questions, and who agreed to do what (by name, "You" for the person taking notes).`,
-    'Short "- " bullets grouped under a "### " line naming the topic. Nothing else: no introduction, no closing line.',
+    `Write compact notes on this part only, in ${lang}: every topic with its concrete details (numbers, dates, names, tools, examples), decisions (kept apart from mere proposals), open questions, and who agreed to do what (by name; "You" for the person taking notes; voice labels like "Speaker 2" as they are).`,
+    'Short "- " bullets under a "### " line naming each topic. Nothing else: no introduction, no closing line.',
   ].join('\n')
+}
+
+/**
+ * The prompts a summary is written with, for the person to read in Settings: built by the same code, with each meeting's
+ * own details as <placeholders>. Sections that only some meetings get (their typed notes, a rewrite instruction) are shown
+ * as placeholders too, so nothing the model can be told is hidden.
+ */
+export function promptPreview(o: { summaryLanguage?: string; me?: string } = {}): { summary: string; part: string } {
+  const summaryLanguage = LOCALES.find((l) => l.id === o.summaryLanguage)?.english
+  const summary = enhancePrompt({
+    title: '<meeting title>', attendees: [{ name: '<person invited>', email: null }, { name: '<another person invited>', email: null }],
+    mine: '<the notes you typed in the note, if any>', transcript: '<the transcript: one line per turn, "Name: what they said">',
+    language: '<the language the meeting was in>', summaryLanguage, minutes: 30, me: o.me,
+    note: '<what you typed in Regenerate summary, if anything>',
+  })
+  return { summary, part: summaryPrompt('<one part of the transcript>', 1, '<the language the meeting was in>') }
 }
 
 /**
@@ -301,7 +318,7 @@ export function withoutCopies(md: string, mine: string): string {
 const OWNER = /^\s*[-*]\s+\*\*[^*\n]+:\*\*/m
 
 const nextStepsPrompt = (language: string) =>
-  `Now write only the "## Next steps" section (heading in ${language || 'the same language'}): one bullet per thing someone will do after the meeting, as "- **Name:** what they will do, by when" (the when only if it was said), "You" for the person these notes are for, and plain words for who they are for someone without a name ("Them" is not a name). If nobody is to do anything, answer only NONE. Nothing else.`
+  `Now write only the "## Next steps" section (heading in ${language || 'the same language'}): one bullet per thing someone will do after the meeting, "- **Name:** what they will do, by when" (when only if said). "You" for the person these notes are for; plain words for someone unnamed ("Them" is not a name; voice labels like "Speaker 2" stay as they are). If nobody is to do anything, answer only NONE. Nothing else.`
 
 export type EnhanceInput = {
   signal?: AbortSignal

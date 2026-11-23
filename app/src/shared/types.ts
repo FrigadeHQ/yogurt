@@ -115,6 +115,11 @@ export type YogurtApi = {
     onChange(cb: () => void): () => void
   }
   /** the words heard in a meeting, live */
+  /** telling the voices apart after a meeting: where it has got, now and as it goes */
+  voices: {
+    progress(meetingId: string): Promise<VoicesProgress | null>
+    onProgress(cb: (v: VoicesProgress) => void): () => void
+  }
   transcript: {
     draft(meetingId:string):Promise<Segment[]>
     onDraft(cb:(meetingId:string)=>void):()=>void
@@ -125,6 +130,9 @@ export type YogurtApi = {
     get(meetingId: string, o?: { hidden?: boolean; last?: number }): Promise<Segment[]>
     /** brings hidden lines back: the ones given, or all of the meeting's */
     restore(meetingId: string, ids?: number[]): Promise<void>
+    /** who spoke, set by the person: one turn's lines (ids), or every line of a speaker (from; null: the lines marked Them).
+     * False when it couldn't be changed (recording, an empty name, the meeting gone). */
+    setSpeaker(meetingId: string, target: { ids: number[] } | { from: string | null }, name: string): Promise<boolean>
     /** each line as it is saved (a me line a couple of seconds after it was said); returns the way to stop listening */
     onSegment(cb: (s: Omit<Segment, 'id'>) => void): () => void
     /** the meeting's saved lines changed (names from the call after it, echo lines shown again): read them again with get */
@@ -135,6 +143,8 @@ export type YogurtApi = {
   /** the person's own notes and the enhanced notes written after the meeting (Markdown) */
   notes: {
     get(meetingId: string): Promise<NoteView>
+    /** the prompts summaries are written with, each meeting's details as <placeholders>: the notes, and each part of a long meeting */
+    promptPreview(): Promise<{ summary: string; part: string }>
     /** saves what the person typed (sent without waiting, so a closing window still gets it out) */
     setMine(meetingId: string, md: string, revision: number): Promise<NoteSaveResult>
     /** saves the person's changes to the enhanced notes */
@@ -392,6 +402,12 @@ export type SearchResult = { meetingId: string; title: string; startedAt: number
 export type NoteStatus = 'idle' | 'waiting' | 'writing' | 'done' | 'failed' | 'empty' | 'stopped'
 export type NoteSide = 'mine' | 'enhanced'
 export type NoteSaveResult = { revision: number; status: 'saved' | 'failed'; retained?: boolean; reason?: 'too-long' }
+/** telling the voices apart after a meeting (main/voices): the model's first download, reading the recording, then
+ * grouping the voices; done once it is over, whether or not it named anyone */
+export type VoicesProgress =
+  | { meetingId: string; phase: 'downloading' | 'listening' | 'grouping'; fraction: number }
+  | { meetingId: string; phase: 'done' }
+
 export type NoteView = {
   meetingId: string; mine: string; enhanced: string | null; edited: boolean; status: NoteStatus; draft: string
   /** a long meeting is read in parts before the notes are written: which one */

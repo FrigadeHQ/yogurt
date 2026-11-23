@@ -559,6 +559,37 @@ export class Store {
     } catch (e) { this.db.exec('ROLLBACK'); throw e }
   }
 
+  /**
+   * The person says who spoke, on the other side only (the mic is always them): the lines given (one turn), or every
+   * line that had a speaker (null: the lines marked Them). Renaming a whole speaker keeps its colour; merging into a
+   * name already there drops the old one. Returns how many lines changed, or null for a name that is empty.
+   */
+  setSpeaker(meetingId: string, target: { ids: number[] } | { from: string | null }, raw: string): number | null {
+    const to = raw.replace(/\s+/g, ' ').trim().slice(0, 200)
+    if (!to) return null
+    this.db.exec('SAVEPOINT set_speaker')
+    try {
+      let changed = 0
+      if ('ids' in target) {
+        const up = this.db.prepare("UPDATE segments SET speaker = ? WHERE id = ? AND meeting_id = ? AND track = 'them'")
+        for (const id of target.ids) changed += Number(up.run(to, id, meetingId).changes)
+      } else {
+        changed = Number(this.db.prepare("UPDATE segments SET speaker = ? WHERE meeting_id = ? AND track = 'them' AND speaker IS ?").run(to, meetingId, target.from).changes)
+        const row = this.db.prepare('SELECT speaker_order FROM meetings WHERE id = ?').get(meetingId) as Row | undefined
+        const order = row ? JSON.parse(String(row.speaker_order)) as string[] : []
+        const at = target.from === null ? -1 : order.indexOf(target.from)
+        if (at >= 0) {
+          const next = order.includes(to) ? order.filter((_, i) => i !== at) : order.map((n, i) => (i === at ? to : n))
+          this.db.prepare('UPDATE meetings SET speaker_order = ? WHERE id = ?').run(JSON.stringify(next), meetingId)
+        }
+      }
+      this.db.exec('RELEASE set_speaker')
+      // a name that is new to the meeting takes the next colour
+      if (changed) this.speakerOrder(meetingId, to)
+      return changed
+    } catch (e) { this.db.exec('ROLLBACK TO set_speaker; RELEASE set_speaker'); throw e }
+  }
+
   /** edited: the person changed the enhanced notes since they were written */
   notes(meetingId: string): Notes {
     const r = this.db.prepare('SELECT mine, enhanced, edited FROM notes WHERE meeting_id = ?').get(meetingId) as Row | undefined

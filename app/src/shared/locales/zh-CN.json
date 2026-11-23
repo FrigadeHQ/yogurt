@@ -722,5 +722,22 @@
   "Send feedback": "发送反馈",
   "Help and settings": "帮助和设置",
   "Yogurt menu": "Yogurt 菜单",
-  "Restart to update · {version}": "重启以更新 · {version}"
+  "Restart to update · {version}": "重启以更新 · {version}",
+  "All lines marked Them": "所有标为“对方”的行",
+  "All of {name}'s lines": "{name} 的所有行",
+  "Attendees": "参会者",
+  "Change to {name}": "改为 {name}",
+  "Change who is speaking": "更改发言人",
+  "Each part of a long meeting, summarized first": "长会议的每一部分（先行摘要）",
+  "Just this turn": "仅此轮发言",
+  "New name": "新名字",
+  "New name…": "新名字…",
+  "Speakers": "发言人",
+  "Summary prompt": "摘要提示词",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "Yogurt 写摘要时向笔记模型提出的要求。<尖括号>中的词会按每场会议填写。",
+  "Who is speaking?": "谁在发言？",
+  "Yogurt couldn't show the prompt. Try again.": "Yogurt 无法显示提示词。请重试。",
+  "Getting the voice model…": "正在获取声音模型…",
+  "Matching voices…": "正在匹配声音…",
+  "Telling voices apart…": "正在区分声音…"
 }

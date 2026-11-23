@@ -8,6 +8,8 @@ import type { Queue } from './queue'
 
 /** The notes wait for the transcript and the names from the call, but never longer than this for the names */
 export const NAMES_WAIT_MS = 60_000
+/** telling the voices apart takes minutes on a long meeting; past this the summary goes ahead, and the names follow it */
+export const VOICES_WAIT_MS = 20 * 60_000
 /** people changed after the notes were written: they are written again once no more changes came for this long */
 export const PEOPLE_REWRITE_MS = 3000
 /** Reject oversized notes without silently discarding any accepted editor text. */
@@ -29,6 +31,9 @@ export function hookNotes(p: {
   transcribed: (id: string) => Promise<void>
   /** the names from the call are on its lines (callNames) */
   named?: (id: string) => Promise<void>
+  /** the other voices are told apart and named (voices/), once the meeting is finished: after the call's names */
+  voiced?: (id: string) => Promise<void>
+  voicesWaitMs?: number
   /** the language most of the meeting was in, when the transcription knows it */
   language: (id: string) => string | null
   /** read when writing, so regenerations use the current default */
@@ -240,6 +245,8 @@ export function hookNotes(p: {
       await p.transcribed(m.id)
       // the names from the call are quick; a stuck pass never holds the notes back for long
       if (p.named) await upTo(p.named(m.id), p.namesWaitMs ?? NAMES_WAIT_MS)
+      // then who is who by voice, so the summary is written with them (resumed meanwhile: it waits for the next stop)
+      if (p.voiced && !resuming.has(m.id) && afterStop.get(m.id) === done) await upTo(p.voiced(m.id), p.voicesWaitMs ?? VOICES_WAIT_MS)
       if (!resuming.has(m.id) && afterStop.get(m.id) === done) await queueWrite(m.id)
     }).catch((e) => console.error('notes after the meeting failed', e)).finally(() => { if (afterStop.get(m.id) === done) afterStop.delete(m.id) })
     afterStop.set(m.id, done)

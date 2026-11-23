@@ -722,5 +722,22 @@
   "Send feedback": "傳送意見回饋",
   "Help and settings": "說明與設定",
   "Yogurt menu": "Yogurt 選單",
-  "Restart to update · {version}": "重新啟動以更新 · {version}"
+  "Restart to update · {version}": "重新啟動以更新 · {version}",
+  "All lines marked Them": "所有標為「對方」的行",
+  "All of {name}'s lines": "{name} 的所有行",
+  "Attendees": "與會者",
+  "Change to {name}": "改為 {name}",
+  "Change who is speaking": "變更發言者",
+  "Each part of a long meeting, summarized first": "長會議的每一部分（先行摘要）",
+  "Just this turn": "僅此輪發言",
+  "New name": "新名稱",
+  "New name…": "新名稱…",
+  "Speakers": "發言者",
+  "Summary prompt": "摘要提示詞",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "Yogurt 撰寫摘要時向筆記模型提出的要求。<角括號>中的字詞會依每場會議填入。",
+  "Who is speaking?": "誰在發言？",
+  "Yogurt couldn't show the prompt. Try again.": "Yogurt 無法顯示提示詞。請再試一次。",
+  "Getting the voice model…": "正在取得聲音模型…",
+  "Matching voices…": "正在比對聲音…",
+  "Telling voices apart…": "正在區分聲音…"
 }
