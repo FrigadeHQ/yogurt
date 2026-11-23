@@ -25,6 +25,7 @@ import os from 'node:os'
 import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { isFake, userDataDir } from './paths'
+import { ensureDesktopEntry } from './linuxDesktopEntry'
 import { logToFile } from './log'
 import { includesRecordingCredit, loadSettings, localeOf, keepsRecording, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings, visibilityOf, summaryLanguageSetting } from './settings'
 import { CALL_GONE_MS, micPids, useCallApps, watchEveryMs, type MicApp } from './detect'
@@ -130,6 +131,12 @@ function openExternally(url: string) {
 let updateWidgetVisibility = () => {}
 let recordingPillChanged = (_on: boolean) => {}
 let sendWidgetTranscript = (_channel: string, _value: unknown) => {}
+/** the app's logo for a Linux window: packed next to the app (electron-builder.yml's linux extraResources), or the build folder's in dev */
+function linuxWindowIcon(): string {
+  const packed = process.resourcesPath && join(process.resourcesPath, 'icon.png')
+  return packed && existsSync(packed) ? packed : join(__dirname, '../../build/icons/256x256.png')
+}
+
 function createWindow() {
   // the size and place it was left at (windowState.ts); test runs (fake mode) always start at the default, so one
   // test's resize never carries into the next
@@ -139,6 +146,9 @@ function createWindow() {
   win = new BrowserWindow({
     x: place.x, y: place.y, width: place.width, height: place.height, minWidth: 720, minHeight: 520,
     title: 'Yogurt',
+    // Linux takes the dock and Alt+Tab icon from the window itself when no installed .desktop file claims it
+    // (an AppImage, or pnpm dev); without one the desktop shows a generic gear
+    ...(process.platform === 'linux' ? { icon: linuxWindowIcon() } : {}),
     ...windowChrome(process.platform, nativeTheme.shouldUseDarkColors),
     show: false,
     // hidden pages would otherwise pause timers and animations
@@ -519,6 +529,14 @@ app.whenReady().then(() => {
   console.info('APP', `trusting ${systemCerts} certificates from the system on top of the built-in ones`)
   // Local Electron launches need the same Dock icon as the packaged application.
   if (!app.isPackaged && process.platform === 'darwin') app.dock?.setIcon(join(__dirname, '../../build/icon.png'))
+  // GNOME shows the dock icon only from an installed desktop file; an AppImage or pnpm dev has none (test runs leave the home folder alone)
+  if (process.platform === 'linux' && !isFake()) {
+    try {
+      const dataHome = process.env.XDG_DATA_HOME || join(os.homedir(), '.local', 'share')
+      const dataDirs = (process.env.XDG_DATA_DIRS || '/usr/local/share:/usr/share').split(':').filter(Boolean)
+      console.info('APP', `desktop file: ${ensureDesktopEntry({ dataHome, dataDirs, icon: linuxWindowIcon(), appImage: process.env.APPIMAGE, execPath: process.execPath })}`)
+    } catch (e) { console.warn('APP', 'desktop file not written', e) }
+  }
   const settings = loadSettings(join(userDataDir(), 'settings.json'))
   // Repair conflicting saved choices before the first window or recording.
   const visible = visibilityOf(settings, platform)

@@ -134,6 +134,8 @@ linux:
     - { from: resources/speed, to: speed }
     # the tray's colour icons (tray.ts; @2x next to them), a Mac uses its template tray.png
     - { from: resources, to: ., filter: ["tray-color*.png", "tray-recording*.png"] }
+    # the window's own icon (index.ts linuxWindowIcon): the dock shows it when no installed .desktop file names one
+    - { from: build/icons/256x256.png, to: icon.png }
   artifactName: Yogurt-linux-${arch}.${ext}
   target:
     - target: AppImage
