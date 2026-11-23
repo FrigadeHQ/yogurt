@@ -40,7 +40,7 @@ const webexCurrentWindows = (): WatchLine['windows'] => [{ title: 'Webex meeting
 ] }] } }]
 const webexLine = (t: number): WatchLine => ({ t, app: 'Cisco-Systems.Spark', windows: webexWindows() })
 
-function setup(o: { app?: string | null; attendees?: Meeting['attendees']; micPids?: Record<string, number[]> } = {}) {
+function setup(o: { app?: string | null; attendees?: Meeting['attendees']; micPids?: Record<string, number[]>; myNames?: string[] } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'yogurt-callnames-')); dirs.push(root)
   const store = openStore(join(root, 'yogurt.db')); stores.push(store)
   const m = store.createMeeting({ title: 'Sync', startedAt: 1_000_000, endedAt: null, eventId: null, app: o.app === undefined ? 'Zoom' : o.app, attendees: o.attendees ?? [], state: 'recording' })
@@ -55,7 +55,7 @@ function setup(o: { app?: string | null; attendees?: Meeting['attendees']; micPi
   let transcribed!: () => void
   const done = new Promise<void>((r) => { transcribed = r })
   const hook = hookCallNames({
-    store, myNames: () => ['Alex Morgan'], transcribed: () => done, changed: (id) => changed.push(id), log: (s) => logs.push(s), now: () => clock, every: () => {},
+    store, myNames: () => o.myNames ?? ['Alex Morgan'], transcribed: () => done, changed: (id) => changed.push(id), log: (s) => logs.push(s), now: () => clock, every: () => {},
     watch: (ids, onLine, pids) => { watched.push(ids); watchedPids.push(pids); emit = onLine; return { stop: () => { stopped++ } } },
     micPids: (app) => micPids[app] ?? [],
     onStart: (fn) => starts.push(fn), onStop: (fn) => stops.push(fn), onCapture: (fn) => captures.push(fn), onBind: (fn) => binds.push(fn),
@@ -258,6 +258,24 @@ describe('hookCallNames', () => {
     // learned once: the watch isn't started again on every check
     s.hook.checkQuiet()
     expect(s.watchedPids).toHaveLength(2)
+  })
+
+  it('a 1:1 Teams call names every line of the other side after that person, with my own name not set (#83)', async () => {
+    const s = setup({ app: 'Teams', myNames: [] })
+    s.start()
+    s.audio(0, 1_000_100)
+    s.store.addSegments([
+      { meetingId: s.m.id, track: 'them', startMs: 1000, endMs: 3000, text: 'Hallo.', speaker: null },
+      { meetingId: s.m.id, track: 'them', startMs: 6000, endMs: 9000, text: 'Bis dann.', speaker: null },
+    ])
+    const tree: AxNode = { r: 'frame', k: [
+      { r: 'push button', i: 'hold-button', t: 'Halten' }, { r: 'push button', i: 'hangup-button', t: 'Auflegen' },
+      { r: 'menu item', t: 'Anna Becker', k: [{ r: 'label', t: 'Anna Becker' }] },
+    ] }
+    for (let t = 1_000_000; t < 1_011_000; t += 500) s.emit({ t, app: 'ms-teams.exe', windows: [{ title: 'Anna Becker | Microsoft Teams', tree }] })
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id).map((x) => x.speaker)).toEqual(['Anna Becker', 'Anna Becker'])
   })
 
   it('reads Webex roster names during a call', () => {

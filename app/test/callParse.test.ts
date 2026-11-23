@@ -253,9 +253,14 @@ describe('Microsoft Teams on Windows, in any language (#83)', () => {
   it('never takes a menu that opened (settings, a shortcut) or a shared screen for a person', () => {
     const r = readCall('teams', [germanTeams()])
     for (const not of ['Einstellungen', 'Kamera einschalten', 'Bildschirmfreigabe']) expect(r.participants).not.toContain(not)
-    // a lone menu item whose label is all of it is a command, not a tile
+    // a menu item whose label is all of it is a tile only in the call window, outside toolbars and opened menus
     const plain = win(node('frame', {}, node('menu item', { t: 'Bericht' }, node('label', { t: 'Bericht' }))))
     expect(readCall('teams', [plain]).participants).toEqual([])
+    const menus = germanTeams([node('tool bar', { i: 'horizontalMiddleEnd' }, node('menu item', { t: 'Bericht' }, node('label', { t: 'Bericht' })))])
+    expect(readCall('teams', [menus]).participants).not.toContain('Bericht')
+    const popup = win(node('frame', {}, node('push button', { i: 'hangup-button', t: 'Verlassen' }),
+      node('panel', { i: 'fluent-default-layer-host' }, node('menu', {}, node('menu item', { t: 'Bericht' }, node('label', { t: 'Bericht' }))))))
+    expect(readCall('teams', [popup]).participants).toEqual([])
   })
   it('a call of two: the tiles give both people, so the other one is named', () => {
     const two = win(node('frame', {}, node('push button', { i: 'hangup-button', t: 'Verlassen' }),
@@ -271,6 +276,40 @@ describe('Microsoft Teams on Windows, in any language (#83)', () => {
         node('tree item', { t: 'Lena Hoffmann, Referent, Stummschaltung aufgehoben' }),
         node('tree item', { t: 'Alex Morgan (Sie), Stummgeschaltet' })))
     expect(readCall('teams', [win(tree)])).toEqual({ speaking: ['Anna Becker'], participants: ['Anna Becker', 'Jonas Weber', 'Lena Hoffmann', 'Alex Morgan'], me: 'Alex Morgan' })
+  })
+})
+
+// ---- a 1:1 Teams call on Windows (#83, 0.3.68): hold, transfer and dial pad, one tile whose text is just the name ----
+const oneToOne = (title: string | undefined, tiles: string[]) => win(node('frame', { t: title },
+  node('document web', { i: 'RootWebArea' },
+    node('panel', { i: 'app' },
+      node('tool bar', { i: 'horizontalMiddleEnd' },
+        node('push button', { i: 'microphone-button', t: 'Stummschalten (Strg+Umschalt+M)' }),
+        node('push button', { i: 'dialpad-button', t: 'Wähltastatur' }),
+        node('push button', { i: 'hold-button', t: 'Halten' }),
+        node('push button', { i: 'transfer-button', t: 'Weiterleiten' })),
+      node('panel', { i: 'horizontalEnd' }, node('push button', { i: 'hangup-button', t: 'Auflegen' })),
+      node('panel', { t: 'Besprechungsansicht' },
+        node('image', { i: 'menurp0g', c: ['fui-Primitive', 'vdi-dynamic-occlusion'], t: 'Profilbild anzeigen, Kamera ist deaktiviert, Stummschaltung aufgehoben, Videokachel' }),
+        ...tiles.map((t) => node('menu item', { t }, node('label', { t }))))))), title)
+
+describe('a 1:1 Teams call (#83)', () => {
+  it("the only other person's tile names the call's sound, with nobody marked as talking and no name of mine known", () => {
+    expect(readCall('teams', [oneToOne('Anna Becker | Microsoft Teams', ['Anna Becker'])])).toEqual({ speaking: ['Anna Becker'], participants: ['Anna Becker'], me: null })
+  })
+  it('the window title names the other person when no tile is read, and picks them when I have a tile too', () => {
+    expect(readCall('teams', [oneToOne('Anna Becker | Microsoft Teams', [])])).toEqual({ speaking: ['Anna Becker'], participants: ['Anna Becker'], me: null })
+    expect(readCall('teams', [oneToOne('Anna Becker | Microsoft Teams', ['Alex Morgan', 'Anna Becker'])]).speaking).toEqual(['Anna Becker'])
+    // one tile and no usable title: that tile
+    expect(readCall('teams', [oneToOne(undefined, ['Anna Becker'])]).speaking).toEqual(['Anna Becker'])
+  })
+  it('a tile and a title that disagree, a title that is no name, or a group call: nobody is taken as talking', () => {
+    expect(readCall('teams', [oneToOne('Anna Becker | Microsoft Teams', ['Jonas Weber'])]).speaking).toEqual([])
+    expect(readCall('teams', [oneToOne('Chat | Anna Becker | Microsoft Teams', [])]).speaking).toEqual([])
+    expect(readCall('teams', [oneToOne('Planung Q3 2027 | Microsoft Teams', [])]).speaking).toEqual([])
+    expect(readCall('teams', [oneToOne(undefined, ['Anna Becker', 'Jonas Weber'])]).speaking).toEqual([])
+    // the same tile in a meeting (no hold or transfer) is someone there, not the one talking
+    expect(readCall('teams', [germanTeams()]).speaking).toEqual([])
   })
 })
 

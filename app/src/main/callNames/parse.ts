@@ -274,12 +274,24 @@ function teamsPersona(label: string): { name: string; speaking: boolean } | null
 // The call window's video tiles (new Teams on Windows, #83: a German call): each tile is a menu item whose label starts
 // with the person's name, then Teams' words ("Name, Video ist aus, Kontextmenü ist verfügbar"), and it holds a label
 // with just the name. That shape is the same in every language, so the name comes from it and not from words. A menu
-// that opens (settings, a person's card) is drawn in Fluent's layer host and never read.
+// that opens (settings, a person's card) is drawn in Fluent's layer host and never read. In a 1:1 call (0.3.68) the tile's
+// text is the name alone; such a tile counts only in the call window (it has the hang-up button) and outside toolbars,
+// where a menu item that is just its label is a command.
 const TEAMS_TILE = new Set(['menu item', 'AXMenuItem'])
 const TEAMS_POPUPS = 'fluent-default-layer-host'
+const TEAMS_BARS = new Set(['tool bar', 'menu bar', 'title bar', 'AXToolbar', 'AXMenuBar'])
+/** only a 1:1 call has hold and transfer (a meeting or group call has neither), so it has exactly one other person */
+const TEAMS_ONE_TO_ONE = new Set(['hold-button', 'transfer-button', 'consultative-transfer-button'])
+/** "Anna Becker | Microsoft Teams": a 1:1 call's window is titled with the other person's name */
+const TEAMS_TITLE = /^([^|]+?)\s*\|\s*Microsoft Teams(?:\s+[-–—].*)?$/
+const titleName = (title: string | undefined): string | null => {
+  const m = TEAMS_TITLE.exec((title ?? '').normalize('NFKC').trim())
+  const name = m ? cleanTeams(m[1]) : ''
+  return name.length >= 2 && name.length <= 60 && /\p{L}/u.test(name) && !/[\d+:/@]/.test(name) && name.split(/\s+/).length <= 5 ? name : null
+}
 
 /** a video tile's person, or null when the menu item isn't one */
-function teamsTile(n: AxNode): { name: string; speaking: boolean; me: boolean } | null {
+function teamsTile(n: AxNode, alone: boolean): { name: string; speaking: boolean; me: boolean } | null {
   const label = (n.t ?? n.d ?? '').normalize('NFKC').trim()
   const inner: string[] = [], heads: string[] = []
   walk(n, (x) => {
@@ -289,10 +301,10 @@ function teamsTile(n: AxNode): { name: string; speaking: boolean; me: boolean } 
     if (STATIC_TEXT.has(x.r)) heads.push(...said)
   })
   for (const head of heads) {
-    if (!head || head === label || !label.startsWith(head)) continue
+    if (!head || !label.startsWith(head) || (head === label && !alone)) continue
     const rest = label.slice(head.length)
-    // the rest is Teams' words after a comma, or another text of the tile run together with the name
-    if (!/^\s*,/.test(rest) && !inner.includes(rest.trim())) continue
+    // the rest is Teams' words after a comma, or another text of the tile run together with the name, or nothing
+    if (rest && !/^\s*,/.test(rest) && !inner.includes(rest.trim())) continue
     const name = cleanTeams(head)
     if (name.length < 2 || name.length > 60 || !/\p{L}/u.test(name) || /[+\d]/.test(name)) continue
     return { name, speaking: rest.split(/\s*,\s*/).some((f) => TEAMS_SAYS.test(f)), me: TEAMS_ME.test(head) }
@@ -304,10 +316,13 @@ function readTeams(windows: AxWindow[]): CallReading {
   const speaking: string[] = [], participants: string[] = []
   let me: string | null = null
   for (const w of windows) {
+    let call = false, oneToOne = false
+    walk(w.tree, (n) => { if (n.i === 'hangup-button') call = true; if (n.i && TEAMS_ONE_TO_ONE.has(n.i)) oneToOne = true })
+    const tiles: string[] = []
     walk(w.tree, (n, up) => {
       if (n.i === TEAMS_POPUPS || up.some((a) => a.i === TEAMS_POPUPS)) return
-      const tile = TEAMS_TILE.has(n.r) ? teamsTile(n) : null
-      if (tile) { participants.push(tile.name); if (tile.speaking) speaking.push(tile.name); if (tile.me) me = tile.name }
+      const tile = TEAMS_TILE.has(n.r) ? teamsTile(n, call && !up.some((a) => TEAMS_BARS.has(a.r))) : null
+      if (tile) { participants.push(tile.name); tiles.push(tile.name); if (tile.speaking) speaking.push(tile.name); if (tile.me) me = tile.name }
       const roster = inTeamsRoster(n, up)
       for (const label of texts(n)) {
         for (const re of TEAMS_SPEAKING) { const m = re.exec(label); if (m) { const name = cleanTeams(m[1]); if (name.length >= 2 && !/^(you|me|sie|du|ich)\b/i.test(name)) speaking.push(name) } }
@@ -317,6 +332,14 @@ function readTeams(windows: AxWindow[]): CallReading {
         if (mine) { me = cleanTeams(mine[1]); participants.push(me) }
       }
     })
+    // A 1:1 call has one other person, so the call's sound is theirs, marked or not. The title says who; a tile alone
+    // does when the title can't. A tile and a title that disagree name nobody.
+    if (call && oneToOne && !speaking.length) {
+      const others = uniq(tiles).filter((t) => !me || low(t) !== low(me))
+      const titled = titleName(w.title)
+      const other = titled ? (!others.length || others.some((t) => low(t) === low(titled)) ? titled : null) : others.length === 1 ? others[0] : null
+      if (other) { speaking.push(other); participants.push(other) }
+    }
   }
   return { speaking: uniq(speaking), participants: uniq(participants.filter((p) => p.length >= 2)), me }
 }
