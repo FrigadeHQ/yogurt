@@ -673,13 +673,12 @@
 .corner-badge,.corner-row-dot { display:block;flex:none;width:7px;height:7px;border-radius:50%;background:var(--accent); }
 .corner-badge { position:absolute;inset-block-start:2px;inset-inline-end:1px;box-shadow:0 0 0 2px var(--bg); }
 .corner-position { z-index:80; }
-.menu-entry.corner-menu { --corner-closed:inset(calc(100% - 28px) calc(100% - 28px) 0 0 round 6px);
-  width:240px;max-width:var(--available-width);max-height:var(--available-height);overflow:auto;overscroll-behavior:contain;
-  border:1px solid var(--line);outline:none;clip-path:inset(-50px round 9px);transform-origin:bottom left;
-  transition:clip-path 180ms var(--ease-out),transform 180ms var(--ease-out),opacity 120ms var(--ease-out); }
-[dir=rtl] .corner-menu { --corner-closed:inset(calc(100% - 28px) 0 0 calc(100% - 28px) round 6px);transform-origin:bottom right; }
-.menu-entry.corner-menu:is([data-starting-style],[data-ending-style]) { clip-path:var(--corner-closed);transform:translateY(36px);opacity:0; }
-.menu-entry.corner-menu[data-ending-style] { transition-duration:150ms,150ms,120ms;pointer-events:none; }
+.menu-entry.corner-menu { width:240px;max-width:var(--available-width);max-height:var(--available-height);overflow:auto;overscroll-behavior:contain;
+  border:1px solid var(--line);outline:none;transform-origin:bottom left;
+  transition:transform 180ms var(--ease-out),opacity 120ms var(--ease-out); }
+[dir=rtl] .corner-menu { transform-origin:bottom right; }
+.menu-entry.corner-menu:is([data-starting-style],[data-ending-style]) { transform:translateY(36px);opacity:0; }
+.menu-entry.corner-menu[data-ending-style] { transition-duration:150ms,120ms;pointer-events:none; }
 .corner-menu [role=menuitem] { display:flex;align-items:center;gap:10px;text-align:start;cursor:pointer;color:var(--ink);text-decoration:none; }
 .corner-menu [role=menuitem][data-highlighted] { background:var(--selected); }
 .corner-menu [role=menuitem][aria-disabled=true] { color:var(--muted);cursor:default; }
@@ -689,7 +688,7 @@
 .corner-detail { display:block;color:var(--muted);font-size:11px;line-height:16px; }
 .corner-menu p.corner-detail { padding:4px 9px; }
 @media (prefers-reduced-motion:reduce) {
-  .menu-entry.corner-menu,.menu-entry.corner-menu:is([data-starting-style],[data-ending-style]) { transform:none;clip-path:none;transition:opacity 120ms var(--ease-out); }
+  .menu-entry.corner-menu,.menu-entry.corner-menu:is([data-starting-style],[data-ending-style]) { transform:none;transition:opacity 120ms var(--ease-out); }
 }
 @media (forced-colors:active) {
   .corner-brand { color:ButtonText; }
