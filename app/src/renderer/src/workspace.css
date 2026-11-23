@@ -382,6 +382,7 @@
 /* Folder glyphs and speaker names share these theme-aware inks. */
 [data-folder-color] { color-scheme:light dark;--folder-ink:var(--written);--folder-tint:var(--control); }
 .widget [data-folder-color] { color-scheme:dark; }
+.widget [data-folder-color=violet] { --folder-ink:var(--pill-accent); }
 [data-folder-color=violet] { --folder-ink:var(--accent); }
 [data-folder-color=blue] { --folder-ink:light-dark(#2868BA,#87B5F4); }
 [data-folder-color=teal] { --folder-ink:light-dark(#157D80,#72CECE); }

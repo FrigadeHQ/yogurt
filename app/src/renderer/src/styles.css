@@ -32,7 +32,8 @@
   --primary: #6F00FF;
   --primary-hover: color-mix(in srgb, var(--primary) 92%, black);
   --focus: var(--accent);
-  --pill-accent: var(--accent);
+  /* The recording pill is dark in both themes, so its accent stays the light brand purple. */
+  --pill-accent: #B780FF;
   --primary-ink: #FFFFFF;
   --accent-soft: color-mix(in srgb, var(--accent) 10%, var(--bg));
   --status-live: #416D48;

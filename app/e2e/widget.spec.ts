@@ -66,7 +66,8 @@ test('the widget is a compact horizontal recorder with one live wave and no exte
     await expect(w.getByTestId('logo')).toBeVisible()
     for (const colorScheme of ['light', 'dark'] as const) {
       await w.emulateMedia({ colorScheme })
-      const accent = colorScheme === 'dark' ? 'rgb(183, 128, 255)' : 'rgb(111, 0, 255)'
+      // The charcoal recorder keeps the light brand purple in both appearances.
+      const accent = 'rgb(183, 128, 255)'
       await expect(w.getByTestId('logo').locator('path')).toHaveCSS('fill', accent)
       await expect(w.getByTestId('widget-wave')).toHaveCSS('color', accent)
     }
