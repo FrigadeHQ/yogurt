@@ -153,8 +153,12 @@ export async function exportBackup(o: { db: DatabaseSync; meetingsDir: string; o
     const snap = new DatabaseSync(file)
     // meetings in the Trash are on their way out: not in the backup (their rows go with them by ON DELETE CASCADE)
     snap.exec('PRAGMA foreign_keys = ON')
-    // and VACUUM so their words aren't left in the file's free pages
-    if (columns(snap, 'meetings').some((c) => c.name === 'trashed_at') && Number(snap.prepare('DELETE FROM meetings WHERE trashed_at IS NOT NULL').run().changes) > 0) snap.exec('VACUUM')
+    // the iPhone pairing and what it has fetched belong to this Mac: never in a backup (triggers first, they write the log)
+    for (const r of snap.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'companion\\_%' ESCAPE '\\'").all() as Row[]) snap.exec(`DROP TRIGGER "${String(r.name)}"`)
+    snap.exec('DROP TABLE IF EXISTS companion_changes; DROP TABLE IF EXISTS companion_devices; DROP TABLE IF EXISTS companion_meta')
+    if (columns(snap, 'meetings').some((c) => c.name === 'trashed_at')) snap.prepare('DELETE FROM meetings WHERE trashed_at IS NOT NULL').run()
+    // and VACUUM so none of it is left in the file's free pages
+    snap.exec('VACUUM')
     const ids = (snap.prepare('SELECT id FROM meetings').all() as Row[]).map((r) => r.id).filter(isId)
     snap.close()
     for (const id of ids) {

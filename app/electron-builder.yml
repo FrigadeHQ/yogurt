@@ -82,6 +82,8 @@ mac:
     NSCalendarsFullAccessUsageDescription: Yogurt reads your calendar to name your notes after the meeting and to know who is in it. Nothing leaves your Mac.
     NSCalendarsUsageDescription: Yogurt reads your calendar to name your notes after the meeting and to know who is in it. Nothing leaves your Mac.
     NSAppleEventsUsageDescription: Yogurt checks the browser tab's name to tell when you're in a call, and pauses your music while it records.
+    # macOS 15 and later ask before an app can be found on the local network (Bonjour), which the iPhone app needs
+    NSLocalNetworkUsageDescription: Yogurt lets your iPhone find this computer on your Wi-Fi so your notes can sync. Nothing goes through the internet.
     # Electron's own defaults ("This app needs access to..."): Yogurt never asks for these, so plain words instead
     NSCameraUsageDescription: Yogurt doesn't use the camera.
     NSBluetoothAlwaysUsageDescription: Yogurt doesn't use Bluetooth.

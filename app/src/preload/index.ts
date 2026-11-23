@@ -3,6 +3,7 @@ import { audioUpload } from './audioUpload'
 import type { WidgetLayout } from '../shared/widgetMorph'
 import { contextBridge, ipcRenderer } from 'electron'
 import { capabilities, platformOf } from '../shared/platform'
+import { phoneCompanionOn, type CompanionStatus } from '../shared/companion'
 import type { ChatView, ConversationSummary, ConversationView, NoteView, PromptAction, SetupState, UpdateStatus, WidgetView, YogurtApi } from '../shared/types'
 
 const api: YogurtApi = {
@@ -11,6 +12,7 @@ const api: YogurtApi = {
   os: platformOf(process.platform, process.env),
   capabilities: capabilities(platformOf(process.platform, process.env)),
   fake: process.env.YOGURT_FAKE === '1',
+  phone: phoneCompanionOn(process.env),
   setup: {
     state: () => ipcRenderer.invoke('setup:state'),
     onState: (cb) => {
@@ -229,6 +231,13 @@ const api: YogurtApi = {
     set: (on) => ipcRenderer.invoke('mcp:set', on),
     setChanges: (on) => ipcRenderer.invoke('mcp:set-changes', on),
     onClients: (fn) => { const f = (_e: unknown, c: string[]) => fn(c); ipcRenderer.on('mcp:clients', f); return () => { ipcRenderer.off('mcp:clients', f) } },
+  },
+  companion: {
+    status: () => ipcRenderer.invoke('companion:status'),
+    startPairing: () => ipcRenderer.invoke('companion:start-pairing'),
+    cancelPairing: () => ipcRenderer.invoke('companion:cancel-pairing'),
+    unpair: () => ipcRenderer.invoke('companion:unpair'),
+    onStatus: (fn) => { const f = (_e: unknown, s: CompanionStatus) => fn(s); ipcRenderer.on('companion:status', f); return () => { ipcRenderer.off('companion:status', f) } },
   },
   updates: {
     status: () => ipcRenderer.invoke('updates:status'),

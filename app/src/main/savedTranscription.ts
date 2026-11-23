@@ -1,4 +1,5 @@
 import type { Store } from './store'
+import { isPhoneDraft, phoneDraftReplaced, phoneLanguage } from './companion/phoneImport'
 import type { Track } from './capture'
 import type { RecordedOptions } from './asr'
 import type { TranscriptionState } from '../shared/transcription'
@@ -38,7 +39,9 @@ export function createSavedTranscriptions(d: {
           const segments=meeting.transcriptionAgain?d.store.transcriptionDraft(id):d.store.segments(id,{hidden:true})
           const fromMs:Partial<Record<Track,number>>={}
           for(const segment of segments)fromMs[segment.track]=Math.max(fromMs[segment.track]??0,segment.endMs)
-          const complete=await d.transcribe(id,tracks,{signal:job.abort.signal,fromMs,...(meeting.transcriptionAgain?{save:segs=>{d.store.addTranscriptionDraft(id,segs);d.draft?.(id)}}:{})})
+          // a phone recording is heard in the language the phone said; everything else follows the spoken setting
+          const language=phoneLanguage(current)
+          const complete=await d.transcribe(id,tracks,{signal:job.abort.signal,fromMs,...(language?{language}:{}),...(meeting.transcriptionAgain?{save:segs=>{d.store.addTranscriptionDraft(id,segs);d.draft?.(id)}}:{})})
           if(!d.store.meeting(id)||d.store.meeting(id)?.trashedAt!=null)continue
           if(job.abort.signal.aborted){if(job.stopped)stopped(id);else set(id,d.recording()?'waiting-recording':'queued');continue}
           if(!complete)throw new Error('Saved transcription incomplete')
@@ -47,7 +50,10 @@ export function createSavedTranscriptions(d: {
           else d.store.updateMeeting(id,{transcriptionPending:false,transcriptionState:'done'})
           d.changed(id,!!meeting.transcriptionAgain)
           // Replacing a transcript must not overwrite an existing or edited summary.
-          if(!d.store.notes(id).enhanced?.trim())d.summarize(id)
+          // a phone recording's draft notes are rewritten once, by this computer's notes model
+          const phoneDraft=isPhoneDraft(d.store.meeting(id))
+          if(phoneDraft)phoneDraftReplaced(d.store,id)
+          if(phoneDraft||!d.store.notes(id).enhanced?.trim())d.summarize(id)
         } catch(error) {
           if(d.store.meeting(id)){if(job.stopped)stopped(id);else set(id,job.abort.signal.aborted?'queued':'error')}
           if(!job.abort.signal.aborted)console.error('Saved transcription failed',id,error)
