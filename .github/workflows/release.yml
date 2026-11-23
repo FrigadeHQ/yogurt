@@ -1,9 +1,11 @@
 # A release: `sh app/scripts/release.sh 0.3.0` sets the version, tags v0.3.0 and pushes; this builds Yogurt for Mac
 # (Apple Silicon), Windows (x64, unsigned) and Linux (x86_64 AppImage) and publishes one GitHub release with all
 # three, only once every build and its checks have worked.
-# Download links point at releases/latest/download/Yogurt-mac-arm64.dmg, Yogurt-windows-x64.exe and
-# Yogurt-linux-x86_64.AppImage, and installed copies update themselves from the same release
-# (latest-mac.yml, latest.yml, latest-linux.yml; app/src/main/updates.ts).
+# Download links point at releases/latest/download/Yogurt-mac-arm64.dmg, Yogurt-windows-x64-setup.exe and
+# Yogurt-linux-x86_64-setup.AppImage, and installed copies update themselves from the same release
+# (latest-mac.yml → the .zip, latest.yml → Yogurt-windows-x64.exe, latest-linux.yml → Yogurt-linux-x86_64.AppImage;
+# app/src/main/updates.ts). The -setup files are byte-identical copies, so GitHub's download counts tell new installs
+# from updates; latest*.yml must never name them.
 # Running it by hand (Actions → Release → Run workflow) only builds: the files are attached to the run, nothing is published.
 # Windows and Linux are built by preview.yml, with the same checks (helpers run from the install folder, whisper-server
 # transcribes); the Mac steps are below.
@@ -173,6 +175,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ls -la files
+          # the website's copies are there and identical, and installed copies keep updating from the plain names
+          cd files
+          for f in Yogurt-windows-x64.exe Yogurt-windows-x64-setup.exe latest.yml Yogurt-linux-x86_64.AppImage Yogurt-linux-x86_64-setup.AppImage latest-linux.yml; do
+            [ -f "$f" ] || { echo "::error::$f is missing"; exit 1; }
+          done
+          cmp Yogurt-windows-x64.exe Yogurt-windows-x64-setup.exe
+          cmp Yogurt-linux-x86_64.AppImage Yogurt-linux-x86_64-setup.AppImage
+          grep -q 'Yogurt-windows-x64\.exe' latest.yml && grep -q 'Yogurt-linux-x86_64\.AppImage' latest-linux.yml || { echo "::error::latest*.yml lost the installer"; exit 1; }
+          if grep -q -- '-setup\.' latest*.yml; then echo "::error::latest*.yml must not name the website's copies"; exit 1; fi
+          cd ..
           gh release create "${{ github.ref_name }}" files/* --repo "${{ github.repository }}" --title "Yogurt ${GITHUB_REF_NAME#v}" --generate-notes --latest
 
   # a draft with a Mac built by hand gets the Windows and Linux files; it stays a draft
@@ -192,6 +204,16 @@ jobs:
           DRAFT: ${{ inputs.draft }}
         run: |
           ls -la files
+          # the website's copies are there and identical, and installed copies keep updating from the plain names
+          cd files
+          for f in Yogurt-windows-x64.exe Yogurt-windows-x64-setup.exe latest.yml Yogurt-linux-x86_64.AppImage Yogurt-linux-x86_64-setup.AppImage latest-linux.yml; do
+            [ -f "$f" ] || { echo "::error::$f is missing"; exit 1; }
+          done
+          cmp Yogurt-windows-x64.exe Yogurt-windows-x64-setup.exe
+          cmp Yogurt-linux-x86_64.AppImage Yogurt-linux-x86_64-setup.AppImage
+          grep -q 'Yogurt-windows-x64\.exe' latest.yml && grep -q 'Yogurt-linux-x86_64\.AppImage' latest-linux.yml || { echo "::error::latest*.yml lost the installer"; exit 1; }
+          if grep -q -- '-setup\.' latest*.yml; then echo "::error::latest*.yml must not name the website's copies"; exit 1; fi
+          cd ..
           id=$(gh api "repos/$REPO/releases" --paginate --jq ".[] | select(.tag_name == \"$DRAFT\" and .draft) | .id")
           [ -n "$id" ] || { echo "::error::$DRAFT is no longer a draft"; exit 1; }
           # never --clobber: a file already there means something else went wrong

@@ -57,7 +57,9 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   /** the default for newly written summaries; the meeting's language when left out */
   summaryLanguage?: string
   /** new versions download by themselves; on unless turned off */
-  autoUpdate?: boolean }
+  autoUpdate?: boolean
+  /** when the updater last fetched latest*.yml (ms): checks happen about once a day (updates.ts) */
+  lastUpdateCheck?: number }
 
 /** "English only" unless Multi-language was picked */
 export const spokenSetting = (s: Settings): Spoken => spokenOf(s.spoken)

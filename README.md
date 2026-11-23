@@ -19,7 +19,7 @@ Our conversations should be our own business. Good notes shouldn't need third-pa
 
 ## Download
 
-Yogurt is free for [Mac](https://github.com/FrigadeHQ/yogurt/releases/latest/download/Yogurt-mac-arm64.dmg), [Windows](https://github.com/FrigadeHQ/yogurt/releases/latest/download/Yogurt-windows-x64.exe) and [Linux](https://github.com/FrigadeHQ/yogurt/releases/latest/download/Yogurt-linux-x86_64.AppImage).
+Yogurt is free for [Mac](https://github.com/FrigadeHQ/yogurt/releases/latest/download/Yogurt-mac-arm64.dmg), [Windows](https://github.com/FrigadeHQ/yogurt/releases/latest/download/Yogurt-windows-x64-setup.exe) and [Linux](https://github.com/FrigadeHQ/yogurt/releases/latest/download/Yogurt-linux-x86_64-setup.AppImage).
 
 On a Mac you can also use [Homebrew](https://brew.sh).
 

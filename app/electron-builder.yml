@@ -4,6 +4,7 @@ copyright: Copyright © 2026 Frigade
 # GitHub Releases: every v* tag builds Mac, Windows and Linux (.github/workflows/release.yml).
 # Fixed file names, so releases/latest/download/Yogurt-mac-arm64.dmg (and the Windows and Linux ones) point at the newest.
 # Installed copies update from the same release (latest-mac.yml, latest.yml, latest-linux.yml; src/main/updates.ts).
+# The website links the .dmg and, on Windows and Linux, the -setup copies release.yml adds; latest*.yml keep these names.
 publish:
   provider: github
   owner: FrigadeHQ

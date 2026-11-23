@@ -56,3 +56,53 @@ it('Later hides only this version for this app session without changing installa
     expect(updater.autoInstallOnAppQuit).toBe(true)
   } finally { vi.clearAllTimers(); vi.useRealTimers() }
 })
+
+it('a running copy fetches the feed once per UTC day; Check for updates still checks right away', async () => {
+  vi.useFakeTimers()
+  try {
+    updater.removeAllListeners()
+    updater.checkForUpdates.mockClear()
+    const { hookUpdates } = await import('../src/main/updates')
+    const { loadSettings, saveSettings } = await import('../src/main/settings')
+    const file = join(mkdtempSync(join(tmpdir(), 'yogurt-updates-')), 'settings.json')
+    let clock = Date.parse('2026-11-23T22:00:00Z')
+    const now = () => clock
+    // checked earlier today: nothing at start
+    saveSettings(file, { lastUpdateCheck: Date.parse('2026-11-23T08:00:00Z') })
+    await hookUpdates({ file, available: true, recording: () => false, now, jitterMs: 20 * 60 * 1000 })
+    const tick = async (ms: number) => { clock += ms; await vi.advanceTimersByTimeAsync(ms) }
+    await tick(60 * 60 * 1000)
+    expect(updater.checkForUpdates).not.toHaveBeenCalled()
+    // the day rolls over at 00:00 UTC, but this copy waits for its jitter
+    await tick(75 * 60 * 1000)
+    expect(updater.checkForUpdates).toHaveBeenCalledTimes(0)
+    await tick(15 * 60 * 1000)
+    expect(updater.checkForUpdates).toHaveBeenCalledTimes(1)
+    updater.emit('update-not-available')
+    expect(loadSettings(file).lastUpdateCheck).toBe(clock)
+    await tick(6 * 60 * 60 * 1000)
+    expect(updater.checkForUpdates).toHaveBeenCalledTimes(1)
+    handlers.get('updates:check')!()
+    expect(updater.checkForUpdates).toHaveBeenCalledTimes(2)
+  } finally { vi.clearAllTimers(); vi.useRealTimers() }
+})
+
+it('a feed that fails to arrive is tried again, and turning updates off stops the daily check', async () => {
+  vi.useFakeTimers()
+  try {
+    updater.removeAllListeners()
+    updater.checkForUpdates.mockClear()
+    const { hookUpdates } = await import('../src/main/updates')
+    const file = join(mkdtempSync(join(tmpdir(), 'yogurt-updates-')), 'settings.json')
+    await hookUpdates({ file, available: true, recording: () => false, now: () => Date.parse('2026-11-23T12:00:00Z'), jitterMs: 0 })
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(updater.checkForUpdates).toHaveBeenCalledTimes(1)
+    updater.emit('error', new Error('offline'))
+    await vi.advanceTimersByTimeAsync(15 * 60 * 1000)
+    expect(updater.checkForUpdates).toHaveBeenCalledTimes(2)
+    handlers.get('updates:set')!({}, false)
+    updater.emit('error', new Error('offline'))
+    await vi.advanceTimersByTimeAsync(60 * 60 * 1000)
+    expect(updater.checkForUpdates).toHaveBeenCalledTimes(2)
+  } finally { vi.clearAllTimers(); vi.useRealTimers() }
+})
