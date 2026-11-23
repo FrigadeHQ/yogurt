@@ -752,5 +752,22 @@
   "Send feedback": "Visszajelzés küldése",
   "Help and settings": "Súgó és beállítások",
   "Yogurt menu": "Yogurt menü",
-  "Restart to update · {version}": "Újraindítás a frissítéshez · {version}"
+  "Restart to update · {version}": "Újraindítás a frissítéshez · {version}",
+  "All lines marked Them": "Minden „Mások” jelölésű sor",
+  "All of {name}'s lines": "{name} összes sora",
+  "Attendees": "Résztvevők",
+  "Change to {name}": "Csere erre: {name}",
+  "Change who is speaking": "Ki beszél – módosítás",
+  "Each part of a long meeting, summarized first": "Egy hosszú értekezlet minden része, előbb összefoglalva",
+  "Just this turn": "Csak ez a megszólalás",
+  "New name": "Új név",
+  "New name…": "Új név…",
+  "Speakers": "Beszélők",
+  "Summary prompt": "Összefoglaló promptja",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "Amit a Yogurt a jegyzetmodelltől kér, amikor összefoglalót ír. A <csúcsos zárójelben> lévő szavak minden értekezletnél kitöltődnek.",
+  "Who is speaking?": "Ki beszél?",
+  "Yogurt couldn't show the prompt. Try again.": "A Yogurt nem tudta megjeleníteni a promptot. Próbáld újra.",
+  "Getting the voice model…": "Hangmodell letöltése…",
+  "Matching voices…": "Hangok párosítása…",
+  "Telling voices apart…": "Hangok megkülönböztetése…"
 }

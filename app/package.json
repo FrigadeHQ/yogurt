@@ -16,7 +16,9 @@
     "chrono-node": "2.10.3",
     "electron-updater": "6.8.10",
     "ical.js": "2.2.1",
-    "node-llama-cpp": "3.22.1"
+    "ml-matrix": "6.15.1",
+    "node-llama-cpp": "3.22.1",
+    "sherpa-onnx-node": "2.0.2"
   },
   "devDependencies": {
     "@animate-ui/react": "2.0.0",

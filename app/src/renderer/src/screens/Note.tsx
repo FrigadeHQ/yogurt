@@ -25,6 +25,7 @@ import { LevelBars } from '../components/LevelBars'
 import { RecordingTime } from '../components/RecordingTime'
 import { RecordingAction } from '../components/RecordingAction'
 import { ShareMenu } from '../components/ShareMenu'
+import { VoicesProgressBar } from '../components/VoicesProgress'
 import { NoteMenu, summaryAction } from '../components/NoteMenu'
 import { DeleteNote } from '../components/DeleteNote'
 import { openAudioUpload } from '../components/AudioUpload'
@@ -413,6 +414,12 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                 </div>
               </div>
               {transcribing&&<TranscriptionControl state={m.transcriptionState!} onStop={()=>void window.yogurt.transcript.stop(id).catch(()=>toasts.add({title:t("Yogurt couldn't transcribe this file.")}))}/>}
+              {/* the summary again, in sight (also in the note's menu): after fixing who said what, or adding people. An icon,
+                  there while a summary is written too (disabled, saying why), so the header never grows or jumps in a narrow window */}
+              {generation && !recording && !trashed && <button data-testid="note-regenerate-button" disabled={!!generation.reason || rewriteOpen}
+                onClick={requestRewrite} aria-label={generation.label} title={generation.reason ?? generation.label} className="ghost-btn workspace-icon">
+                <RotateCcw size={14} strokeWidth={1.75} aria-hidden="true" />
+              </button>}
               <ShareMenu id={id} shown={shown} status={notes.status} hasEnhanced={notes.enhanced != null} beforeUse={saveAll} />
             </div>
           </div>
@@ -464,7 +471,8 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                 : !hasAudio && m.transcriptionState === 'error'
                   ? { kind: 'upload', run: () => void openAudioUpload() }
                   : undefined
-            } id={id} processing={transcribing} replacing={!!m.transcriptionAgain} recording={recording} active={primary === 'transcript'} inline toolbar={transcriptToolbar} focus={at?.ms != null ? { ...at, ms: at.ms } : undefined} />
+            } id={id} processing={transcribing} replacing={!!m.transcriptionAgain} recording={recording} active={primary === 'transcript'} inline toolbar={transcriptToolbar} focus={at?.ms != null ? { ...at, ms: at.ms } : undefined}
+              people={m.attendees.filter(a => !(m.ownEmail && a.email && a.email.trim().toLowerCase() === m.ownEmail.trim().toLowerCase())).map(a => a.name)} />
           </section>}
           </div>
         </div>
@@ -480,6 +488,8 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                 }}>{retryingStop ? t('Saving…') : t('Try again')}</button>
               </InlineError>
             )}
+          {/* who said what, worked out by voice once the meeting is over: the summary waits for it */}
+          {!recording && <VoicesProgressBar meetingId={id} />}
           {primary === 'notes' && shown === 'enhanced' && notes.status === 'done' && notes.peopleChanged && !rewriteOpen && (
             <div data-testid="note-people-changed" className="pointer-events-auto mx-auto mt-3 flex w-fit max-w-[calc(100%-32px)] flex-wrap items-center gap-3 rounded-xl border border-line bg-float px-4 py-2 text-[13px] shadow-[var(--shadow)]">
               <span>{t('The attendee list has changed.')}</span>

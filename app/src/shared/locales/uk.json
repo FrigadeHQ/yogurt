@@ -792,5 +792,22 @@
   "Send feedback": "Надіслати відгук",
   "Help and settings": "Довідка й налаштування",
   "Yogurt menu": "Меню Yogurt",
-  "Restart to update · {version}": "Перезапустити для оновлення · {version}"
+  "Restart to update · {version}": "Перезапустити для оновлення · {version}",
+  "All lines marked Them": "Усі рядки з позначкою «Співрозмовники»",
+  "All of {name}'s lines": "Усі рядки: {name}",
+  "Attendees": "Учасники",
+  "Change to {name}": "Замінити на {name}",
+  "Change who is speaking": "Змінити, хто говорить",
+  "Each part of a long meeting, summarized first": "Кожна частина довгої зустрічі, спершу в підсумку",
+  "Just this turn": "Лише ця репліка",
+  "New name": "Нове ім’я",
+  "New name…": "Нове ім’я…",
+  "Speakers": "Мовці",
+  "Summary prompt": "Промпт підсумку",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "Що Yogurt просить у моделі нотаток, коли пише підсумок. Слова в <кутових дужках> заповнюються для кожної зустрічі.",
+  "Who is speaking?": "Хто говорить?",
+  "Yogurt couldn't show the prompt. Try again.": "Yogurt не вдалося показати промпт. Спробуйте ще раз.",
+  "Getting the voice model…": "Завантаження моделі голосів…",
+  "Matching voices…": "Зіставлення голосів…",
+  "Telling voices apart…": "Розрізнення голосів…"
 }

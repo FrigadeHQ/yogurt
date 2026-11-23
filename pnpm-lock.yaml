@@ -24,9 +24,15 @@ importers:
       ical.js:
         specifier: 2.2.1
         version: 2.2.1
+      ml-matrix:
+        specifier: 6.15.1
+        version: 6.15.1
       node-llama-cpp:
         specifier: 3.22.1
         version: 3.22.1(patch_hash=fb1b72ef61aee31b92af3fbf2624ad8cd9db513628681b7d141f463433c6ef4c)(typescript@5.9.3)
+      sherpa-onnx-node:
+        specifier: 2.0.2
+        version: 2.0.2
     devDependencies:
       '@animate-ui/react':
         specifier: 2.0.0
@@ -1759,6 +1765,9 @@ packages:
     engines: {node: '>=18.0.0'}
     hasBin: true
 
+  is-any-array@3.0.0:
+    resolution: {integrity: sha512-o4h+tylWykC4BD1vaejp6gDxoM13bwW8FGuNs4yIKpj8xbBJcRxJx8vZpq0dCr7ZDEfeKjmsi/euolKhX6f/ww==}
+
   is-fullwidth-code-point@3.0.0:
     resolution: {integrity: sha512-zymm5+u+sCsSWyD9qNaejV3DFvhCKclKdizYaJUuHA83RLjb7nSuGnddCHGv0hk+KY7BMAlsWeK4Ueg6EV6XQg==}
     engines: {node: '>=8'}
@@ -2093,6 +2102,18 @@ packages:
   mkdirp@0.5.6:
     resolution: {integrity: sha512-FP+p8RB8OWpF3YZBCrP5gtADmtXApB5AMLn+vdyA+PyxCjrCs00mjyUozssO33cwDeT3wNGdLxJ5M//YqtHAJw==}
     hasBin: true
+
+  ml-array-max@2.0.0:
+    resolution: {integrity: sha512-QQZ4kENwpWmyNb98UXRDFXrmtIXuXtt1+bSbda/2KA85+F+rrJP8hZk6QOkCQXM2Th9mUDYdq/PNByPdT9ID4A==}
+
+  ml-array-min@2.0.0:
+    resolution: {integrity: sha512-GRj6Ky6sW9vGL6yIjgsHmXZ9YgrdmcQ8nCxPqEGeKc6dkfYg1XDYxGFxADUjNuZyoCd5PUscWAS4N+cFaX6hFg==}
+
+  ml-array-rescale@2.0.0:
+    resolution: {integrity: sha512-2GGtKfSno94/kIloWGvpp/U5Q5vLvLrza+SAaGsLeo6Xj4mEbA6Gqx+oTfZFkxnd1grT2X007HfJNs3T5BsiVg==}
+
+  ml-matrix@6.15.1:
+    resolution: {integrity: sha512-DUVxsB+hsXhha9FTp6kQiy6UopxW9F7IXsbWhYVTHRfKdb0UimLYUDYqLQ1WwGPERnp8T5Usbwb47xxkAzSfOg==}
 
   motion-dom@14.4.0:
     resolution: {integrity: sha512-1q8RyHSdr5COpzrv3JgJ9XRjOO88ZN9CwflpkGgyO/SR/SNRP/dD6EU8SEo092kcKY34IzHC5diJPKrQRMA8lQ==}
@@ -2454,6 +2475,44 @@ packages:
   shebang-regex@3.0.0:
     resolution: {integrity: sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==}
     engines: {node: '>=8'}
+
+  sherpa-onnx-darwin-arm64@2.0.2:
+    resolution: {integrity: sha512-3B72qM2rorA5d+fnD9JSVRgVTYRwSxqIVDylFQu24KNucFBICXxixutDZ77pC7UHdrw1gU02cY/Td8EpLtQ4SQ==}
+    cpu: [arm64]
+    os: [darwin]
+
+  sherpa-onnx-darwin-x64@2.0.2:
+    resolution: {integrity: sha512-HC7j4R7fYgfPWena/RxHzmm4WQ+SVcEWQwUbp0fYFZwzJ3SoIjVSf/Ywam48sVu45DRGU3gg4KiV4Pnjis9afA==}
+    cpu: [x64]
+    os: [darwin]
+
+  sherpa-onnx-linux-arm64@2.0.2:
+    resolution: {integrity: sha512-42jMD115JkMkCBXKVbefspXs+KcUnBfn/qfBaQbRrNV1WmvFbM4LN8SuhfiyyCvASacfhCyeOdqrvdSCexnzYQ==}
+    cpu: [arm64]
+    os: [linux]
+
+  sherpa-onnx-linux-x64@2.0.2:
+    resolution: {integrity: sha512-s4g6cBsDrdkzd+EPPb7c+dF3YPMqBvnj1KdXirA/rFyx7lWZV3NXASHnEAbm5JfKjCC6EIKrYilCkv61C39QmQ==}
+    cpu: [x64]
+    os: [linux]
+
+  sherpa-onnx-node@2.0.2:
+    resolution: {integrity: sha512-eYJ743dBWljzzbh528pyxnsZ/qvWcPPAZ1FBtTQoGMeyaRPLgrO98A8/ZacG/T8qZ/x2JJlLIVg9WrO3c9GyJg==}
+
+  sherpa-onnx-win-arm64@2.0.2:
+    resolution: {integrity: sha512-vHKimJlB2j8i76ezbP/CWg0Yciuej72q3gEQqiGC+ws+3Tx5EEFZVbAGA9gDSS7QYjWycsWJQUFXZ24Ny8teOQ==}
+    cpu: [arm64]
+    os: [win32]
+
+  sherpa-onnx-win-ia32@2.0.2:
+    resolution: {integrity: sha512-T040Fj2UrUVkon5D1FOSRJZ9uxVKjgl4l1vslA4mbXNn1bvFuhARZiVtgd05pdusNGkAJpuHoGUzFEMpludw5A==}
+    cpu: [ia32]
+    os: [win32]
+
+  sherpa-onnx-win-x64@2.0.2:
+    resolution: {integrity: sha512-hrV/NDXmiaCf+9zk+gilUkdE1yHNL5Zgoo3FONYMzqw3DvEepWOPxpsBr1SFU+gmK3n5Walirkb1+OmJUBFf5A==}
+    cpu: [x64]
+    os: [win32]
 
   signal-exit@3.0.7:
     resolution: {integrity: sha512-wnD2ZE+l+SPC/uoS0vXeE9L1+0wuaMqKlfz9AMUo38JsyLSBWSFcHR1Rri62LZc12vLr1gb3jl7iwQhgwpAbGQ==}
@@ -4428,6 +4487,8 @@ snapshots:
     optionalDependencies:
       '@reflink/reflink': 0.1.19
 
+  is-any-array@3.0.0: {}
+
   is-fullwidth-code-point@3.0.0: {}
 
   is-fullwidth-code-point@5.1.0:
@@ -4678,6 +4739,25 @@ snapshots:
   mkdirp@0.5.6:
     dependencies:
       minimist: 1.2.8
+
+  ml-array-max@2.0.0:
+    dependencies:
+      is-any-array: 3.0.0
+
+  ml-array-min@2.0.0:
+    dependencies:
+      is-any-array: 3.0.0
+
+  ml-array-rescale@2.0.0:
+    dependencies:
+      is-any-array: 3.0.0
+      ml-array-max: 2.0.0
+      ml-array-min: 2.0.0
+
+  ml-matrix@6.15.1:
+    dependencies:
+      is-any-array: 3.0.0
+      ml-array-rescale: 2.0.0
 
   motion-dom@14.4.0:
     dependencies:
@@ -5100,6 +5180,37 @@ snapshots:
       shebang-regex: 3.0.0
 
   shebang-regex@3.0.0: {}
+
+  sherpa-onnx-darwin-arm64@2.0.2:
+    optional: true
+
+  sherpa-onnx-darwin-x64@2.0.2:
+    optional: true
+
+  sherpa-onnx-linux-arm64@2.0.2:
+    optional: true
+
+  sherpa-onnx-linux-x64@2.0.2:
+    optional: true
+
+  sherpa-onnx-node@2.0.2:
+    optionalDependencies:
+      sherpa-onnx-darwin-arm64: 2.0.2
+      sherpa-onnx-darwin-x64: 2.0.2
+      sherpa-onnx-linux-arm64: 2.0.2
+      sherpa-onnx-linux-x64: 2.0.2
+      sherpa-onnx-win-arm64: 2.0.2
+      sherpa-onnx-win-ia32: 2.0.2
+      sherpa-onnx-win-x64: 2.0.2
+
+  sherpa-onnx-win-arm64@2.0.2:
+    optional: true
+
+  sherpa-onnx-win-ia32@2.0.2:
+    optional: true
+
+  sherpa-onnx-win-x64@2.0.2:
+    optional: true
 
   signal-exit@3.0.7: {}
 

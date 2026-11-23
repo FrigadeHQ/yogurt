@@ -764,5 +764,22 @@
   "Send feedback": "Skicka feedback",
   "Help and settings": "Hjälp och inställningar",
   "Yogurt menu": "Yogurt-menyn",
-  "Restart to update · {version}": "Starta om för att uppdatera · {version}"
+  "Restart to update · {version}": "Starta om för att uppdatera · {version}",
+  "All lines marked Them": "Alla rader märkta ”Andra”",
+  "All of {name}'s lines": "Alla rader från {name}",
+  "Attendees": "Deltagare",
+  "Change to {name}": "Ändra till {name}",
+  "Change who is speaking": "Ändra vem som talar",
+  "Each part of a long meeting, summarized first": "Varje del av ett långt möte, sammanfattad först",
+  "Just this turn": "Bara den här repliken",
+  "New name": "Nytt namn",
+  "New name…": "Nytt namn…",
+  "Speakers": "Talare",
+  "Summary prompt": "Prompt för sammanfattning",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "Det Yogurt ber anteckningsmodellen om när den skriver en sammanfattning. Ord inom <vinkelparenteser> fylls i från varje möte.",
+  "Who is speaking?": "Vem talar?",
+  "Yogurt couldn't show the prompt. Try again.": "Yogurt kunde inte visa prompten. Försök igen.",
+  "Getting the voice model…": "Hämtar röstmodellen…",
+  "Matching voices…": "Matchar röster…",
+  "Telling voices apart…": "Skiljer röster åt…"
 }

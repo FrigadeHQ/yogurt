@@ -767,5 +767,22 @@
   "Send feedback": "Αποστολή σχολίων",
   "Help and settings": "Βοήθεια και ρυθμίσεις",
   "Yogurt menu": "Μενού Yogurt",
-  "Restart to update · {version}": "Επανεκκίνηση για ενημέρωση · {version}"
+  "Restart to update · {version}": "Επανεκκίνηση για ενημέρωση · {version}",
+  "All lines marked Them": "Όλες οι γραμμές με «Οι άλλοι»",
+  "All of {name}'s lines": "Όλες οι γραμμές: {name}",
+  "Attendees": "Συμμετέχοντες",
+  "Change to {name}": "Αλλαγή σε {name}",
+  "Change who is speaking": "Αλλαγή ομιλητή",
+  "Each part of a long meeting, summarized first": "Κάθε μέρος μιας μεγάλης σύσκεψης, συνοψισμένο πρώτα",
+  "Just this turn": "Μόνο αυτή η σειρά",
+  "New name": "Νέο όνομα",
+  "New name…": "Νέο όνομα…",
+  "Speakers": "Ομιλητές",
+  "Summary prompt": "Οδηγία σύνοψης",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "Τι ζητά το Yogurt από το μοντέλο σημειώσεων όταν γράφει μια σύνοψη. Οι λέξεις σε <γωνιακές αγκύλες> συμπληρώνονται από κάθε σύσκεψη.",
+  "Who is speaking?": "Ποιος μιλάει;",
+  "Yogurt couldn't show the prompt. Try again.": "Το Yogurt δεν μπόρεσε να εμφανίσει την οδηγία. Δοκιμάστε ξανά.",
+  "Getting the voice model…": "Γίνεται λήψη του μοντέλου φωνών…",
+  "Matching voices…": "Αντιστοίχιση φωνών…",
+  "Telling voices apart…": "Διάκριση φωνών…"
 }

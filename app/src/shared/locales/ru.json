@@ -792,5 +792,22 @@
   "Send feedback": "Отправить отзыв",
   "Help and settings": "Справка и настройки",
   "Yogurt menu": "Меню Yogurt",
-  "Restart to update · {version}": "Перезапустить для обновления · {version}"
+  "Restart to update · {version}": "Перезапустить для обновления · {version}",
+  "All lines marked Them": "Все строки с пометкой «Собеседники»",
+  "All of {name}'s lines": "Все строки: {name}",
+  "Attendees": "Участники",
+  "Change to {name}": "Заменить на {name}",
+  "Change who is speaking": "Изменить, кто говорит",
+  "Each part of a long meeting, summarized first": "Каждая часть длинной встречи, сначала в сводке",
+  "Just this turn": "Только эта реплика",
+  "New name": "Новое имя",
+  "New name…": "Новое имя…",
+  "Speakers": "Говорящие",
+  "Summary prompt": "Промпт сводки",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "Что Yogurt просит у модели заметок, когда пишет сводку. Слова в <угловых скобках> заполняются для каждой встречи.",
+  "Who is speaking?": "Кто говорит?",
+  "Yogurt couldn't show the prompt. Try again.": "Yogurt не удалось показать промпт. Попробуйте ещё раз.",
+  "Getting the voice model…": "Загрузка модели голосов…",
+  "Matching voices…": "Сопоставление голосов…",
+  "Telling voices apart…": "Различение голосов…"
 }

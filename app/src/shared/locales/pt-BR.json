@@ -780,5 +780,22 @@
   "Send feedback": "Enviar feedback",
   "Help and settings": "Ajuda e configurações",
   "Yogurt menu": "Menu do Yogurt",
-  "Restart to update · {version}": "Reiniciar para atualizar · {version}"
+  "Restart to update · {version}": "Reiniciar para atualizar · {version}",
+  "All lines marked Them": "Todas as linhas marcadas como “Outros”",
+  "All of {name}'s lines": "Todas as linhas de {name}",
+  "Attendees": "Participantes",
+  "Change to {name}": "Mudar para {name}",
+  "Change who is speaking": "Mudar quem está falando",
+  "Each part of a long meeting, summarized first": "Cada parte de uma reunião longa, resumida primeiro",
+  "Just this turn": "Só esta fala",
+  "New name": "Novo nome",
+  "New name…": "Novo nome…",
+  "Speakers": "Falantes",
+  "Summary prompt": "Prompt do resumo",
+  "What Yogurt asks the notes model when it writes a summary. Words in <angle brackets> are filled in from each meeting.": "O que o Yogurt pede ao modelo de notas ao escrever um resumo. As palavras entre <colchetes angulares> são preenchidas com cada reunião.",
+  "Who is speaking?": "Quem está falando?",
+  "Yogurt couldn't show the prompt. Try again.": "O Yogurt não conseguiu mostrar o prompt. Tente novamente.",
+  "Getting the voice model…": "Baixando o modelo de vozes…",
+  "Matching voices…": "Associando vozes…",
+  "Telling voices apart…": "Distinguindo vozes…"
 }
