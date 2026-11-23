@@ -226,6 +226,54 @@ describe('Microsoft Teams', () => {
   })
 })
 
+// ---- Teams on Windows (#83): the call window's tree from a German Teams call (0.3.66), names made up ----
+// Each video tile is a menu item labelled "Name, <state>, Kontextmenü ist verfügbar" holding a label with just the
+// name; one tile reads its name and that hint run together. Menus that open sit in Fluent's layer host.
+const germanTeams = (extra: AxNode[] = []) => win(node('frame', { t: 'Anna Becker, Jonas Weber, Lena Hoffmann | Microsoft Teams' },
+  node('document web', { i: 'RootWebArea' },
+    node('panel', { i: 'app' },
+      node('push button', { i: 'microphone-button', t: 'Stummschalten (Strg+Umschalt+M)' }),
+      node('push button', { i: 'roster-button', t: 'Personen' }),
+      node('push button', { i: 'hangup-button', t: 'Verlassen' }),
+      node('panel', { t: 'Besprechungsansicht, 4 Personen' },
+        node('menu item', { t: 'Sabine KrügerKontextmenü ist verfügbar' }, node('label', { t: 'Sabine Krüger' }), node('unknown', { t: 'Kontextmenü ist verfügbar' })),
+        node('menu item', { t: 'Anna Becker, Video ist aus, Kontextmenü ist verfügbar' }, node('label', { t: 'Anna Becker' })),
+        node('menu item', { t: 'Jonas Weber, Video ist aus, Kontextmenü ist verfügbar' }, node('label', { t: 'Jonas Weber' })),
+        node('menu item', { t: 'Lena Hoffmann, Video ist aus, Kontextmenü ist verfügbar' }, node('label', { t: 'Lena Hoffmann' })),
+        node('image', { i: 'menurkgn', t: 'Jonas Weber, Bildschirmfreigabe, Kontextmenü ist verfügbar, Vollbild' })),
+      ...extra),
+    node('panel', { i: 'fluent-default-layer-host' },
+      node('menu', {}, node('menu item', { t: 'Einstellungen, Strg+Komma' }, node('label', { t: 'Einstellungen' })),
+        node('menu item', { t: 'Kamera einschaltenStrg+Umschalt+O' }, node('label', { t: 'Kamera einschalten' }), node('label', { t: 'Strg+Umschalt+O' })))))))
+
+describe('Microsoft Teams on Windows, in any language (#83)', () => {
+  it("reads each video tile's name from the label inside it, whatever language the tile's words are in", () => {
+    expect(readCall('teams', [germanTeams()]).participants).toEqual(['Sabine Krüger', 'Anna Becker', 'Jonas Weber', 'Lena Hoffmann'])
+  })
+  it('never takes a menu that opened (settings, a shortcut) or a shared screen for a person', () => {
+    const r = readCall('teams', [germanTeams()])
+    for (const not of ['Einstellungen', 'Kamera einschalten', 'Bildschirmfreigabe']) expect(r.participants).not.toContain(not)
+    // a lone menu item whose label is all of it is a command, not a tile
+    const plain = win(node('frame', {}, node('menu item', { t: 'Bericht' }, node('label', { t: 'Bericht' }))))
+    expect(readCall('teams', [plain]).participants).toEqual([])
+  })
+  it('a call of two: the tiles give both people, so the other one is named', () => {
+    const two = win(node('frame', {}, node('push button', { i: 'hangup-button', t: 'Verlassen' }),
+      node('menu item', { t: 'Alex Morgan (Sie), Kontextmenü ist verfügbar' }, node('label', { t: 'Alex Morgan (Sie)' })),
+      node('menu item', { t: 'Anna Becker, Kontextmenü ist verfügbar' }, node('label', { t: 'Anna Becker' }))))
+    expect(readCall('teams', [two])).toEqual({ speaking: [], participants: ['Alex Morgan', 'Anna Becker'], me: 'Alex Morgan' })
+  })
+  it('reads the German words: "spricht", and roster rows "Name, Organisator, Stummgeschaltet" in the Teilnehmer list', () => {
+    const tree = node('frame', {},
+      node('menu item', { t: 'Anna Becker, spricht, Kontextmenü ist verfügbar' }, node('label', { t: 'Anna Becker' })),
+      node('tree', { t: 'Teilnehmer' },
+        node('tree item', { t: 'Jonas Weber, Organisator, Stummgeschaltet' }),
+        node('tree item', { t: 'Lena Hoffmann, Referent, Stummschaltung aufgehoben' }),
+        node('tree item', { t: 'Alex Morgan (Sie), Stummgeschaltet' })))
+    expect(readCall('teams', [win(tree)])).toEqual({ speaking: ['Anna Becker'], participants: ['Anna Becker', 'Jonas Weber', 'Lena Hoffmann', 'Alex Morgan'], me: 'Alex Morgan' })
+  })
+})
+
 describe('summarize: a short picture of the tree for the log', () => {
   it("counts roles and shows ids, classes and the app's own words, never a name or anything said", () => {
     const captions = node('AXGroup', { i: 'captions' }, node('AXStaticText', { v: 'we can sign the renewal with Acme on Friday' }))

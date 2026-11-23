@@ -231,20 +231,27 @@ function readMeet(windows: AxWindow[], o: { talkingClasses?: string[] }): CallRe
 // builds), and "(You)" after the person's own name. When the roster is closed and nobody is marked, only a call of two
 // can be named (attribute.ts).
 
-const TEAMS_SPEAKING = [/^(.{2,60}?)(?:,\s*|\s+is\s+)(?:speaking|talking)\b/i, /\b(?:active speaker|now speaking|speaking now)[:,]?\s+(.{2,60})$/i]
+// Teams' words by language: English, then German (#83). The German ones are Teams' usual wording, not yet seen in a
+// real tree; a word that's off reads as nothing, never as a wrong name. Video tiles need no words at all (teamsTile).
+const TEAMS_SPEAKING = [
+  /^(.{2,60}?)(?:,\s*|\s+is\s+)(?:speaking|talking)\b/i, /\b(?:active speaker|now speaking|speaking now)[:,]?\s+(.{2,60})$/i,
+  /^(.{2,60}?),\s*spricht(?:\s+gerade)?(?:,|$)/i, /\b(?:aktive[rs]? sprecher(?:in)?|spricht gerade)[:,]?\s+(.{2,60})$/i,
+]
 /** the state Teams puts after a person in the roster; the role ("Organizer", "Presenter", ...) may sit between */
-const TEAMS_STATUS = /^(?:muted|unmuted|mic(?:rophone)? (?:on|off)|video (?:is )?(?:on|off)|camera (?:is )?(?:on|off))$/i
+const TEAMS_STATUS = /^(?:muted|unmuted|mic(?:rophone)? (?:on|off)|video (?:is )?(?:on|off)|camera (?:is )?(?:on|off)|stummgeschaltet|nicht stummgeschaltet|stummschaltung aufgehoben|mikrofon (?:ist )?(?:an|aus|ein)|(?:kamera|video) (?:ist )?(?:an|aus|ein))$/i
 /** the roles Teams puts between the name and the state */
-const TEAMS_ROLE = /^(?:organizer|presenter|guest|external|co-?organizer|attendee|host|co-?host|interpreter)$/i
-const TEAMS_SAYS = /^(?:speaking|talking|active speaker|now speaking)$/i
-const TEAMS_ME = /^(.{2,60}?)\s*\((?:you|me)\)/i
-const cleanTeams = (s: string) => s.replace(/\s*\((?:organizer|presenter|guest|external|you|me)\)/gi, '').replace(/[,.:;]+$/, '').trim()
+const TEAMS_ROLE = /^(?:organizer|presenter|guest|external|co-?organizer|attendee|host|co-?host|interpreter|(?:mit)?organisator(?:in)?|referent(?:in)?|gast|extern|teilnehmer(?:in)?|moderator(?:in)?|dolmetscher(?:in)?)$/i
+const TEAMS_SAYS = /^(?:speaking|talking|active speaker|now speaking|spricht(?: gerade)?)$/i
+/** "(You)" after the person's own name: Sie and Du in German */
+const SELF_TAG = 'you|me|sie|du|ich'
+const TEAMS_ME = new RegExp(`^(.{2,60}?)\\s*\\((?:${SELF_TAG})\\)`, 'i')
+const cleanTeams = (s: string) => s.replace(new RegExp(`\\s*\\((?:organizer|presenter|guest|external|organisator(?:in)?|referent(?:in)?|gast|extern|${SELF_TAG})\\)`, 'gi'), '').replace(/[,.:;]+$/, '').trim()
 
 /** the roles a roster row has: the People panel's tree, or a table/list in another build */
 const TEAMS_ROW = new Set(['tree item', 'table row', 'list item', 'row', 'AXRow'])
 /** a list that can hold the roster; its name says whether it does */
 const TEAMS_LIST = new Set(['tree', 'tree table', 'table', 'list', 'list box', 'outline', 'AXOutline', 'AXTable'])
-const TEAMS_LIST_NAME = /^(?:meeting )?(?:participants|attendees|people|in (?:this|the) meeting)\b/i
+const TEAMS_LIST_NAME = /^(?:meeting )?(?:participants|attendees|people|in (?:this|the) meeting|teilnehm(?:er|ende)|personen|in dieser besprechung)(?![\p{L}])/iu
 
 /** whether an element sits in the People panel: a row, inside a list named Participants/Attendees/People */
 function inTeamsRoster(n: AxNode, up: AxNode[]): boolean {
@@ -264,14 +271,46 @@ function teamsPersona(label: string): { name: string; speaking: boolean } | null
   return { name, speaking: fields.some((f) => TEAMS_SAYS.test(f)) }
 }
 
+// The call window's video tiles (new Teams on Windows, #83: a German call): each tile is a menu item whose label starts
+// with the person's name, then Teams' words ("Name, Video ist aus, Kontextmenü ist verfügbar"), and it holds a label
+// with just the name. That shape is the same in every language, so the name comes from it and not from words. A menu
+// that opens (settings, a person's card) is drawn in Fluent's layer host and never read.
+const TEAMS_TILE = new Set(['menu item', 'AXMenuItem'])
+const TEAMS_POPUPS = 'fluent-default-layer-host'
+
+/** a video tile's person, or null when the menu item isn't one */
+function teamsTile(n: AxNode): { name: string; speaking: boolean; me: boolean } | null {
+  const label = (n.t ?? n.d ?? '').normalize('NFKC').trim()
+  const inner: string[] = [], heads: string[] = []
+  walk(n, (x) => {
+    if (x === n) return
+    const said = texts(x).map((t) => t.normalize('NFKC').trim())
+    inner.push(...said)
+    if (STATIC_TEXT.has(x.r)) heads.push(...said)
+  })
+  for (const head of heads) {
+    if (!head || head === label || !label.startsWith(head)) continue
+    const rest = label.slice(head.length)
+    // the rest is Teams' words after a comma, or another text of the tile run together with the name
+    if (!/^\s*,/.test(rest) && !inner.includes(rest.trim())) continue
+    const name = cleanTeams(head)
+    if (name.length < 2 || name.length > 60 || !/\p{L}/u.test(name) || /[+\d]/.test(name)) continue
+    return { name, speaking: rest.split(/\s*,\s*/).some((f) => TEAMS_SAYS.test(f)), me: TEAMS_ME.test(head) }
+  }
+  return null
+}
+
 function readTeams(windows: AxWindow[]): CallReading {
   const speaking: string[] = [], participants: string[] = []
   let me: string | null = null
   for (const w of windows) {
     walk(w.tree, (n, up) => {
+      if (n.i === TEAMS_POPUPS || up.some((a) => a.i === TEAMS_POPUPS)) return
+      const tile = TEAMS_TILE.has(n.r) ? teamsTile(n) : null
+      if (tile) { participants.push(tile.name); if (tile.speaking) speaking.push(tile.name); if (tile.me) me = tile.name }
       const roster = inTeamsRoster(n, up)
       for (const label of texts(n)) {
-        for (const re of TEAMS_SPEAKING) { const m = re.exec(label); if (m) { const name = cleanTeams(m[1]); if (name.length >= 2 && !/^(you|me)\b/i.test(name)) speaking.push(name) } }
+        for (const re of TEAMS_SPEAKING) { const m = re.exec(label); if (m) { const name = cleanTeams(m[1]); if (name.length >= 2 && !/^(you|me|sie|du|ich)\b/i.test(name)) speaking.push(name) } }
         const persona = roster ? teamsPersona(label) : null
         if (persona) { participants.push(persona.name); if (persona.speaking) speaking.push(persona.name) }
         const mine = roster ? TEAMS_ME.exec(label) : null
@@ -338,7 +377,7 @@ export function readCall(kind: CallKind, windows: AxWindow[], o: { talkingClasse
 /** words the call apps write themselves: their status, roles, lists and controls. Anything else may be a name, a caption
  * or a document title, and stays out of the log */
 const APP_WORDS = new Set([...ZOOM.flat().map(low), ...TALKING.map(low), 'zoom meeting', 'zoom webinar', 'meeting', 'meet', 'microsoft teams',
-  'you', 'leave', 'leave call', 'hang up', 'end call', 'mute mic', 'unmute mic', 'mute my audio', 'unmute my audio', 'participants', 'attendees', 'people'])
+  'you', 'context menu is available', 'kontextmenü ist verfügbar', 'leave', 'leave call', 'hang up', 'end call', 'mute mic', 'unmute mic', 'mute my audio', 'unmute my audio', 'participants', 'attendees', 'people'])
 const appWord = (x: string) => APP_WORDS.has(low(x)) || OTHER_STATUS.test(x) || TEAMS_STATUS.test(x) || TEAMS_ROLE.test(x) || TEAMS_SAYS.test(x)
 
 /** Text for the log: the app's own words kept, every other piece shown only by its length ("‹10›, Active speaker") */
