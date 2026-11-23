@@ -74,32 +74,45 @@ test('the widget is a compact horizontal recorder with one live wave and no exte
   } finally { await app.close() }
 })
 
-test('the header and expanded card share confirmed mute, across collapse, reload and pause', async () => {
+test('the header and expanded card share confirmed mute, across collapse, reload and pause', async ({}, testInfo) => {
   const { app, page } = await launch(undefined, 'slow')
   try {
     const w = await record(app, page)
     const pill = w.getByTestId('widget')
     const header = page.getByTestId('note-mic'), card = w.getByTestId('widget-mic')
     const presented = (await fake<{ presented: number }>(app, 'main')).presented
+    // Review captures of each mic state in both themes; CI keeps them with the ui-review artifact.
+    const capture = async (name: string) => {
+      for (const colorScheme of ['light', 'dark'] as const) {
+        await page.emulateMedia({ colorScheme }); await w.emulateMedia({ colorScheme })
+        await page.getByTestId('note-state').locator('..').screenshot({ path: testInfo.outputPath(`mic-${name}-header-${colorScheme}.png`) })
+        await pill.screenshot({ path: testInfo.outputPath(`mic-${name}-pill-${colorScheme}.png`) })
+      }
+      await page.emulateMedia({ colorScheme: null }); await w.emulateMedia({ colorScheme: null })
+    }
     await expect(card).toHaveCount(0)
     await expect(w.getByTestId('widget-mic-off')).toHaveCount(0)
     await pill.hover()
     await expect(card).toHaveAccessibleName('Mute my mic')
+    await capture('on-card')
     await card.click()
     await expect(header).toHaveAttribute('aria-busy', 'true')
     await expect(card).toBeDisabled()
     await expect(header).toHaveAccessibleName('Unmute my mic')
     await expect(card).toHaveAttribute('aria-pressed', 'true')
+    await capture('off-card')
     await w.mouse.move(0, 0)
     await expect(pill).toHaveAttribute('data-open', 'false')
     await expect(w.getByTestId('widget-mic-off')).toBeVisible()
     await expect(w.getByTestId('logo')).toBeVisible()
+    await capture('off-collapsed')
     expect((await fake<{ presented: number }>(app, 'main')).presented).toBe(presented)
     await page.reload()
     await expect(header).toHaveAttribute('aria-pressed', 'true')
     await page.getByTestId('note-pause').click()
     await expect(header).toBeDisabled()
     await expect(page.getByText('Mic will stay off on resume')).toBeVisible()
+    await page.screenshot({ path: testInfo.outputPath('mic-paused-note.png') })
     await page.getByTestId('note-pause').click()
     await header.press('Space')
     await expect(page.getByText('Unmuting mic…')).toBeVisible()
