@@ -33,10 +33,18 @@ function shortMeetingTitle(raw: string): string {
   return title
 }
 
+/** The system's locale can end in keywords, which Intl rejects as a language tag: a Mac with a Region different from its
+ * language reports en-US@rg=eszzzz. Keep the language, and take the region the keyword names (Spain here) for the clock and dates. */
+function intlLocale(id: string): string {
+  const [tag, keywords = ''] = id.split('@')
+  const region = /(?:^|;)rg=([a-z]{2})zzzz(?:;|$)/i.exec(keywords)?.[1]
+  return region ? new Intl.Locale(tag, { region: region.toUpperCase() }).toString() : tag
+}
+
 export function formatTrayTime(start: number, dated: boolean, locale: string = language(), hour12?: boolean): string {
-  const date = new Date(start)
-  const time = date.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', hour12 })
-  return dated ? `${date.toLocaleDateString(locale, { month: 'short', day: 'numeric' })} ${time}` : time
+  const date = new Date(start), tag = intlLocale(locale)
+  const time = date.toLocaleTimeString(tag, { hour: 'numeric', minute: '2-digit', hour12 })
+  return dated ? `${date.toLocaleDateString(tag, { month: 'short', day: 'numeric' })} ${time}` : time
 }
 
 export function trayTitle(active: { elapsedMs: number; paused: boolean } | null, next?: CalEvent, now = Date.now(), clock = formatTrayTime): string {
