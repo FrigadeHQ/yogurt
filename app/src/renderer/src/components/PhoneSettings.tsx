@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { createElement, useEffect, useState } from 'react'
 import { Smartphone } from './Icons'
 import type { CompanionStatus } from '../../../shared/companion'
 import { language, t } from '../../../shared/i18n'
@@ -18,8 +18,13 @@ function lastSeen(at: number, now: number) {
   return t('Last seen {when}', { when })
 }
 
-/** Settings → Phone: pair the iPhone app with a code, see the paired phone, unpair it */
+/** Settings → Phone, only while the iPhone companion is turned on (hidden until the iPhone app ships) */
 export function PhoneSettings() {
+  return globalThis.window?.yogurt?.phone ? createElement(PhoneSection) : null
+}
+
+/** pair the iPhone app with a code, see the paired phone, unpair it */
+function PhoneSection() {
   const [status, setStatus] = useState<CompanionStatus | null>()
   const [failed, setFailed] = useState(false)
   const [busy, setBusy] = useState(false)

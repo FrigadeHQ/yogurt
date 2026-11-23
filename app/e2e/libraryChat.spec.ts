@@ -207,7 +207,7 @@ test('with no meetings, it says so instead of making something up', async () => 
     await page.getByTestId('nav-chat').click()
     await page.getByTestId('chat-page-input').fill('What did Tarun say?')
     await page.getByTestId('chat-page-input').press('Enter')
-    await expect(page.getByTestId('chat-page-answer')).toHaveText("I couldn't find that in your meetings.", { timeout: 10_000 })
+    await expect(page.getByTestId('chat-page-answer')).toHaveText("I couldn't find that in your notes.", { timeout: 10_000 })
     await expect(page.getByTestId('source-citation')).toHaveCount(0)
   } finally { await app.close() }
 })
@@ -237,7 +237,7 @@ test('a meeting cited for several of its parts shows one mark, and an answer tha
     await input.fill('What did we decide about politics?')
     await input.press('Enter')
     await expect(page.getByTestId('chat-page-turn')).toHaveAttribute('data-status', 'done', { timeout: 15_000 })
-    await expect(page.getByTestId('chat-page-answer')).toHaveText('Nothing in your meetings is about that.')
+    await expect(page.getByTestId('chat-page-answer')).toHaveText('Nothing in your notes is about that.')
     await expect(page.getByTestId('source-citation')).toHaveCount(0)
   } finally { await app.close() }
 })

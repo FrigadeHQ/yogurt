@@ -7,8 +7,9 @@ import type { CompanionStatus } from '../src/shared/companion'
 
 vi.mock('react', async original => ({ ...await original<typeof import('react')>(), useState: vi.fn() }))
 const NOW = Date.UTC(2026, 10, 20, 12)
-beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(NOW) })
-afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); setLanguage('en') })
+// the section shows only while the iPhone companion is turned on (YOGURT_PHONE=1)
+beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(NOW); vi.stubGlobal('window', { yogurt: { phone: true } }) })
+afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); setLanguage('en') })
 
 const idle: CompanionStatus = { paired: null, pairing: null, pairingClosed: null, error: null, connected: false, syncing: false }
 const WIFI = 'Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.'
@@ -80,15 +81,15 @@ const MAC_NETWORK = "Your iPhone can't see this computer. Allow Local Network fo
 const PC_NETWORK = "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks."
 
 it('an advert the network refused says how to let the iPhone see this computer, while pairing and once paired', async () => {
-  vi.stubGlobal('window', { yogurt: { platform: 'darwin' } })
+  vi.stubGlobal('window', { yogurt: { phone: true, platform: 'darwin' } })
   try {
     const pairing = await render({ ...idle, error: 'network', pairing: { code: '482913', expiresAt: NOW + 102_000, attemptsLeft: 5 } })
     expect(pairing).toContain(MAC_NETWORK)
     expect(pairing).toContain('data-testid="phone-code"')
     expect(await render({ ...idle, error: 'network', paired: { name: 'Test iPhone', lastSeen: NOW } })).toContain(MAC_NETWORK)
-    vi.stubGlobal('window', { yogurt: { platform: 'win32' } })
+    vi.stubGlobal('window', { yogurt: { phone: true, platform: 'win32' } })
     expect(await render({ ...idle, error: 'network', paired: { name: 'Test iPhone', lastSeen: NOW } })).toContain(PC_NETWORK)
-  } finally { vi.unstubAllGlobals() }
+  } finally { vi.stubGlobal('window', { yogurt: { phone: true } }) }
 })
 
 it('shows nothing when the companion is not running', async () => {

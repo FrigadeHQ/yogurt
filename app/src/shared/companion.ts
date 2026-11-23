@@ -16,3 +16,7 @@ export type CompanionStatus = {
   connected: boolean
   syncing: boolean
 }
+
+/** The iPhone companion stays off and hidden until the iPhone app ships. YOGURT_PHONE=1 turns it on (dev, tests). */
+export const PHONE_COMPANION = false
+export const phoneCompanionOn = (env: Record<string, string | undefined>): boolean => PHONE_COMPANION || env.YOGURT_PHONE === '1'

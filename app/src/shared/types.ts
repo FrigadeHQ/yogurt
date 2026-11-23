@@ -38,6 +38,8 @@ export type YogurtApi = {
   capabilities: Capabilities
   /** test mode: stand-ins for models, audio and calendars */
   fake: boolean
+  /** the iPhone companion is turned on (shared/companion.ts PHONE_COMPANION, or YOGURT_PHONE=1); Settings → Phone shows only then */
+  phone: boolean
   setup: {
     state(): Promise<SetupState>
     /** called with each change; returns the way to stop listening */

@@ -19,15 +19,15 @@ export class FakeEngine implements Engine {
       return this.stream(JSON.stringify({ folder: named?.name ?? null, confidence: named ? 0.95 : 0.2 }), onToken, signal)
     }
     // a question across meetings: like a small model, the first two meetings found with every part of each cited
-    if (prompt.includes('</sources>')) {
+    if (prompt.includes('</meetings>')) {
       const meetings: Array<{ title: string; ns: number[] }> = []
       for (const m of prompt.matchAll(/^Meeting: (.+?) · .*$|^\[(\d+)\] /gm)) {
         if (m[1]) meetings.push({ title: m[1], ns: [] }); else meetings.at(-1)?.ns.push(Number(m[2]))
       }
-      if (!meetings.length) return this.stream("I couldn't find that in your meetings.", onToken, signal)
+      if (!meetings.length) return this.stream("I couldn't find that in your notes.", onToken, signal)
       const cite = (ns: number[]) => ns.map((n) => `[${n}]`).join('')
       // nothing there answers it, and every source is cited anyway
-      if (/politics\?\n<\/question>/.test(prompt)) return this.stream(`Nothing in your meetings is about that ${cite(meetings.flatMap((m) => m.ns))}.`, onToken, signal)
+      if (/politics\?\n<\/question>/.test(prompt)) return this.stream(`Nothing in your notes is about that ${cite(meetings.flatMap((m) => m.ns))}.`, onToken, signal)
       return this.stream([
         'Here is what came up:',
         ...meetings.slice(0, 2).map((f) => `- In **${f.title}**, it was discussed ${cite(f.ns)}.`),

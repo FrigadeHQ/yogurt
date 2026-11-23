@@ -93,6 +93,7 @@ import { finishQuit, hookUpdates, isPreviewBuild, updatesOn } from './updates'
 import { createCompanion, type Companion } from './companion'
 import { askSources } from './companion/handlers'
 import { hookCompanion } from './companion/ipc'
+import { companionWanted } from './companion/gate'
 import { copyFile, mkdir, rename } from 'node:fs/promises'
 import type { NoteSaveResult, StartResult } from '../shared/types'
 
@@ -1125,10 +1126,11 @@ app.whenReady().then(() => {
     } catch (e) { console.warn('tidying prepared notes failed', e) }
   }
   tidyPrepared(); setInterval(tidyPrepared, 60_000).unref()
-  // the iPhone companion: off until a phone is paired or Settings starts pairing; tests turn it on with YOGURT_FAKE_COMPANION=1
+  // the iPhone companion: never started until the iPhone app ships (YOGURT_PHONE=1 turns it on); then off until a phone
+  // is paired or Settings starts pairing. Tests also need YOGURT_FAKE_COMPANION=1
   app.on('will-quit', () => { void companion?.stop() })
   const meetingsChanged = () => { win?.webContents.send('meetings:changed'); win?.webContents.send('folders:changed') }
-  const companionOn = !isFake() || process.env.YOGURT_FAKE_COMPANION === '1'
+  const companionOn = companionWanted(process.env, isFake())
   // Linux without a secret service: the key is only scrambled on disk (the file is the person's own, mode 600)
   if (companionOn && !safeStorage.isEncryptionAvailable()) console.warn('COMPANION key not sealed: no system keychain')
   const companionReady = !companionOn ? Promise.resolve(undefined) : createCompanion({

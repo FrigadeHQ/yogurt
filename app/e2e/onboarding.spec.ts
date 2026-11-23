@@ -209,8 +209,8 @@ test('every permission step leads with what it gives, Allow asks the Mac, and Ac
     // the picture of why: You and Them becoming names
     await expect(page.getByTestId('speaker-names-art')).toContainText('Them')
     const art = page.getByTestId('speaker-names-art')
-    await expect(art.locator('.ob-tile-name')).toHaveText(['Ray', 'You', 'Maya'])
-    await expect(art.locator('.ob-swap-to')).toHaveText(['Ray', 'Maya'])
+    await expect(art.locator('.ob-tile-name')).toHaveText(['Nina', 'You', 'Maya'])
+    await expect(art.locator('.ob-swap-to')).toHaveText(['Nina', 'Maya'])
     await page.getByTestId('step-allow').click()
     // only System Settings turns it on: the pane opens, with where to click
     await expect(page.getByTestId('settings-guide')).toBeVisible()
