@@ -24,7 +24,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { isFake, userDataDir } from './paths'
+import { isFake, modelsFolder, userDataDir } from './paths'
 import { logToFile } from './log'
 import { includesRecordingCredit, loadSettings, localeOf, keepsRecording, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings, visibilityOf, summaryLanguageSetting } from './settings'
 import { CALL_GONE_MS, micPids, useCallApps, watchEveryMs, type MicApp } from './detect'
@@ -190,7 +190,9 @@ function createWindow() {
 /** Windows and Linux: what graphics the notes engine can use; null when it can't tell (or crashed checking: it then runs without them) */
 let probeGpu: () => Promise<GpuProbe | null> = async () => null
 function createSetup(): SetupController {
-  const modelsDir = join(userDataDir(), 'models')
+  const modelsDir = modelsFolder()
+  // the Windows installer may have put them on another drive: the log says where they are looked for
+  console.info(`MODELS dir=${modelsDir}`)
   return new SetupController({
     modelsDir,
     upgradePreference: {
