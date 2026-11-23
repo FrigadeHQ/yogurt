@@ -185,7 +185,8 @@ export function hookCallNames(p: {
     s.windowSeen = undefined; s.goneSince = undefined; s.goneAt = undefined
     log(`call names: the call is in ${m.app}, reading only it`)
     if (!ids.length) return
-    s.pictured = false
+    // the log says again what the call's own app shows, even when it reads as what the last app did (#83)
+    s.pictured = false; s.last = ''
     begin(m.id, s)
   })
 

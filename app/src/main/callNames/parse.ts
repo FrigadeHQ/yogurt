@@ -293,6 +293,9 @@ const titleName = (title: string | undefined): string | null => {
 
 /** the mute word a meeting tile carries (#83: "Name, <meeting title>, stummgeschaltet, Kontextmenü ist verfügbar") */
 const TEAMS_MUTED = /^(?:muted|stummgeschaltet|mic(?:rophone)? (?:is )?off|mikrofon (?:ist )?aus)$/i
+const TEAMS_UNMUTED = /^(?:unmuted|stummschaltung aufgehoben|nicht stummgeschaltet|mic(?:rophone)? (?:is )?on|mikrofon (?:ist )?(?:an|ein))$/i
+/** the last words of every tile: a tile with no label inside (English Teams on Windows, 0.3.69) is "Name, ..., <this>" */
+const TEAMS_HINT = /^(?:context menu is available|kontextmenü ist verfügbar)$/i
 /** my own tile's label adds a short word after the name: "Christa, Ich" */
 const OWN_LABEL = /^(.+?),\s*(\p{L}{1,5})$/u
 
@@ -321,7 +324,21 @@ function teamsTile(n: AxNode, alone: boolean): { name: string; speaking: boolean
     const fields = rest.split(/\s*,\s*/).filter(Boolean)
     return { name, speaking: fields.some((f) => TEAMS_SAYS.test(f)), me: head !== raw || TEAMS_ME.test(head), muted: fields.length ? fields.some((f) => TEAMS_MUTED.test(f)) : null }
   }
-  return null
+  // no label inside: the name is the first of the tile's words when they end with Teams' context-menu hint
+  const fields = label.split(/\s*,\s*/)
+  if (heads.length || fields.length < 3 || !TEAMS_HINT.test(fields.at(-1)!)) return null
+  const name = cleanTeams(fields[0])
+  if (name.length < 2 || name.length > 60 || !/\p{L}/u.test(name) || /[+\d]/.test(name)) return null
+  const rest = fields.slice(1)
+  return { name, speaking: rest.some((f) => TEAMS_SAYS.test(f)), me: TEAMS_ME.test(fields[0]), muted: rest.some((f) => TEAMS_MUTED.test(f)) }
+}
+
+/** what a tile's video image says about mute, by the names among its words: "..., Unmuted, video is on, ..., Dana Smith" */
+function imageMutes(n: AxNode, into: Map<string, boolean>) {
+  const fields = (n.t ?? n.d ?? '').normalize('NFKC').split(/\s*,\s*/).filter(Boolean)
+  const muted = fields.some((f) => TEAMS_MUTED.test(f)), unmuted = fields.some((f) => TEAMS_UNMUTED.test(f))
+  if (muted === unmuted) return
+  for (const f of fields) into.set(low(f), muted)
 }
 
 function readTeams(windows: AxWindow[]): CallReading {
@@ -330,11 +347,13 @@ function readTeams(windows: AxWindow[]): CallReading {
   for (const w of windows) {
     let call = false, oneToOne = false, unread = false
     const states: Array<{ name: string; muted: boolean | null; me: boolean }> = []
+    const mutes = new Map<string, boolean>()
     walk(w.tree, (n) => { if (n.i === 'hangup-button') call = true; if (n.i && TEAMS_ONE_TO_ONE.has(n.i)) oneToOne = true })
     const tiles: string[] = []
     walk(w.tree, (n, up) => {
       if (n.i === TEAMS_POPUPS || up.some((a) => a.i === TEAMS_POPUPS)) return
       const inStage = call && !up.some((a) => TEAMS_BARS.has(a.r))
+      if (inStage && (n.r === 'image' || n.r === 'AXImage')) imageMutes(n, mutes)
       const tile = TEAMS_TILE.has(n.r) ? teamsTile(n, inStage) : null
       if (tile) { participants.push(tile.name); tiles.push(tile.name); states.push(tile); if (tile.speaking) speaking.push(tile.name); if (tile.me) me = tile.name }
       // a tile-shaped menu item ("..., ..., ...") whose person couldn't be read: who is muted can't be told
@@ -360,6 +379,8 @@ function readTeams(windows: AxWindow[]): CallReading {
     // person not muted, and at least one other muted, the sound is theirs. My own tile never counts; two or more not
     // muted, a tile that couldn't be read, or a tile that says nothing either way name nobody.
     if (call && !oneToOne && !speaking.length && !unread) {
+      // the video image's word wins over a tile that says nothing
+      for (const t of states) { const m = mutes.get(low(t.name)); if (m !== undefined) t.muted = m }
       const others = states.filter((t) => !t.me && (!me || low(t.name) !== low(me)))
       const open = others.filter((t) => t.muted === false)
       if (others.length >= 2 && others.every((t) => t.muted !== null) && open.length === 1) { speaking.push(open[0].name); byMute = true }

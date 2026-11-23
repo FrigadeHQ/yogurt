@@ -306,6 +306,16 @@ describe('hookCallNames', () => {
     expect(two.hook.nameFor(two.m.id, 6000, 8000)).toBe('Dana Smith')
   })
 
+  it('after the call app is known, the first reading says what it found again, even when it is what the last one said (#83: 38 minutes with no line)', () => {
+    const s = setup({ app: null })
+    s.start()
+    const empty: WatchLine = { t: 1_000_000, app: 'ms-teams.exe', windows: [{ title: 'Sync | Microsoft Teams', tree: { r: 'frame', k: [{ r: 'push button', i: 'hangup-button', t: 'Leave' }] } }] }
+    s.emit(empty)
+    s.bind('Teams')
+    s.emit({ ...empty, t: 1_001_000 })
+    expect(s.logs.filter((l) => l === 'call names: teams talking 0 of 0')).toHaveLength(2)
+  })
+
   it('reads Webex roster names during a call', () => {
     const s = setup({ app: 'Webex' })
     s.start()

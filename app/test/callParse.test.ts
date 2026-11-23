@@ -342,6 +342,40 @@ describe('a Teams meeting where nobody is marked as talking (#83)', () => {
   })
 })
 
+// ---- new Teams in English on Windows (#83, 0.3.69): tiles with no label inside, the mute word on the video image ----
+// menu item "Name, video is on, <meeting title>, Context menu is available"; beside it an image whose words carry
+// "Unmuted" or "Muted" and end with the person's name. Names made up.
+const EN_TITLE = 'Quarterly planning with Contoso'
+const enTile = (name: string, video = 'video is on', extra = '') => node('menu item', { t: `${name}, ${video}, ${EN_TITLE}, ${extra}Context menu is available` })
+const enVideo = (name: string, mic: 'Unmuted' | 'Muted') => node('image', { i: `menu${name.length}x`, c: ['fui-Primitive', 'vdi-dynamic-occlusion'], t: `Video, of, call, ${EN_TITLE}, ${mic}, video is on, Pinned off, ${name}` })
+const enMeeting = (stage: AxNode[]) => win(node('frame', { t: `${EN_TITLE} | Microsoft Teams` },
+  node('panel', { i: 'app' },
+    node('push button', { i: 'organizer-control-button', t: 'Meeting options' }),
+    node('push button', { i: 'start-breakout-room-button', t: 'Rooms' }),
+    node('panel', { i: 'horizontalEnd' }, node('push button', { i: 'hangup-button', t: 'Leave' })),
+    ...stage)), `${EN_TITLE} | Microsoft Teams`)
+
+describe('new Teams in English on Windows (#83)', () => {
+  it('reads a tile with no label inside: the name before "video is on" (or off), never the meeting title or the hint', () => {
+    const r = readCall('teams', [enMeeting([enTile('Dana Smith'), enTile('Ann Lee', 'Video is off'), enTile('Bo Park', 'video is off')])])
+    expect(r.participants).toEqual(['Dana Smith', 'Ann Lee', 'Bo Park'])
+  })
+  it('takes the mute word from the video image that names the person, so the one other person unmuted is the one talking', () => {
+    const stage = [enVideo('Dana Smith', 'Unmuted'), enTile('Dana Smith'), enVideo('Ann Lee', 'Muted'), enTile('Ann Lee'), enTile('Bo Park', 'video is off', 'Muted, ')]
+    expect(readCall('teams', [enMeeting(stage)])).toEqual({ speaking: ['Dana Smith'], participants: ['Dana Smith', 'Ann Lee', 'Bo Park'], me: null, byMute: true })
+    // an image naming nobody shown says nothing about anyone
+    const stray = [enVideo('Cy Young', 'Unmuted'), enTile('Ann Lee', 'video is on', 'Muted, '), enTile('Bo Park', 'video is on', 'Muted, ')]
+    expect(readCall('teams', [enMeeting(stray)]).speaking).toEqual([])
+  })
+  it("my own tile (\"Name (You)\") is me, so with one other person the reading is a call of two", () => {
+    const r = readCall('teams', [enMeeting([enTile('Alex Morgan (You)'), enVideo('Dana Smith', 'Unmuted'), enTile('Dana Smith')])])
+    expect(r).toEqual({ speaking: [], participants: ['Alex Morgan', 'Dana Smith'], me: 'Alex Morgan' })
+  })
+  it('one other tile alone in a meeting names nobody: a bigger meeting with the chat open shows one tile too (#83, 15:30)', () => {
+    expect(readCall('teams', [enMeeting([enVideo('Dana Smith', 'Unmuted'), enTile('Dana Smith')])]).speaking).toEqual([])
+  })
+})
+
 describe('summarize: a short picture of the tree for the log', () => {
   it("counts roles and shows ids, classes and the app's own words, never a name or anything said", () => {
     const captions = node('AXGroup', { i: 'captions' }, node('AXStaticText', { v: 'we can sign the renewal with Acme on Friday' }))
