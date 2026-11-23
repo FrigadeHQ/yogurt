@@ -313,6 +313,35 @@ describe('a 1:1 Teams call (#83)', () => {
   })
 })
 
+// ---- a German Teams meeting on Windows (#83): "Name, <meeting title>, stummgeschaltet, Kontextmenü ist verfügbar" ----
+// Teams marks nobody as talking here; only who is muted. My own tile's label is "Name, Ich". Names made up.
+const TITLE = 'Abstimmung Projekt Nordlicht mit Partnern'
+const meetingTile = (name: string, label: string, muted: boolean) =>
+  node('menu item', { t: `${name}, ${TITLE}, ${muted ? 'stummgeschaltet, ' : ''}Kontextmenü ist verfügbar` }, node('label', { t: label }))
+const meeting = (tiles: AxNode[]) => win(node('frame', { t: `${TITLE} | Microsoft Teams` },
+  node('panel', { i: 'app' },
+    node('push button', { i: 'microphone-button', t: 'Stummschalten (Strg+Umschalt+M)' }),
+    node('panel', { i: 'horizontalEnd' }, node('push button', { i: 'hangup-button', t: 'Verlassen' })),
+    node('menu item', { t: `Christa, Kamera ist deaktiviert, ${TITLE}, Kontextmenü ist verfügbar` }, node('label', { t: 'Christa, Ich' })),
+    ...tiles)), `${TITLE} | Microsoft Teams`)
+
+describe('a Teams meeting where nobody is marked as talking (#83)', () => {
+  const anna = meetingTile('Anna Becker', 'Anna Becker', true)
+  const jonas = meetingTile('Jonas Weber (Contoso GmbH)', 'Jonas Weber', true)
+  const lena = meetingTile('Lena Hoffmann (Extern)', 'Lena Hoffmann', false)
+  it("the only other person not muted is the one talking; my tile (\"Name, Ich\") is me, and the meeting's title is no one", () => {
+    expect(readCall('teams', [meeting([anna, jonas, lena])])).toEqual({ speaking: ['Lena Hoffmann'], participants: ['Christa', 'Anna Becker', 'Jonas Weber', 'Lena Hoffmann'], me: 'Christa', byMute: true })
+  })
+  it('names nobody with two others not muted, with everyone muted, with only one other shown, or with a tile it could not read', () => {
+    const tom = meetingTile('Tom Krause', 'Tom Krause', false)
+    expect(readCall('teams', [meeting([anna, lena, tom])]).speaking).toEqual([])
+    expect(readCall('teams', [meeting([anna, jonas])]).speaking).toEqual([])
+    expect(readCall('teams', [meeting([lena])]).speaking).toEqual([])
+    const odd = node('menu item', { t: `Paul Klein Contoso, ${TITLE}, stummgeschaltet, Kontextmenü ist verfügbar` }, node('label', { t: 'Paul Klein' }))
+    expect(readCall('teams', [meeting([anna, lena, odd])]).speaking).toEqual([])
+  })
+})
+
 describe('summarize: a short picture of the tree for the log', () => {
   it("counts roles and shows ids, classes and the app's own words, never a name or anything said", () => {
     const captions = node('AXGroup', { i: 'captions' }, node('AXStaticText', { v: 'we can sign the renewal with Acme on Friday' }))

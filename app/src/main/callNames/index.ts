@@ -54,6 +54,8 @@ const APP_LAG_MS = 750
  * waits as long as a reading took and a fresh one killed at 5 s never sends one (#83: a Teams reading took 10 s). */
 export const QUIET_MS = 5000
 const MAX_QUIET_MS = 60_000
+/** how far back the people seen count for the call's size (see onLine) */
+const RECENT_MS = 60_000
 /** at most this many fresh starts per meeting, so an app that never answers can't start readers forever */
 const MAX_RESTARTS = 20
 /** changes of who talks written to the log, per meeting (enough to check a real call, never a flood) */
@@ -114,8 +116,13 @@ export function hookCallNames(p: {
     }
     // the first reading of each meeting goes to the log in short, so a real call shows what its app gives
     if (!s.pictured) { s.pictured = true; log(`call names: reading ${l.app} (${kind}), its window in short:\n${summarize(l.windows)}`) }
-    const r = readCall(kind, l.windows)
-    s.samples.push({ t: l.t, ...r })
+    const { byMute, ...r } = readCall(kind, l.windows)
+    // A stage can show fewer people than are in the call (a screen share, another layout: #83 went "0 of 13", "0 of 2").
+    // The most seen in the last minute stands for the call, so me and one other is no call of two, and who is muted
+    // names nobody while someone may be hidden.
+    const most = Math.max(r.participants.length, ...s.samples.filter((x) => x.ok !== false && l.t - x.t <= RECENT_MS).map((x) => x.participants.length))
+    if (byMute && most > r.participants.length) r.speaking = []
+    s.samples.push({ t: l.t, ...r, most })
     // counts only: main.log is pasted into public issues, and names belong to the people in the call
     const said = `${r.speaking.length} of ${r.participants.length}${r.me ? ', me known' : ''}`
     if (said !== s.last && s.logged < LOGGED_CHANGES) { s.logged++; log(`call names: ${kind} talking ${said}`) }

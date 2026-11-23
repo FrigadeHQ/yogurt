@@ -278,6 +278,32 @@ describe('hookCallNames', () => {
     expect(s.store.segments(s.m.id).map((x) => x.speaker)).toEqual(['Anna Becker', 'Anna Becker'])
   })
 
+  it('a reading that shows fewer people than a moment ago (the stage changed) names nobody from who is muted (#83)', () => {
+    const s = setup({ app: 'Teams' })
+    s.start()
+    s.audio(0, 1_000_100)
+    const tile = (name: string, muted: boolean): AxNode => ({ r: 'menu item', t: `${name}, Weekly, ${muted ? 'stummgeschaltet, ' : ''}Kontextmenü ist verfügbar`, k: [{ r: 'label', t: name }] })
+    const line = (t: number, tiles: AxNode[]): WatchLine => ({ t, app: 'ms-teams.exe', windows: [{ title: 'Weekly | Microsoft Teams', tree: { r: 'frame', k: [{ r: 'push button', i: 'hangup-button', t: 'Verlassen' }, ...tiles] } }] })
+    for (let t = 1_000_000; t < 1_005_000; t += 500) s.emit(line(t, [tile('Anna Becker', true), tile('Jonas Weber', true), tile('Lena Hoffmann', false)]))
+    for (let t = 1_005_000; t < 1_010_000; t += 500) s.emit(line(t, [tile('Anna Becker', true), tile('Jonas Weber', false)]))
+    expect(s.hook.nameFor(s.m.id, 1000, 3000)).toBe('Lena Hoffmann')
+    expect(s.hook.nameFor(s.m.id, 6000, 8000)).toBeNull()
+  })
+
+  it('a meeting whose stage shrinks to me and one other is not taken for a call of two (#83: "0 of 13", then "0 of 2")', () => {
+    const s = setup()
+    s.start()
+    s.audio(0, 1_000_100)
+    for (let t = 1_000_000; t < 1_005_000; t += 500) s.emit(zoomLine(t, ['Alex Morgan', 'Dana Smith', 'Ann Lee', 'Bo Park'], undefined, 'Alex Morgan'))
+    for (let t = 1_005_000; t < 1_010_000; t += 500) s.emit(zoomLine(t, ['Alex Morgan', 'Dana Smith'], undefined, 'Alex Morgan'))
+    expect(s.hook.nameFor(s.m.id, 6000, 8000)).toBeNull()
+    // a real call of two still is one
+    const two = setup()
+    two.start(); two.audio(0, 1_000_100)
+    for (let t = 1_000_000; t < 1_010_000; t += 500) two.emit(zoomLine(t, ['Alex Morgan', 'Dana Smith'], undefined, 'Alex Morgan'))
+    expect(two.hook.nameFor(two.m.id, 6000, 8000)).toBe('Dana Smith')
+  })
+
   it('reads Webex roster names during a call', () => {
     const s = setup({ app: 'Webex' })
     s.start()

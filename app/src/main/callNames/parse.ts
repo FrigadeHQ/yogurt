@@ -9,7 +9,8 @@
 export type AxNode = { r: string; s?: string; d?: string; t?: string; v?: string; i?: string; c?: string[]; w?: number; h?: number; k?: AxNode[] }
 export type AxWindow = { title?: string; id?: string; tree: AxNode }
 export type CallKind = 'zoom' | 'teams' | 'meet' | 'webex'
-export type CallReading = { speaking: string[]; participants: string[]; me: string | null }
+/** byMute: `speaking` is only the one other person not muted (Teams meetings mark nobody), not a mark of the app */
+export type CallReading = { speaking: string[]; participants: string[]; me: string | null; byMute?: boolean }
 
 // A role has two names: macOS Accessibility says AXTabGroup, AXStaticText, AXRow, AXOutline; AT-SPI (Linux) says
 // page tab, label/static/text, table row/list item, tree table/table/list. The rules below know both. Windows's helper
@@ -290,8 +291,13 @@ const titleName = (title: string | undefined): string | null => {
   return name.length >= 2 && name.length <= 60 && /\p{L}/u.test(name) && !/[\d+:/@]/.test(name) && name.split(/\s+/).length <= 5 ? name : null
 }
 
-/** a video tile's person, or null when the menu item isn't one */
-function teamsTile(n: AxNode, alone: boolean): { name: string; speaking: boolean; me: boolean } | null {
+/** the mute word a meeting tile carries (#83: "Name, <meeting title>, stummgeschaltet, Kontextmenü ist verfügbar") */
+const TEAMS_MUTED = /^(?:muted|stummgeschaltet|mic(?:rophone)? (?:is )?off|mikrofon (?:ist )?aus)$/i
+/** my own tile's label adds a short word after the name: "Christa, Ich" */
+const OWN_LABEL = /^(.+?),\s*(\p{L}{1,5})$/u
+
+/** a video tile's person, or null when the menu item isn't one. muted: null when the tile says nothing either way */
+function teamsTile(n: AxNode, alone: boolean): { name: string; speaking: boolean; me: boolean; muted: boolean | null } | null {
   const label = (n.t ?? n.d ?? '').normalize('NFKC').trim()
   const inner: string[] = [], heads: string[] = []
   walk(n, (x) => {
@@ -300,29 +306,39 @@ function teamsTile(n: AxNode, alone: boolean): { name: string; speaking: boolean
     inner.push(...said)
     if (STATIC_TEXT.has(x.r)) heads.push(...said)
   })
-  for (const head of heads) {
+  for (const raw of heads) {
+    // my own tile: its label is "Name, Ich" and the tile reads "Name, ..."
+    const own = OWN_LABEL.exec(raw)
+    const head = own && !label.startsWith(raw) && label.startsWith(`${own[1]},`) ? own[1] : raw
     if (!head || !label.startsWith(head) || (head === label && !alone)) continue
-    const rest = label.slice(head.length)
+    // what Teams puts after a name in brackets ("Jonas Weber (Contoso GmbH), ...") is not part of the label
+    let rest = label.slice(head.length)
+    rest = rest.replace(/^\s*\([^()]*\)(?=\s*,)/, '')
     // the rest is Teams' words after a comma, or another text of the tile run together with the name, or nothing
     if (rest && !/^\s*,/.test(rest) && !inner.includes(rest.trim())) continue
     const name = cleanTeams(head)
     if (name.length < 2 || name.length > 60 || !/\p{L}/u.test(name) || /[+\d]/.test(name)) continue
-    return { name, speaking: rest.split(/\s*,\s*/).some((f) => TEAMS_SAYS.test(f)), me: TEAMS_ME.test(head) }
+    const fields = rest.split(/\s*,\s*/).filter(Boolean)
+    return { name, speaking: fields.some((f) => TEAMS_SAYS.test(f)), me: head !== raw || TEAMS_ME.test(head), muted: fields.length ? fields.some((f) => TEAMS_MUTED.test(f)) : null }
   }
   return null
 }
 
 function readTeams(windows: AxWindow[]): CallReading {
   const speaking: string[] = [], participants: string[] = []
-  let me: string | null = null
+  let me: string | null = null, byMute = false
   for (const w of windows) {
-    let call = false, oneToOne = false
+    let call = false, oneToOne = false, unread = false
+    const states: Array<{ name: string; muted: boolean | null; me: boolean }> = []
     walk(w.tree, (n) => { if (n.i === 'hangup-button') call = true; if (n.i && TEAMS_ONE_TO_ONE.has(n.i)) oneToOne = true })
     const tiles: string[] = []
     walk(w.tree, (n, up) => {
       if (n.i === TEAMS_POPUPS || up.some((a) => a.i === TEAMS_POPUPS)) return
-      const tile = TEAMS_TILE.has(n.r) ? teamsTile(n, call && !up.some((a) => TEAMS_BARS.has(a.r))) : null
-      if (tile) { participants.push(tile.name); tiles.push(tile.name); if (tile.speaking) speaking.push(tile.name); if (tile.me) me = tile.name }
+      const inStage = call && !up.some((a) => TEAMS_BARS.has(a.r))
+      const tile = TEAMS_TILE.has(n.r) ? teamsTile(n, inStage) : null
+      if (tile) { participants.push(tile.name); tiles.push(tile.name); states.push(tile); if (tile.speaking) speaking.push(tile.name); if (tile.me) me = tile.name }
+      // a tile-shaped menu item ("..., ..., ...") whose person couldn't be read: who is muted can't be told
+      else if (inStage && TEAMS_TILE.has(n.r) && (n.t ?? '').split(',').length >= 3) unread = true
       const roster = inTeamsRoster(n, up)
       for (const label of texts(n)) {
         for (const re of TEAMS_SPEAKING) { const m = re.exec(label); if (m) { const name = cleanTeams(m[1]); if (name.length >= 2 && !/^(you|me|sie|du|ich)\b/i.test(name)) speaking.push(name) } }
@@ -340,8 +356,16 @@ function readTeams(windows: AxWindow[]): CallReading {
       const other = titled ? (!others.length || others.some((t) => low(t) === low(titled)) ? titled : null) : others.length === 1 ? others[0] : null
       if (other) { speaking.push(other); participants.push(other) }
     }
+    // A meeting marks nobody as talking, only who is muted (#83). A muted person can't be heard, so with exactly one other
+    // person not muted, and at least one other muted, the sound is theirs. My own tile never counts; two or more not
+    // muted, a tile that couldn't be read, or a tile that says nothing either way name nobody.
+    if (call && !oneToOne && !speaking.length && !unread) {
+      const others = states.filter((t) => !t.me && (!me || low(t.name) !== low(me)))
+      const open = others.filter((t) => t.muted === false)
+      if (others.length >= 2 && others.every((t) => t.muted !== null) && open.length === 1) { speaking.push(open[0].name); byMute = true }
+    }
   }
-  return { speaking: uniq(speaking), participants: uniq(participants.filter((p) => p.length >= 2)), me }
+  return { speaking: uniq(speaking), participants: uniq(participants.filter((p) => p.length >= 2)), me, ...(byMute ? { byMute } : {}) }
 }
 
 // ---- Webex desktop app ----
