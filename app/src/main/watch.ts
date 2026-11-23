@@ -1,5 +1,5 @@
 import type { Meeting } from './store'
-import { callAppName, callGone, decide, ended, type Prompt, type Signals } from './detect'
+import { callAppName, callGone, decide, ended, windowGone, type Prompt, type Signals } from './detect'
 import type { Reading } from './detectSignals'
 
 /** Everything the watcher needs from outside, so tests and fake mode can stand in */
@@ -24,6 +24,8 @@ export type WatchDeps = {
   autoStopOn?(): boolean
   /** how long the call must be gone (CALL_GONE_MS unless fake mode says) */
   graceMs?: number
+  /** the call names reader's view of the meeting's call window: null before a call window with people was seen */
+  callWindow?(meetingId: string): { goneMs: number } | null
 }
 
 const SNOOZE = 5 * 60_000
@@ -36,7 +38,7 @@ export class Watcher {
   readonly dismissed = new Set<string>()
   private shown: string | null = null // key of the start card, or 'stop'
   private busy = false
-  private rec: { id: string; lastMic: number; snoozeUntil: number; /** the call app was on the mic during this recording */ seen: boolean; stopped: boolean; /** started without a call app (New note, the agenda): never stopped by itself */ byHand: boolean } | null = null
+  private rec: { id: string; lastMic: number; snoozeUntil: number; /** the call app was on the mic during this recording */ seen: boolean; stopped: boolean; /** started without a call app (New note, the agenda): stopped by itself only once its call window is gone */ byHand: boolean; /** when the window-gone line last went to the log */ windowLogAt?: number } | null = null
 
   /** call apps on the mic at the last look before recording: a recording started from the card belongs to that call */
   private idleMic = new Set<string>()
@@ -120,7 +122,8 @@ export class Watcher {
 
   private recording(m: Meeting, s: Signals, now: number) {
     const starting = this.rec?.id !== m.id
-    // started by hand (no call app yet: New note, the agenda): never stopped by itself, only asked about. Join and record
+    // started by hand (no call app yet: New note, the agenda): the mic alone never stops it, only asks (a pre-join
+    // screen lets go of the mic); its call window going away does. Join and record
     // starts with no app too, but it is a call: like a card start it stops once its call app was on the mic and has gone
     const byHand = starting ? !m.app && !this.joins.has(m.id) : this.rec!.byHand
     const recent = starting && this.idleCall && now - this.idleCall.at <= 6000 ? this.idleCall.app : null
@@ -142,16 +145,28 @@ export class Watcher {
     const using = !m.app || onMic
     if (using) r.lastMic = now
     const silentMs = this.d.silentMs?.() ?? 0
-    if (!r.byHand && this.d.autoStop && this.d.autoStopOn?.() && callGone({ app: m.app, seen: r.seen, micIdleMs: now - r.lastMic, silentMs, graceMs: this.d.graceMs })) {
-      console.info(`CALL gone meeting=${m.id} app=${m.app} idle_ms=${now - r.lastMic} silent_ms=${silentMs}`)
+    // A call window with people seen, then gone: the call ended, whatever the mic says (Zoom can keep it). That is no
+    // pre-join screen letting go of the mic, so it ends a recording started by hand too.
+    const win = m.app ? this.d.callWindow?.(m.id) ?? null : null
+    const goneMs = win?.goneMs ?? 0
+    const mic = s.micApps.filter((a) => callAppName(a.bundleId, s.runningApps) === m.app).map((a) => a.bundleId).join(',') || 'none'
+    if (goneMs > 0 && (r.windowLogAt === undefined || now - r.windowLogAt >= 10_000)) {
+      // what the mic did after the window went away, so the next call that does not end shows why
+      r.windowLogAt = now
+      console.info(`CALL window-gone meeting=${m.id} app=${m.app} window_ms=${goneMs} on_mic=${onMic} mic=${mic} silent_ms=${silentMs}`)
+    } else if (goneMs === 0) r.windowLogAt = undefined
+    const byWindow = windowGone({ goneMs, silentMs })
+    const byMic = !r.byHand && callGone({ app: m.app, seen: r.seen, micIdleMs: now - r.lastMic, silentMs, graceMs: this.d.graceMs })
+    if ((byWindow || byMic) && this.d.autoStop && this.d.autoStopOn?.()) {
+      console.info(`CALL gone meeting=${m.id} app=${m.app} idle_ms=${now - r.lastMic} silent_ms=${silentMs} via=${byMic ? 'mic' : 'window'} window_ms=${goneMs} mic=${mic}`)
       r.stopped = true
       if (this.shown === 'stop') { this.shown = null; this.d.hide() }
       this.d.autoStop(m)
       return
     }
-    const over = ended(now - r.lastMic, silentMs)
+    const over = byWindow || ended(now - r.lastMic, silentMs)
     if (over && this.shown !== 'stop' && now >= r.snoozeUntil) {
-      console.info(`CALL stop-card meeting=${m.id} app=${m.app ?? 'none'} reason=mic-idle-and-silent idle_ms=${now - r.lastMic} silent_ms=${silentMs}`)
+      console.info(`CALL stop-card meeting=${m.id} app=${m.app ?? 'none'} reason=${byWindow ? 'window-gone-and-silent' : 'mic-idle-and-silent'} window_ms=${goneMs} idle_ms=${now - r.lastMic} silent_ms=${silentMs}`)
       this.shown = 'stop'; this.d.askStop(m)
     }
     else if (!over && this.shown === 'stop') { this.shown = null; this.d.hide() }

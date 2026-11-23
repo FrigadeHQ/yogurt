@@ -69,6 +69,8 @@ function setup(o: { app?: string | null; attendees?: Meeting['attendees']; micPi
     /** audio heard: meeting time `ms`, arriving at wall clock `at` */
     audio(ms: number, at: number) { clock = at; capture.emit('pcm', 'them', ms, new Float32Array(1600)) },
     emit: (l: WatchLine) => emit(l),
+    /** the wall clock moves to `at` */
+    at(t: number) { clock = t },
     /** the recording learned its call app (CALL bind) */
     bind(app: string) { binds.forEach((f) => f({ ...store.meeting(m.id)!, app })) },
     stop() { const s = { ...store.meeting(m.id)!, state: 'stopped' as const }; stops.forEach((f) => f(s)) },
@@ -391,5 +393,82 @@ describe('hookCallNames', () => {
     for (let t = 1_000_000; t < 1_005_000; t += 500) p.emit(zoomLine(t, ['Alex Morgan', 'Dana Smith']))
     expect(p.hook.nameFor(p.m.id, 1000, 3000)).toBe('Dana Smith')
     await wait()
+  })
+})
+
+// #auto-end: Christian's Zoom call (Nov 23) never stopped by itself. A call window seen and then gone is a second sign the
+// call ended, beside the mic, which Zoom can keep after a meeting.
+describe('callWindow: the call window seen, then gone', () => {
+  const gone = (t: number, extra: Partial<WatchLine> = {}): WatchLine => ({ t, app: 'us.zoom.xos', error: 'no-call-window', ...extra })
+  it('a Zoom meeting window with people that goes away counts how long it has been gone, and says so in the log', () => {
+    const s = setup({ app: null })
+    s.start(); s.bind('Zoom')
+    for (let t = 1_000_000; t <= 1_005_000; t += 500) { s.at(t); s.emit(zoomLine(t, ['Alex Morgan', 'Dana Smith'])) }
+    expect(s.hook.callWindow(s.m.id)).toEqual({ goneMs: 0 })
+    for (let t = 1_005_500; t <= 1_015_500; t += 500) { s.at(t); s.emit(gone(t)) }
+    expect(s.hook.callWindow(s.m.id)).toEqual({ goneMs: 10_000 })
+    expect(s.logs).toContain('call names: the zoom call window went away')
+    // it comes back (a reading of the window again): not gone
+    s.at(1_016_000); s.emit(zoomLine(1_016_000, ['Alex Morgan', 'Dana Smith']))
+    expect(s.hook.callWindow(s.m.id)).toEqual({ goneMs: 0 })
+    expect(s.logs).toContain('call names: the zoom call window is back after 11 s')
+  })
+  it('a Teams call whose window (its Leave button) goes away is gone the same way', () => {
+    const s = setup({ app: 'Teams' })
+    s.start()
+    const tree: AxNode = { r: 'frame', k: [{ r: 'section', t: 'Dana Smith, speaking' }, { r: 'tree', t: 'Participants', k: [{ r: 'tree item', t: 'Dana Smith, unmuted' }, { r: 'tree item', t: 'Alex Morgan (You)' }] }] }
+    s.at(1_000_000); s.emit({ t: 1_000_000, app: 'com.microsoft.teams2', windows: [{ title: 'Meeting | Microsoft Teams', tree }] })
+    for (let t = 1_000_500; t <= 1_008_500; t += 500) { s.at(t); s.emit({ t, app: 'com.microsoft.teams2', error: 'no-call-window' }) }
+    expect(s.hook.callWindow(s.m.id)?.goneMs).toBe(8_000)
+    expect(s.logs).toContain('call names: the teams call window went away')
+  })
+  it('Zoom quitting is the window gone too', () => {
+    const s = setup()
+    s.start()
+    s.at(1_000_000); s.emit(zoomLine(1_000_000, ['Alex Morgan', 'Dana Smith']))
+    for (let t = 1_000_500; t <= 1_010_500; t += 500) { s.at(t); s.emit({ t, error: 'not-running' }) }
+    expect(s.hook.callWindow(s.m.id)?.goneMs).toBe(10_000)
+  })
+  it('a window the Mac still has but accessibility cannot see (another desktop, full screen) is not gone', () => {
+    const s = setup()
+    s.start()
+    s.at(1_000_000); s.emit(zoomLine(1_000_000, ['Alex Morgan', 'Dana Smith']))
+    for (let t = 1_000_500; t <= 1_060_000; t += 500) { s.at(t); s.emit(gone(t, { hidden: true })) }
+    expect(s.hook.callWindow(s.m.id)).toEqual({ goneMs: 0 })
+    expect(s.logs.filter((l) => l.includes('out of sight'))).toHaveLength(1)
+  })
+  it('a minimised meeting window is still read, so it is not gone', () => {
+    const s = setup()
+    s.start()
+    for (let t = 1_000_000; t <= 1_060_000; t += 500) {
+      const l = zoomLine(t, ['Alex Morgan', 'Dana Smith']); l.windows![0].minimized = t > 1_001_000
+      s.at(t); s.emit(l)
+    }
+    expect(s.hook.callWindow(s.m.id)).toEqual({ goneMs: 0 })
+  })
+  it('no call window ever seen with people (a pre-join screen, a call not joined yet): no evidence either way', () => {
+    const s = setup()
+    s.start()
+    s.at(1_000_000); s.emit(zoomLine(1_000_000, []))
+    for (let t = 1_000_500; t <= 1_060_000; t += 500) { s.at(t); s.emit(gone(t)) }
+    expect(s.hook.callWindow(s.m.id)).toBeNull()
+  })
+  it('a reader that went quiet or lost its permission is no evidence the window went away', () => {
+    const s = setup()
+    s.start()
+    s.at(1_000_000); s.emit(zoomLine(1_000_000, ['Alex Morgan', 'Dana Smith']))
+    s.at(1_000_500); s.emit(gone(1_000_500))
+    s.at(1_030_000)
+    expect(s.hook.callWindow(s.m.id)).toEqual({ goneMs: 0 })
+    s.emit({ t: 1_030_000, error: 'not-trusted' })
+    s.at(1_040_000); s.emit({ t: 1_040_000, error: 'not-trusted' })
+    expect(s.hook.callWindow(s.m.id)).toEqual({ goneMs: 0 })
+  })
+  it('a Meet tab is not followed: switching tabs hides the call from the reader, and the browser lets go of the mic as soon as the call ends', () => {
+    const s = setup({ app: 'Chrome' })
+    s.start()
+    s.at(1_000_000); s.emit({ t: 1_000_000, app: 'com.google.Chrome', windows: [{ title: 'Meet - abc-defg-hij', tree: { r: 'AXWindow', k: [] } }] })
+    for (let t = 1_000_500; t <= 1_060_000; t += 500) { s.at(t); s.emit({ t, app: 'com.google.Chrome', error: 'no-call-window' }) }
+    expect(s.hook.callWindow(s.m.id)).toBeNull()
   })
 })
