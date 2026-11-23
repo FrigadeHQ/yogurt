@@ -12,7 +12,8 @@ import { readCall, summarize, type AxWindow, type CallKind } from './parse'
  */
 
 /** what yogurt-mac call-watch prints each time it reads: the call windows, or why it could not */
-export type WatchLine = { t: number; app?: string; windows?: AxWindow[]; error?: string }
+/** macWindows: how many normal windows of the app the Mac itself shows, beside the ones accessibility lists (#138) */
+export type WatchLine = { t: number; app?: string; windows?: AxWindow[]; error?: string; macWindows?: number }
 /** pids: read only these processes' windows (the call app's processes on the mic); none known, the app's frontmost with a call */
 export type Watch = (ids: string[], onLine: (l: WatchLine) => void, pids?: number[]) => { stop(): void }
 
@@ -49,15 +50,20 @@ export function kindFor(appId: string, windows: Array<{ title?: string }>, callA
 export const WATCH_EVERY_MS = 400
 /** the apps mark the person talking about this late (Zoom: about 0.75 to 1.2 s after they start) */
 const APP_LAG_MS = 750
-/** no reading for this long while recording: the reader is stuck (seen once, 11 minutes of Them), so it starts again */
+/** no reading for this long while recording: the reader is stuck (seen once, 11 minutes of Them), so it starts again.
+ * A slow window gets longer: three times the reader's own pace, and twice as long after each start, since the reader
+ * waits as long as a reading took and a fresh one killed at 5 s never sends one (#83: a Teams reading took 10 s). */
 export const QUIET_MS = 5000
+const MAX_QUIET_MS = 60_000
+/** how far back the people seen count for the call's size (see onLine) */
+const RECENT_MS = 60_000
 /** at most this many fresh starts per meeting, so an app that never answers can't start readers forever */
 const MAX_RESTARTS = 20
 /** changes of who talks written to the log, per meeting (enough to check a real call, never a flood) */
 const LOGGED_CHANGES = 30
 
 type Sample = Omit<CallSample, 'ms'> & { t: number }
-type Session = { app: string | null; ids: string[]; pids?: number[]; heardAt: number; restarts: number; samples: Sample[]; priorLines: Set<number>; watch?: { stop(): void }; everyApp: boolean; offset?: number; startedAt: number; pictured: boolean; errors: Set<string>; last: string; logged: number }
+type Session = { app: string | null; ids: string[]; pids?: number[]; heardAt: number; quietMs: number; restarts: number; samples: Sample[]; priorLines: Set<number>; watch?: { stop(): void }; everyApp: boolean; offset?: number; startedAt: number; pictured: boolean; missPictured?: boolean; errors: Set<string>; last: string; logged: number }
 
 export function hookCallNames(p: {
   store: Pick<Store, 'meeting' | 'segments' | 'setSegmentSpeakers' | 'updateMeeting'>
@@ -93,10 +99,13 @@ export function hookCallNames(p: {
   }
 
   const onLine = (id: string, s: Session, l: WatchLine) => {
+    s.quietMs = Math.min(MAX_QUIET_MS, Math.max(QUIET_MS, 3 * (now() - s.heardAt)))
     s.heardAt = now()
     if (l.error || !l.app || !l.windows) {
       const why = l.error ?? 'nothing read'
       if (!s.errors.has(why)) { s.errors.add(why); log(`call names: ${why}${why === 'not-trusted' ? ' (no Accessibility permission): the other side stays Them' : ''}`) }
+      // a call app with no call window sends its windows once, so the log shows what it gives when a call is missed (#138)
+      if (l.app && l.windows && !s.missPictured) { s.missPictured = true; log(`call names: no call window in ${l.app}${l.macWindows === undefined ? '' : ` (the Mac shows ${l.macWindows} of its windows)`}, its windows in short:\n${summarize(l.windows)}`) }
       s.samples.push({ t: l.t, speaking: [], participants: [], me: null, ok: false })
       return
     }
@@ -108,8 +117,13 @@ export function hookCallNames(p: {
     }
     // the first reading of each meeting goes to the log in short, so a real call shows what its app gives
     if (!s.pictured) { s.pictured = true; log(`call names: reading ${l.app} (${kind}), its window in short:\n${summarize(l.windows)}`) }
-    const r = readCall(kind, l.windows)
-    s.samples.push({ t: l.t, ...r })
+    const { byMute, ...r } = readCall(kind, l.windows)
+    // A stage can show fewer people than are in the call (a screen share, another layout: #83 went "0 of 13", "0 of 2").
+    // The most seen in the last minute stands for the call, so me and one other is no call of two, and who is muted
+    // names nobody while someone may be hidden.
+    const most = Math.max(r.participants.length, ...s.samples.filter((x) => x.ok !== false && l.t - x.t <= RECENT_MS).map((x) => x.participants.length))
+    if (byMute && most > r.participants.length) r.speaking = []
+    s.samples.push({ t: l.t, ...r, most })
     // counts only: main.log is pasted into public issues, and names belong to the people in the call
     const said = `${r.speaking.length} of ${r.participants.length}${r.me ? ', me known' : ''}`
     if (said !== s.last && s.logged < LOGGED_CHANGES) { s.logged++; log(`call names: ${kind} talking ${said}`) }
@@ -126,7 +140,7 @@ export function hookCallNames(p: {
 
   p.onStart((m) => {
     const ids = watchIds(m.app)
-    const s: Session = { app: m.app, ids, heardAt: now(), restarts: 0, everyApp: !m.app, samples: [], priorLines: new Set(p.store.segments(m.id, { hidden: true }).map((line) => line.id)), startedAt: m.resume ? m.resume.startedAt - m.resume.startMs : m.startedAt, pictured: false, errors: new Set(), last: '', logged: 0 }
+    const s: Session = { app: m.app, ids, heardAt: now(), quietMs: QUIET_MS, restarts: 0, everyApp: !m.app, samples: [], priorLines: new Set(p.store.segments(m.id, { hidden: true }).map((line) => line.id)), startedAt: m.resume ? m.resume.startedAt - m.resume.startMs : m.startedAt, pictured: false, errors: new Set(), last: '', logged: 0 }
     sessions.set(m.id, s)
     if (!ids.length) { log(`call names: ${m.app} can't be read, the other side is Them`); return }
     begin(m.id, s)
@@ -194,9 +208,10 @@ export function hookCallNames(p: {
         begin(id, s)
         continue
       }
-      if (!s.watch || !s.ids.length || now() - s.heardAt <= QUIET_MS || s.restarts >= MAX_RESTARTS) continue
+      if (!s.watch || !s.ids.length || now() - s.heardAt <= s.quietMs || s.restarts >= MAX_RESTARTS) continue
       log(`call names: the reader went quiet for ${Math.round((now() - s.heardAt) / 1000)} s; starting it again`)
       s.restarts++
+      s.quietMs = Math.min(MAX_QUIET_MS, s.quietMs * 2)
       s.watch.stop(); s.watch = undefined
       s.heardAt = now()
       begin(id, s)

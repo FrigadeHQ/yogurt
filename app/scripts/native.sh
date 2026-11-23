@@ -49,7 +49,7 @@ VAD_SHA256=2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987
 vad=resources/vad/ggml-silero-v6.2.0.bin
 if [ ! -f "$vad" ] || [ "$(shasum -a 256 "$vad" | cut -d' ' -f1)" != "$VAD_SHA256" ]; then
   mkdir -p resources/vad
-  curl -sSfL --retry 3 -o "$vad.part" "$VAD_URL"
+  curl -sSfL --retry 8 --retry-delay 15 --retry-all-errors -o "$vad.part" "$VAD_URL"
   [ "$(shasum -a 256 "$vad.part" | cut -d' ' -f1)" = "$VAD_SHA256" ] || { rm -f "$vad.part"; echo "the VAD model's checksum is wrong" >&2; exit 1; }
   mv "$vad.part" "$vad"
   echo "fetched $vad"

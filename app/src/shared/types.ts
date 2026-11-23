@@ -25,6 +25,7 @@ export type Theme = 'light' | 'dark' | 'system'
 export type AppVisibility = 'both' | 'menu-bar' | 'dock'
 /** The capture has stopped, but its final database state may still need an explicit retry. */
 export type MeetingView = Meeting & { stopSavePending?: true; paused?: true }
+export type FolderMeetingChoice = Pick<Meeting, 'id' | 'title' | 'startedAt'> & { inFolder: boolean }
 export type MeetingCard = StoredMeetingCard & { paused?: true }
 
 /** What the window sees of the app: window.yogurt (the preload bridge, contextIsolation on) */
@@ -78,8 +79,10 @@ export type YogurtApi = {
     get(id: string): Promise<MeetingView | undefined>
     /** past and current meetings for home, newest first, a page at a time (before: the last card already shown) */
     cards(o: { before?: { at: number; id: string }; limit: number; /** only the meetings in this folder */ folder?: string }): Promise<MeetingCard[]>
+    /** creates a written note without starting the microphone */
+    createFolderNote(folderId: string): Promise<string>
     /** starts notes or opens the event's existing note with a guarded resume request */
-    start(eventId: string | null): Promise<StartResult>
+    start(eventId: string | null, folderId?: string): Promise<StartResult>
     /** opens the note for this occurrence, creating a prepared note if needed; never records */
     prepare(eventId: string, day: number): Promise<StartResult>
     /** records into an existing prepared note, keeping its title, people and typed notes */
@@ -327,6 +330,8 @@ export type YogurtApi = {
     appearance(id: string, appearance: FolderAppearance): Promise<boolean>
     rename(id: string, name: string): Promise<void>
     delete(id: string): Promise<void>
+    meetingChoices(id: string): Promise<FolderMeetingChoice[]>
+    addMany(id: string, meetingIds: string[]): Promise<boolean>
     add(id: string, meetingId: string): Promise<void>
     remove(id: string, meetingId: string): Promise<void>
     onChange(cb: () => void): () => void

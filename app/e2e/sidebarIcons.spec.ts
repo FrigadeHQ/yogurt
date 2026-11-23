@@ -14,7 +14,7 @@ for (const theme of ['light', 'dark'] as const) test(`sidebar icon scope and mot
   const userData = mkdtempSync(join(tmpdir(), 'yogurt-icons-'))
   writeFileSync(join(userData, 'settings.json'), JSON.stringify({ theme }))
   const app = await electron.launch({ args: [join(import.meta.dirname, '../out/main/index.js')], env: {
-    ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: userData,
+    ...process.env, YOGURT_FAKE: '1', YOGURT_FAKE_UPDATE: '999.0.0', YOGURT_USER_DATA: userData,
   } })
   try {
     const page = await app.firstWindow()
@@ -52,13 +52,21 @@ for (const theme of ['light', 'dark'] as const) test(`sidebar icon scope and mot
     }
     for (const id of ['nav-home', 'nav-chat']) await hover(id)
     const corner = page.getByTestId('corner-menu-button')
+    const mark = corner.locator('svg path')
+    const muted = theme === 'dark' ? 'rgb(167, 164, 173)' : 'rgb(96, 96, 102)'
+    const ink = theme === 'dark' ? 'rgb(231, 230, 235)' : 'rgb(41, 41, 44)'
+    await expect(mark).toHaveCSS('fill', muted)
+    await expect(corner.getByTestId('corner-notice-dot')).toHaveCSS('background-color', theme === 'dark' ? 'rgb(183, 128, 255)' : 'rgb(111, 0, 255)')
     await corner.hover()
+    await expect(mark).toHaveCSS('fill', ink)
     await expect(page.getByRole('tooltip')).toHaveText('Help and settings')
     await corner.click()
     await expect(page.getByRole('tooltip')).toBeHidden()
     await hover('settings-open')
     await hover('nav-trash')
+    await expect(mark).toHaveCSS('fill', ink)
     await page.keyboard.press('Escape')
+    await expect(mark).toHaveCSS('fill', muted)
     await hover('search-open')
     await page.evaluate(() => window.yogurt.folders.create('Project'))
     await hover('sidebar-folder-open')

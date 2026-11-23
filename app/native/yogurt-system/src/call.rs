@@ -74,6 +74,17 @@ pub fn has_word(title: &str, word: &str) -> bool {
     title.split(|c: char| !c.is_alphanumeric()).any(|w| w.eq_ignore_ascii_case(word))
 }
 
+/// Which of the app's windows to read: the one that was the call last time, alone, while it is still open. Teams keeps
+/// its big chat and calendar windows open beside the call, and reading every one each time made a German call's
+/// reading take 10 s (#83). With no such window, all of them.
+#[cfg_attr(not(windows), allow(dead_code))]
+pub fn to_read<T>(mut windows: Vec<(u64, T)>, last: Option<u64>) -> (Vec<(u64, T)>, bool) {
+    match last.and_then(|h| windows.iter().position(|w| w.0 == h)) {
+        Some(i) => (vec![windows.swap_remove(i)], true),
+        None => (windows, false),
+    }
+}
+
 pub fn now_ms() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
 }
@@ -134,6 +145,15 @@ mod tests {
         let muted = json!({ "r": "frame", "k": [{ "r": "toggle button", "t": "Unmute mic (Ctrl+Shift+M)" }] });
         assert!(is_call_tree(&muted));
         assert!(!is_call_tree(&json!({ "r": "frame", "k": [{ "r": "button", "t": "Leave chat (Ctrl+Shift+L)" }] })));
+    }
+
+    #[test]
+    fn the_last_call_window_is_read_alone_while_it_is_open() {
+        let wins = vec![(1u64, "Chat | Microsoft Teams"), (2, "Anna, Jonas | Microsoft Teams"), (3, "Calendar | Microsoft Teams")];
+        assert_eq!(to_read(wins.clone(), Some(2)), (vec![(2, "Anna, Jonas | Microsoft Teams")], true));
+        // closed, or none yet: every window, top first
+        assert_eq!(to_read(wins.clone(), Some(9)), (wins.clone(), false));
+        assert_eq!(to_read(wins.clone(), None), (wins, false));
     }
 
     #[test]

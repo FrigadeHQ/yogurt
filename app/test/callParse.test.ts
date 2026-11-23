@@ -226,6 +226,122 @@ describe('Microsoft Teams', () => {
   })
 })
 
+// ---- Teams on Windows (#83): the call window's tree from a German Teams call (0.3.66), names made up ----
+// Each video tile is a menu item labelled "Name, <state>, Kontextmenü ist verfügbar" holding a label with just the
+// name; one tile reads its name and that hint run together. Menus that open sit in Fluent's layer host.
+const germanTeams = (extra: AxNode[] = []) => win(node('frame', { t: 'Anna Becker, Jonas Weber, Lena Hoffmann | Microsoft Teams' },
+  node('document web', { i: 'RootWebArea' },
+    node('panel', { i: 'app' },
+      node('push button', { i: 'microphone-button', t: 'Stummschalten (Strg+Umschalt+M)' }),
+      node('push button', { i: 'roster-button', t: 'Personen' }),
+      node('push button', { i: 'hangup-button', t: 'Verlassen' }),
+      node('panel', { t: 'Besprechungsansicht, 4 Personen' },
+        node('menu item', { t: 'Sabine KrügerKontextmenü ist verfügbar' }, node('label', { t: 'Sabine Krüger' }), node('unknown', { t: 'Kontextmenü ist verfügbar' })),
+        node('menu item', { t: 'Anna Becker, Video ist aus, Kontextmenü ist verfügbar' }, node('label', { t: 'Anna Becker' })),
+        node('menu item', { t: 'Jonas Weber, Video ist aus, Kontextmenü ist verfügbar' }, node('label', { t: 'Jonas Weber' })),
+        node('menu item', { t: 'Lena Hoffmann, Video ist aus, Kontextmenü ist verfügbar' }, node('label', { t: 'Lena Hoffmann' })),
+        node('image', { i: 'menurkgn', t: 'Jonas Weber, Bildschirmfreigabe, Kontextmenü ist verfügbar, Vollbild' })),
+      ...extra),
+    node('panel', { i: 'fluent-default-layer-host' },
+      node('menu', {}, node('menu item', { t: 'Einstellungen, Strg+Komma' }, node('label', { t: 'Einstellungen' })),
+        node('menu item', { t: 'Kamera einschaltenStrg+Umschalt+O' }, node('label', { t: 'Kamera einschalten' }), node('label', { t: 'Strg+Umschalt+O' })))))))
+
+describe('Microsoft Teams on Windows, in any language (#83)', () => {
+  it("reads each video tile's name from the label inside it, whatever language the tile's words are in", () => {
+    expect(readCall('teams', [germanTeams()]).participants).toEqual(['Sabine Krüger', 'Anna Becker', 'Jonas Weber', 'Lena Hoffmann'])
+  })
+  it('never takes a menu that opened (settings, a shortcut) or a shared screen for a person', () => {
+    const r = readCall('teams', [germanTeams()])
+    for (const not of ['Einstellungen', 'Kamera einschalten', 'Bildschirmfreigabe']) expect(r.participants).not.toContain(not)
+    // a menu item whose label is all of it is a tile only in the call window, outside toolbars and opened menus
+    const plain = win(node('frame', {}, node('menu item', { t: 'Bericht' }, node('label', { t: 'Bericht' }))))
+    expect(readCall('teams', [plain]).participants).toEqual([])
+    const menus = germanTeams([node('tool bar', { i: 'horizontalMiddleEnd' }, node('menu item', { t: 'Bericht' }, node('label', { t: 'Bericht' })))])
+    expect(readCall('teams', [menus]).participants).not.toContain('Bericht')
+    const popup = win(node('frame', {}, node('push button', { i: 'hangup-button', t: 'Verlassen' }),
+      node('panel', { i: 'fluent-default-layer-host' }, node('menu', {}, node('menu item', { t: 'Bericht' }, node('label', { t: 'Bericht' }))))))
+    expect(readCall('teams', [popup]).participants).toEqual([])
+  })
+  it('a call of two: the tiles give both people, so the other one is named', () => {
+    const two = win(node('frame', {}, node('push button', { i: 'hangup-button', t: 'Verlassen' }),
+      node('menu item', { t: 'Alex Morgan (Sie), Kontextmenü ist verfügbar' }, node('label', { t: 'Alex Morgan (Sie)' })),
+      node('menu item', { t: 'Anna Becker, Kontextmenü ist verfügbar' }, node('label', { t: 'Anna Becker' }))))
+    expect(readCall('teams', [two])).toEqual({ speaking: [], participants: ['Alex Morgan', 'Anna Becker'], me: 'Alex Morgan' })
+  })
+  it('reads the German words: "spricht", and roster rows "Name, Organisator, Stummgeschaltet" in the Teilnehmer list', () => {
+    const tree = node('frame', {},
+      node('menu item', { t: 'Anna Becker, spricht, Kontextmenü ist verfügbar' }, node('label', { t: 'Anna Becker' })),
+      node('tree', { t: 'Teilnehmer' },
+        node('tree item', { t: 'Jonas Weber, Organisator, Stummgeschaltet' }),
+        node('tree item', { t: 'Lena Hoffmann, Referent, Stummschaltung aufgehoben' }),
+        node('tree item', { t: 'Alex Morgan (Sie), Stummgeschaltet' })))
+    expect(readCall('teams', [win(tree)])).toEqual({ speaking: ['Anna Becker'], participants: ['Anna Becker', 'Jonas Weber', 'Lena Hoffmann', 'Alex Morgan'], me: 'Alex Morgan' })
+  })
+})
+
+// ---- a 1:1 Teams call on Windows (#83, 0.3.68): hold, transfer and dial pad, one tile whose text is just the name ----
+const oneToOne = (title: string | undefined, tiles: string[]) => win(node('frame', { t: title },
+  node('document web', { i: 'RootWebArea' },
+    node('panel', { i: 'app' },
+      node('tool bar', { i: 'horizontalMiddleEnd' },
+        node('push button', { i: 'microphone-button', t: 'Stummschalten (Strg+Umschalt+M)' }),
+        node('push button', { i: 'dialpad-button', t: 'Wähltastatur' }),
+        node('push button', { i: 'hold-button', t: 'Halten' }),
+        node('push button', { i: 'transfer-button', t: 'Weiterleiten' })),
+      node('panel', { i: 'horizontalEnd' }, node('push button', { i: 'hangup-button', t: 'Auflegen' })),
+      node('panel', { t: 'Besprechungsansicht' },
+        node('image', { i: 'menurp0g', c: ['fui-Primitive', 'vdi-dynamic-occlusion'], t: 'Profilbild anzeigen, Kamera ist deaktiviert, Stummschaltung aufgehoben, Videokachel' }),
+        ...tiles.map((t) => node('menu item', { t }, node('label', { t }))))))), title)
+
+describe('a 1:1 Teams call (#83)', () => {
+  it("the only other person's tile names the call's sound, with nobody marked as talking and no name of mine known", () => {
+    expect(readCall('teams', [oneToOne('Anna Becker | Microsoft Teams', ['Anna Becker'])])).toEqual({ speaking: ['Anna Becker'], participants: ['Anna Becker'], me: null })
+  })
+  it('the window title names the other person when no tile is read, and picks them when I have a tile too', () => {
+    expect(readCall('teams', [oneToOne('Anna Becker | Microsoft Teams', [])])).toEqual({ speaking: ['Anna Becker'], participants: ['Anna Becker'], me: null })
+    expect(readCall('teams', [oneToOne('Anna Becker | Microsoft Teams', ['Alex Morgan', 'Anna Becker'])]).speaking).toEqual(['Anna Becker'])
+    // one tile and no usable title: that tile
+    expect(readCall('teams', [oneToOne(undefined, ['Anna Becker'])]).speaking).toEqual(['Anna Becker'])
+  })
+  it('a tile and a title that disagree, a title that is no name, or a group call: nobody is taken as talking', () => {
+    expect(readCall('teams', [oneToOne('Anna Becker | Microsoft Teams', ['Jonas Weber'])]).speaking).toEqual([])
+    expect(readCall('teams', [oneToOne('Chat | Anna Becker | Microsoft Teams', [])]).speaking).toEqual([])
+    expect(readCall('teams', [oneToOne('Planung Q3 2027 | Microsoft Teams', [])]).speaking).toEqual([])
+    expect(readCall('teams', [oneToOne(undefined, ['Anna Becker', 'Jonas Weber'])]).speaking).toEqual([])
+    // the same tile in a meeting (no hold or transfer) is someone there, not the one talking
+    expect(readCall('teams', [germanTeams()]).speaking).toEqual([])
+  })
+})
+
+// ---- a German Teams meeting on Windows (#83): "Name, <meeting title>, stummgeschaltet, Kontextmenü ist verfügbar" ----
+// Teams marks nobody as talking here; only who is muted. My own tile's label is "Name, Ich". Names made up.
+const TITLE = 'Abstimmung Projekt Nordlicht mit Partnern'
+const meetingTile = (name: string, label: string, muted: boolean) =>
+  node('menu item', { t: `${name}, ${TITLE}, ${muted ? 'stummgeschaltet, ' : ''}Kontextmenü ist verfügbar` }, node('label', { t: label }))
+const meeting = (tiles: AxNode[]) => win(node('frame', { t: `${TITLE} | Microsoft Teams` },
+  node('panel', { i: 'app' },
+    node('push button', { i: 'microphone-button', t: 'Stummschalten (Strg+Umschalt+M)' }),
+    node('panel', { i: 'horizontalEnd' }, node('push button', { i: 'hangup-button', t: 'Verlassen' })),
+    node('menu item', { t: `Christa, Kamera ist deaktiviert, ${TITLE}, Kontextmenü ist verfügbar` }, node('label', { t: 'Christa, Ich' })),
+    ...tiles)), `${TITLE} | Microsoft Teams`)
+
+describe('a Teams meeting where nobody is marked as talking (#83)', () => {
+  const anna = meetingTile('Anna Becker', 'Anna Becker', true)
+  const jonas = meetingTile('Jonas Weber (Contoso GmbH)', 'Jonas Weber', true)
+  const lena = meetingTile('Lena Hoffmann (Extern)', 'Lena Hoffmann', false)
+  it("the only other person not muted is the one talking; my tile (\"Name, Ich\") is me, and the meeting's title is no one", () => {
+    expect(readCall('teams', [meeting([anna, jonas, lena])])).toEqual({ speaking: ['Lena Hoffmann'], participants: ['Christa', 'Anna Becker', 'Jonas Weber', 'Lena Hoffmann'], me: 'Christa', byMute: true })
+  })
+  it('names nobody with two others not muted, with everyone muted, with only one other shown, or with a tile it could not read', () => {
+    const tom = meetingTile('Tom Krause', 'Tom Krause', false)
+    expect(readCall('teams', [meeting([anna, lena, tom])]).speaking).toEqual([])
+    expect(readCall('teams', [meeting([anna, jonas])]).speaking).toEqual([])
+    expect(readCall('teams', [meeting([lena])]).speaking).toEqual([])
+    const odd = node('menu item', { t: `Paul Klein Contoso, ${TITLE}, stummgeschaltet, Kontextmenü ist verfügbar` }, node('label', { t: 'Paul Klein' }))
+    expect(readCall('teams', [meeting([anna, lena, odd])]).speaking).toEqual([])
+  })
+})
+
 describe('summarize: a short picture of the tree for the log', () => {
   it("counts roles and shows ids, classes and the app's own words, never a name or anything said", () => {
     const captions = node('AXGroup', { i: 'captions' }, node('AXStaticText', { v: 'we can sign the renewal with Acme on Friday' }))
@@ -242,5 +358,10 @@ describe('summarize: a short picture of the tree for the log', () => {
     expect(s.split('\n')).toHaveLength(3)
     expect(s).toContain('window "Meet - ‹12›"')
     expect(s).not.toContain('abc-defg-hij')
+  })
+  it('says which windows are minimised, so a call hidden in one shows in the log (#138)', () => {
+    const s = summarize([{ ...win(node('AXWindow', {}), 'Microsoft Teams'), minimized: true }, win(node('AXWindow', {}), 'Microsoft Teams')])
+    expect(s).toContain('window "Microsoft Teams" minimized')
+    expect(s.split('\n').filter((l) => l.startsWith('window ') && !l.includes('minimized'))).toHaveLength(1)
   })
 })

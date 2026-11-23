@@ -121,6 +121,8 @@ export function createWhisperServer(o: Opts) {
   let gpuHangs = 0
   /** a hang on the graphics card twice (#76: a GTX 1050 Ti under Vulkan never answered) turns them off for good */
   const GPU_HANGS = 2
+  /** launches Yogurt itself ended (quitting, stopping): dying while loading is then no sign of a graphics driver (#127) */
+  const ended = new WeakSet<ChildProcess>()
 
   const launch = async (): Promise<string> => {
     if (o.pidFile) { mkdirSync(dirname(o.pidFile), { recursive: true }); killStale(o.pidFile, o.lookup) }
@@ -167,7 +169,7 @@ export function createWhisperServer(o: Opts) {
     let up: string
     try { up = await Promise.race([healthy, gone]) } catch (e) {
       healthy.catch(() => {})
-      if (o.gpuFallback && !cpuOnly && (p.exitCode !== null || p.signalCode !== null)) { cpuOnly = true; console.error('whisper-server stopped while loading; starting it again without the graphics card'); o.onGpuOff?.() }
+      if (o.gpuFallback && !cpuOnly && !ended.has(p) && (p.exitCode !== null || p.signalCode !== null)) { cpuOnly = true; console.error('whisper-server stopped while loading; starting it again without the graphics card'); o.onGpuOff?.() }
       p.kill('SIGKILL')
       throw e
     }
@@ -238,7 +240,7 @@ export function createWhisperServer(o: Opts) {
       try { return (await fetch(a + '/', { signal: AbortSignal.timeout(2000) })).ok } catch { return false }
     },
     /** hard stop, for quitting (no waiting) */
-    kill() { child?.kill('SIGKILL') },
+    kill() { if (child) { ended.add(child); child.kill('SIGKILL') } },
     async stop(): Promise<void> {
       await starting?.catch(() => {})
       const p = child

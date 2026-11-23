@@ -126,7 +126,7 @@ test('agenda uses each date once while preserving Today and Tomorrow labels', as
   } finally { await app.close() }
 })
 
-test('the compact calendar keeps its original type and geometry with a bright today in both themes', async () => {
+test('the compact calendar keeps its original type and geometry with distinct selected and current dates in both themes', async () => {
   const app = await electron.launch({ args: [join(import.meta.dirname, '../out/main/index.js')], env: {
     ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: mkdtempSync(join(tmpdir(), 'yogurt-agenda-states-')),
   } })
@@ -139,9 +139,21 @@ test('the compact calendar keeps its original type and geometry with a bright to
     const week = page.locator('.agenda-week')
     for (const colorScheme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' })
+      const accent = colorScheme === 'light' ? 'rgb(111, 0, 255)' : 'rgb(183, 128, 255)'
+      const fill = 'rgb(111, 0, 255)', white = 'rgb(255, 255, 255)'
+      for (const id of ['new-note', 'recording-choices']) {
+        const control = page.getByTestId(id)
+        await expect(control).toHaveCSS('background-color', fill)
+        await expect(control).toHaveCSS('color', white)
+        await expect(control.locator('svg')).toHaveCSS('stroke', white)
+      }
+      const selectedFill = colorScheme === 'dark' ? 'rgb(59, 59, 62)' : 'rgb(228, 228, 231)'
+      const ink = colorScheme === 'dark' ? 'rgb(231, 230, 235)' : 'rgb(41, 41, 44)'
       const today = week.locator('[aria-current=date]')
-      await expect(today.locator('b')).toHaveCSS('background-color', 'rgb(111, 0, 255)')
-      await expect(today.locator('b')).toHaveCSS('color', 'rgb(255, 255, 255)')
+      await today.click()
+      await expect(today.locator('b')).toHaveCSS('background-color', selectedFill)
+      await expect(today.locator('b')).toHaveCSS('color', ink)
+      await expect(today.locator('b')).toHaveCSS('border-color', accent)
       await expect(today.locator('b')).toHaveCSS('font-size', '11px')
       await expect(today.locator('b')).toHaveCSS('width', '26px')
       await expect(today.locator('b')).toHaveCSS('height', '26px')
@@ -158,10 +170,12 @@ test('the compact calendar keeps its original type and geometry with a bright to
       await page.keyboard.press('Space')
       await expect(other).toHaveAttribute('aria-pressed', 'true')
       await expect(today).toHaveAttribute('aria-pressed', 'false')
-      await expect(today.locator('b')).toHaveCSS('background-color', 'rgb(111, 0, 255)')
+      await expect(today.locator('b')).toHaveCSS('border-color', accent)
       await today.hover()
-      await expect(today.locator('b')).toHaveCSS('background-color', 'rgb(111, 0, 255)')
-      await expect(other.locator('b')).toHaveCSS('background-color', colorScheme === 'light' ? 'rgb(241, 230, 255)' : 'rgb(44, 22, 74)')
+      await expect(today.locator('b')).toHaveCSS('color', accent)
+      await expect(today.locator('b')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+      await expect(other.locator('b')).toHaveCSS('background-color', selectedFill)
+      await expect(other.locator('b')).toHaveCSS('color', ink)
       await expect(other).toHaveCSS('outline-style', 'solid')
       await expect(other).toHaveCSS('outline-width', '2px')
       // Logical order and hit targets stay within the compact calendar in either direction.

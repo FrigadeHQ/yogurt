@@ -6,7 +6,7 @@ import { CalendarDays, CircleAlert, Ellipsis, Info, List, Moon, Palette, Sun, Ta
 it('paints every dot interior even when a display magnifies the icon', () => {
   const glyphs = { Ellipsis: [Ellipsis, 3], List: [List, 3], CalendarDays: [CalendarDays, 5],
     CircleAlert: [CircleAlert, 1], TriangleAlert: [TriangleAlert, 1], Info: [Info, 1],
-    Palette: [Palette, 6], Sun: [Sun, 8], Moon: [Moon, 2], Video: [Video, 1] } as const
+    Palette: [Palette, 6], Sun: [Sun, 8], Video: [Video, 1] } as const
   for (const [name, [Icon, count]] of Object.entries(glyphs)) {
     const html = renderToStaticMarkup(createElement(Icon))
     const discs = [...html.matchAll(/<circle\b[^>]*>/g)].map(([circle]) => circle)
@@ -17,6 +17,13 @@ it('paints every dot interior even when a display magnifies the icon', () => {
       expect(disc, name).toContain('stroke="none"')
     }
   }
+})
+
+it('draws the Dark theme moon as a single closed outline without dots', () => {
+  const html = renderToStaticMarkup(createElement(Moon))
+  expect(html.match(/<path\b/g)).toHaveLength(1)
+  expect(html).toMatch(/<path d="[^"]+Z"/)
+  expect(html).not.toContain('<circle')
 })
 
 it('keeps the three rings of the Goals target open', () => {

@@ -6,7 +6,10 @@ import { LevelBars } from '../src/renderer/src/components/LevelBars'
 vi.mock('react', async original => ({ ...await original<typeof import('react')>(), useEffect: vi.fn(), useRef: vi.fn() }))
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.clearAllMocks() })
 
-it('interpolates between level packets without renderer frame callbacks and settles when packets stop', () => {
+it.each([
+  { testId: 'widget-wave', restOpacity: undefined, expectedRest: .45 },
+  { testId: 'note-wave', restOpacity: .7, expectedRest: .7 },
+])('interpolates between level packets and settles at the resting opacity for $testId', ({ testId, restOpacity, expectedRest }) => {
   vi.useFakeTimers(); vi.setSystemTime(0)
   vi.stubGlobal('performance', { now: () => Date.now(), timeOrigin: 0 })
   const doc = Object.assign(new EventTarget(), { visibilityState: 'visible' })
@@ -20,12 +23,16 @@ it('interpolates between level packets without renderer frame callbacks and sett
   }))
   const svg = { querySelectorAll: () => bars, dataset: { live: '', level: '' } }
   vi.mocked(useRef).mockImplementation((value: unknown) => ({ current: value === null ? svg : value }) as never)
-  LevelBars({ height: 16, testId: 'widget-wave' })
+  LevelBars({ height: 16, testId, restOpacity })
   const cleanup = vi.mocked(useEffect).mock.calls[0][0]()
+  expect(bars.every(bar => Number(bar.style.opacity) === expectedRest)).toBe(true)
   let anchor = silentSpeech
   const packet = () => { anchor = speechSample(anchor, { me: .7, them: 0 }, Date.now()); receive({ me: .7, them: 0, speech: anchor }) }
   packet()
   const line = bars[4]
+  const ramp = line.animate.mock.calls[0][0]
+  expect(ramp[0].opacity).toBe(expectedRest)
+  expect(ramp.at(-1)!.opacity).toBe(1)
   const [frames, timing] = line.animate.mock.calls[1]
   expect(timing).toMatchObject({ delay: 300, duration: 900, iterations: Infinity })
   expect(line.animate.mock.results[1].value.startTime).toBe(0)
@@ -46,6 +53,7 @@ it('interpolates between level packets without renderer frame callbacks and sett
   expect(line.animate).toHaveBeenCalledTimes(2) // steady packets do not restart travel
   vi.advanceTimersByTime(821)
   expect(svg.dataset).toMatchObject({ level: '0.00', live: '0' })
+  expect(bars.every(bar => Number(bar.style.opacity) === expectedRest)).toBe(true)
   expect(line.animate.mock.results.every(result => result.value.cancel.mock.calls.length > 0)).toBe(true)
   media.matches = true; media.dispatchEvent(new Event('change')); packet()
   expect(svg.dataset.live).toBe('0')

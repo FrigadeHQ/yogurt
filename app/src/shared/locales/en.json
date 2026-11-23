@@ -1,4 +1,8 @@
 {
+  "Hide sidebar": "Hide sidebar",
+  "Show sidebar": "Show sidebar",
+  "Folders": "Folders",
+  "New folder": "New folder",
   "I'll review it that afternoon.": "I'll review it that afternoon.",
   "Then I can get the final copy ready for Tuesday.": "Then I can get the final copy ready for Tuesday.",
   "Hide Agenda": "Hide Agenda",
@@ -159,6 +163,7 @@
     "one": "and {count} more",
     "other": "and {count} more"
   },
+  "Clear meetings": "Clear meetings",
   "Clear": "Clear",
   "Searched {name}": "Searched {name}",
   "Searched all meetings": "Searched all meetings",
@@ -210,7 +215,11 @@
   "You can add notes here to guide the summary.": "You can add notes here to guide the summary.",
   "You can back up meetings, notes, transcripts and saved audio in one file.": "You can back up meetings, notes, transcripts and saved audio in one file.",
   "You can get a reminder when Yogurt detects a call.": "You can get a reminder when Yogurt detects a call.",
-  "You can record here or add existing meetings to this folder.": "You can record here or add existing meetings to this folder.",
+  "Add meetings": "Add meetings",
+  "Add meetings to {folder}": "Add meetings to {folder}",
+  "New note": "New note",
+  "In this folder": "In this folder",
+  "Notes and recordings started here are saved in this folder.": "Notes and recordings started here are saved in this folder.",
   "You can use calendar events to add meeting titles and attendees to your notes.": "You can use calendar events to add meeting titles and attendees to your notes.",
   "Your calendar": "Your calendar",
   "Your edits to the summary will be replaced.": "Your edits to the summary will be replaced.",
@@ -281,7 +290,6 @@
   "Star us on GitHub": "Star us on GitHub",
   "Join Discord": "Join Discord",
   "Send feedback": "Send feedback",
-  "Help": "Help",
   "Help and settings": "Help and settings",
   "Yogurt menu": "Yogurt menu",
   "Restart to update · {version}": "Restart to update · {version}"

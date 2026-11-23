@@ -72,16 +72,6 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   const retryNotes = useRef<() => void>(() => {})
   const retryRead = () => { if (meetingReadFailed) retryMeeting.current(); if (notesReadFailed) retryNotes.current() }
   const [m, setM] = useState<MeetingView>()
-  const [footer, setFooter] = useState<HTMLElement | null>(null)
-  useLayoutEffect(() => {
-    if (!footer) return
-    const position = () => document.body.style.setProperty('--note-footer-height', `${innerHeight - footer.getBoundingClientRect().top + 16}px`)
-    position()
-    const observer = new ResizeObserver(position)
-    observer.observe(footer)
-    window.addEventListener('resize', position)
-    return () => { observer.disconnect(); window.removeEventListener('resize', position); document.body.style.removeProperty('--note-footer-height') }
-  }, [footer])
   useEffect(() => { if (m) onTitleChange({ id: m.id, title: m.title }) }, [m?.id, m?.title, onTitleChange])
   const [retryingStop, setRetryingStop] = useState(false)
   const [starting, setStarting] = useState(false)
@@ -150,6 +140,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   const [namingFolder, setNamingFolder] = useState(false)
   /** the bounded reading area holds the chat beside the current view */
   const [transcriptToolbar, setTranscriptToolbar] = useState<HTMLDivElement | null>(null)
+  const readingArea = useRef<HTMLDivElement>(null)
   const [chatAnchor, setChatAnchor] = useState<HTMLDivElement | null>(null)
   /** the notes as shown, for merging a new view from the app outside a state update */
   const current = useRef<NoteView | undefined>(undefined)
@@ -371,7 +362,11 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   }
 
   return (
-    <LoadingContent onReady={()=>document.dispatchEvent(new CustomEvent('audio-upload-note-ready',{detail:id}))} pending={false} skeleton={<Loading layout="note" />} className="loading-note-frame"><div data-testid="note" className="document-main relative flex h-full bg-bg">
+    <LoadingContent onReady={() => {
+      // A keyboard request can open Ask while the loading frame still hides the note.
+      setChatAnchor(readingArea.current)
+      document.dispatchEvent(new CustomEvent('audio-upload-note-ready', { detail: id }))
+    }} pending={false} skeleton={<Loading layout="note" />} className="loading-note-frame"><div data-testid="note" className="document-main relative flex h-full bg-bg">
       {resumeConfirm && <Modal testId="resume-confirm" role="alertdialog" title={t('Record more in this note?')}
         description={t('Your notes, transcript, and previous audio are kept. Your edited summary will be replaced when you stop recording.')}
         onCancel={() => setResumeConfirm(false)}>
@@ -397,7 +392,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
             <div data-testid={recording ? 'rec-bar' : 'note-bar'} className="note-header-actions">
               <div className="note-recorder-controls">
                 {recording && !finishing && <>
-                  <LevelBars height={14} testId="note-wave" paused={!!m.paused} className="text-muted" />
+                  <LevelBars height={14} testId="note-wave" paused={!!m.paused} restOpacity={0.7} className={m.paused ? 'text-muted' : 'text-accent'} />
                   <RecordingTime view={recorder} />
                 </>}
                 <div data-testid="note-state" data-state={m.state} data-paused={!!m.paused} className="note-recording-group" data-treatment={RECORDING_CONTROL_TREATMENT} data-recording={recording && !finishing} role="group" aria-label={recording ? m.paused ? t('Paused') : t('Recording') : t('Meeting controls')}>
@@ -457,7 +452,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
           </div>
         </header>
         {readFailed && <InlineError testId="note-read-error" retry={retryRead} />}
-        <div ref={setChatAnchor} className="note-reading-area">
+        <div ref={readingArea} className="note-reading-area">
           <div ref={panels} className="note-panels">
           <NoteReadingPane active={primary === 'notes'} summary={shown === 'enhanced'} generating={shown === 'enhanced' && ['waiting', 'rewriting', 'handoff', 'reset', 'streaming'].includes(summaryState)} resetting={shown === 'enhanced' && summaryState === 'reset'} writing={shown === 'enhanced' && summaryState === 'streaming'} scroll={readingScroll}>
                 {shown === 'mine' ? <Editor
@@ -477,7 +472,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
           </section>}
           </div>
         </div>
-        <footer ref={setFooter} className="note-footer">
+        <footer className="note-footer">
             {m.stopSavePending && (
               <InlineError testId="note-stop-unsaved" className="mt-5">
                 <span>{t("Recording stopped. Yogurt couldn't save when it ended. Keep Yogurt open and try again.")}</span>

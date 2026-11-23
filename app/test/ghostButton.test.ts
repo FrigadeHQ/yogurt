@@ -12,8 +12,8 @@ it('keeps the hover fill for open popups and pressed buttons while an expanded s
 
 it('keeps the sidebar toggle exposed as an expanded disclosure without a popup state', () => {
   const workspace = readFileSync(new URL('../src/renderer/src/components/Workspace.tsx', import.meta.url), 'utf8')
-  const toggle = workspace.match(/<button className="ghost-btn workspace-icon workspace-sidebar-toggle[^]*?<\/button>/)?.[0]
-  expect(toggle).toContain('aria-expanded={!collapsed}')
+  const toggle = workspace.match(/<Tooltip\.Trigger [^>]*?className="ghost-btn workspace-icon workspace-sidebar-toggle[^]*?<\/Tooltip\.Trigger>/)?.[0]
+  expect(toggle).toContain('aria-expanded={sidebarVisible}')
   expect(toggle).not.toContain('aria-haspopup')
   expect(css).toMatch(/\.ghost-btn\s*\{[^}]*background:transparent/)
 })

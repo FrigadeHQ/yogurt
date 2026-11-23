@@ -40,7 +40,7 @@ const webexCurrentWindows = (): WatchLine['windows'] => [{ title: 'Webex meeting
 ] }] } }]
 const webexLine = (t: number): WatchLine => ({ t, app: 'Cisco-Systems.Spark', windows: webexWindows() })
 
-function setup(o: { app?: string | null; attendees?: Meeting['attendees']; micPids?: Record<string, number[]> } = {}) {
+function setup(o: { app?: string | null; attendees?: Meeting['attendees']; micPids?: Record<string, number[]>; myNames?: string[] } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'yogurt-callnames-')); dirs.push(root)
   const store = openStore(join(root, 'yogurt.db')); stores.push(store)
   const m = store.createMeeting({ title: 'Sync', startedAt: 1_000_000, endedAt: null, eventId: null, app: o.app === undefined ? 'Zoom' : o.app, attendees: o.attendees ?? [], state: 'recording' })
@@ -55,7 +55,7 @@ function setup(o: { app?: string | null; attendees?: Meeting['attendees']; micPi
   let transcribed!: () => void
   const done = new Promise<void>((r) => { transcribed = r })
   const hook = hookCallNames({
-    store, myNames: () => ['Alex Morgan'], transcribed: () => done, changed: (id) => changed.push(id), log: (s) => logs.push(s), now: () => clock, every: () => {},
+    store, myNames: () => o.myNames ?? ['Alex Morgan'], transcribed: () => done, changed: (id) => changed.push(id), log: (s) => logs.push(s), now: () => clock, every: () => {},
     watch: (ids, onLine, pids) => { watched.push(ids); watchedPids.push(pids); emit = onLine; return { stop: () => { stopped++ } } },
     micPids: (app) => micPids[app] ?? [],
     onStart: (fn) => starts.push(fn), onStop: (fn) => stops.push(fn), onCapture: (fn) => captures.push(fn), onBind: (fn) => binds.push(fn),
@@ -152,6 +152,32 @@ describe('hookCallNames', () => {
     expect(s.watched).toHaveLength(2)
   })
 
+  it('a slow reader that still sends readings is never started again: it gets three times its own pace (#83)', () => {
+    const s = setup()
+    s.start()
+    // a big window: the first reading takes 4 s, and the reader then reads every 8 s (it waits as long as a reading took)
+    s.audio(0, 1_004_000); s.emit(zoomLine(1_004_000, ['Alex Morgan', 'Dana Smith'], 'Dana Smith'))
+    for (let at = 1_006_000; at <= 1_060_000; at += 2_000) {
+      s.audio(0, at)
+      if ((at - 1_004_000) % 8_000 === 0) s.emit(zoomLine(at, ['Alex Morgan', 'Dana Smith'], 'Dana Smith'))
+      s.hook.checkQuiet()
+    }
+    expect(s.watched).toHaveLength(1)
+    expect(s.logs.some((l) => /went quiet/.test(l))).toBe(false)
+  })
+
+  it('a reader started again gets twice as long each time before the next start, so a first reading that takes 10 s lands (#83)', () => {
+    const s = setup()
+    s.start()
+    const starts: number[] = []
+    for (let at = 1_002_000; at <= 1_060_000; at += 2_000) {
+      s.audio(0, at); s.hook.checkQuiet()
+      if (s.watched.length > starts.length + 1) starts.push(at)
+    }
+    // 5 s, then 10 s, then 20 s of quiet; never every 6 s
+    expect(starts).toEqual([1_006_000, 1_018_000, 1_040_000])
+  })
+
   it('a recording started by hand watches every call app until its app is known, then only that one (a Teams chat window cannot hide a Meet call, #72)', () => {
     const s = setup({ app: null })
     s.start()
@@ -234,6 +260,50 @@ describe('hookCallNames', () => {
     expect(s.watchedPids).toHaveLength(2)
   })
 
+  it('a 1:1 Teams call names every line of the other side after that person, with my own name not set (#83)', async () => {
+    const s = setup({ app: 'Teams', myNames: [] })
+    s.start()
+    s.audio(0, 1_000_100)
+    s.store.addSegments([
+      { meetingId: s.m.id, track: 'them', startMs: 1000, endMs: 3000, text: 'Hallo.', speaker: null },
+      { meetingId: s.m.id, track: 'them', startMs: 6000, endMs: 9000, text: 'Bis dann.', speaker: null },
+    ])
+    const tree: AxNode = { r: 'frame', k: [
+      { r: 'push button', i: 'hold-button', t: 'Halten' }, { r: 'push button', i: 'hangup-button', t: 'Auflegen' },
+      { r: 'menu item', t: 'Anna Becker', k: [{ r: 'label', t: 'Anna Becker' }] },
+    ] }
+    for (let t = 1_000_000; t < 1_011_000; t += 500) s.emit({ t, app: 'ms-teams.exe', windows: [{ title: 'Anna Becker | Microsoft Teams', tree }] })
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id).map((x) => x.speaker)).toEqual(['Anna Becker', 'Anna Becker'])
+  })
+
+  it('a reading that shows fewer people than a moment ago (the stage changed) names nobody from who is muted (#83)', () => {
+    const s = setup({ app: 'Teams' })
+    s.start()
+    s.audio(0, 1_000_100)
+    const tile = (name: string, muted: boolean): AxNode => ({ r: 'menu item', t: `${name}, Weekly, ${muted ? 'stummgeschaltet, ' : ''}Kontextmenü ist verfügbar`, k: [{ r: 'label', t: name }] })
+    const line = (t: number, tiles: AxNode[]): WatchLine => ({ t, app: 'ms-teams.exe', windows: [{ title: 'Weekly | Microsoft Teams', tree: { r: 'frame', k: [{ r: 'push button', i: 'hangup-button', t: 'Verlassen' }, ...tiles] } }] })
+    for (let t = 1_000_000; t < 1_005_000; t += 500) s.emit(line(t, [tile('Anna Becker', true), tile('Jonas Weber', true), tile('Lena Hoffmann', false)]))
+    for (let t = 1_005_000; t < 1_010_000; t += 500) s.emit(line(t, [tile('Anna Becker', true), tile('Jonas Weber', false)]))
+    expect(s.hook.nameFor(s.m.id, 1000, 3000)).toBe('Lena Hoffmann')
+    expect(s.hook.nameFor(s.m.id, 6000, 8000)).toBeNull()
+  })
+
+  it('a meeting whose stage shrinks to me and one other is not taken for a call of two (#83: "0 of 13", then "0 of 2")', () => {
+    const s = setup()
+    s.start()
+    s.audio(0, 1_000_100)
+    for (let t = 1_000_000; t < 1_005_000; t += 500) s.emit(zoomLine(t, ['Alex Morgan', 'Dana Smith', 'Ann Lee', 'Bo Park'], undefined, 'Alex Morgan'))
+    for (let t = 1_005_000; t < 1_010_000; t += 500) s.emit(zoomLine(t, ['Alex Morgan', 'Dana Smith'], undefined, 'Alex Morgan'))
+    expect(s.hook.nameFor(s.m.id, 6000, 8000)).toBeNull()
+    // a real call of two still is one
+    const two = setup()
+    two.start(); two.audio(0, 1_000_100)
+    for (let t = 1_000_000; t < 1_010_000; t += 500) two.emit(zoomLine(t, ['Alex Morgan', 'Dana Smith'], undefined, 'Alex Morgan'))
+    expect(two.hook.nameFor(two.m.id, 6000, 8000)).toBe('Dana Smith')
+  })
+
   it('reads Webex roster names during a call', () => {
     const s = setup({ app: 'Webex' })
     s.start()
@@ -280,6 +350,24 @@ describe('hookCallNames', () => {
     expect(s.changed).toEqual([])
     // said once, not on every reading
     expect(s.logs.filter((l) => l.includes('not-trusted'))).toHaveLength(1)
+  })
+
+  it('a Teams that shows no call window still has its windows pictured in the log, once, without names (#138)', () => {
+    const s = setup({ app: 'Teams' })
+    s.start()
+    const windows = [{ title: 'Chat | Dana Smith | Microsoft Teams', tree: { r: 'AXWindow', k: [{ r: 'AXGroup', k: [{ r: 'AXButton', d: 'Dana Smith' }] }] } }]
+    for (let t = 1_000_000; t < 1_002_000; t += 500) s.emit({ t, error: 'no-call-window (search unavailable)', app: 'com.microsoft.teams2', windows })
+    const pictured = s.logs.filter((l) => l.startsWith('call names: no call window in com.microsoft.teams2') && l.includes('its windows in short:'))
+    expect(pictured).toHaveLength(1)
+    expect(pictured[0]).toContain('AXButton')
+    expect(s.logs.join('\n')).not.toContain('Dana Smith')
+    expect(s.logs.filter((l) => l === 'call names: no-call-window (search unavailable)')).toHaveLength(1)
+  })
+  it('says how many windows the Mac shows for Teams next to the ones it pictures, so a window accessibility leaves out shows (#138)', () => {
+    const s = setup({ app: 'Teams' })
+    s.start()
+    s.emit({ t: 1_000_000, error: 'no-call-window', app: 'com.microsoft.teams2', windows: [{ title: 'Microsoft Teams', tree: { r: 'AXWindow' } }], macWindows: 3 })
+    expect(s.logs.some((l) => l.startsWith('call names: no call window in com.microsoft.teams2 (the Mac shows 3 of its windows), its windows in short:'))).toBe(true)
   })
 
   it('a meeting in an app it can\'t read starts no watch', async () => {

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { isValidElement, type ReactElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { Ask } from '../src/renderer/src/components/Chat'
 import { NoteMenu } from '../src/renderer/src/components/NoteMenu'
 import { Note } from '../src/renderer/src/screens/Note'
 import type { MeetingView, NoteView, SetupState } from '../src/shared/types'
@@ -43,10 +44,10 @@ async function render() {
   }
   for (let i = 0; i < 6; i++) await Promise.resolve()
 }
-function find(node: ReactNode, id: string | typeof NoteMenu): ReactElement<Record<string, unknown>> | undefined {
+function find(node: ReactNode, id: string | typeof NoteMenu | typeof Ask): ReactElement<Record<string, unknown>> | undefined {
   if (Array.isArray(node)) return node.map(child => find(child, id)).find(Boolean)
   if (!isValidElement<Record<string, unknown>>(node)) return
-  return node.type === id || node.props.id === id || node.props['data-testid'] === id || node.props.testId === id ? node : find(node.props.children as ReactNode, id)
+  return node.type === id || node.props.className === id || node.props.id === id || node.props['data-testid'] === id || node.props.testId === id ? node : find(node.props.children as ReactNode, id)
 }
 beforeEach(() => {
   vi.clearAllMocks();meetingListeners.clear();meetingChanged=()=>meetingListeners.forEach(cb=>cb())
@@ -66,6 +67,32 @@ beforeEach(() => {
   } })
 })
 afterEach(() => { unmount(); vi.unstubAllGlobals() })
+
+it('waits for the recording note to be visible before mounting the Ask dialog into it', async () => {
+  meeting.state = 'recording'; requested = undefined
+  vi.stubGlobal('document', { dispatchEvent: vi.fn() })
+  await render(); await render()
+  const area = {} as HTMLDivElement
+  const ref = find(tree, 'note-reading-area')!.props.ref as { current: HTMLDivElement } | ((node: HTMLDivElement) => void)
+  if (typeof ref === 'function') ref(area)
+  else ref.current = area
+  await render()
+  expect(find(tree, Ask)!.props.anchor).toBeNull()
+  ;(find(tree, 'loading-note-frame')!.props.onReady as () => void)()
+  await render()
+  expect(find(tree, Ask)!.props.anchor).toBe(area)
+})
+
+it('tints the note wave purple while recording, grey on pause, and purple again on resume', async () => {
+  meeting.state = 'recording'; requested = undefined
+  await render(); await render()
+  expect(find(tree, 'note-wave')?.props).toMatchObject({ className: 'text-accent', paused: false, restOpacity: 0.7 })
+  for (const paused of [true, false]) {
+    meeting = { ...meeting, paused: paused || undefined }
+    meetingChanged(); await render(); await render()
+    expect(find(tree, 'note-wave')?.props).toMatchObject({ className: paused ? 'text-muted' : 'text-accent', paused })
+  }
+})
 
 it.each(['', 'Keep this decision.'])('the note Resume button always lands on My notes with content %j', async mine => {
   notes = { ...notes, status: 'done', mine }; requested = undefined

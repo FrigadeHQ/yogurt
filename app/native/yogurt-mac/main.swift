@@ -5,6 +5,9 @@
 //   yogurt-mac calendar-auth         → asks once (the system's own prompt), then the status
 //   yogurt-mac events FROM TO        → meetings between two ISO dates (all-day and cancelled ones left out)
 //   yogurt-mac mic-apps              → [{"bundleId","name","pid"}] of processes using audio input right now
+//   yogurt-mac mic-watch             → the same as mic-apps, one JSON line at start and on each change, until stdin closes
+//                                       (stdin lines "recording" / "idle" set how often it reads again: 1.5 s / 3 s):
+//                                       one Core Audio client for Yogurt's whole life instead of one per reading (#143)
 //   yogurt-mac running-apps ID...    → the supplied bundle IDs currently present in NSRunningApplication
 //   yogurt-mac browser-title ID      → {"title":string|null}: the front tab's name in Chrome, Arc, Edge, Brave or Safari (only if running)
 //   yogurt-mac permissions           → {"mic":"authorized"|"denied"|"restricted"|"notDetermined","systemAudio":0|1|2,"calendar":…,
@@ -227,15 +230,17 @@ var askedTree = Set<pid_t>()
 func askTree(_ app: AXUIElement, _ r: NSRunningApplication, force: Bool = false) {
   guard let id = r.bundleIdentifier, chromium.contains(id), !askedTree.contains(r.processIdentifier) else { return }
   guard force || id.hasPrefix("com.microsoft.teams") else { return }
-  AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, kCFBooleanTrue)
-  // Chrome itself (not Electron) can ignore AXManualAccessibility and show only its tabs and toolbar, never the Meet
-  // page: a Meet call read 0 names that way. Screen readers ask with AXEnhancedUserInterface, which Chrome honours. It
-  // can slow window animations in that app, so it is turned back off when the watch ends (resetTrees).
-  if !id.hasPrefix("com.microsoft.teams") {
-    AXUIElementSetAttributeValue(app, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue)
-    enhanced.append(r.processIdentifier)
-  }
-  askedTree.insert(r.processIdentifier)
+  let manual = AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+  // AXManualAccessibility is Electron's. Chrome, and the new Teams (Chromium in a web view, not Electron), can ignore it
+  // and show only their own frame, never the page: a Meet call read 0 names that way, and a Teams call never had a Leave
+  // button (#138). Screen readers ask with AXEnhancedUserInterface, which Chromium honours. It can slow window
+  // animations in that app, so it is turned back off when the watch ends (resetTrees).
+  let asked = AXUIElementSetAttributeValue(app, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue)
+  if asked == .success { enhanced.append(r.processIdentifier) }
+  // A busy app (Teams joining a call) can time out: it is asked again on the next reading until it answers. The new Teams
+  // answers neither ask (not implemented) and builds its page anyway, so that answer is final and not worth a log (#138).
+  if manual == .cannotComplete && asked == .cannotComplete { lastControlLook = "asking for the tree timed out" }
+  else { askedTree.insert(r.processIdentifier) }
 }
 
 /// the browsers asked with AXEnhancedUserInterface, to turn it back off when the watch ends
@@ -313,26 +318,53 @@ func isCallControl(_ e: AXUIElement) -> Bool {
 /// What the last look for call controls found, for the log when no window is a call (#111)
 var lastControlLook = ""
 
-/// Whether a window has a button that only a call has. A Teams meeting window is a whole web page: its Leave button sits
-/// thousands of elements in, past any walk that stays cheap (#111). Chromium can search its own page for buttons in one
-/// call, so that comes first; a walk of at most `budget` elements is the fallback.
-func hasCallControl(_ w: AXUIElement, budget: Int = 1500) -> Bool {
+/// Chromium's own search of a page for its buttons, in one call
+func searchButtons(_ e: AXUIElement) -> (AXError, [AXUIElement]) {
   let predicate: [String: Any] = ["AXSearchKey": "AXButtonSearchKey", "AXResultsLimit": 500, "AXDirection": "AXDirectionNext", "AXImmediateDescendantsOnly": false, "AXVisibleOnly": false]
   var found: AnyObject?
-  if AXUIElementCopyParameterizedAttributeValue(w, "AXUIElementsForSearchPredicate" as CFString, predicate as CFTypeRef, &found) == .success, let buttons = found as? [AXUIElement] {
-    if buttons.contains(where: isCallControl) { lastControlLook = "search found it"; return true }
-    lastControlLook = "search saw buttons, none a call control"
+  let err = AXUIElementCopyParameterizedAttributeValue(e, "AXUIElementsForSearchPredicate" as CFString, predicate as CFTypeRef, &found)
+  return (err, (found as? [AXUIElement]) ?? [])
+}
+
+/// Whether a window has a button that only a call has. A Teams meeting window is a whole web page: its Leave button sits
+/// thousands of elements in, past any walk that stays cheap (#111). Chromium can search its own page for buttons in one
+/// call, so that comes first; a walk of at most `budget` elements is the fallback. The window itself can refuse the
+/// search while the page in it (its AXWebArea) answers, so the walk searches the first pages it meets (#138).
+func hasCallControl(_ w: AXUIElement, budget: Int = 1500) -> Bool {
+  var note: String
+  let (err, buttons) = searchButtons(w)
+  if err == .success {
+    if buttons.contains(where: isCallControl) { return true }
+    note = "search saw buttons, none a call control"
   } else {
-    lastControlLook = "search unavailable"
+    note = "search unavailable (\(err.rawValue))"
   }
-  var left = budget, queue = [w]
+  var left = budget, queue = [w], pages = 0
   while !queue.isEmpty && left > 0 {
     let e = queue.removeFirst(); left -= 1
     let role = axText(axAttr(e, kAXRoleAttribute)) ?? ""
     if (role == "AXButton" || role == "AXMenuItem" || role == "AXCheckBox") && isCallControl(e) { return true }
+    // Chromium hides the rest of a page from accessibility while a modal popup is open in it (aria-modal): a Teams call
+    // with a popup open shows only the popup, never its Leave button (#138)
+    if role == "AXWebArea", let kids = axAttr(e, kAXChildrenAttribute) as? [AXUIElement], kids.count == 1 {
+      let classes = (axAttr(kids[0], "AXDOMClassList") as? [String]) ?? []
+      let sub = axText(axAttr(kids[0], kAXSubroleAttribute)) ?? ""
+      if sub == "AXApplicationDialog" || sub == "AXDialog" || classes.contains(where: { $0.contains("Popover") || $0.contains("Dialog") }) {
+        if !note.contains("page shows only a popup") { note += "; page shows only a popup" }
+      }
+    }
+    if role == "AXWebArea" && err != .success && pages < 2 {
+      pages += 1
+      let (pageErr, pageButtons) = searchButtons(e)
+      if pageButtons.contains(where: isCallControl) { return true }
+      note += pageErr == .success ? "; page search saw buttons, none a call control" : "; page search unavailable (\(pageErr.rawValue))"
+    }
     queue.append(contentsOf: (axAttr(e, kAXChildrenAttribute) as? [AXUIElement]) ?? [])
   }
-  lastControlLook += left <= 0 ? "; walk stopped at \(budget) elements" : "; walk saw the whole window"
+  // no page in the window at all means the app never built it: what an unasked Chromium shows (#138)
+  note += left <= 0 ? "; walk stopped at \(budget) elements" : pages == 0 ? "; walk saw the whole window, no page in it" : "; walk saw the whole window"
+  // every window looked at, each said once, so the log says what each one gave
+  if !lastControlLook.contains(note) { lastControlLook += (lastControlLook.isEmpty ? "" : " | ") + note }
   return false
 }
 
@@ -351,7 +383,12 @@ func callWindows(_ app: AXUIElement, _ id: String) -> (wins: [AXUIElement], tab:
   }
   // Teams keeps its chat and calendar in windows shaped like the call's: only a window with a call control (Leave,
   // Mute) is a call, so an open chat can't hide a call in another app (#72). The same controls as Linux (calls.rs).
-  if id.hasPrefix("com.microsoft.teams") { return (all.filter { hasCallControl($0) }, nil) }
+  // Each window is asked for its page too, one cheap call each: that made Ardia build its page (#123), and the app-wide
+  // ask alone left Teams with no Leave button (#138).
+  if id.hasPrefix("com.microsoft.teams") {
+    for w in all.prefix(8) { AXUIElementSetAttributeValue(w, "AXManualAccessibility" as CFString, kCFBooleanTrue) }
+    return (all.filter { hasCallControl($0) }, nil)
+  }
   // Webex's meeting surfaces have stable accessibility identifiers; exclude its home window so it cannot hide another
   // call app when a recording was started by hand.
   if id == "Cisco-Systems.Spark" || id == "com.cisco.webexmeetingsapp" {
@@ -383,6 +420,30 @@ func owningApp(_ pid: pid_t, ids: [String]) -> NSRunningApplication? {
   return nil
 }
 
+/// Every window of an app that showed no call, for the log: the ones accessibility lists, any it lists only as the app's
+/// children, minimised ones marked, and how many normal windows the Mac itself has for the app (other Spaces, minimised),
+/// so a call in a window accessibility leaves out shows (#138)
+func missedWindows(_ app: AXUIElement, _ pid: pid_t) -> (windows: [[String: Any]], mac: Int) {
+  var all = (axAttr(app, kAXWindowsAttribute) as? [AXUIElement]) ?? []
+  for k in (axAttr(app, kAXChildrenAttribute) as? [AXUIElement]) ?? [] where axText(axAttr(k, kAXRoleAttribute)) == "AXWindow" && !all.contains(where: { CFEqual($0, k) }) {
+    all.append(k)
+  }
+  var budget = 1500
+  let windows = all.prefix(6).map { w -> [String: Any] in
+    var x: [String: Any] = ["tree": axCopy(w, depth: 0, maxDepth: 40, budget: &budget, zoom: false)]
+    if let title = axText(axAttr(w, kAXTitleAttribute)) { x["title"] = title }
+    if (axAttr(w, kAXMinimizedAttribute) as? Bool) == true { x["minimized"] = true }
+    return x
+  }
+  let info = (CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]) ?? []
+  let mac = info.filter { w in
+    guard (w[kCGWindowOwnerPID as String] as? Int) == Int(pid), (w[kCGWindowLayer as String] as? Int) == 0 else { return false }
+    let b = w[kCGWindowBounds as String] as? [String: Any]
+    return ((b?["Width"] as? Double) ?? 0) > 100 && ((b?["Height"] as? Double) ?? 0) > 100
+  }.count
+  return (windows, mac)
+}
+
 func watchCalls(every: Int, ids: [String], pids: [pid_t] = []) {
   // Yogurt closes stdin to stop the watch (and a crashed Yogurt closes it too)
   DispatchQueue.global().async { _ = FileHandle.standardInput.readDataToEndOfFile(); DispatchQueue.main.sync { resetTrees() }; exit(0) }
@@ -390,6 +451,9 @@ func watchCalls(every: Int, ids: [String], pids: [pid_t] = []) {
     guard let d = try? JSONSerialization.data(withJSONObject: v) else { return }
     FileHandle.standardOutput.write(d); FileHandle.standardOutput.write("\n".data(using: .utf8)!)
   }
+  // Teams windows that are no call are pictured once, a few readings in (once asked, a page takes a moment to build), so
+  // the log shows what Teams gives when its call is missed (#138)
+  var misses = 0
   while true {
     let started = Date()
     let t = Int(started.timeIntervalSince1970 * 1000)
@@ -404,12 +468,14 @@ func watchCalls(every: Int, ids: [String], pids: [pid_t] = []) {
       let running = (pids.isEmpty ? ids.compactMap { NSRunningApplication.runningApplications(withBundleIdentifier: $0).first } : pids.compactMap { owningApp($0, ids: ids) })
         .sorted { a, _ in a.processIdentifier == front }
       var found: (NSRunningApplication, AXUIElement, [AXUIElement], String?)?
+      var teams: (String, AXUIElement, pid_t)?
       for r in running {
         let app = AXUIElementCreateApplication(r.processIdentifier)
         AXUIElementSetMessagingTimeout(app, 0.3)
         askTree(app, r)
         let (wins, tab) = callWindows(app, r.bundleIdentifier ?? "")
         if !wins.isEmpty { found = (r, app, wins, tab); break }
+        if teams == nil, let id = r.bundleIdentifier, id.hasPrefix("com.microsoft.teams") { teams = (id, app, r.processIdentifier) }
       }
       if let (target, app, wins, tab) = found, let id = target.bundleIdentifier {
         askTree(app, target, force: true)
@@ -435,7 +501,15 @@ func watchCalls(every: Int, ids: [String], pids: [pid_t] = []) {
         line(["t": t, "app": id, "windows": out])
       } else {
         // which windows were looked at and how, so a log can say why a call was missed (#111)
-        line(["t": t, "error": running.isEmpty ? "not-running" : lastControlLook.isEmpty ? "no-call-window" : "no-call-window (\(lastControlLook))"])
+        var o: [String: Any] = ["t": t, "error": running.isEmpty ? "not-running" : lastControlLook.isEmpty ? "no-call-window" : "no-call-window (\(lastControlLook))"]
+        if let (id, app, pid) = teams {
+          misses += 1
+          if misses == 10 {
+            let (windows, mac) = missedWindows(app, pid)
+            o["app"] = id; o["windows"] = windows; o["macWindows"] = mac
+          }
+        }
+        line(o)
       }
     }
     // a slow app (a big page) is read less often, so the reading never takes much of the Mac
@@ -443,6 +517,63 @@ func watchCalls(every: Int, ids: [String], pids: [pid_t] = []) {
     // the run loop turns meanwhile, so the frontmost app stays current
     RunLoop.current.run(until: Date(timeIntervalSinceNow: max(Double(every) / 1000, took * 2)))
   }
+}
+
+/// Listens for apps starting and stopping input instead of being asked again and again: each new helper was a new
+/// Core Audio client with privacy checks in coreaudiod, and after about an hour of that powerd refused every power
+/// assertion and the displays never woke (#143).
+func watchMic() {
+  // Yogurt writes "recording" or "idle" to stdin when that changes, and closes it to stop the watch (a crashed Yogurt
+  // closes it too)
+  var every = 3.0
+  DispatchQueue.global().async {
+    while true {
+      let d = FileHandle.standardInput.availableData
+      if d.isEmpty { exit(0) }
+      guard let word = String(data: d, encoding: .utf8)?.split(whereSeparator: \.isNewline).last else { continue }
+      let next = word == "recording" ? 1.5 : 3.0
+      DispatchQueue.main.async { every = next }
+    }
+  }
+  let sys = AudioObjectID(kAudioObjectSystemObject)
+  var listAddr = address(kAudioHardwarePropertyProcessObjectList)
+  var inputAddr = address(kAudioProcessPropertyIsRunningInput)
+  var watched = Set<AudioObjectID>()
+  var last: Data?
+  var pending = false
+  let parent = getppid()
+  let emit = {
+    guard let d = try? JSONSerialization.data(withJSONObject: audioApps(input: true), options: [.sortedKeys]), d != last else { return }
+    last = d
+    FileHandle.standardOutput.write(d); FileHandle.standardOutput.write("\n".data(using: .utf8)!)
+  }
+  // a call starting touches several processes at once: one line for the lot
+  let changed: AudioObjectPropertyListenerBlock = { _, _ in
+    if pending { return }
+    pending = true
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { pending = false; emit() }
+  }
+  // the same block each time, so removing it finds it
+  let follow = {
+    let now = Set(audioProcesses())
+    for gone in watched.subtracting(now) { AudioObjectRemovePropertyListenerBlock(gone, &inputAddr, .main, changed) }
+    for new in now.subtracting(watched) { AudioObjectAddPropertyListenerBlock(new, &inputAddr, .main, changed) }
+    watched = now
+  }
+  let listChanged: AudioObjectPropertyListenerBlock = { a, b in follow(); changed(a, b) }
+  AudioObjectAddPropertyListenerBlock(sys, &listAddr, .main, listChanged)
+  follow()
+  emit()
+  // in case a change is never told: read again as often as Yogurt used to ask (3 s, 1.5 s while recording) inside
+  // this one client, so detection is never slower than before; and end if Yogurt is gone without closing stdin
+  var again: (() -> Void)!
+  again = {
+    if getppid() != parent { exit(0) }
+    follow(); emit()
+    DispatchQueue.main.asyncAfter(deadline: .now() + every) { again() }
+  }
+  DispatchQueue.main.asyncAfter(deadline: .now() + every) { again() }
+  dispatchMain()
 }
 
 let args = Array(CommandLine.arguments.dropFirst())
@@ -500,6 +631,8 @@ case "events":
   })
 case "mic-apps":
   out(audioApps(input: true))
+case "mic-watch":
+  watchMic()
 case "running-apps":
   out(args.dropFirst().filter(running))
 case "browser-title":
@@ -534,5 +667,5 @@ case "call-watch":
 case "mic-devices":
   out(["devices": inputDevices()])
 default:
-  fail("usage: yogurt-mac calendar-status | calendar-auth | events FROM TO | mic-apps | running-apps ID... | browser-title ID | permissions | media-auth | mic-auth | audio-auth | media-pause | media-resume ID... | mic-devices | ax-auth | call-watch MS [--pid N]... ID...")
+  fail("usage: yogurt-mac calendar-status | calendar-auth | events FROM TO | mic-apps | mic-watch | running-apps ID... | browser-title ID | permissions | media-auth | mic-auth | audio-auth | media-pause | media-resume ID... | mic-devices | ax-auth | call-watch MS [--pid N]... ID...")
 }

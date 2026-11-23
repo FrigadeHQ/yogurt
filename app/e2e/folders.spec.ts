@@ -1,3 +1,4 @@
+import { backgroundPixel } from './backgroundPixel'
 import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
@@ -8,7 +9,8 @@ const main = join(import.meta.dirname, '../out/main/index.js')
 
 async function launch(env: Record<string, string> = {}) {
   const userData = mkdtempSync(join(tmpdir(), 'yogurt-e2e-'))
-  const app = await electron.launch({ args: [main], env: { ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: userData, ...env } })
+  // Let the renderer follow Yogurt's appearance setting across reloads.
+  const app = await electron.launch({ colorScheme: null, args: [main], env: { ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: userData, ...env } })
   const page = await app.firstWindow()
   await expect(page.getByTestId('home')).toBeVisible()
   return { app, page }
@@ -35,13 +37,16 @@ const openNote = async (page: Page, title: string) => {
   await expect(page.getByTestId('note-title')).toHaveText(title)
 }
 
-test('folder and Trash icons stay still on hover in either sidebar size and respect reduced motion', async () => {
+test('folder and Trash icons stay still on hover in the docked and peeked sidebar and respect reduced motion', async () => {
   const { app, page } = await launch()
   try {
     await page.emulateMedia({ reducedMotion: 'no-preference' })
     await newFolder(page, 'Standup')
     for (const compact of [false, true]) {
-      if (compact) await page.getByTestId('sidebar-collapse').click()
+      if (compact) {
+        await page.getByTestId('sidebar-collapse').click()
+        await page.getByTestId('sidebar-expand').press('ArrowDown')
+      }
       for (const id of ['sidebar-folder-open', 'nav-trash']) {
         if (id === 'nav-trash') await page.getByTestId('corner-menu-button').click()
         const row = page.getByTestId(id)
@@ -118,6 +123,78 @@ test('a folder is made in the sidebar, opens empty, and is renamed in place and 
   } finally { await app.close() }
 })
 
+for (const theme of ['light', 'dark'] as const) test(`add existing meetings from a folder by keyboard in ${theme}`, async () => {
+  const { app, page } = await launch()
+  try {
+    await page.evaluate(theme => window.yogurt.settings.setTheme(theme), theme)
+    await withMeetings(app, page)
+    await expect.poll(() => page.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)).toBe(theme === 'dark')
+    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(w => !w.webContents.getURL().includes('#'))!.setSize(720, 520))
+    const longTitle = 'Planning'.repeat(25)
+    await page.evaluate(async title => {
+      const [first] = await window.yogurt.meetings.cards({ limit: 1 })
+      await window.yogurt.meetings.rename(first.id, title)
+    }, longTitle)
+    await page.getByTestId('sidebar-expand').press('ArrowDown')
+    await newFolder(page, 'Reviews')
+    const header = page.locator('.folder-page-heading').getByRole('button', { name: 'Add meetings' })
+    const empty = page.getByTestId('folder-empty').getByRole('button', { name: 'Add meetings' })
+    const dialog = page.getByRole('dialog', { name: 'Add meetings to Reviews', exact: true })
+    const search = dialog.getByRole('textbox', { name: 'Search' })
+    const mod = process.platform === 'darwin' ? 'Meta' : 'Control'
+    await empty.press('Enter')
+    const inactive = dialog.getByRole('button', { name: 'Add meetings', exact: true })
+    await expect(inactive).toBeDisabled()
+    await expect(inactive).toHaveCSS('background-color', theme === 'dark' ? 'rgb(51, 51, 53)' : 'rgb(236, 236, 238)')
+    await expect(search).toBeFocused()
+    await search.press(mod + '+j')
+    await search.press(mod + '+n')
+    await expect(search).toBeFocused()
+    const title = dialog.getByText(longTitle, { exact: true })
+    await expect(title).toBeVisible()
+    const titleRow = dialog.locator('label').filter({ hasText: longTitle })
+    await title.hover()
+    await expect(titleRow).toHaveCSS('background-color', theme === 'dark' ? 'rgb(59, 59, 62)' : 'rgb(228, 228, 231)')
+    await title.click()
+    await expect(titleRow.getByRole('checkbox')).toBeChecked()
+    await title.click()
+    await expect(inactive).toBeDisabled()
+    expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
+    const list = dialog.getByRole('group', { name: 'Meetings' })
+    expect(await list.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
+    await search.press('Escape')
+    await expect(empty).toBeFocused()
+    await header.press('Enter')
+    for (const title of ['Weekly sync', 'Customer call with Acme']) {
+      await search.fill(title)
+      await search.press('ArrowDown')
+      const choice = dialog.getByRole('checkbox', { name: new RegExp(title) })
+      await expect(choice).toBeFocused()
+      await choice.press('Space')
+      await expect(choice).toBeChecked()
+    }
+    await page.keyboard.press('Tab')
+    const confirm = dialog.getByRole('button', { name: 'Add 2 meetings to folder' })
+    await expect(confirm).toBeFocused()
+    await expect(confirm).toHaveCSS('background-color', 'rgb(111, 0, 255)')
+    await confirm.press('Enter')
+    await expect(dialog).toHaveCount(0)
+    await expect(header).toBeFocused()
+    await expect(page.getByTestId('past-note')).toHaveText([/Weekly sync/, /Customer call with Acme/])
+    await header.click()
+    const member = dialog.getByRole('checkbox', { name: /Weekly sync.*In this folder/ })
+    await expect(member).toBeDisabled()
+    await expect(member).toBeChecked()
+    await search.fill('No such meeting')
+    await expect(dialog.getByRole('status')).toContainText('Nothing found')
+    await search.press('Escape')
+    await expect(header).toBeFocused()
+    await header.press(mod + '+j')
+    await expect(page.getByTestId('chat-page')).toBeVisible()
+    await expect(page.getByTestId('ask-scope')).toHaveText('Reviews')
+  } finally { await app.close() }
+})
+
 test('a note goes into folders from its menu and its chip, and a new folder from the menu takes it at once', async () => {
   const { app, page } = await launch()
   try {
@@ -133,6 +210,20 @@ test('a note goes into folders from its menu and its chip, and a new folder from
     await expect(suggested).toHaveText('AcmeSuggested')
     await expect(suggested).toHaveAttribute('aria-checked', 'false')
     await page.keyboard.press('Escape')
+    await app.evaluate(({ ipcMain }) => {
+      const handlers = (ipcMain as typeof ipcMain & { _invokeHandlers: Map<string, (...args: unknown[]) => unknown> })._invokeHandlers
+      const add = handlers.get('folders:add')!
+      let failed = false
+      ipcMain.removeHandler('folders:add')
+      ipcMain.handle('folders:add', (...args) => {
+        if (!failed) { failed = true; throw new Error('fixture write failed') }
+        return add(...args)
+      })
+    })
+    await page.getByTestId('folder-suggestion-confirm').click()
+    await expect(page.getByTestId('folder-suggestion-error')).toBeVisible()
+    await expect(page.getByTestId('folder-suggestion')).toBeVisible()
+    await expect(folder(page, 'Acme').getByTestId('sidebar-folder-count')).toHaveText('0')
     await page.getByTestId('folder-suggestion-confirm').click()
     await expect(page.getByTestId('folder-suggestion')).toHaveCount(0)
     await expect(folder(page, 'Acme').getByTestId('sidebar-folder-count')).toHaveText('1')
@@ -465,7 +556,22 @@ test('24 folder icons and eight colors persist, label filed meetings without rep
     await page.getByTestId('folder-name-input').fill('Design')
     await expect(page.getByRole('radiogroup', { name: 'Icon', exact: true }).getByRole('radio')).toHaveCount(24)
     await expect(page.getByRole('radiogroup', { name: 'Color', exact: true }).getByRole('radio')).toHaveCount(8)
-    await page.getByTestId('folder-icon-palette').click()
+    const picked = page.getByTestId('folder-icon-palette')
+    await picked.click()
+    const orange = page.getByTestId('folder-color-orange')
+    await orange.click()
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' })
+      const ink = colorScheme === 'dark' ? 'rgb(239, 167, 119)' : 'rgb(184, 90, 31)'
+      await expect(picked).toHaveAttribute('aria-checked', 'true')
+      await expect(orange.locator('span')).toHaveCSS('background-color', ink)
+      await expect(picked.locator('svg')).toHaveCSS('stroke', ink)
+      await expect(picked).toHaveCSS('border-color', ink)
+      await expect.poll(() => picked.evaluate(backgroundPixel)).toEqual(colorScheme === 'dark' ? [73, 61, 55, 255] : [244, 229, 219, 255])
+      await picked.hover()
+      await expect(picked).toHaveCSS('background-color', colorScheme === 'dark' ? 'rgb(59, 59, 62)' : 'rgb(228, 228, 231)')
+      await orange.hover()
+    }
     await page.getByTestId('folder-color-violet').click()
     await page.getByTestId('folder-name-save').click()
     const nav = folder(page, 'Design')

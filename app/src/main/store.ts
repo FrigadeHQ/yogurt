@@ -364,15 +364,30 @@ export class Store {
   }
   close() { this.db.close() }
 
-  createMeeting(m: Omit<Meeting, 'id' | 'language' | 'titleSource'> & { language?: string | null; titleSource?: TitleSource }, id: string = randomUUID()): Meeting {
-    const language = m.language ?? null
-    const ownEmail = m.eventId ? ownAddress(m.ownEmail) : null
-    this.rememberOwnEmail(ownEmail)
-    const titleSource = m.titleSource ?? sourceOf(m.title, m.eventId)
-    this.db.prepare('INSERT INTO meetings (id, title, started_at, ended_at, event_id, app, attendees, state, language, title_source, duration_ms, event_started_at, event_ended_at, event_title, event_calendar_name, event_calendar_source, source, source_id, transcription_pending, own_email, keep_attendees) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      .run(id, m.title, m.startedAt, m.endedAt, m.eventId, m.app, JSON.stringify(m.attendees), m.state, language, titleSource, m.durationMs ?? null, m.eventStartedAt ?? null, m.eventEndedAt ?? null, m.eventTitle ?? null, m.eventCalendarName ?? null, m.eventCalendarSource ?? null, m.source ?? null, m.sourceId ?? null, Number(!!m.transcriptionPending), ownEmail, Number(!!m.keepAttendees))
-    rememberPeople(this.db, m.attendees)
-    return this.meeting(id)!
+  private writeAtomically<T>(write: () => T): T {
+    this.db.exec('SAVEPOINT meeting_write')
+    try {
+      const result = write()
+      this.db.exec('RELEASE meeting_write')
+      return result
+    } catch (error) {
+      this.db.exec('ROLLBACK TO meeting_write; RELEASE meeting_write')
+      throw error
+    }
+  }
+
+  createMeeting(m: Omit<Meeting, 'id' | 'language' | 'titleSource'> & { language?: string | null; titleSource?: TitleSource; folderId?: string }, id: string = randomUUID()): Meeting {
+    return this.writeAtomically(() => {
+      const language = m.language ?? null
+      const ownEmail = m.eventId ? ownAddress(m.ownEmail) : null
+      this.rememberOwnEmail(ownEmail)
+      const titleSource = m.titleSource ?? sourceOf(m.title, m.eventId)
+      this.db.prepare('INSERT INTO meetings (id, title, started_at, ended_at, event_id, app, attendees, state, language, title_source, duration_ms, event_started_at, event_ended_at, event_title, event_calendar_name, event_calendar_source, source, source_id, transcription_pending, own_email, keep_attendees) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        .run(id, m.title, m.startedAt, m.endedAt, m.eventId, m.app, JSON.stringify(m.attendees), m.state, language, titleSource, m.durationMs ?? null, m.eventStartedAt ?? null, m.eventEndedAt ?? null, m.eventTitle ?? null, m.eventCalendarName ?? null, m.eventCalendarSource ?? null, m.source ?? null, m.sourceId ?? null, Number(!!m.transcriptionPending), ownEmail, Number(!!m.keepAttendees))
+      rememberPeople(this.db, m.attendees)
+      if (m.folderId !== undefined) this.addToFolder(m.folderId, id)
+      return this.meeting(id)!
+    })
   }
   updateMeeting(id: string, patch: Partial<Omit<Meeting, 'id'>>) {
     if (patch.ownEmail) this.rememberOwnEmail(patch.ownEmail)
@@ -405,7 +420,8 @@ export class Store {
     const rows = this.db.prepare(`SELECT m.*, n.mine, n.enhanced, n.edited,
       (SELECT count(*) FROM segments s WHERE s.meeting_id = m.id) AS segments,
       (SELECT count(*) FROM chat_turns c WHERE c.meeting_id = m.id) AS chats
-      FROM meetings m LEFT JOIN notes n ON n.meeting_id = m.id WHERE m.state = 'prepared' AND m.trashed_at IS NULL`).all() as Row[]
+      FROM meetings m LEFT JOIN notes n ON n.meeting_id = m.id WHERE m.state = 'prepared' AND m.prepared_event_end IS NOT NULL AND m.trashed_at IS NULL
+      AND NOT EXISTS (SELECT 1 FROM folder_meetings fm WHERE fm.meeting_id = m.id)`).all() as Row[]
     let removed = 0
     for (const r of rows) {
       if (!unusedPreparedNote({ state: String(r.state), eventEnd: r.prepared_event_end == null ? null : Number(r.prepared_event_end),
@@ -799,14 +815,27 @@ export class Store {
   }
   /** The folder goes; its meetings stay where they are (only the links go, by ON DELETE CASCADE) */
   deleteFolder(id: string) { this.db.prepare('DELETE FROM folders WHERE id = ?').run(id) }
+  folderMeetingChoices(folderId: string) {
+    const rows = this.db.prepare(`SELECT m.id, m.title, m.started_at, fm.folder_id FROM meetings m
+      LEFT JOIN folder_meetings fm ON fm.meeting_id = m.id AND fm.folder_id = ?
+      WHERE m.trashed_at IS NULL ORDER BY m.started_at DESC, m.id DESC`).all(folderId)
+    return rows.map(row => ({ id: String(row.id), title: String(row.title), startedAt: Number(row.started_at), inFolder: row.folder_id != null }))
+  }
+  addMeetingsToFolder(folderId: string, ids: string[]): boolean {
+    return this.writeAtomically(() => {
+      const available = this.db.prepare('SELECT 1 FROM meetings WHERE id = ? AND trashed_at IS NULL')
+      const selected = [...new Set(ids)]
+      if (!selected.length || selected.some(id => !available.get(id))) return false
+      for (const id of selected) this.addToFolder(folderId, id)
+      return true
+    })
+  }
   /** in a folder already: nothing changes */
   addToFolder(folderId: string, meetingId: string) {
-    this.db.exec('SAVEPOINT file_meeting')
-    try {
+    this.writeAtomically(() => {
       this.db.prepare('INSERT OR IGNORE INTO folder_meetings (folder_id, meeting_id, added_at) VALUES (?, ?, ?)').run(folderId, meetingId, Date.now())
       this.db.prepare("UPDATE meetings SET suggestion_state = CASE WHEN suggested_folder_id = ? THEN 'accepted' ELSE 'dismissed' END WHERE id = ? AND (suggestion_state IS NULL OR suggestion_state = 'pending')").run(folderId, meetingId)
-      this.db.exec('RELEASE file_meeting')
-    } catch (e) { this.db.exec('ROLLBACK TO file_meeting; RELEASE file_meeting'); throw e }
+    })
   }
   folderSuggestion(id: string): FolderSuggestionRecord {
     const r = this.db.prepare('SELECT suggested_folder_id, suggestion_state, suggestion_confidence, suggestion_attempt FROM meetings WHERE id = ?').get(id) as Row | undefined

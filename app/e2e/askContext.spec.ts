@@ -149,8 +149,11 @@ test('the note panel and full conversation expose Rename and a single Delete con
     await page.getByTestId('chat-delete').click()
     await expect(page.getByTestId('chat-delete-confirm')).toHaveCount(1)
     await page.getByTestId('chat-delete-cancel').click()
+    await expect(page.getByTestId('chat-delete-confirm')).toHaveCount(0)
     await expect(page.getByTestId('chat-panel')).toBeVisible()
     await page.keyboard.press('Escape')
+    await expect(page.getByTestId('chat-panel')).toHaveCount(0)
+    await page.getByTestId('sidebar-expand').press('ArrowDown')
     await page.getByTestId('nav-chat').click()
     await page.getByTestId('chat-recent').click()
     await page.getByTestId('chat-history-item').filter({ hasText: 'Decisions' }).click()
@@ -248,6 +251,12 @@ test('Ask anchors context growth and retains picker results between searches', a
     await page.getByTestId('nav-chat').click()
     const input = page.getByTestId('chat-page-input'), title = page.locator('.ask-home-title'), composer = page.locator('.ask-composer')
     await expect(input).toBeEnabled()
+    const scope = page.getByTestId('ask-scope')
+    await expect(scope).toHaveText('All meetings')
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme })
+      await expect(scope).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+    }
     const top = await title.boundingBox(), composerTop = (await composer.boundingBox())!.y
     await input.fill('@')
     await expect(page.getByRole('option')).toHaveCount(3)
@@ -271,6 +280,29 @@ test('Ask anchors context growth and retains picker results between searches', a
       expect(await title.boundingBox()).toEqual(top)
       expect((await composer.boundingBox())!.y).toBe(composerTop)
     }
+    const group = page.locator('.ask-scope-group'), clear = page.getByRole('button', { name: 'Clear meetings', exact: true })
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme })
+      const dark = colorScheme === 'dark'
+      const ink = dark ? 'rgb(231, 230, 235)' : 'rgb(41, 41, 44)'
+      const muted = dark ? 'rgb(167, 164, 173)' : 'rgb(96, 96, 102)'
+      await input.hover()
+      await expect(group).toHaveCSS('background-color', dark ? 'rgb(59, 59, 62)' : 'rgb(228, 228, 231)')
+      await expect(scope).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+      await expect(clear).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+      await expect(scope).toHaveCSS('color', ink)
+      await expect(scope.locator('[data-icon="FileText"]')).toHaveCSS('color', dark ? 'rgb(183, 128, 255)' : 'rgb(111, 0, 255)')
+      await expect(scope.locator('[data-icon="ChevronDown"]')).toHaveCSS('color', muted)
+      await expect(clear).toHaveCSS('color', muted)
+      await clear.hover()
+      await expect(clear).toHaveCSS('color', ink)
+    }
+    await scope.focus()
+    await scope.press('Tab')
+    await expect(clear).toBeFocused()
+    await clear.press('Space')
+    await expect(scope).toHaveText('All meetings')
+    await expect(input).toBeFocused()
     await input.fill('@no-match')
     await expect(page.locator('.ask-picker')).toContainText('Nothing found')
     await expect(page.locator('.ask-picker h3')).toHaveCount(0)

@@ -4,9 +4,9 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-test('the compact sidebar keeps navigation and folder actions available, including at narrow widths', async () => {
+test('the hidden sidebar peeks over a full-width page and keeps folder actions available, including at narrow widths', async () => {
   const app = await electron.launch({ args: [join(import.meta.dirname, '../out/main/index.js')], env: {
-    ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: mkdtempSync(join(tmpdir(), 'yogurt-rail-')),
+    ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: mkdtempSync(join(tmpdir(), 'yogurt-peek-')),
   } })
   try {
     const page = await app.firstWindow()
@@ -21,27 +21,49 @@ test('the compact sidebar keeps navigation and folder actions available, includi
     const markInset = () => corner.locator('svg path').evaluate(mark =>
       Math.round(mark.getBoundingClientRect().left - mark.closest('.workspace-corner')!.getBoundingClientRect().left))
     await expect.poll(markInset).toBe(21)
-    const cornerY = (await corner.boundingBox())!.y
+    const panel = page.getByRole('complementary', { name: 'Main navigation' })
+    const content = page.locator('.workspace-content')
     await page.getByTestId('sidebar-collapse').click()
-    await expect(page.getByTestId('nav-chat')).toBeVisible()
-    await expect.poll(async () => (await page.locator('#workspace-sidebar').boundingBox())!.width).toBe(56)
-    await expect.poll(markInset).toBe(17)
-    await expect(corner).toHaveAccessibleName('Help and settings')
-    expect((await corner.boundingBox())!.y).toBeCloseTo(cornerY, 0)
+    await expect(panel).toHaveCount(0)
+    await expect.poll(() => content.evaluate(el => el.getBoundingClientRect().width)).toBe(await page.evaluate(() => innerWidth))
+    await expect(corner).not.toBeInViewport()
+    await expect(page.getByRole('button', { name: 'Help and settings' })).toHaveCount(0)
+    const toggle = page.getByTestId('sidebar-expand')
+    await page.mouse.move(500, 200)
+    await toggle.hover()
+    await expect(page.getByRole('tooltip')).toHaveText('Show sidebar (⌃⌘S)')
+    await expect(panel).toBeVisible()
+    await expect(panel).toHaveCSS('pointer-events', 'auto')
+    // Pause beyond the old 80ms deadline in the strip above the panel, outside the 124px window bar.
+    await page.mouse.move(190, 47, { steps: 5 })
+    await page.waitForTimeout(180)
+    await expect(panel).toBeVisible()
+    await panel.getByTestId('search-open').hover()
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    await page.mouse.move(500, 200)
+    await expect(panel).toHaveCount(0)
+    await page.mouse.move(12, 200)
+    await expect(panel).toBeVisible()
+    await expect(panel.getByTestId('corner-menu-button')).toBeInViewport()
+    await expect.poll(() => footer.evaluate(el => innerHeight - el.getBoundingClientRect().bottom)).toBe(0)
+    expect(await content.evaluate(el => el.getBoundingClientRect().x)).toBe(0)
     await expect(page.getByTestId('nav-trash')).toHaveCount(0)
     await expect(page.getByTestId('settings-open')).toHaveCount(0)
     await expect(page.getByTestId('nav-chat')).toHaveAccessibleName('Ask')
     await page.getByTestId('nav-chat').click()
     await expect(page.getByTestId('workspace-heading')).toHaveText('Ask')
+    await expect(panel).toHaveCount(0)
+    await toggle.press('ArrowDown')
     await page.getByTestId('sidebar-folder-open').click({ button: 'right' })
     await expect(page.getByTestId('sidebar-folder-rename')).toBeVisible()
     await expect.poll(async () => (await page.getByTestId('sidebar-folder-menu').boundingBox())!.width).toBeGreaterThanOrEqual(180)
     await page.getByTestId('sidebar-folder-rename').click()
     await expect(page.getByTestId('folder-name-input')).toBeFocused()
     await page.keyboard.press('Escape')
-    await expect(page.getByTestId('sidebar-folder-open')).toBeFocused()
-    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('sidebar-folder-more')).toBeFocused()
+    await page.getByTestId('sidebar-folder-open').press('Enter')
     await expect(page.getByTestId('folder-title')).toHaveText('Standup')
+    await toggle.press('ArrowDown')
     await page.getByTestId('search-open').click()
     await expect(page.getByTestId('search-input')).toBeVisible()
     await page.keyboard.press('Escape')
@@ -49,34 +71,23 @@ test('the compact sidebar keeps navigation and folder actions available, includi
     await expect(page.getByTestId('settings')).toBeVisible()
     await openFromCorner(page, 'nav-trash')
     await expect(page.getByTestId('workspace-heading')).toHaveText('Trash')
-    await page.getByTestId('nav-chat').hover()
-    const sidebar = page.locator('#workspace-sidebar')
-    // Sample an actual transition at its midpoint, independent of runner frame scheduling.
-    await sidebar.evaluate(el => el.addEventListener('transitionrun', function pauseWidth(event) {
-      if (event.target !== el || (event as TransitionEvent).propertyName !== 'width') return
-      for (const animation of el.getAnimations()) { animation.pause(); animation.currentTime = 100 }
-      el.removeEventListener('transitionrun', pauseWidth)
-    }))
-    await page.getByTestId('sidebar-expand').click()
-    await expect.poll(() => sidebar.evaluate(el => el.getAnimations().some(a => a.playState === 'paused'))).toBe(true)
-    const intermediate = (await sidebar.boundingBox())!.width
-    expect(intermediate).toBeGreaterThan(56)
-    expect(intermediate).toBeLessThan(208)
-    await page.getByTestId('sidebar-collapse').click()
-    await expect.poll(async () => (await page.locator('#workspace-sidebar').boundingBox())!.width).toBe(56)
     await page.emulateMedia({ reducedMotion: 'reduce' })
-    await page.getByTestId('sidebar-expand').click()
+    await toggle.click()
     await page.getByTestId('sidebar-collapse').click()
     expect(await page.locator('#workspace-sidebar').evaluate(el => getComputedStyle(el).transitionDuration)).toBe('0s')
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(720, 700))
+    await toggle.press('ArrowDown')
     await page.getByTestId('nav-home').click()
-    const rail = await page.locator('#workspace-sidebar').boundingBox()
-    const content = await page.locator('.workspace-content').boundingBox()
-    expect(content!.x).toBe(rail!.x + rail!.width)
+    await expect(panel).toHaveCount(0)
+    expect((await content.boundingBox())!.width).toBe(await page.evaluate(() => innerWidth))
     expect(await page.locator('.workspace').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
+    // The hidden sidebar's hover zone leaves hit testing to the meeting list, including its scroll area.
+    const library = page.locator('.native-home > .native-library')
+    expect(await library.evaluate(el => [2, 12, 15].every(x => el.contains(document.elementFromPoint(x, 200))))).toBe(true)
     expect(await page.locator('.workspace-sidebar-body').evaluate(el => getComputedStyle(el).overflowX)).toBe('hidden')
     await page.evaluate(() => window.yogurt.settings.setLanguage('ar'))
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')
+    await toggle.press('ArrowDown')
     const box = (await corner.boundingBox())!
     const mark = (await corner.locator('svg path').boundingBox())!
     expect(mark.x).toBeGreaterThanOrEqual(box.x)

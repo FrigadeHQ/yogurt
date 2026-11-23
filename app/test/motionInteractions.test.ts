@@ -70,38 +70,285 @@ it.each([false, true])('returns through a replaced dialog to the original opener
   expect(opener.focus).toHaveBeenCalledExactlyOnceWith({ preventScroll: true, focusVisible: keyboard })
 })
 
-it.each([
-  { sidebarMotion: false, reduced: false },
-  { sidebarMotion: true, reduced: false },
-  { sidebarMotion: false, reduced: true },
-  { sidebarMotion: true, reduced: true },
-].flatMap(options => ['/meetings', '/note/m1'].map(route => ({ ...options, route }))))('snaps folder rows only for instant sidebar changes or reduced motion ($sidebarMotion, $reduced) on $route', ({ sidebarMotion, reduced, route }) => {
+it.each([false, true])('preserves the folder reorder spring and respects reduced motion (%s)', reduced => {
   vi.stubGlobal('window', { matchMedia: () => ({ matches: reduced }) })
   const folders = [{ id: 'f1', name: 'Planning', icon: 'calendar' as const, color: 'violet' as const, count: 2, createdAt: 1 }]
-  let collapsed = false
-  const nav = renderer(() => FoldersNav({ folders, route, collapsed, sidebarMotion, go() {} }))
-  let item: ReactElement<any>
-  const row = renderer(() => (item.type as Function)(item.props))
-  const render = () => {
-    item = find(nav(), 'folder-reorder-list').props.children[0]
-    const element = find(row(), 'sidebar-folder')
-    expect(element.props.layout).toBeUndefined()
-    expect(element.props.dragControls).toBeDefined()
-    expect(element.props.onDragStart).toBeTypeOf('function')
-    vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.length === 1 && deps[0] === collapsed)![0]()
-    return element
+  const nav = renderer(() => FoldersNav({ folders, route: '', go() {} }))()
+  const item = find(nav, 'folder-reorder-list').props.children[0]
+  const row = find(renderer(() => item.type(item.props))(), 'sidebar-folder')
+  expect(row.props.dragControls).toBeDefined()
+  expect(row.props.onDragStart).toBeTypeOf('function')
+  expect(row.props.transition).toEqual(reduced ? { duration: 0 } : { type: 'spring', stiffness: 520, damping: 42 })
+})
+
+it('names the Folders heading and New folder tooltip', () => {
+  const tree = renderer(() => FoldersNav({ folders: [], route: '', go() {} }))()
+  const nav = find(tree, 'sidebar-folders')
+  const [heading, tooltip] = find(nav, 'workspace-folder-header').props.children
+  expect(heading.type).toBe('h2')
+  const toggle = find(heading, 'workspace-folders-toggle').props
+  expect(toggle['aria-label']).toBe('Folders')
+  expect(toggle.children[0].props.children).toBe('Folders')
+  expect(toggle.title).toBeUndefined()
+  const plus = find(tooltip, 'folder-create').props
+  expect(plus['aria-label']).toBe('New folder')
+  expect(plus.title).toBeUndefined()
+  expect(find(tooltip, 'ActionTooltipPopup').props.label).toBe(plus['aria-label'])
+})
+
+it.each(['ltr', 'rtl'])('peeks after a 100ms dwell within the leading 16px below the titlebar (%s)', dir => {
+  vi.useFakeTimers()
+  vi.stubGlobal('document', { documentElement: { dir }, activeElement: {}, querySelector: () => null })
+  vi.stubGlobal('window', { innerWidth: 720 })
+  const go = vi.fn()
+  const render = renderer(() => Workspace({ route: '', go, search() {}, shortcuts() {}, collapsed: true, sidebarMotion: false, toggleSidebar() {}, children: null }))
+  const content = () => find(render(), 'workspace-content').props
+  const panel = () => find(render(), 'workspace-sidebar').props
+  const pointer = { target: { closest: () => null }, clientX: dir === 'rtl' ? 708 : 12, clientY: 52, pointerType: 'mouse', buttons: 0 }
+  for (const event of [
+    { ...pointer, clientX: dir === 'rtl' ? 703 : 16 }, { ...pointer, clientY: 51 },
+    { ...pointer, pointerType: 'touch' }, { ...pointer, pointerType: 'pen' }, { ...pointer, buttons: 1 },
+    { ...pointer, target: { closest: () => ({ tagName: 'BUTTON' }) } },
+  ]) {
+    content().onPointerMoveCapture(pointer)
+    content().onPointerMoveCapture(event)
+    vi.runAllTimers()
+    expect(panel().inert).toBe(true)
   }
-  const reorder = reduced ? { duration: 0 } : { type: 'spring', stiffness: 520, damping: 42 }
-  expect(render().props.transition).toEqual(reorder)
-  for (const next of [true, false, true, false]) {
-    collapsed = next
-    expect(render().props.transition).toEqual(reduced || !sidebarMotion ? { duration: 0 } : reorder)
-    // Reordering after a keyboard toggle still uses the original spring.
-    const element = render()
-    element.props.onDragStart()
-    expect(render().props.transition).toEqual(reorder)
+  for (const cancel of ['onPointerLeave', 'onPointerDownCapture', 'onPointerCancel', 'onWheelCapture']) {
+    content().onPointerMoveCapture(pointer)
+    vi.advanceTimersByTime(40)
+    content()[cancel]()
+    vi.runAllTimers()
+    expect(panel().inert).toBe(true)
+  }
+  const bar = () => find(render(), 'workspace-window-bar').props
+  bar().onPointerEnter()
+  vi.runAllTimers()
+  expect(panel().inert).toBe(true)
+  content().onPointerMoveCapture(pointer)
+  vi.advanceTimersByTime(75)
+  content().onPointerMoveCapture({ ...pointer, clientX: dir === 'rtl' ? 704 : 15 })
+  vi.advanceTimersByTime(24)
+  expect(panel().inert).toBe(true)
+  vi.advanceTimersByTime(1)
+  expect(panel().inert).toBe(false)
+  panel().onPointerLeave()
+  panel().onPointerEnter()
+  vi.runAllTimers()
+  expect(panel().inert).toBe(false)
+  expect(find(render(), 'workspace').props.onPointerMoveCapture).toBeUndefined()
+  panel().onPointerLeave()
+  vi.advanceTimersByTime(79)
+  expect(panel().inert).toBe(false)
+  vi.advanceTimersByTime(1)
+  expect(panel().inert).toBe(true)
+  content().onPointerMoveCapture(pointer)
+  vi.runAllTimers()
+  find(render(), 'nav-chat').props.onClick()
+  expect(go).toHaveBeenCalledWith('/chat')
+  expect(panel().inert).toBe(true)
+})
+
+it('peeks on a deliberate Show sidebar hover', () => {
+  vi.useFakeTimers()
+  const querySelector = vi.fn()
+  vi.stubGlobal('document', { activeElement: {}, querySelector })
+  const render = renderer(() => Workspace({ route: '', go() {}, search() {}, shortcuts() {}, collapsed: true, sidebarMotion: true, toggleSidebar() {}, children: null }))
+  const button = () => find(render(), 'sidebar-expand').props
+  const panel = () => find(render(), 'workspace-sidebar').props
+  const mouse = { pointerType: 'mouse', buttons: 0 }
+  for (const event of [{ ...mouse, pointerType: 'touch' }, { ...mouse, pointerType: 'pen' }, { ...mouse, buttons: 1 }]) {
+    button().onPointerEnter(event)
+    vi.runAllTimers()
+    expect(panel().inert).toBe(true)
+  }
+  for (const stop of ['onPointerLeave', 'onPointerDown', 'onPointerCancel']) {
+    button().onPointerEnter(mouse)
+    vi.advanceTimersByTime(100)
+    button()[stop]()
+    vi.runAllTimers()
+    expect(panel().inert).toBe(true)
+  }
+  querySelector.mockReturnValueOnce({})
+  button().onPointerEnter(mouse)
+  vi.runAllTimers()
+  expect(panel().inert).toBe(true)
+  button().onPointerEnter(mouse)
+  vi.advanceTimersByTime(179)
+  expect(panel().inert).toBe(true)
+  vi.advanceTimersByTime(1)
+  expect(panel().inert).toBe(false)
+})
+
+it.each([
+  { dir: 'ltr', crossing: 25 }, { dir: 'ltr', crossing: 450 }, { dir: 'rtl', crossing: 450 },
+])('keeps a button peek through a $crossing ms crossing in $dir and closes on the page', ({ dir, crossing }) => {
+  vi.useFakeTimers()
+  vi.stubGlobal('document', { documentElement: { dir }, activeElement: {}, querySelector: () => null })
+  vi.stubGlobal('window', { innerWidth: 720 })
+  const render = renderer(() => Workspace({ route: '', go() {}, search() {}, shortcuts() {}, collapsed: true, sidebarMotion: true, toggleSidebar() {}, children: null }))
+  const props = (name: string) => find(render(), name).props
+  const move = (clientX: number, clientY: number) => props('workspace').onPointerMoveCapture({ clientX, clientY })
+  props('workspace-sidebar').ref.current = { offsetLeft: dir === 'rtl' ? 512 : 0, offsetWidth: 208, offsetTop: 52, contains: () => false }
+  props('sidebar-expand').ref.current = { getBoundingClientRect: () => ({ left: 88, right: 116 }) }
+  props('sidebar-expand').onPointerEnter({ pointerType: 'mouse', buttons: 0 })
+  vi.advanceTimersByTime(180)
+  expect(props('workspace-sidebar').inert).toBe(false)
+
+  // Cross the native title bar beyond the 124px window bar before entering the moving panel.
+  props('workspace-window-bar').onPointerLeave()
+  move(150, 47)
+  vi.advanceTimersByTime(crossing)
+  expect(props('workspace-sidebar').inert).toBe(false)
+  move(dir === 'rtl' ? 550 : 170, 64)
+  vi.advanceTimersByTime(100)
+  expect(props('workspace-sidebar').inert).toBe(false)
+  props('workspace-sidebar').onPointerEnter()
+
+  // Native window chrome can interrupt renderer events on the way back to the button.
+  props('workspace').onPointerLeave()
+  vi.advanceTimersByTime(300)
+  expect(props('workspace-sidebar').inert).toBe(false)
+  props('workspace').onPointerEnter()
+  move(101, 27)
+  vi.advanceTimersByTime(100)
+  expect(props('workspace-sidebar').inert).toBe(false)
+
+  // Re-entering cancels dismissal. Further moves on the page don't extend its 80ms delay.
+  move(350, 110)
+  vi.advanceTimersByTime(50)
+  move(dir === 'rtl' ? 550 : 170, 110)
+  vi.advanceTimersByTime(100)
+  expect(props('workspace-sidebar').inert).toBe(false)
+  move(350, 110)
+  vi.advanceTimersByTime(79)
+  move(365, 110)
+  expect(props('workspace-sidebar').inert).toBe(false)
+  vi.advanceTimersByTime(1)
+  expect(props('workspace-sidebar').inert).toBe(true)
+})
+
+it.each(['edge', 'button'])('keeps a %s peek open across the titlebar and docks directly from it', trigger => {
+  vi.useFakeTimers()
+  vi.stubGlobal('document', { documentElement: { dir: 'ltr' }, activeElement: {}, querySelector: () => null })
+  let collapsed = true
+  const toggleSidebar = vi.fn()
+  const render = renderer(() => Workspace({ route: '', go() {}, search() {}, shortcuts() {}, collapsed, sidebarMotion: true, toggleSidebar, children: null }))
+  const panel = () => find(render(), 'workspace-sidebar')
+  const mouse = { pointerType: 'mouse', buttons: 0 }
+  if (trigger === 'button') find(render(), 'sidebar-expand').props.onPointerEnter(mouse)
+  else find(render(), 'workspace-content').props.onPointerMoveCapture({ ...mouse, target: { closest: () => null }, clientX: 12, clientY: 200 })
+  vi.runAllTimers()
+  panel().props.onPointerLeave()
+  find(render(), 'workspace-window-bar').props.onPointerEnter()
+  vi.runAllTimers()
+  expect(panel().props.inert).toBe(false)
+  const footer = find(panel(), 'workspace-sidebar-footer')
+  expect(find(footer, 'CornerMenu').props.visible).toBe(true)
+  find(render(), 'sidebar-expand').props.onClick({ detail: 1 })
+  expect(toggleSidebar).toHaveBeenCalledExactlyOnceWith(true)
+  // The panel stays exposed even before the parent commits its docked width.
+  expect(panel().props.inert).toBe(false)
+  collapsed = false
+  expect(panel().props.inert).toBe(false)
+  expect(find(render(), 'workspace').props['data-peeking']).toBe(false)
+  expect(find(render(), 'sidebar-collapse').props.onPointerEnter).toBeUndefined()
+})
+
+it('opens a keyboard peek, respects a child menu and returns Escape focus to its opener', () => {
+  const opener = { isConnected: true, focus: vi.fn() }
+  const search = { focus: vi.fn() }, listeners = new Map<string, Function>()
+  const querySelector = vi.fn()
+  vi.stubGlobal('document', { activeElement: opener, querySelector, addEventListener() {}, removeEventListener() {} })
+  vi.stubGlobal('window', { addEventListener: (name: string, fn: Function) => listeners.set(name, fn), removeEventListener() {} })
+  const render = renderer(() => Workspace({ route: '', go() {}, search() {}, shortcuts() {}, collapsed: true, sidebarMotion: false, toggleSidebar() {}, children: null }))
+  find(render(), 'sidebar-expand').props.onKeyDown({ key: 'ArrowDown', preventDefault() {} })
+  const tree = render(), panel = find(tree, 'workspace-sidebar').props
+  expect(panel.inert).toBe(false)
+  expect(find(tree, 'sidebar-expand').props['aria-expanded']).toBe(true)
+  panel.ref.current = { querySelector: () => search, contains: () => false }
+  const cleanup = vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.includes('keyboard'))![0]() as () => void
+  expect(search.focus).toHaveBeenCalledWith({ preventScroll: true })
+  querySelector.mockReturnValueOnce({})
+  const escape = { key: 'Escape', preventDefault: vi.fn(), stopPropagation: vi.fn() }
+  listeners.get('keydown')!(escape)
+  expect(escape.preventDefault).not.toHaveBeenCalled()
+  listeners.get('keydown')!(escape)
+  expect(find(render(), 'workspace-sidebar').props.inert).toBe(true)
+  expect(opener.focus).toHaveBeenCalledWith({ preventScroll: true })
+  cleanup()
+})
+
+it('remembers the folders disclosure and opens a newly created folder even from a closed section', () => {
+  const stored = new Map<string, string>()
+  vi.stubGlobal('window', { localStorage: { getItem: (key: string) => stored.get(key), setItem: (key: string, value: string) => stored.set(key, value) } })
+  const go = vi.fn()
+  const mount = () => renderer(() => FoldersNav({ folders: [], route: '', go }))
+  let render = mount()
+  const toggle = () => find(render(), 'workspace-folders-toggle').props
+  const panel = () => find(render(), toggle()['aria-controls']).props
+  const caret = () => find(render(), 'workspace-folder-caret')
+  const openCaret = caret()
+  expect(openCaret.type).toBe('svg')
+  expect(toggle()['aria-expanded']).toBe(true)
+  expect(find(render(), 'workspace-folder-header').props['data-empty']).toBe(true)
+  toggle().onClick()
+  expect(caret().type).toBe(openCaret.type)
+  expect(caret().props.children.props.d).toBe(openCaret.props.children.props.d)
+  render = mount()
+  expect(toggle()['aria-expanded']).toBe(false)
+  expect(panel().inert).toBe(true)
+  const create = () => find(render(), 'folder-create').props.onClick()
+  create()
+  find(render(), 'FolderName').props.onDone()
+  expect(toggle()['aria-expanded']).toBe(false)
+  expect(go).not.toHaveBeenCalled()
+  create()
+  find(render(), 'FolderName').props.onDone({ id: 'new' })
+  expect(go).toHaveBeenCalledExactlyOnceWith('/folder/new')
+  render = mount()
+  expect(toggle()['aria-expanded']).toBe(true)
+  expect(panel().inert).toBe(false)
+})
+
+it.each([0, 1, 99, 100, 1234])('shows the capped count and describes the full count for a folder with %i meetings', count => {
+  vi.stubGlobal('window', { matchMedia: () => ({ matches: true }) })
+  const folders = [{ id: 'f', name: 'Planning', count, icon: 'folder' as const, color: 'default' as const, createdAt: 1 }]
+  const nav = renderer(() => FoldersNav({ folders, route: '/folder/f', go() {} }))()
+  const item = find(nav, 'folder-reorder-list').props.children[0]
+  const row = renderer(() => item.type(item.props))()
+  expect(find(row, 'sidebar-folder-open').props).toMatchObject({ 'aria-current': 'page', 'aria-label': 'Planning',
+    'aria-description': count === 1 ? '1 meeting' : `${count.toLocaleString('en-US')} meetings` })
+  expect(find(row, 'sidebar-folder-count').props.children.props).toMatchObject({ dir: 'ltr', children: count > 99 ? '99+' : count })
+  expect(find(row, 'sidebar-folder-more').props['aria-haspopup']).toBe('menu')
+})
+
+it.each(['button', 'right-click', 'keyboard'])('opens the same folder actions via %s', method => {
+  vi.stubGlobal('window', { matchMedia: () => ({ matches: true }) })
+  vi.stubGlobal('getComputedStyle', () => ({ direction: 'ltr' }))
+  const folders = [{ id: 'f', name: 'Planning', count: 1, icon: 'folder' as const, color: 'default' as const, createdAt: 1 }]
+  const nav = renderer(() => FoldersNav({ folders, route: '', go() {} }))()
+  const item = find(nav, 'folder-reorder-list').props.children[0]
+  const render = renderer(() => item.type(item.props))
+  const row = find(render(), 'sidebar-folder')
+  row.props.ref.current = { getBoundingClientRect: () => ({ left: 10, bottom: 70, width: 188 }) }
+  const opener = find(row, 'sidebar-folder-open').props
+  if (method === 'button') {
+    const more = find(row, 'sidebar-folder-more')
+    expect(more.type).toBe('button')
+    expect(more.props.tabIndex).not.toBe(-1)
+    more.props.onClick()
+  } else if (method === 'right-click') opener.onContextMenu({ preventDefault() {} })
+  else opener.onKeyDown({ key: 'F10', shiftKey: true, preventDefault() {} })
+  const result = render()
+  expect(find(result, 'sidebar-folder-more').props['aria-expanded']).toBe(true)
+  const menu = find(result, 'sidebar-folder-menu')
+  for (const action of ['appearance', 'rename', 'up', 'down', 'delete']) {
+    expect(find(menu, 'sidebar-folder-' + action).props.role).toBe('menuitem')
   }
 })
+
 function find(node: ReactNode, testId: string): ReactElement<any> {
   const visit = (value: ReactNode): ReactElement<any> | undefined => {
     if (Array.isArray(value)) return value.map(visit).find(Boolean)
@@ -534,14 +781,16 @@ it.each([[false, false], [true, false], [false, true], [true, true]])('clips the
   const shell = node(to, { left: '-1px', top: '-1px', width: `${to.width}px`, height: `${to.height}px`, borderRadius: '12px', opacity: '1' })
   const body = node(to, { opacity: '1' })
   const input = { focus: vi.fn() }
-  const dialog = { ...node(to, { opacity: '1' }), style: { setProperty() {} }, show() {}, showModal() {}, close() {}, querySelector: () => input }
+  const dialog = { ...node(to, { opacity: '1' }), style: { setProperty() {} }, show: vi.fn(), showModal: vi.fn(), close() {}, querySelector: () => input }
   const anchor = { getBoundingClientRect: () => to } as HTMLElement
-  vi.stubGlobal('window', { matchMedia: (query: string) => ({ matches: query.includes('max-width') ? narrow : reduced }), addEventListener() {}, removeEventListener() {} })
+  const viewport = { matches: narrow, addEventListener: vi.fn() }
+  vi.stubGlobal('window', { matchMedia: (query: string) => query.includes('max-width') ? viewport : { matches: reduced }, addEventListener() {}, removeEventListener() {} })
   vi.stubGlobal('innerHeight', 800)
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
   vi.stubGlobal('getComputedStyle', (element: { computed: Record<string, string> }) => element.computed)
   const render = renderer(() => Ask({ id: 'morph', recording: false, anchor, onSource() {} }))
   let tree = render()
+  for (const [effect] of vi.mocked(useEffect).mock.calls) effect()
   find(tree, 'chat-open').props.ref.current = button
   find(tree, 'chat-open').props.onClick()
   tree = render()
@@ -553,7 +802,7 @@ it.each([[false, false], [true, false], [false, true], [true, true]])('clips the
   const conversation = find(surface, 'AskConversation')
   expect(surface.props['aria-hidden']).toBeUndefined()
   expect(conversation.props).toMatchObject({ id: '', panel: true, pendingDraftKey: 'meeting/morph' })
-  vi.mocked(useLayoutEffect).mock.lastCall![0]()
+  const dispose = vi.mocked(useLayoutEffect).mock.lastCall![0]() as () => void
   expect(input.focus).toHaveBeenCalledWith({ preventScroll: true })
   const view = renderer(() => AskConversation(conversation.props))()
   expect(find(view, 'chat-suggestions')).toBeDefined()
@@ -567,6 +816,16 @@ it.each([[false, false], [true, false], [false, true], [true, true]])('clips the
     expect(dialog.animate.mock.lastCall?.[1].duration).toBe(120)
     expect(shell.animate).not.toHaveBeenCalled()
     expect(shell.style.overflow).toBe('')
+    // Cross the modal breakpoint before the close fade finishes.
+    viewport.matches = !narrow
+    viewport.addEventListener.mock.calls[0][1]()
+    dispose()
+    render()
+    vi.mocked(useLayoutEffect).mock.lastCall![0]()
+    await Promise.resolve()
+    expect(narrow ? dialog.show : dialog.showModal).not.toHaveBeenCalled()
+    expect(find(render(), 'chat-open').props['aria-expanded']).toBe(false)
+    expect(button.focus).toHaveBeenCalledWith({ preventScroll: true })
     return
   }
   const collapsed = { '--ask-left': `${from.left - to.left - 1}px`, '--ask-top': `${from.top - to.top - 1}px`, width: `${from.width}px`, height: `${from.height}px`, borderRadius: '6px' }
@@ -896,6 +1155,16 @@ it('collapses expanded results for a new search and each new button opening', as
   expect(find(c.render(), `${c.prefix}-context-6`).props.children[1].props.children).toBe('15 more results')
 })
 
+
+it.each([false, true])('uses a ghost scope button only for All meetings (panel: %s)', panel => {
+  const c = mentionComposer(panel)
+  const scope = () => find(c.render(), 'ask-scope').props
+  expect(scope().className.split(' ')).not.toContain('ghost-btn')
+  expect(find(c.render(), 'ask-scope-clear').props['aria-label']).toBe('Clear meetings')
+  c.initial.chips = []
+  expect(scope()['aria-label']).toBe('Choose meetings or folders')
+  expect(scope().className.split(' ')).toContain('ghost-btn')
+})
 
 it.each([0, 1, 2, 5])('labels a scope of %s items without truncating its count', count => {
   const chips = Array.from({ length: count }, (_, i) => ({ kind: 'meeting' as const, id: String(i), title: 'A very long meeting title '.repeat(20) }))

@@ -21,9 +21,16 @@ it('keeps a flat face on bordered controls, including selected, paused and proce
   }
 })
 
-it('retains the original recording primary and its divider', () => {
+it('uses one saturated fill and white ink for controls while standalone accents follow the theme', () => {
+  const values = (token: string) => [...styles.matchAll(new RegExp('(?:^|[;{\\s])' + token + ':\\s*([^;]+);', 'g'))].map(match => match[1])
+  expect(values('--primary')).toEqual(['#6F00FF'])
+  expect(values('--primary-ink')).toEqual(['#FFFFFF'])
+  expect(values('--accent')).toEqual(['#6F00FF', '#B780FF'])
+})
+
+it('retains the recording primary gradient, pressed depth and divider', () => {
   expect(styles).toMatch(/\.workspace-button\.primary \{[^}]*background-image:linear-gradient\(180deg,#FFFFFF14,transparent 55%,#0000000A\);border-color:#00000014;/)
-  expect(styles).toMatch(/\.workspace-button\.primary:active:not\(:disabled\) \{[^}]*box-shadow:inset 0 1px 2px #35006533;/)
+  expect(styles).toMatch(/\.workspace-button\.primary:active:not\(:disabled\) \{[^}]*box-shadow:inset 0 1px 2px #00000033;/)
   expect(styles).toMatch(/\.primary\.recording-chevron \{[^}]*border-inline-start:1px solid #FFFFFF26;/)
 })
 

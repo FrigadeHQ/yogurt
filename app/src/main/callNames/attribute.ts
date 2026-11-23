@@ -15,6 +15,8 @@ export type CallSample = {
   me: string | null
   /** false: the app could not be read at this moment (no window, no permission) */
   ok?: boolean
+  /** the most people the app showed in the last minute: a stage showing two of a bigger call is no call of two */
+  most?: number
 }
 
 /** a reading stands until the next one, but never longer than this: a stuck app never keeps naming someone */
@@ -40,7 +42,7 @@ function whoAt(s: CallSample, o: Opts): string | null {
   // evidence of a two-person call, so do not assign their speech to the one other roster entry.
   const speakerOutsideRoster = s.speaking.some((p) => !isMe(p, s, o) && !roster.has(norm(p)))
   // one other person in the call: the call's sound can only be them, whoever the app marks
-  if (people.length === 2 && !speakerOutsideRoster) {
+  if (people.length === 2 && (s.most ?? 2) <= 2 && !speakerOutsideRoster) {
     const mine = people.filter((p) => isMe(p, s, o))
     if (mine.length === 1) return people.find((p) => !isMe(p, s, o))!
   }

@@ -18,8 +18,9 @@ describe('call-watch on the Teams desktop app (#111)', () => {
   })
   it("finds the Leave button deep in Teams' page: Chromium's own button search first, Teams' hangup-button id too (#111)", () => {
     const look = swift.slice(swift.indexOf('func hasCallControl'))
-    expect(look.indexOf('AXUIElementsForSearchPredicate')).toBeGreaterThan(-1)
-    expect(look.indexOf('AXUIElementsForSearchPredicate')).toBeLessThan(look.indexOf('queue.removeFirst'))
+    expect(swift.slice(swift.indexOf('func searchButtons'), swift.indexOf('func hasCallControl'))).toContain('AXUIElementsForSearchPredicate')
+    expect(look.indexOf('searchButtons(w)')).toBeGreaterThan(-1)
+    expect(look.indexOf('searchButtons(w)')).toBeLessThan(look.indexOf('queue.removeFirst'))
     expect(swift).toMatch(/AXDOMIdentifier"\)\) == "hangup-button"/)
   })
   it('says in the log why no window was a call', () => {
@@ -40,5 +41,37 @@ describe('call-watch on the Teams desktop app (#111)', () => {
     expect(swift).not.toContain('meetTabTitle')
     expect(swift).toMatch(/for w in wins\.prefix\(4\) \{ AXUIElementSetAttributeValue\(w, "AXManualAccessibility"/)
   })
+  it('asks Teams (Chromium in a web view, not Electron) the way screen readers do, again until it takes, and its windows too (#138)', () => {
+    const ask = swift.slice(swift.indexOf('func askTree'), swift.indexOf('func resetTrees'))
+    // AXManualAccessibility is Electron's: the new Teams ignores it, as Chrome does
+    expect(ask).not.toMatch(/if !id\.hasPrefix\("com\.microsoft\.teams"\) \{\s*AXUIElementSetAttributeValue\(app, "AXEnhancedUserInterface"/)
+    expect(ask).toMatch(/== \.success/)
+    const windows = swift.slice(swift.indexOf('func callWindows'), swift.indexOf('func owningApp'))
+    expect(windows).toMatch(/AXManualAccessibility[\s\S]*hasCallControl/)
+  })
+  it('searches the page itself when the window cannot be searched, and says which error and how much the walk saw (#138)', () => {
+    const look = swift.slice(swift.indexOf('func hasCallControl'), swift.indexOf('func isMeetTitle'))
+    expect(look).toContain('AXWebArea')
+    expect(look).toContain('search unavailable (\\(')
+    expect(look).toContain('elements')
+  })
+  it('pictures the Teams windows once when none is a call, so the next log shows what Teams gives (#138)', () => {
+    const loop = swift.slice(swift.indexOf('func watchCalls'))
+    expect(loop).toMatch(/"error": [\s\S]*"windows"/)
+  })
+  it("takes Teams' not-implemented answer to the ask as final: only a busy Teams is asked again, so the log is not stuck on it (#138)", () => {
+    const ask = swift.slice(swift.indexOf('func askTree'), swift.indexOf('func resetTrees'))
+    expect(ask).toContain('.cannotComplete')
+  })
+  it('pictures every Teams window, minimised ones and ones only listed as children of the app too, and counts what the Mac shows (#138)', () => {
+    const dump = swift.slice(swift.indexOf('func missedWindows'), swift.indexOf('func watchCalls'))
+    expect(dump).toContain('kAXMinimizedAttribute')
+    expect(dump).toContain('kAXChildrenAttribute')
+    expect(dump).toContain('CGWindowListCopyWindowInfo')
+    expect(swift.slice(swift.indexOf('func watchCalls'))).toContain('missedWindows(')
+  })
+  it('says when the page shows only a popup, which hides the rest of the page from accessibility (#138)', () => {
+    const look = swift.slice(swift.indexOf('func hasCallControl'), swift.indexOf('func isMeetTitle'))
+    expect(look).toContain('page shows only a popup')
+  })
 })
-
