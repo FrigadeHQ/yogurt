@@ -2,26 +2,37 @@ import SwiftUI
 import YogurtKit
 
 /// The connection, always in view at the top of Home: green when synced, a spinner while working, red on a problem.
+/// Quick changes are held back (CalmStatus), so it never flickers between labels; each change crossfades.
 struct StatusPill: View {
     let status: ConnectionStatus
-    var action: () -> Void = {}
+    let action: () -> Void
+    @State private var calm: CalmStatus
+
+    init(status: ConnectionStatus, action: @escaping () -> Void = {}) {
+        self.status = status
+        self.action = action
+        _calm = State(initialValue: CalmStatus(status, at: .now))
+    }
+
+    private var shown: ConnectionStatus { calm.shown }
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 7) {
-                if busy {
-                    ProgressView().controlSize(.mini).tint(Theme.accent).frame(width: 8, height: 8)
-                } else {
-                    Circle().fill(tone).frame(width: 7, height: 7)
+                // both always there, faded in and out, so the dot's colour and the spinner change smoothly
+                ZStack {
+                    Circle().fill(tone).frame(width: 7, height: 7).opacity(busy ? 0 : 1)
+                    ProgressView().controlSize(.mini).tint(Theme.accent).opacity(busy ? 1 : 0)
                 }
+                .frame(width: 8, height: 8)
                 // refreshed every minute so "last synced 2 h ago" stays true
                 TimelineView(.periodic(from: .now, by: 60)) { context in
                     // the whole sentence on one line when it fits beside Home's buttons, else without the computer's
                     // name, else on two lines; never cut off. A problem always gets two, so it can be read.
                     ViewThatFits(in: .horizontal) {
-                        if !isError { line(status.label(now: context.date)).lineLimit(1).fixedSize() }
-                        if !isError { line(status.shortLabel(now: context.date)).lineLimit(1).fixedSize() }
-                        line(status.label(now: context.date)).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                        if !isError { line(shown.label(now: context.date)).lineLimit(1).fixedSize() }
+                        if !isError { line(shown.shortLabel(now: context.date)).lineLimit(1).fixedSize() }
+                        line(shown.label(now: context.date)).lineLimit(2).fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
@@ -32,8 +43,16 @@ struct StatusPill: View {
             .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.line.opacity(isError ? 0 : 1), lineWidth: 0.5))
         }
         .buttonStyle(.plain)
-        .animation(.easeOut(duration: 0.18), value: status)
-        .accessibilityLabel(status.label)
+        // the label crossfades while the pill's width eases to the new one
+        .animation(.easeInOut(duration: 0.35), value: shown)
+        .onChange(of: status) { _, now in calm.update(now, at: .now) }
+        .task(id: calm.nextCheck) {
+            guard let at = calm.nextCheck else { return }
+            try? await Task.sleep(for: .seconds(max(0, at.timeIntervalSinceNow)))
+            guard !Task.isCancelled else { return }
+            calm.settle(at: max(at, .now))
+        }
+        .accessibilityLabel(shown.label)
         .accessibilityHint(S.settings)
         .accessibilityIdentifier("status-pill")
     }
@@ -45,17 +64,12 @@ struct StatusPill: View {
             .contentTransition(.opacity)
     }
 
-    private var busy: Bool {
-        switch status {
-        case .searching, .connecting, .connected(_, syncing: _?): true
-        default: false
-        }
-    }
+    private var busy: Bool { shown.isBusy }
 
-    private var isError: Bool { if case .error = status { true } else { false } }
+    private var isError: Bool { if case .error = shown { true } else { false } }
 
     private var tone: Color {
-        switch status {
+        switch shown {
         case .connected: Theme.live
         case .error: Theme.danger
         default: Theme.muted.opacity(0.7)
