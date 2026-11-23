@@ -605,9 +605,7 @@
   "Delete audio?": "Burahin ang audio?",
   "The audio is deleted for good. Your transcript and notes stay.": "Permanenteng mabubura ang audio. Mananatili ang transcript at mga tala.",
   "Keep the audio until the transcript is saved.": "Itago ang audio hanggang ma-save ang transcript.",
-  "Keep audio recordings after meetings": "Itago ang mga audio recording pagkatapos ng pulong",
   "Recording deleted": "Nabura ang recording",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Kapag naka-off, buburahin ang audio ng bagong pulong pag na-save ang buod.",
   "Record {title}": "I-record ang {title}",
   "New recording": "Bagong recording",
   "Hide events without a call link": "Itago ang mga event na walang link sa tawag",
@@ -764,5 +762,34 @@
   "Send feedback": "Magpadala ng feedback",
   "Help and settings": "Tulong at mga setting",
   "Yogurt menu": "Menu ng Yogurt",
-  "Restart to update · {version}": "I-restart para mag-update · {version}"
+  "Restart to update · {version}": "I-restart para mag-update · {version}",
+  "What Yogurt keeps": "Ano ang itinatago ng Yogurt",
+  "Counted from when each meeting ended. Audio and transcripts go only once the summary is saved, and notes stay.": "Binibilang mula nang matapos ang bawat meeting. Nabubura lang ang audio at mga transcript kapag na-save na ang buod, at nananatili ang mga tala.",
+  "Delete transcripts": "Burahin ang mga transcript",
+  "Its audio goes with it.": "Kasama nitong mabubura ang audio.",
+  "Move meetings to the Trash": "Ilipat ang mga meeting sa Trash",
+  "Never": "Hindi kailanman",
+  "Once the summary is saved": "Kapag na-save na ang buod",
+  "After 1 week": "Pagkalipas ng 1 linggo",
+  "After 1 month": "Pagkalipas ng 1 buwan",
+  "After 3 months": "Pagkalipas ng 3 buwan",
+  "After 1 year": "Pagkalipas ng 1 taon",
+  "After 2 years": "Pagkalipas ng 2 taon",
+  "Number of days": "Bilang ng araw",
+  "Days": "Araw",
+  "Apply to past meetings?": "Ilapat sa mga nakaraang meeting?",
+  "Apply": "Ilapat",
+  "{count} meetings already qualify. Their audio is deleted now.": {
+    "one": "Pasok na sa patakaran ang {count} meeting. Buburahin na ngayon ang audio nito.",
+    "other": "Pasok na sa patakaran ang {count} na meeting. Buburahin na ngayon ang audio ng mga ito."
+  },
+  "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": {
+    "one": "Pasok na sa patakaran ang {count} meeting. Buburahin na ngayon ang transcript at audio nito; mananatili ang mga tala.",
+    "other": "Pasok na sa patakaran ang {count} na meeting. Buburahin na ngayon ang mga transcript at audio ng mga ito; mananatili ang mga tala."
+  },
+  "{count} meetings already qualify. They move to the Trash now.": {
+    "one": "Pasok na sa patakaran ang {count} meeting. Ililipat na ito ngayon sa Trash.",
+    "other": "Pasok na sa patakaran ang {count} na meeting. Ililipat na ngayon ang mga ito sa Trash."
+  },
+  "The transcript was deleted on {date}, as set in Settings.": "Binura ang transcript noong {date} ayon sa Settings."
 }

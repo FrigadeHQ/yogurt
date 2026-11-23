@@ -3,7 +3,8 @@ import { existsSync, linkSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writ
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { openStore, type Store } from '../src/main/store'
-import { keepsRecording, loadSettings, updateSettings } from '../src/main/settings'
+import { loadSettings, updateSettings, type Settings } from '../src/main/settings'
+import { isDue, ruleOf } from '../src/main/retention'
 import { deleteRecording } from '../src/main/deleteRecording'
 import { trackFile, createAudioHandler } from '../src/main/audio'
 import { hookNotes } from '../src/main/notes'
@@ -75,9 +76,9 @@ describe('deleting only a recording', () => {
     expect(await s.remove(() => true)).toBe('kept')
     expect(await s.remove(() => false)).toBe('deleted')
   })
-  it('keeps older recordings when delayed summaries arrive, and deletes only after the current opt-out time', async () => {
+  it('the switch from before rules keeps older recordings when delayed summaries arrive, and deletes only after its opt-out time', async () => {
     const s = setup({ summary: false }), file = join(s.root, 'settings.json')
-    const keep = (endedAt: number | null) => keepsRecording(loadSettings(file), endedAt)
+    const keep = (endedAt: number | null) => !isDue(ruleOf(loadSettings(file), 'audio'), endedAt, Date.now())
     updateSettings(file, { keepRecordings: false, recordingsOffAt: 2000 })
     // The meeting ended before opting out; its summary arrives afterward.
     s.store.updateMeeting(s.m.id, { endedAt: 1999 })
@@ -89,7 +90,7 @@ describe('deleting only a recording', () => {
       s.store.updateMeeting(s.m.id, { endedAt })
       expect(await s.remove(keep)).toBe('kept')
     }
-    // Turning it on and off again starts a new window, never a retrospective cleanup.
+    // A later opt-out time starts a new window, never a retrospective cleanup.
     s.store.updateMeeting(s.m.id, { endedAt: 3000 })
     updateSettings(file, { keepRecordings: false, recordingsOffAt: 4000 })
     expect(await s.remove(keep)).toBe('kept')
@@ -100,7 +101,8 @@ describe('deleting only a recording', () => {
   it('keeps recordings without a valid opt-out time, while explicit deletion still works', async () => {
     const s = setup()
     for (const recordingsOffAt of [undefined, NaN, Infinity]) {
-      expect(await s.remove(endedAt => keepsRecording({ keepRecordings: false, recordingsOffAt }, endedAt))).toBe('kept')
+      const old: Settings = { keepRecordings: false, recordingsOffAt }
+      expect(await s.remove(endedAt => !isDue(ruleOf(old, 'audio'), endedAt, Date.now()))).toBe('kept')
     }
     expect(await s.remove()).toBe('deleted')
   })

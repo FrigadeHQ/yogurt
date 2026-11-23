@@ -615,9 +615,7 @@
   "Delete audio?": "למחוק את האודיו?",
   "The audio is deleted for good. Your transcript and notes stay.": "השמע יימחק לצמיתות. התמליל וההערות יישארו.",
   "Keep the audio until the transcript is saved.": "יש לשמור את השמע עד לשמירת התמליל.",
-  "Keep audio recordings after meetings": "שמירת הקלטות שמע אחרי פגישות",
   "Recording deleted": "ההקלטה נמחקה",
-  "When off, new meetings' audio is deleted once the summary is saved.": "כשכבוי, השמע של פגישות חדשות נמחק לאחר שמירת הסיכום.",
   "Record {title}": "הקלטת {title}",
   "New recording": "הקלטה חדשה",
   "Hide events without a call link": "הסתרת אירועים ללא קישור לשיחה",
@@ -774,5 +772,37 @@
   "Send feedback": "שליחת משוב",
   "Help and settings": "עזרה והגדרות",
   "Yogurt menu": "תפריט Yogurt",
-  "Restart to update · {version}": "הפעלה מחדש לעדכון · {version}"
+  "Restart to update · {version}": "הפעלה מחדש לעדכון · {version}",
+  "What Yogurt keeps": "מה Yogurt שומר",
+  "Counted from when each meeting ended. Audio and transcripts go only once the summary is saved, and notes stay.": "הספירה מתחילה בסיום כל פגישה. השמע והתמלולים נמחקים רק אחרי שהסיכום נשמר, וההערות נשארות.",
+  "Delete transcripts": "מחיקת תמלולים",
+  "Its audio goes with it.": "גם השמע שלו נמחק.",
+  "Move meetings to the Trash": "העברת פגישות לפח",
+  "Never": "אף פעם",
+  "Once the summary is saved": "אחרי שמירת הסיכום",
+  "After 1 week": "אחרי שבוע",
+  "After 1 month": "אחרי חודש",
+  "After 3 months": "אחרי 3 חודשים",
+  "After 1 year": "אחרי שנה",
+  "After 2 years": "אחרי שנתיים",
+  "Number of days": "מספר ימים",
+  "Days": "ימים",
+  "Apply to past meetings?": "להחיל על פגישות קודמות?",
+  "Apply": "החלה",
+  "{count} meetings already qualify. Their audio is deleted now.": {
+    "one": "פגישה אחת כבר עומדת בתנאי. השמע שלה נמחק עכשיו.",
+    "two": "{count} פגישות כבר עומדות בתנאי. השמע שלהן נמחק עכשיו.",
+    "other": "{count} פגישות כבר עומדות בתנאי. השמע שלהן נמחק עכשיו."
+  },
+  "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": {
+    "one": "פגישה אחת כבר עומדת בתנאי. התמלול והשמע שלה נמחקים עכשיו; ההערות נשארות.",
+    "two": "{count} פגישות כבר עומדות בתנאי. התמלולים והשמע שלהן נמחקים עכשיו; ההערות נשארות.",
+    "other": "{count} פגישות כבר עומדות בתנאי. התמלולים והשמע שלהן נמחקים עכשיו; ההערות נשארות."
+  },
+  "{count} meetings already qualify. They move to the Trash now.": {
+    "one": "פגישה אחת כבר עומדת בתנאי. היא עוברת לפח עכשיו.",
+    "two": "{count} פגישות כבר עומדות בתנאי. הן עוברות לפח עכשיו.",
+    "other": "{count} פגישות כבר עומדות בתנאי. הן עוברות לפח עכשיו."
+  },
+  "The transcript was deleted on {date}, as set in Settings.": "התמלול נמחק ב־{date}, בהתאם להגדרות."
 }

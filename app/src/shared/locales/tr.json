@@ -596,9 +596,7 @@
   "Delete audio?": "Ses silinsin mi?",
   "The audio is deleted for good. Your transcript and notes stay.": "Ses kalıcı olarak silinir. Döküm ve notlar kalır.",
   "Keep the audio until the transcript is saved.": "Döküm kaydedilene kadar sesi saklayın.",
-  "Keep audio recordings after meetings": "Toplantılardan sonra ses kayıtlarını sakla",
   "Recording deleted": "Kayıt silindi",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Kapalıyken yeni toplantıların sesi özet kaydedilince silinir.",
   "Record {title}": "“{title}” kaydını başlat",
   "New recording": "Yeni kayıt",
   "Hide events without a call link": "Arama bağlantısı olmayan etkinlikleri gizle",
@@ -752,5 +750,34 @@
   "Send feedback": "Geri bildirim gönder",
   "Help and settings": "Yardım ve ayarlar",
   "Yogurt menu": "Yogurt menüsü",
-  "Restart to update · {version}": "Güncellemek için yeniden başlat · {version}"
+  "Restart to update · {version}": "Güncellemek için yeniden başlat · {version}",
+  "What Yogurt keeps": "Yogurt’un sakladıkları",
+  "Counted from when each meeting ended. Audio and transcripts go only once the summary is saved, and notes stay.": "Her toplantının bittiği andan itibaren sayılır. Ses ve transkriptler yalnızca özet kaydedildikten sonra silinir, notlar kalır.",
+  "Delete transcripts": "Transkriptleri sil",
+  "Its audio goes with it.": "Sesi de birlikte silinir.",
+  "Move meetings to the Trash": "Toplantıları Çöp Sepeti’ne taşı",
+  "Never": "Hiçbir zaman",
+  "Once the summary is saved": "Özet kaydedilince",
+  "After 1 week": "1 hafta sonra",
+  "After 1 month": "1 ay sonra",
+  "After 3 months": "3 ay sonra",
+  "After 1 year": "1 yıl sonra",
+  "After 2 years": "2 yıl sonra",
+  "Number of days": "Gün sayısı",
+  "Days": "Gün",
+  "Apply to past meetings?": "Geçmiş toplantılara uygulansın mı?",
+  "Apply": "Uygula",
+  "{count} meetings already qualify. Their audio is deleted now.": {
+    "one": "{count} toplantı zaten kapsama giriyor. Sesi şimdi silinir.",
+    "other": "{count} toplantı zaten kapsama giriyor. Sesleri şimdi silinir."
+  },
+  "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": {
+    "one": "{count} toplantı zaten kapsama giriyor. Transkripti ve sesi şimdi silinir; notları kalır.",
+    "other": "{count} toplantı zaten kapsama giriyor. Transkriptleri ve sesleri şimdi silinir; notları kalır."
+  },
+  "{count} meetings already qualify. They move to the Trash now.": {
+    "one": "{count} toplantı zaten kapsama giriyor. Şimdi Çöp Sepeti’ne taşınır.",
+    "other": "{count} toplantı zaten kapsama giriyor. Şimdi Çöp Sepeti’ne taşınırlar."
+  },
+  "The transcript was deleted on {date}, as set in Settings.": "Transkript, Ayarlar’daki tercihe göre {date} tarihinde silindi."
 }

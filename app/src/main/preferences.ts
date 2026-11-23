@@ -1,6 +1,7 @@
 import { BrowserWindow, ipcMain, nativeTheme } from 'electron'
 import { includesRecordingCredit, loadSettings, localeOf, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings, visibilityOf, summaryLanguageSetting } from './settings'
 import { systemLocale } from './locale'
+import { retentionOf } from './retention'
 import { PERMISSION_KINDS, type PermissionKind, type Permissions } from './permissions'
 import { firstRunPlan, missing, nudge } from '../shared/onboarding'
 import type { OnboardingPlan } from '../shared/types'
@@ -60,7 +61,7 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
     // what the Mac says, so a change in System Settings shows here
     // locale: every window (main, card, widget) shows the interface language
     // language: the one picked ('' is the Mac's); locale: the one in use; systemLocale: the Mac's, for the picker
-    return { theme: s.theme ?? 'system', openAtLogin: d.loginOn(s.openAtLogin), showInMenuBar: visible.showInMenuBar, showNextMeeting: s.showNextMeeting !== false, showRecordingPill: visible.showRecordingPill, appVisibility: !visible.showInMenuBar ? 'dock' : visible.showInDock ? 'both' : 'menu-bar', language: isLocale(s.language) ? s.language : '', locale: localeOf(s, systemLocale()), systemLocale: systemLocale(), myName: s.myName?.trim() || d.macName(), macName: d.macName(), stopWhenCallEnds: stopsWhenCallEnds(s), recordingReminder: recordingReminderOn(s), includeRecordingCredit: includesRecordingCredit(s), keepRecordings: s.keepRecordings !== false, jargon: cleanJargon(s.jargon), spoken: spokenSetting(s), summaryLanguage: summaryLanguageSetting(s) }
+    return { theme: s.theme ?? 'system', openAtLogin: d.loginOn(s.openAtLogin), showInMenuBar: visible.showInMenuBar, showNextMeeting: s.showNextMeeting !== false, showRecordingPill: visible.showRecordingPill, appVisibility: !visible.showInMenuBar ? 'dock' : visible.showInDock ? 'both' : 'menu-bar', language: isLocale(s.language) ? s.language : '', locale: localeOf(s, systemLocale()), systemLocale: systemLocale(), myName: s.myName?.trim() || d.macName(), macName: d.macName(), stopWhenCallEnds: stopsWhenCallEnds(s), recordingReminder: recordingReminderOn(s), includeRecordingCredit: includesRecordingCredit(s), retention: retentionOf(s), jargon: cleanJargon(s.jargon), spoken: spokenSetting(s), summaryLanguage: summaryLanguageSetting(s) }
   }
   ipcMain.handle('settings:get', read)
   // what the person is called in meetings (who "You" is when naming voices); blank: the Mac's full name again
@@ -100,12 +101,6 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
   })
   ipcMain.handle('settings:recording-credit', (_e, on: unknown) => {
     if (typeof on === 'boolean') updateSettings(d.file, { includeRecordingCredit: on ? undefined : false })
-  })
-  ipcMain.handle('settings:keep-recordings', (_e, on: unknown) => {
-    if (typeof on !== 'boolean') return
-    const s = loadSettings(d.file)
-    updateSettings(d.file, { keepRecordings: on ? undefined : false,
-      recordingsOffAt: on ? undefined : s.keepRecordings === false && s.recordingsOffAt != null ? s.recordingsOffAt : Date.now() })
   })
   // the whole list each time, cleaned the same way the page cleans it; what was kept comes back
   const setJargon = (v: unknown): string[] => {

@@ -12,6 +12,7 @@ import { applyLanguage } from '../i18n'
 import { flushOpenNotes } from '../noteAutosave'
 import { Jargon } from '../components/Jargon'
 import { SpokenSetting } from '../components/SpokenSetting'
+import { RetentionSettings } from '../components/RetentionSettings'
 import { useScrollMemory } from '../useScrollMemory'
 import { appShortcuts } from '../components/Shortcuts'
 import { CalendarSettings } from '../components/CalendarSettings'
@@ -227,11 +228,6 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
                 onClick={() => { if (!prefs) return; const on = !prefs.recordingReminder; void general.save(async () => { await window.yogurt.settings.setRecordingReminder(on); setPrefs(p => p && { ...p, recordingReminder: on }) }, 'recording-reminder-retry') }}
                 className="settings-toggle"><span className="settings-toggle-knob" /></button>
             </div>
-
-            <RecordingSetting reveal={focus === 'recordings' && generalReady && !!perms} on={prefs?.keepRecordings ?? true} disabled={!prefs} onChange={async on => {
-              await window.yogurt.settings.setKeepRecordings(on)
-              setPrefs(p => p && { ...p, keepRecordings: on })
-            }} />
             <div className="settings-row">
               <div className="settings-row-copy">
                 <label htmlFor="recording-credit" className="settings-label">{t('Add “{credit}”', { credit: t('Recorded with {app}', { app: 'Yogurt' }) })}</label>
@@ -249,6 +245,8 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
             </div>
             <NotesModel reveal={focus === 'notes-model'} />
           </LoadingContent></div>
+
+          <RetentionSettings retention={prefs?.retention} reveal={focus === 'recordings' && generalReady && !!perms} save={general.save} busy={general.busy} />
 
           <h2 className="settings-section-heading">{t('What Yogurt can use')}</h2>
           <LoadingContent pending={!perms}><ul className="settings-group">
@@ -581,28 +579,4 @@ function Updates() {
       </div></LoadingContent>
     </>
   )
-}
-
-/** The recording preference uses the same switch row as the other meeting settings. */
-export function RecordingSetting({ on, disabled, onChange, reveal = false }: { on: boolean; disabled?: boolean; onChange: (on: boolean) => Promise<void>; reveal?: boolean }) {
-  const [busy, setBusy] = useState(false)
-  const [failed, setFailed] = useState(false)
-  const row = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (!reveal || disabled) return
-    row.current?.scrollIntoView({ block: 'center', behavior: 'instant' })
-    row.current?.querySelector<HTMLButtonElement>('[role="switch"]')?.focus({ preventScroll: true })
-  }, [reveal, disabled])
-  return <div ref={row} data-testid="recording-setting" className={`settings-row${reveal && !disabled ? ' settings-reveal' : ''}`}>
-    <div className="settings-row-copy">
-      <p className="settings-label">{t('Keep audio recordings after meetings')}</p>
-      <p className="settings-description">{t("When off, new meetings' audio is deleted once the summary is saved.")}</p>
-      {failed && <p role="alert" className="text-danger text-xs">{t("Couldn't save your changes")}</p>}
-    </div>
-    <button data-testid="keep-recordings-toggle" role="switch" aria-checked={on} aria-label={t('Keep audio recordings after meetings')}
-      disabled={disabled || busy} onClick={async () => {
-        setBusy(true); setFailed(false)
-        try { await onChange(!on) } catch { setFailed(true) } finally { setBusy(false) }
-      }} className="settings-toggle"><span className="settings-toggle-knob" /></button>
-  </div>
 }

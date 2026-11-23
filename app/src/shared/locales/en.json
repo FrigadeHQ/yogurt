@@ -141,9 +141,7 @@
   "Delete audio?": "Delete audio?",
   "The audio is deleted for good. Your transcript and notes stay.": "The audio is deleted for good. Your transcript and notes stay.",
   "Keep the audio until the transcript is saved.": "Keep the audio until the transcript is saved.",
-  "Keep audio recordings after meetings": "Keep audio recordings after meetings",
   "Recording deleted": "Recording deleted",
-  "When off, new meetings' audio is deleted once the summary is saved.": "When off, new meetings' audio is deleted once the summary is saved.",
   "Settings": "Settings",
   "Record {title}": "Record {title}",
   "New recording": "New recording",
@@ -292,5 +290,22 @@
   "Send feedback": "Send feedback",
   "Help and settings": "Help and settings",
   "Yogurt menu": "Yogurt menu",
-  "Restart to update · {version}": "Restart to update · {version}"
+  "Restart to update · {version}": "Restart to update · {version}",
+  "{count} meetings already qualify. Their audio is deleted now.": {
+    "one": "1 meeting already qualifies. Its audio is deleted now.",
+    "other": "{count} meetings already qualify. Their audio is deleted now."
+  },
+  "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": {
+    "one": "1 meeting already qualifies. Its transcript and audio are deleted now; its notes stay.",
+    "other": "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay."
+  },
+  "{count} meetings already qualify. They move to the Trash now.": {
+    "one": "1 meeting already qualifies. It moves to the Trash now.",
+    "other": "{count} meetings already qualify. They move to the Trash now."
+  },
+  "What Yogurt keeps": "What Yogurt keeps",
+  "Once the summary is saved": "Once the summary is saved",
+  "Delete transcripts": "Delete transcripts",
+  "Move meetings to the Trash": "Move meetings to the Trash",
+  "Apply to past meetings?": "Apply to past meetings?"
 }

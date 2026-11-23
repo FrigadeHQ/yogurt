@@ -621,9 +621,7 @@
   "Delete audio?": "Ștergi fișierul audio?",
   "The audio is deleted for good. Your transcript and notes stay.": "Sunetul se șterge definitiv. Transcrierea și notițele rămân.",
   "Keep the audio until the transcript is saved.": "Păstrează sunetul până la salvarea transcrierii.",
-  "Keep audio recordings after meetings": "Păstrează înregistrările audio după întâlniri",
   "Recording deleted": "Înregistrare ștearsă",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Când e oprit, sunetul întâlnirilor noi se șterge după salvarea rezumatului.",
   "Record {title}": "Înregistrați „{title}”",
   "New recording": "Înregistrare nouă",
   "Hide events without a call link": "Ascunde evenimentele fără link de apel",
@@ -781,5 +779,37 @@
   "Send feedback": "Trimite feedback",
   "Help and settings": "Ajutor și setări",
   "Yogurt menu": "Meniul Yogurt",
-  "Restart to update · {version}": "Repornește pentru actualizare · {version}"
+  "Restart to update · {version}": "Repornește pentru actualizare · {version}",
+  "What Yogurt keeps": "Ce păstrează Yogurt",
+  "Counted from when each meeting ended. Audio and transcripts go only once the summary is saved, and notes stay.": "Se calculează de la încheierea fiecărei întâlniri. Sunetul și transcrierile se șterg doar după salvarea rezumatului, iar notițele rămân.",
+  "Delete transcripts": "Șterge transcrierile",
+  "Its audio goes with it.": "Se șterge și sunetul ei.",
+  "Move meetings to the Trash": "Mută întâlnirile în Coș",
+  "Never": "Niciodată",
+  "Once the summary is saved": "După salvarea rezumatului",
+  "After 1 week": "După 1 săptămână",
+  "After 1 month": "După 1 lună",
+  "After 3 months": "După 3 luni",
+  "After 1 year": "După 1 an",
+  "After 2 years": "După 2 ani",
+  "Number of days": "Număr de zile",
+  "Days": "Zile",
+  "Apply to past meetings?": "Aplici pentru întâlnirile trecute?",
+  "Apply": "Aplică",
+  "{count} meetings already qualify. Their audio is deleted now.": {
+    "one": "{count} întâlnire se încadrează deja. Sunetul ei se șterge acum.",
+    "few": "{count} întâlniri se încadrează deja. Sunetul lor se șterge acum.",
+    "other": "{count} de întâlniri se încadrează deja. Sunetul lor se șterge acum."
+  },
+  "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": {
+    "one": "{count} întâlnire se încadrează deja. Transcrierea și sunetul ei se șterg acum; notițele rămân.",
+    "few": "{count} întâlniri se încadrează deja. Transcrierile și sunetul lor se șterg acum; notițele rămân.",
+    "other": "{count} de întâlniri se încadrează deja. Transcrierile și sunetul lor se șterg acum; notițele rămân."
+  },
+  "{count} meetings already qualify. They move to the Trash now.": {
+    "one": "{count} întâlnire se încadrează deja. Se mută acum în Coș.",
+    "few": "{count} întâlniri se încadrează deja. Se mută acum în Coș.",
+    "other": "{count} de întâlniri se încadrează deja. Se mută acum în Coș."
+  },
+  "The transcript was deleted on {date}, as set in Settings.": "Transcrierea a fost ștearsă pe {date}, conform Setărilor."
 }

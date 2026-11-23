@@ -608,9 +608,7 @@
   "Delete audio?": "Radera ljud?",
   "The audio is deleted for good. Your transcript and notes stay.": "Ljudet raderas permanent. Transkriptionen och anteckningarna finns kvar.",
   "Keep the audio until the transcript is saved.": "Behåll ljudet tills transkriptionen har sparats.",
-  "Keep audio recordings after meetings": "Behåll ljudinspelningar efter möten",
   "Recording deleted": "Inspelning raderad",
-  "When off, new meetings' audio is deleted once the summary is saved.": "När avstängt raderas nya mötens ljud när sammanfattningen har sparats.",
   "Record {title}": "Spela in {title}",
   "New recording": "Ny inspelning",
   "Hide events without a call link": "Dölj händelser utan samtalslänk",
@@ -764,5 +762,34 @@
   "Send feedback": "Skicka feedback",
   "Help and settings": "Hjälp och inställningar",
   "Yogurt menu": "Yogurt-menyn",
-  "Restart to update · {version}": "Starta om för att uppdatera · {version}"
+  "Restart to update · {version}": "Starta om för att uppdatera · {version}",
+  "What Yogurt keeps": "Vad Yogurt behåller",
+  "Counted from when each meeting ended. Audio and transcripts go only once the summary is saved, and notes stay.": "Räknas från när varje möte slutade. Ljud och transkriptioner raderas först när sammanfattningen har sparats, och anteckningar finns kvar.",
+  "Delete transcripts": "Radera transkriptioner",
+  "Its audio goes with it.": "Ljudet raderas också.",
+  "Move meetings to the Trash": "Flytta möten till papperskorgen",
+  "Never": "Aldrig",
+  "Once the summary is saved": "När sammanfattningen har sparats",
+  "After 1 week": "Efter 1 vecka",
+  "After 1 month": "Efter 1 månad",
+  "After 3 months": "Efter 3 månader",
+  "After 1 year": "Efter 1 år",
+  "After 2 years": "Efter 2 år",
+  "Number of days": "Antal dagar",
+  "Days": "Dagar",
+  "Apply to past meetings?": "Tillämpa på tidigare möten?",
+  "Apply": "Tillämpa",
+  "{count} meetings already qualify. Their audio is deleted now.": {
+    "one": "{count} möte omfattas redan. Ljudet raderas nu.",
+    "other": "{count} möten omfattas redan. Deras ljud raderas nu."
+  },
+  "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": {
+    "one": "{count} möte omfattas redan. Transkriptionen och ljudet raderas nu; anteckningarna finns kvar.",
+    "other": "{count} möten omfattas redan. Transkriptionerna och ljudet raderas nu; anteckningarna finns kvar."
+  },
+  "{count} meetings already qualify. They move to the Trash now.": {
+    "one": "{count} möte omfattas redan. Det flyttas till papperskorgen nu.",
+    "other": "{count} möten omfattas redan. De flyttas till papperskorgen nu."
+  },
+  "The transcript was deleted on {date}, as set in Settings.": "Transkriptionen raderades den {date}, enligt Inställningar."
 }
