@@ -19,7 +19,7 @@ export class FakeEngine implements Engine {
       return this.stream(JSON.stringify({ folder: named?.name ?? null, confidence: named ? 0.95 : 0.2 }), onToken, signal)
     }
     // a question across meetings: like a small model, the first two meetings found with every part of each cited
-    if (prompt.includes('</sources>')) {
+    if (prompt.includes('</meetings>')) {
       const meetings: Array<{ title: string; ns: number[] }> = []
       for (const m of prompt.matchAll(/^Meeting: (.+?) · .*$|^\[(\d+)\] /gm)) {
         if (m[1]) meetings.push({ title: m[1], ns: [] }); else meetings.at(-1)?.ns.push(Number(m[2]))

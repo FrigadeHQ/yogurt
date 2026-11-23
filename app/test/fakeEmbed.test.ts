@@ -23,12 +23,12 @@ describe('the fake notes model, asked across meetings', () => {
     const e = new FakeEngine()
     process.env.YOGURT_FAKE_LLM_MS = '0'
     const ask = (content: string) => e.chat({ messages: [{ role: 'user', content }] }, () => {})
-    const sources = '…<sources>\nMeeting: Pricing call · Tuesday\n[1] 0:04 into the meeting\nx\n\n[2] 0:09 into the meeting\nz\n\nMeeting: Weekly sync · Monday\n[3] the meeting notes\ny\n</sources>\n<question>\n'
+    const sources = '…<meetings>\nMeeting: Pricing call · Tuesday\n[1] 0:04 into the meeting\nx\n\n[2] 0:09 into the meeting\nz\n\nMeeting: Weekly sync · Monday\n[3] the meeting notes\ny\n</meetings>\n<question>\n'
     // like a small model: every part of a meeting cited after its line
     expect(await ask(sources + 'q\n</question>'))
       .toBe('Here is what came up:\n- In **Pricing call**, it was discussed [1][2].\n- In **Weekly sync**, it was discussed [3].')
     // and with nothing to say, every source cited anyway
     expect(await ask(sources + 'What about politics?\n</question>')).toBe('Nothing in your meetings is about that [1][2][3].')
-    expect(await ask('<sources>\nNo meetings matched this question.\n</sources>\n<question>\nq\n</question>')).toBe("I couldn't find that in your meetings.")
+    expect(await ask('<meetings>\nNo meetings matched this question.\n</meetings>\n<question>\nq\n</question>')).toBe("I couldn't find that in your meetings.")
   })
 })
