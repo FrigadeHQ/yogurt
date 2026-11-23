@@ -15,6 +15,7 @@ import { SpokenSetting } from '../components/SpokenSetting'
 import { useScrollMemory } from '../useScrollMemory'
 import { appShortcuts } from '../components/Shortcuts'
 import { CalendarSettings } from '../components/CalendarSettings'
+import { PhoneSettings } from '../components/PhoneSettings'
 import { supportedKinds, settingsPage } from '../../../shared/platform'
 import { Swap, SwapText } from '../components/Swap'
 
@@ -268,6 +269,8 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
           <Backup onImported={() => { void window.yogurt.settings.get().then(setPrefs) }} />
 
           <AiApps />
+
+          <PhoneSettings />
 
           <Updates />
           <AboutYogurt />

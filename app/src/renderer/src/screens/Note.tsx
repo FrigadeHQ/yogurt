@@ -144,6 +144,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   const [chatAnchor, setChatAnchor] = useState<HTMLDivElement | null>(null)
   /** the notes as shown, for merging a new view from the app outside a state update */
   const current = useRef<NoteView | undefined>(undefined)
+  const changeMine = useRef<(md: string) => void>(() => {})
   /** what the recorder has to say right now (a hint, a hiccup), shown under the note too */
   const [recorder, setRecorder] = useState<WidgetView | null>(null)
   const hint = recorder?.note
@@ -198,10 +199,12 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
     const show = (v: NoteView) => {
       const first = !current.current
       // what they typed here is newer than any copy from the app; notes written again for new people replace it unless edited (noteMerge.ts)
-      const { view, keptEdits } = mergeNoteView(current.current, v)
+      const { view, keptEdits, resaveMine } = mergeNoteView(current.current, v)
       if (keptEdits) window.yogurt.notes.keptEdits(id)
       current.current = view
       setNotes(view)
+      // typed here while the phone changed My notes: both texts, saved as a new edit
+      if (resaveMine) changeMine.current(view.mine)
       // A reopened failed draft is the useful place to resume, including Settings' Open note action.
       const failedSide = v.saves?.mine?.status === 'failed' ? 'mine' : v.saves?.enhanced?.status === 'failed' ? 'enhanced' : undefined
       if (first && failedSide) { picked.current = true; setView(failedSide); setPrimary('notes') }
@@ -234,6 +237,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
     return () => clearTimeout(timer)
   }, [id, finishRequested, hasEnhanced, reducedMotion])
   const mineSave = useAutosave(id, 'mine', notes?.mine ?? '', notes?.saves?.mine)
+  changeMine.current = mineSave.change
   const enhancedSave = useAutosave(id, 'enhanced', notes?.enhanced ?? '', notes?.saves?.enhanced)
 
   useLayoutEffect(() => {

@@ -43,3 +43,7 @@ output/
 *.p8
 
 # written by next dev
+
+# Swift package builds
+ios/YogurtKit/.build/
+ios/YogurtKit/.swiftpm/

@@ -1,3 +1,4 @@
+import type { CompanionStatus } from './companion'
 import type { MeterPacket } from './speechWave'
 import type { AudioUploadFile, AudioUploadStatus } from './audioUpload'
 import type { RendererError } from './rendererError'
@@ -37,6 +38,8 @@ export type YogurtApi = {
   capabilities: Capabilities
   /** test mode: stand-ins for models, audio and calendars */
   fake: boolean
+  /** the iPhone companion is turned on (shared/companion.ts PHONE_COMPANION, or YOGURT_PHONE=1); Settings → Phone shows only then */
+  phone: boolean
   setup: {
     state(): Promise<SetupState>
     /** called with each change; returns the way to stop listening */
@@ -166,6 +169,15 @@ export type YogurtApi = {
     set(on: boolean): Promise<McpStatus>
     setChanges(on: boolean): Promise<McpStatus>
     onClients(fn: (clients: string[]) => void): () => void
+  }
+  /** Settings → Phone: pairing the iPhone app with this computer over the local network; null when it isn't running */
+  companion: {
+    status(): Promise<CompanionStatus | null>
+    /** ok: false when it couldn't (the status says why when it knows: keychain, listen) */
+    startPairing(): Promise<{ ok: boolean; status: CompanionStatus | null }>
+    cancelPairing(): Promise<CompanionStatus | null>
+    unpair(): Promise<CompanionStatus | null>
+    onStatus(fn: (s: CompanionStatus) => void): () => void
   }
   updates: {
     status(): Promise<UpdateStatus>
@@ -402,6 +414,8 @@ export type NoteView = {
   peopleChanged: boolean
   /** the notes were just written again (for new people): what they replaced, so an open editor with no edits since takes them */
   rewrittenFrom?: string
+  /** My notes were just changed from the iPhone: what they replaced, so an open editor with no edits since takes them */
+  mineFrom?: string
   /** latest acknowledged edit revision on each side; failed text is retained in main and overlaid above */
   saves?: Partial<Record<NoteSide, NoteSaveResult>>
 }

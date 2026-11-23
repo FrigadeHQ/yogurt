@@ -150,7 +150,8 @@ describe('backup merge', () => {
     expect(meetingTables(s.db).map((t) => t.table).sort()).toEqual(['chat_turns', 'folder_meetings', 'library_chunks', 'library_sources', 'notes', 'segments', 'transcription_drafts'])
     // a new table that is not tied to a meeting would be left out of backups: decide what a backup does with it, then list it here
     const all = (s.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '%_fts%'").all() as Array<{ name: string }>).map((r) => r.name)
-    expect(all.filter((t) => t !== 'meetings' && !meetingTables(s.db).some((m) => m.table === t)).sort()).toEqual(['conversation_turns', 'conversations', 'folders', 'own_emails', 'people'])
+    expect(all.filter((t) => t !== 'meetings' && !meetingTables(s.db).some((m) => m.table === t)).sort()).toEqual(['companion_changes', 'companion_devices', 'companion_meta', 'conversation_turns', 'conversations', 'folders', 'own_emails', 'people'])
+    // The companion's tables are this Mac's own (its paired phone, what that phone has fetched): never carried.
     // Own addresses merge by email, like the people records. The remaining tables are carried on their own: a conversation and every turn of it, and folders (test/folders.test.ts)
     expect(carriedTables(s.db)).toEqual([{ table: 'conversations', column: 'id' }, { table: 'conversation_turns', column: 'conversation_id' }, { table: 'folders', column: 'id' }])
   })
@@ -198,6 +199,21 @@ describe('backup file', { timeout: 20_000 }, () => {
     const s = fresh()
     vi.mocked(unpack).mockRejectedValueOnce(new Error('ENOSPC: extraction failed'))
     expect(await importBackup({ db: s.db, meetingsDir: tmp(), zip: '/unreadable.zip' })).toEqual({ ok: false, error: 'failed' })
+  })
+
+  it('leaves the paired phone and the companion change log out of an export: pairing belongs to this Mac', async () => {
+    const s = fresh(), out = join(tmp(), 'backup.zip')
+    const m = fill(s, 'Paired', 'paired')
+    s.trashMeeting(fill(s, 'Binned', 'binned').id)
+    s.db.prepare('INSERT INTO companion_devices (id, name, public_key, paired_at) VALUES (?, ?, ?, ?)').run('phone-1', 'Test iPhone', 'cHVibGlj', 1)
+    await exportBackup({ db: s.db, meetingsDir: tmp(), out, appVersion: '1' })
+    const look = tmp()
+    await unpack(out, look)
+    const db = new DatabaseSync(join(look, 'yogurt.db'))
+    const names = (db.prepare("SELECT name FROM sqlite_master WHERE name LIKE 'companion_%'").all() as Array<{ name: string }>).map((r) => r.name)
+    expect(names).toEqual([])
+    expect(db.prepare('SELECT id FROM meetings').all().map((r) => r.id)).toEqual([m.id])
+    db.close()
   })
 
   it('keeps the successful export result when cleaning its staging directory fails', async () => {

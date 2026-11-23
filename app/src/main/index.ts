@@ -1,3 +1,4 @@
+import { importPhoneRecording } from './companion/phoneImport'
 import { loadWindowState, placeWindow, saveWindowState } from './windowState'
 import { trustSystemCertificates } from './systemCerts'
 import { createSavedTranscriptions } from './savedTranscription'
@@ -89,6 +90,11 @@ import { deleteRecording } from './deleteRecording'
 import { AUDIO_SCHEME, audioExts, createAudioHandler, trackFile, type AudioExt } from './audio'
 import { helperDecode, wavDecode } from './asr/backfill'
 import { finishQuit, hookUpdates, isPreviewBuild, updatesOn } from './updates'
+import { createCompanion, type Companion } from './companion'
+import { askSources } from './companion/handlers'
+import { hookCompanion } from './companion/ipc'
+import { companionWanted } from './companion/gate'
+import { copyFile, mkdir, rename } from 'node:fs/promises'
 import type { NoteSaveResult, StartResult } from '../shared/types'
 
 // the transcript's player streams each meeting's audio from here; seeking needs stream support (before ready)
@@ -113,6 +119,8 @@ if (x11) { stripAppImageEnv(); app.relaunch(x11); app.exit(0) }
 // One Yogurt at a time: a second launch focuses the existing window
 else if (!app.requestSingleInstanceLock()) app.quit()
 let win: BrowserWindow | undefined
+/** the iPhone companion once it has started (Settings → Phone pairs and unpairs through it) */
+let companion: Companion | undefined
 let allowQuit = false
 let presentMain = (_foreground = false) => {}
 let updateMainMenu = () => {}
@@ -550,12 +558,12 @@ app.whenReady().then(() => {
   if (!isFake()) syncLoginItem(settings.openAtLogin)
   // Windows and Linux: the calendar is a pasted private calendar address, kept sealed with the system keychain
   // a Mac: the same links, next to its own calendars (Settings → Calendars → Add a calendar link)
+  // no keychain (Linux without a secret service): scrambled, not encrypted, so a secret isn't readable at a glance
+  const sealSecret = (plain: string) => (safeStorage.isEncryptionAvailable() ? `k:${safeStorage.encryptString(plain).toString('base64')}` : `b:${Buffer.from(plain).toString('base64')}`)
+  const openSecret = (sealed: string) => (sealed.startsWith('k:') ? safeStorage.decryptString(Buffer.from(sealed.slice(2), 'base64'))
+    : sealed.startsWith('b:') ? Buffer.from(sealed.slice(2), 'base64').toString() : sealed.replace(/^p:/, ''))
   const calendarLinks = caps.calendar ? createCalendarLinks({
-    file: join(userDataDir(), 'settings.json'), get: getCalendar,
-    // no keychain (Linux without a secret service): scrambled, not encrypted, so the address isn't readable at a glance
-    seal: (plain) => (safeStorage.isEncryptionAvailable() ? `k:${safeStorage.encryptString(plain).toString('base64')}` : `b:${Buffer.from(plain).toString('base64')}`),
-    open: (sealed) => (sealed.startsWith('k:') ? safeStorage.decryptString(Buffer.from(sealed.slice(2), 'base64'))
-      : sealed.startsWith('b:') ? Buffer.from(sealed.slice(2), 'base64').toString() : sealed.replace(/^p:/, '')),
+    file: join(userDataDir(), 'settings.json'), get: getCalendar, seal: sealSecret, open: openSecret,
   }) : null
   if (calendarLinks) setCalendarLinkSource(calendarLinks, { alongside: !caps.calendarLink })
   const preferences = hookPreferences({
@@ -1013,7 +1021,9 @@ app.whenReady().then(() => {
       const recording = activeMeeting()
       if (recording) stopMeeting(recording.id, 'quit')
       // Music, recorder files and transcription still receive the same bounded graceful shutdown.
-      await Promise.all([media.resume(), settleRecording().then(() => settleTranscription())])
+      // the companion says goodbye on the network (so the phone sees the computer leave), for half a second at most
+      const companionStopped = Promise.race([companion?.stop(), new Promise((r) => setTimeout(r, 500))])
+      await Promise.all([media.resume(), settleRecording().then(() => settleTranscription()), companionStopped])
       allowQuit = true
       finishQuit()
     })().catch((err) => console.error('quit was cancelled because saving or shutdown failed', err)).finally(() => {
@@ -1116,6 +1126,50 @@ app.whenReady().then(() => {
     } catch (e) { console.warn('tidying prepared notes failed', e) }
   }
   tidyPrepared(); setInterval(tidyPrepared, 60_000).unref()
+  // the iPhone companion: never started until the iPhone app ships (YOGURT_PHONE=1 turns it on); then off until a phone
+  // is paired or Settings starts pairing. Tests also need YOGURT_FAKE_COMPANION=1
+  app.on('will-quit', () => { void companion?.stop() })
+  const meetingsChanged = () => { win?.webContents.send('meetings:changed'); win?.webContents.send('folders:changed') }
+  const companionOn = companionWanted(process.env, isFake())
+  // Linux without a secret service: the key is only scrambled on disk (the file is the person's own, mode 600)
+  if (companionOn && !safeStorage.isEncryptionAvailable()) console.warn('COMPANION key not sealed: no system keychain')
+  const companionReady = !companionOn ? Promise.resolve(undefined) : createCompanion({
+    store, userDataDir: userDataDir(), seal: sealSecret, open: openSecret, appVersion: app.getVersion(),
+    deviceName: () => os.hostname().replace(/\.local$/i, ''), recording: () => !!activeMeeting(),
+    log: (...parts) => console.info(...parts),
+    // the phone's question asked like one in Ask (it is kept there too), answered once it's written
+    ask: async (question, scope) => {
+      if (askUnavailable()) throw new Error('waits for the meeting')
+      const meetingIds = scope?.meetingIds ?? (scope?.folderId ? store.folderMeetingIds(scope.folderId) : undefined)
+      const { id, done } = conversations.ask(null, question, meetingIds ? { scope: meetingIds } : {})
+      await done
+      const turn = conversations.view(id)?.turns.at(-1)
+      if (!turn || turn.status !== 'done') throw new Error('no answer')
+      return { answer: turn.answer, sources: askSources(turn.sources) }
+    },
+    // a meeting recorded on the phone: its audio goes where an imported file's would, then it is transcribed and its
+    // notes written the same way; the phone's transcript and draft notes show until this computer's replace them
+    importRecording: (m, audioPath, draft) => importPhoneRecording({ store, meetingDir, changed: meetingsChanged,
+      start: (id, again) => savedTranscriptions.start(id, again) }, m, audioPath, draft),
+    audioFiles: async (id) => {
+      await rejoined; await recordingSettled(id)
+      return (['me', 'them'] as const).flatMap((track) => { const path = trackFile(meetingDir(id), track, audioKinds); return path ? [{ track, path }] : [] })
+    },
+    ops: {
+      // a new revision; an open note takes it unless it was typed in since (then both texts are kept)
+      notesRewrite: (id, mine) => { notes.phoneMine(id, mine) },
+      // the same refusals and follow-ups as the window's own Delete and Restore
+      trashBlocked: (id) => id === resumingId || stopSavePending(id),
+      trashed: (id) => {
+        indexer.forget(id)
+        meetingsChanged()
+        if (route === `/note/${id}`) { route = ''; win?.webContents.send('nav:go', route) }
+      },
+      restored: (id) => { indexer.restored(id); meetingsChanged() },
+      foldersChanged: () => { win?.webContents.send('folders:changed'); folderSuggestions.refresh() },
+    },
+  }).then((c) => { companion = c; return c }, (err) => { console.error('COMPANION could not start', (err as Error).name); return undefined })
+  hookCompanion({ companion: companionReady, send: (s) => { if (win && !win.isDestroyed()) win.webContents.send('companion:status', s) } })
   ipcMain.handle('meetings:cards', (_e, o: { before?: { at: number; id: string }; limit?: number; folder?: string }) => {
     const limit = Math.max(1, Math.min(1000, Number(o?.limit) || 40))
     const b = o?.before
