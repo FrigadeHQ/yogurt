@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Smartphone } from 'lucide-react'
+import { Smartphone } from './Icons'
 import type { CompanionStatus } from '../../../shared/companion'
 import { language, t } from '../../../shared/i18n'
 
