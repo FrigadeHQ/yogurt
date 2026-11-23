@@ -92,7 +92,7 @@ impl Track {
             self.last_heard_end = Some(heard + dur);
         }
         if self.base_ms.is_none() {
-            let ms = heard_ms.unwrap_or(now_ms - dur).max(0.0);
+            let ms = heard_ms.unwrap_or((self.pts as f64 / 48.0).max(now_ms - dur)).max(0.0);
             self.base_ms = Some(ms);
             self.sent_since = 0;
             // file time is meeting time: startup, pauses and device rebuilds become silence
@@ -213,6 +213,19 @@ mod tests {
         assert!(t.finish());
         let i = crate::oggopus::info(&dir.join("me.ogg")).unwrap();
         assert_eq!(i.duration_ms, 600.0);
+    }
+
+    #[test]
+    fn a_short_mute_keeps_the_next_pcm_on_the_saved_timeline() {
+        let dir = crate::testdir("track-short-mute");
+        let mut t = track(&dir);
+        t.append(&[0.1; 4800], None, 100.0);
+        t.resync();
+        t.pad_to(150 * 48);
+        t.append(&[0.1; 4800], None, 240.0);
+        assert_eq!(t.base_ms, Some(150.0));
+        assert_eq!(t.pts, 250 * 48);
+        assert!(t.finish());
     }
 
     #[test]

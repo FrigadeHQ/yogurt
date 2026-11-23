@@ -1,7 +1,7 @@
 // Yogurt's recorder on Windows, speaking the same protocol as the Mac's (native/yogurt-audio/main.swift): the microphone
 // (WASAPI shared mode, no communications role, so the call app keeps its mic as it was) and the computer's sound
 // (the whole default output; process loopback, every app except Yogurt, on YOGURT_AUDIO_LOOPBACK=process: it missed Teams, #35).
-//   yogurt-audio record --dir DIR [--part N --start-ms X] [--mic ID] [--speech LOCALE]
+//   yogurt-audio record --dir DIR [--part N --start-ms X] [--mic-muted] [--mic ID] [--speech LOCALE]
 //   yogurt-audio join --dir DIR | inspect --dir DIR | mic-devices | speech-locales | speech-install LOCALE
 // Writes DIR/me.ogg and DIR/them.ogg (Opus 20 kb/s mono, 48 kHz), a page a second so a crash keeps what was recorded.
 // A restart after a crash is part N: DIR/me.N.ogg and DIR/them.N.ogg, whose file time starts at X; join stitches them.
@@ -12,6 +12,7 @@
 //   {"t":"warn","code":"no-system-audio"|"device-changed"|"no-mic"|"mic-gone"}
 //   {"t":"mic","uid":string|null,"name":string|null}   the mic recording now, after each start: uid null is Auto
 //   {"t":"speech-off"}   for --speech: Apple's speech is Mac only, Whisper gives the live words
+// mute ID and unmute ID reply with {"t":"mic-muted","id":ID,"muted":bool,"ms":meeting time}.
 // stdin: pause, resume, stop (end of input also stops), mic ID or mic auto (switch without stopping). Problems go to stderr.
 mod gap;
 mod join;
@@ -103,7 +104,7 @@ fn record(args: &[String], dir: &Path) {
     }
     #[cfg(windows)]
     {
-        let o = record::Options { part, start_ms, mic: arg_value(args, "--mic"), speech: arg_value(args, "--speech").is_some() };
+        let o = record::Options { part, start_ms, mic_muted: args.iter().any(|a| a == "--mic-muted"), mic: arg_value(args, "--mic"), speech: arg_value(args, "--speech").is_some() };
         std::process::exit(record::run(dir, o));
     }
     #[cfg(not(windows))]
