@@ -1,8 +1,10 @@
 /** A reserved marker, never a person's name or a me/them attribution. */
 export const AUDIO_SPEAKER = '\u001faudio'
+/** Text read from an uploaded video's screen (Mac): a transcript line at the time it was shown, never a person. */
+export const SCREEN_SPEAKER = '\u001fscreen'
 export type AudioUploadFile = { token: string; name: string; title: string; modifiedAt: number; size: number }
 export type AudioUploadStatus = {
-  phase: 'reading' | 'preparing' | 'transcribing' | 'waiting-model' | 'waiting-recording' | 'cancelling' | 'done' | 'error'
+  phase: 'reading' | 'preparing' | 'reading-screen' | 'transcribing' | 'waiting-model' | 'waiting-recording' | 'cancelling' | 'done' | 'error'
   fraction?: number
   meetingId?: string
   error?: 'format' | 'read' | 'transcribe' | 'busy'

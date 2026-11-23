@@ -605,9 +605,7 @@
   "Delete audio?": "Slette lyd?",
   "The audio is deleted for good. Your transcript and notes stay.": "Lyden slettes for godt. Transkripsjonen og notatene beholdes.",
   "Keep the audio until the transcript is saved.": "Behold lyden til transkripsjonen er lagret.",
-  "Keep audio recordings after meetings": "Behold lydopptak etter møter",
   "Recording deleted": "Opptak slettet",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Når avslått, slettes lyd fra nye møter etter at sammendraget er lagret.",
   "Record {title}": "Ta opp {title}",
   "New recording": "Nytt opptak",
   "Hide events without a call link": "Skjul hendelser uten anropslenke",
@@ -764,5 +762,43 @@
   "Send feedback": "Send tilbakemelding",
   "Help and settings": "Hjelp og innstillinger",
   "Yogurt menu": "Yogurt-meny",
-  "Restart to update · {version}": "Start på nytt for å oppdatere · {version}"
+  "Restart to update · {version}": "Start på nytt for å oppdatere · {version}",
+  "What Yogurt keeps": "Hva Yogurt beholder",
+  "Counted from when each meeting ended. Audio and transcripts go only once the summary is saved, and notes stay.": "Regnes fra når hvert møte sluttet. Lyd og transkripsjoner slettes først når sammendraget er lagret, og notater beholdes.",
+  "Delete transcripts": "Slett transkripsjoner",
+  "Its audio goes with it.": "Lyden slettes også.",
+  "Move meetings to the Trash": "Flytt møter til papirkurven",
+  "Never": "Aldri",
+  "Once the summary is saved": "Når sammendraget er lagret",
+  "After 1 week": "Etter 1 uke",
+  "After 1 month": "Etter 1 måned",
+  "After 3 months": "Etter 3 måneder",
+  "After 1 year": "Etter 1 år",
+  "After 2 years": "Etter 2 år",
+  "Number of days": "Antall dager",
+  "Days": "Dager",
+  "Apply to past meetings?": "Bruke på tidligere møter?",
+  "Apply": "Bruk",
+  "{count} meetings already qualify. Their audio is deleted now.": {
+    "one": "{count} møte er allerede omfattet. Lyden slettes nå.",
+    "other": "{count} møter er allerede omfattet. Lyden deres slettes nå."
+  },
+  "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": {
+    "one": "{count} møte er allerede omfattet. Transkripsjonen og lyden slettes nå; notatene beholdes.",
+    "other": "{count} møter er allerede omfattet. Transkripsjonene og lyden slettes nå; notatene beholdes."
+  },
+  "{count} meetings already qualify. They move to the Trash now.": {
+    "one": "{count} møte er allerede omfattet. Det flyttes til papirkurven nå.",
+    "other": "{count} møter er allerede omfattet. De flyttes til papirkurven nå."
+  },
+  "The transcript was deleted on {date}, as set in Settings.": "Transkripsjonen ble slettet {date}, som angitt i Innstillinger.",
+  "Screen": "Skjerm",
+  "Reading the screen…": "Leser skjermen…",
+  "Delete video": "Slett video",
+  "Don't keep it": "Ikke behold den",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "En opplastet video beholdes slik at skjermen kan leses på nytt. Uten videoen kan skjermen ikke leses senere, for eksempel med en annen modell.",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "{count} møte er allerede omfattet. Videoen slettes nå.",
+    "other": "{count} møter er allerede omfattet. Videoene deres slettes nå."
+  }
 }

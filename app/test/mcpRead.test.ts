@@ -54,7 +54,8 @@ describe('reading more through MCP', () => {
   it('gives the settings that shape notes', async () => {
     const { mcp } = setup()
     expect(await json(mcp, 'get_settings')).toEqual({ my_name: 'Sam Rivera', interface_language: 'en', spoken_language: 'en (English only)', summary_language: "each meeting's own language",
-      custom_words: ['Acme'], stop_recording_when_call_ends: true, keep_audio_recordings: false })
+      custom_words: ['Acme'], stop_recording_when_call_ends: true,
+      delete_audio_after_days: 0, delete_video_after_days: 7, delete_transcripts_after_days: null, move_meetings_to_trash_after_days: 365 })
   })
   it("exports a meeting as the same Markdown Export Markdown saves, with either side's notes", async () => {
     const { mcp, older } = setup()

@@ -1,14 +1,14 @@
 import { AudioLines, Loader } from './Icons'
 import { InlineError } from './InlineError'
-import { t } from '../../../shared/i18n'
+import { language, t } from '../../../shared/i18n'
 import { transcriptionLabel, type TranscriptionState } from '../../../shared/transcription'
 import { Swap, SwapText } from './Swap'
 
 export function TranscriptionControl({state,onStop}:{state:TranscriptionState;onStop:()=>void}) {
-  const title=state==='preparing'?t('Cancel'):t('Stop transcription')
+  const title=state==='preparing'||state==='reading-screen'?t('Cancel'):t('Stop transcription')
   return <button className="workspace-button note-resume-action" data-processing="true" aria-busy="true" data-testid="transcription-stop" aria-label={title} title={title} onClick={onStop}>
     <Swap show="busy" options={{busy:<span className="summary-stop-icon"><Loader className="flex-none" size={14}/><span className="summary-stop-square"/></span>}}/>
-    <SwapText text={state==='preparing'?t('Preparing audio…'):t('Transcribing…')}/>
+    <SwapText text={state==='preparing'?t('Preparing audio…'):state==='reading-screen'?t('Reading the screen…'):t('Transcribing…')}/>
   </button>
 }
 
@@ -16,6 +16,8 @@ export type TranscriptNotice =
   | { kind: 'waiting'; state: 'waiting-model' | 'waiting-recording' }
   | { kind: 'transcribe'; state?: 'stopped' | 'error'; run: () => void; disabled: boolean }
   | { kind: 'upload'; run: () => void }
+  /** a retention rule deleted the transcript, at this time */
+  | { kind: 'deleted'; at: number }
 
 export function transcriptionNotice(state: TranscriptionState | undefined, run: () => void, disabled: boolean): TranscriptNotice | undefined {
   if (state === 'waiting-model' || state === 'waiting-recording') return { kind: 'waiting', state }
@@ -24,6 +26,9 @@ export function transcriptionNotice(state: TranscriptionState | undefined, run: 
 
 export function TranscriptionNotice({ notice, centered, hasLines }: { notice: TranscriptNotice; centered: boolean; hasLines: boolean }) {
   if (notice.kind === 'waiting') return <p role="status" className={centered ? undefined : 'transcription-notice text-xs text-muted'}>{transcriptionLabel(notice.state)}</p>
+  if (notice.kind === 'deleted') return <p data-testid="transcript-deleted" role="status" className={centered ? undefined : 'transcription-notice text-xs text-muted'}>
+    {t('The transcript was deleted on {date}, as set in Settings.', { date: new Date(notice.at).toLocaleDateString(language(), { dateStyle: 'long' }) })}
+  </p>
 
   const upload = notice.kind === 'upload'
   const message = upload ? t("Yogurt couldn't read this audio file.") : transcriptionLabel(notice.state)

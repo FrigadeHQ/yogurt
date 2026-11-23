@@ -261,7 +261,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
     if (resumeHandled.current || !m || !notes || summarizing || starting || m.stopSavePending) return
     resumeHandled.current = true
     onResumeRequested()
-    if (m.trashedAt == null && !m.stopSavePending && (m.state === 'stopped' || m.state === 'done')) void resumeRecording()
+    if (m.trashedAt == null && m.transcriptDeletedAt == null && !m.stopSavePending && (m.state === 'stopped' || m.state === 'done')) void resumeRecording()
   }, [onResumeRequested, m, notes, summarizing, starting])
 
   const [hasAudio,setHasAudio]=useState(false)
@@ -349,7 +349,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   const transcribing=transcriptionBusy(m.transcriptionState)
   const runTranscript=async(again=false)=>{if(!await saveAll())return;try{const started=await window.yogurt.transcript.run(id,again);if(started)setPrimary('transcript')}catch{toasts.add({title:t("Yogurt couldn't transcribe this file.")})}}
   const transcriptReason=recording||m.stopSavePending?t('Available after recording'):transcribing?t('Transcribing…'):summarizing?t('Summarizing…'):!hasAudio?t('Audio is unavailable.'):undefined
-  const generation = summaryAction({ hasSummary, hasContent: hasTranscript || !!notes.mine.trim(), recording, busy: summarizing, downloading: !!(setup?.notesDownloading || setup?.notesError), trashed })
+  const generation = summaryAction({ hasSummary, hasContent: hasTranscript || !!notes.mine.trim(), recording, busy: summarizing, downloading: !!(setup?.notesDownloading || setup?.notesError), trashed, transcriptDeleted: m.transcriptDeletedAt != null })
   if(generation&&transcribing)generation.reason=t('Transcribing…')
   const requestRewrite = () => {
     if (!generation || generation.reason) return
@@ -402,7 +402,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                     </RecordingAction>
                   </>}
                   {finishing && <span data-testid="note-finishing" role="status" className="note-finishing">{t('Stopping…')}</span>}
-                  {!finishing && (summaryPending || (!transcribing && m.source !== 'audio-file')) && (m.state === 'stopped' || m.state === 'done') && !m.stopSavePending && !trashed && <button data-testid="note-resume" disabled={starting && !summaryPending} onClick={() => { if (summaryPending) void window.yogurt.notes.stop(id).catch(console.error); else void resumeRecording() }}
+                  {!finishing && (summaryPending || (!transcribing && m.source !== 'audio-file')) && (m.state === 'stopped' || m.state === 'done') && !m.stopSavePending && !trashed && m.transcriptDeletedAt == null && <button data-testid="note-resume" disabled={starting && !summaryPending} onClick={() => { if (summaryPending) void window.yogurt.notes.stop(id).catch(console.error); else void resumeRecording() }}
                     aria-label={resumeLabel} className="workspace-button note-resume-action" title={summaryPending ? resumeLabel : t('Resume recording in this note')}>
                     {!summaryPending && <Mic className="flex-none" size={14} aria-hidden="true" />}
                     <SwapText text={starting && !summaryPending ? t('Preparing…') : resumeLabel} />
@@ -459,7 +459,9 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
           </NoteReadingPane>
           {(primary === 'transcript' || transcriptVisited) && <section hidden={primary !== 'transcript'} id="note-transcript-panel" role="tabpanel" aria-labelledby="note-transcript-tab" className="note-content note-transcript-pane">
             <Transcript notice={
-              hasAudio && (m.transcriptionPending || !hasTranscript) || m.transcriptionState === 'waiting-model' || m.transcriptionState === 'waiting-recording'
+              m.transcriptDeletedAt != null
+                ? { kind: 'deleted', at: m.transcriptDeletedAt }
+                : hasAudio && (m.transcriptionPending || !hasTranscript) || m.transcriptionState === 'waiting-model' || m.transcriptionState === 'waiting-recording'
                 ? transcriptionNotice(m.transcriptionState, () => void runTranscript(), recording || !!m.stopSavePending)
                 : !hasAudio && m.transcriptionState === 'error'
                   ? { kind: 'upload', run: () => void openAudioUpload() }

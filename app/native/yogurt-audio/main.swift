@@ -19,6 +19,7 @@
 // stdin: pause, resume, stop (end of input also stops), mic UID or mic auto (switch without stopping). Problems go to stderr.
 import AVFoundation
 import Speech
+import Vision
 import CoreAudio
 import Darwin
 import Foundation
@@ -1138,6 +1139,52 @@ if args.count >= 3, args[1] == "decode" {
       // the reader gone (Yogurt quit or gave up): stop quietly
       if let m = convert(conv, b), m.frameLength > 0, (try? out.write(contentsOf: Data(bytes: m.floatChannelData![0], count: Int(m.frameLength) * MemoryLayout<Float>.size))) == nil { exit(0) }
     }
+  }
+  exit(0)
+}
+// An uploaded video's screen as text, read by Vision on this Mac: a frame every 2 s, read again only when the picture
+// changed, and kept only when its words did (a clock or a cursor moving is not new). One {"ms","text"} line per change
+// and {"fraction"} as it goes, on stdout. A video with no picture prints nothing.
+if args.count >= 3, args[1] == "screen-text" {
+  let asset = AVURLAsset(url: URL(fileURLWithPath: args[2]))
+  let seconds = CMTimeGetSeconds(asset.duration)
+  guard !asset.tracks(withMediaType: .video).isEmpty, seconds.isFinite, seconds > 0 else { exit(0) }
+  let frames = AVAssetImageGenerator(asset: asset)
+  frames.appliesPreferredTrackTransform = true
+  frames.requestedTimeToleranceBefore = CMTime(seconds: 0.5, preferredTimescale: 600)
+  frames.requestedTimeToleranceAfter = CMTime(seconds: 0.5, preferredTimescale: 600)
+  frames.maximumSize = CGSize(width: 2560, height: 2560)
+  func emit(_ o: [String: Any]) {
+    // the reader gone (Yogurt quit or the upload was cancelled): stop quietly
+    guard let d = try? JSONSerialization.data(withJSONObject: o), (try? FileHandle.standardOutput.write(contentsOf: d + Data([10]))) != nil else { exit(0) }
+  }
+  // a 96×54 grey copy: enough to see a new line of text appear, too small to notice compression noise
+  func thumbnail(_ image: CGImage) -> [UInt8] {
+    var px = [UInt8](repeating: 0, count: 96 * 54)
+    px.withUnsafeMutableBytes { buf in
+      guard let c = CGContext(data: buf.baseAddress, width: 96, height: 54, bitsPerComponent: 8, bytesPerRow: 96, space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue) else { return }
+      c.draw(image, in: CGRect(x: 0, y: 0, width: 96, height: 54))
+    }
+    return px
+  }
+  var picture: [UInt8] = [], words = Set<String>(), at = 0.0
+  while at < seconds {
+    autoreleasepool {
+      guard let image = try? frames.copyCGImage(at: CMTime(seconds: at, preferredTimescale: 600), actualTime: nil) else { return }
+      let next = thumbnail(image)
+      guard picture.isEmpty || zip(picture, next).filter({ abs(Int($0) - Int($1)) > 16 }).count >= 4 else { return }
+      picture = next
+      let read = VNRecognizeTextRequest()
+      read.recognitionLevel = .accurate
+      read.usesLanguageCorrection = true
+      read.automaticallyDetectsLanguage = true
+      try? VNImageRequestHandler(cgImage: image).perform([read])
+      let lines = (read.results ?? []).compactMap { $0.topCandidates(1).first?.string.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+      let seen = Set(lines), shared = Double(seen.intersection(words).count) / Double(max(1, seen.union(words).count))
+      if !lines.isEmpty && shared < 0.8 { emit(["ms": Int(at * 1000), "text": lines.joined(separator: "\n")]); words = seen }
+    }
+    at += 2
+    emit(["fraction": min(1, at / seconds)])
   }
   exit(0)
 }

@@ -635,9 +635,7 @@
   "Delete audio?": "Smazat zvuk?",
   "The audio is deleted for good. Your transcript and notes stay.": "Zvuk se trvale smaže. Přepis a poznámky zůstanou.",
   "Keep the audio until the transcript is saved.": "Zvuk ponechte, dokud se neuloží přepis.",
-  "Keep audio recordings after meetings": "Ponechat zvukové nahrávky po schůzkách",
   "Recording deleted": "Nahrávka smazána",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Při vypnutí se zvuk nových schůzek smaže po uložení shrnutí.",
   "Record {title}": "Nahrát {title}",
   "New recording": "Nová nahrávka",
   "Hide events without a call link": "Skrýt události bez odkazu na hovor",
@@ -795,5 +793,51 @@
   "Send feedback": "Odeslat zpětnou vazbu",
   "Help and settings": "Nápověda a nastavení",
   "Yogurt menu": "Nabídka Yogurt",
-  "Restart to update · {version}": "Restartovat a aktualizovat · {version}"
+  "Restart to update · {version}": "Restartovat a aktualizovat · {version}",
+  "What Yogurt keeps": "Co Yogurt uchovává",
+  "Counted from when each meeting ended. Audio and transcripts go only once the summary is saved, and notes stay.": "Počítá se od konce každé schůzky. Zvuk a přepisy se smažou až po uložení souhrnu a poznámky zůstanou.",
+  "Delete transcripts": "Smazat přepisy",
+  "Its audio goes with it.": "Smaže se i jeho zvuk.",
+  "Move meetings to the Trash": "Přesunout schůzky do koše",
+  "Never": "Nikdy",
+  "Once the summary is saved": "Po uložení souhrnu",
+  "After 1 week": "Po 1 týdnu",
+  "After 1 month": "Po 1 měsíci",
+  "After 3 months": "Po 3 měsících",
+  "After 1 year": "Po 1 roce",
+  "After 2 years": "Po 2 letech",
+  "Number of days": "Počet dní",
+  "Days": "Dny",
+  "Apply to past meetings?": "Použít na dřívější schůzky?",
+  "Apply": "Použít",
+  "{count} meetings already qualify. Their audio is deleted now.": {
+    "one": "{count} schůzka už splňuje podmínku. Její zvuk se teď smaže.",
+    "few": "{count} schůzky už splňují podmínku. Jejich zvuk se teď smaže.",
+    "many": "{count} schůzky už splňuje podmínku. Jejich zvuk se teď smaže.",
+    "other": "{count} schůzek už splňuje podmínku. Jejich zvuk se teď smaže."
+  },
+  "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": {
+    "one": "{count} schůzka už splňuje podmínku. Její přepis a zvuk se teď smažou; poznámky zůstanou.",
+    "few": "{count} schůzky už splňují podmínku. Jejich přepisy a zvuk se teď smažou; poznámky zůstanou.",
+    "many": "{count} schůzky už splňuje podmínku. Jejich přepisy a zvuk se teď smažou; poznámky zůstanou.",
+    "other": "{count} schůzek už splňuje podmínku. Jejich přepisy a zvuk se teď smažou; poznámky zůstanou."
+  },
+  "{count} meetings already qualify. They move to the Trash now.": {
+    "one": "{count} schůzka už splňuje podmínku. Teď se přesune do koše.",
+    "few": "{count} schůzky už splňují podmínku. Teď se přesunou do koše.",
+    "many": "{count} schůzky už splňuje podmínku. Teď se přesunou do koše.",
+    "other": "{count} schůzek už splňuje podmínku. Teď se přesunou do koše."
+  },
+  "The transcript was deleted on {date}, as set in Settings.": "Přepis byl smazán {date}, jak je určeno v Nastavení.",
+  "Screen": "Obrazovka",
+  "Reading the screen…": "Čtení obrazovky…",
+  "Delete video": "Smazat video",
+  "Don't keep it": "Neuchovávat",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "Nahrané video se uchovává, aby šlo jeho obrazovku přečíst znovu. Bez něj obrazovku později přečíst nepůjde, například jiným modelem.",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "{count} schůzka už splňuje podmínku. Její video se teď smaže.",
+    "few": "{count} schůzky už splňují podmínku. Jejich videa se teď smažou.",
+    "many": "{count} schůzky už splňuje podmínku. Jejich videa se teď smažou.",
+    "other": "{count} schůzek už splňuje podmínku. Jejich videa se teď smažou."
+  }
 }

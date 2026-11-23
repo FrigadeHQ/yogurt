@@ -596,9 +596,7 @@
   "Delete audio?": "Törli a hangot?",
   "The audio is deleted for good. Your transcript and notes stay.": "A hang végleg törlődik. Az átirat és a jegyzetek megmaradnak.",
   "Keep the audio until the transcript is saved.": "Tartsa meg a hangot az átirat mentéséig.",
-  "Keep audio recordings after meetings": "Hangfelvételek megőrzése a megbeszélések után",
   "Recording deleted": "Felvétel törölve",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Kikapcsolva az új megbeszélések hangja az összefoglaló mentése után törlődik.",
   "Record {title}": "{title} rögzítése",
   "New recording": "Új felvétel",
   "Hide events without a call link": "Híváshivatkozás nélküli események elrejtése",
@@ -752,5 +750,43 @@
   "Send feedback": "Visszajelzés küldése",
   "Help and settings": "Súgó és beállítások",
   "Yogurt menu": "Yogurt menü",
-  "Restart to update · {version}": "Újraindítás a frissítéshez · {version}"
+  "Restart to update · {version}": "Újraindítás a frissítéshez · {version}",
+  "What Yogurt keeps": "Mit őriz meg a Yogurt",
+  "Counted from when each meeting ended. Audio and transcripts go only once the summary is saved, and notes stay.": "Az egyes megbeszélések végétől számítva. A hang és az átiratok csak az összefoglaló mentése után törlődnek, a jegyzetek megmaradnak.",
+  "Delete transcripts": "Átiratok törlése",
+  "Its audio goes with it.": "A hangja is törlődik.",
+  "Move meetings to the Trash": "Megbeszélések áthelyezése a Kukába",
+  "Never": "Soha",
+  "Once the summary is saved": "Az összefoglaló mentése után",
+  "After 1 week": "1 hét után",
+  "After 1 month": "1 hónap után",
+  "After 3 months": "3 hónap után",
+  "After 1 year": "1 év után",
+  "After 2 years": "2 év után",
+  "Number of days": "Napok száma",
+  "Days": "Nap",
+  "Apply to past meetings?": "Alkalmazás a korábbi megbeszélésekre?",
+  "Apply": "Alkalmaz",
+  "{count} meetings already qualify. Their audio is deleted now.": {
+    "one": "{count} megbeszélés már érintett. A hangja most törlődik.",
+    "other": "{count} megbeszélés már érintett. A hangjuk most törlődik."
+  },
+  "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": {
+    "one": "{count} megbeszélés már érintett. Az átirata és a hangja most törlődik; a jegyzetei megmaradnak.",
+    "other": "{count} megbeszélés már érintett. Az átirataik és a hangjuk most törlődik; a jegyzeteik megmaradnak."
+  },
+  "{count} meetings already qualify. They move to the Trash now.": {
+    "one": "{count} megbeszélés már érintett. Most a Kukába kerül.",
+    "other": "{count} megbeszélés már érintett. Most a Kukába kerülnek."
+  },
+  "The transcript was deleted on {date}, as set in Settings.": "Az átirat a Beállítások szerint törlődött ekkor: {date}",
+  "Screen": "Képernyő",
+  "Reading the screen…": "Képernyő olvasása…",
+  "Delete video": "Videó törlése",
+  "Don't keep it": "Ne őrizze meg",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "A feltöltött videó megmarad, hogy a képernyője újra olvasható legyen. Nélküle a képernyő később már nem olvasható, például egy másik modellel.",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "{count} megbeszélés már érintett. A videója most törlődik.",
+    "other": "{count} megbeszélés már érintett. A videóik most törlődnek."
+  }
 }

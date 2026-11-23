@@ -76,7 +76,7 @@ export function hookNotes(p: {
     const l = live.get(id)
     const saved = edits.get(id)
     const saves = saved && Object.fromEntries(Object.entries(saved).map(([side, edit]) => [side, { revision: edit.revision, status: edit.status, ...(edit.reason ? { reason: edit.reason } : {}) }]))
-    return { meetingId: id, mine: n.mine, enhanced: n.enhanced, edited: n.edited, status: l?.status ?? (n.enhanced != null ? 'done' : 'idle'), draft: l?.draft ?? '', peopleChanged: peopleChanged(id, n.enhanced != null) && !rewriteTimers.has(id) && !rewriting.has(id), ...(l?.part ? { part: l.part } : {}), ...(l?.step ? { step: l.step } : {}), ...(saves ? { saves } : {}) }
+    return { meetingId: id, mine: n.mine, enhanced: n.enhanced, edited: n.edited, status: l?.status ?? (n.enhanced != null ? 'done' : 'idle'), draft: l?.draft ?? '', peopleChanged: peopleChanged(id, n.enhanced != null) && p.store.meeting(id)?.transcriptDeletedAt == null && !rewriteTimers.has(id) && !rewriting.has(id), ...(l?.part ? { part: l.part } : {}), ...(l?.step ? { step: l.step } : {}), ...(saves ? { saves } : {}) }
   }
   const set = (id: string, status: NoteStatus, draft = '', part?: { part: number; of: number }, step?: 'loading') => { live.set(id, { status, draft, part, step }); p.send(view(id)) }
 
@@ -119,7 +119,8 @@ export function hookNotes(p: {
    */
   const write = async (id: string, signal: AbortSignal, quiet = false, note?: string) => {
     const m = p.store.meeting(id)
-    if (!m || m.state === 'recording' || resuming.has(id)) return
+    // a deleted transcript: writing again would rebuild the summary from typed notes alone
+    if (!m || m.state === 'recording' || resuming.has(id) || m.transcriptDeletedAt != null) return
     const was = currentNotes(id)
     const mine = was.mine
     const segments = p.store.segments(id)
@@ -295,7 +296,7 @@ export function hookNotes(p: {
     applyPeople(id: string, retitle = true) {
       const refreshTitle = retitle || rewriteTimers.has(id)
       clearTimeout(rewriteTimers.get(id)); rewriteTimers.delete(id)
-      const due = () => { const n = currentNotes(id); return !resuming.has(id) && p.store.meeting(id)?.state !== 'recording' && n.enhanced != null && !n.edited && !live.has(id) && !rewriting.has(id) && peopleChanged(id, true) }
+      const due = () => { const n = currentNotes(id), m = p.store.meeting(id); return !resuming.has(id) && m?.state !== 'recording' && m?.transcriptDeletedAt == null && n.enhanced != null && !n.edited && !live.has(id) && !rewriting.has(id) && peopleChanged(id, true) }
       const titleDue = () => refreshTitle && !resuming.has(id) && p.store.meeting(id)?.state !== 'recording' && p.store.meeting(id)?.titleSource === 'auto'
       if (!due() && !titleDue()) { p.send(view(id)); return }
       rewriteTimers.set(id, setTimeout(() => {

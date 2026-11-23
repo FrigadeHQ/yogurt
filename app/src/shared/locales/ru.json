@@ -631,9 +631,7 @@
   "Delete audio?": "Удалить аудио?",
   "The audio is deleted for good. Your transcript and notes stay.": "Аудио удалится навсегда. Расшифровка и заметки останутся.",
   "Keep the audio until the transcript is saved.": "Сохраните аудио до сохранения расшифровки.",
-  "Keep audio recordings after meetings": "Хранить аудиозаписи после встреч",
   "Recording deleted": "Запись удалена",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Если выключено, аудио новых встреч удаляется после сохранения сводки.",
   "Record {title}": "Записать «{title}»",
   "New recording": "Новая запись",
   "Hide events without a call link": "Скрывать события без ссылки на звонок",
@@ -792,5 +790,51 @@
   "Send feedback": "Отправить отзыв",
   "Help and settings": "Справка и настройки",
   "Yogurt menu": "Меню Yogurt",
-  "Restart to update · {version}": "Перезапустить для обновления · {version}"
+  "Restart to update · {version}": "Перезапустить для обновления · {version}",
+  "What Yogurt keeps": "Что хранит Yogurt",
+  "Counted from when each meeting ended. Audio and transcripts go only once the summary is saved, and notes stay.": "Отсчёт идёт от окончания каждой встречи. Аудио и расшифровки удаляются только после сохранения сводки, а заметки остаются.",
+  "Delete transcripts": "Удалить расшифровки",
+  "Its audio goes with it.": "Аудио удаляется вместе с ней.",
+  "Move meetings to the Trash": "Переместить встречи в Корзину",
+  "Never": "Никогда",
+  "Once the summary is saved": "После сохранения сводки",
+  "After 1 week": "Через 1 неделю",
+  "After 1 month": "Через 1 месяц",
+  "After 3 months": "Через 3 месяца",
+  "After 1 year": "Через 1 год",
+  "After 2 years": "Через 2 года",
+  "Number of days": "Количество дней",
+  "Days": "Дни",
+  "Apply to past meetings?": "Применить к прошлым встречам?",
+  "Apply": "Применить",
+  "{count} meetings already qualify. Their audio is deleted now.": {
+    "one": "{count} встреча уже попадает под правило. Её аудио будет удалено сейчас.",
+    "few": "{count} встречи уже попадают под правило. Их аудио будет удалено сейчас.",
+    "many": "{count} встреч уже попадают под правило. Их аудио будет удалено сейчас.",
+    "other": "{count} встречи уже попадают под правило. Их аудио будет удалено сейчас."
+  },
+  "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": {
+    "one": "{count} встреча уже попадает под правило. Её расшифровка и аудио будут удалены сейчас; заметки останутся.",
+    "few": "{count} встречи уже попадают под правило. Их расшифровки и аудио будут удалены сейчас; заметки останутся.",
+    "many": "{count} встреч уже попадают под правило. Их расшифровки и аудио будут удалены сейчас; заметки останутся.",
+    "other": "{count} встречи уже попадают под правило. Их расшифровки и аудио будут удалены сейчас; заметки останутся."
+  },
+  "{count} meetings already qualify. They move to the Trash now.": {
+    "one": "{count} встреча уже попадает под правило. Она будет перемещена в Корзину сейчас.",
+    "few": "{count} встречи уже попадают под правило. Они будут перемещены в Корзину сейчас.",
+    "many": "{count} встреч уже попадают под правило. Они будут перемещены в Корзину сейчас.",
+    "other": "{count} встречи уже попадают под правило. Они будут перемещены в Корзину сейчас."
+  },
+  "The transcript was deleted on {date}, as set in Settings.": "Расшифровка удалена {date}, как задано в Настройках.",
+  "Screen": "Экран",
+  "Reading the screen…": "Читаем экран…",
+  "Delete video": "Удалить видео",
+  "Don't keep it": "Не хранить",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "Загруженное видео хранится, чтобы экран из него можно было прочитать снова. Без него экран нельзя будет прочитать позже, например другой моделью.",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "{count} встреча уже попадает под правило. Её видео будет удалено сейчас.",
+    "few": "{count} встречи уже попадают под правило. Их видео будут удалены сейчас.",
+    "many": "{count} встреч уже попадают под правило. Их видео будут удалены сейчас.",
+    "other": "{count} встречи уже попадают под правило. Их видео будут удалены сейчас."
+  }
 }

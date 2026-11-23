@@ -608,9 +608,7 @@
   "Delete audio?": "Poistetaanko ääni?",
   "The audio is deleted for good. Your transcript and notes stay.": "Ääni poistetaan pysyvästi. Litterointi ja muistiinpanot säilyvät.",
   "Keep the audio until the transcript is saved.": "Säilytä ääni, kunnes litterointi on tallennettu.",
-  "Keep audio recordings after meetings": "Säilytä äänitallenteet kokousten jälkeen",
   "Recording deleted": "Tallenne poistettu",
-  "When off, new meetings' audio is deleted once the summary is saved.": "Pois päältä uusien kokousten ääni poistetaan yhteenvedon tallennuttua.",
   "Record {title}": "Tallenna {title}",
   "New recording": "Uusi tallennus",
   "Hide events without a call link": "Piilota tapahtumat ilman puhelulinkkiä",
@@ -770,5 +768,43 @@
   "Send feedback": "Lähetä palautetta",
   "Help and settings": "Ohje ja asetukset",
   "Yogurt menu": "Yogurt-valikko",
-  "Restart to update · {version}": "Käynnistä uudelleen ja päivitä · {version}"
+  "Restart to update · {version}": "Käynnistä uudelleen ja päivitä · {version}",
+  "What Yogurt keeps": "Mitä Yogurt säilyttää",
+  "Counted from when each meeting ended. Audio and transcripts go only once the summary is saved, and notes stay.": "Lasketaan kunkin kokouksen päättymisestä. Ääni ja litteroinnit poistetaan vasta, kun yhteenveto on tallennettu, ja muistiinpanot säilyvät.",
+  "Delete transcripts": "Poista litteroinnit",
+  "Its audio goes with it.": "Myös sen ääni poistetaan.",
+  "Move meetings to the Trash": "Siirrä kokoukset roskakoriin",
+  "Never": "Ei koskaan",
+  "Once the summary is saved": "Kun yhteenveto on tallennettu",
+  "After 1 week": "1 viikon kuluttua",
+  "After 1 month": "1 kuukauden kuluttua",
+  "After 3 months": "3 kuukauden kuluttua",
+  "After 1 year": "1 vuoden kuluttua",
+  "After 2 years": "2 vuoden kuluttua",
+  "Number of days": "Päivien määrä",
+  "Days": "Päiviä",
+  "Apply to past meetings?": "Sovelletaanko aiempiin kokouksiin?",
+  "Apply": "Käytä",
+  "{count} meetings already qualify. Their audio is deleted now.": {
+    "one": "{count} kokous täyttää jo ehdon. Sen ääni poistetaan nyt.",
+    "other": "{count} kokousta täyttää jo ehdon. Niiden ääni poistetaan nyt."
+  },
+  "{count} meetings already qualify. Their transcripts and audio are deleted now; their notes stay.": {
+    "one": "{count} kokous täyttää jo ehdon. Sen litterointi ja ääni poistetaan nyt; muistiinpanot säilyvät.",
+    "other": "{count} kokousta täyttää jo ehdon. Niiden litteroinnit ja ääni poistetaan nyt; muistiinpanot säilyvät."
+  },
+  "{count} meetings already qualify. They move to the Trash now.": {
+    "one": "{count} kokous täyttää jo ehdon. Se siirretään nyt roskakoriin.",
+    "other": "{count} kokousta täyttää jo ehdon. Ne siirretään nyt roskakoriin."
+  },
+  "The transcript was deleted on {date}, as set in Settings.": "Litterointi poistettiin {date} Asetusten mukaisesti.",
+  "Screen": "Näyttö",
+  "Reading the screen…": "Luetaan näyttöä…",
+  "Delete video": "Poista video",
+  "Don't keep it": "Älä säilytä",
+  "An uploaded video is kept so its screen can be read again. Without it, the screen can't be read later, for example with another model.": "Ladattu video säilytetään, jotta sen näyttö voidaan lukea uudelleen. Ilman sitä näyttöä ei voi lukea myöhemmin, esimerkiksi toisella mallilla.",
+  "{count} meetings already qualify. Their videos are deleted now.": {
+    "one": "{count} kokous täyttää jo ehdon. Sen video poistetaan nyt.",
+    "other": "{count} kokousta täyttää jo ehdon. Niiden videot poistetaan nyt."
+  }
 }
