@@ -28,7 +28,7 @@ describe('the fake notes model, asked across meetings', () => {
     expect(await ask(sources + 'q\n</question>'))
       .toBe('Here is what came up:\n- In **Pricing call**, it was discussed [1][2].\n- In **Weekly sync**, it was discussed [3].')
     // and with nothing to say, every source cited anyway
-    expect(await ask(sources + 'What about politics?\n</question>')).toBe('Nothing in your meetings is about that [1][2][3].')
-    expect(await ask('<meetings>\nNo meetings matched this question.\n</meetings>\n<question>\nq\n</question>')).toBe("I couldn't find that in your meetings.")
+    expect(await ask(sources + 'What about politics?\n</question>')).toBe('Nothing in your notes is about that [1][2][3].')
+    expect(await ask('<meetings>\nNo meetings matched this question.\n</meetings>\n<question>\nq\n</question>')).toBe("I couldn't find that in your notes.")
   })
 })

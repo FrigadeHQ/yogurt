@@ -25,11 +25,11 @@ describe('the prompt for chat across meetings', () => {
     expect(libraryHead).toContain('only when nothing in them is about the question')
     expect(libraryHead).toContain('Never make anything up.')
   })
-  it('never calls the meetings "sources", so answers say "your meetings" instead of "the provided sources"', () => {
+  it('never calls the meetings "sources", so answers say "your notes" instead of "the provided sources"', () => {
     const p = libraryPrompt({ items, question: 'Who is on my team?', history: [{ question: 'q', answer: 'a [1]' }], now: at, spelling: '' })
     expect(p).not.toMatch(/source/i)
     expect(libraryPrompt({ items: [], question: 'q', history: [], now: at, spelling: '' })).not.toMatch(/source/i)
-    expect(libraryHead).toContain('"your meetings"')
+    expect(libraryHead).toContain('"your notes"')
   })
   it('heads each meeting with its title and day, and labels each source with where in it (or that it is the notes)', () => {
     expect(meetingLabel(items[0])).toBe('Meeting: Pricing call · Tuesday, November 3, 2026')
