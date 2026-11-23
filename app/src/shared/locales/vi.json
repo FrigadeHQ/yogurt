@@ -722,5 +722,12 @@
   "Send feedback": "Gửi ý kiến phản hồi",
   "Help and settings": "Trợ giúp và cài đặt",
   "Yogurt menu": "Menu Yogurt",
-  "Restart to update · {version}": "Khởi động lại để cập nhật · {version}"
+  "Restart to update · {version}": "Khởi động lại để cập nhật · {version}",
+  "Edit or regenerate summary": "Sửa hoặc tạo lại tóm tắt",
+  "Edit summary": "Sửa tóm tắt",
+  "Edit using the transcript too": "Dùng cả bản chép lời khi sửa",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "Chậm hơn và phụ thuộc vào mô hình ghi chú: cuộc họp dài có thể không vừa, khi đó sẽ được đọc theo từng phần.",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "“Tạo lại” sẽ thay thế những chỉnh sửa của bạn trong tóm tắt. “Sửa” sẽ giữ lại chúng.",
+  "Summary edited": "Đã sửa tóm tắt",
+  "The summary changed since, so it wasn't undone.": "Tóm tắt đã thay đổi kể từ đó nên không hoàn tác được."
 }

@@ -752,5 +752,12 @@
   "Send feedback": "মতামত পাঠান",
   "Help and settings": "সহায়তা ও সেটিংস",
   "Yogurt menu": "Yogurt মেনু",
-  "Restart to update · {version}": "আপডেট করতে পুনরায় চালু করুন · {version}"
+  "Restart to update · {version}": "আপডেট করতে পুনরায় চালু করুন · {version}",
+  "Edit or regenerate summary": "সারাংশ সম্পাদনা বা আবার তৈরি করুন",
+  "Edit summary": "সারাংশ সম্পাদনা করুন",
+  "Edit using the transcript too": "ট্রান্সক্রিপ্টও ব্যবহার করে সম্পাদনা করুন",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "সময় বেশি লাগে এবং নোটের মডেলের উপর নির্ভর করে: দীর্ঘ মিটিং হয়তো এতে আঁটবে না, তখন অংশে অংশে পড়া হয়।",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "“আবার তৈরি করুন” সারাংশে আপনার সম্পাদনা বদলে দেয়। “সম্পাদনা করুন” সেগুলো রেখে দেয়।",
+  "Summary edited": "সারাংশ সম্পাদিত হয়েছে",
+  "The summary changed since, so it wasn't undone.": "এরপর সারাংশ বদলে গেছে, তাই আগের অবস্থায় ফেরানো হয়নি।"
 }

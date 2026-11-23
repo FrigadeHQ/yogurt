@@ -9,7 +9,7 @@ afterEach(() => setLanguage('en'))
 const available = { hasSummary: true, hasContent: false, recording: false, busy: false, downloading: false, trashed: false }
 
 it('shows the correct action for existing summaries and source content, hiding empty notes and Trash', () => {
-  expect(summaryAction(available)).toEqual({ label: 'Regenerate summary', reason: undefined })
+  expect(summaryAction(available)).toEqual({ label: 'Edit or regenerate summary', reason: undefined })
   expect(summaryAction({ ...available, hasSummary: false, hasContent: true })?.label).toBe('Generate summary')
   for (const recording of [true, false]) for (const busy of [true, false]) for (const downloading of [true, false]) {
     expect(summaryAction({ ...available, hasSummary: false, recording, busy, downloading })).toBeUndefined()
@@ -30,7 +30,7 @@ it('renders a focusable but unavailable menu item with a separate accessible des
       const generation = summaryAction({ ...available, [wait]: true })!
       const html = renderToStaticMarkup(createElement(NoteMenu, {
         recording: wait === 'recording', generation, hasSummary: true, edited: false, rewriteOpen: false,
-        setRewriteOpen() {}, onWriteAgain() {}, onRename() {}, onDelete() {},
+        setRewriteOpen() {}, onWriteAgain() {}, onRename() {}, onDelete() {}, hasTranscript: false, onEdit() {},
       }))
       const item = html.match(/<button[^>]*data-testid="note-write-again"[^>]*>/)![0]
       expect(item).toContain('role="menuitem"')

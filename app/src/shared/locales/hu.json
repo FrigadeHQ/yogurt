@@ -752,5 +752,12 @@
   "Send feedback": "Visszajelzés küldése",
   "Help and settings": "Súgó és beállítások",
   "Yogurt menu": "Yogurt menü",
-  "Restart to update · {version}": "Újraindítás a frissítéshez · {version}"
+  "Restart to update · {version}": "Újraindítás a frissítéshez · {version}",
+  "Edit or regenerate summary": "Összefoglaló szerkesztése vagy újrakészítése",
+  "Edit summary": "Összefoglaló szerkesztése",
+  "Edit using the transcript too": "Szerkesztés az átirat alapján is",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "Lassabb, és a jegyzetmodelltől függ: egy hosszú megbeszélés talán nem fér bele, ilyenkor részenként dolgozza fel.",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "Az „Újragenerálás” lecseréli az összefoglalón végzett módosításaidat. A „Szerkesztés” megtartja őket.",
+  "Summary edited": "Összefoglaló szerkesztve",
+  "The summary changed since, so it wasn't undone.": "Az összefoglaló azóta megváltozott, ezért a szerkesztést nem lehetett visszavonni."
 }

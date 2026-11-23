@@ -792,5 +792,12 @@
   "Send feedback": "Отправить отзыв",
   "Help and settings": "Справка и настройки",
   "Yogurt menu": "Меню Yogurt",
-  "Restart to update · {version}": "Перезапустить для обновления · {version}"
+  "Restart to update · {version}": "Перезапустить для обновления · {version}",
+  "Edit or regenerate summary": "Изменить или пересоздать сводку",
+  "Edit summary": "Изменить сводку",
+  "Edit using the transcript too": "Изменить с учётом расшифровки",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "Медленнее и зависит от модели для заметок: длинная встреча может в неё не поместиться, и тогда она читается по частям.",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "«Создать заново» заменит ваши правки в сводке. «Изменить» их сохранит.",
+  "Summary edited": "Сводка изменена",
+  "The summary changed since, so it wasn't undone.": "Сводка с тех пор изменилась, поэтому правка не отменена."
 }

@@ -777,5 +777,12 @@
   "Send feedback": "Enviar comentarios",
   "Help and settings": "Ayuda y ajustes",
   "Yogurt menu": "Menú de Yogurt",
-  "Restart to update · {version}": "Reiniciar para actualizar · {version}"
+  "Restart to update · {version}": "Reiniciar para actualizar · {version}",
+  "Edit or regenerate summary": "Editar o regenerar resumen",
+  "Edit summary": "Editar resumen",
+  "Edit using the transcript too": "Editar usando también la transcripción",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "Más lento y depende del modelo de notas: una reunión larga puede no caber en él y entonces se lee por partes.",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "«Regenerar» reemplaza tus cambios en el resumen. «Editar» los conserva.",
+  "Summary edited": "Resumen editado",
+  "The summary changed since, so it wasn't undone.": "El resumen cambió desde entonces, así que no se deshizo."
 }

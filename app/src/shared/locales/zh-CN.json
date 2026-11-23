@@ -722,5 +722,12 @@
   "Send feedback": "发送反馈",
   "Help and settings": "帮助和设置",
   "Yogurt menu": "Yogurt 菜单",
-  "Restart to update · {version}": "重启以更新 · {version}"
+  "Restart to update · {version}": "重启以更新 · {version}",
+  "Edit or regenerate summary": "编辑或重新生成摘要",
+  "Edit summary": "编辑摘要",
+  "Edit using the transcript too": "编辑时也参考文字记录",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "速度较慢，且取决于笔记模型：长会议可能超出模型容量，此时会分段读取。",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "“重新生成”会替换你对摘要的修改。“编辑”会保留这些修改。",
+  "Summary edited": "摘要已编辑",
+  "The summary changed since, so it wasn't undone.": "此后摘要又有更改，因此未撤销。"
 }

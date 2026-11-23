@@ -2,7 +2,7 @@ import { attendeeMembership as stamp } from '../../shared/people'
 import type { Meeting, Store } from '../store'
 import type { NotesModel } from './model'
 import type { NoteSaveResult, NoteSide, NoteStatus, NoteView } from '../../shared/types'
-import { cleanTitle, enhance, languageName, titlePrompt, type Llm, type PartSummary } from './enhance'
+import { cleanTitle, editNotes, enhance, languageName, titlePrompt, type Llm, type PartSummary } from './enhance'
 import { meetingWords } from '../vocab'
 import type { Queue } from './queue'
 
@@ -113,6 +113,23 @@ export function hookNotes(p: {
     return saved
   }
 
+  /** the draft as it is written, to the window at most every DRAFT_EVERY_MS */
+  const drafting = (id: string, signal: AbortSignal) => {
+    let draft = '', last = 0, timer: NodeJS.Timeout | undefined
+    // blank lines would show as empty paragraphs while streaming, then vanish once tidied: never shown
+    const flush = () => { timer = undefined; last = Date.now(); if (!signal.aborted) set(id, 'writing', draft.replace(/\n[ \t]*(?=\n)/g, '')) }
+    return {
+      token: (t: string) => {
+        if (signal.aborted) return
+        draft += t
+        if (timer) return
+        const wait = DRAFT_EVERY_MS - (Date.now() - last)
+        if (wait <= 0) flush(); else timer = setTimeout(flush, wait)
+      },
+      done: () => { if (timer) clearTimeout(timer) },
+    }
+  }
+
   /**
    * quiet: written again for new people, out of sight. The notes on screen stay as they are until the new ones are done,
    * then change all at once (never if the person edited them meanwhile).
@@ -130,9 +147,7 @@ export function hookNotes(p: {
     const used = { stamp: stamp(m.attendees) }
     writingPeople.set(id, used)
     const language = m.language ?? p.language(id)
-    let draft = '', last = 0, timer: NodeJS.Timeout | undefined
-    // blank lines would show as empty paragraphs while streaming, then vanish once tidied: never shown
-    const flush = () => { timer = undefined; last = Date.now(); if (!signal.aborted) set(id, 'writing', draft.replace(/\n[ \t]*(?=\n)/g, '')) }
+    const draft = drafting(id, signal)
     try {
       console.info('NOTES', `writing the notes of ${id}`)
       if (!quiet && p.showLoading && p.model.needsLoad?.()) set(id, 'waiting', '', undefined, 'loading')
@@ -142,14 +157,9 @@ export function hookNotes(p: {
       // a generic title (or one made from earlier notes) gets one from these notes; theirs or the calendar's never
       const retitle = (x: Meeting) => x.titleSource === 'generic' || x.titleSource === 'auto'
       let askTitle: ((llm: Llm) => Promise<string>) | undefined
-      const md = await enhance({ signal, meeting: m, mine, segments, language, note, summaryLanguage: p.summaryLanguage?.(), me: p.me?.(), words: meetingWords(m), ...(retitle(m) ? { titleLater: (ask) => { askTitle = ask } } : {}) }, llm, (t) => {
-        if (quiet || signal.aborted) return
-        draft += t
-        if (timer) return
-        const wait = DRAFT_EVERY_MS - (Date.now() - last)
-        if (wait <= 0) flush(); else timer = setTimeout(flush, wait)
-      }, (part, of) => { if (!signal.aborted && !quiet) set(id, 'writing', '', { part, of }) }, p.earlier?.(id))
-      if (timer) clearTimeout(timer)
+      const md = await enhance({ signal, meeting: m, mine, segments, language, note, summaryLanguage: p.summaryLanguage?.(), me: p.me?.(), words: meetingWords(m), ...(retitle(m) ? { titleLater: (ask) => { askTitle = ask } } : {}) }, llm, (t) => { if (!quiet) draft.token(t) },
+        (part, of) => { if (!signal.aborted && !quiet) set(id, 'writing', '', { part, of }) }, p.earlier?.(id))
+      draft.done()
       if (quiet) {
         // stopped for a recording: the queue runs it again. Edited (or written again by hand) meanwhile: theirs stands
         const now = currentNotes(id)
@@ -171,7 +181,7 @@ export function hookNotes(p: {
       queueTitle(id, askTitle, m.attendees)
       p.summarized?.(id)
     } catch (e) {
-      if (timer) clearTimeout(timer)
+      draft.done()
       if (quiet) { if (!signal.aborted) console.error('writing the notes again for new people failed', id, e); throw e }
       // stopped for a recording: it runs again after
       if (signal.aborted) { if (!stopped.has(id)) set(id, 'waiting'); throw e }
@@ -179,6 +189,42 @@ export function hookNotes(p: {
       set(id, 'failed')
       throw e
     } finally { if (writingPeople.get(id) === used) writingPeople.delete(id) }
+  }
+
+  /** the summary before each meeting's last edit, and what the edit made of it: Undo puts it back while it is still that */
+  const undos = new Map<string, { before: string; edited: boolean; after: string }>()
+  /**
+   * "Edit summary": the instruction applied to the summary as it is now, the person's own changes included, instead of
+   * writing it again from the meeting. The transcript is read too only when asked (slower, and parts for a long meeting).
+   */
+  const editSummary = async (id: string, signal: AbortSignal, note: string, withTranscript: boolean): Promise<boolean> => {
+    const m = p.store.meeting(id)
+    const was = currentNotes(id)
+    if (!m || m.state === 'recording' || resuming.has(id) || !was.enhanced?.trim()) { if (m) finish(m, 'done'); return false }
+    const draft = drafting(id, signal)
+    try {
+      console.info('NOTES', `editing the notes of ${id}`)
+      if (p.showLoading && p.model.needsLoad?.()) set(id, 'waiting', '', undefined, 'loading')
+      const llm = await p.model.llm(signal)
+      signal.throwIfAborted()
+      if (live.get(id)?.step) set(id, 'waiting')
+      const md = await editNotes({ signal, notes: was.enhanced, note, mine: was.mine, segments: withTranscript ? p.store.segments(id) : undefined, language: m.language ?? p.language(id), words: meetingWords(m) }, llm, draft.token,
+        (part, of) => { if (!signal.aborted) set(id, 'writing', '', { part, of }) }, withTranscript ? p.earlier?.(id) : undefined)
+      draft.done()
+      signal.throwIfAborted()
+      // edited: a rewrite for new people would undo the instruction, so the people-changed hint shows instead
+      p.store.setNotes(id, { enhanced: md, edited: true })
+      undos.set(id, { before: was.enhanced, edited: was.edited, after: md })
+      finish(m, 'done')
+      return true
+    } catch (e) {
+      draft.done()
+      // stopped for a recording: it runs again after
+      if (signal.aborted) { if (!stopped.has(id)) set(id, 'waiting'); throw e }
+      console.error('editing the notes failed', id, e)
+      set(id, 'failed')
+      throw e
+    }
   }
 
   /**
@@ -342,6 +388,31 @@ export function hookNotes(p: {
       const s = live.get(id)?.status
       if (s === 'waiting' || s === 'writing') return Promise.resolve()
       return queueWrite(id, note, allowPartial)
+    },
+    /** "Edit summary": through the queue like "Write again"; true once the edited summary is saved, and Undo can put it back */
+    async edit(id: string, note: string, withTranscript: boolean): Promise<boolean> {
+      const pending = stopping.get(id)
+      if (pending) await pending
+      if (!note.trim() || resuming.has(id) || p.store.meeting(id)?.state === 'recording' || !currentNotes(id).enhanced?.trim()) return false
+      if (!retryDrafts(id)) return false
+      const s = live.get(id)?.status
+      if (s === 'waiting' || s === 'writing') return false
+      console.info('NOTES', `queued an edit of the notes of ${id}`)
+      stopped.delete(id)
+      set(id, 'waiting')
+      let saved = false
+      await p.queue.enqueue(async (signal) => { saved = await editSummary(id, signal, note, withTranscript) }, 'enhance', id).catch(() => {})
+      return saved
+    },
+    /** Undo after "Edit summary": the summary from before, unless it changed since (then false, and it stays) */
+    undoEdit(id: string): boolean {
+      const u = undos.get(id), now = currentNotes(id), s = live.get(id)?.status
+      undos.delete(id)
+      if (!u || s === 'waiting' || s === 'writing' || now.enhanced !== u.after) return false
+      p.store.setNotes(id, { enhanced: u.before, edited: u.edited })
+      // the open note takes it the way it takes notes written again for new people: unless it has edits of its own
+      p.send({ ...view(id), rewrittenFrom: u.after })
+      return true
     },
     /** at launch: meetings a quit or crash left without notes get them now, one at a time */
     recover() {

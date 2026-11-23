@@ -147,6 +147,10 @@ export type YogurtApi = {
     keptEdits(meetingId: string): void
     /** writes the enhanced notes again */
     writeAgain(meetingId: string, note?: string): Promise<void>
+    /** applies an instruction to the summary as it is now; withTranscript: the model reads the transcript too. True once saved */
+    edit(meetingId: string, note: string, withTranscript: boolean): Promise<boolean>
+    /** puts back the summary from before the last edit; false when it changed since */
+    undoEdit(meetingId: string): Promise<boolean>
     stop(meetingId: string): Promise<void>
     /** status, the draft as it is written, and the saved notes; returns the way to stop listening */
     onChange(cb: (v: NoteView) => void): () => void
@@ -400,7 +404,7 @@ export type NoteView = {
   step?: 'loading'
   /** the people at the meeting changed after these edited notes were written, so they may be out of date */
   peopleChanged: boolean
-  /** the notes were just written again (for new people): what they replaced, so an open editor with no edits since takes them */
+  /** the notes were just written again (for new people) or an edit undone: what they replaced, so an open editor with no edits since takes them */
   rewrittenFrom?: string
   /** latest acknowledged edit revision on each side; failed text is retained in main and overlaid above */
   saves?: Partial<Record<NoteSide, NoteSaveResult>>

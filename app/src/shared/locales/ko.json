@@ -722,5 +722,12 @@
   "Send feedback": "의견 보내기",
   "Help and settings": "도움말 및 설정",
   "Yogurt menu": "Yogurt 메뉴",
-  "Restart to update · {version}": "다시 시작하여 업데이트 · {version}"
+  "Restart to update · {version}": "다시 시작하여 업데이트 · {version}",
+  "Edit or regenerate summary": "요약 편집 또는 다시 만들기",
+  "Edit summary": "요약 편집",
+  "Edit using the transcript too": "녹취록도 참고해 편집",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "더 느리고 노트 모델에 따라 달라요. 긴 회의는 모델에 다 들어가지 않을 수 있으며, 그럴 땐 나눠서 읽어요.",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "‘다시 생성’은 요약에서 수정한 내용을 덮어써요. ‘편집’은 수정한 내용을 유지해요.",
+  "Summary edited": "요약을 편집했어요",
+  "The summary changed since, so it wasn't undone.": "그 뒤에 요약이 바뀌어서 실행 취소되지 않았어요."
 }

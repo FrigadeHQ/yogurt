@@ -781,5 +781,12 @@
   "Send feedback": "Trimite feedback",
   "Help and settings": "Ajutor și setări",
   "Yogurt menu": "Meniul Yogurt",
-  "Restart to update · {version}": "Repornește pentru actualizare · {version}"
+  "Restart to update · {version}": "Repornește pentru actualizare · {version}",
+  "Edit or regenerate summary": "Editați sau regenerați rezumatul",
+  "Edit summary": "Editează rezumatul",
+  "Edit using the transcript too": "Editează folosind și transcrierea",
+  "Slower, and depends on the notes model: a long meeting may not fit it and is then read in parts.": "Mai lent și depinde de modelul pentru notițe: o întâlnire lungă poate să nu încapă în el și atunci este citită pe părți.",
+  "Regenerate replaces your edits to the summary. Edit keeps them.": "„Regenerează” înlocuiește modificările dvs. din rezumat. „Editează” le păstrează.",
+  "Summary edited": "Rezumat editat",
+  "The summary changed since, so it wasn't undone.": "Rezumatul s-a schimbat între timp, așa că editarea nu a fost anulată."
 }
