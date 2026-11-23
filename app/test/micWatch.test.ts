@@ -9,12 +9,12 @@ const zoom = { bundleId: 'us.zoom.xos', name: 'zoom.us', pid: 2 }
 
 /** stand-in helper processes: each start is one, lines and exits sent by hand */
 function procs() {
-  const all: { line(l: string): void; exit(): void; stopped: boolean }[] = []
+  const all: { line(l: string): void; exit(): void; stopped: boolean; sent: string[] }[] = []
   const start = (): MicWatchProc => {
     let onLine: (l: string) => void = () => {}, onExit: () => void = () => {}
-    const p = { line: (l: string) => onLine(l), exit: () => onExit(), stopped: false }
+    const p = { line: (l: string) => onLine(l), exit: () => onExit(), stopped: false, sent: [] as string[] }
     all.push(p)
-    return { onLine: (f) => { onLine = f }, onExit: (f) => { onExit = f }, stop: () => { p.stopped = true } }
+    return { onLine: (f) => { onLine = f }, onExit: (f) => { onExit = f }, send: (l) => { p.sent.push(l) }, stop: () => { p.stopped = true } }
   }
   return { all, start, last: () => all[all.length - 1] }
 }
@@ -39,6 +39,23 @@ describe('createMicWatch', () => {
     expect(await x.w.read()).toEqual([])
     expect(x.p.all).toHaveLength(1)
     expect(x.polls).toEqual([])
+  })
+  it('tells the watcher whether a meeting records, only when that changes, so it reads again at the old pace', async () => {
+    const x = setup()
+    x.p.last().line('[]')
+    expect(x.p.last().sent).toEqual(['idle'])
+    await x.w.read(); await x.w.read()
+    x.setRecording(true)
+    await x.w.read(); await x.w.read()
+    x.setRecording(false)
+    await x.w.read()
+    expect(x.p.last().sent).toEqual(['idle', 'recording', 'idle'])
+  })
+  it('a restarted watcher is told again', async () => {
+    const x = setup({ recording: true })
+    x.p.last().exit()
+    vi.advanceTimersByTime(BACKOFF_MS[0])
+    expect(x.p.last().sent).toEqual(['recording'])
   })
   it('skips lines it cannot read and keeps the last good one', async () => {
     const x = setup()
@@ -146,6 +163,7 @@ describe.skipIf(process.platform === 'win32')('spawnMicWatch', () => {
     writeFileSync(bin, '#!/bin/sh\n[ "$1" = mic-watch ] || exit 2\necho \'[{"bundleId":"us.zoom.xos","name":"zoom.us","pid":2}]\'\ncat >/dev/null\n')
     chmodSync(bin, 0o755)
     const p = spawnMicWatch(() => bin)()
+    p.send('recording')
     const line = await new Promise<string>((r) => p.onLine(r))
     expect(JSON.parse(line)).toEqual([zoom])
     const ended = new Promise<void>((r) => p.onExit(r))

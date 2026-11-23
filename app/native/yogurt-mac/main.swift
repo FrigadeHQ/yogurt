@@ -5,7 +5,8 @@
 //   yogurt-mac calendar-auth         → asks once (the system's own prompt), then the status
 //   yogurt-mac events FROM TO        → meetings between two ISO dates (all-day and cancelled ones left out)
 //   yogurt-mac mic-apps              → [{"bundleId","name","pid"}] of processes using audio input right now
-//   yogurt-mac mic-watch             → the same as mic-apps, one JSON line at start and on each change, until stdin closes:
+//   yogurt-mac mic-watch             → the same as mic-apps, one JSON line at start and on each change, until stdin closes
+//                                       (stdin lines "recording" / "idle" set how often it reads again: 1.5 s / 3 s):
 //                                       one Core Audio client for Yogurt's whole life instead of one per reading (#143)
 //   yogurt-mac running-apps ID...    → the supplied bundle IDs currently present in NSRunningApplication
 //   yogurt-mac browser-title ID      → {"title":string|null}: the front tab's name in Chrome, Arc, Edge, Brave or Safari (only if running)
@@ -522,8 +523,18 @@ func watchCalls(every: Int, ids: [String], pids: [pid_t] = []) {
 /// Core Audio client with privacy checks in coreaudiod, and after about an hour of that powerd refused every power
 /// assertion and the displays never woke (#143).
 func watchMic() {
-  // Yogurt closes stdin to stop the watch (and a crashed Yogurt closes it too)
-  DispatchQueue.global().async { _ = FileHandle.standardInput.readDataToEndOfFile(); exit(0) }
+  // Yogurt writes "recording" or "idle" to stdin when that changes, and closes it to stop the watch (a crashed Yogurt
+  // closes it too)
+  var every = 3.0
+  DispatchQueue.global().async {
+    while true {
+      let d = FileHandle.standardInput.availableData
+      if d.isEmpty { exit(0) }
+      guard let word = String(data: d, encoding: .utf8)?.split(whereSeparator: \.isNewline).last else { continue }
+      let next = word == "recording" ? 1.5 : 3.0
+      DispatchQueue.main.async { every = next }
+    }
+  }
   let sys = AudioObjectID(kAudioObjectSystemObject)
   var listAddr = address(kAudioHardwarePropertyProcessObjectList)
   var inputAddr = address(kAudioProcessPropertyIsRunningInput)
@@ -553,11 +564,15 @@ func watchMic() {
   AudioObjectAddPropertyListenerBlock(sys, &listAddr, .main, listChanged)
   follow()
   emit()
-  // in case a change was never told: read again now and then, and end if Yogurt is gone without closing stdin
-  let safety = DispatchSource.makeTimerSource(queue: .main)
-  safety.schedule(deadline: .now() + 30, repeating: 30)
-  safety.setEventHandler { if getppid() != parent { exit(0) }; follow(); emit() }
-  safety.resume()
+  // in case a change is never told: read again as often as Yogurt used to ask (3 s, 1.5 s while recording) inside
+  // this one client, so detection is never slower than before; and end if Yogurt is gone without closing stdin
+  var again: (() -> Void)!
+  again = {
+    if getppid() != parent { exit(0) }
+    follow(); emit()
+    DispatchQueue.main.asyncAfter(deadline: .now() + every) { again() }
+  }
+  DispatchQueue.main.asyncAfter(deadline: .now() + every) { again() }
   dispatchMain()
 }
 

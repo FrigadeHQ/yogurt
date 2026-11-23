@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process'
 import { createInterface } from 'node:readline'
 
 /** one running yogurt-mac mic-watch: its lines, its end, and how to end it */
-export type MicWatchProc = { onLine(f: (line: string) => void): void; onExit(f: () => void): void; stop(): void }
+export type MicWatchProc = { onLine(f: (line: string) => void): void; onExit(f: () => void): void; send(line: string): void; stop(): void }
 
 /** waits before starting the watcher again, longer each time it ends soon after starting */
 export const BACKOFF_MS = [1_000, 2_000, 4_000, 8_000, 16_000]
@@ -30,12 +30,20 @@ export function createMicWatch(d: { start: () => MicWatchProc; poll: () => Promi
   let heard: (() => void)[] = []
   let polled: { at: number; value: unknown } | undefined
   let asking: Promise<unknown> | undefined
+  /** what the watcher was last told: it reads again every 1.5 s while recording, else 3 s */
+  let told: boolean | undefined
+  const tell = () => {
+    const r = d.recording()
+    if (proc && r !== told) { told = r; proc.send(r ? 'recording' : 'idle') }
+  }
 
   const run = () => {
     if (stopped) return
     const startedAt = Date.now()
     const p = d.start()
     proc = p
+    told = undefined
+    tell()
     p.onLine((l) => {
       if (proc !== p) return
       let v: unknown
@@ -71,6 +79,7 @@ export function createMicWatch(d: { start: () => MicWatchProc; poll: () => Promi
   run()
   return {
     async read(): Promise<unknown> {
+      tell()
       if (value) return value
       if (proc && !polling) {
         let timer: NodeJS.Timeout | undefined
@@ -89,7 +98,8 @@ export function createMicWatch(d: { start: () => MicWatchProc; poll: () => Promi
   }
 }
 
-/** yogurt-mac mic-watch: one JSON line (what mic-apps prints) at start and on each change, until its stdin closes */
+/** yogurt-mac mic-watch: one JSON line (what mic-apps prints) at start and on each change, until its stdin closes;
+ * "recording" or "idle" sent to it sets how often it reads again by itself */
 export const spawnMicWatch = (binary: () => string) => (): MicWatchProc => {
   const child = spawn(binary(), ['mic-watch'], { stdio: ['pipe', 'pipe', 'ignore'] })
   const exits: (() => void)[] = []
@@ -103,6 +113,7 @@ export const spawnMicWatch = (binary: () => string) => (): MicWatchProc => {
   return {
     onLine: (f) => { lines.on('line', f) },
     onExit: (f) => { exits.push(f) },
+    send: (l) => { if (!ended && child.stdin.writable) child.stdin.write(l + '\n') },
     stop() {
       child.stdin.end()
       setTimeout(() => { if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL') }, 2000).unref()
