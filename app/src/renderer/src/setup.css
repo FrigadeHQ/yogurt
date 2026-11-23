@@ -190,7 +190,7 @@
 .ob-main { display:flex;flex:1;flex-direction:column;justify-content:center;padding-block:28px; }
 .ob-copy { display:flex;flex-direction:column;max-width:400px;animation:ob-in 320ms var(--ease-out) both; }
 /* two lines of room, words at the bottom: a short headline sits right above its sentence, and the sentence never moves */
-.ob-title { display:flex;align-items:flex-end;min-height:2.2em;font-family:var(--font-brand);font-size:36px;line-height:1.1;font-weight:600;letter-spacing:-.035em;color:var(--heading); }
+.ob-title { display:flex;align-items:flex-end;min-height:2.2em;font-size:36px;line-height:1.1;font-weight:600;letter-spacing:-.025em;color:var(--heading); }
 .ob-title>span { text-wrap:balance; }
 .ob-text { min-height:66px;margin-top:14px;max-width:372px;font-size:14.5px;line-height:22px;color:var(--muted);text-wrap:pretty; }
 .ob-actions>.text-action { min-width:112px;padding-inline:19px; }
@@ -241,7 +241,7 @@
 .ob-card-head { display:flex;align-items:center;gap:6px;margin-bottom:12px;font-size:11px;line-height:16px;font-weight:550;color:var(--muted); }
 .ob-card-head svg { color:var(--accent); }
 .ob-rec-dot { width:7px;height:7px;border-radius:50%;background:var(--danger);animation:rec-pulse 1.6s ease-in-out infinite; }
-.ob-doc-title { margin-bottom:7px;font-family:var(--font-brand);font-size:16px;line-height:1.2;font-weight:600;letter-spacing:-.015em;color:var(--heading); }
+.ob-doc-title { margin-bottom:7px;font-size:16px;line-height:1.2;font-weight:600;letter-spacing:-.015em;color:var(--heading); }
 .ob-doc-list { display:flex;flex-direction:column;gap:5px;padding-inline-start:15px;list-style:disc; }
 .ob-doc-list li::marker { color:var(--muted); }
 .ob-doc-list strong { font-weight:600;color:var(--ink); }
