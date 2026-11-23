@@ -1,0 +1,21 @@
+#!/usr/bin/env node
+// A stand-in for `codex exec --json -` in tests, no modules (it runs as CommonJS or ESM): the prompt on stdin, JSONL
+// events out, the answer as one agent_message. FAKE_AGENT_FAIL=1: a usage limit, as the real one reports it.
+// YOGURT_FAKE_AGENT_LOG: each prompt and the arguments are appended there.
+const send = (m) => process.stdout.write(JSON.stringify(m) + '\n')
+let prompt = ''
+process.stdin.on('data', (d) => { prompt += d })
+process.stdin.on('end', () => {
+  if (process.env.YOGURT_FAKE_AGENT_LOG) process.getBuiltinModule('node:fs').appendFileSync(process.env.YOGURT_FAKE_AGENT_LOG, JSON.stringify({ agent: 'codex', cwd: process.cwd(), args: process.argv.slice(2), prompt }) + '\n')
+  send({ type: 'thread.started', thread_id: 'fake' })
+  send({ type: 'turn.started' })
+  if (process.env.FAKE_AGENT_FAIL === '1') {
+    const message = "You've hit your usage limit. Try again later."
+    send({ type: 'error', message })
+    send({ type: 'turn.failed', error: { message } })
+    process.exit(1)
+  }
+  const text = prompt.includes('</question>') ? 'Codex says: the site goes live on Tuesday.' : '## Codex notes\n- The site goes live on **Tuesday**.'
+  send({ type: 'item.completed', item: { id: 'item_0', type: 'agent_message', text } })
+  send({ type: 'turn.completed', usage: { input_tokens: 1, output_tokens: 1 } })
+})

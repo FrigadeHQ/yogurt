@@ -224,6 +224,12 @@ const api: YogurtApi = {
     dismissNudge: () => ipcRenderer.invoke('onboarding:dismiss-nudge'),
     restoreNudge: () => ipcRenderer.invoke('onboarding:restore-nudge'),
   },
+  ai: {
+    status: () => ipcRenderer.invoke('ai:status'),
+    setTask: (task, provider) => ipcRenderer.invoke('ai:set-task', task, provider),
+    setServer: (server) => ipcRenderer.invoke('ai:set-server', server),
+    serverModels: (server) => ipcRenderer.invoke('ai:server-models', server),
+  },
   mcp: {
     status: () => ipcRenderer.invoke('mcp:status'),
     set: (on) => ipcRenderer.invoke('mcp:set', on),
