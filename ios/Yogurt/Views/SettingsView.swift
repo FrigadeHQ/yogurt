@@ -125,12 +125,7 @@ struct SettingsView: View {
     private var spokenLanguage: some View {
         Section {
             Picker(selection: $spoken) {
-                Text(S.sameAsIPhone(SpokenLanguage.name(of: .current, in: .current))).tag("")
-                // a pick this iPhone no longer lists still shows, so the row never reads blank
-                if !spoken.isEmpty, !languages.contains(where: { $0.id == spoken }) {
-                    Text(Locale.current.localizedString(forIdentifier: spoken) ?? spoken).tag(spoken)
-                }
-                ForEach(languages) { Text($0.name).tag($0.id) }
+                Spoken.choices(selection: spoken, languages: languages)
             } label: {
                 Label(S.spokenLanguage, systemImage: "waveform.and.mic").foregroundStyle(Theme.ink)
             }

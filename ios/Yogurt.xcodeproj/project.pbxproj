@@ -38,6 +38,7 @@
 		B804D8E6894E203182B83F21 /* LiveTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DA8F6E1A2A908AF1A2A086 /* LiveTranscriber.swift */; };
 		BE6F5280826C1048195233F5 /* PairingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 430BE731056AF91B84E7B4E8 /* PairingView.swift */; };
 		CC49CF59513E07DABDD6C941 /* RecordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B90133C024F87FA06ED2A20F /* RecordView.swift */; };
+		D3CFF1F26837E5E2B2263591 /* SpokenLanguagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B81672668F92FD54423B7A5 /* SpokenLanguagePicker.swift */; };
 		D3D2E970B3694F25A8DB908C /* StatusPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C12DEE3D0C6EF5500BF7470 /* StatusPill.swift */; };
 		D6D63D3003B9863819C297BA /* RecordStrings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 926FDCB2952E51696433D3A7 /* RecordStrings.swift */; };
 		D7FA1CBC0E4DB608CD729DD0 /* AskStrings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52F38E04BCC449A1C985FB59 /* AskStrings.swift */; };
@@ -57,6 +58,7 @@
 		430BE731056AF91B84E7B4E8 /* PairingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingView.swift; sourceTree = "<group>"; };
 		528750F46462C5E3E2057562 /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
 		52F38E04BCC449A1C985FB59 /* AskStrings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AskStrings.swift; sourceTree = "<group>"; };
+		5B81672668F92FD54423B7A5 /* SpokenLanguagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpokenLanguagePicker.swift; sourceTree = "<group>"; };
 		63DA8F6E1A2A908AF1A2A086 /* LiveTranscriber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveTranscriber.swift; sourceTree = "<group>"; };
 		64BFDD76097A79C483E29D66 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		665E6C46EA0815F0E4A5821C /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
@@ -125,6 +127,7 @@
 				926FDCB2952E51696433D3A7 /* RecordStrings.swift */,
 				B90133C024F87FA06ED2A20F /* RecordView.swift */,
 				F8216BDA0E6DA0EC4F0884E6 /* Spoken.swift */,
+				5B81672668F92FD54423B7A5 /* SpokenLanguagePicker.swift */,
 			);
 			path = Recording;
 			sourceTree = "<group>";
@@ -343,6 +346,7 @@
 				5373797ED2F260544B28A634 /* SettingsView.swift in Sources */,
 				A00CE07E430D53B4DFDF8AB3 /* ShareFiles.swift in Sources */,
 				AC928D450D3446D4F111050D /* Spoken.swift in Sources */,
+				D3CFF1F26837E5E2B2263591 /* SpokenLanguagePicker.swift in Sources */,
 				D3D2E970B3694F25A8DB908C /* StatusPill.swift in Sources */,
 				8C7E96775760E1ECD1B60DD2 /* Strings.swift in Sources */,
 				B408211750C2C5073379FF76 /* Theme.swift in Sources */,

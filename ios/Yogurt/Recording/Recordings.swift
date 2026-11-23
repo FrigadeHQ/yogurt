@@ -35,7 +35,9 @@ final class RecordingController {
     let id = UUID().uuidString.lowercased()
     private(set) var startedAt = Date()
     /// the spoken language picked when it started: the transcript, the draft notes and the computer all use it
-    private let language = Spoken.current
+    let language: Locale
+
+    init(language: Locale = Spoken.current) { self.language = language }
 
     @ObservationIgnored private let recorder = Recorder()
     @ObservationIgnored private let relay = TranscriberRelay()

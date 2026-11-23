@@ -13258,6 +13258,202 @@
         }
       }
     },
+    "For your next recording only. Settings keeps your usual language." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For your next recording only. Settings keeps your usual language."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لتسجيلك التالي فقط. تبقى لغتك المعتادة في الإعدادات."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "শুধু আপনার পরের রেকর্ডিংয়ের জন্য। আপনার সাধারণ ভাষা সেটিংসে থেকে যায়।"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jen pro příští nahrávku. Obvyklý jazyk zůstává v Nastavení."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kun til din næste optagelse. Dit sædvanlige sprog bliver i Indstillinger."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur für deine nächste Aufnahme. Deine übliche Sprache bleibt in den Einstellungen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Μόνο για την επόμενη ηχογράφησή σας. Η συνηθισμένη γλώσσα σας μένει στις Ρυθμίσεις."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo para tu próxima grabación. Tu idioma habitual sigue en Ajustes."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vain seuraavaan tallennukseesi. Tavallinen kielesi pysyy asetuksissa."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para sa susunod mong recording lang. Nananatili sa Settings ang karaniwan mong wika."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour votre prochain enregistrement seulement. Votre langue habituelle reste dans Réglages."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "רק להקלטה הבאה שלך. השפה הרגילה שלך נשארת בהגדרות."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सिर्फ़ आपकी अगली रिकॉर्डिंग के लिए। आपकी सामान्य भाषा सेटिंग्स में बनी रहती है।"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Csak a következő felvételhez. A szokásos nyelved a Beállításokban marad."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hanya untuk rekaman berikutnya. Bahasa biasamu tetap di Pengaturan."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo per la tua prossima registrazione. La tua lingua abituale resta in Impostazioni."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次の録音だけに使います。いつもの言語は設定に残ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다음 녹음에만 적용돼요. 평소 언어는 설정에 그대로 있어요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Untuk rakaman seterusnya sahaja. Bahasa biasa anda kekal dalam Tetapan."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bare for neste opptak. Det vanlige språket ditt blir værende i Innstillinger."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alleen voor je volgende opname. Je gewone taal blijft in Instellingen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tylko dla następnego nagrania. Twój zwykły język zostaje w Ustawieniach."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Só para a sua próxima gravação. Seu idioma de sempre continua nos Ajustes."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Doar pentru următoarea înregistrare. Limba ta obișnuită rămâne în Setări."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Только для следующей записи. Обычный язык остаётся в Настройках."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bara för din nästa inspelning. Ditt vanliga språk ligger kvar i Inställningar."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "สำหรับการบันทึกครั้งถัดไปเท่านั้น ภาษาที่ใช้ประจำยังอยู่ในการตั้งค่า"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yalnızca bir sonraki kaydın için. Her zamanki dilin Ayarlar'da kalır."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Лише для наступного запису. Звична мова лишається в Параметрах."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chỉ cho bản ghi tiếp theo. Ngôn ngữ thường dùng của bạn vẫn nằm trong Cài đặt."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅用于下一次录音。常用语言仍保留在设置中。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "僅用於下一次錄音。常用語言仍保留在設定中。"
+          }
+        }
+      }
+    },
     "Get started" : {
       "localizations" : {
         "en" : {

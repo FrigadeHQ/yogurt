@@ -11,12 +11,19 @@ struct RecordView: View {
     var preview = false
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
-    @State private var recording = RecordingController()
+    @State private var recording: RecordingController
     @State private var tab: Tab = .transcript
     @State private var confirmDiscard = false
     @Environment(\.scenePhase) private var phase
     @FocusState private var typing: Bool
     @Namespace private var underline
+
+    /// language: what this recording listens in, picked beside Record on Home
+    init(language: Locale = Spoken.current, saved: @escaping (String) -> Void, preview: Bool = false) {
+        self.saved = saved
+        self.preview = preview
+        _recording = State(initialValue: RecordingController(language: language))
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -53,8 +60,13 @@ struct RecordView: View {
         VStack(spacing: 10) {
             HStack(spacing: 8) {
                 Circle().fill(dotColor).frame(width: 8, height: 8)
-                Text(phaseLabel).font(.footnote.weight(.medium)).foregroundStyle(Theme.muted)
-                    .contentTransition(.opacity)
+                HStack(spacing: 4) {
+                    Text(phaseLabel).font(.footnote.weight(.medium)).foregroundStyle(Theme.muted)
+                        .contentTransition(.opacity)
+                    // picked before it started, so here it's only said
+                    Text("· " + SpokenLanguage.name(of: recording.language, in: .current))
+                        .font(.footnote).foregroundStyle(Theme.muted)
+                }
             }
             .padding(.top, 18)
             .frame(maxWidth: .infinity)

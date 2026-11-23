@@ -18,6 +18,8 @@ struct HomeView: View {
     @State private var showSettings = false
     @State private var showConnect = false
     @State private var showRecord = false
+    /// the next recording's own language, nil for Settings'; it goes back to Settings' after that recording
+    @State private var recordLanguage: String?
     @Environment(\.scenePhase) private var phase
 
     var body: some View {
@@ -36,8 +38,10 @@ struct HomeView: View {
         .sheet(isPresented: $showSettings) { SettingsView() }
         .sheet(isPresented: $showConnect) { ConnectSheet() }
         .fullScreenCover(isPresented: $showRecord) {
-            RecordView(saved: { path.append(.meeting($0)) }, preview: UserDefaults.standard.bool(forKey: "previewRecording"))
+            RecordView(language: Spoken.locale(override: recordLanguage), saved: { path.append(.meeting($0)) },
+                       preview: UserDefaults.standard.bool(forKey: "previewRecording"))
         }
+        .onChange(of: showRecord) { _, open in if !open { recordLanguage = nil } }
         .onAppear(perform: applyLaunch)
         // recordings a crash left behind, and notes not written yet
         .task(id: phase) { if phase == .active { await PhoneDrafts.shared.resume(model: model) } }
@@ -111,14 +115,19 @@ struct HomeView: View {
         .padding(.vertical, 6)
     }
 
+    /// Record, one tap and it records, with the language it listens in beside it for anyone who wants another
     private var recordButton: some View {
-        Button { showRecord = true } label: {
-            Label(S.record, systemImage: "mic.fill").padding(.horizontal, 6)
+        HStack(spacing: 10) {
+            Button { showRecord = true } label: {
+                Label(S.record, systemImage: "mic.fill").padding(.horizontal, 6)
+            }
+            .buttonStyle(PrimaryButtonStyle())
+            .shadow(color: Theme.primary.opacity(0.28), radius: 14, y: 6)
+            .accessibilityIdentifier("record")
+            SpokenLanguageChip(override: $recordLanguage)
+                .shadow(color: .black.opacity(0.06), radius: 10, y: 4)
         }
-        .buttonStyle(PrimaryButtonStyle())
-        .shadow(color: Theme.primary.opacity(0.28), radius: 14, y: 6)
         .padding(.bottom, 12)
-        .accessibilityIdentifier("record")
     }
 
     /// every meeting's folders, from one read

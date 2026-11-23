@@ -159,6 +159,7 @@ enum S {
     }
     static let spokenLanguage = String(localized: "Spoken language")
     static func sameAsIPhone(_ language: String) -> String { String(localized: "Same as iPhone (\(language))") }
+    static let forNextRecording = String(localized: "For your next recording only. Settings keeps your usual language.")
     static let spokenFooter = String(localized: "The language people speak in your meetings. Yogurt writes the transcript and notes in it.")
     static let privacy = String(localized: "Privacy")
     static let faceIDLock = String(localized: "Lock with Face ID")
