@@ -776,12 +776,8 @@ html:not(.widget) button:focus-visible, html:not(.widget) input:focus-visible { 
 
 /* Name ink comes from the same folder token in both transcript surfaces. */
 :is(.line-who,.widget-preview-speaker)[data-folder-color] { color:var(--folder-ink); }
-/* Keep violet names readable on the charcoal recorder and over highlighted transcript rows. */
-:is(.line-who,.widget-preview-speaker)[data-folder-color=violet] { background:var(--bg);border-radius:4px; }
-@media (prefers-color-scheme:light) {
-  .widget-details > :is(span:first-child,svg) { filter:drop-shadow(0 0 1px var(--pill-ink)); }
-  .widget-pill:focus-visible { outline-color:var(--pill-ink); }
-}
+/* Keep violet names readable over highlighted transcript rows. The recorder's names use the pill's light purple. */
+.line-who[data-folder-color=violet] { background:var(--bg);border-radius:4px; }
 
 /* Calendar linking lives in the date popover; attendee editing stays in People. */
 .note-date-anchor { min-width:0;max-width:min(100%, 17rem); }

@@ -28,7 +28,9 @@ it('uses the seven folder inks on the note and always-dark preview', async () =>
   const theme = readFileSync(new URL('../src/renderer/src/styles.css', import.meta.url), 'utf8')
   const accents = [...theme.matchAll(/--accent: (#[\dA-F]{6});/g)].map(match => match[1])
   expect(accents).toEqual(['#6F00FF', '#B780FF'])
-  expect(theme).toContain(':is(.line-who,.widget-preview-speaker)[data-folder-color=violet] { background:var(--bg)')
+  expect(theme).toContain('.line-who[data-folder-color=violet] { background:var(--bg)')
+  // The charcoal recorder's names sit straight on the pill, never on a white chip.
+  expect(theme).not.toMatch(/widget-preview-speaker[^{]*\{[^}]*background/)
   const violetBackgrounds = [...theme.matchAll(/--bg: (#[\dA-F]{6});/g)].map(match => match[1])
   expect(violetBackgrounds).toEqual(['#FFFFFF', '#18191D', '#FFFFFF', '#1B1B1D'])
   const palettes = accents.map((accent, i) => [accent, ...inks.map(m => m[i + 2])])

@@ -10,6 +10,8 @@ it('keeps a flat face on bordered controls, including selected, paused and proce
     '.workspace-button', '.note-recording-group', '.note-record-action',
     '.note-resume-action', '.citation-tabs button', '.modal-button', '.ob-button',
     '.settings-select', '.settings-toggle', '.settings-spoken-choice',
+    // the recording pill's mark and wave: no glow in either theme
+    '.widget-details',
   ]
   const rules = [...styles.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
   for (const control of controls) {
