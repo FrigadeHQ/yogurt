@@ -152,6 +152,32 @@ describe('hookCallNames', () => {
     expect(s.watched).toHaveLength(2)
   })
 
+  it('a slow reader that still sends readings is never started again: it gets three times its own pace (#83)', () => {
+    const s = setup()
+    s.start()
+    // a big window: the first reading takes 4 s, and the reader then reads every 8 s (it waits as long as a reading took)
+    s.audio(0, 1_004_000); s.emit(zoomLine(1_004_000, ['Alex Morgan', 'Dana Smith'], 'Dana Smith'))
+    for (let at = 1_006_000; at <= 1_060_000; at += 2_000) {
+      s.audio(0, at)
+      if ((at - 1_004_000) % 8_000 === 0) s.emit(zoomLine(at, ['Alex Morgan', 'Dana Smith'], 'Dana Smith'))
+      s.hook.checkQuiet()
+    }
+    expect(s.watched).toHaveLength(1)
+    expect(s.logs.some((l) => /went quiet/.test(l))).toBe(false)
+  })
+
+  it('a reader started again gets twice as long each time before the next start, so a first reading that takes 10 s lands (#83)', () => {
+    const s = setup()
+    s.start()
+    const starts: number[] = []
+    for (let at = 1_002_000; at <= 1_060_000; at += 2_000) {
+      s.audio(0, at); s.hook.checkQuiet()
+      if (s.watched.length > starts.length + 1) starts.push(at)
+    }
+    // 5 s, then 10 s, then 20 s of quiet; never every 6 s
+    expect(starts).toEqual([1_006_000, 1_018_000, 1_040_000])
+  })
+
   it('a recording started by hand watches every call app until its app is known, then only that one (a Teams chat window cannot hide a Meet call, #72)', () => {
     const s = setup({ app: null })
     s.start()

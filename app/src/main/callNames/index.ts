@@ -49,15 +49,18 @@ export function kindFor(appId: string, windows: Array<{ title?: string }>, callA
 export const WATCH_EVERY_MS = 400
 /** the apps mark the person talking about this late (Zoom: about 0.75 to 1.2 s after they start) */
 const APP_LAG_MS = 750
-/** no reading for this long while recording: the reader is stuck (seen once, 11 minutes of Them), so it starts again */
+/** no reading for this long while recording: the reader is stuck (seen once, 11 minutes of Them), so it starts again.
+ * A slow window gets longer: three times the reader's own pace, and twice as long after each start, since the reader
+ * waits as long as a reading took and a fresh one killed at 5 s never sends one (#83: a Teams reading took 10 s). */
 export const QUIET_MS = 5000
+const MAX_QUIET_MS = 60_000
 /** at most this many fresh starts per meeting, so an app that never answers can't start readers forever */
 const MAX_RESTARTS = 20
 /** changes of who talks written to the log, per meeting (enough to check a real call, never a flood) */
 const LOGGED_CHANGES = 30
 
 type Sample = Omit<CallSample, 'ms'> & { t: number }
-type Session = { app: string | null; ids: string[]; pids?: number[]; heardAt: number; restarts: number; samples: Sample[]; priorLines: Set<number>; watch?: { stop(): void }; everyApp: boolean; offset?: number; startedAt: number; pictured: boolean; errors: Set<string>; last: string; logged: number }
+type Session = { app: string | null; ids: string[]; pids?: number[]; heardAt: number; quietMs: number; restarts: number; samples: Sample[]; priorLines: Set<number>; watch?: { stop(): void }; everyApp: boolean; offset?: number; startedAt: number; pictured: boolean; errors: Set<string>; last: string; logged: number }
 
 export function hookCallNames(p: {
   store: Pick<Store, 'meeting' | 'segments' | 'setSegmentSpeakers' | 'updateMeeting'>
@@ -93,6 +96,7 @@ export function hookCallNames(p: {
   }
 
   const onLine = (id: string, s: Session, l: WatchLine) => {
+    s.quietMs = Math.min(MAX_QUIET_MS, Math.max(QUIET_MS, 3 * (now() - s.heardAt)))
     s.heardAt = now()
     if (l.error || !l.app || !l.windows) {
       const why = l.error ?? 'nothing read'
@@ -126,7 +130,7 @@ export function hookCallNames(p: {
 
   p.onStart((m) => {
     const ids = watchIds(m.app)
-    const s: Session = { app: m.app, ids, heardAt: now(), restarts: 0, everyApp: !m.app, samples: [], priorLines: new Set(p.store.segments(m.id, { hidden: true }).map((line) => line.id)), startedAt: m.resume ? m.resume.startedAt - m.resume.startMs : m.startedAt, pictured: false, errors: new Set(), last: '', logged: 0 }
+    const s: Session = { app: m.app, ids, heardAt: now(), quietMs: QUIET_MS, restarts: 0, everyApp: !m.app, samples: [], priorLines: new Set(p.store.segments(m.id, { hidden: true }).map((line) => line.id)), startedAt: m.resume ? m.resume.startedAt - m.resume.startMs : m.startedAt, pictured: false, errors: new Set(), last: '', logged: 0 }
     sessions.set(m.id, s)
     if (!ids.length) { log(`call names: ${m.app} can't be read, the other side is Them`); return }
     begin(m.id, s)
@@ -194,9 +198,10 @@ export function hookCallNames(p: {
         begin(id, s)
         continue
       }
-      if (!s.watch || !s.ids.length || now() - s.heardAt <= QUIET_MS || s.restarts >= MAX_RESTARTS) continue
+      if (!s.watch || !s.ids.length || now() - s.heardAt <= s.quietMs || s.restarts >= MAX_RESTARTS) continue
       log(`call names: the reader went quiet for ${Math.round((now() - s.heardAt) / 1000)} s; starting it again`)
       s.restarts++
+      s.quietMs = Math.min(MAX_QUIET_MS, s.quietMs * 2)
       s.watch.stop(); s.watch = undefined
       s.heardAt = now()
       begin(id, s)
