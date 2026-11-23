@@ -29,7 +29,7 @@ extraResources:
   # the Mac's menu bar icon (tray.ts reads it from Resources; @2x is picked up next to it)
   - { from: resources, to: ., filter: ["tray.png", "tray@2x.png", "tray-titled.png", "tray-titled@2x.png"] }
   # licenses of things bundled or downloaded: fonts, whisper.cpp, Silero VAD, libopus, the native recorders' crates,
-  # whisper-server's headers, animate-ui and the CUDA runtime
+  # whisper-server's headers, animate-ui, the CUDA runtime and the echo canceller (webrtcaec3.js)
   - from: resources/licenses
     to: licenses
   # the Mac's About window shows Resources/Credits.html under the version, with its link

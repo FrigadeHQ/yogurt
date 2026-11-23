@@ -10,6 +10,10 @@ import { openStore, type Meeting, type Store } from '../src/main/store'
 import type { Line } from '../src/main/asr/transcribe'
 import type { Chunk } from '../src/main/asr/chunker'
 
+// these tests are about the session around the pipeline; the echo canceller is tested on its own (aec.test.ts), and its
+// work on minutes of test audio would only make them slow on CI
+vi.mock('../src/main/asr/aec3', () => ({ loadAec3: async () => {}, aec3: () => null }))
+
 const RATE = 16000
 const tone = (sec: number) => Float32Array.from({ length: Math.round(sec * RATE) }, (_, i) => 0.3 * Math.sin(i / 10))
 const tick = () => new Promise((r) => setTimeout(r, 15))

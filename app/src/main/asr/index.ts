@@ -6,6 +6,7 @@ import { isFake } from '../paths'
 import { feedRecording } from './backfill'
 import type { Meeting, Segment, Store } from '../store'
 import { createPipeline, type Pipeline } from './pipeline'
+import { loadAec3 } from './aec3'
 import { echoConfidence } from './echo'
 import { appleSpeechAvailable, installSpeechLocale, readSpeechLocales, speechDisagrees, speechFits, wantedSpeechLocale, type SpeechHost, type SpeechLocales } from './appleSpeech'
 import { whisperLanguage, type Spoken } from '../../shared/spoken'
@@ -193,6 +194,8 @@ export function hookTranscription(p: {
   queued?: (meetingId: string) => void
 }): () => void {
   idleMs = p.serverIdleMs ?? SERVER_IDLE_MS
+  // the echo canceller is ready long before the first meeting: the mic's copy of their voice goes before whisper reads it
+  void loadAec3()
   queuedListener = p.queued
   spokenNow = p.spoken ?? (() => 'en')
   if (p.speech && appleSpeechAvailable(p.speech.host)) {

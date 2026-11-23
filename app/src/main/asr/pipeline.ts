@@ -5,6 +5,8 @@ import { afterFinal, joinWords, replaceWords, wordsOf, type Heard, type LiveWord
 import { chunker, type Chunk } from './chunker'
 import { echoConfidence, isVerbatimCopy, type EchoCheck } from './echo'
 import { EchoDetector } from './echoDetect'
+import { createEchoCancel, type Canceller } from './aec'
+import { aec3 } from './aec3'
 import type { Line, Transcribe } from './transcribe'
 
 type Out = Omit<Segment, 'id'>
@@ -38,6 +40,8 @@ export function createPipeline(p: {
   nameOf?: (startMs: number, endMs: number) => string | null
   /** the meeting's spellings of names and companies (vocab.ts respell) */
   respell?: (text: string) => string
+  /** the echo canceller for the mic (asr/aec3.ts); null: none (the mic goes to whisper as it is) */
+  cancelEcho?: () => Canceller | null
 }) {
   const hold = p.holdMs ?? 2000
   const extraWait = p.extraWaitMs ?? EXTRA_WAIT_MS
@@ -194,6 +198,8 @@ export function createPipeline(p: {
       .finally(() => { lastPartialMs = Date.now() - t0; running[t] = false; pump(t) })
   }
   const cut = chunker(queue, p.emitPartial ? partial : undefined)
+  // their voice taken off the mic before it is cut into chunks; the echo detector above hears the mic as recorded
+  const aec = createEchoCancel({ make: p.cancelEcho ?? aec3, out: (track, ms, samples) => cut.push(track, ms, samples) })
   let finishing: Promise<void> | undefined
 
   return {
@@ -203,11 +209,12 @@ export function createPipeline(p: {
       if (closed) return
       wallOffset = Date.now() - (ms + samples.length / 16)
       echo.push(track, ms, samples)
-      cut.push(track, ms, samples)
+      aec.push(track, ms, samples)
     },
     /** the meeting is over: what is left is transcribed, held lines are checked and saved now */
     finish(): Promise<void> {
       finishing ??= (async () => {
+        aec.close()
         cut.flush()
         await new Promise<void>((r) => { if (!queued('me') && !queued('them')) r(); else idle.push(r) })
         closed = true

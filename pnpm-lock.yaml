@@ -15,6 +15,9 @@ importers:
 
   app:
     dependencies:
+      '@ennuicastr/webrtcaec3.js':
+        specifier: 0.3.0
+        version: 0.3.0
       bonjour-service:
         specifier: 1.4.4
         version: 1.4.4
@@ -334,6 +337,9 @@ packages:
     resolution: {integrity: sha512-dfZeox66AvdPtb2lD8OsIIQh12Tp0GNCRUDfBHIKGpbmopZto2/A8nSpYYLoedPIHpqkeblZ/k8OV0Gy7PYuyQ==}
     engines: {node: '>=14.14'}
     hasBin: true
+
+  '@ennuicastr/webrtcaec3.js@0.3.0':
+    resolution: {integrity: sha512-ZfijX3Pzqr2zY2nTBE+APGB4X8q3up5vqQgmuolCvC2WTYYWvivf3GGVFZnTr6n/kZa9w3Y5P4ugwcrOmsqXZQ==}
 
   '@esbuild/aix-ppc64@0.28.2':
     resolution: {integrity: sha512-XExcO+dvLKvVtNTibSTBej1NCAbaGhWn9Ww1ZPx80qsahhPFe/8jgWP0IchNe0F3HwkU7n8ejhH8bjonqht8mQ==}
@@ -3082,6 +3088,8 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
     optional: true
+
+  '@ennuicastr/webrtcaec3.js@0.3.0': {}
 
   '@esbuild/aix-ppc64@0.28.2':
     optional: true
