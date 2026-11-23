@@ -130,6 +130,12 @@ function openExternally(url: string) {
 let updateWidgetVisibility = () => {}
 let recordingPillChanged = (_on: boolean) => {}
 let sendWidgetTranscript = (_channel: string, _value: unknown) => {}
+/** the app's logo for a Linux window: packed next to the app (electron-builder.yml's linux extraResources), or the build folder's in dev */
+function linuxWindowIcon(): string {
+  const packed = process.resourcesPath && join(process.resourcesPath, 'icon.png')
+  return packed && existsSync(packed) ? packed : join(__dirname, '../../build/icons/256x256.png')
+}
+
 function createWindow() {
   // the size and place it was left at (windowState.ts); test runs (fake mode) always start at the default, so one
   // test's resize never carries into the next
@@ -139,6 +145,9 @@ function createWindow() {
   win = new BrowserWindow({
     x: place.x, y: place.y, width: place.width, height: place.height, minWidth: 720, minHeight: 520,
     title: 'Yogurt',
+    // Linux takes the dock and Alt+Tab icon from the window itself when no installed .desktop file claims it
+    // (an AppImage, or pnpm dev); without one the desktop shows a generic gear
+    ...(process.platform === 'linux' ? { icon: linuxWindowIcon() } : {}),
     ...windowChrome(process.platform, nativeTheme.shouldUseDarkColors),
     show: false,
     // hidden pages would otherwise pause timers and animations
