@@ -17,10 +17,24 @@ export function speechAt(anchor: SpeechAnchor, now: number) {
   return { drive, phase: anchor.phase + rise + fall }
 }
 
-export function speechSample(previous: SpeechAnchor, input: { me: number; them: number }, now: number): SpeechAnchor {
-  const db = Number.isFinite(input.me) ? input.me * 60 - 60 : -Infinity
+const micDb = (me: number) => Number.isFinite(me) ? me * 60 - 60 : -Infinity
+
+/**
+ * The mic's noise floor: its quietest tenth over the last minute of level packets (10 a second), as the transcriber
+ * measures it (asr/chunker.ts). A laptop mic in a quiet room can sit at -44 dB, where a fixed gate stays open for the
+ * whole call. Until five seconds have come in there is no floor and only the fixed levels apply.
+ */
+export function micFloor(recent: number[], input: { me: number }) {
+  recent.push(micDb(input.me))
+  if (recent.length > 600) recent.shift()
+  return recent.length < 50 ? -Infinity : [...recent].sort((a, b) => a - b)[Math.floor(recent.length / 10)]
+}
+
+/** Someone is talking at 10 dB over the floor (about 3x its loudness), and keeps talking down to 6 dB over it. */
+export function speechSample(previous: SpeechAnchor, input: { me: number; them: number }, now: number, floor = -Infinity): SpeechAnchor {
+  const db = micDb(input.me)
   const held = previous.speaking && now - previous.at <= SPEECH_PACKET_TIMEOUT
-  return { ...speechAt(previous, now), at: now, speaking: db >= -44.4 || (held && db > -49.2) }
+  return { ...speechAt(previous, now), at: now, speaking: db >= Math.max(-44.4, floor + 10) || (held && db > Math.max(-49.2, floor + 6)) }
 }
 
 export function speechBars({ drive, phase }: ReturnType<typeof speechAt>, reduced: boolean, restOpacity = REST_OPACITY) {
