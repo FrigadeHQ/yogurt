@@ -20,6 +20,7 @@ test('recording controls stay in the header and Ask lives in the footer with sta
     })).toBe(true)
     await reminder.getByRole('button', { name: 'Close', exact: true }).click()
     await expect(page.locator('.note-footer')).toHaveCSS('margin-block-end', '0px')
+    await expect(page.locator('.note-footer').getByRole('status').filter({ hasText: 'Mic on in Yogurt' })).toHaveText('Mic on in Yogurt')
     await expect(page.getByTestId('note-notes-tab')).toHaveAttribute('aria-selected', 'true')
     await page.getByTestId('note-transcript-toggle').click()
     const header = page.locator('.note-header'), controls = header.getByTestId('note-state')

@@ -573,7 +573,7 @@ input::selection, textarea::selection, .note-prose ::selection { background: var
 .transcript-turn { contain:layout style; }
 .note-footer { flex:none;margin-block-end:var(--toast-clearance,0px);background:var(--bg);--note-footer-line:color-mix(in srgb,var(--line) 60%,var(--bg)); }
 .note-footer-bar { display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:var(--workspace-footer-height);padding:8px 24px;border-top:1px solid var(--note-footer-line); }
-.note-footer-bar:not(:first-child) { margin-top:8px; }
+.note-footer > :not(.sr-only,[hidden]) ~ .note-footer-bar { margin-top:8px; }
 @media (prefers-contrast:more) { .note-footer { --note-footer-line:var(--line); } }
 .note-status { min-width:0; }
 .note-footer-bar>.chat-trigger { flex-shrink:0;padding-inline:8px 12px; }
