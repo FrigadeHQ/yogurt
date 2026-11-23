@@ -3,7 +3,7 @@ import type { PermissionKind } from '../../../shared/types'
 import { AppIcon, Logo } from './Logo'
 import { t } from '../../../shared/i18n'
 import { RecordingPill } from './RecordingPill'
-import rayPhoto from '../assets/onboarding/ray.webp'
+import ninaPhoto from '../assets/onboarding/nina.webp'
 import lincolnPhoto from '../assets/onboarding/lincoln.webp'
 import mayaPhoto from '../assets/onboarding/maya.webp'
 
@@ -16,15 +16,15 @@ import mayaPhoto from '../assets/onboarding/maya.webp'
 
 const d = (i: number) => ({ ['--i' as string]: i })
 
-const ray = { name: 'Ray', photo: rayPhoto, width: 600, height: 556 }
+const nina = { name: 'Nina', photo: ninaPhoto, width: 600, height: 556 }
 const maya = { name: 'Maya', photo: mayaPhoto, width: 308, height: 308 }
 
 function CallWindow({ welcome = false }: { welcome?: boolean }) {
   const you = { name: t('You'), photo: lincolnPhoto, width: 600, height: 556 }
-  const people = welcome ? [ray, you] : [ray, you, maya]
+  const people = welcome ? [nina, you] : [nina, you, maya]
   return <div className="ob-call">
     <div className="ob-call-grid">
-      {people.map(person => <div key={person.photo} className="ob-tile" data-talking={person === ray}>
+      {people.map(person => <div key={person.photo} className="ob-tile" data-talking={person === nina}>
         <img src={person.photo} width={person.width} height={person.height} alt="" />
         <span className="ob-tile-name">{person.name}</span>
       </div>)}
@@ -110,7 +110,7 @@ function NoticeArt() {
 /** Why Accessibility: the names the call shows, and the same lines turning from Them into those names */
 export function SpeakerNamesArt() {
   const lines: { who?: string; text: string }[] = [
-    { who: ray.name, text: t("I'll send a draft by Friday.") },
+    { who: nina.name, text: t("I'll send a draft by Friday.") },
     { text: t("I'll review it that afternoon.") },
     { who: maya.name, text: t('Then I can get the final copy ready for Tuesday.') },
   ]
