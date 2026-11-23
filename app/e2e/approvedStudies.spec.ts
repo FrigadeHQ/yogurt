@@ -98,7 +98,7 @@ test('approved welcome conversation and wordmark belong to the introduction', as
         await expect(call.locator('img')).toHaveCount(2)
         await expect(call.getByTestId('widget-wave')).toBeVisible()
         await expect.poll(() => call.locator('img').evaluateAll(tiles => tiles.every(tile => tile instanceof HTMLImageElement && tile.complete && tile.naturalWidth > 0))).toBe(true)
-        await expect(call.locator('.ob-tile-name')).toHaveText(['Ray', 'You'])
+        await expect(call.locator('.ob-tile-name')).toHaveText(['Nina', 'You'])
         await expect(call.getByTestId('widget-time')).toHaveText('0:24')
         await expect(page.locator('.ob-conversation .ob-transcript')).toHaveCount(0)
         const activeTile = call.locator('[data-talking=true]')
