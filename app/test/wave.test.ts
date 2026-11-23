@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { silentSpeech, speechAt, speechBars, speechRestAt, speechSample } from '../src/shared/speechWave'
+import { micFloor, silentSpeech, speechAt, speechBars, speechRestAt, speechSample } from '../src/shared/speechWave'
 
 const input = (db: number) => ({ me: Math.max(0, (db + 60) / 60), them: 0 })
 const on = speechSample(silentSpeech, input(-25), 0)
@@ -55,5 +55,18 @@ describe('recording speech wave', () => {
     expect(atStrength(80, true)).toEqual(atStrength(600, true))
     expect(atStrength(0, true)).toEqual(atStrength(0, true).reverse())
     expect(speechBars({ drive: .5, phase: 135 }, true).heights[2]).toBe(.35)
+  })
+
+  it('stays still over a noisy mic, measured against its own quietest tenth over the last minute', () => {
+    const recent: number[] = []
+    let speech = silentSpeech, floor = -Infinity
+    // a laptop mic whose room sits between -45 and -38 dB, louder than the fixed -44.4 dB gate
+    for (let i = 0; i < 100; i++) { floor = micFloor(recent, input(i % 2 ? -45 : -38)); speech = speechSample(speech, input(i % 2 ? -45 : -38), i * 100, floor) }
+    expect(floor).toBe(-45)
+    expect(speech.speaking).toBe(false)
+    expect(speechSample(speech, input(-25), 10000, micFloor(recent, input(-25))).speaking).toBe(true)
+    // no floor for the first five seconds: the fixed levels alone
+    expect(micFloor([], input(-40))).toBe(-Infinity)
+    expect(speechSample(silentSpeech, input(-40), 0, -Infinity).speaking).toBe(true)
   })
 })

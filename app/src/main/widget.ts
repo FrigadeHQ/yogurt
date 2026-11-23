@@ -1,4 +1,4 @@
-import { silentSpeech, speechSample } from '../shared/speechWave'
+import { micFloor, silentSpeech, speechSample } from '../shared/speechWave'
 import { BrowserWindow, ipcMain, Notification, screen } from 'electron'
 import { join } from 'node:path'
 import type { Meeting } from './store'
@@ -63,6 +63,7 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
   platform?: NodeJS.Platform }) {
   const model = new WidgetModel(d.os)
   let speech = silentSpeech
+  let micLevels: number[] = []
   let win: BrowserWindow | undefined
   /**
    * Linux (X11): Electron crashes when a window is destroyed while the X server still answers about its size, as
@@ -160,6 +161,7 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
 
   onMeetingStart((m) => {
     speech = silentSpeech
+    micLevels = []
     notifyOnChange = false; notice = null; stopPressed = false
     model.start({ id: m.id, title: m.title, startedAt: m.resume ? m.resume.startedAt - m.resume.capturedMs : m.startedAt })
     open(); push()
@@ -198,7 +200,7 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
   onRecordingEvent((e) => {
     if (!model.meetingId) return
     if (e.t === 'level') {
-      speech = speechSample(speech, e, performance.timeOrigin + performance.now())
+      speech = speechSample(speech, e, performance.timeOrigin + performance.now(), micFloor(micLevels, e))
       broadcast('widget:level', { me: e.me, them: e.them, speech })
     } else if (e.t === 'paused' && e.meetingId === model.meetingId) { model.pause(e.paused, e.at); push() }
     else if (e.t === 'warn') { model.warn(e.code); push() }
