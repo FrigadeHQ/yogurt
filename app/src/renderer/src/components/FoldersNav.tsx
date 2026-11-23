@@ -3,7 +3,7 @@ import { ActionTooltipPopup } from './ActionTooltipPopup'
 import { Loading } from './Loading'
 import { LoadingContent } from './LoadingContent'
 import { useEffect, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type RefObject } from 'react'
-import { ArrowDown, ArrowUp, Ellipsis, Palette, Pencil, FolderPlus, Trash2 } from './Icons'
+import { ArrowDown, ArrowUp, ChevronRight, Ellipsis, Palette, Pencil, FolderPlus, Trash2 } from './Icons'
 import { Reorder, useDragControls } from 'motion/react'
 import { useReducedMotion, usePopoverPresence } from '../motion'
 import type { Folder } from '../../../shared/types'
@@ -62,9 +62,7 @@ export function FoldersNav({ folders, route, go }: { folders?: Folder[]; route: 
             aria-label={foldersLabel} aria-expanded={expanded}
             aria-controls="workspace-folder-panel" onClick={() => setSectionOpen(!expanded)}>
             <span>{foldersLabel}</span>
-            <svg className="workspace-folder-caret" width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
-              <path d="M9 5 3 8.464V1.536Z" stroke="currentColor" strokeWidth="1" strokeLinejoin="round" />
-            </svg>
+            <ChevronRight className="workspace-folder-caret" size={12} aria-hidden="true" />
           </button>
         </h2>
         <Tooltip.Root>

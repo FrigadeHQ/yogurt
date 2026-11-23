@@ -1,4 +1,4 @@
-import { CalendarDays, Check, FileText, ICON_STROKE_WIDTH } from '../src/renderer/src/components/Icons'
+import { CalendarDays, Check, ChevronRight, FileText, ICON_STROKE_WIDTH } from '../src/renderer/src/components/Icons'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { App } from '../src/renderer/src/App'
 import { afterEach, expect, it, vi } from 'vitest'
@@ -290,12 +290,12 @@ it('remembers the folders disclosure and opens a newly created folder even from 
   const panel = () => find(render(), toggle()['aria-controls']).props
   const caret = () => find(render(), 'workspace-folder-caret')
   const openCaret = caret()
-  expect(openCaret.type).toBe('svg')
+  // One chevron that only turns; the glyph never swaps.
+  expect(openCaret.type).toBe(ChevronRight)
   expect(toggle()['aria-expanded']).toBe(true)
   expect(find(render(), 'workspace-folder-header').props['data-empty']).toBe(true)
   toggle().onClick()
   expect(caret().type).toBe(openCaret.type)
-  expect(caret().props.children.props.d).toBe(openCaret.props.children.props.d)
   render = mount()
   expect(toggle()['aria-expanded']).toBe(false)
   expect(panel().inert).toBe(true)
