@@ -460,7 +460,7 @@ test('a meeting row dragged onto a folder goes into it; ⌘K on a folder page lo
     await expect(page.getByTestId('search-result')).toHaveCount(2)
     await page.keyboard.type('budget')
     await expect(page.getByTestId('search-result')).toHaveCount(0)
-    await expect(page.getByTestId('search-ask')).toHaveAttribute('aria-selected', 'true')
+    await expect(page.getByTestId('search-primary-hint')).toHaveText('↵Ask')
     await page.getByTestId('search-scope-clear').click()
     await expect(page.getByTestId('search-result').first()).toContainText('Budget review')
     await expect(page.getByTestId('search-input')).toBeFocused()

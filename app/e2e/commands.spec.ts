@@ -14,6 +14,63 @@ async function launch(env: Record<string, string> = {}) {
   return { app, page }
 }
 
+for (const theme of ['light', 'dark'] as const) {
+  test(`palette captures in ${theme}`, async ({}, testInfo) => {
+    const { app, page } = await launch({ YOGURT_SYSTEM_LANGUAGES: 'en' })
+    try {
+      const meetingIds = await app.evaluate(() => {
+        const fake = (globalThis as unknown as { __fake__: { chatMeetings(): Promise<string[]>; manyMeetings(opts: { n: number; clean: boolean }): void } }).__fake__
+        fake.manyMeetings({ n: 2, clean: true })
+        return fake.chatMeetings()
+      })
+      await page.evaluate(async ({ meetingIds, theme }) => {
+        const folder = await window.yogurt.folders.create('Product', { color: 'teal', icon: 'folder' })
+        await window.yogurt.folders.addMany(folder!.id, meetingIds)
+        await window.yogurt.settings.setTheme(theme)
+      }, { meetingIds, theme })
+      await page.reload()
+      await expect(page.getByTestId('past-note').first()).toBeVisible()
+      await page.emulateMedia({ reducedMotion: 'reduce' })
+      await expect.poll(() => page.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)).toBe(theme === 'dark')
+      await page.keyboard.press('ControlOrMeta+k')
+      const palette = page.getByTestId('search'), input = palette.getByRole('combobox')
+      const results = palette.getByRole('listbox'), options = results.getByRole('option')
+      const capture = async (state: string) => {
+        await expect(results).toHaveAttribute('aria-busy', 'false')
+        await expect(options.locator('kbd')).toHaveCount(1)
+        await palette.screenshot({ path: testInfo.outputPath(`palette-${state}-${theme}.png`) })
+      }
+      await expect(input).toHaveAttribute('placeholder', 'Ask, search, or open a meeting…')
+      await expect(options).toHaveCount(3)
+      await expect(results.locator('.command-section')).toHaveText(['Recent meetings'])
+      await capture('empty')
+      await input.fill('Launch planning')
+      const meeting = results.getByTestId('search-result')
+      await expect(meeting).toHaveCount(1)
+      await expect(meeting).toContainText('Bo Park')
+      await expect(meeting.locator('[data-folder-color=teal]')).toBeVisible()
+      await expect(meeting).toHaveAccessibleDescription(/The site goes live on Tuesday/)
+      await capture('meeting')
+      await input.fill('What did we decide about the launch?')
+      await expect(options.first()).toHaveAttribute('id', 'search-ask')
+      await expect(input).toHaveAttribute('aria-activedescendant', 'search-ask')
+      await expect(palette.getByTestId('search-preview')).toHaveCount(0)
+      await capture('question')
+      await input.fill('with Bo past 7 days')
+      await expect(palette.getByTestId('search-person-highlight')).toHaveText('with Bo')
+      await expect(palette.getByTestId('search-date-highlight')).toHaveText('past 7 days')
+      await expect(palette.getByTestId('search-person-filter')).toContainText('Bo Park')
+      await expect(palette.getByTestId('search-date')).toBeVisible()
+      await expect(meeting).toHaveText(/Launch planning/)
+      await capture('person-date')
+      await input.fill('dark')
+      await expect(input).toHaveAttribute('aria-activedescendant', 'command-theme-dark')
+      await expect(results.locator('.command-section')).toHaveText(['Appearance'])
+      await capture('command')
+    } finally { await app.close() }
+  })
+}
+
 test('@everywhere search returns focus with the same ring the opener had', async () => {
   const { app, page } = await launch({ YOGURT_BACKGROUND: process.env.YOGURT_BACKGROUND ?? '1' })
   try {
@@ -124,6 +181,7 @@ test('the sidebar shortcut, native View menu, command palette and shortcut refer
     await clickMenu()
     await expect(toggle).toHaveAttribute('aria-expanded', 'true')
     await page.keyboard.press('Meta+k')
+    await page.getByTestId('search-input').fill('sidebar')
     const command = page.getByTestId('command-sidebar')
     await expect(command).toContainText('Hide Sidebar')
     await expect(command.locator('.search-shortcut')).toHaveText('⌃⌘S')
@@ -163,7 +221,9 @@ test('page shortcuts are taught in the palette, work there, and respect modal ed
       ['settings', '⌘,', 'Meta+,', 'settings'], ['meetings', '⌘1', 'Meta+1', 'home'],
     ]) {
       await page.keyboard.press('Meta+k')
+      await page.getByTestId('search-input').fill(id)
       const command = page.getByTestId(`command-${id}`)
+      await command.hover()
       await expect(command.locator('.search-shortcut')).toHaveText(shortcut)
       expect((await command.locator('.search-shortcut').boundingBox())!.x).toBeGreaterThan((await command.locator('.command-label').boundingBox())!.x)
       await page.keyboard.press(key)
@@ -270,24 +330,25 @@ test('command ranking controls visible order, selection and Enter alongside matc
     ]) {
       await input.fill(query)
       await expect(results).toHaveAttribute('aria-busy', 'false')
-      await expect(options.first()).toHaveAttribute('id', query ? 'search-ask' : expected)
+      await expect(options.first()).toHaveAttribute('id', `search-${id}`)
       await expect(results.locator('[aria-selected="true"]')).toHaveAttribute('id', expected)
       await expect(input).toHaveAttribute('aria-activedescendant', expected)
-      await expect(results.locator('[aria-selected="true"] .search-return')).toBeVisible()
+      await expect(results.locator('[aria-selected="true"] kbd')).toBeVisible()
       await expect(page.getByTestId('search-result')).toHaveCount(1)
     }
     // Clearing resets settling; equal command scores keep their original order, including folders.
     await input.fill('')
     await expect(results).toHaveAttribute('aria-busy', 'false')
     await input.fill('dark')
-    await expect(options).toHaveCount(4)
+    await expect(options).toHaveCount(3)
     await expect(input).toHaveAttribute('aria-activedescendant', `command-folder-${folder!.id}`)
     await expect(options.nth(1)).toHaveAttribute('id', `command-folder-${folder!.id}`)
     await expect(options.nth(2)).toHaveAttribute('id', 'command-theme-dark')
-    await expect(options.nth(3)).toHaveAttribute('id', `search-${id}`)
+    await expect(options.first()).toHaveAttribute('id', `search-${id}`)
     await page.keyboard.press('ArrowDown')
     await expect(input).toHaveAttribute('aria-activedescendant', 'command-theme-dark')
-    await page.keyboard.press('ArrowDown')
+    await page.keyboard.press('ArrowUp')
+    await page.keyboard.press('ArrowUp')
     await expect(input).toHaveAttribute('aria-activedescendant', `search-${id}`)
     await page.keyboard.press('Enter')
     await expect(page.getByTestId('search')).toHaveCount(0)
@@ -307,7 +368,8 @@ test('Enter during a pending search follows command ranking', async () => {
     await page.evaluate(id => window.yogurt.meetings.rename(id, 'Dark mode planning'), id)
     await page.evaluate(() => window.yogurt.settings.setTheme('light'))
     await page.keyboard.press('Meta+k')
-    await expect(page.getByTestId('command-theme-dark')).toBeVisible()
+    await expect(page.getByTestId('search-input')).toBeFocused()
+    await expect(page.getByTestId('command-theme-dark')).toHaveCount(0)
     await page.getByTestId('search-input').fill('dark')
     await page.keyboard.press('Enter')
     await expect(page.getByTestId('search')).toHaveCount(0)
@@ -368,45 +430,26 @@ test('a parsed date chip can be removed with its button or Backspace', async () 
   } finally { await app.close() }
 })
 
-test('the input stays icon-free, row icons and hints stay fixed, and the secondary shortcut sends to Ask', async () => {
+test('selection updates the shortcut and footer, and the secondary shortcut sends to Ask', async () => {
   const { app, page } = await launch()
   try {
     await page.keyboard.press('Meta+k')
     const input = page.getByTestId('search-input')
     await expect(input).toBeFocused()
-    const glyphs = await page.locator('.search-row>svg, .search-row>.folder-glyph>svg').evaluateAll(icons => icons.map(icon => {
-      const style = getComputedStyle(icon)
-      const folder = icon.closest('.folder-glyph')
-      return { size: [parseFloat(style.width), parseFloat(style.height)], stroke: icon.getAttribute('stroke-width'), color: style.color, folderColor: folder && getComputedStyle(folder).color }
-    }))
-    expect(glyphs.length).toBeGreaterThan(0)
-    const commandColor = glyphs.find(glyph => !glyph.folderColor)?.color
-    for (const glyph of glyphs) {
-      expect(glyph.size).toEqual([16, 16])
-      expect(glyph.stroke).toBe(String(ICON_STROKE_WIDTH))
-      expect(glyph.color).toBe(glyph.folderColor ?? commandColor)
-    }
-    const hints = await page.locator('.search-footer').textContent()
-    for (const query of ['s', 'se', 'set', 'settings', 'why', 'why now?']) {
-      await input.fill(query)
-      await expect(page.locator('.search-footer')).toHaveText(hints!)
-      await expect(page.locator('.search-input-row svg')).toHaveCount(0)
-    }
+    await expect(page.getByTestId('search-intent-icon')).toHaveCount(0)
     await input.fill('settings')
-    await expect(page.getByTestId('command-settings')).toHaveAttribute('aria-selected', 'true')
-    await expect(page.locator('.search-input-row svg')).toHaveCount(0)
-    const settingsIcon = await page.getByTestId('command-settings').locator('svg').innerHTML()
-    const askIcon = await page.getByTestId('search-ask').locator('svg').innerHTML()
-    await expect(page.getByTestId('search-primary-hint')).toHaveText('↵Select')
-    await expect(page.getByTestId('search-secondary-hint')).toContainText('Ask')
-    await page.keyboard.press('ArrowUp')
-    await expect(page.getByTestId('search-ask')).toHaveAttribute('aria-selected', 'true')
-    await expect(page.locator('.search-input-row svg')).toHaveCount(0)
-    expect(await page.getByTestId('command-settings').locator('svg').innerHTML()).toBe(settingsIcon)
-    expect(await page.getByTestId('search-ask').locator('svg').innerHTML()).toBe(askIcon)
-    await expect(page.getByTestId('search-primary-hint')).toHaveText('↵Select')
+    const settings = page.getByTestId('command-settings')
+    await expect(settings).toHaveAttribute('aria-selected', 'true')
+    await expect(settings.locator('.search-shortcut')).toHaveText('⌘,')
+    await expect(settings.locator('svg')).toHaveAttribute('stroke-width', String(ICON_STROKE_WIDTH))
+    const icon = await page.getByTestId('search-intent-icon').innerHTML()
+    await expect(page.getByTestId('search-primary-hint')).toHaveText('↵Go to')
     await expect(page.getByTestId('search-secondary-hint')).toContainText('Ask')
     await page.keyboard.press('ArrowDown')
+    await expect(settings.locator('kbd')).toHaveCount(0)
+    await expect(page.getByTestId('search-primary-hint')).toHaveText('↵Select')
+    expect(await page.getByTestId('search-intent-icon').innerHTML()).toBe(icon)
+    await expect(page.locator('[role=option] kbd')).toHaveCount(1)
     await page.keyboard.press('Meta+Enter')
     await expect(page.getByTestId('search')).toHaveCount(0)
     await expect(page.getByTestId('chat-page-question')).toHaveText('settings')
@@ -531,7 +574,7 @@ test('bracket history works in both directions, branches correctly, and keeps a 
   } finally { await app.close() }
 })
 
-test('typing keeps the palette frame steady and replaces meeting and command results together', async () => {
+test('typing keeps the input anchored and replaces meeting and command results together', async () => {
   const { app, page } = await launch({ YOGURT_FAKE_SEARCH_SLOW: '1' })
   try {
     await app.evaluate(() => (globalThis as unknown as { __fake__: { manyMeetings(n: number): void } }).__fake__.manyMeetings(8))
@@ -542,30 +585,30 @@ test('typing keeps the palette frame steady and replaces meeting and command res
     const input = page.getByTestId('search-input')
     await expect(palette.getByTestId('search-result')).toHaveCount(3)
     await page.evaluate(() => {
-      const frames: number[][] = []
+      const frames: number[] = []
       const measure = () => {
         const panel = document.querySelector('[data-testid=search]')
         if (!panel) return
-        const p = panel.getBoundingClientRect(), footer = panel.querySelector('.search-footer')!.getBoundingClientRect()
-        frames.push([p.y, p.height, footer.y])
+        frames.push(panel.querySelector('input')!.getBoundingClientRect().y)
         requestAnimationFrame(measure)
       }
-      ;(window as unknown as { paletteFrames: number[][] }).paletteFrames = frames
+      ;(window as unknown as { paletteFrames: number[] }).paletteFrames = frames
       requestAnimationFrame(measure)
     })
     await input.fill('sett')
     // While the delayed search is pending, retain one coherent result set instead of clearing its rows.
     await page.waitForTimeout(250)
     await expect(palette.getByTestId('search-result')).toHaveCount(3)
-    await expect(palette.getByTestId('command-meetings')).toHaveCount(1)
+    await expect(palette.getByTestId('command-settings')).toHaveCount(0)
     await expect(palette.getByTestId('search-result')).toHaveCount(0)
     await expect(palette.getByTestId('command-settings')).toBeVisible()
     await expect(palette.getByTestId('command-meetings')).toHaveCount(0)
     await input.fill('zzqx')
-    await expect(palette.getByRole('option')).toHaveCount(1)
-    await expect(palette.getByTestId('search-ask')).toHaveAttribute('aria-selected', 'true')
-    const frames = await page.evaluate(() => (window as unknown as { paletteFrames: number[][] }).paletteFrames)
-    for (const i of [0, 1, 2]) expect(Math.max(...frames.map(f => f[i])) - Math.min(...frames.map(f => f[i]))).toBeLessThan(1)
+    await expect(palette.getByTestId('search-none')).toHaveText('No matches')
+    await expect(palette.getByRole('option')).toHaveCount(0)
+    await expect(palette.getByTestId('search-primary-hint')).toContainText('Ask')
+    const frames = await page.evaluate(() => (window as unknown as { paletteFrames: number[] }).paletteFrames)
+    expect(Math.max(...frames) - Math.min(...frames)).toBeLessThan(1)
     // Enter during a pending query uses the new command, not the retained results.
     await input.fill('settings')
     await page.keyboard.press('Enter')
@@ -674,7 +717,7 @@ test('the palette recovers from a rejected read', async () => {
       ipcMain.handle('search:query', (_event, q: string) => {
         if (q !== 'Planning') return []
         if (!available) throw new Error('Read failed')
-        return [{ meetingId: 'planning', title: 'Planning review', startedAt: 1, parts: [] }]
+        return [{ meetingId: 'planning', title: 'Planning review', startedAt: 1, parts: [], attendees: [], preview: '' }]
       })
     }, available)
     await setAvailable(false)
