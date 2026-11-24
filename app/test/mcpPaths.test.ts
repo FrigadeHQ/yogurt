@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { helperCopyPath, installHelper, launchCommand, mcpAddress, startedHidden } from '../src/main/mcp/paths'
+import { existsSync } from 'node:fs'
+import { helperCopyPath, installHelper, launchCommand, mcpAddress, PIPE_FILE, publishPipe, startedHidden } from '../src/main/mcp/paths'
 
 const dirs: string[] = []
 afterEach(() => { dirs.splice(0).forEach((d) => rmSync(d, { recursive: true, force: true })) })
@@ -17,6 +18,27 @@ describe('where AI apps reach Yogurt', () => {
   })
   it('is a named pipe on Windows, named afresh each launch so no one else can take the name first', () => {
     expect(mcpAddress('win32', 'C:\\Users\\sam\\AppData\\Roaming\\Yogurt', 'ab12')).toBe('\\\\.\\pipe\\yogurt-mcp-ab12')
+  })
+})
+
+// #156: each AI-app start of a second Yogurt wrote its own pipe's name, then quit, leaving the helper a pipe that was gone
+describe('the pipe name file (Windows)', () => {
+  it('is written by the Yogurt that holds the single-instance lock', () => {
+    const d = tmp()
+    expect(publishPipe('win32', d, '\\\\.\\pipe\\yogurt-mcp-first', true)).toBe(true)
+    expect(readFileSync(join(d, PIPE_FILE), 'utf8')).toBe('\\\\.\\pipe\\yogurt-mcp-first')
+  })
+  it('is never overwritten by a second Yogurt that is handing off to the running one', () => {
+    const d = tmp()
+    publishPipe('win32', d, '\\\\.\\pipe\\yogurt-mcp-first', true)
+    expect(publishPipe('win32', d, '\\\\.\\pipe\\yogurt-mcp-second', false)).toBe(false)
+    expect(readFileSync(join(d, PIPE_FILE), 'utf8')).toBe('\\\\.\\pipe\\yogurt-mcp-first')
+  })
+  it('is not written on a Mac or Linux (they use the socket)', () => {
+    const d = tmp()
+    expect(publishPipe('darwin', d, '/x/mcp.sock', true)).toBe(false)
+    expect(publishPipe('linux', d, '/x/mcp.sock', true)).toBe(false)
+    expect(existsSync(join(d, PIPE_FILE))).toBe(false)
   })
 })
 

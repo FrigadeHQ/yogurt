@@ -1,5 +1,5 @@
-import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, renameSync } from 'node:fs'
-import { dirname, posix } from 'node:path'
+import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { dirname, join, posix } from 'node:path'
 
 /** Windows: the pipe's name is in this file in the profile folder, where the helper reads it */
 export const PIPE_FILE = 'mcp.pipe'
@@ -15,6 +15,23 @@ export const HIDDEN_ARG = '--hidden'
  */
 export function mcpAddress(platform: string, profile: string, id: string): string {
   return platform === 'win32' ? `\\\\.\\pipe\\yogurt-mcp-${id}` : posix.join(profile, 'mcp.sock')
+}
+
+/** small files the helper reads, written whole so it never reads half of one */
+export function writeWhole(path: string, text: string) {
+  writeFileSync(`${path}.part`, text)
+  renameSync(`${path}.part`, path)
+}
+
+/**
+ * Windows: tells the helper the pipe's name. Only the Yogurt that holds the single-instance lock writes it: a second
+ * launch hands off to that one and quits, and its own pipe, gone a moment later, must never replace the running one's
+ * (#156: an AI app's --hidden start left the helper pointed at a pipe that no longer existed). true: written.
+ */
+export function publishPipe(platform: string, profile: string, address: string, primary: boolean): boolean {
+  if (platform !== 'win32' || !primary) return false
+  writeWhole(join(profile, PIPE_FILE), address)
+  return true
 }
 
 /**

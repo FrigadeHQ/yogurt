@@ -116,9 +116,13 @@ process.on('uncaughtException', (err) => console.error('uncaught exception', err
 
 // Linux on Wayland: once more through XWayland, so the widget and the card can float (display.ts)
 const x11 = x11Relaunch(process.platform, process.argv, process.env, process.execPath)
+/**
+ * One Yogurt at a time: a second launch hands its arguments to the running one (second-instance) and quits. It does
+ * nothing else on the way out (#156: an AI app's --hidden start ran the whole start-up, and wrote its own mcp.pipe).
+ */
+const primary = !x11 && app.requestSingleInstanceLock()
 if (x11) { stripAppImageEnv(); app.relaunch(x11); app.exit(0) }
-// One Yogurt at a time: a second launch focuses the existing window
-else if (!app.requestSingleInstanceLock()) app.quit()
+else if (!primary) app.quit()
 let win: BrowserWindow | undefined
 /** the iPhone companion once it has started (Settings → Phone pairs and unpairs through it) */
 let companion: Companion | undefined
@@ -557,6 +561,7 @@ function startDetection() {
 }
 
 app.whenReady().then(() => {
+  if (!primary) return
   console.info('APP', `trusting ${systemCerts} certificates from the system on top of the built-in ones`)
   // #147: which start this was (login, an AI app, an update, the person), so a log says what opened Yogurt
   const started = startReason({ argv: process.argv, env: process.env, parent: parentName(), openedAtLogin: openedAtLogin() })
