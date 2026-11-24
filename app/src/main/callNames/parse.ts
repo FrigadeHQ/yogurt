@@ -281,6 +281,11 @@ function teamsPersona(label: string): { name: string; speaking: boolean } | null
 // text is the name alone; such a tile counts only in the call window (it has the hang-up button) and outside toolbars,
 // where a menu item that is just its label is a command.
 const TEAMS_TILE = new Set(['menu item', 'AXMenuItem'])
+/** Teams' talking mark (#83, found by a reporter in an 8-person English meeting on Windows): while someone talks, the
+ * last child of their tile carries this class, and it moves with the purple speaker ring (34 of 35 readings). When they
+ * stop it has other classes; a muted tile has no such child. The Mac's tree carries the page's classes too. */
+export const TEAMS_TALKING_CLASS = 'vdi-frame-occlusion'
+const talkingMark = (tile: AxNode) => !!tile.k?.at(-1)?.c?.includes(TEAMS_TALKING_CLASS)
 const TEAMS_POPUPS = 'fluent-default-layer-host'
 const TEAMS_BARS = new Set(['tool bar', 'menu bar', 'title bar', 'AXToolbar', 'AXMenuBar'])
 /** only a 1:1 call has hold and transfer (a meeting or group call has neither), so it has exactly one other person */
@@ -359,6 +364,7 @@ function readTeams(windows: AxWindow[]): CallReading {
       const inStage = call && !up.some((a) => TEAMS_BARS.has(a.r))
       if (inStage && (n.r === 'image' || n.r === 'AXImage')) imageMutes(n, mutes)
       const tile = TEAMS_TILE.has(n.r) ? teamsTile(n, inStage) : null
+      if (tile && talkingMark(n)) tile.speaking = true
       if (tile) { participants.push(tile.name); tiles.push(tile.name); states.push(tile); if (tile.speaking) speaking.push(tile.name); if (tile.me) me = tile.name }
       // a tile-shaped menu item ("..., ..., ...") whose person couldn't be read: who is muted can't be told
       else if (inStage && TEAMS_TILE.has(n.r) && (n.t ?? '').split(',').length >= 3) unread = true

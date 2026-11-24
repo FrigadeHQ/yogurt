@@ -384,6 +384,49 @@ describe('new Teams in English on Windows (#83)', () => {
   })
 })
 
+// ---- Teams' talking mark on Windows (#83, measured by a reporter in an 8-person English meeting): the tile's last
+// child carries the class vdi-frame-occlusion while that person talks; other classes when they stop; a muted tile has
+// no such child. Shapes copied from three tiles of one call-watch reading, names made up.
+const nameBox = (name: string): AxNode => node('panel', { c: ['fui-Primitive', '___y6qvlo0'] },
+  node('panel', { c: ['fui-Flex', 'vdi-occlusion', '___1d0k7eo'] },
+    node('panel', { c: ['fui-Flex', '___ylrf500'] },
+      node('panel', { c: ['___nq9nxu0', 'lpcCommonWeb-hoverTarget', 'lpc-hover-target-container'] }, node('label', { t: name })))))
+const PRODUCTION = 'Has control of production tools'
+const talkingTile = (name: string, talking: boolean) => node('menu item', { t: `${name}, video is on, ${PRODUCTION}, Context menu is available`, c: ['fui-Flex', '___s8lnzv0'] },
+  node('panel', { c: ['fui-Primitive', '___19sw0rl'] }), nameBox(name),
+  node('panel', { c: talking ? ['fui-Flex', 'vdi-frame-occlusion', '___1vvhwjq'] : ['fui-Flex', '___dv8x4j0', 'f22iagw'] }))
+const mutedTile = (name: string) => node('menu item', { t: `${name}, ${PRODUCTION}, muted, Context menu is available`, c: ['fui-Flex', '___1ntexr1'] },
+  node('panel', { c: ['fui-Primitive', 'bkg_ZmZkYTdk', '___1eev0rn'] }), node('panel', { c: ['fui-Primitive', '___19sw0rl'] }), nameBox(name))
+const stage = (tiles: AxNode[], title = 'Weekly review | Microsoft Teams') => win(node('frame', { t: title },
+  node('panel', { i: 'app' }, node('panel', { i: 'horizontalEnd' }, node('push button', { i: 'hangup-button', t: 'Leave' })), ...tiles)), title)
+
+describe("Teams' talking mark: the tile's last child has vdi-frame-occlusion (#83)", () => {
+  it('marks the person talking, not someone unmuted and quiet, and never a muted tile', () => {
+    const r = readCall('teams', [stage([talkingTile('Dana Smith', true), talkingTile('Ann Lee', false), mutedTile('Bo Park')])])
+    expect(r).toEqual({ speaking: ['Dana Smith'], participants: ['Dana Smith', 'Ann Lee', 'Bo Park'], me: null })
+  })
+  it('reads the name from the first field or the label, whatever Teams puts before the hint', () => {
+    expect(readCall('teams', [stage([talkingTile('Dana Smith', false)])]).participants).toEqual(['Dana Smith'])
+  })
+  it('is a real mark: it wins over who is muted, and with 3 or 4 mics open it follows the one talking around an 8-person stage', () => {
+    const people = ['Dana Smith', 'Ann Lee', 'Bo Park', 'Cy Young', 'Eve Adams', 'Finn Moss', 'Gus Hale', 'Ivy Chen']
+    const open = new Set(['Dana Smith', 'Ann Lee', 'Cy Young', 'Ivy Chen'])
+    for (const talker of ['Ann Lee', 'Ivy Chen', 'Dana Smith']) {
+      const tiles = people.map((p) => (open.has(p) ? talkingTile(p, p === talker) : mutedTile(p)))
+      const r = readCall('teams', [stage(tiles)])
+      expect(r.speaking).toEqual([talker])
+      expect(r.byMute).toBeUndefined()
+      expect(r.participants).toHaveLength(8)
+    }
+    // nobody talking with several mics open: nobody marked
+    expect(readCall('teams', [stage(people.map((p) => (open.has(p) ? talkingTile(p, false) : mutedTile(p))))]).speaking).toEqual([])
+  })
+  it('the class only counts on the last child of a tile, not anywhere else in the window', () => {
+    const elsewhere = node('panel', { c: ['fui-Flex', 'vdi-frame-occlusion'] }, node('label', { t: 'Weekly review' }))
+    expect(readCall('teams', [stage([elsewhere, talkingTile('Ann Lee', false), talkingTile('Bo Park', false)])]).speaking).toEqual([])
+  })
+})
+
 describe('summarize: a short picture of the tree for the log', () => {
   it("counts roles and shows ids, classes and the app's own words, never a name or anything said", () => {
     const captions = node('AXGroup', { i: 'captions' }, node('AXStaticText', { v: 'we can sign the renewal with Acme on Friday' }))
