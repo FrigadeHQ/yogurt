@@ -236,6 +236,8 @@ function createSetup(): SetupController {
     getCatalog: async () => loadCatalog({ bundled: bundledCatalog, licenses }),
     download: isFake() ? fakeDownloadDeps({ stepMs: Number(process.env.YOGURT_FAKE_STEP_MS ?? 5), notesMs: Number(process.env.YOGURT_FAKE_NOTES_MODEL_MS ?? 0), notesFailOnce: process.env.YOGURT_FAKE_NOTES_MODEL_FAIL_ONCE === '1' }) : realDeps,
     ...(isFake() ? { sha256Override: 'FAKE' } : {}),
+    // the diarization model only downloads when speakers are separated (the settings switch)
+    diarizeWanted: () => loadSettings(join(userDataDir(), 'settings.json')).speakerDiarization === true,
     // Windows and Linux: speech models timed on this computer (asr/speedCheck.ts); a Mac never is
     ...(platform === 'darwin' ? {} : { speed: { ...speedStore(speedFile()), measure: isFake() ? fakeMeasure() : (model: string, o?: { cpu?: boolean }) => measureSpeed(model, { binary: whisperServerPath(), vadModel: vadModelPath(), clip: speedClipPath() ?? '', cpu: o?.cpu }) } }),
   })
@@ -751,6 +753,13 @@ app.whenReady().then(() => {
     if (typeof on !== 'boolean') return
     updateSettings(settingsFile, { speakerProfiles: on ? true : undefined })
   })
+  // off is the default (the app behaves as without diarization), so only on is written down
+  ipcMain.handle('settings:set-speaker-diarization', (_e, on: unknown) => {
+    if (typeof on !== 'boolean') return
+    updateSettings(settingsFile, { speakerDiarization: on ? true : undefined })
+    // the model downloads quietly; a meeting saved before it lands keeps its single-voice transcript
+    if (on) setup.ensureDiarization()
+  })
   // each meeting's audio lives in its own folder; a crash keeps what was recorded up to the last 5 s flush
   hookCapture({ dirOf: (id) => join(userDataDir(), 'meetings', id), onStart: onMeetingStart, onStop: onMeetingStop, speech: (id) => speechLocaleFor(id),
     mic: () => loadSettings(settingsFile).mic ?? null,
@@ -811,6 +820,8 @@ app.whenReady().then(() => {
   })
   // voice profiles: opt-in, local; the worker stays down until a meeting needs it (fake mode uses its own vectors)
   const speakerProfiles = () => !!loadSettings(settingsFile).speakerProfiles
+  // speaker separation: opt-in; off, the meeting never diarizes, the notes never wait and no model downloads
+  const diarizeOn = () => loadSettings(settingsFile).speakerDiarization === true
   // the meeting's two tracks, once recording has finished them (fake mode writes wav stand-ins)
   const audioKinds: AudioExt[] = isFake() && process.env.YOGURT_FAKE_AUDIO_M4A === '1' ? ['m4a'] : audioExts(process.platform, isFake())
   // the embed worker needs the downloaded speaker model's path without triggering a download; ensureSpeakerModel fills it
@@ -837,15 +848,16 @@ app.whenReady().then(() => {
     voicesChanged: () => { win?.webContents.send('voices:changed') },
   })
   // naming a voice by hand remembers it for later meetings, once its speech has been embedded
-  rememberVoice = (id, key) => { void diarizer.enroll(id, key) }
+  rememberVoice = (id, key) => { if (diarizeOn()) void diarizer.enroll(id, key) }
   // one diarization run per stop: the notes wait for it (see diarize/afterStop.ts), a resume starts a fresh one
   const diarizeSchedule = createDiarizeSchedule({
     recordingFinished, transcriptFinished, namesFinished: (id) => callNames.finished(id),
+    wanted: diarizeOn,
     schedule: (id) => diarizer.schedule(id), finished: (id) => diarizer.finished(id),
     namesWaitMs: NAMES_WAIT_MS, warn: (message, error) => console.warn(message, error),
   })
   // voice recognition opt-in is snapshotted per meeting: enabling it mid-call never captures the call in progress
-  onMeetingStart((m) => { try { store.setVoicesAllowed(m.id, speakerProfiles()) } catch (e) { console.warn('voices_allowed snapshot failed', e) }; diarizeSchedule.forget(m.id) })
+  onMeetingStart((m) => { try { store.setVoicesAllowed(m.id, speakerProfiles() && diarizeOn()) } catch (e) { console.warn('voices_allowed snapshot failed', e) }; diarizeSchedule.forget(m.id) })
   // diarize once the recording, transcript and call names have settled; the notes of the meeting wait for the chain
   onMeetingStopSaved((m) => { void diarizeSchedule.start(m.id) })
   const notes = hookNotes({

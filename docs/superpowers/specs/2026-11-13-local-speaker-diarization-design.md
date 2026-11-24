@@ -416,6 +416,11 @@ speaker names matter in notes, a “names changed” hint can be added later.
 
 ## Voice profiles: settings and lifecycle
 
+- Speaker separation itself has its own master switch, `speakerDiarization?: boolean` in
+  `settings.json`, **off by default**: off, a meeting never diarizes, the notes never wait for one,
+  neither the diarization model nor the speaker model downloads, and transcripts render plain
+  **Them** heads — the pre-diarization behaviour. Meetings already diarized keep their labels.
+  Voice profiles only apply while it is on (the Settings switch for them waits, dimmed, until it is).
 - New setting `speakerProfiles?: boolean` in `settings.json`, **off by default**.
 - First enable shows a consent panel explaining that a voiceprint is biometric data, stays on this
   computer, and can be deleted at any time.

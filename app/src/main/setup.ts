@@ -36,6 +36,8 @@ export type SetupDeps = {
   upgradePreference?: { load(): boolean; save(skipped: boolean): void }
   /** Windows and Linux: the speed check picks the speech model (a Mac never has it: turbo, as always) */
   speed?: SpeedDeps
+  /** speakers are separated in meetings (the settings switch); the diarization model only downloads when they are */
+  diarizeWanted?: () => boolean
 }
 
 /** Where the models ended up, for the parts of the app that use them; llm once the first notes model is in (after ready) */
@@ -81,6 +83,8 @@ export class SetupController {
   private embedding: Promise<void> | undefined
   /** the diarization model's download, while it keeps being tried after a failure */
   private diarization: Promise<void> | undefined
+  /** the diarization model to fetch, once voice separation is turned on */
+  private diarItem: Item | undefined
   /** Try again after an error: time the speech models again instead of trusting what was stored */
   private recheck = false
 
@@ -287,7 +291,8 @@ export class SetupController {
         if (isVerified(starterItem.dir, starterItem.fileName, this.sha(starterItem))) this.paths.llm = join(starterItem.dir, starterItem.fileName)
       }
       this.set({ phase: 'ready', fraction: 1, notesUpgradeBytes: bigger?.bytes, notesUpgradeSkipped: skipped, notesUpgradeInstalled: hasUpgrade })
-      this.startNotes(starterItem, embedItem, diarItem)
+      this.diarItem = diarItem
+      this.startNotes(starterItem, embedItem, this.deps.diarizeWanted?.() === false ? undefined : diarItem)
     } catch (err) {
       console.error('setup failed', err)
       this.set({ phase: 'error', fraction: this._state.fraction, message: friendly(err) })
@@ -386,6 +391,13 @@ export class SetupController {
         try { landed(await this.fetch(item)); return } catch (err) { console.warn('the embedding model did not download yet, trying again', err) }
       }
     })()
+  }
+
+  /** Voice separation was turned on after setup: the model downloads quietly, on its own, and nothing waits for it. */
+  ensureDiarization() {
+    if (!this.diarItem || this.diarization || this.deps.diarizeWanted?.() === false) return
+    this.background ??= Promise.resolve()
+    this.background = this.background.then(() => this.startDiarization(this.diarItem!))
   }
 
   /** The diarization model, after the embedding model. The chain never waits on it: it keeps being tried quietly, on its own. */

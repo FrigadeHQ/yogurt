@@ -824,6 +824,8 @@
   "Name this voice": "Denumiți această voce",
   "Voice recognition": "Recunoaștere vocală",
   "Remember voices across meetings": "Reține vocile între întâlniri",
+  "Separate speakers in the transcript": "Separă vorbitorii în transcriere",
+  "Splits the transcript by voice once a meeting is saved.": "Separă transcrierea după voce, după salvarea întâlnirii.",
   "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "Dă un nume vorbitorului data viitoare când i se aude vocea. Amprenta vocală rămâne pe acest computer.",
   "No voices remembered yet.": "Încă nu sunt voci reținute.",
   "Voice profiles stay on this computer, unused, until you turn this on again.": "Profilurile de voce rămân pe acest computer, nefolosite, până când activați din nou.",

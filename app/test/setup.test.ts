@@ -880,6 +880,19 @@ describe('diarization models', () => {
     expect(existsSync(join(root, 'diarization', name(catalog.diarization.url)))).toBe(true)
     expect(rec.asked).toContain(catalog.diarization.url)
   })
+  it('the diarization gguf downloads only while speakers are separated; turning it on fetches it then', async () => {
+    let on = false
+    const { c, rec } = setup({ diarizeWanted: () => on })
+    await c.start()
+    await c.idle()
+    expect(rec.asked).not.toContain(catalog.diarization.url)
+    expect(c.installed()?.diarization).toBeUndefined()
+    on = true
+    c.ensureDiarization()
+    await c.idle()
+    expect(rec.asked).toContain(catalog.diarization.url)
+    expect(c.installed()?.diarization).toBeTruthy()
+  })
   it('ensureSpeakerModel downloads the onnx only when asked', async () => {
     const { c, root } = setup()
     await c.start()

@@ -835,6 +835,8 @@
   "Name this voice": "Назвать этот голос",
   "Voice recognition": "Распознавание голоса",
   "Remember voices across meetings": "Запоминать голоса между встречами",
+  "Separate speakers in the transcript": "Разделять спикеров в транскрипте",
+  "Splits the transcript by voice once a meeting is saved.": "Разделяет транскрипцию по голосам после сохранения встречи.",
   "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "Даёт имя участнику, когда его голос услышат снова. Голосовой отпечаток остаётся на этом компьютере.",
   "No voices remembered yet.": "Запомненных голосов пока нет.",
   "Voice profiles stay on this computer, unused, until you turn this on again.": "Профили голосов остаются на этом компьютере неиспользованными, пока вы снова не включите эту функцию.",

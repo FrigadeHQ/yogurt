@@ -810,6 +810,8 @@
   "Name this voice": "Δώστε όνομα σε αυτή τη φωνή",
   "Voice recognition": "Αναγνώριση φωνής",
   "Remember voices across meetings": "Απομνημόνευση φωνών σε όλες τις συσκέψεις",
+  "Separate speakers in the transcript": "Διαχωρισμός ομιλητών στην απομαγνητοφώνηση",
+  "Splits the transcript by voice once a meeting is saved.": "Χωρίζει την απομαγνητοφώνηση ανά φωνή, αφού αποθηκευτεί η σύσκεψη.",
   "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "Δίνει όνομα σε έναν ομιλητή την επόμενη φορά που θα ακουστεί η φωνή του. Το φωνητικό αποτύπωμα μένει σε αυτόν τον υπολογιστή.",
   "No voices remembered yet.": "Δεν έχουν απομνημονευτεί ακόμα φωνές.",
   "Voice profiles stay on this computer, unused, until you turn this on again.": "Τα προφίλ φωνών μένουν σε αυτόν τον υπολογιστή, χωρίς χρήση, μέχρι να το ενεργοποιήσετε ξανά.",

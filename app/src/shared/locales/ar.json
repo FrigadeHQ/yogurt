@@ -863,6 +863,8 @@
   "Name this voice": "تسمية هذا الصوت",
   "Voice recognition": "التعرف على الصوت",
   "Remember voices across meetings": "تذكّر الأصوات عبر الاجتماعات",
+  "Separate speakers in the transcript": "فصل المتحدثين في النص المنقول",
+  "Splits the transcript by voice once a meeting is saved.": "يقسّم النص المنقول حسب الصوت بعد حفظ الاجتماع.",
   "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "يحدد اسم المتحدث في المرة التالية التي يُسمع فيها صوته. تبقى بصمة الصوت على هذا الكمبيوتر.",
   "No voices remembered yet.": "لا أصوات محفوظة بعد.",
   "Voice profiles stay on this computer, unused, until you turn this on again.": "تبقى ملفات الأصوات على هذا الكمبيوتر دون استخدام حتى تفعّل هذا مرة أخرى.",

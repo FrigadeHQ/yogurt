@@ -807,6 +807,8 @@
   "Name this voice": "Gi denne stemmen et navn",
   "Voice recognition": "Stemmegjenkjenning",
   "Remember voices across meetings": "Husk stemmer på tvers av møter",
+  "Separate speakers in the transcript": "Separer talere i transkriptet",
+  "Splits the transcript by voice once a meeting is saved.": "Deler transkriptet etter stemme når møtet er lagret.",
   "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "Gir en person et navn neste gang stemmen høres. Stemmeavtrykket blir på denne datamaskinen.",
   "No voices remembered yet.": "Ingen stemmer husket ennå.",
   "Voice profiles stay on this computer, unused, until you turn this on again.": "Stemmeprofilene blir på denne datamaskinen, ubrukt, til du slår på dette igjen.",

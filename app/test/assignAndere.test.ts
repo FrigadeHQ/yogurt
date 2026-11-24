@@ -30,10 +30,10 @@ const find = (node: ReactNode, id: string): ReactElement<Record<string, unknown>
 const line = { id: 7, meetingId: 'm1', track: 'them' as const, startMs: 1000, endMs: 2000, text: ' Als Lead Engineer bei Wunderlist half', speaker: null, speakerKey: null }
 const voices = [{ name: 'Speaker 1', key: 'v26' }, { name: 'Speaker 2', key: 'v27' }]
 
-async function render() {
+async function render(o: { voices?: typeof voices } = {}) {
   hooks.state = 0; hooks.ref = 0; hooks.memo = 0; hooks.effect = 0
   const { WhoName } = await import('../src/renderer/src/components/Transcript')
-  return WhoName({ meetingId: 'm1', line, voices }) as ReactNode
+  return WhoName({ meetingId: 'm1', line, voices: o.voices ?? voices }) as ReactNode
 }
 
 it('an Andere line offers the meeting’s speakers and assigns the line to the picked one', async () => {
@@ -55,4 +55,12 @@ it('an Andere line offers the meeting’s speakers and assigns the line to the p
   expect(items.map(x => x.props.children)).toEqual(['Assign to Speaker 1', 'Assign to Speaker 2'])
   ;(items[1].props.onClick as () => void)()
   expect(assignSpeaker).toHaveBeenCalledWith('m1', 7, 'v27')
+})
+
+it('a meeting with no voices of its own shows a plain name instead of the assign buttons', async () => {
+  const tree = await render({ voices: [] })
+  expect(find(tree, 'speaker-menu')).toBeUndefined()
+  const head = find(tree, 'transcript-who')
+  expect(head).toBeTruthy()
+  expect(head!.props.children).toBe('Them')
 })

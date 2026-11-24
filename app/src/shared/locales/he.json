@@ -817,6 +817,8 @@
   "Name this voice": "לתת שם לקול הזה",
   "Voice recognition": "זיהוי קול",
   "Remember voices across meetings": "זכירת קולות בין פגישות",
+  "Separate speakers in the transcript": "הפרדת דוברים בתמליל",
+  "Splits the transcript by voice once a meeting is saved.": "מפריד את התמליל לפי קול לאחר שמירת הפגישה.",
   "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "נותן שם לדובר בפעם הבאה שהקול שלו נשמע. טביעת הקול נשארת במחשב הזה.",
   "No voices remembered yet.": "עדיין אין קולות זכורים.",
   "Voice profiles stay on this computer, unused, until you turn this on again.": "פרופילי הקול נשארים במחשב הזה, בלי שימוש, עד שתפעיל את זה שוב.",

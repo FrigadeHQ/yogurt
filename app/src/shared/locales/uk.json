@@ -835,6 +835,8 @@
   "Name this voice": "Назвати цей голос",
   "Voice recognition": "Розпізнавання голосу",
   "Remember voices across meetings": "Запам’ятовувати голоси між зустрічами",
+  "Separate speakers in the transcript": "Розділяти спікерів у транскрипті",
+  "Splits the transcript by voice once a meeting is saved.": "Розділяє транскрипцію за голосами після збереження зустрічі.",
   "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "Дає ім’я доповідачу, коли його голос почують знову. Голосовий відбиток залишається на цьому комп’ютері.",
   "No voices remembered yet.": "Запам’ятованих голосів поки немає.",
   "Voice profiles stay on this computer, unused, until you turn this on again.": "Профілі голосів залишаються на цьому комп’ютері невикористаними, доки ви знову це не ввімкнете.",

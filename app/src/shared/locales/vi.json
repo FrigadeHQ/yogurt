@@ -765,6 +765,8 @@
   "Name this voice": "Đặt tên cho giọng nói này",
   "Voice recognition": "Nhận diện giọng nói",
   "Remember voices across meetings": "Ghi nhớ giọng nói giữa các cuộc họp",
+  "Separate speakers in the transcript": "Tách người nói trong bản ghi",
+  "Splits the transcript by voice once a meeting is saved.": "Tách bản ghi theo giọng nói sau khi cuộc họp được lưu.",
   "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "Đặt tên cho người nói khi giọng nói của họ được nghe lần sau. Vân tiếng nói nằm trên máy tính này.",
   "No voices remembered yet.": "Chưa ghi nhớ giọng nói nào.",
   "Voice profiles stay on this computer, unused, until you turn this on again.": "Hồ sơ giọng nói nằm trên máy tính này, không được dùng, cho đến khi bạn bật lại.",

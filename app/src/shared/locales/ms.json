@@ -765,6 +765,8 @@
   "Name this voice": "Namakan suara ini",
   "Voice recognition": "Pengecaman suara",
   "Remember voices across meetings": "Ingat suara merentas mesyuarat",
+  "Separate speakers in the transcript": "Pisahkan penutur dalam transkrip",
+  "Splits the transcript by voice once a meeting is saved.": "Memisahkan transkrip mengikut suara selepas mesyuarat disimpan.",
   "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "Menamakan penutur apabila suaranya kedengaran lagi. Cap suara kekal di komputer ini.",
   "No voices remembered yet.": "Belum ada suara yang diingati.",
   "Voice profiles stay on this computer, unused, until you turn this on again.": "Profil suara kekal di komputer ini, tidak digunakan, sehingga anda hidupkannya semula.",

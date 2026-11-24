@@ -807,6 +807,8 @@
   "Name this voice": "Bigyan ng pangalan ang boses na ito",
   "Voice recognition": "Pagkilala sa boses",
   "Remember voices across meetings": "Tandaan ang mga boses sa mga meeting",
+  "Separate speakers in the transcript": "Paghiwalayin ang mga tagapagsalita sa transkrip",
+  "Splits the transcript by voice once a meeting is saved.": "Hinihiwalay ang transkrip ayon sa boses pagkatapos i-save ang pulong.",
   "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "Bibigyan ng pangalan ang nagsasalita kapag narinig muli ang boses niya. Nanatili sa computer na ito ang bakas ng boses.",
   "No voices remembered yet.": "Wala pang natandaang boses.",
   "Voice profiles stay on this computer, unused, until you turn this on again.": "Nananatili sa computer na ito ang mga voice profile, hindi ginagamit, hanggang i-on mo ulit ito.",

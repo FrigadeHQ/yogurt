@@ -543,18 +543,20 @@ function AiApps() {
   )
 }
 
-/** Voice recognition: remembering voices across meetings is opt-in, and the voiceprints stay on this computer — named here, deleted here. Toggling off keeps the profiles; only deleting removes them. */
+/** Voice recognition: remembering voices across meetings is opt-in, and the voiceprints stay on this computer — named here, deleted here. Toggling off keeps the profiles; only deleting removes them. Speaker separation sits above it: off, the transcript stays one stream and the voices switch waits. */
 function VoiceRecognition() {
   const [on, setOn] = useState<boolean>()
+  const [diarize, setDiarize] = useState<boolean>()
   const [profiles, setProfiles] = useState<VoiceProfile[]>([])
   const [consent, setConsent] = useState(false)
   const [confirmAll, setConfirmAll] = useState(false)
   useEffect(() => {
-    void window.yogurt.settings.get().then((s) => setOn(s.speakerProfiles))
+    void window.yogurt.settings.get().then((s) => { setOn(s.speakerProfiles); setDiarize(s.speakerDiarization) })
     void window.yogurt.voices.list().then(setProfiles)
     return window.yogurt.voices.onChange(() => void window.yogurt.voices.list().then(setProfiles))
   }, [])
   const set = (next: boolean) => { setOn(next); void window.yogurt.settings.setSpeakerProfiles(next) }
+  const setSeparate = (next: boolean) => { setDiarize(next); void window.yogurt.settings.setSpeakerDiarization(next) }
   // the first turn-on asks first: a voiceprint is biometric data. After that once, the toggle answers at once
   const toggle = () => {
     if (!on && localStorage.getItem('voice-consent') !== '1') { setConsent(true); return }
@@ -567,10 +569,19 @@ function VoiceRecognition() {
       <LoadingContent pending={on === undefined} testId="voice-loading"><div data-testid="voice-recognition" className="settings-group">
         <div className="settings-row">
           <div className="settings-row-copy">
+            <p className="settings-label">{t('Separate speakers in the transcript')}</p>
+            <p className="settings-description">{t('Splits the transcript by voice once a meeting is saved.')}</p>
+          </div>
+          <button data-testid="diarize-toggle" role="switch" aria-checked={!!diarize} aria-label={t('Separate speakers in the transcript')} onClick={() => setSeparate(!diarize)} className="settings-toggle">
+            <span className="settings-toggle-knob" />
+          </button>
+        </div>
+        <div className="settings-row" data-dimmed={!diarize || undefined}>
+          <div className="settings-row-copy">
             <p className="settings-label">{t('Remember voices across meetings')}</p>
             <p className="settings-description">{t('Names a speaker the next time their voice is heard. The voiceprint stays on this computer.')}</p>
           </div>
-          <button data-testid="voice-toggle" role="switch" aria-checked={!!on} aria-label={t('Remember voices across meetings')} onClick={toggle} className="settings-toggle">
+          <button data-testid="voice-toggle" role="switch" aria-checked={!!on} aria-label={t('Remember voices across meetings')} disabled={!diarize} onClick={toggle} className="settings-toggle">
             <span className="settings-toggle-knob" />
           </button>
         </div>

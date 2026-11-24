@@ -838,6 +838,8 @@
   "Name this voice": "Pojmenovat tento hlas",
   "Voice recognition": "Rozpoznávání hlasu",
   "Remember voices across meetings": "Pamatovat si hlasy napříč schůzkami",
+  "Separate speakers in the transcript": "Rozlišovat řečníky v přepisu",
+  "Splits the transcript by voice once a meeting is saved.": "Po uložení schůzky rozdělí přepis podle hlasu.",
   "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "Přiřadí jméno mluvčímu, až bude jeho hlas příště slyšet. Hlasový otisk zůstává na tomto počítači.",
   "No voices remembered yet.": "Zatím žádné zapamatované hlasy.",
   "Voice profiles stay on this computer, unused, until you turn this on again.": "Profily hlasů zůstávají na tomto počítači nevyužité, dokud tuto funkci znovu nezapnete.",

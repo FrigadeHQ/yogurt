@@ -62,6 +62,8 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   summaryLanguage?: string
   /** voice recognition in meetings: named voices are matched and enrolled on this computer; off unless turned on */
   speakerProfiles?: boolean
+  /** speakers are separated in the transcript after a meeting; off unless turned on (off: the transcript stays as it is) */
+  speakerDiarization?: boolean
   /** new versions download by themselves; on unless turned off */
   autoUpdate?: boolean
   /** when the updater last fetched latest*.yml (ms): checks happen about once a day (updates.ts) */

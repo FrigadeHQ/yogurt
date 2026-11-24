@@ -190,6 +190,12 @@ export function WhoName({ meetingId, line, voices }: { meetingId: string; line: 
   const [confirming, setConfirming] = useState<{ name: string; key: string } | null>(null)
   const input = useRef<HTMLInputElement>(null)
   useEffect(() => { if (editing) input.current?.select() }, [editing])
+  // a meeting with no voices of its own (speaker separation off, or never diarized): plain heads, like before it
+  if (!voices.length) return (
+    <span className="turn-head-name name-in">
+      <span data-testid="transcript-who" data-color={color} data-folder-color={color === undefined ? undefined : SPEAKER_COLORS[color]} className="line-who font-medium text-muted">{who(line)}</span>
+    </span>
+  )
   // diarization left this line unclaimed: the person says who said it
   if (!voiceKey) return (
     <span className="turn-head-name name-in">

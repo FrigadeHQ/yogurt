@@ -795,6 +795,8 @@
   "Name this voice": "এই কণ্ঠের নাম দিন",
   "Voice recognition": "ভয়েস রিকগনিশন",
   "Remember voices across meetings": "মিটিং জুড়ে কণ্ঠ মনে রাখুন",
+  "Separate speakers in the transcript": "ট্রান্সক্রিপ্টে বক্তাদের আলাদা করুন",
+  "Splits the transcript by voice once a meeting is saved.": "মিটিং সংরক্ষণের পরে কণ্ঠস্বর অনুযায়ী ট্রান্সক্রিপ্ট আলাদা করে।",
   "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "পরের বার কারও কণ্ঠ শোনা গেলে বক্তার নাম দেয়। ভয়েসপ্রিন্ট এই কম্পিউটারেই থাকে।",
   "No voices remembered yet.": "এখনও কোনো কণ্ঠ মনে রাখা হয়নি।",
   "Voice profiles stay on this computer, unused, until you turn this on again.": "আবার চালু না করা পর্যন্ত ভয়েস প্রোফাইলগুলো ব্যবহার ছাড়া এই কম্পিউটারেই থাকে।",

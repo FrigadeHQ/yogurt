@@ -10,6 +10,8 @@ export function createDiarizeSchedule(p: {
   transcriptFinished: (id: string) => Promise<void>
   /** the names from the call: naming evidence for diarization, waited for but never longer than namesWaitMs */
   namesFinished: (id: string) => Promise<void>
+  /** speakers are separated at all (the settings switch); off: the meeting never diarizes and nothing waits for it */
+  wanted?: () => boolean
   schedule: (id: string) => void
   finished: (id: string) => Promise<void>
   namesWaitMs: number
@@ -27,7 +29,7 @@ export function createDiarizeSchedule(p: {
     start(id: string): Promise<void> {
       const had = runs.get(id)
       if (had) return had
-      const done = (async () => {
+      const done = p.wanted && !p.wanted() ? Promise.resolve() : (async () => {
         await p.recordingFinished(id)
         await p.transcriptFinished(id)
         await upTo(p.namesFinished(id), p.namesWaitMs)

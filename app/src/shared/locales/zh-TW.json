@@ -765,6 +765,8 @@
   "Name this voice": "為這個聲音命名",
   "Voice recognition": "聲音辨識",
   "Remember voices across meetings": "跨會議記住聲音",
+  "Separate speakers in the transcript": "在轉錄文字中區分說話者",
+  "Splits the transcript by voice once a meeting is saved.": "會議儲存後依聲音拆分轉錄文字。",
   "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "下次聽到這個聲音時為發言者命名。聲紋會留在這台電腦上。",
   "No voices remembered yet.": "還沒有記住的聲音。",
   "Voice profiles stay on this computer, unused, until you turn this on again.": "聲音檔案會閒置保存在這台電腦上，直到你再次開啟。",

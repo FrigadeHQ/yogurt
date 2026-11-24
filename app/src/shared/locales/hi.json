@@ -795,6 +795,8 @@
   "Name this voice": "इस आवाज़ को नाम दें",
   "Voice recognition": "वॉइस रिकग्निशन",
   "Remember voices across meetings": "मीटिंग्स में आवाज़ें याद रखें",
+  "Separate speakers in the transcript": "ट्रांसक्रिप्ट में वक्ताओं को अलग करें",
+  "Splits the transcript by voice once a meeting is saved.": "मीटिंग सहेजे जाने के बाद आवाज़ के अनुसार ट्रांसक्रिप्ट अलग करता है।",
   "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "अगली बार आवाज़ सुनाई देने पर बोलने वाले का नाम देता है। वॉइसप्रिंट इसी कंप्यूटर पर रहता है।",
   "No voices remembered yet.": "अभी कोई आवाज़ याद नहीं है।",
   "Voice profiles stay on this computer, unused, until you turn this on again.": "आवाज़ प्रोफ़ाइल बिना इस्तेमाल के इसी कंप्यूटर पर रहती हैं, जब तक आप इसे दोबारा चालू नहीं करते।",

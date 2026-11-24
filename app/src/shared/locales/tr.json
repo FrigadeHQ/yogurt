@@ -795,6 +795,8 @@
   "Name this voice": "Bu sese ad ver",
   "Voice recognition": "Ses tanıma",
   "Remember voices across meetings": "Sesleri toplantılar arasında hatırla",
+  "Separate speakers in the transcript": "Transkriptte konuşanları ayır",
+  "Splits the transcript by voice once a meeting is saved.": "Toplantı kaydedildikten sonra transkripti sese göre ayırır.",
   "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "Sesi bir sonraki duyuluşunda konuşmacıya ad verir. Ses izi bu bilgisayarda kalır.",
   "No voices remembered yet.": "Henüz hatırlanan ses yok.",
   "Voice profiles stay on this computer, unused, until you turn this on again.": "Ses profilleri, bunu yeniden açana kadar, kullanılmadan bu bilgisayarda kalır.",

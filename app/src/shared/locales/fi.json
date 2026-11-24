@@ -813,6 +813,8 @@
   "Name this voice": "Anna tälle äänelle nimi",
   "Voice recognition": "Äänen tunnistus",
   "Remember voices across meetings": "Muista äänet kokouksien välillä",
+  "Separate speakers in the transcript": "Erota puhujat transkriptiossa",
+  "Splits the transcript by voice once a meeting is saved.": "Jakaa transkription äänen mukaan, kun kokous on tallennettu.",
   "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "Antaa puhujalle nimen, kun ääni kuuluu seuraavan kerran. Äänijälki pysyy tällä tietokoneella.",
   "No voices remembered yet.": "Ääniä ei ole vielä tallennettu.",
   "Voice profiles stay on this computer, unused, until you turn this on again.": "Ääniprofiilit pysyvät tällä tietokoneella käyttämättömänä, kunnes laitat tämän uudelleen päälle.",

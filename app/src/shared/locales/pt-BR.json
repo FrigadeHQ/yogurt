@@ -823,6 +823,8 @@
   "Name this voice": "Dê um nome a esta voz",
   "Voice recognition": "Reconhecimento de voz",
   "Remember voices across meetings": "Lembrar vozes entre reuniões",
+  "Separate speakers in the transcript": "Separar os falantes na transcrição",
+  "Splits the transcript by voice once a meeting is saved.": "Separa a transcrição por voz depois que a reunião é salva.",
   "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "Dá nome a uma pessoa na próxima vez que a voz dela for ouvida. A impressão de voz fica neste computador.",
   "No voices remembered yet.": "Ainda não há vozes lembradas.",
   "Voice profiles stay on this computer, unused, until you turn this on again.": "Os perfis de voz ficam neste computador, sem uso, até você ativar isso de novo.",

@@ -8,13 +8,14 @@ const deferred = () => {
   return { promise, resolve, reject }
 }
 
-function setup(o: { names?: Promise<void>; finished?: Promise<void>; namesWaitMs?: number } = {}) {
+function setup(o: { names?: Promise<void>; finished?: Promise<void>; namesWaitMs?: number; wanted?: () => boolean } = {}) {
   const order: string[] = []
   const schedule = vi.fn(() => { order.push('schedule') })
   const s = createDiarizeSchedule({
     recordingFinished: async () => { order.push('recording') },
     transcriptFinished: async () => { order.push('transcript') },
     namesFinished: () => { order.push('names'); return o.names ?? Promise.resolve() },
+    wanted: o.wanted,
     schedule,
     finished: () => { order.push('finished'); return o.finished ?? Promise.resolve() },
     namesWaitMs: o.namesWaitMs ?? 50,
@@ -82,4 +83,12 @@ it('after forget the meeting can be scheduled again', async () => {
   s.forget('m1')
   await s.start('m1')
   expect(schedule).toHaveBeenCalledTimes(2)
+})
+
+it('speaker separation off: the meeting never schedules and the notes wait is over at once', async () => {
+  const { s, order, schedule } = setup({ wanted: () => false })
+  await s.start('m1')
+  expect(schedule).not.toHaveBeenCalled()
+  expect(order).toEqual([])
+  await expect(s.wait('m1')).resolves.toBeUndefined()
 })

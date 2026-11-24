@@ -765,6 +765,8 @@
   "Name this voice": "この声に名前を付ける",
   "Voice recognition": "音声認識",
   "Remember voices across meetings": "ミーティングをまたいで声を記憶",
+  "Separate speakers in the transcript": "トランスクリプトで話者を分ける",
+  "Splits the transcript by voice once a meeting is saved.": "会議の保存後、トランスクリプトを声で分けます。",
   "Names a speaker the next time their voice is heard. The voiceprint stays on this computer.": "次にその声が聞こえたときに話者に名前を付けます。声紋はこのコンピュータの中に残ります。",
   "No voices remembered yet.": "まだ記憶した声はありません。",
   "Voice profiles stay on this computer, unused, until you turn this on again.": "音声プロファイルは、もう一度オンにするまで、このコンピュータの中で使われないまま残ります。",
