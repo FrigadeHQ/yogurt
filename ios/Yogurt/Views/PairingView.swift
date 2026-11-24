@@ -6,21 +6,6 @@ import YogurtKit
 struct ConnectSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            PairingView()
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button(S.notNow) { dismiss() } }
-                }
-        }
-        .onChange(of: model.engine.status == .notPaired) { _, unpaired in if !unpaired { dismiss() } }
-    }
-}
-
-/// Find the computer on this Wi-Fi, then type the 6-digit code it shows.
-struct PairingView: View {
-    @Environment(AppModel.self) private var model
     @State private var chosen: DiscoveredDesktop?
 
     var body: some View {
@@ -35,13 +20,13 @@ struct PairingView: View {
                 Label(S.privacyNote, systemImage: "lock")
                     .font(.footnote)
                     .foregroundStyle(Theme.muted)
-                    .padding(.top, 36)
+                    .padding(.top, 24)
                 #if DEBUG
                 Button(S.trySample) { model.preview.loadSamples() }
                     .font(.footnote)
                     .foregroundStyle(Theme.muted)
                     .underline()
-                    .padding(.top, 20)
+                    .frame(minHeight: 44)
                     .accessibilityIdentifier("try-sample")
                 #endif
             }
@@ -51,6 +36,10 @@ struct PairingView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .background(Theme.bg)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            SheetHeader(title: chosen.map { S.codeTitle($0.name) } ?? S.pairTitle, dismissLabel: S.close)
+        }
+        .onChange(of: model.engine.status == .notPaired) { _, unpaired in if !unpaired { dismiss() } }
         // looking makes iOS ask for the local network, so it happens only while this screen is open
         .onAppear { model.sync.lookForComputers(true); pickOnlyOne() }
         .onDisappear { model.sync.lookForComputers(false) }
@@ -74,53 +63,42 @@ struct PairingView: View {
     private var finder: some View {
         let found = model.engine.discovered
         return VStack(alignment: .leading, spacing: 0) {
-            Image("Mark")
-                .resizable()
-                .frame(width: 56, height: 56)
-                .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
-                .padding(.bottom, 22)
-                .accessibilityHidden(true)
-            Text(S.pairTitle)
-                .font(Theme.brand(32, relativeTo: .largeTitle))
-                .foregroundStyle(Theme.heading)
             Text(S.pairIntro)
                 .font(.body)
                 .foregroundStyle(Theme.written)
-                .padding(.top, 10)
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 16) {
                 step(1, S.pairStep1)
                 step(2, S.pairStep2)
                 step(3, S.pairStep3)
             }
-            .padding(.top, 26)
-            // iOS asks for the local network permission on the first look around; this says why before it does
-            Label(S.localNetworkNote, systemImage: "wifi")
-                .font(.footnote)
-                .foregroundStyle(Theme.muted)
-                .padding(.top, 26)
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: 18))
+            .padding(.top, 24)
             if localNetworkDenied && found.isEmpty {
                 // iOS said no to the local network: nothing can be found until it's allowed in Settings
                 VStack(alignment: .leading, spacing: 12) {
                     Text(S.localNetworkDenied).font(.subheadline).foregroundStyle(Theme.ink)
                         .fixedSize(horizontal: false, vertical: true)
                     Button(S.openSettings) { Permission.openSettings() }
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Theme.accent)
-                        .frame(minHeight: 44)
+                        .buttonStyle(PrimaryButtonStyle())
                         .accessibilityIdentifier("open-settings")
                 }
-                .padding(.top, 30)
+                .padding(.top, 24)
             } else if found.isEmpty {
                 HStack(spacing: 10) {
-                    ProgressView().controlSize(.small)
-                    Text(S.pairLooking).font(.subheadline).foregroundStyle(Theme.muted)
+                    ProgressView().controlSize(.small).tint(Theme.accent)
+                    Text(S.pairLooking).font(.subheadline.weight(.medium)).foregroundStyle(Theme.ink)
                 }
-                .padding(.top, 34)
+                .padding(.top, 24)
             } else {
                 Text(S.pairFound)
-                    .font(.footnote.weight(.medium))
+                    .font(.caption.weight(.semibold))
+                    .textCase(.uppercase)
+                    .tracking(0.6)
+                    .accessibilityAddTraits(.isHeader)
                     .foregroundStyle(Theme.muted)
-                    .padding(.top, 34).padding(.bottom, 8)
+                    .padding(.top, 24).padding(.bottom, 8)
                 VStack(spacing: 0) {
                     ForEach(found) { desktop in
                         Button {
@@ -132,6 +110,10 @@ struct PairingView: View {
                 }
                 .padding(.horizontal, -8)
             }
+            Label(S.localNetworkNote, systemImage: "wifi")
+                .font(.footnote)
+                .foregroundStyle(Theme.muted)
+                .padding(.top, 12)
         }
     }
 
@@ -139,10 +121,8 @@ struct PairingView: View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text("\(n)")
                 .font(.footnote.weight(.semibold).monospacedDigit())
-                .foregroundStyle(Theme.accent)
-                .frame(width: 24, height: 24)
-                .background(Theme.accentSoft, in: Circle())
-                .alignmentGuide(.firstTextBaseline) { $0[.firstTextBaseline] + 1 }
+                .foregroundStyle(Theme.muted)
+                .frame(minWidth: 18, alignment: .leading)
             Text(text).font(.body).foregroundStyle(Theme.ink)
         }
     }
@@ -187,16 +167,13 @@ struct CodeEntry: View {
                 Label(S.otherComputer, systemImage: "chevron.backward").font(.subheadline.weight(.medium))
             }
             .foregroundStyle(Theme.accent)
-            .padding(.bottom, 28)
-            Text(S.codeTitle(desktop.name))
-                .font(Theme.brand(30, relativeTo: .largeTitle))
-                .foregroundStyle(Theme.heading)
+            .frame(minHeight: 44)
+            .padding(.bottom, 12)
             Text(S.codeHelp)
                 .font(.body)
                 .foregroundStyle(Theme.written)
-                .padding(.top, 10)
             boxes
-                .padding(.top, 30)
+                .padding(.top, 24)
                 .modifier(Shake(times: CGFloat(shake)))
             Group {
                 if busy {
@@ -251,7 +228,7 @@ struct CodeEntry: View {
         let digit = i < chars.count ? String(chars[i]) : ""
         let current = focused && !busy && i == min(chars.count, 5)
         return Text(digit)
-            .font(.system(.title, design: .rounded).weight(.semibold).monospacedDigit())
+            .font(.title.weight(.semibold).monospacedDigit())
             .foregroundStyle(Theme.ink)
             .frame(maxWidth: .infinity)
             .frame(height: boxHeight)
