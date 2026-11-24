@@ -11,7 +11,7 @@ test('recording controls stay in the header and Ask lives in the footer with sta
   try {
     const page = await app.firstWindow()
     await expect(page.getByTestId('home')).toBeVisible()
-    await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Record', exact: true }).click()
     const reminder = page.getByTestId('recording-reminder')
     await reminder.hover()
     await expect.poll(() => reminder.evaluate(el => {

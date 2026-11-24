@@ -49,7 +49,7 @@ test('a live event resumes the same note from the title bar and menu, keeping th
     await expect.poll(() => page.evaluate(id => window.yogurt.notes.get(id).then(notes => notes.status), id)).toBe('writing')
     const prior = await page.evaluate(id => window.yogurt.transcript.get(id), id)
     await page.getByTestId('nav-home').click()
-    await expect(page.getByTestId('new-note')).toHaveText('Resume notes · Resume fixture')
+    await expect(page.getByTestId('new-note')).toHaveText('Resume recording')
     await page.getByTestId('new-note').click()
     await expect(page.getByTestId('note-resume')).toHaveAccessibleName('Stop summarizing')
     await expect(page.getByTestId('note-resume')).toBeEnabled()
@@ -98,7 +98,7 @@ test('recording from a folder files the note immediately and keeps it there afte
   try {
     const folder = await folderPage(page)
     const empty = page.getByTestId('folder-empty')
-    for (const name of ['Add meetings', 'New note', 'Start recording']) {
+    for (const name of ['Add meetings', 'New note', 'Record']) {
       await expect(empty.getByRole('button', { name, exact: true })).toBeVisible()
     }
     await page.getByTestId('start-recording').click()
@@ -255,7 +255,7 @@ test('two live meetings open the title-bar menu; arrows, Enter and Escape choose
     }, now)
     await page.reload()
     const action = page.getByTestId('new-note')
-    const menu = page.getByRole('menu', { name: 'Start recording', exact: true })
+    const menu = page.getByRole('menu', { name: 'Record', exact: true })
     await expect(action).toHaveText('Take notes · 2 now')
     await expect(page.getByTestId('event-start')).toHaveCount(0)
     await action.click()
