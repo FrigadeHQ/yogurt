@@ -74,6 +74,23 @@ describe('Windows and Linux tray', () => {
       expect(trayLook(os, { paused: true }, 723000)).toEqual({ icon: 'tray-color', template: false, title: null, tooltip: 'Paused' })
     }
   })
+  it('a meeting waiting for its labels shows the red exclamation mark, the recording dot stays on top', () => {
+    for (const os of ['win32', 'linux']) {
+      expect(trayLook(os, null, 0, undefined, now, formatTrayTime, true)).toEqual({ icon: 'tray-labels', template: false, title: null, tooltip: 'Yogurt · Waiting for speaker labels' })
+      expect(trayLook(os, { paused: false }, 723000, undefined, now, formatTrayTime, true)).toEqual({ icon: 'tray-recording', template: false, title: null, tooltip: '● 12:03 · Waiting for speaker labels' })
+      expect(trayLook(os, { paused: true }, 723000, undefined, now, formatTrayTime, true)).toEqual({ icon: 'tray-labels', template: false, title: null, tooltip: 'Paused · Waiting for speaker labels' })
+    }
+    expect(trayLook('darwin', null, 0, undefined, now, formatTrayTime, true)).toEqual({ icon: 'tray-labels', template: true, title: '', tooltip: 'Waiting for speaker labels' })
+    expect(trayLook('darwin', { paused: false }, 0, undefined, now, formatTrayTime, true).icon).toBe('tray-titled')
+  })
+  it('the menu says what the exclamation mark is about, while recording or not', () => {
+    const waiting = trayItems(null, undefined, [], now, 'linux', formatTrayTime, true)
+    expect(waiting[0]).toMatchObject({ id: 'status', label: 'Waiting for speaker labels', enabled: false })
+    expect(trayItems(null, undefined, [], now, 'linux', formatTrayTime, false)[0].id).not.toBe('status')
+    const during = trayItems({ title: 'Standup' }, undefined, [], now, 'linux', formatTrayTime, true)
+    expect(during.some(i => i.id === 'status' && i.label === 'Waiting for speaker labels')).toBe(true)
+    expect(trayItems({ title: 'Standup' }, undefined, [], now, 'linux', formatTrayTime, false).filter(i => i.label === 'Waiting for speaker labels')).toEqual([])
+  })
   it('Linux has a tray only when a StatusNotifier host answers (GNOME needs its AppIndicator extension)', () => {
     expect(hasTrayHost('method return time=1 sender=org.freedesktop.DBus\n   boolean true\n')).toBe(true)
     expect(hasTrayHost('method return\n   boolean false\n')).toBe(false)

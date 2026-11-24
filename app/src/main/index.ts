@@ -357,6 +357,7 @@ let callWindowOf: (meetingId: string) => { goneMs: number } | null = () => null
 /** fake mode's hooks reach the store and the notes through these */
 let storeRef: Store | undefined
 let indexerRef: { schedule(): Promise<unknown> } | undefined
+let trayRef: { refresh(): void } | undefined
 
 /** Notice calls, offer to take notes, stop when the call ends (or ask, with that setting off). Starts nothing without a click. */
 function startDetection() {
@@ -514,6 +515,7 @@ function startDetection() {
     elapsed: widget.elapsed,
     os: platform,
     host: process.platform === 'linux' && !BACKGROUND ? linuxTrayHost : undefined,
+    attention: () => loadSettings(join(userDataDir(), 'settings.json')).speakerLabels === true && !!storeRef?.anyLabelsPending(),
     event: (event, join) => {
       const m = begin({ title: event.title, event, app: null })
       if (join && m) watcher.joined(m.id)
@@ -522,6 +524,7 @@ function startDetection() {
   })
   refreshCalendarConsumers = () => { signals.invalidateCalendar(); void tray.refreshCalendar() }
   menuBar = tray
+  trayRef = tray
   recordingPillChanged = (on) => {
     showRecordingPill = on
     widget.visibilityChanged()
@@ -730,6 +733,7 @@ app.whenReady().then(() => {
     win?.webContents.send('meetings:changed')
     notes.refresh(id)
     labelsWait.recheck(id)
+    trayRef?.refresh()
   }
   ipcMain.handle('transcript:rename-speaker', (_e, id: unknown, key: unknown, name: unknown) => {
     if (!isId(id) || typeof key !== 'string' || typeof name !== 'string') return false
@@ -768,6 +772,7 @@ app.whenReady().then(() => {
   ipcMain.handle('settings:set-speaker-labels', (_e, on: unknown) => {
     if (typeof on !== 'boolean') return
     updateSettings(settingsFile, { speakerLabels: on ? true : undefined })
+    trayRef?.refresh()
   })
   // the person wants the summary of an unlabeled meeting anyway: it never waits again
   ipcMain.handle('notes:release-labels', (_e, id: unknown) => {
@@ -775,6 +780,7 @@ app.whenReady().then(() => {
     store.releaseLabels(id)
     labelsWait.forget(id)
     notes.refresh(id)
+    trayRef?.refresh()
   })
   // each meeting's audio lives in its own folder; a crash keeps what was recorded up to the last 5 s flush
   hookCapture({ dirOf: (id) => join(userDataDir(), 'meetings', id), onStart: onMeetingStart, onStop: onMeetingStop, speech: (id) => speechLocaleFor(id),
@@ -859,7 +865,7 @@ app.whenReady().then(() => {
     allowed: speakerProfiles,
     fake: isFake(),
     timeoutMs: diarizeTimeoutMs,
-    changed: (id) => { win?.webContents.send('transcript:speakers', id); sendWidgetTranscript('transcript:speakers', id); win?.webContents.send('meetings:changed'); labelsWait.recheck(id) },
+    changed: (id) => { win?.webContents.send('transcript:speakers', id); sendWidgetTranscript('transcript:speakers', id); win?.webContents.send('meetings:changed'); labelsWait.recheck(id); trayRef?.refresh() },
     notesRefresh: (id) => notes.refresh(id),
     voicesChanged: () => { win?.webContents.send('voices:changed') },
   })
@@ -873,7 +879,7 @@ app.whenReady().then(() => {
     namesWaitMs: NAMES_WAIT_MS, warn: (message, error) => console.warn(message, error),
   })
   // voice recognition opt-in is snapshotted per meeting: enabling it mid-call never captures the call in progress
-  onMeetingStart((m) => { try { store.setVoicesAllowed(m.id, speakerProfiles() && diarizeOn()) } catch (e) { console.warn('voices_allowed snapshot failed', e) }; diarizeSchedule.forget(m.id); labelsWait.forget(m.id); store.resetLabels(m.id) })
+  onMeetingStart((m) => { try { store.setVoicesAllowed(m.id, speakerProfiles() && diarizeOn()) } catch (e) { console.warn('voices_allowed snapshot failed', e) }; diarizeSchedule.forget(m.id); labelsWait.forget(m.id); store.resetLabels(m.id); trayRef?.refresh() })
   // diarize once the recording, transcript and call names have settled; the notes of the meeting wait for the chain
   onMeetingStopSaved((m) => { void diarizeSchedule.start(m.id) })
   const notes = hookNotes({

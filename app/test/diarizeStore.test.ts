@@ -143,9 +143,11 @@ describe('diarization store', () => {
     expect(s.labelsPending(m.id)).toBe(false)
     s.markDiarized(m.id)
     expect(s.labelsPending(m.id)).toBe(true)
+    expect(s.anyLabelsPending()).toBe(true)
     // a failed diarization never holds the notes
     s.markDiarized(m.id, 'nemo failed')
     expect(s.labelsPending(m.id)).toBe(false)
+    expect(s.anyLabelsPending()).toBe(false)
     s.markDiarized(m.id)
     // naming the voice still leaves the line nobody claimed
     s.setSegmentSpeakers([{ id: named.id, speaker: 'Ann' }])
@@ -159,8 +161,10 @@ describe('diarization store', () => {
     expect(s.labelsPending(m.id)).toBe(true)
     s.releaseLabels(m.id)
     expect(s.labelsPending(m.id)).toBe(false)
+    expect(s.anyLabelsPending()).toBe(false)
     s.resetLabels(m.id)
     expect(s.labelsPending(m.id)).toBe(true)
+    expect(s.anyLabelsPending()).toBe(true)
   })
 
   it('createMeeting persists voicesAllowed and diarizeError, so re-reads agree with the object in hand', () => {

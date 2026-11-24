@@ -8,7 +8,7 @@ afterEach(() => vi.unstubAllGlobals())
 
 it('marks each selected meeting inside its identity tile', () => {
   vi.stubGlobal('window', { matchMedia: () => ({ matches: false }) })
-  const c: MeetingCard = { eventId: null, app: null, language: null, titleSource: 'user', id: 'm1', title: 'Planning', state: 'done', startedAt: 1, endedAt: 2, attendees: [], preview: '' }
+  const c: MeetingCard = { eventId: null, app: null, language: null, titleSource: 'user', diarizeError: null, voicesAllowed: false, id: 'm1', title: 'Planning', state: 'done', startedAt: 1, endedAt: 2, attendees: [], preview: '' }
   const row = (selected: boolean) => renderToStaticMarkup(createElement(PastCard, { c, me: '', selected, onOpen() {} }))
   expect(row(true)).toMatch(/meeting-identity[^<]*>\s*<svg[^>]*data-testid="meeting-selected"/)
   expect(row(false)).not.toContain('meeting-selected')

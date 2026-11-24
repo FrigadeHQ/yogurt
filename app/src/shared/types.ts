@@ -440,8 +440,7 @@ export type NoteView = {
   /** the notes were just written again (for new people): what they replaced, so an open editor with no edits since takes them */
   rewrittenFrom?: string
   /** My notes were just changed from the iPhone: what they replaced, so an open editor with no edits since takes them */
-  mineFrom?: string;
-  /** the summary waits for speaker labels: voices without names or lines without a speaker */
+  mineFrom?: string,  /** the summary waits for speaker labels: voices without names or lines without a speaker */
   labels?: boolean
   /** latest acknowledged edit revision on each side; failed text is retained in main and overlaid above */
   saves?: Partial<Record<NoteSide, NoteSaveResult>>

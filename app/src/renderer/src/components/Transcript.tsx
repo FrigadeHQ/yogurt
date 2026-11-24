@@ -7,7 +7,7 @@ import { ScrollFade } from './ScrollFade'
 import { Loading } from './Loading'
 import { useLoadingState } from '../useLoadingState'
 import { Fragment, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
-import { AudioLines, ArrowDown } from './Icons'
+import { AudioLines, ArrowDown, ChevronDown } from './Icons'
 import type { Segment, TranscriptPartial } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
 import { useLanguage } from '../i18n'
@@ -558,6 +558,7 @@ export function Transcript({ id, notice, processing=false, replacing=false, reco
                       return (
                         <Fragment key={k}>{i > 0 && ' '}
                           <Row line={x} focused={k === focusedKey} name={who(x)}
+                            playing={k === shownKey} playable={playable} focusable={k === tabKey} arrived={!x.previous&&live.current.has(k) ? (previewed(x) ? 'settle' : 'fade') : null} onPlay={onPlay} onFocusLine={setFocusKey} />
                           {!me && x.id !== undefined && x.speakerKey && <LineAssign meetingId={id} line={x} voices={themVoices} />}
                         </Fragment>
                       )
