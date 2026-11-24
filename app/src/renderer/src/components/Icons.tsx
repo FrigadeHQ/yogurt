@@ -30,6 +30,16 @@ export const ArrowLeft = icon('ArrowLeft', [
   ['path', { d: 'M10.9999 18.002C10.9999 18.002 4.99998 13.583 4.99997 12.0019C4.99996 10.4208 11 6.00195 11 6.00195', key: '1' }],
 ])
 
+export const ArrowTurnBackward = icon('ArrowTurnBackward', [
+  ['path', { d: 'M11 6H15.5C17.9853 6 20 8.01472 20 10.5C20 12.9853 17.9853 15 15.5 15H4', key: '0' }],
+  ['path', { d: 'M6.99998 12C6.99998 12 4.00001 14.2095 4 15C3.99999 15.7906 7 18 7 18', key: '1' }],
+])
+
+export const ArrowTurnForward = icon('ArrowTurnForward', [
+  ['path', { d: 'M13 6H8.5C6.01472 6 4 8.01472 4 10.5C4 12.9853 6.01472 15 8.5 15H20', key: '0' }],
+  ['path', { d: 'M17 12C17 12 20 14.2095 20 15C20 15.7906 17 18 17 18', key: '1' }],
+])
+
 export const ArrowUp = icon('ArrowUp', [
   ['path', { d: 'M12 5.5V19', key: '0' }],
   ['path', { d: 'M18 11C18 11 13.5811 5.00001 12 5C10.4188 4.99999 6 11 6 11', key: '1' }],

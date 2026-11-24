@@ -17,16 +17,26 @@ function elements(node:ReactNode):ReactElement<any>[] {
  const el=node as ReactElement<any>
  return [el,...elements(el.props.children)]
 }
-function transcriptElements(processing: boolean, hasLines: boolean, replacing = false, notice?: TranscriptNotice) {
+function transcriptElements(processing: boolean, hasLines: boolean, replacing = false, notice?: TranscriptNotice, recording = false) {
  const lines=hasLines?[{id:1,meetingId:'sample',track:'them',startMs:0,endMs:1000,text:'The draft is ready.'}]:[]
  const states:unknown[]=[
   undefined, [], lines, false, true, // transcript snapshot, replacement, rows, failure, loaded
-  false, undefined, {}, // active wording draft, focus after removal, live words
+  false, {}, // edit mode, live words
   false, false, ['them'], // Find, earlier rows, playable tracks
  ]
  vi.mocked(useState).mockImplementation((initial?:unknown):[unknown,()=>void]=>[states.length?states.shift():typeof initial==='function'?initial():initial,()=>{}])
- return elements(Transcript({id:'sample',recording:false,processing,replacing,notice}))
+ return elements(Transcript({id:'sample',recording,processing,replacing,notice}))
 }
+it.each([
+ [true, false, 'Available after recording'],
+ [false, true, 'Finish transcription to edit lines.'],
+] as const)('keeps the disabled Edit control in the toolbar while recording=%s, processing=%s', (recording,processing,reason)=>{
+ const tree=transcriptElements(processing,true,false,undefined,recording)
+ const button=tree.find(e=>e.props.extra?.props['data-testid']==='transcript-edit')?.props.extra
+ expect(button?.type).toBe('button')
+ expect(button?.props).toMatchObject({disabled:true,title:reason,'aria-description':reason,children:'Edit'})
+ expect(tree.some(e=>e.props.children===reason)).toBe(false)
+})
 const transcript = (processing: boolean, hasLines: boolean, replacing = false) =>
   transcriptElements(processing, hasLines, replacing).map(e => e.props.className)
 it('shows the transcription placeholder only until the first text, and hides playback while working',()=>{

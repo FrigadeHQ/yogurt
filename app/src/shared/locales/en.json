@@ -307,40 +307,15 @@
   "Mic on in Yogurt": "Mic on in Yogurt",
   "Mic mute couldn’t be confirmed.": "Mic mute couldn’t be confirmed.",
   "Mic off. Yogurt can’t hear call audio.": "Mic off. Yogurt can’t hear call audio.",
-  "Wording saved": "Wording saved",
-  "Wording restored": "Wording restored",
   "Restore original wording": "Restore original wording",
   "Use my wording": "Use my wording",
   "Keep saved wording": "Keep saved wording",
   "Couldn’t save the transcript change.": "Couldn’t save the transcript change.",
   "Remove this line?": "Remove this line?",
   "Remove line": "Remove line",
-  "Remove block": "Remove block",
-  "Remove earlier lines…": "Remove earlier lines…",
-  "Remove from transcript": "Remove from transcript",
-  "Select lines": "Select lines",
   "Play from {time}": "Play from {time}",
-  "Transcript actions at {time}": "Transcript actions at {time}",
-  "Select line at {time} by {speaker}": "Select line at {time} by {speaker}",
-  "Show removed lines": "Show removed lines",
-  "Hide removed lines": "Hide removed lines",
-  "Restore lines": "Restore lines",
-  "Restore all lines": "Restore all lines",
   "All transcript lines have been removed.": "All transcript lines have been removed.",
-  "You’ll still hear these lines in the recording.": "You’ll still hear these lines in the recording.",
   "The transcript changed. Select the lines again.": "The transcript changed. Select the lines again.",
-  "{count} lines selected": {
-    "one": "{count} line selected",
-    "other": "{count} lines selected"
-  },
-  "{count} lines removed": {
-    "one": "{count} line removed",
-    "other": "{count} lines removed"
-  },
-  "{count} lines restored": {
-    "one": "{count} line restored",
-    "other": "{count} lines restored"
-  },
   "Finish transcription to edit lines.": "Finish transcription to edit lines.",
   "Restore removed lines before transcribing again.": "Restore removed lines before transcribing again.",
   "Transcribing again will replace your wording changes.": "Transcribing again will replace your wording changes.",
@@ -354,5 +329,13 @@
   "This passage was removed.": "This passage was removed.",
   "This source has changed.": "This source has changed.",
   "This wording has changed.": "This wording has changed.",
-  "View current line": "View current line"
+  "View current line": "View current line",
+  "Done": "Done",
+  "Revert all": "Revert all",
+  "Changes": "Changes",
+  "Restore line": "Restore line",
+  "Edit": "Edit",
+  "Undo": "Undo",
+  "Redo": "Redo",
+  "Edit transcript": "Edit transcript"
 }
