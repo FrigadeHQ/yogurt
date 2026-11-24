@@ -9,6 +9,8 @@ const OVERHEAD_GB = 1.5
 const DISK_HEADROOM_GB = 10
 const EFFICIENCY = 0.75
 const CONTEXTS = [16384, 8192]
+/** a gpuOnly model needs at least this share of its weights on the card */
+const GPU_ONLY_MIN_ON_CARD = 0.5
 
 interface Pool { device: Choice['device']; memGB: number; bw: number; gpuMemGB?: number; cpuBw?: number }
 
@@ -42,6 +44,8 @@ function evaluate(hw: Hardware, model: CatalogModel, build: CatalogBuild): Choic
     // the share of the weights on the card; the cache and overhead live there too
     const onCard = pool.gpuMemGB === undefined ? 1 : Math.min(1, Math.max(0, pool.gpuMemGB - kv(ctx) - OVERHEAD_GB) / build.sizeGB)
     if (pool.device === 'split' && onCard >= 1) continue // fits on the card: that's the gpu pool
+    // no usable card, or one too small for it (a 4 GB GTX 1650): it would run from memory, so it isn't offered (#32)
+    if (model.gpuOnly && (pool.device === 'cpu' || onCard < GPU_ONLY_MIN_ON_CARD)) continue
     const secPerToken = (bytesPerToken * onCard) / pool.bw + (pool.cpuBw ? (bytesPerToken * (1 - onCard)) / pool.cpuBw : 0)
     const estTokPerSec = Math.round((1 / secPerToken) * EFFICIENCY * 10) / 10
     const choice: Choice = {

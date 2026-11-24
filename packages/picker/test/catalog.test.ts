@@ -12,6 +12,11 @@ describe('validateCatalog', () => {
     const r = validateCatalog(real, licenses)
     expect(r.ok ? [] : r.errors).toEqual([])
   })
+  it('the 26B notes model needs a graphics card (#32)', () => {
+    const r = validateCatalog(real, licenses)
+    if (!r.ok) throw new Error(r.errors.join('; '))
+    expect(r.catalog.models.find((m) => m.id === 'gemma-4-26b-a4b')?.gpuOnly).toBe(true)
+  })
   it('pins every ASR model with a sha256', () => {
     const r = validateCatalog(real, licenses)
     if (!r.ok) throw new Error(r.errors.join('; '))

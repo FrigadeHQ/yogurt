@@ -23,6 +23,7 @@ const Model = z.object({
   starter: z.boolean(),
   lastResort: z.boolean().optional(),
   squeezedOf: z.string().optional(),
+  gpuOnly: z.boolean().optional(),
   description: z.string().max(80).optional(),
   builds: z.array(Build).min(1),
 })

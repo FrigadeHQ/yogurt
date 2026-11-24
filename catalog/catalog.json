@@ -124,6 +124,7 @@
       "minAppVersion": "0.1.0",
       "addedAt": "2026-10-21",
       "starter": false,
+      "gpuOnly": true,
       "builds": [
         {
           "quant": "Q4_0",

@@ -431,6 +431,16 @@ describe('the speed check (Windows and Linux): speech models timed on this compu
     expect(c.installed()?.llm).toBeTruthy()
   })
 
+  it('Linux with no usable graphics card (31 GiB, #32): the 14 GB 26B is never downloaded', async () => {
+    for (const gpu of [{ kind: 'none' as const, name: '', vramGB: 0 }, { kind: 'discrete' as const, name: 'NVIDIA GeForce GTX 1650', vramGB: 4 }]) {
+      const s = speed({ 'whisper-large-v3-turbo-q5_0': 0.3, 'whisper-small-q5_1': 0.3 })
+      const { c, rec } = setup({ getHardware: async () => ({ ...gpuPc, cpuModel: 'AMD Ryzen 7 5800XT', totalRamGB: 33.3, gpu }), speed: s.deps })
+      await c.start(); await c.idle()
+      expect(c.state).toMatchObject({ phase: 'ready' })
+      expect(rec.asked).not.toContain(bigUrl)
+    }
+  })
+
   it('a Mac reports the same notes download progress', async () => {
     const { c, states } = setup()
     await c.start(); await c.idle()

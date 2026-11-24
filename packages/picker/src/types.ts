@@ -35,6 +35,8 @@ export interface CatalogModel {
   lastResort?: boolean
   /** a squeezed build of this other model: offered only where that one doesn't run well */
   squeezedOf?: string
+  /** off a Mac, only where the graphics card holds most of it: on the processor it reads a meeting far too slowly (#32) */
+  gpuOnly?: boolean
   /** one-line trade-off shown in the model list, e.g. "Very fast, less capable" */
   description?: string
   builds: CatalogBuild[]

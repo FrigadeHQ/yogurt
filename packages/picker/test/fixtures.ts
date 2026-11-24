@@ -12,7 +12,7 @@ export const models: CatalogModel[] = [
   m('gemma-4-e4b', 7, 7, 5.15, 8, 4, true),
   { ...m('gemma-4-e4b-compact', 6, 6, 3.86, 8, 4), squeezedOf: 'gemma-4-e4b' },
   m('gpt-oss-20b', 6, 7, 12.11, 21, 3.6),
-  m('gemma-4-26b-a4b', 8, 8, 14.44, 26, 4),
+  { ...m('gemma-4-26b-a4b', 8, 8, 14.44, 26, 4), gpuOnly: true },
   { ...m('gemma-4-26b-a4b-compact', 5, 6, 9.66, 26, 4), squeezedOf: 'gemma-4-26b-a4b' },
   m('gpt-oss-120b', 9, 9, 63.39, 117, 5.1),
 ]
@@ -38,5 +38,9 @@ export const machines = {
   rtx3060_32: hw({ os: 'win32', arch: 'x64', cpuModel: 'AMD Ryzen 5 5600X', totalRamGB: 32, gpu: { kind: 'discrete', name: 'NVIDIA GeForce RTX 3060', vramGB: 12 } }),
   rtx4090_64: hw({ os: 'linux', arch: 'x64', cpuModel: 'AMD Ryzen 9 7950X', totalRamGB: 64, gpu: { kind: 'discrete', name: 'NVIDIA GeForce RTX 4090', vramGB: 24 } }),
   rtx5090_64: hw({ os: 'win32', arch: 'x64', cpuModel: 'AMD Ryzen 9 9950X', totalRamGB: 64, gpu: { kind: 'discrete', name: 'NVIDIA GeForce RTX 5090', vramGB: 32 } }),
+  // 31 GiB of memory reports about 33.3 GB: the 26B just fits there (#32)
+  cpu33: hw({ os: 'linux', arch: 'x64', cpuModel: 'AMD Ryzen 7 5800XT', totalRamGB: 33.3, gpu: { kind: 'none', name: '', vramGB: 0 } }),
+  gtx1650_33: hw({ os: 'linux', arch: 'x64', cpuModel: 'AMD Ryzen 7 5700X', totalRamGB: 33.3, gpu: { kind: 'discrete', name: 'NVIDIA GeForce GTX 1650', vramGB: 4 } }),
+  win1650_33: hw({ os: 'win32', arch: 'x64', cpuModel: 'AMD Ryzen 7 5700X', totalRamGB: 33.3, gpu: { kind: 'discrete', name: 'NVIDIA GeForce GTX 1650', vramGB: 4 } }),
   tiny4: hw({ os: 'win32', arch: 'x64', cpuModel: 'Intel Celeron', totalRamGB: 4, gpu: { kind: 'none', name: '', vramGB: 0 } }),
 }

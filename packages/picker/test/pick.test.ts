@@ -56,6 +56,23 @@ describe('pick', () => {
     expect(id(r.recommended)).toBe('gpt-oss-20b')
     expect(r.recommended!.device).toBe('cpu')
   })
+  describe('the 26B needs a graphics card that holds most of it (#32: 14 GB downloaded for nothing)', () => {
+    const offered = (r: ReturnType<typeof pick>) => [...r.all, ...(r.smarter ? [r.smarter] : [])].map((c) => c.model.id)
+    it('no usable card, 31 GiB of memory: never the 26B, not even as a smarter choice', () => {
+      const r = pick(machines.cpu33, models)
+      expect(offered(r)).not.toContain('gemma-4-26b-a4b')
+      expect(id(r.recommended)).toBe('gpt-oss-20b')
+      expect(r.unavailable.find((u) => u.model.id === 'gemma-4-26b-a4b')?.reason).toBe('memory')
+    })
+    it('a 4 GB card (GTX 1650) on Linux or Windows: never the 26B', () => {
+      for (const hw of [machines.gtx1650_33, machines.win1650_33]) expect(offered(pick(hw, models))).not.toContain('gemma-4-26b-a4b')
+    })
+    it('a card that holds most of it still gets it (RTX 3060 12 GB), and Macs are unchanged', () => {
+      expect(id(pick(machines.linux3060, models).recommended)).toBe('gemma-4-26b-a4b')
+      expect(id(pick(machines.rtx3060_32, models).recommended)).toBe('gemma-4-26b-a4b')
+      expect(id(pick(machines.m1max32, models).recommended)).toBe('gemma-4-26b-a4b')
+    })
+  })
   describe('graphics cards: the engine puts what fits on the card and the rest in memory', () => {
     it('RTX 4060 8GB, 16GB RAM → Gemma 4 E4B with full context, split', () => {
       const r = pick(machines.rtx4060_16, models)
