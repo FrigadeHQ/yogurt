@@ -196,6 +196,9 @@ for (const theme of ['light', 'dark'] as const) test(`a failed export can be ret
     const footer = page.locator('.note-footer')
     await expect(footer).toBeVisible()
     const before = (await footer.boundingBox())!
+    const player = page.getByTestId('player')
+    await expect(player).toHaveCSS('opacity', '1')
+    const playerBefore = (await player.boundingBox())!
     await page.screenshot({ path: info.outputPath(`toast-footer-${theme}-before.png`) })
     await app.evaluate(({ ipcMain }) => {
       let calls = 0
@@ -208,15 +211,23 @@ for (const theme of ['light', 'dark'] as const) test(`a failed export can be ret
     await expect(toast).toHaveClass(/app-toast/)
     await expect(toast).toHaveCSS('opacity', '1')
     expect(await footer.boundingBox()).toEqual(before)
+    expect(await player.boundingBox()).toEqual(playerBefore)
     const notice = (await toast.boundingBox())!
-    expect(Math.round(before.y - notice.y - notice.height)).toBe(12)
+    expect(Math.round(playerBefore.y - notice.y - notice.height)).toBe(12)
     await page.screenshot({ path: info.outputPath(`toast-footer-${theme}-during.png`) })
     await toast.getByRole('button', { name: 'Close' }).click()
     await expect(page.locator('.app-toast[data-kind="share-export-error"]')).toHaveCount(0)
     expect(await footer.boundingBox()).toEqual(before)
+    expect(await player.boundingBox()).toEqual(playerBefore)
     await page.screenshot({ path: info.outputPath(`toast-footer-${theme}-after.png`) })
     await page.getByTestId('share-button').click()
     await page.getByTestId('share-export').click()
+    await expect(toast).toBeVisible()
+    await page.getByTestId('note-summary-tab').click()
+    await expect(player).toHaveCount(0)
+    await expect.poll(() => toast.evaluate(el =>
+      Math.round(document.querySelector('.note-footer')!.getBoundingClientRect().top - el.getBoundingClientRect().bottom)
+    )).toBe(12)
     await toast.getByRole('button', { name: 'Try again' }).click()
     await expect(page.getByTestId('share-said')).toHaveText('Saved')
   } finally { await app.close() }
