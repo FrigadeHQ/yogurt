@@ -773,5 +773,14 @@
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone’un bu bilgisayarla yalnızca aynı Wi-Fi ağında konuşur. Hiçbir şey internetten geçmez.",
   "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhone’un şu anda bu bilgisayara ulaşamıyor. Yogurt’u yeniden başlatmayı dene.",
   "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "iPhone’un bu bilgisayarı göremiyor. Sistem Ayarları → Gizlilik ve Güvenlik’te Yogurt için Yerel Ağ’a izin ver.",
-  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone’un bu bilgisayarı göremiyor. Güvenlik duvarında özel ağlar için Yogurt’a izin ver."
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone’un bu bilgisayarı göremiyor. Güvenlik duvarında özel ağlar için Yogurt’a izin ver.",
+  "Connections": "Bağlantılar",
+  "Storage & backup": "Depolama ve yedekleme",
+  "Meeting detected": "Toplantı algılandı",
+  "Call ended": "Arama sona erdi",
+  "Notes ready": "Notlar hazır",
+  "System notification": "Sistem bildirimi",
+  "Sound": "Ses",
+  "Closing the window keeps Yogurt running.": "Pencereyi kapattığınızda Yogurt çalışmaya devam eder.",
+  "Notes": "Notlar"
 }

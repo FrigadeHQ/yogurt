@@ -16,6 +16,7 @@ test('calendar disclosure summarizes the enabled selection and stays useful when
       id: `event-${i}`, title: name, calendarId: name.toLowerCase(), calendar: name, calendarSource: 'Example account', calendarColor: '#3478F6', start: new Date().toISOString(), end: new Date(Date.now() + 3600000).toISOString(),
     }))))
     await openFromCorner(page, 'settings-open')
+    if (!before) await page.getByTestId('settings-nav-connections').click()
     const toggle = page.getByTestId('calendar-settings-toggle'), section = page.getByTestId('calendar-settings'), summary = page.getByTestId('calendar-settings-summary')
     if (!before) {
       await expect(section.getByRole('heading', { name: 'Calendars', exact: true })).toBeVisible()

@@ -1,5 +1,6 @@
 import { BrowserWindow, ipcMain, Notification, screen, nativeTheme } from 'electron'
 import { join } from 'node:path'
+import type { Delivery } from '../shared/notificationDelivery'
 import type { Prompt } from './detect'
 import type { Meeting } from './store'
 import type { PromptAction, PromptView } from '../shared/types'
@@ -42,6 +43,7 @@ function createCard(kind: PromptView['kind'], os = 'darwin'): BrowserWindow {
 export function createPrompts(d: {
   /** is a Yogurt window on screen? If not, a system notification says it too */
   windowVisible(): boolean
+  delivery(event: 'meeting-detected' | 'call-ended'): Delivery
   takeNotes(p: Prompt): void
   stop(meetingId: string): void
   dismissed(key: string): void
@@ -89,7 +91,8 @@ export function createPrompts(d: {
     // hidden in tests so no window pops up; the page still runs
     if (!BACKGROUND) card.once('ready-to-show', () => card?.showInactive())
     notice?.n?.close(); notice = null
-    if (!d.windowVisible()) {
+    const delivery = d.delivery(v.kind === 'start' ? 'meeting-detected' : 'call-ended')
+    if (!d.windowVisible() && delivery.system) {
       const title = v.kind === 'start' ? t('Take notes?') : t('Stop recording?')
       const body = v.title || (v.kind === 'start' && v.app ? t('{app} call', { app: v.app }) : '')
       // clicking it says yes, for this card only (a newer card has its own)
@@ -98,7 +101,7 @@ export function createPrompts(d: {
       notice = { title, body, click }
       // test runs show none: the click is made through the fake hooks
       if (!BACKGROUND && Notification.isSupported()) {
-        const n = new Notification({ title, body, silent: true })
+        const n = new Notification({ title, body, silent: !delivery.sound })
         n.on('click', click)
         n.show()
         notice.n = n
@@ -116,12 +119,13 @@ export function createPrompts(d: {
     /** the recording stopped by itself because the call ended: no card, a notification while Yogurt is away; clicking it opens the note to resume */
     stopped(m: Meeting) {
       close()
-      if (d.windowVisible()) return
+      const delivery = d.delivery('call-ended')
+      if (d.windowVisible() || !delivery.system) return
       const title = t('Recording stopped when the call ended.'), body = m.title
       const click = () => { notice?.n?.close(); notice = null; d.open(m.id) }
       notice = { title, body, click }
       if (!BACKGROUND && Notification.isSupported()) {
-        const n = new Notification({ title, body, silent: true })
+        const n = new Notification({ title, body, silent: !delivery.sound })
         n.on('click', click)
         n.show()
         notice.n = n

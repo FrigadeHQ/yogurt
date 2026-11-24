@@ -785,5 +785,14 @@
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Kausap lang ng iPhone mo ang computer na ito sa iisang Wi-Fi. Walang dumadaan sa internet.",
   "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "Hindi maabot ng iPhone mo ang computer na ito ngayon. Subukang i-restart ang Yogurt.",
   "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "Hindi makita ng iPhone mo ang computer na ito. Payagan ang Local Network para sa Yogurt sa System Settings → Privacy & Security.",
-  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "Hindi makita ng iPhone mo ang computer na ito. Payagan ang Yogurt sa firewall mo para sa mga private network."
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "Hindi makita ng iPhone mo ang computer na ito. Payagan ang Yogurt sa firewall mo para sa mga private network.",
+  "Connections": "Mga koneksyon",
+  "Storage & backup": "Storage at backup",
+  "Meeting detected": "May nakitang meeting",
+  "Call ended": "Natapos ang tawag",
+  "Notes ready": "Handa na ang mga tala",
+  "System notification": "Abiso ng system",
+  "Sound": "Tunog",
+  "Closing the window keeps Yogurt running.": "Patuloy na gagana ang Yogurt kapag isinara mo ang window.",
+  "Notes": "Mga tala"
 }

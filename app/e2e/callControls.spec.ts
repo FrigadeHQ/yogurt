@@ -86,7 +86,7 @@ test('paused recording controls fit the minimum window and keep focus inside eac
 test('Custom words has the same visible unfocused field boundary in light and dark mode', async ({}, testInfo) => {
   const { app, page } = await launch()
   try {
-    await openFromCorner(page, 'settings-open')
+    await openFromCorner(page, 'settings-open', 'notes')
     for (const theme of ['light', 'dark'] as const) {
       await page.evaluate(theme => window.yogurt.settings.setTheme(theme), theme)
       const input = page.getByTestId('jargon-input')

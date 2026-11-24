@@ -424,7 +424,8 @@ it('keeps a failed preference actionable when another preference saves', async (
   const settings = { get: async () => ({ myName: 'Meeting host', recordingReminder: true, theme: 'system' }), setRecordingReminder: reminder, setTheme: vi.fn().mockResolvedValue(undefined) }
   vi.stubGlobal('window', { yogurt: { settings, capabilities: {} } })
   try {
-    const draw = renderer(() => Settings({ revision: 17 }))
+    let focus = 'notifications'
+    const draw = renderer(() => Settings({ revision: 17, focus }))
     draw()
     vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.includes(17))![0]()
     await Promise.resolve()
@@ -432,6 +433,7 @@ it('keeps a failed preference actionable when another preference saves', async (
     await vi.waitFor(() => expect(toast).toHaveBeenCalled())
     const failed = toast.mock.lastCall![0]
     close.mockClear()
+    focus = 'general'
     find(draw(), 'settings-theme').props.onChange({ target: { value: 'light' } })
     await vi.waitFor(() => expect(settings.setTheme).toHaveBeenCalledWith('light'))
     expect(close).not.toHaveBeenCalledWith(failed.id)
@@ -448,7 +450,7 @@ it.each([false, true])('retries the last requested AI access setting (reopen Set
   const set = vi.fn(async (enabled: boolean) => (saved = { ...saved, enabled }))
     .mockImplementationOnce(() => new Promise((_, no) => { reject = no }))
   vi.stubGlobal('window', { yogurt: { capabilities: {}, mcp: { status: async () => saved, onClients: () => () => {}, set } } })
-  const panel = find(renderer(() => Settings({}))(), 'AiApps')
+  const panel = find(renderer(() => Settings({ focus: 'connections' }))(), 'AiApps')
   const mount = async () => {
     const render = renderer(() => (panel.type as Function)(panel.props))
     render()
@@ -484,7 +486,7 @@ it('offers letting AI apps make changes only once they can read, off until turne
   let saved = { enabled: false, changes: false, command: 'test', clients: [] as string[] }
   const setChanges = vi.fn(async (changes: boolean) => (saved = { ...saved, changes }))
   vi.stubGlobal('window', { yogurt: { capabilities: {}, mcp: { status: async () => saved, onClients: () => () => {}, set: vi.fn(), setChanges } } })
-  const panel = find(renderer(() => Settings({}))(), 'AiApps')
+  const panel = find(renderer(() => Settings({ focus: 'connections' }))(), 'AiApps')
   const mount = async () => {
     const render = renderer(() => (panel.type as Function)(panel.props))
     render()

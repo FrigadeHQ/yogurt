@@ -802,5 +802,14 @@
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone-ul tău vorbește cu acest computer doar în aceeași rețea Wi-Fi. Nimic nu trece prin internet.",
   "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhone-ul tău nu poate ajunge acum la acest computer. Încearcă să repornești Yogurt.",
   "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "iPhone-ul tău nu vede acest computer. Permite rețeaua locală pentru Yogurt în Configurări sistem → Confidențialitate și securitate.",
-  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone-ul tău nu vede acest computer. Permite Yogurt în firewall pentru rețelele private."
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone-ul tău nu vede acest computer. Permite Yogurt în firewall pentru rețelele private.",
+  "Connections": "Conexiuni",
+  "Storage & backup": "Stocare și copii de rezervă",
+  "Meeting detected": "Întâlnire detectată",
+  "Call ended": "Apel încheiat",
+  "Notes ready": "Notițele sunt gata",
+  "System notification": "Notificare de sistem",
+  "Sound": "Sunet",
+  "Closing the window keeps Yogurt running.": "Yogurt continuă să ruleze când închizi fereastra.",
+  "Notes": "Notițe"
 }

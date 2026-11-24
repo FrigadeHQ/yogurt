@@ -72,7 +72,7 @@ for (const theme of ['light', 'dark'] as const) test(`standard recording reminde
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
     await expect(toast).toHaveCount(0)
     await page.getByTestId('note-stop').click()
-    await openFromCorner(page, 'settings-open')
+    await openFromCorner(page, 'settings-open', 'notifications')
     const toggle = page.getByTestId('recording-reminder-toggle')
     await expect(toggle).toHaveAttribute('aria-checked', 'true')
     // the loaded settings, not the fading placeholder copy that holds the same words for a moment
@@ -84,7 +84,7 @@ for (const theme of ['light', 'dark'] as const) test(`standard recording reminde
     await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
     await expect(toast).toHaveCount(0)
-    await openFromCorner(page, 'settings-open')
+    await openFromCorner(page, 'settings-open', 'notifications')
     await toggle.click()
     await page.getByTestId('recording-return').click()
     await expect(toast).toHaveCount(0)

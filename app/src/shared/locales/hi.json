@@ -773,5 +773,14 @@
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "आपका iPhone इस कंप्यूटर से सिर्फ़ एक ही Wi-Fi पर बात करता है। कुछ भी इंटरनेट से नहीं जाता।",
   "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "आपका iPhone अभी इस कंप्यूटर तक नहीं पहुँच पा रहा। Yogurt को फिर से शुरू करके देखें।",
   "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "आपका iPhone इस कंप्यूटर को नहीं देख पा रहा। सिस्टम सेटिंग्ज़ → गोपनीयता और सुरक्षा में Yogurt को लोकल नेटवर्क की अनुमति दें।",
-  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "आपका iPhone इस कंप्यूटर को नहीं देख पा रहा। निजी नेटवर्क पर अपने फ़ायरवॉल में Yogurt को अनुमति दें।"
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "आपका iPhone इस कंप्यूटर को नहीं देख पा रहा। निजी नेटवर्क पर अपने फ़ायरवॉल में Yogurt को अनुमति दें।",
+  "Connections": "कनेक्शन",
+  "Storage & backup": "स्टोरेज और बैकअप",
+  "Meeting detected": "मीटिंग का पता चला",
+  "Call ended": "कॉल समाप्त हुई",
+  "Notes ready": "नोट्स तैयार हैं",
+  "System notification": "सिस्टम सूचना",
+  "Sound": "ध्वनि",
+  "Closing the window keeps Yogurt running.": "विंडो बंद करने पर भी Yogurt चलता रहता है।",
+  "Notes": "नोट्स"
 }

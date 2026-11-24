@@ -841,5 +841,14 @@
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "يتواصل iPhone مع هذا الكمبيوتر فقط على شبكة Wi-Fi نفسها. لا شيء يمر عبر الإنترنت.",
   "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "لا يستطيع iPhone الوصول إلى هذا الكمبيوتر الآن. جرّب إعادة تشغيل Yogurt.",
   "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "لا يستطيع iPhone رؤية هذا الكمبيوتر. اسمح لـ Yogurt بالشبكة المحلية في إعدادات النظام ← الخصوصية والأمن.",
-  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "لا يستطيع iPhone رؤية هذا الكمبيوتر. اسمح لـ Yogurt بالمرور عبر جدار الحماية على الشبكات الخاصة."
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "لا يستطيع iPhone رؤية هذا الكمبيوتر. اسمح لـ Yogurt بالمرور عبر جدار الحماية على الشبكات الخاصة.",
+  "Connections": "الاتصالات",
+  "Storage & backup": "التخزين والنسخ الاحتياطي",
+  "Meeting detected": "تم اكتشاف اجتماع",
+  "Call ended": "انتهت المكالمة",
+  "Notes ready": "الملاحظات جاهزة",
+  "System notification": "إشعار النظام",
+  "Sound": "الصوت",
+  "Closing the window keeps Yogurt running.": "يستمر Yogurt في العمل عند إغلاق النافذة.",
+  "Notes": "ملاحظات"
 }

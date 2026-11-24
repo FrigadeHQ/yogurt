@@ -743,5 +743,14 @@
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone chỉ trò chuyện với máy tính này trên cùng mạng Wi-Fi. Không có gì đi qua internet.",
   "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhone hiện không kết nối được với máy tính này. Hãy thử khởi động lại Yogurt.",
   "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "iPhone không thấy máy tính này. Hãy cho phép Mạng cục bộ cho Yogurt trong Cài đặt hệ thống → Quyền riêng tư & Bảo mật.",
-  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone không thấy máy tính này. Hãy cho phép Yogurt qua tường lửa trên mạng riêng."
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone không thấy máy tính này. Hãy cho phép Yogurt qua tường lửa trên mạng riêng.",
+  "Connections": "Kết nối",
+  "Storage & backup": "Lưu trữ và sao lưu",
+  "Meeting detected": "Đã phát hiện cuộc họp",
+  "Call ended": "Cuộc gọi đã kết thúc",
+  "Notes ready": "Ghi chú đã sẵn sàng",
+  "System notification": "Thông báo hệ thống",
+  "Sound": "Âm thanh",
+  "Closing the window keeps Yogurt running.": "Yogurt vẫn chạy khi bạn đóng cửa sổ.",
+  "Notes": "Ghi chú"
 }

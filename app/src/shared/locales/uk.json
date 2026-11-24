@@ -813,5 +813,14 @@
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone спілкується з цим комп’ютером лише в тій самій мережі Wi-Fi. Нічого не йде через інтернет.",
   "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhone зараз не може зв’язатися з цим комп’ютером. Спробуйте перезапустити Yogurt.",
   "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "iPhone не бачить цей комп’ютер. Дозвольте Yogurt доступ до локальної мережі в Системних параметрах → Приватність і безпека.",
-  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone не бачить цей комп’ютер. Дозвольте Yogurt у брандмауері для приватних мереж."
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone не бачить цей комп’ютер. Дозвольте Yogurt у брандмауері для приватних мереж.",
+  "Connections": "Підключення",
+  "Storage & backup": "Сховище й резервні копії",
+  "Meeting detected": "Виявлено зустріч",
+  "Call ended": "Виклик завершено",
+  "Notes ready": "Нотатки готові",
+  "System notification": "Системне сповіщення",
+  "Sound": "Звук",
+  "Closing the window keeps Yogurt running.": "Після закриття вікна Yogurt продовжує працювати.",
+  "Notes": "Нотатки"
 }

@@ -38,7 +38,7 @@ export function hookNotes(p: {
   send: (v: NoteView) => void
   /** the meeting's own row changed (it is done) */
   changed: (id: string) => void
-  summarized?: (id: string) => void
+  summarized?: (id: string, quiet: boolean) => void
   namesWaitMs?: number
   /** a long meeting's parts summarised while it was recorded (readAhead.ts) */
   earlier?: (id: string) => PartSummary[]
@@ -160,7 +160,7 @@ export function hookNotes(p: {
         p.store.setWrittenWith(id, used.stamp)
         p.send({ ...view(id), rewrittenFrom: was.enhanced ?? '' })
         queueTitle(id, askTitle, m.attendees)
-        p.summarized?.(id)
+        p.summarized?.(id, true)
         return
       }
       signal.throwIfAborted()
@@ -169,7 +169,7 @@ export function hookNotes(p: {
       p.store.setWrittenWith(id, used.stamp)
       finish(m, 'done')
       queueTitle(id, askTitle, m.attendees)
-      p.summarized?.(id)
+      p.summarized?.(id, false)
     } catch (e) {
       if (timer) clearTimeout(timer)
       if (quiet) { if (!signal.aborted) console.error('writing the notes again for new people failed', id, e); throw e }

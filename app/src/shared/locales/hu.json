@@ -773,5 +773,14 @@
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Az iPhone-od csak ugyanazon a Wi-Fi-hálózaton beszél ezzel a számítógéppel. Semmi sem megy át az interneten.",
   "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "Az iPhone-od most nem éri el ezt a számítógépet. Próbáld újraindítani a Yogurtot.",
   "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "Az iPhone-od nem látja ezt a számítógépet. Engedélyezd a Yogurtnak a helyi hálózatot a Rendszerbeállítások → Adatvédelem és biztonság alatt.",
-  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "Az iPhone-od nem látja ezt a számítógépet. Engedélyezd a Yogurtot a tűzfaladon a magánhálózatokon."
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "Az iPhone-od nem látja ezt a számítógépet. Engedélyezd a Yogurtot a tűzfaladon a magánhálózatokon.",
+  "Connections": "Kapcsolatok",
+  "Storage & backup": "Tárhely és biztonsági mentés",
+  "Meeting detected": "Értekezlet észlelve",
+  "Call ended": "A hívás véget ért",
+  "Notes ready": "A jegyzetek elkészültek",
+  "System notification": "Rendszerértesítés",
+  "Sound": "Hang",
+  "Closing the window keeps Yogurt running.": "Az ablak bezárása után a Yogurt tovább fut.",
+  "Notes": "Jegyzetek"
 }

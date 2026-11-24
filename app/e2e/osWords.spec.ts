@@ -1,3 +1,4 @@
+import { settingsSections } from '../src/shared/routes'
 import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
@@ -30,11 +31,20 @@ for (const platform of ['win32', 'linux', 'darwin'] as const) {
       const settings = page.getByTestId('settings')
       const w = WORDS[platform]
       await expect(page.getByTestId('settings-theme').locator('option[value="system"]')).toHaveText(w.theme)
-      await expect(page.getByTestId('login-toggle')).toHaveAccessibleName(w.login)
       await expect(page.getByTestId(mac ? 'settings-visibility' : 'menu-bar-toggle')).toHaveAccessibleName(w.tray)
       await expect(page.getByTestId(mac ? 'menu-bar-toggle' : 'settings-visibility')).toHaveCount(0)
+      await page.getByTestId('settings-nav-meetings').click()
+      await expect(page.getByTestId('login-toggle')).toHaveAccessibleName(w.login)
+      await page.getByTestId('settings-nav-storage').click()
       await expect(settings.getByText('Yogurt stores your meetings, notes and audio on this computer.')).toBeVisible()
-      if (!mac) expect(await settings.innerText()).not.toMatch(/\bMac\b|menu bar|Finder|System Settings/)
+      if (!mac) {
+        for (const section of settingsSections) {
+          await page.getByTestId('settings-nav-' + section).click()
+          const panel = page.getByTestId('settings-page-' + section)
+          await expect(panel).toBeVisible()
+          await expect(panel).not.toContainText(/\bMac\b|menu bar|Finder|System Settings/)
+        }
+      }
     } finally { await app.close() }
   })
 }

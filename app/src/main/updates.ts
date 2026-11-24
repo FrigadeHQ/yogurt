@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, Notification } from 'electron'
 import type { AppUpdater } from 'electron-updater'
+import { deliveryFor } from '../shared/notificationDelivery'
 import { t } from '../shared/i18n'
 import type { UpdateStatus } from '../shared/types'
 import { autoUpdateOn, loadSettings, updateSettings } from './settings'
@@ -118,7 +119,9 @@ export async function hookUpdates(d: { file: string; available: boolean; recordi
   updater.on('update-downloaded', (info) => {
     set('ready', info.version)
     if (!Notification.isSupported() || d.quiet?.()) return
-    new Notification({ title: t('Yogurt {version} is ready', { version: info.version }), body: t('It installs the next time you quit Yogurt.') }).show()
+    const delivery = deliveryFor(loadSettings(d.file).notificationDelivery, 'updates')
+    if (!delivery.system) return
+    new Notification({ silent: !delivery.sound, title: t('Yogurt {version} is ready', { version: info.version }), body: t('It installs the next time you quit Yogurt.') }).show()
   })
   updater.on('error', (err) => {
     console.warn('checking for a new version failed', err.message)

@@ -54,6 +54,7 @@ import { getCalendar } from './calendarLink/get'
 import { createSignals } from './detectSignals'
 import { createMicWatch, spawnMicWatch } from './micWatch'
 import { Watcher } from './watch'
+import { deliveryFor } from '../shared/notificationDelivery'
 import { createPrompts } from './prompts'
 import { activeMeeting, bindMeetingApp, getMeeting, initMeetings, onMeetingBound, onMeetingChange, onMeetingStart, onMeetingStop, onMeetingStopSaved, createFolderNote, refreshEventSnapshots, linkEvent, unlinkEvent, prepareMeeting, startPreparedMeeting, resumeMeeting, pauseMeetingClock, renameMeeting, retryStopSave, setAttendees, startMeeting, stopMeeting, stopSavePending, withStopState } from './meeting'
 import { deleteMeeting } from './deleteMeeting'
@@ -375,6 +376,7 @@ function startDetection() {
   })
   onMeetingStop(() => { watcher.cleared() })
   const prompts = createPrompts({
+    delivery: event => deliveryFor(loadSettings(join(userDataDir(), 'settings.json')).notificationDelivery, event),
     windowVisible: () => !!win && win.isVisible() && !win.isMinimized(),
     takeNotes: (p) => begin({ title: p.title || t('{app} call', { app: p.app ?? '' }).trim(), event: p.event, app: p.app }),
     stop: (id) => { stopMeeting(id, 'card') },
@@ -746,7 +748,18 @@ app.whenReady().then(() => {
     ...(automatic ? { keep: endedAt => keepsRecording(loadSettings(settingsFile), endedAt) } : {}),
   })
   const notes = hookNotes({
-    summarized: id => { folderSuggestions.schedule(id); void removeRecording(id, true) },
+    summarized: (id, quiet) => {
+      folderSuggestions.schedule(id)
+      void removeRecording(id, true)
+      if (quiet || isFake() || quietStart?.quiet() || win?.isFocused() || !Notification.isSupported()) return
+      const delivery = deliveryFor(loadSettings(settingsFile).notificationDelivery, 'notes-ready')
+      if (!delivery.system) return
+      try {
+        const notice = new Notification({ title: t('Notes ready'), body: store.meeting(id)?.title, silent: !delivery.sound })
+        notice.on('click', () => { if (store.meeting(id)) goTo('/note/' + id) })
+        notice.show()
+      } catch (err) { console.warn("couldn't show the notes-ready notification", err) }
+    },
     // Windows and Linux: a note waiting while the model loads says so (a Mac shows what it always did)
     showLoading: platform !== 'darwin',
     summaryLanguage: () => summaryLanguageSetting(loadSettings(settingsFile)),

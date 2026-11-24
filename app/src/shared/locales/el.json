@@ -788,5 +788,14 @@
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Το iPhone σου μιλά με αυτόν τον υπολογιστή μόνο στο ίδιο Wi-Fi. Τίποτα δεν περνά από το διαδίκτυο.",
   "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "Το iPhone σου δεν μπορεί να φτάσει αυτόν τον υπολογιστή τώρα. Δοκίμασε να επανεκκινήσεις το Yogurt.",
   "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "Το iPhone σου δεν βλέπει αυτόν τον υπολογιστή. Επίτρεψε το Τοπικό δίκτυο για το Yogurt στις Ρυθμίσεις συστήματος → Απόρρητο και ασφάλεια.",
-  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "Το iPhone σου δεν βλέπει αυτόν τον υπολογιστή. Επίτρεψε το Yogurt στο τείχος προστασίας για ιδιωτικά δίκτυα."
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "Το iPhone σου δεν βλέπει αυτόν τον υπολογιστή. Επίτρεψε το Yogurt στο τείχος προστασίας για ιδιωτικά δίκτυα.",
+  "Connections": "Συνδέσεις",
+  "Storage & backup": "Αποθήκευση και αντίγραφα ασφαλείας",
+  "Meeting detected": "Εντοπίστηκε συνάντηση",
+  "Call ended": "Η κλήση έληξε",
+  "Notes ready": "Οι σημειώσεις είναι έτοιμες",
+  "System notification": "Ειδοποίηση συστήματος",
+  "Sound": "Ήχος",
+  "Closing the window keeps Yogurt running.": "Το Yogurt συνεχίζει να λειτουργεί όταν κλείσετε το παράθυρο.",
+  "Notes": "Σημειώσεις"
 }

@@ -16,7 +16,7 @@ vi.mock('electron', () => ({
   Notification: class {
     static isSupported() { return true }
     close = vi.fn(); show = vi.fn(); listeners = new Map<string, () => void>()
-    constructor() { state.notices.push(this) }
+    constructor(public options: unknown) { state.notices.push(this) }
     on(event: string, fn: () => void) { this.listeners.set(event, fn) }
   },
   nativeTheme: {
@@ -32,7 +32,7 @@ beforeEach(async () => {
   vi.stubEnv('YOGURT_BACKGROUND', '0'); vi.resetModules()
   state.windows.length = 0; state.notices.length = 0; state.handlers.clear(); state.theme.clear(); state.dark = false
   const { createPrompts } = await import('../src/main/prompts')
-  prompts = createPrompts({windowVisible:()=>true,takeNotes:vi.fn(),stop:vi.fn(),dismissed:vi.fn(),keepGoing:vi.fn(),dismissStop:vi.fn(),open:vi.fn()})
+  prompts = createPrompts({ delivery: () => ({ system: true, sound: false }), windowVisible:()=>true,takeNotes:vi.fn(),stop:vi.fn(),dismissed:vi.fn(),keepGoing:vi.fn(),dismissStop:vi.fn(),open:vi.fn()})
 })
 afterEach(() => { prompts.hide(); vi.unstubAllEnvs() })
 it('gives both prompts the same compact frame and top-right placement', () => {
@@ -49,7 +49,7 @@ it("a Mac's Take notes card is a non-activating panel, so its X never brings Yog
   expect(state.windows.at(-1).options.type).toBeUndefined()
   prompts.hide()
   const { createPrompts } = await import('../src/main/prompts')
-  const pc = createPrompts({windowVisible:()=>true,takeNotes:vi.fn(),stop:vi.fn(),dismissed:vi.fn(),keepGoing:vi.fn(),dismissStop:vi.fn(),open:vi.fn(),os:'win32'})
+  const pc = createPrompts({ delivery: () => ({ system: true, sound: false }), windowVisible:()=>true,takeNotes:vi.fn(),stop:vi.fn(),dismissed:vi.fn(),keepGoing:vi.fn(),dismissStop:vi.fn(),open:vi.fn(),os:'win32'})
   pc.offer({key:'call',app:'Zoom',title:''} as any)
   expect(state.windows.at(-1).options).toMatchObject({type:'toolbar',focusable:false,skipTaskbar:true})
   pc.hide()
@@ -76,7 +76,7 @@ async function recording() {
   const stop = vi.fn(meeting.stopMeeting), keepGoing = vi.fn(), dismissStop = vi.fn(), open = vi.fn()
   const { createPrompts } = await import('../src/main/prompts')
   prompts.hide()
-  prompts = createPrompts({ windowVisible: () => false, takeNotes: vi.fn(), stop, dismissed: vi.fn(), keepGoing, dismissStop, open })
+  prompts = createPrompts({ delivery: () => ({ system: true, sound: false }), windowVisible: () => false, takeNotes: vi.fn(), stop, dismissed: vi.fn(), keepGoing, dismissStop, open })
   prompts.askStop(m)
   return { ...meeting, store, m, stop, keepGoing, dismissStop, open, card: state.windows.at(-1), notice: state.notices.at(-1) }
 }
@@ -192,4 +192,16 @@ it('Close hides the card and system notification without stopping or snoozing th
     expect(r.keepGoing).not.toHaveBeenCalled()
     expect(r.activeMeeting()?.id).toBe(r.m.id)
   } finally { r.store.close() }
+})
+
+it('changes delivery per event while keeping the two recording cards available', async () => {
+  const { createPrompts } = await import('../src/main/prompts')
+  prompts = createPrompts({ windowVisible: () => false, delivery: event => ({ system: event === 'call-ended', sound: true }),
+    takeNotes: vi.fn(), stop: vi.fn(), dismissed: vi.fn(), keepGoing: vi.fn(), dismissStop: vi.fn(), open: vi.fn() })
+  prompts.offer({ key: 'call', title: 'Standup', app: 'Zoom', event: null })
+  expect(state.windows).toHaveLength(1)
+  expect(prompts.notice()).toBeNull()
+  prompts.askStop({ id: 'meeting', title: 'Standup' } as any)
+  expect(state.windows).toHaveLength(2)
+  expect(state.notices.at(-1).options).toMatchObject({ silent: false, title: 'Stop recording?' })
 })

@@ -292,5 +292,14 @@
   "Send feedback": "Send feedback",
   "Help and settings": "Help and settings",
   "Yogurt menu": "Yogurt menu",
-  "Restart to update · {version}": "Restart to update · {version}"
+  "Restart to update · {version}": "Restart to update · {version}",
+  "Connections": "Connections",
+  "Storage & backup": "Storage & backup",
+  "Meeting detected": "Meeting detected",
+  "Call ended": "Call ended",
+  "Notes ready": "Notes ready",
+  "System notification": "System notification",
+  "Sound": "Sound",
+  "Closing the window keeps Yogurt running.": "Closing the window keeps Yogurt running.",
+  "Notes": "Notes"
 }

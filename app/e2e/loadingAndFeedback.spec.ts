@@ -28,7 +28,7 @@ test('first reads have skeletons; a loaded transcript stays mounted across tabs'
     await openFromCorner(page, 'settings-open')
     await expect(page.getByTestId('settings-loading')).toBeVisible()
     await expect(page.getByTestId('settings-heading')).toBeVisible()
-    await expect(page.getByTestId('login-toggle')).toHaveCount(0)
+    await expect(page.getByTestId('settings-theme')).toHaveCount(0)
     await page.screenshot({ path: testInfo.outputPath('settings-loading.png') })
     await expect(page.getByTestId('settings-loading')).toHaveCount(0)
     await page.getByTestId('nav-home').click()

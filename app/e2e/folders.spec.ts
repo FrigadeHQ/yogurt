@@ -529,7 +529,7 @@ test('a backup carries folders and which meetings are in them', async () => {
     await expect(folder(a.page, 'Partners').getByTestId('sidebar-folder-count')).toHaveText('1')
     await newFolder(a.page, 'Zulu')
     await a.page.evaluate(async () => { const folders = await window.yogurt.folders.list(); await window.yogurt.folders.reorder(folders.map(f => f.id).reverse()) })
-    await openFromCorner(a.page, 'settings-open')
+    await openFromCorner(a.page, 'settings-open', 'storage')
     await a.page.getByTestId('backup-export').click()
     await expect(a.page.getByTestId('backup-said')).toContainText('Exported 4 meetings')
   } finally { await a.app.close() }
@@ -537,7 +537,7 @@ test('a backup carries folders and which meetings are in them', async () => {
   const b = await launch({ YOGURT_BACKUP_PATH: file })
   try {
     await expect(b.page.getByTestId('sidebar-folder')).toHaveCount(0)
-    await openFromCorner(b.page, 'settings-open')
+    await openFromCorner(b.page, 'settings-open', 'storage')
     await b.page.getByTestId('backup-import').click()
     await expect(b.page.getByTestId('backup-said')).toHaveText('Added 4 meetings.')
     await expect(b.page.getByTestId('sidebar-folder-open')).toHaveText([/Zulu/, /Partners/])

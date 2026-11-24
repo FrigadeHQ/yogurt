@@ -26,6 +26,7 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   showInDock?: boolean
   /** Legacy flag, ignored: it may have come from a different app bundle. Removed after a confirmed post. */
   notificationsAsked?: boolean
+  notificationDelivery?: import('../shared/notificationDelivery').NotificationChoices
   /** Designated requirements of app identities that successfully posted the registering notification. Not authorization. */
   notificationsAskedFor?: string[]
   /** Accessibility was asked for once (the Mac's prompt shows only the first time; after it, only System Settings) */

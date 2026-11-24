@@ -791,5 +791,14 @@
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhonesi puhuu tämän tietokoneen kanssa vain samassa Wi-Fi-verkossa. Mitään ei kulje internetin kautta.",
   "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhonesi ei tavoita tätä tietokonetta juuri nyt. Kokeile käynnistää Yogurt uudelleen.",
   "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "iPhonesi ei näe tätä tietokonetta. Salli Yogurtille paikallisverkko kohdassa Järjestelmäasetukset → Tietosuoja ja turvallisuus.",
-  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhonesi ei näe tätä tietokonetta. Salli Yogurt palomuurissa yksityisissä verkoissa."
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhonesi ei näe tätä tietokonetta. Salli Yogurt palomuurissa yksityisissä verkoissa.",
+  "Connections": "Yhteydet",
+  "Storage & backup": "Tallennustila ja varmuuskopiot",
+  "Meeting detected": "Kokous havaittu",
+  "Call ended": "Puhelu päättyi",
+  "Notes ready": "Muistiinpanot valmiina",
+  "System notification": "Järjestelmäilmoitus",
+  "Sound": "Ääni",
+  "Closing the window keeps Yogurt running.": "Yogurt jää käyntiin, kun suljet ikkunan.",
+  "Notes": "Muistiinpanot"
 }
