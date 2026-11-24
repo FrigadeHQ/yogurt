@@ -9,14 +9,13 @@ struct SettingsView: View {
     @AppStorage("lockWithFaceID") private var lockWithFaceID = false
     /// empty: the iPhone's language
     @AppStorage(SpokenLanguage.defaultsKey) private var spoken = ""
-    @State private var languages: [SpokenLanguage.Option] = []
     @State private var confirmUnpair = false
     @State private var syncing = false
     @State private var connecting = false
     @State private var space: Int64?
     @State private var access: [Permission: Permission.Access] = [:]
     @State private var lockAvailable = LockController.available
-    @ScaledMetric(relativeTo: .body) private var tile: CGFloat = 38
+    @ScaledMetric(relativeTo: .body) private var iconWidth: CGFloat = 24
 
     var body: some View {
         let revision = model.revision
@@ -28,18 +27,19 @@ struct SettingsView: View {
                 spokenLanguage
                 permissions
                 Section {
-                    Toggle(isOn: $lockWithFaceID) { Label(S.faceIDLock, systemImage: "faceid") }
-                        .tint(Theme.primary)
+                    Toggle(isOn: $lockWithFaceID) { rowLabel(S.faceIDLock, icon: "faceid") }
+                        .tint(Theme.accent)
                         .disabled(!lockAvailable)
-                } header: { Text(S.privacy) } footer: {
+                } header: { sectionTitle(S.privacy) } footer: {
                     Text((lockAvailable ? S.faceIDFooter : S.faceIDNeedsPasscode) + " " + S.privacyNote)
                 }
-                .listRowBackground(Theme.card)
-                Section(S.storage) {
+                .listRowBackground(Theme.bg)
+                Section {
                     LabeledContent(S.meetingsOnPhone, value: "\(model.store.meetings().count)")
                     LabeledContent(S.spaceUsed, value: space.map(Format.bytes) ?? "–")
-                }
-                .listRowBackground(Theme.card)
+                } header: { sectionTitle(S.storage) }
+                .listRowBackground(Theme.bg)
+                .listRowSeparator(.hidden)
                 #if DEBUG
                 if model.preview.showingSamples {
                     Section { Text(S.sampleOn).font(.footnote).foregroundStyle(Theme.muted) }
@@ -47,14 +47,15 @@ struct SettingsView: View {
                 }
                 #endif
             }
+            .listStyle(.insetGrouped)
+            .listSectionSpacing(20)
+            .environment(\.defaultMinListRowHeight, 50)
             .scrollContentBackground(.hidden)
             .background(Theme.bg)
             .tint(Theme.accent)
             .navigationTitle(S.settings)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button(S.done) { dismiss() } }
-            }
+            .toolbar(.hidden, for: .navigationBar)
+            .safeAreaInset(edge: .top, spacing: 0) { SheetHeader(title: S.settings) }
             .confirmationDialog(name.map(S.unpairTitle) ?? S.unpairTitleNoName, isPresented: $confirmUnpair, titleVisibility: .visible) {
                 Button(S.unpair, role: .destructive) { model.engine.unpair(); AskSession.shared.clear(); dismiss() }
                 Button(S.cancel, role: .cancel) {}
@@ -69,7 +70,6 @@ struct SettingsView: View {
             let folder = model.storeFolder
             space = await Task.detached(priority: .utility) { Library.spaceUsed(in: folder) }.value
         }
-        .task { languages = SpokenLanguage.options(await Spoken.supported(), in: .current) }
         .onAppear(perform: recheck)
         .onChange(of: phase) { _, now in if now == .active { recheck() } }
     }
@@ -80,14 +80,13 @@ struct SettingsView: View {
                 Image(systemName: status == .notPaired ? "iphone" : "laptopcomputer")
                     .font(.body)
                     .foregroundStyle(Theme.written)
-                    .frame(width: tile, height: tile)
-                    .background(Theme.control, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    .frame(width: iconWidth)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     if status == .notPaired {
                         Text(S.onPhoneOnly).font(.body.weight(.medium)).foregroundStyle(Theme.ink)
                     } else {
-                        Text(name ?? S.computer).font(.body.weight(.medium)).foregroundStyle(Theme.ink)
+                        Text(name ?? S.computer).font(.headline).foregroundStyle(Theme.ink)
                         TimelineView(.periodic(from: .now, by: 60)) { context in
                             Text(status.label(now: context.date))
                                 .font(.footnote)
@@ -96,9 +95,11 @@ struct SettingsView: View {
                     }
                 }
             }
-            .padding(.vertical, 2)
+            .padding(.vertical, 6)
             if status == .notPaired {
-                Button { connecting = true } label: { Text(S.connectComputer).foregroundStyle(Theme.accent) }
+                Button { connecting = true } label: {
+                    rowLabel(S.connectComputer, icon: "link", color: Theme.accent)
+                }
                     .accessibilityIdentifier("settings-connect")
             } else {
                 Button {
@@ -106,30 +107,68 @@ struct SettingsView: View {
                     Task { await model.engine.syncNow(); syncing = false }
                 } label: {
                     HStack {
-                        Text(S.syncNow).foregroundStyle(Theme.accent)
+                        rowLabel(S.syncNow, icon: "arrow.triangle.2.circlepath", color: Theme.accent)
                         Spacer()
                         if syncing { ProgressView().controlSize(.small) }
                     }
                 }
                 .disabled(syncing)
                 Button(role: .destructive) { confirmUnpair = true } label: {
-                    Text(S.unpair).foregroundStyle(Theme.danger)
+                    rowLabel(S.unpair, icon: "minus.circle", color: Theme.danger)
                 }
             }
-        } header: { Text(S.computer) } footer: {
+        } header: { sectionTitle(S.computer) } footer: {
             if status == .notPaired { Text(S.connectFooter) }
         }
         .listRowBackground(Theme.card)
+        .listRowSeparator(.hidden)
+    }
+
+    private func sectionTitle(_ title: String) -> some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .textCase(.uppercase)
+            .tracking(0.6)
+            .foregroundStyle(Theme.muted)
+    }
+
+    private func rowLabel(_ title: String, icon: String, color: Color = Theme.ink) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundStyle(Theme.muted)
+                .frame(width: iconWidth)
+                .accessibilityHidden(true)
+            Text(title).foregroundStyle(color)
+        }
     }
 
     private var spokenLanguage: some View {
-        Section {
-            Picker(selection: $spoken) {
-                Spoken.choices(selection: spoken, languages: languages)
+        let value = Spoken.selectionName(spoken)
+        return Section {
+            NavigationLink {
+                SpokenLanguageList(selection: $spoken)
+                    .navigationTitle(S.spokenLanguage)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar(.visible, for: .navigationBar)
             } label: {
-                Label(S.spokenLanguage, systemImage: "waveform.and.mic").foregroundStyle(Theme.ink)
+                HStack(spacing: 12) {
+                    Image(systemName: "waveform.and.mic")
+                        .foregroundStyle(Theme.muted)
+                        .frame(width: iconWidth)
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(S.spokenLanguage).foregroundStyle(Theme.ink)
+                        Text(value)
+                            .font(.subheadline)
+                            .foregroundStyle(Theme.muted)
+                    }
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.vertical, 4)
+                }
             }
-            .pickerStyle(.navigationLink)
+            .accessibilityLabel(S.spokenLanguage)
+            .accessibilityValue(value)
             .accessibilityIdentifier("settings-spoken-language")
         } footer: { Text(S.spokenFooter) }
         .listRowBackground(Theme.card)
@@ -140,7 +179,7 @@ struct SettingsView: View {
             ForEach(Permission.allCases, id: \.self) { p in
                 let a = access[p] ?? p.access
                 HStack(spacing: 12) {
-                    Label(p.name, systemImage: p.symbol).foregroundStyle(Theme.ink)
+                    rowLabel(p.name, icon: p.symbol)
                     Spacer()
                     switch a {
                     case .on:
@@ -156,8 +195,9 @@ struct SettingsView: View {
                 .accessibilityElement(children: .combine)
                 .accessibilityValue(a == .on ? S.accessOn : a == .off ? S.accessOff : a == .restricted ? S.accessRestricted : S.accessNotAsked)
             }
-        } header: { Text(S.permissions) } footer: { Text(S.permissionsFooter) }
-        .listRowBackground(Theme.card)
+        } header: { sectionTitle(S.permissions) } footer: { Text(S.permissionsFooter) }
+        .listRowBackground(Theme.bg)
+        .listRowSeparator(.hidden)
     }
 
     /// Permissions and the passcode can change in the Settings app while Yogurt is open.
