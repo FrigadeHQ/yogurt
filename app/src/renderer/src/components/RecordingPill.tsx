@@ -15,8 +15,10 @@ export function RecordingPill({ time, expanded, illustration, className = '', ch
   return <div {...props} data-open={expanded} data-illustration={illustration || undefined} className={`widget-pill ${className}`}>
     <div className="widget-details" aria-hidden="true">
       {expanded && <span className="widget-brand"><Logo size={18} className="text-white" /></span>}
-      {illustration ? <StillMeter /> : <LevelBars testId="widget-wave" height={16} className="text-[var(--pill-accent)]" />}
-      <span data-testid="widget-time" className="widget-time">{time}</span>
+      <div className="widget-readout">
+        {illustration ? <StillMeter /> : <LevelBars testId="widget-wave" height={16} className="text-[var(--pill-accent)]" />}
+        <span data-testid="widget-time" className="widget-time">{time}</span>
+      </div>
     </div>
     {children}
   </div>

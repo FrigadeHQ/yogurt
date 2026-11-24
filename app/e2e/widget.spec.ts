@@ -1,5 +1,5 @@
 import { meterHeights } from './meterGeometry'
-import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
+import { _electron as electron, expect, test, type ElectronApplication, type Locator, type Page } from '@playwright/test'
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -8,11 +8,11 @@ const main = join(import.meta.dirname, '../out/main/index.js')
 const zoom = { bundleId: 'us.zoom.xos', name: 'zoom.us' }
 type Snap = { visible: boolean; view: { kind: string; note: { text: string } | null; crashed: boolean } | null; notice: { title: string; body: string; meetingId: string } | null; bounds: { x: number; y: number; width: number; height: number } | null; workArea: { x: number; y: number; width: number; height: number } }
 
-async function launch(settings?: object, micAck?: string) {
+async function launch(settings?: object, micAck?: string, ...switches: string[]) {
   const userData = mkdtempSync(join(tmpdir(), 'yogurt-e2e-'))
   if (settings) writeFileSync(join(userData, 'settings.json'), JSON.stringify(settings))
   // These tests control foreground/background explicitly instead of competing for native focus.
-  const app = await electron.launch({ args: [main], env: { ...process.env, YOGURT_BACKGROUND: '1', YOGURT_FAKE: '1', YOGURT_USER_DATA: userData, ...(micAck && { YOGURT_FAKE_MIC_ACK: micAck }) } })
+  const app = await electron.launch({ args: [...switches, main], env: { ...process.env, YOGURT_BACKGROUND: '1', YOGURT_FAKE: '1', YOGURT_USER_DATA: userData, ...(micAck && { YOGURT_FAKE_MIC_ACK: micAck }) } })
   // the config's actionTimeout never reaches Electron's windows: without this a click that can't land waits out the
   // whole test, and the stuck app then holds up the worker's teardown too (how "pause says Paused" failed once)
   app.context().setDefaultTimeout(15_000)
@@ -76,8 +76,46 @@ test('the widget is a compact horizontal recorder with one live wave and no exte
   } finally { await app.close() }
 })
 
+async function captureCenteredReadout(app: ElectronApplication, pill: Locator, path: string) {
+  const png = await pill.screenshot({ path, scale: 'device' })
+  const { boxes, center, width } = await pill.evaluate(el => {
+    const bounds = el.getBoundingClientRect()
+    const boxes = ['widget-wave', 'widget-time'].map(id => {
+      const b = el.querySelector(`[data-testid="${id}"]`)!.getBoundingClientRect()
+      return { left: b.left - bounds.left, right: b.right - bounds.left, mid: b.top - bounds.top + b.height / 2 }
+    })
+    const center = el.getAttribute('data-open') === 'true' ? 27 : bounds.height / 2
+    return { boxes, center, width: bounds.width }
+  })
+  expect(Math.abs(boxes[0].mid - boxes[1].mid)).toBeLessThanOrEqual(0.5)
+  for (const box of boxes) expect(Math.abs(box.mid - center)).toBeLessThanOrEqual(0.5)
+  expect(png.readUInt32BE(16)).toBe(Math.round(width) * 2)
+  // The old line boxes already lined up. Check the painted digits and strokes at Retina scale too.
+  const ink = await app.evaluate(({ nativeImage }, { data, boxes, center }) => {
+    const image = nativeImage.createFromBuffer(Buffer.from(data, 'base64'))
+    const pixels = image.toBitmap(), stride = image.getSize().width * 4
+    return boxes.map(box => {
+      const left = Math.floor(box.left * 2), right = Math.ceil(box.right * 2)
+      const firstRow = Math.round((center - 10) * 2), lastRow = Math.round((center + 10) * 2)
+      const background = pixels.subarray(firstRow * stride + left * 4, firstRow * stride + left * 4 + 3)
+      let top = Infinity, bottom = -Infinity
+      for (let y = firstRow; y < lastRow; y++) {
+        for (let x = left; x < right; x++) {
+          const i = y * stride + x * 4
+          if (background.some((channel, c) => pixels[i + c] > channel + 8)) {
+            top = Math.min(top, y); bottom = Math.max(bottom, y + 1)
+          }
+        }
+      }
+      return (top + bottom) / 4
+    })
+  }, { data: png.toString('base64'), boxes, center })
+  for (const mid of ink) expect(Math.abs(mid - center)).toBeLessThanOrEqual(0.5)
+  expect(Math.abs(ink[0] - ink[1])).toBeLessThanOrEqual(0.5)
+}
+
 test('the header and expanded card share confirmed mute, across collapse, reload and pause', async ({}, testInfo) => {
-  const { app, page } = await launch(undefined, 'slow')
+  const { app, page } = await launch(undefined, 'slow', '--force-device-scale-factor=2')
   try {
     const w = await record(app, page)
     const pill = w.getByTestId('widget')
@@ -111,7 +149,7 @@ test('the header and expanded card share confirmed mute, across collapse, reload
             && mic.width === 24 && mic.height === 24
         }, details)).toBe(true)
         await page.getByTestId('note-state').locator('..').screenshot({ path: testInfo.outputPath(`mic-${name}-header-${colorScheme}.png`) })
-        await pill.screenshot({ path: testInfo.outputPath(`mic-${name}-pill-${colorScheme}.png`) })
+        await captureCenteredReadout(app, pill, testInfo.outputPath(`mic-${name}-pill-${colorScheme}.png`))
       }
       await page.emulateMedia({ colorScheme: null }); await w.emulateMedia({ colorScheme: null })
     }
@@ -486,7 +524,7 @@ test('hover stays stationary and pointer-down movement drags immediately without
     const widget = w.getByTestId('widget')
     // the pill hugs its content: the same space at both ends
     // measured once it settles: the pill resizes to its timer and animates there; 13 is 12 inside the 1px border
-    await expect.poll(() => widget.evaluate(el => { const r = el.getBoundingClientRect(), a = el.querySelector('.widget-details > :first-child')!.getBoundingClientRect(), z = el.querySelector('[data-testid=widget-time]')!.getBoundingClientRect(); return [Math.round(a.left - r.left), Math.round(r.right - z.right)] })).toEqual([13, 13])
+    await expect.poll(() => widget.evaluate(el => { const r = el.getBoundingClientRect(), a = el.querySelector('[data-testid=widget-wave]')!.getBoundingClientRect(), z = el.querySelector('[data-testid=widget-time]')!.getBoundingClientRect(); return [Math.round(a.left - r.left), Math.round(r.right - z.right)] })).toEqual([13, 13])
     const before = (await snap(app)).bounds!
     const box = (await w.getByTestId('widget').boundingBox())!
     const presented = (await fake<{ presented: number }>(app, 'main')).presented

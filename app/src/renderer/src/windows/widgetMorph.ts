@@ -44,8 +44,7 @@ export function useWidgetMorph(card: React.RefObject<HTMLDivElement | null>, war
   useLayoutEffect(() => {
     const el = card.current
     if (!el || !layout) return
-    const wave = el.querySelector<SVGSVGElement>('.recording-wave')!
-    const timer = el.querySelector<HTMLElement>('.widget-time')!
+    const readout = el.querySelector<HTMLElement>('.widget-readout')!
     const body = el.querySelector<HTMLElement>('.widget-preview')!
     const expanded = widgetExpanded(layout, warning)
     morph.current = (immediate = false) => {
@@ -53,15 +52,14 @@ export function useWidgetMorph(card: React.RefObject<HTMLDivElement | null>, war
       const opened = intent.open, box = opened ? expanded : layout.pill
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       const duration = opened ? motion.surface : motion.base, easing = opened ? motion.soft : motion.ease
-      const animate = (node: HTMLElement | SVGElement, to: Record<string, string>, ms: number = duration, ease = easing, delay = 0) => {
+      const animate = (node: HTMLElement, to: Record<string, string>, ms: number = duration, ease = easing, delay = 0) => {
         const computed = getComputedStyle(node), from = Object.fromEntries(Object.keys(to).map(k => [k, computed[k as keyof CSSStyleDeclaration]]))
         Object.assign(node.style, to)
         if (!immediate && (!reduced || 'opacity' in to)) animations.current.push(node.animate([from, to] as Keyframe[], { duration: reduced ? motion.micro : ms, easing: ease, delay: reduced ? 0 : delay, fill: 'both' }))
       }
       animate(el, { left: `${box.x}px`, top: `${box.y}px`, width: `${box.width}px`, height: `${box.height}px`, borderRadius: opened ? '16px' : '10px' })
-      const waveX = opened ? box.width - timer.getBoundingClientRect().width - 75 : 12
-      animate(wave, { transform: `translate(${waveX}px,${opened ? 18 : 12}px)` })
-      animate(timer, { transform: `translate(${waveX + 27}px,${opened ? 18.5 : 12.5}px)` })
+      const readoutX = opened ? box.width - readout.getBoundingClientRect().width - 48 : 12
+      animate(readout, { transform: `translate(${readoutX}px,${opened ? 18 : 12}px)` })
       body.style.width = `${expanded.width - 2}px`; body.style.height = `${expanded.height - 54}px`
       animate(body, { transform: opened ? 'translateX(0) scale(1)' : 'translateX(40px) scale(.97)', filter: opened ? 'blur(0px)' : 'blur(2px)' }, duration, motion.ease)
       animate(body, { opacity: opened ? '1' : '0' }, opened ? motion.base : motion.micro, motion.ease, opened ? 40 : 0)
@@ -79,10 +77,9 @@ export function useWidgetMorph(card: React.RefObject<HTMLDivElement | null>, war
     wake.current()
   }, [layout, warning])
   useLayoutEffect(() => {
-    const timer = card.current?.querySelector<HTMLElement>('[data-testid="widget-time"]')
-    if (!timer) return
-    // Two bordered 13px insets, the 15px meter and a 12px gap before the timer.
-    collapsedWidth.current = 53 + timer.getBoundingClientRect().width + (muted ? 12 + 1 + 12 + 24 : 0)
+    const readout = card.current?.querySelector<HTMLElement>('.widget-readout')
+    if (!readout) return
+    collapsedWidth.current = 26 + readout.getBoundingClientRect().width + (muted ? 12 + 1 + 12 + 24 : 0)
     if (!intent.pressed) window.yogurt.widget.size(collapsedWidth.current, 42)
   }, [time, open, layout?.pill.width, muted])
   useEffect(() => {
