@@ -193,6 +193,7 @@ test('edited summaries can dismiss an attendee change until membership changes a
     await expect(page.getByTestId('people-card')).toHaveCount(0)
     const close = banner.getByRole('button', { name: 'Close', exact: true })
     await expect(close).toHaveAttribute('title', 'Close')
+    await page.emulateMedia({ colorScheme: null }) // Let the window follow Yogurt's appearance setting.
     for (const theme of ['light', 'dark'] as const) {
       await page.evaluate(theme => window.yogurt.settings.setTheme(theme), theme)
       await expect.poll(() => page.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)).toBe(theme === 'dark')
