@@ -7,7 +7,7 @@ import { rememberScrollPositions } from './useScrollMemory'
 import { Onboarding } from './screens/Onboarding'
 import { Note } from './screens/Note'
 import { Home } from './screens/Home'
-import { Settings } from './screens/Settings'
+import { Settings, SettingsSidebar } from './screens/Settings'
 import { Shortcuts } from './components/Shortcuts'
 import { Search } from './components/Search'
 import { Workspace } from './components/Workspace'
@@ -20,6 +20,7 @@ import { bootHoldMs } from '../../shared/onboarding'
 import { Folder } from './screens/Folder'
 import { AskRecordingWait, watchRecordingWait } from './askAvailability'
 import { useFolderRead } from './folders'
+import { isSettingsRoute } from '../../shared/routes'
 import type { LibrarySource, MeetingView, OnboardingPlan, SetupState } from '../../shared/types'
 
 export function App() {
@@ -30,6 +31,8 @@ export function App() {
   const [setup, setSetup] = useState<SetupState>()
   // where the app was told to go, e.g. /note/<id>
   const [route, setRouteNow] = useState('')
+  const settings = isSettingsRoute(route)
+  const settingsFocus = route.startsWith('/settings/') ? route.slice('/settings/'.length) : undefined
   const [agendaJump, setAgendaJump] = useState<{ at: number }>()
   const [resumeRequested, setResumeRequested] = useState(false)
   const [meeting, setMeeting] = useState<Pick<MeetingView, 'id' | 'title'>>()
@@ -43,14 +46,18 @@ export function App() {
     setAgendaJump(agendaDate === undefined ? undefined : { at: agendaDate })
     setResumeRequested(false)
     rememberScrollPositions()
-    if (r !== routeRef.current) { history.current = [...history.current, routeRef.current].slice(-50); future.current = [] }
+    // A visit to Settings occupies one history entry, including its sections and event pages.
+    if (r !== routeRef.current && !(isSettingsRoute(r) && isSettingsRoute(routeRef.current))) {
+      history.current = [...history.current, routeRef.current].slice(-50)
+      future.current = []
+    }
     routeRef.current = r
     setRouteNow(r)
   }
   const rememberRoute = (r: string) => { echoes.current.push(r); window.yogurt.nav.go(r) }
   const go = (r: string, agendaDate?: number) => { setRoute(r, agendaDate); rememberRoute(r) }
   const back = () => {
-    const prev = history.current.pop()
+    const prev = history.current.pop() ?? (isSettingsRoute(routeRef.current) ? '' : undefined)
     if (prev === undefined) return
     setAgendaJump(undefined)
     setResumeRequested(false)
@@ -105,19 +112,22 @@ export function App() {
   }, [booted])
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => window.innerWidth < 900)
   const [sidebarMotion, setSidebarMotion] = useState(false)
-  const toggleSidebar = (animate = false) => { setSidebarMotion(animate); setSidebarCollapsed(value => !value) }
+  const toggleSidebar = (animate = false) => {
+    if (isSettingsRoute(routeRef.current)) return
+    setSidebarMotion(animate); setSidebarCollapsed(value => !value)
+  }
   useEffect(() => {
     // Close it only when the window narrows past 900px, so later resizes keep a sidebar the person opened.
     let wide = window.innerWidth >= 900
     const resize = () => {
       setSidebarMotion(false)
-      if (wide && window.innerWidth < 900) setSidebarCollapsed(true)
+      if (wide && window.innerWidth < 900 && !isSettingsRoute(routeRef.current)) setSidebarCollapsed(true)
       wide = window.innerWidth >= 900
     }
     window.addEventListener('resize', resize)
     return () => window.removeEventListener('resize', resize)
   }, [])
-  useEffect(() => { window.yogurt.sidebar.setOpen(ready && !holding ? !sidebarCollapsed : null) }, [ready, holding, sidebarCollapsed])
+  useEffect(() => { window.yogurt.sidebar.setOpen(ready && !holding && !settings ? !sidebarCollapsed : null) }, [ready, holding, settings, sidebarCollapsed])
   useEffect(() => {
     if (!ready || holding) return
     return window.yogurt.sidebar.onToggle(() => {
@@ -136,6 +146,13 @@ export function App() {
   // ⌘K from any screen, also while typing in a note; by the key's place, so it works with any keyboard layout
   useEffect(() => {
     if (!ready || holding) return
+    // Let fields and dialogs consume Escape before handling it as Settings Back.
+    const escapeSettings = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented || e.isComposing || e.repeat || !isSettingsRoute(routeRef.current)) return
+      if (document.querySelector('dialog[open], [aria-modal="true"], [role="menu"], [role="dialog"]:not(dialog)')) return
+      e.preventDefault()
+      back()
+    }
     const onKey = (e: KeyboardEvent) => {
       // a Mac's ⌃⌘S is Ctrl+Shift+S on Windows and Linux
       const mac = onMac()
@@ -177,8 +194,13 @@ export function App() {
       if (e.button === 3) back(); else forward()
     }
     window.addEventListener('keydown', onKey, true)
+    window.addEventListener('keydown', escapeSettings)
     window.addEventListener('mouseup', onMouse, true)
-    return () => { window.removeEventListener('keydown', onKey, true); window.removeEventListener('mouseup', onMouse, true) }
+    return () => {
+      window.removeEventListener('keydown', onKey, true)
+      window.removeEventListener('keydown', escapeSettings)
+      window.removeEventListener('mouseup', onMouse, true)
+    }
   }, [ready, holding])
   const open = (id: string) => { setSearching(false); go(`/note/${id}`) }
   /** A citation opens its matching notes paragraph or transcript segment. */
@@ -189,7 +211,6 @@ export function App() {
   }
 
   const noteId = route.startsWith('/note/') ? route.slice(6) : null
-  const settings = route === '/settings' || route.startsWith('/settings/')
   const trash = route === '/trash'
   const chatId = route === '/chat' ? null : route.startsWith('/chat/') ? route.slice(6) : undefined
   const folderId = route.startsWith('/folder/') ? route.slice('/folder/'.length) : null
@@ -197,7 +218,7 @@ export function App() {
   const suggestedFolder = noteId ? folders?.find((s) => s.id === suggestedFolders[noteId]) : undefined
   // a folder's page waits for the list; a folder that is gone shows Meetings
   const folderScreen = folderId && (folder ? <Folder key={folder.id} folder={folder} open={open} onUploaded={(id) => setSuggestedFolders((current) => ({ ...current, [id]: folder.id }))} /> : foldersFailed ? <div className="native-library"><ReadError className="library-empty" testId="folder-list-error" retry={retryFolders} /></div> : !folders ? <div className="native-folder"><StartRecording folderId={folderId} /><div className="native-library"><LoadingContent pending testId="meetings-loading" skeleton={<><div className="folder-page-heading"><h1><span className="loading-bar" style={{ width: 140 }} /></h1></div><MeetingListLoading showFolders={false} /></>} /></div></div> : null)
-  const screen = settings ? <Settings go={go} revision={settingsRevision} focus={route.startsWith('/settings/') ? route.slice('/settings/'.length) : undefined} /> : noteId ? <Note key={noteId} id={noteId} onSource={openSource} onTitleChange={setMeeting} at={jump?.id === noteId ? jump : undefined}
+  const screen = settings ? <Settings go={go} revision={settingsRevision} focus={settingsFocus} /> : noteId ? <Note key={noteId} id={noteId} onSource={openSource} onTitleChange={setMeeting} at={jump?.id === noteId ? jump : undefined}
     onResumeRequested={resumeRequested ? () => { setResumeRequested(false); rememberRoute(route) } : undefined}
     folderSuggestion={suggestedFolder ? { folder: suggestedFolder, dismiss: () => dismissFolderSuggestion(noteId) } : undefined} />
     : chatId !== undefined ? <ChatPage id={chatId} go={go} openSource={openSource} />
@@ -210,13 +231,15 @@ export function App() {
   const inWorkspace = !starting && ready
   const page = starting
     ? <><TitleBar />{startupError ? <ReadError testId="setup-read-error" retry={() => setSetupAttempt(n => n + 1)} /> : boot}</>
-    : ready ? <Workspace route={route} meeting={meeting} folders={folders} go={go} back={history.current.length ? back : undefined} forward={future.current.length ? forward : undefined} search={() => setSearching(true)} shortcuts={openShortcuts} collapsed={sidebarCollapsed} sidebarMotion={sidebarMotion} toggleSidebar={toggleSidebar}>{screen}</Workspace>
+    : ready ? <Workspace route={route} meeting={meeting} folders={folders} go={go} back={settings || history.current.length ? back : undefined} forward={future.current.length ? forward : undefined} search={() => setSearching(true)} shortcuts={openShortcuts}
+        settingsSidebar={settings && <SettingsSidebar focus={settingsFocus} go={go} back={back} />}
+        collapsed={!settings && sidebarCollapsed} sidebarMotion={!settings && sidebarMotion} toggleSidebar={toggleSidebar}>{screen}</Workspace>
     : <><TitleBar />{setup.phase === 'checking' && firstRunDone ? boot : <Onboarding state={setup} plan={plan} onDone={() => setPlan({ intro: false, steps: [] })} />}</>
   return <AskRecordingWait value={recordingWait}>
     {mac && <MacLaunch active={launching} />}
     <div data-testid="app-shell" inert={launching || undefined} className={starting ? 'app-shell flex h-full flex-col bg-bg' : `app-shell h-full text-ink ${ready ? 'bg-transparent' : 'bg-bg'}`}>
       {page}
-      {inWorkspace && searching && <Search folder={folder} folders={folders} onOpen={open} onNavigate={go} onShortcuts={openShortcuts} onSettingsChange={() => setSettingsRevision((v) => v + 1)} onClose={() => setSearching(false)} sidebarCollapsed={sidebarCollapsed} onToggleSidebar={() => toggleSidebar()} />}
+      {inWorkspace && searching && <Search folder={folder} folders={folders} onOpen={open} onNavigate={go} onShortcuts={openShortcuts} onSettingsChange={() => setSettingsRevision((v) => v + 1)} onClose={() => setSearching(false)} sidebarCollapsed={sidebarCollapsed} onToggleSidebar={settings ? undefined : toggleSidebar} />}
       {inWorkspace && shortcuts && <Shortcuts onClose={() => setShortcuts(false)} />}
       {inWorkspace && <TrashToast go={go} />}
     </div>

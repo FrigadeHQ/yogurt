@@ -18,9 +18,10 @@ import { FinishSetup } from './FinishSetup'
 import { NotesSetup } from './NotesSetup'
 import { CornerMenu } from './CornerMenu'
 
-export function Workspace({ route, meeting, folders, go, back, forward, search, shortcuts, collapsed, sidebarMotion, toggleSidebar, children }: {
+export function Workspace({ route, meeting, folders, go, back, forward, search, shortcuts, collapsed, sidebarMotion, toggleSidebar, settingsSidebar, children }: {
   meeting?: Pick<MeetingView, 'id' | 'title'>
   folders?: Folder[]
+  settingsSidebar?: ReactNode
   route: string; go: (route: string) => void; back?: () => void; forward?: () => void; search: () => void; shortcuts: () => void; children: ReactNode
   collapsed: boolean; sidebarMotion: boolean; toggleSidebar: (animate?: boolean) => void
 }) {
@@ -77,7 +78,7 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
   return <div className={`workspace ${collapsed ? 'sidebar-collapsed' : ''}`} data-testid="workspace" {...peek.buttonPathHandlers} data-sidebar-motion={sidebarMotion} data-peeking={peek.open} data-peek-motion={peek.pointerMotion}>
     <div className="workspace-window-bar" onPointerEnter={peek.cancel} onPointerLeave={peek.leave}>
       <div className="workspace-drag-region drag" data-testid="titlebar" aria-hidden="true" />
-      <Tooltip.Root>
+      {!settingsSidebar && <Tooltip.Root>
         <Tooltip.Trigger ref={peek.toggle} {...peek.buttonHandlers} className="ghost-btn workspace-icon workspace-sidebar-toggle no-drag" data-testid={collapsed ? 'sidebar-expand' : 'sidebar-collapse'}
           onClick={e => { peek.cancel(); toggleSidebar(e.detail > 0) }}
           onKeyDown={e => { if (collapsed && e.key === 'ArrowDown') { e.preventDefault(); peek.keyboard() } }}
@@ -86,21 +87,23 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
           <SidebarToggle className="flex-none sidebar-toggle-glyph rtl:-scale-x-100" size={16} aria-hidden="true" />
         </Tooltip.Trigger>
         <ActionTooltipPopup label={`${sidebarLabel} (${keys('⌃⌘S')})`} />
-      </Tooltip.Root>
+      </Tooltip.Root>}
     </div>
     <Sidebar.Gap className="workspace-sidebar-gap" transition={sidebarTransition} />
-    <div ref={peek.panel} id="workspace-sidebar" className="workspace-sidebar" role="complementary" aria-label={t('Main navigation')}
+    <div ref={peek.panel} id="workspace-sidebar" className="workspace-sidebar" role="complementary" aria-label={settingsSidebar ? t('Settings') : t('Main navigation')}
       inert={!sidebarVisible} aria-hidden={!sidebarVisible} onPointerEnter={peek.cancel} onPointerLeave={peek.leave}>
       <div className="workspace-sidebar-inner">
-      <div className="workspace-sidebar-body">
-        <button className="workspace-search no-drag" data-testid="search-open" aria-label={t('Search')} title={`${t('Search')} (${keys('⌘K')})`} onClick={search}><Search className="flex-none" size={16} aria-hidden="true" /><span>{t('Search')}</span><kbd>{keys('⌘K')}</kbd></button>
-        <nav aria-label={t('Workspace')}>{links.map(nav)}</nav>
-        <FoldersNav folders={folders} route={route} go={navigate} />
-      </div>
-      <div className="workspace-sidebar-footer">
-        <FinishSetup />
-        <CornerMenu visible={sidebarVisible} section={section} recording={recording?.kind === 'recording'} go={navigate} shortcuts={shortcuts} />
-      </div>
+        {settingsSidebar || <>
+          <div className="workspace-sidebar-body">
+            <button className="workspace-search no-drag" data-testid="search-open" aria-label={t('Search')} title={`${t('Search')} (${keys('⌘K')})`} onClick={search}><Search className="flex-none" size={16} aria-hidden="true" /><span>{t('Search')}</span><kbd>{keys('⌘K')}</kbd></button>
+            <nav aria-label={t('Workspace')}>{links.map(nav)}</nav>
+            <FoldersNav folders={folders} route={route} go={navigate} />
+          </div>
+          <div className="workspace-sidebar-footer">
+            <FinishSetup />
+            <CornerMenu visible={sidebarVisible} section={section} recording={recording?.kind === 'recording'} go={navigate} shortcuts={shortcuts} />
+          </div>
+        </>}
       </div>
     </div>
     <div className="workspace-content" {...peek.edgeHandlers}>

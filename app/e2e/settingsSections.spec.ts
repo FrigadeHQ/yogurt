@@ -17,13 +17,27 @@ for (const theme of ['light', 'dark'] as const) {
       const page = await app.firstWindow()
       await page.emulateMedia({ colorScheme: null })
       await expect(page.getByTestId('home')).toBeVisible()
+      await openFromCorner(page, 'nav-trash')
+      const sidebar = page.locator('#workspace-sidebar')
+      const width = await sidebar.evaluate(el => el.getBoundingClientRect().width)
+      const collapsed = theme === 'dark'
+      const toggle = page.getByTestId(collapsed ? 'sidebar-expand' : 'sidebar-collapse')
+      if (!await toggle.isVisible()) await page.getByTestId(collapsed ? 'sidebar-collapse' : 'sidebar-expand').click()
       await openFromCorner(page, 'settings-open')
       await expect.poll(() => page.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)).toBe(theme === 'dark')
-      const capture = async (section: string) => {
+      const back = sidebar.getByRole('button', { name: 'Back', exact: true })
+      const capture = async (section: string, name = section) => {
         const panel = page.getByTestId('settings-page-' + section)
         await expect(panel).toBeVisible()
+        await expect(back).toBeInViewport()
+        await expect(page.getByTestId('nav-home')).toHaveCount(0)
+        await expect(sidebar.locator('button[aria-current="page"]')).toHaveCount(1)
+        expect(await sidebar.boundingBox()).toMatchObject({ x: 0, width })
+        const content = (await page.locator('.settings-scroll').boundingBox())!
+        expect(content.x).toBe(width)
+        expect(content.x + content.width).toBe(await page.evaluate(() => innerWidth))
         await expect(panel.locator('.loading-content:not([data-loading-phase="ready"])')).toHaveCount(0)
-        await page.screenshot({ path: testInfo.outputPath(`settings-${section}-${theme}.png`), animations: 'disabled' })
+        await page.screenshot({ path: testInfo.outputPath(`settings-${name}-${theme}.png`), animations: 'disabled' })
       }
       for (const section of settingsSections) {
         const link = page.getByTestId('settings-nav-' + section)
@@ -46,11 +60,24 @@ for (const theme of ['light', 'dark'] as const) {
         await expect(row).toBeDisabled()
         await expect(row).toContainText('Automatic meeting detection is off.')
       }
-      await page.screenshot({ path: testInfo.outputPath(`settings-notifications-detection-off-${theme}.png`), animations: 'disabled' })
+      await capture('notifications', 'notifications-detection-off')
       await page.getByTestId('notification-notes-ready').click()
       await expect(page.getByRole('switch', { name: 'Sound', exact: true })).toBeDisabled()
       await page.getByRole('switch', { name: 'System notification', exact: true }).click()
       await page.getByRole('switch', { name: 'Sound', exact: true }).click()
+      await page.keyboard.press('ControlOrMeta+k')
+      await expect(page.getByTestId('search-input')).toBeFocused()
+      await page.keyboard.press('Escape')
+      await expect(page.getByTestId('search')).toHaveCount(0)
+      await expect(page.getByTestId('settings-page-notes-ready')).toBeVisible()
+      for (const exit of ['Back', 'Escape', 'ControlOrMeta+[']) {
+        if (exit === 'Back') await back.click()
+        else await page.keyboard.press(exit)
+        await expect(page.getByTestId('trash-page')).toBeVisible()
+        await expect(toggle).toBeVisible()
+        await page.keyboard.press('ControlOrMeta+]')
+        await expect(page.getByTestId('settings-page-notes-ready')).toBeVisible()
+      }
       await page.reload()
       await expect(page.getByRole('switch', { name: 'Sound', exact: true })).toBeChecked()
     } finally { await app.close() }

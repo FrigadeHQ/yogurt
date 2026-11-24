@@ -36,7 +36,7 @@ test('every meeting goes to one file and into a fresh Yogurt, with notes, transc
     await openFromCorner(b.page, 'settings-open', 'storage')
     await b.page.getByTestId('backup-import').click()
     await expect(b.page.getByTestId('backup-said')).toHaveText('Added 4 meetings.')
-    await b.page.getByTestId('nav-home').click()
+    await b.page.getByTestId('settings-back').click()
     // home heard about it without a reload
     await expect(b.page.getByTestId('past-note')).toHaveCount(4)
     expect(existsSync(join(b.userData, 'meetings', id, 'me.wav'))).toBe(true)
@@ -63,7 +63,7 @@ test('every meeting goes to one file and into a fresh Yogurt, with notes, transc
     await fake(b.app, 'go', '/settings/storage')
     await b.page.getByTestId('backup-import').click()
     await expect(b.page.getByTestId('backup-said')).toHaveText('Nothing new in this backup. 4 were already here.')
-    await b.page.getByTestId('nav-home').click()
+    await b.page.keyboard.press('ControlOrMeta+1')
     await expect(b.page.getByTestId('past-note')).toHaveCount(4)
   } finally { await b.app.close() }
 })

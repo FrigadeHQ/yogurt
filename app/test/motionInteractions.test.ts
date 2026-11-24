@@ -1409,3 +1409,37 @@ it('hands the same shell from the Mac launch to a read error, checking and the r
   const workspace = find(tree, 'Workspace')
   expect(workspace.props.route).toBe('')
 })
+
+it.each([false, true])('Back from a Settings detail restores the note and its sidebar (collapsed: %s)', async collapsed => {
+  vi.useFakeTimers()
+  const go = vi.fn()
+  vi.stubGlobal('window', { innerWidth: collapsed ? 800 : 1100, yogurt: {
+    nav: { go }, setup: { state: async () => ({ phase: 'ready' }), onState: vi.fn() },
+    onboarding: { plan: async () => ({ steps: [], intro: false }) },
+  } })
+  const draw = renderer(App)
+  draw()
+  const [setup, plan] = vi.mocked(useEffect).mock.calls.slice(2, 4)
+  setup[0](); plan[0]()
+  await Promise.resolve()
+  draw()
+  vi.mocked(useEffect).mock.calls[4][0]()
+  vi.runAllTimers()
+  const workspace = () => find(draw(), 'Workspace').props
+  workspace().go('/note/standup')
+  workspace().go('/settings/calendar')
+  const shell = workspace()
+  expect(shell.collapsed).toBe(false)
+  const layout = renderer(() => Workspace(shell))()
+  const sidebar = find(find(layout, 'workspace-sidebar'), 'SettingsSidebar')
+  expect(renderToStaticMarkup(sidebar)).toContain('data-testid="settings-nav-connections" aria-current="page"')
+  expect(() => find(layout, 'nav-home')).toThrow()
+  shell.toggleSidebar()
+  sidebar.props.go('/settings/notifications')
+  workspace().go('/settings/notifications/call-ended')
+  workspace().settingsSidebar.props.back()
+  expect(go).toHaveBeenLastCalledWith('/note/standup')
+  expect(workspace().collapsed).toBe(collapsed)
+  workspace().forward()
+  expect(workspace().route).toBe('/settings/notifications/call-ended')
+})

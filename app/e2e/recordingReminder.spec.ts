@@ -80,7 +80,7 @@ for (const theme of ['light', 'dark'] as const) test(`standard recording reminde
     await toggle.click()
     await page.reload()
     await expect(toggle).toHaveAttribute('aria-checked', 'false')
-    await page.getByTestId('nav-home').click()
+    await page.keyboard.press('ControlOrMeta+1')
     await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
     await expect(toast).toHaveCount(0)

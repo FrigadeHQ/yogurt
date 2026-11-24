@@ -122,7 +122,7 @@ test('settings: granted permissions offer Manage, with open at login and theme c
     await expect.poll(() => settingsOf(dir).theme).toBe('dark')
     await page.getByTestId('settings-theme').selectOption('system')
     await expect.poll(() => settingsOf(dir).theme).toBeUndefined()
-    await page.getByTestId('nav-home').click()
+    await page.getByTestId('settings-back').click()
     await expect(page.getByTestId('home')).toBeVisible()
   } finally { await app.close() }
 })

@@ -69,6 +69,7 @@ test('the hidden sidebar peeks over a full-width page and keeps folder actions a
     await page.keyboard.press('Escape')
     await openFromCorner(page, 'settings-open')
     await expect(page.getByTestId('settings')).toBeVisible()
+    await page.getByTestId('settings-back').click()
     await openFromCorner(page, 'nav-trash')
     await expect(page.getByTestId('workspace-heading')).toHaveText('Trash')
     await page.emulateMedia({ reducedMotion: 'reduce' })

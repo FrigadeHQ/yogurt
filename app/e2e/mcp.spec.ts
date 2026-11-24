@@ -85,7 +85,7 @@ test('an AI app on this Mac reads meetings through yogurt-mcp only once Settings
       await expect(toggle).toHaveAttribute('aria-checked', 'true')
       expect((await ai.tool('list_meetings')).isError).toBe(false)
     } finally { rmdirSync(tempSettings) }
-    await page.getByTestId('nav-home').click()
+    await page.getByTestId('settings-back').click()
     await expect(page.getByTestId('home')).toBeVisible()
     await openFromCorner(page, 'settings-open', 'connections')
     await expect(toggle).toHaveAttribute('aria-checked', 'true')

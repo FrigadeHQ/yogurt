@@ -91,9 +91,28 @@ const eventLabels: Record<NotificationEvent, () => string> = {
   'notes-ready': () => t('Notes ready'), updates: () => t('Updates'),
 }
 
+function sectionFor(focus?: string) {
+  const page = focus?.split('/')[0]
+  return settingsSections.find(id => id === page) ?? (page === 'calendar' ? 'connections' : page === 'recordings' ? 'storage' : page === 'notes-model' ? 'notes' : 'general')
+}
+
+export function SettingsSidebar({ focus, go, back }: { focus?: string; go(route: string): void; back(): void }) {
+  const section = sectionFor(focus)
+  return <nav className="workspace-sidebar-body settings-nav" aria-labelledby="settings-heading">
+    <button data-testid="settings-back" onClick={back}><ArrowLeft size={16} className="rtl:-scale-x-100" aria-hidden="true" />{t('Back')}</button>
+    <h1 id="settings-heading" data-testid="settings-heading">{t('Settings')}</h1>
+    {settingsSections.map(id => {
+      const { icon: Icon, label, color } = sections[id]
+      return <button key={id} data-testid={`settings-nav-${id}`} aria-current={id === section ? 'page' : undefined} onClick={() => go(settingsRoute(id))}>
+        <span className="settings-nav-icon" data-folder-color={color}><Icon size={16} aria-hidden="true" /></span>{label()}
+      </button>
+    })}
+  </nav>
+}
+
 export function Settings({ revision = 0, focus, go = route => window.yogurt.nav.go(route) }: { revision?: number; focus?: string; go?(route: string): void }) {
-  const [page, detail] = (focus ?? 'general').split('/')
-  const section = settingsSections.find(id => id === page) ?? (page === 'calendar' ? 'connections' : page === 'recordings' ? 'storage' : page === 'notes-model' ? 'notes' : 'general')
+  const section = sectionFor(focus)
+  const detail = focus?.split('/')[1]
   const event = section === 'notifications' && isNotificationEvent(detail) ? detail : undefined
   const [perms, setPerms] = useState<PermissionStatus>()
   const [prefs, setPrefs] = useState<Awaited<ReturnType<typeof window.yogurt.settings.get>>>()
@@ -178,20 +197,10 @@ export function Settings({ revision = 0, focus, go = route => window.yogurt.nav.
   }, [focus])
 
   return (
-    <div data-testid="settings" className="settings-screen">
+    <main data-testid="settings" className="settings-screen">
       <div className="settings-titlebar-space" />
-      <div className="settings-panes">
-        <nav className="settings-nav" aria-labelledby="settings-heading">
-          <h1 id="settings-heading" data-testid="settings-heading">{t('Settings')}</h1>
-          {settingsSections.map(id => {
-            const { icon: Icon, label, color } = sections[id]
-            return <button key={id} data-testid={`settings-nav-${id}`} aria-current={id === section ? 'page' : undefined} onClick={() => go(settingsRoute(id))}>
-              <span className="settings-nav-icon" data-folder-color={color}><Icon size={16} aria-hidden="true" /></span>{label()}
-            </button>
-          })}
-        </nav>
-        <div key={focus} className="settings-scroll" ref={scroll}>
-          <div className="settings-content" data-testid={`settings-page-${event ?? section}`}>
+      <div key={focus} className="settings-scroll" ref={scroll}>
+        <div className="settings-content" data-testid={`settings-page-${event ?? section}`}>
             {event && <button className="settings-back" onClick={() => go('/settings/notifications')}><ArrowLeft size={14} aria-hidden="true" />{t('Notifications')}</button>}
             <h2 className="settings-heading" ref={heading} tabIndex={-1}>{event ? eventLabels[event]() : sections[section].label()}</h2>
             {section === 'general' && <>
@@ -390,10 +399,9 @@ export function Settings({ revision = 0, focus, go = route => window.yogurt.nav.
               </button>
               <p className="settings-privacy"><Lock size={12} aria-hidden="true" />{t('Yogurt stores your meetings, notes and audio on this computer.')}</p>
             </>}
-          </div>
         </div>
       </div>
-    </div>
+    </main>
   )
 }
 

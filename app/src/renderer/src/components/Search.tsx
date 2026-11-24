@@ -29,7 +29,7 @@ function Marked({ parts }: { parts: SnippetPart[] }) {
  */
 export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, onShortcuts, onClose, sidebarCollapsed, onToggleSidebar }: {
   folder?: Folder; folders?: Folder[]; onOpen: (id: string) => void; onNavigate: (route: string, agendaDate?: number) => void; onSettingsChange: () => void; onShortcuts: () => void; onClose: () => void
-  sidebarCollapsed: boolean; onToggleSidebar: () => void
+  sidebarCollapsed: boolean; onToggleSidebar?: () => void
 }) {
   const [open, setOpen] = useState(true)
   const close = useRef(onClose)
@@ -111,7 +111,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
     { id: 'trash', label: t('Trash'), group: t('Go to'), Icon: Trash2, run: () => navigate('/trash'), shortcut: keys('⌘3') },
     { id: 'settings', synonyms: ['preferences', 'prefs'], label: t('Settings'), group: t('Go to'), Icon: Settings, run: () => navigate('/settings'), shortcut: keys('⌘,') },
     { id: 'shortcuts', label: t('Keyboard shortcuts'), group: t('Go to'), Icon: Keyboard, run: onShortcuts, shortcut: keys('⌘/') },
-    { id: 'sidebar', label: sidebarCollapsed ? t('Show Sidebar') : t('Hide Sidebar'), group: t('Go to'), synonyms: [t('View')], Icon: PanelLeft, run: onToggleSidebar, shortcut: keys('⌃⌘S') },
+    ...(onToggleSidebar ? [{ id: 'sidebar', label: sidebarCollapsed ? t('Show Sidebar') : t('Hide Sidebar'), group: t('Go to'), synonyms: [t('View')], Icon: PanelLeft, run: onToggleSidebar, shortcut: keys('⌃⌘S') }] : []),
     ...(folders ?? []).map((f) => ({ id: `folder-${f.id}`, label: f.name, group: t('Go to'), synonyms: [t('Folders')], Icon: FolderIcon, folder: f, run: () => navigate(`/folder/${f.id}`) })),
     { id: 'theme-light', synonyms: ['theme', 'appearance', 'mode', 'light'], label: t('Light theme'), group: t('Appearance'), Icon: Sun, run: () => settingsAction(() => window.yogurt.settings.setTheme('light')) },
     { id: 'theme-dark', synonyms: ['theme', 'appearance', 'mode', 'dark'], label: t('Dark theme'), group: t('Appearance'), Icon: Moon, run: () => settingsAction(() => window.yogurt.settings.setTheme('dark')) },

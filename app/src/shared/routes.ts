@@ -3,6 +3,7 @@ import { isNotificationEvent } from './notificationDelivery'
 export const settingsSections = ['general', 'meetings', 'notes', 'notifications', 'connections', 'storage'] as const
 export type SettingsSection = typeof settingsSections[number]
 export const settingsRoute = (section: SettingsSection) => section === 'general' ? '/settings' : '/settings/' + section
+export const isSettingsRoute = (route: string) => route === '/settings' || route.startsWith('/settings/')
 
 /** The renderer can navigate only within this workspace. */
 export const isAppRoute = (route: unknown): route is string => typeof route === 'string' &&

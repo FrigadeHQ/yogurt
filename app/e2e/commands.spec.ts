@@ -106,10 +106,10 @@ test('@everywhere search returns focus with the same ring the opener had', async
     }
     await opener.click()
     await page.keyboard.press('ControlOrMeta+k')
-    await page.getByTestId('search-input').fill('settings')
-    await expect(page.getByTestId('command-settings')).toHaveAttribute('aria-selected', 'true')
+    await page.getByTestId('search-input').fill('trash')
+    await expect(page.getByTestId('command-trash')).toHaveAttribute('aria-selected', 'true')
     await page.keyboard.press('Enter')
-    await expect(page.getByTestId('settings')).toBeVisible()
+    await expect(page.getByTestId('trash-page')).toBeVisible()
     await expect(search).toHaveCount(0)
     await expect(opener).toBeFocused()
     await expect(opener).toHaveCSS('outline-style', 'none')
@@ -123,7 +123,7 @@ test('@everywhere search returns focus with the same ring the opener had', async
     await expect.poll(() => page.evaluate(() => document.activeElement === document.body)).toBe(true)
 
     if (await page.evaluate(() => window.yogurt.capabilities.calendarLink)) {
-      await page.getByTestId('settings-nav-connections').click()
+      await openFromCorner(page, 'settings-open', 'connections')
       await expect(page.getByTestId('calendar-link-add')).toHaveAttribute('aria-expanded', 'true')
       const input = page.getByTestId('calendar-link-input')
       await expect(input).toBeVisible()

@@ -77,7 +77,7 @@ test('turning retention off deletes only after saved transcript and summary and 
     await expect(toggle).toHaveAttribute('aria-checked', 'true')
     await toggle.click(); await expect(toggle).toHaveAttribute('aria-checked', 'false')
     expect(JSON.parse(readFileSync(join(userData, 'settings.json'), 'utf8')).keepRecordings).toBe(false)
-    await page.getByTestId('nav-home').click()
+    await page.getByTestId('settings-back').click()
     await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
     const id = (await page.evaluate(() => window.yogurt.nav.current())).slice('/note/'.length)
     await expect.poll(async () => (await page.evaluate(id => window.yogurt.transcript.get(id), id)).length, { timeout: 30_000 }).toBeGreaterThan(0)

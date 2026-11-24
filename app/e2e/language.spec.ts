@@ -46,7 +46,9 @@ test('picking a language in Settings changes everything at once, menus too, and 
     // no reload: the same page, now in German
     await expect(page.getByTestId('settings-heading')).toHaveText('Einstellungen')
     await expect(page.locator('html')).toHaveAttribute('lang', 'de')
+    await page.getByRole('navigation', { name: 'Einstellungen' }).getByRole('button', { name: 'Zurück', exact: true }).click()
     await expect(page.getByRole('navigation', { name: 'Arbeitsbereich' })).toBeVisible()
+    await openFromCorner(page, 'settings-open')
     await expect.poll(() => tray(app)).toContain('Yogurt öffnen')
     await expect.poll(() => menuBar(app)).toContain('Bearbeiten')
 
