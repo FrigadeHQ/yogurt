@@ -806,13 +806,13 @@ for (const theme of ['light','dark'] as const) test(`edit, remove and review a f
     await page.keyboard.press('Backspace')
     await expect(lines).toHaveCount(10)
     await expect(undo).toBeEnabled()
-    const geometry=await page.getByRole('group',{name:'Edit transcript'}).evaluate(el=>{
-      const r=el.getBoundingClientRect(), list=el.closest('ol')!, box=list.getBoundingClientRect(), style=getComputedStyle(list)
-      return {center:r.left+r.width/2, columnCenter:(box.left+parseFloat(style.paddingLeft)+box.right-parseFloat(style.paddingRight))/2,
-        width:r.width, available:box.width-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight)}
-    })
-    expect(Math.abs(geometry.center-geometry.columnCenter)).toBeLessThan(2)
-    expect(geometry.width).toBeLessThan(geometry.available)
+    // The document spans the bubble column. The scroller's border box also includes its scrollbar.
+    const column=await page.getByTestId('transcript-document').boundingBox()
+    const toolbar=await page.getByRole('group',{name:'Edit transcript'}).boundingBox()
+    expect(column).not.toBeNull()
+    expect(toolbar).not.toBeNull()
+    expect(Math.abs((toolbar!.x+toolbar!.width/2)-(column!.x+column!.width/2))).toBeLessThan(2)
+    expect(toolbar!.width).toBeLessThan(column!.width)
     await expect(page.getByRole('button',{name:'Undo',exact:true})).toHaveCount(1)
     await capture('removed')
     await page.keyboard.press('ControlOrMeta+z')
@@ -849,6 +849,28 @@ for (const theme of ['light','dark'] as const) test(`edit, remove and review a f
   } finally { await app.close() }
 })
 
+test('deletes the visible backward selection before selectionchange is delivered', async () => {
+  const {app,page}=await launch()
+  try {
+    const id=await fake<string>(app,'bigMeeting',3)
+    await fake(app,'go',`/note/${id}`)
+    await page.getByTestId('note-transcript-toggle').click()
+    await page.getByTestId('transcript-edit').click()
+    const doc=page.getByTestId('transcript-document')
+    await expect(doc).toBeFocused()
+    await doc.evaluate(el=>{
+      const words=el.querySelectorAll('[data-testid="transcript-text"]')
+      // Both events share one task so the editor still has its previous caret when Delete arrives.
+      el.ownerDocument.getSelection()!.setBaseAndExtent(words[1].firstChild!,5,words[0].firstChild!,5)
+      el.dispatchEvent(new KeyboardEvent('keydown',{key:'Delete',bubbles:true,cancelable:true}))
+    })
+    const saved=()=>page.evaluate(async id=>(await window.yogurt.transcript.snapshot(id)).lines.map(l=>l.text),id)
+    await expect.poll(saved).toEqual(['Line ','2 of the long meeting.','Line 3 of the long meeting.'])
+    await page.keyboard.press('ControlOrMeta+z')
+    await expect.poll(saved).toEqual(['Line 1 of the long meeting.','Line 2 of the long meeting.','Line 3 of the long meeting.'])
+  } finally {await app.close()}
+})
+
 test('keeps selections and drafts through conflicts and failures, and restores focus after removing every line', async () => {
   const { app,page,userData } = await launch()
   const db = new DatabaseSync(join(userData,'yogurt.db'),{timeout:5000})
@@ -861,21 +883,28 @@ test('keeps selections and drafts through conflicts and failures, and restores f
     await page.keyboard.press('ControlOrMeta+Alt+e')
     const doc=page.getByRole('textbox',{name:'Transcript',exact:true})
     await expect(doc).toBeFocused()
-    const point = (index:number,offset:number) => rows.nth(index).getByTestId('transcript-text').evaluate((el,offset)=>{
-      const r=document.createRange(); r.setStart(el.firstChild!,offset); r.collapse(true)
-      const box=r.getBoundingClientRect(); return {x:box.left,y:box.top+box.height/2}
+    const rowWords=(index:number)=>rows.nth(index).getByTestId('transcript-text')
+    const position=(index:number,offset:number)=>rowWords(index).evaluate((el,offset)=>{
+      const caret=document.createRange()
+      caret.setStart(el.firstChild!,offset); caret.collapse(true)
+      const box=caret.getBoundingClientRect(), words=el.getBoundingClientRect()
+      return {x:box.left-words.left,y:box.top+box.height/2-words.top}
     },offset)
-    const start=await point(0,5), end=await point(1,5)
-    await page.mouse.click(start.x,start.y)
-    await page.keyboard.down('Shift'); await page.mouse.click(end.x,end.y); await page.keyboard.up('Shift')
-    expect(await page.evaluate(()=>window.getSelection()?.toString())).toContain('of the long meeting')
+    // Locator clicks wait until the tab transition lets the words receive pointer input.
+    await rowWords(0).click({position:await position(0,5)})
+    await rowWords(1).click({position:await position(1,5),modifiers:['Shift']})
+    await expect.poll(()=>doc.evaluate(el=>{
+      const selection=el.ownerDocument.getSelection()
+      return [selection?.anchorNode?.textContent,selection?.anchorOffset,selection?.focusNode?.textContent,selection?.focusOffset]
+    })).toEqual(['Line 1 of the long meeting.',5,'Line 2 of the long meeting.',5])
     await page.keyboard.press('Delete')
     await expect(rows).toHaveCount(3)
     await expect(words).toHaveText('Line')
+    await expect(rowWords(1)).toHaveText('2 of the long meeting.')
     await page.keyboard.press('ControlOrMeta+z')
     await expect(words).toHaveText('Line 1 of the long meeting.')
-    const word=await point(0,2)
-    await page.mouse.dblclick(word.x,word.y); await page.keyboard.insertText('Part')
+    await rowWords(0).dblclick({position:await position(0,2)})
+    await page.keyboard.insertText('Part')
     await page.evaluate(async id=>{
       const state=await window.yogurt.transcript.snapshot(id), line=state.lines[0]
       await window.yogurt.transcript.change(id,state.revision,{kind:'wording',id:line.id,expected:line.text,text:'Another saved correction'})
@@ -887,7 +916,7 @@ test('keeps selections and drafts through conflicts and failures, and restores f
     await expect(page.getByRole('button',{name:'Try again'})).toBeVisible()
     db.exec('DROP TRIGGER fail_wording')
     await page.getByRole('button',{name:'Try again'}).click()
-    await expect(words).toContainText('Part')
+    await expect.poll(()=>page.evaluate(async id=>(await window.yogurt.transcript.snapshot(id)).lines[0]?.text,id)).toBe('Part 1 of the long meeting.')
     await doc.focus(); await page.keyboard.press('ControlOrMeta+a'); await page.keyboard.press('Delete')
     await expect(rows).toHaveCount(0)
     await expect(page.getByTestId('transcript-empty')).toContainText('All transcript lines have been removed.')

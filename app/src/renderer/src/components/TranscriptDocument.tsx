@@ -111,6 +111,17 @@ export function TranscriptDocument({id, reviewing, saved, commit, controls, leav
       void save()
       return true
     }
+    const syncSelection = () => {
+      // A pointer selection is visible before Chromium delivers selectionchange to the editor.
+      const native = view.dom.ownerDocument.getSelection()
+      if (!native?.anchorNode || !native.focusNode || !view.hasFocus() ||
+          !view.dom.contains(native.anchorNode) || !view.dom.contains(native.focusNode)) return
+      const {doc,selection} = view.state
+      const anchor = view.posAtDOM(native.anchorNode,native.anchorOffset)
+      const head = view.posAtDOM(native.focusNode,native.focusOffset)
+      if (anchor === selection.anchor && head === selection.head) return
+      view.dispatch(view.state.tr.setSelection(TextSelection.between(doc.resolve(anchor),doc.resolve(head))))
+    }
     const passage = (deleting:boolean) => {
       const {$from,$to,empty} = view.state.selection
       return !empty && (!$from.sameParent($to) || (deleting && $from.parentOffset===0 && $to.parentOffset===$to.parent.content.size))
@@ -145,6 +156,7 @@ export function TranscriptDocument({id, reviewing, saved, commit, controls, leav
         if (e.key==='Escape') { void finish().then(ok=>{ if (ok && !disposed) props.current.leave() }); return true }
         if (e.key==='Enter') { void save(); return true }
         if (e.key==='Backspace' || e.key==='Delete') {
+          syncSelection()
           if (passage(true)) return replace('')
           const {empty,$head} = view.state.selection
           if (empty && (e.key==='Backspace' ? !$head.parentOffset : $head.parentOffset===$head.parent.content.size)) return true
@@ -155,6 +167,7 @@ export function TranscriptDocument({id, reviewing, saved, commit, controls, leav
       handlePaste(_,event) {
         const plain = event.clipboardData?.getData('text/plain')
         if (!plain) return true
+        syncSelection()
         const text = plain.replace(/[\r\n]+/g,' ')
         if (!passage(false)) view.dispatch(view.state.tr.insertText(text))
         else replace(text)
@@ -167,13 +180,15 @@ export function TranscriptDocument({id, reviewing, saved, commit, controls, leav
           if (e.inputType==='historyUndo' || e.inputType==='historyRedo') {
             e.preventDefault(); void run({kind:e.inputType==='historyUndo' ? 'undo' : 'redo'}); return true
           }
-          if ((e.inputType.startsWith('delete') && passage(true)) || (e.inputType === 'insertText' && passage(false))) {
-            e.preventDefault(); replace(e.data ?? ''); return true
-          }
-          return false
+          const deleting = e.inputType.startsWith('delete')
+          if (!deleting && e.inputType!=='insertText') return false
+          syncSelection()
+          if (!passage(deleting)) return false
+          e.preventDefault(); replace(e.data ?? ''); return true
         },
         cut:(_,event) => {
-          if (view.state.selection.empty || !passage(true)) return false
+          syncSelection()
+          if (!passage(true)) return false
           const {from,to} = view.state.selection
           event.preventDefault()
           event.clipboardData?.setData('text/plain',view.state.doc.textBetween(from,to,'\n'))

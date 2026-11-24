@@ -204,11 +204,16 @@ export function Transcript({ id, settled = false, notice, processing=false, repl
   const canEdit = settled && snapshot?.editable && !editUnavailable
   const editMode = !!canEdit && editing
   const editor = useRef<DocumentControls | null>(null)
-  const editButton = useRef<HTMLButtonElement>(null)
+  const returnFocus = useRef(false)
+  const editButton = useCallback((button:HTMLButtonElement | null) => {
+    if (!button || !returnFocus.current) return
+    returnFocus.current = false
+    if (active) button.focus({preventScroll:true})
+  },[active])
   useEffect(()=>{setEditing(false)},[id,canEdit])
   const leave = () => {
+    returnFocus.current = true
     setEditing(false)
-    requestAnimationFrame(()=>editButton.current?.focus({preventScroll:true}))
   }
   const commit = useCallback<CommitTranscript>((revision,change)=>window.yogurt.transcript.change(id,revision,change),[id])
   const allLines=useMemo(()=>replacing?transcriptReplacement(latest,draft):latest,[latest,draft,replacing])
