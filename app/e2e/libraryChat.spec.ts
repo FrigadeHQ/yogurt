@@ -141,8 +141,10 @@ test('a follow-up stays in the chat; New chat starts another; chats can be renam
     const recentTime = recentRow.locator('time')
     await expect(recentTime).toHaveCSS('opacity', '1')
     await expect(recentRow.getByTestId('chat-menu')).toHaveCSS('opacity', '0')
-    // the rows animate in too: every animation in the list settles before the time is measured
-    const settled = () => page.getByTestId('chat-recent-list').evaluate(el => Promise.allSettled(el.getAnimations({ subtree: true }).map(a => a.finished)))
+    const recentList = page.getByTestId('chat-recent-list')
+    // The popup starts at 97% scale before its entrance transition appears in getAnimations().
+    await expect(recentList).toHaveCSS('transform', 'none')
+    const settled = () => recentList.evaluate(el => Promise.allSettled(el.getAnimations({ subtree: true }).map(a => a.finished)))
     await settled()
     const timeBox = await recentTime.boundingBox()
     await page.getByTestId('chat-history-item').nth(1).hover()
