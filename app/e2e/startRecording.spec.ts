@@ -51,9 +51,9 @@ test('a live event resumes the same note from the title bar and menu, keeping th
     await page.getByTestId('nav-home').click()
     await expect(page.getByTestId('new-note')).toHaveText('Resume notes · Resume fixture')
     await page.getByTestId('new-note').click()
-    await expect(page.getByTestId('note-resume')).toHaveAccessibleName('Stop summary')
+    await expect(page.getByTestId('note-resume')).toHaveAccessibleName('Stop summarizing')
     await expect(page.getByTestId('note-resume')).toBeEnabled()
-    await expect(page.getByTestId('note-resume')).toHaveAttribute('aria-busy', 'true')
+    await expect(page.getByRole('tab', { name: 'Summary', exact: true })).toHaveAccessibleDescription('Writing the summary')
     await expect(page.getByTestId('note-state')).not.toHaveAttribute('data-state', 'recording')
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording', { timeout: 30_000 })
     await app.evaluate(() => { process.env.YOGURT_FAKE_LLM_MS = '1' })
@@ -93,59 +93,45 @@ test('a live event resumes the same note from the title bar and menu, keeping th
   } finally { await app.close() }
 })
 
-test('a folder starts recording immediately and only files the note after a successful confirmation', async () => {
+test('recording from a folder files the note immediately and keeps it there after navigation', async () => {
   const { app, page } = await launch()
   try {
     const folder = await folderPage(page)
-    await expect(page.getByTestId('folder-empty')).toContainText('You can record here')
+    const empty = page.getByTestId('folder-empty')
+    for (const name of ['Add meetings', 'New note', 'Start recording']) {
+      await expect(empty.getByRole('button', { name, exact: true })).toBeVisible()
+    }
     await page.getByTestId('start-recording').click()
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
     const id = await meetingId(page)
-    const proposal = page.getByTestId('folder-suggestion')
-    await expect(proposal).toHaveText('Therapy')
-    expect(await foldersOf(page, id)).toEqual([])
-    // The recording reminder is a nonmodal toast, not a folder confirmation.
+    await expect(page.getByTestId('note-folders-summary')).toHaveText('Therapy')
+    await expect(page.getByTestId('folder-suggestion')).toHaveCount(0)
+    expect(await foldersOf(page, id)).toMatchObject([{ id: folder.id }])
     await expect(page.locator('[role="dialog"]').filter({ hasNot: page.getByText("Let everyone know you're recording.", { exact: true }) })).toHaveCount(0)
-
-    // Navigating away does not silently accept or lose the pending choice.
-    await page.getByTestId('nav-home').click()
-    await page.evaluate(id => window.yogurt.nav.go(`/note/${id}`), id)
-    await expect(proposal).toBeVisible()
-    expect(await foldersOf(page, id)).toEqual([])
-    await app.evaluate(({ ipcMain }) => {
-      const handlers = (ipcMain as typeof ipcMain & { _invokeHandlers: Map<string, (...args: unknown[]) => unknown> })._invokeHandlers
-      const add = handlers.get('folders:add')!
-      let failed = false
-      ipcMain.removeHandler('folders:add')
-      ipcMain.handle('folders:add', (...args) => {
-        if (!failed) { failed = true; throw new Error('fixture write failed') }
-        return add(...args)
-      })
-    })
-    await page.getByTestId('folder-suggestion-confirm').click()
-    await expect(page.getByTestId('folder-suggestion-error')).toBeVisible()
-    await expect(proposal).toBeVisible()
-    expect(await foldersOf(page, id)).toEqual([])
-    await page.getByTestId('folder-suggestion-confirm').click()
-    await expect(proposal).toHaveCount(0)
+    await stop(page)
+    await page.evaluate(id => window.yogurt.nav.go(`/folder/${id}`), folder.id)
+    await page.getByTestId('past-note').click()
+    await page.reload()
     await expect(page.getByTestId('note-folders-summary')).toHaveText('Therapy')
     expect(await foldersOf(page, id)).toMatchObject([{ id: folder.id }])
-    await stop(page)
   } finally { await app.close() }
 })
 
-test('cancelling the folder suggestion leaves the recording unfiled; Meetings and Chat suggest no folder', async () => {
+test('a folder note can record later in the same folder; Meetings and Chat create unfiled recordings', async () => {
   const { app, page } = await launch()
   try {
-    await folderPage(page)
-    await page.getByTestId('start-recording').click()
-    await expect(page.getByTestId('folder-suggestion')).toBeVisible()
+    const folder = await folderPage(page)
+    await page.keyboard.press('ControlOrMeta+n')
+    await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'prepared')
+    await expect(page.getByTestId('note-folders-summary')).toHaveText('Therapy')
     const id = await meetingId(page)
-    await page.getByTestId('folder-suggestion-cancel').click()
-    await expect(page.getByTestId('note-folders-summary')).toHaveText('Add to folder')
-    await expect(page.getByTestId('note-folders')).toBeFocused()
-    expect(await foldersOf(page, id)).toEqual([])
+    const editor = page.getByRole('textbox', { name: 'My notes', exact: true })
+    await editor.fill('Written before recording.')
+    await page.getByTestId('note-start').click()
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
+    expect(await meetingId(page)).toBe(id)
+    await expect(editor).toHaveText('Written before recording.')
+    expect(await foldersOf(page, id)).toMatchObject([{ id: folder.id }])
     await stop(page)
 
     await page.getByTestId('nav-home').click()
@@ -194,7 +180,7 @@ test('an active recording replaces start actions and a raced start identifies th
       const handlers = (ipcMain as typeof ipcMain & { _invokeHandlers: Map<string, (...args: unknown[]) => unknown> })._invokeHandlers
       const start = handlers.get('meetings:start')!
       ipcMain.removeHandler('meetings:start')
-      ipcMain.handle('meetings:start', async (...args) => { await start(...args); return start(...args) })
+      ipcMain.handle('meetings:start', async (...args) => { await start(args[0], null); return start(...args) })
     })
     await page.getByTestId('start-recording').click()
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')

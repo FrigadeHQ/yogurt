@@ -1,3 +1,5 @@
+import { openFromCorner } from './cornerNavigation'
+import { ICON_STROKE_WIDTH } from '../src/renderer/src/components/Icons'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -12,17 +14,63 @@ async function launch(env: Record<string, string> = {}) {
   return { app, page }
 }
 
+test('@everywhere search returns focus with the same ring the opener had', async () => {
+  const { app, page } = await launch({ YOGURT_BACKGROUND: process.env.YOGURT_BACKGROUND ?? '1' })
+  try {
+    const opener = page.getByTestId('nav-home'), search = page.getByTestId('search')
+    await opener.click()
+    for (const keyboard of [false, true]) {
+      if (keyboard) {
+        await page.keyboard.press('Tab')
+        await page.keyboard.press('Shift+Tab')
+        await expect(opener).toBeFocused()
+        await expect(opener).toHaveCSS('outline-style', 'solid')
+      }
+      await page.keyboard.press('ControlOrMeta+k')
+      await expect(page.getByTestId('search-input')).toBeFocused()
+      await page.keyboard.type('meet')
+      await page.keyboard.press('ArrowDown')
+      await page.keyboard.press('Escape')
+      await expect(search).toHaveCount(0)
+      await expect(opener).toBeFocused()
+      await expect(opener).toHaveCSS('outline-style', keyboard ? 'solid' : 'none')
+    }
+    await opener.click()
+    await page.keyboard.press('ControlOrMeta+k')
+    await page.getByTestId('search-input').fill('settings')
+    await expect(page.getByTestId('command-settings')).toHaveAttribute('aria-selected', 'true')
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('settings')).toBeVisible()
+    await expect(search).toHaveCount(0)
+    if (await page.evaluate(() => window.yogurt.capabilities.calendarLink)) {
+      await expect(page.getByTestId('calendar-link-add')).toHaveAttribute('aria-expanded', 'true')
+      await expect(page.getByTestId('calendar-link-input')).not.toBeFocused()
+    }
+    await expect(opener).toBeFocused()
+    await expect(opener).toHaveCSS('outline-style', 'none')
+
+    // A shortcut from an unfocused page must not pick the first sidebar button.
+    await opener.evaluate(el => (el as HTMLElement).blur())
+    await page.keyboard.press('ControlOrMeta+k')
+    await expect(page.getByTestId('search-input')).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(search).toHaveCount(0)
+    await expect.poll(() => page.evaluate(() => document.activeElement === document.body)).toBe(true)
+  } finally { await app.close() }
+})
+
 test('a future date command opens Meetings on that agenda day and its week', async () => {
   const { app, page } = await launch()
   try {
-    await page.clock.install({ time: new Date(2026, 10, 14, 12) })
+    await page.clock.setFixedTime(new Date(2026, 10, 14, 12))
     await app.evaluate(({ ipcMain }) => {
       ipcMain.removeHandler('calendar:day')
       ipcMain.handle('calendar:day', (_event, at: number) => ({ status: 'granted', events: [
         { id: 'example', title: 'Example event', start: at, end: at + 60_000, attendees: [], url: null },
       ] }))
     })
-    await page.getByTestId('nav-trash').click()
+    await page.getByRole('button', { name: 'Hide Agenda' }).click()
+    await openFromCorner(page, 'nav-trash')
     const jump = async () => {
       await page.keyboard.press('Meta+k')
       await page.getByTestId('search-input').fill('November 11, 2028')
@@ -47,6 +95,9 @@ test('a future date command opens Meetings on that agenda day and its week', asy
     await expect(agenda.getByRole('button', { name: 'Sunday, November 12', exact: true })).toHaveAttribute('aria-pressed', 'true')
     await jump()
     await expect(agenda.getByRole('button', { name: 'Saturday, November 11', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await openFromCorner(page, 'nav-trash')
+    await page.getByTestId('nav-home').click()
+    await expect(page.getByRole('button', { name: 'Show Agenda' })).toBeVisible()
   } finally { await app.close() }
 })
 
@@ -64,7 +115,8 @@ test('the sidebar shortcut, native View menu, command palette and shortcut refer
     })
     await expect(toggle).toHaveAttribute('aria-expanded', 'true')
     await expect(toggle).toHaveAttribute('aria-keyshortcuts', 'Control+Meta+S')
-    await expect(toggle).toHaveAttribute('title', /⌃⌘S/)
+    await toggle.hover()
+    await expect(page.getByRole('tooltip', { name: 'Hide sidebar (⌃⌘S)', exact: true })).toBeVisible()
     await expect.poll(menu).toEqual({ label: 'Hide Sidebar', accelerator: 'Control+Command+S', enabled: true })
     await page.keyboard.press('Control+Meta+s')
     await expect(toggle).toHaveAttribute('aria-expanded', 'false')
@@ -324,10 +376,16 @@ test('the input stays icon-free, row icons and hints stay fixed, and the seconda
     await expect(input).toBeFocused()
     const glyphs = await page.locator('.search-row>svg, .search-row>.folder-glyph>svg').evaluateAll(icons => icons.map(icon => {
       const style = getComputedStyle(icon)
-      return [parseFloat(style.width), parseFloat(style.height), icon.getAttribute('stroke-width'), style.color]
+      const folder = icon.closest('.folder-glyph')
+      return { size: [parseFloat(style.width), parseFloat(style.height)], stroke: icon.getAttribute('stroke-width'), color: style.color, folderColor: folder && getComputedStyle(folder).color }
     }))
     expect(glyphs.length).toBeGreaterThan(0)
-    for (const glyph of glyphs) expect(glyph).toEqual([16, 16, '1.75', glyphs[0][3]])
+    const commandColor = glyphs.find(glyph => !glyph.folderColor)?.color
+    for (const glyph of glyphs) {
+      expect(glyph.size).toEqual([16, 16])
+      expect(glyph.stroke).toBe(String(ICON_STROKE_WIDTH))
+      expect(glyph.color).toBe(glyph.folderColor ?? commandColor)
+    }
     const hints = await page.locator('.search-footer').textContent()
     for (const query of ['s', 'se', 'set', 'settings', 'why', 'why now?']) {
       await input.fill(query)
@@ -518,6 +576,8 @@ test('typing keeps the palette frame steady and replaces meeting and command res
 test('shortcut help opens from the palette and its footer, is searchable, and closes with Escape', async () => {
   const { app, page } = await launch()
   try {
+    const opener = page.getByTestId('nav-home')
+    await opener.click()
     await page.keyboard.press('Meta+k')
     await page.getByTestId('search-input').fill('shortcuts')
     await expect(page.getByTestId('command-shortcuts')).toBeVisible()
@@ -530,6 +590,8 @@ test('shortcut help opens from the palette and its footer, is searchable, and cl
     await expect(help).toContainText('⌘]')
     await page.keyboard.press('Escape')
     await expect(help).toHaveCount(0)
+    await expect(opener).toBeFocused()
+    await expect(opener).toHaveCSS('outline-style', 'none')
     await page.keyboard.press('Meta+k')
     await page.getByTestId('search-shortcuts').click()
     await expect(help).toBeVisible()
@@ -601,5 +663,30 @@ test("a mouse's back and forward buttons move through pages like ⌘[ and ⌘]",
     await expect(page.getByTestId('home')).toBeVisible()
     await side('forward')
     await expect(page.getByTestId('chat-page')).toBeVisible()
+  } finally { await app.close() }
+})
+
+test('the palette recovers from a rejected read', async () => {
+  const { app, page } = await launch({ YOGURT_BACKGROUND: process.env.YOGURT_BACKGROUND ?? '1' })
+  try {
+    const setAvailable = (available: boolean) => app.evaluate(({ ipcMain }, available) => {
+      ipcMain.removeHandler('search:query')
+      ipcMain.handle('search:query', (_event, q: string) => {
+        if (q !== 'Planning') return []
+        if (!available) throw new Error('Read failed')
+        return [{ meetingId: 'planning', title: 'Planning review', startedAt: 1, parts: [] }]
+      })
+    }, available)
+    await setAvailable(false)
+    await page.keyboard.press('ControlOrMeta+k')
+    await page.getByTestId('search-input').fill('Planning')
+    const retry = page.getByTestId('search-retry')
+    await expect(retry).toBeVisible()
+    await expect(page.getByTestId('search-result')).toHaveCount(0)
+    await setAvailable(true)
+    await retry.click()
+    await expect(page.getByTestId('search-result')).toContainText('Planning review')
+    await expect(page.getByTestId('search-retry')).toHaveCount(0)
+    await expect(page.getByRole('listbox')).toHaveAttribute('aria-busy', 'false')
   } finally { await app.close() }
 })

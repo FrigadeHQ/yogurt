@@ -83,14 +83,14 @@ test('the workspace keeps Meetings and Back navigation, including a return from 
   } finally { await app.close() }
 })
 
-test('Copy beside the meeting controls offers explicit versions and export', async () => {
+test('Share beside the meeting controls offers explicit copy choices and Save Markdown', async () => {
   const { app, page } = await launch()
   await keepClipboard(app)
   try {
     await finished(app, page)
-    await expect(page.locator('.note-header').getByTestId('share-button')).toHaveText('Copy')
+    await expect(page.locator('.note-header').getByTestId('share-button')).toHaveText('Share')
     await page.getByTestId('share-button').click()
-    await expect(page.getByTestId('share-menu').getByRole('menuitem')).toHaveText([/Copy my notes/, /Copy summary/, /Copy transcript/, /Export Markdown/])
+    await expect(page.getByTestId('share-menu').getByRole('menuitem')).toHaveText(['Copy summary', 'Copy my notes', 'Copy transcript', 'Save Markdown…'])
     await page.keyboard.press('Escape')
     await expect(page.getByTestId('share-menu')).toHaveCount(0)
     await page.getByTestId('share-button').click()
@@ -151,6 +151,7 @@ test('people added and removed by hand are saved, and the notes are written agai
     await page.mouse.move(0, 0)
     await expect(card.getByTestId('people-remove')).toHaveCSS('opacity', '0')
     await card.getByTestId('people-remove').focus()
+    await expect(card.getByTestId('people-remove')).toHaveCSS('outline-style', 'none')
     await expect(card.getByTestId('people-remove')).toHaveCSS('opacity', '1')
     await expect(page.getByTestId('note-attendees-summary')).toHaveText('Maya')
     expect((await page.evaluate((id) => window.yogurt.meetings.get(id), id))?.attendees).toEqual([{ name: 'Maya Chen', email: 'maya@example.com' }])

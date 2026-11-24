@@ -74,6 +74,13 @@ export function hookConversations(p: Deps) {
     return chips.length === 1 && chips[0].kind === 'meeting' && scope?.length === 1 ? scope[0] : undefined
   }
 
+  /** the meetings an answer was about: those it cites, else all it was given (an answer saying nothing fits cites none) */
+  const followOn = (t: ConversationTurn | undefined) => {
+    if (!t) return undefined
+    const cited = new Set(citedIn(t.answer)), used = t.sources.filter((s) => cited.has(s.n))
+    return [...new Set((used.length ? used : t.sources).map((s) => s.meetingId))]
+  }
+
   /** the sources that fit the room left, best first; a single one too big is cut */
   async function fit(llm: Awaited<ReturnType<NotesModel['llm']>>, items: Item[], question: string, history: History, spelling: string): Promise<{ items: Item[]; history: History }> {
     const total = llm.contextSize - ANSWER_TOKENS - MARGIN_TOKENS
@@ -144,7 +151,7 @@ export function hookConversations(p: Deps) {
       p.library.startTurn(turn.id)
       turn.status = 'answering'; turn.step = { kind: 'searching' }; later()
       try {
-        const got = await retrieve(p, question, { now: now(), scope, context: done.at(-1)?.question })
+        const got = await retrieve(p, question, { now: now(), scope, context: done.at(-1)?.question, follow: followOn(done.at(-1)) })
         if (p.model.needsLoad?.()) { turn.step = { kind: 'loading' }; later() }
         const llm = await p.model.llm(signal)
         // the names of every meeting found, spelled right
@@ -248,6 +255,28 @@ export function hookConversations(p: Deps) {
       running.get(id)?.abort(); running.delete(id); open.delete(id)
       p.library.deleteConversation(id)
       p.sendList(list())
+    },
+    /**
+     * One question from another app (MCP): answered the same way, then the conversation goes, so Ask's list keeps
+     * only the person's own. It never waits for a download or a recording to end: it says so instead. A long answer
+     * is stopped after timeoutMs, with what was written.
+     */
+    async askOnce(question: string, chips: import('../../shared/askContext').ContextChip[], o: { timeoutMs?: number } = {}):
+      Promise<{ unavailable: 'model' | 'recording' } | { answer: string; sources: LibrarySource[]; stopped?: true }> {
+      if (p.waitsForModel()) return { unavailable: 'model' }
+      if (p.waitsForMeeting()) return { unavailable: 'recording' }
+      const cid = p.library.current(chips, true)
+      try {
+        const { done } = ask(cid, question)
+        let timer: NodeJS.Timeout | undefined
+        await Promise.race([done, new Promise<void>((r) => { timer = setTimeout(() => { running.get(cid)?.abort(); r() }, o.timeoutMs ?? 120_000) })])
+        clearTimeout(timer)
+        await done
+        const turn = turns(cid).at(-1)
+        if (!turn || turn.status === 'failed') throw new Error('The answer failed')
+        const cited = new Set(citedIn(turn.answer))
+        return { answer: turn.answer, sources: turn.sources.filter((s) => cited.has(s.n)), ...(turn.status === 'stopped' ? { stopped: true as const } : {}) }
+      } finally { api.remove(cid) }
     },
     /** Imports may bring waiting questions too; open conversations hear when the model arrives. */
     refresh() { recover(); for (const id of open.keys()) push(id) },

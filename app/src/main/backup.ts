@@ -15,8 +15,8 @@ import { pack, unpack } from './zip'
  * Importing adds the meetings that are not here yet and never changes or removes one that is.
  */
 export const BACKUP_FORMAT = backupFormat.format
-export type Manifest = { format: number; app: string; createdAt: number; meetings: number }
-export type ImportResult = { ok: true; added: number; skipped: number } | { ok: false; error: 'newer' | 'invalid' | 'failed' }
+export type Manifest = { format: number; app: string; createdAt: number; meetings: number; showRecordingPill?: boolean }
+export type ImportResult = { ok: true; added: number; skipped: number; showRecordingPill?: boolean } | { ok: false; error: 'newer' | 'invalid' | 'failed' }
 
 type Row = Record<string, string | number | bigint | null | Uint8Array>
 const q = (name: string) => `"${name.replace(/"/g, '""')}"`
@@ -144,7 +144,7 @@ const scratch = (name: string) => name.endsWith('.f32')
 const cleanup = (dir: string) => rm(dir, { recursive: true, force: true }).catch((e) => console.warn('backup cleanup failed', dir, e))
 
 /** Everything to one zip: a snapshot of the database (safe while Yogurt runs), each meeting's recordings, and a manifest */
-export async function exportBackup(o: { db: DatabaseSync; meetingsDir: string; out: string; appVersion: string; now?: number }): Promise<{ meetings: number }> {
+export async function exportBackup(o: { db: DatabaseSync; meetingsDir: string; out: string; appVersion: string; now?: number; showRecordingPill?: boolean }): Promise<{ meetings: number }> {
   const work = await mkdtemp(join(tmpdir(), 'yogurt-export-'))
   let staging: string | undefined
   try {
@@ -153,8 +153,12 @@ export async function exportBackup(o: { db: DatabaseSync; meetingsDir: string; o
     const snap = new DatabaseSync(file)
     // meetings in the Trash are on their way out: not in the backup (their rows go with them by ON DELETE CASCADE)
     snap.exec('PRAGMA foreign_keys = ON')
-    // and VACUUM so their words aren't left in the file's free pages
-    if (columns(snap, 'meetings').some((c) => c.name === 'trashed_at') && Number(snap.prepare('DELETE FROM meetings WHERE trashed_at IS NOT NULL').run().changes) > 0) snap.exec('VACUUM')
+    // the iPhone pairing and what it has fetched belong to this Mac: never in a backup (triggers first, they write the log)
+    for (const r of snap.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'companion\\_%' ESCAPE '\\'").all() as Row[]) snap.exec(`DROP TRIGGER "${String(r.name)}"`)
+    snap.exec('DROP TABLE IF EXISTS companion_changes; DROP TABLE IF EXISTS companion_devices; DROP TABLE IF EXISTS companion_meta')
+    if (columns(snap, 'meetings').some((c) => c.name === 'trashed_at')) snap.prepare('DELETE FROM meetings WHERE trashed_at IS NOT NULL').run()
+    // and VACUUM so none of it is left in the file's free pages
+    snap.exec('VACUUM')
     const ids = (snap.prepare('SELECT id FROM meetings').all() as Row[]).map((r) => r.id).filter(isId)
     snap.close()
     for (const id of ids) {
@@ -168,7 +172,7 @@ export async function exportBackup(o: { db: DatabaseSync; meetingsDir: string; o
         if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e
       }
     }
-    const manifest: Manifest = { format: BACKUP_FORMAT, app: o.appVersion, createdAt: o.now ?? Date.now(), meetings: ids.length }
+    const manifest: Manifest = { format: BACKUP_FORMAT, app: o.appVersion, createdAt: o.now ?? Date.now(), meetings: ids.length, showRecordingPill: o.showRecordingPill }
     await writeFile(join(work, 'manifest.json'), JSON.stringify(manifest, null, 2))
     // Keep the previous backup until its replacement is complete. Stage beside the
     // destination so the final rename stays atomic, including on an external disk.
@@ -218,7 +222,8 @@ export async function importBackup(o: { db: DatabaseSync; meetingsDir: string; z
       await cp(src, dest, { recursive: true, filter: plainOnly })
     }
     const r = mergeBackup(o.db, from)
-    return { ok: true, added: r.added.length, skipped: r.skipped }
+    const pill = (raw as Manifest).showRecordingPill
+    return { ok: true, added: r.added.length, skipped: r.skipped, ...(typeof pill === 'boolean' && { showRecordingPill: pill }) }
   } catch (e) {
     console.error('import failed', e)
     for (const d of copied) await cleanup(d)

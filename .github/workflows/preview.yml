@@ -3,7 +3,8 @@
 # The installers carry the recorder, the system and AI apps helpers (Rust) and whisper-server with its backends, built
 # here by scripts/native.mjs. Each one is installed on the runner and its helpers are run from the install folder.
 # Linux builds on Ubuntu 22.04, so the AppImage's helpers run on glibc 2.35 and later.
-# release.yml calls this same workflow for a release's Windows and Linux files (installer, latest*.yml, blockmap).
+# release.yml calls this same workflow for a release's Windows and Linux files (installer, latest*.yml, blockmap, and
+# the website's copy of the installer).
 name: Preview builds
 
 on:
@@ -147,6 +148,25 @@ jobs:
             Write-Host "$f : $($s.Status) $($s.SignerCertificate.Subject)"
             if ($s.Status -ne 'Valid') { throw "$f is not signed: $($s.Status)" }
           }
+          # every program and library Yogurt ships is signed: Code Integrity blocks an unsigned one from loading (#99).
+          # Yogurt's own helpers must be; anything else unsigned is listed, so it can be added
+          $all = Get-ChildItem app/dist/win-unpacked -Recurse -File -Include *.exe,*.dll,*.node
+          $unsigned = $all | Where-Object { (Get-AuthenticodeSignature $_.FullName).Status -ne 'Valid' }
+          Write-Host "signed $($all.Count - $unsigned.Count) of $($all.Count) programs and libraries"
+          $unsigned | ForEach-Object { Write-Host "::warning::not signed: $($_.FullName)" }
+          $ours = $unsigned | Where-Object { $_.FullName -match '\\resources\\bin\\' }
+          if ($ours) { throw "Yogurt's own helpers are not all signed: $($ours.Name -join ', ')" }
+      # a release also carries a website-only copy of the installer under its own name, so GitHub's download counts tell
+      # new installs (the website's links) from updates (latest.yml / latest-linux.yml keep the plain name; never change it)
+      - name: Website copy (release)
+        if: inputs.release
+        run: |
+          if [ "$RUNNER_OS" = Windows ]; then from=Yogurt-windows-x64.exe; to=Yogurt-windows-x64-setup.exe
+          else from=Yogurt-linux-x86_64.AppImage; to=Yogurt-linux-x86_64-setup.AppImage; fi
+          cp "app/dist/$from" "app/dist/$to"
+          cmp "app/dist/$from" "app/dist/$to"
+          if grep -q -- "$to" app/dist/latest*.yml; then echo "::error::latest*.yml must name $from, not $to"; exit 1; fi
+          grep -q -- "$from" app/dist/latest*.yml || { echo "::error::latest*.yml doesn't name $from"; exit 1; }
       # kept before the checks below, so testers get the installer even when one of them fails
       - uses: actions/upload-artifact@v4
         with:

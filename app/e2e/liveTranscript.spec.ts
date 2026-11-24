@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -134,7 +135,7 @@ test('unfinished words survive tab changes, page navigation and renderer reload 
     await page.getByTestId('note-notes-tab').click()
     await page.getByTestId('note-transcript-toggle').click()
     await expect(live).toHaveText(text)
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     await page.getByTestId('recording-return').click()
     await expect(live).toHaveText(text)
     await page.reload()

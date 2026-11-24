@@ -20,6 +20,17 @@ describe('the prompt for chat across meetings', () => {
     expect(p.trimEnd().endsWith('<question>\nWhat did Tarun say?\n</question>')).toBe(true)
     expect(p).toContain('Today is Tuesday, November 3, 2026.')
   })
+  it('answers how something went with a judgement from what was said, and says the sources lack it only when nothing is about it', () => {
+    expect(libraryHead).toContain('how something went or what someone thought')
+    expect(libraryHead).toContain('only when nothing in them is about the question')
+    expect(libraryHead).toContain('Never make anything up.')
+  })
+  it('never calls the meetings "sources", so answers say "your notes" instead of "the provided sources"', () => {
+    const p = libraryPrompt({ items, question: 'Who is on my team?', history: [{ question: 'q', answer: 'a [1]' }], now: at, spelling: '' })
+    expect(p).not.toMatch(/source/i)
+    expect(libraryPrompt({ items: [], question: 'q', history: [], now: at, spelling: '' })).not.toMatch(/source/i)
+    expect(libraryHead).toContain('"your notes"')
+  })
   it('heads each meeting with its title and day, and labels each source with where in it (or that it is the notes)', () => {
     expect(meetingLabel(items[0])).toBe('Meeting: Pricing call · Tuesday, November 3, 2026')
     expect(sourceLabel(items[0], 1)).toBe('[1] 12:04 into the meeting')

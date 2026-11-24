@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
-import { LoaderCircle } from 'lucide-react'
+import { LoaderCircle } from '../components/Icons'
 import type { OnboardingPlan, OnboardingStep, PermissionKind, SetupState } from '../../../shared/types'
-import { screensOf, viaSystemSettings, type OnboardingScreen } from '../../../shared/onboarding'
+import { screensOf, type OnboardingScreen } from '../../../shared/onboarding'
 import { Wordmark } from '../components/Logo'
 import { ReadyArt, ScreenArt, WelcomeArt } from '../components/OnboardingArt'
 import { SettingsArt } from '../components/SettingsGuide'
@@ -116,46 +116,37 @@ function CalendarLinkScreen({ state, progress, onNext }: { state: SetupState; pr
   return (
     <Layout
       testId="onboarding-step" step="calendar" kind="calendar" motionKey={connected ? 'calendar-done' : 'calendar'}
-      art={<ScreenArt id="calendar" on={connected ? ['calendar'] : []} />} progress={progress} state={state}
+      art={<ScreenArt kind="calendar" />} progress={progress} state={state}
       title={connected ? t('All set') : t('Connect your calendar')}
       text={connected ? t('{name} is connected. You can change this any time in Settings.', { name: connected }) : sc.text}
       actions={connected
         ? <button ref={primary} data-testid="step-allow" onClick={onNext} className="ob-button primary no-drag">{t('Continue')}</button>
-        : <CalendarLinkForm variant="onboarding" onConnected={setConnected}
+        : <CalendarLinkForm variant="onboarding" onConnected={setConnected} onCancel={onNext}
           extra={<button type="button" data-testid="step-later" onClick={onNext} className="ob-button quiet no-drag">{t('Not now')}</button>} />}
     />
   )
 }
 
-/**
- * One screen of permissions, asked one after the other: one Allow asks for the mic, then straight away for the call
- * audio. One turned off before waits for a click instead, since only System Settings can turn it on.
- */
+/** Recording permissions share one progress segment. Each native request needs its own Allow press. */
 function PermissionScreen({ screen, state, progress, onNext }: { screen: OnboardingScreen; state: SetupState; progress: Progress; onNext(): void }) {
   const [k, setK] = useState(0)
-  const [chained, setChained] = useState(false)
-  // what the picture shows as on: whatever this screen didn't need to ask, and whatever was turned on here
-  const [lit, setLit] = useState<PermissionKind[]>(() => screen.kinds.filter((x) => !screen.steps.some((s) => s.kind === x)))
   const [leaving, setLeaving] = useState(false)
   const step = screen.steps[k]
   const on = () => {
-    setLit((l) => [...l, step.kind])
-    if (k + 1 < screen.steps.length) { setK(k + 1); setChained(true); return }
-    // a picture that shows what is on stays a moment, so the person sees it come alive
+    if (k + 1 < screen.steps.length) { setK(k + 1); return }
+    // Keep the existing transition out of the grouped recording step.
     if (screen.kinds.length > 1) { setLeaving(true); setTimeout(onNext, 700) } else onNext()
   }
-  return <Ask key={step.kind} screen={screen} step={step} lit={lit} chained={chained} leaving={leaving} state={state} progress={progress} onOn={on} onLater={onNext} />
+  return <Ask key={step.kind} screen={screen} step={step} leaving={leaving} state={state} progress={progress} onOn={on} onLater={onNext} />
 }
 
-function Ask({ screen, step, lit, chained, leaving, state, progress, onOn, onLater }: {
-  screen: OnboardingScreen; step: OnboardingStep; lit: PermissionKind[]; chained: boolean; leaving: boolean; state: SetupState; progress: Progress; onOn(): void; onLater(): void
+function Ask({ screen, step, leaving, state, progress, onOn, onLater }: {
+  screen: OnboardingScreen; step: OnboardingStep; leaving: boolean; state: SetupState; progress: Progress; onOn(): void; onLater(): void
 }) {
   const { kind } = step
   const c = permissionCopy(kind)
-  const sc = screenCopy(screen.id)
+  const sc = screenCopy(kind)
   const flow = usePermissionFlow(kind, step.status, onOn)
-  // the second half of one Allow: the Mac's next prompt, right away
-  useEffect(() => { if (chained && !viaSystemSettings(kind, step.status)) void flow.allow() }, [])
   const away = flow.phase === 'away'
   const back = flow.phase === 'back'
   const busy = flow.phase === 'asking' || leaving
@@ -168,7 +159,7 @@ function Ask({ screen, step, lit, chained, leaving, state, progress, onOn, onLat
       : flow.phase === 'idle' && denied ? <p data-testid="step-access-status" role="status" className="ob-note">{t('This was turned off before, so only System Settings can turn it on. Yogurt shows you where.')}</p>
         : null
   // the picture changes only when there is a new thing to show: System Settings, or the screen's own drawing
-  const art = away ? <SettingsArt kind={kind} /> : <ScreenArt id={screen.id} on={back ? [...lit, kind] : lit} />
+  const art = away ? <SettingsArt kind={kind} /> : <ScreenArt kind={kind} />
   return (
     <Layout
       testId="onboarding-step" step={screen.id} kind={kind} motionKey={away ? `${screen.id}-away` : screen.id}

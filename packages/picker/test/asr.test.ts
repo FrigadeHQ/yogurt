@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { asrCandidates, KEEPS_UP_RTF, pickAsr, pickBySpeed, speedKey } from '../src/asr'
+import { asrCandidates, KEEPS_UP_RTF, LAGS_A_LITTLE_RTF, pickAsr, pickBySpeed, SPEED_CHECK_VERSION, speedKey } from '../src/asr'
 import { machines } from './fixtures'
 import real from '../../../catalog/catalog.json'
 import type { Catalog } from '../src/types'
@@ -76,6 +76,17 @@ describe('pickBySpeed', () => {
     expect(await pickBySpeed(list, t.measure)).toEqual({ model: list[2], rtf: { turbo: 4.4, small: 0.88, base: 0.5 } })
     expect(KEEPS_UP_RTF).toBe(0.5)
   })
+  // #107: base and tiny are very weak outside English. small may lag a little behind live rather than fall back to them:
+  // whisper skips silence (VAD), so with both sides talking about half the time it still about keeps up over a meeting.
+  it('a model allowed to lag a little is kept up to 1.25 times the clip\'s length, before anything smaller', async () => {
+    const t = timed({ turbo: 4.4, small: 0.88, base: 0.3 })
+    const lags = (m: { id: string }) => m.id === 'small'
+    expect(await pickBySpeed(list, t.measure, { lagsOk: lags })).toEqual({ model: list[1], rtf: { turbo: 4.4, small: 0.88 } })
+    expect(LAGS_A_LITTLE_RTF).toBe(1.25)
+    expect((await pickBySpeed(list, timed({ turbo: 4.4, small: 1.2, base: 0.3 }).measure, { lagsOk: lags })).model).toBe(list[1])
+    // too slow even so: down the list as before
+    expect((await pickBySpeed(list, timed({ turbo: 4.4, small: 1.4, base: 0.3 }).measure, { lagsOk: lags })).model).toBe(list[2])
+  })
   it('a run that ran out of time counts as too slow', async () => {
     const t = timed({ turbo: null, small: null, base: null, tiny: 0.19 })
     expect((await pickBySpeed(list, t.measure)).model).toBe(list[3])
@@ -87,6 +98,10 @@ describe('pickBySpeed', () => {
 })
 
 describe('speedKey: the speed check runs again only when the computer changes', () => {
+  it('carries the speed check version, so a change to how it picks measures again once (#107)', () => {
+    expect(speedKey(machines.linux3060).startsWith(`${SPEED_CHECK_VERSION}|`)).toBe(true)
+    expect(SPEED_CHECK_VERSION).toBe('v2')
+  })
   it('the same computer gives the same key; other graphics or processor a new one', () => {
     const k = speedKey(machines.linux3060)
     expect(speedKey({ ...machines.linux3060, freeDiskGB: 1 })).toBe(k)

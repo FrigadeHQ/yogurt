@@ -1,9 +1,11 @@
+import { InlineError, ReadError } from '../components/InlineError'
 import { transcriptionLabel } from '../../../shared/transcription'
 import { LoadingContent } from '../components/LoadingContent'
 import { StartRecording } from '../components/StartRecording'
-import { Mic } from '../components/Icons'
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react'
-import { Circle, FileText, Users } from 'lucide-react'
+import { Mic, SidebarToggle, Check, Circle, FileText, Users } from '../components/Icons'
+import { createPortal } from 'react-dom'
+import { readAgendaOpen, saveAgendaOpen } from '../agenda'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react'
 import type { MeetingCard } from '../../../shared/types'
 import { useScrollMemory } from '../useScrollMemory'
 import { loadUpTo } from '../paging'
@@ -16,7 +18,7 @@ import { MeetingRow } from '../components/MeetingRow'
 import { FolderChip } from '../components/FolderPicker'
 import { Agenda } from '../components/Agenda'
 import { MEETING_DRAG } from '../folders'
-import { command } from '../keys'
+import { command, keys, onMac } from '../keys'
 import { emptySelection, meetingSelection, meetingTargets, selectsMeeting } from '../meetingSelection'
 import { MeetingSelectionBar } from '../components/MeetingSelectionBar'
 import { peopleSummary, useMyName } from '../components/People'
@@ -37,19 +39,60 @@ export function Home({ open, openFolder, agendaJump }: { open: (id: string) => v
     if (r.error === 'gone') setCalendarRevision((revision) => revision + 1)
     toasts.add({ id: 'home-message', data: { testId: 'home-message' }, title: r.error === 'gone' ? t('That meeting is no longer on your calendar.') : t("Yogurt couldn't start the notes. Try again in a moment.") })
   }
-  const noMeetings = past.cards?.length === 0
+  const [emptyActions, setEmptyActions] = useState<HTMLDivElement | null>(null)
   const calendar = window.yogurt.capabilities.calendar
-  return <div data-testid="home" className={calendar ? 'native-home' : 'native-home no-agenda'}>
-    <StartRecording testId="new-note" onGone={() => setCalendarRevision(revision => revision + 1)} />
+  const [agendaOpen, setAgendaOpen] = useState(readAgendaOpen)
+  const [agendaMotion, setAgendaMotion] = useState(false)
+  const [toolbar, setToolbar] = useState<HTMLElement | null>(null)
+  const toggle = useRef<HTMLButtonElement>(null)
+  const panel = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => { setToolbar(document.getElementById('workspace-agenda-actions')) }, [])
+  useLayoutEffect(() => {
+    // An explicit Go to date opens this visit without changing the saved preference.
+    if (agendaJump) { setAgendaMotion(false); setAgendaOpen(true) }
+  }, [agendaJump])
+  useEffect(() => {
+    if (!agendaMotion) return
+    const timer = setTimeout(() => setAgendaMotion(false), 200)
+    return () => clearTimeout(timer)
+  }, [agendaOpen, agendaMotion])
+  const toggleAgenda = (pointer: boolean) => {
+    if (panel.current?.contains(document.activeElement)) toggle.current?.focus({ preventScroll: true })
+    setAgendaMotion(pointer && !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+    setAgendaOpen(!agendaOpen)
+    saveAgendaOpen(!agendaOpen)
+  }
+  const label = agendaOpen ? t('Hide Agenda') : t('Show Agenda')
+  return <div data-testid="home" className={calendar ? 'native-home' : 'native-home no-agenda'} data-agenda-open={calendar && agendaOpen} data-agenda-motion={agendaMotion}>
+    {calendar && toolbar && createPortal(<button ref={toggle} id="home-agenda-toggle" className="ghost-btn workspace-icon agenda-toggle no-drag"
+      aria-label={label} aria-expanded={agendaOpen} aria-controls="home-agenda" aria-keyshortcuts={onMac() ? 'Control+Meta+A' : 'Control+Shift+A'}
+      title={`${label} (${keys('⌃⌘A')})`} data-agenda-motion={agendaMotion} onClick={e => toggleAgenda(e.detail > 0)}>
+      <SidebarToggle className="flex-none -scale-x-100 rtl:scale-x-100" size={16} aria-hidden="true" />
+    </button>, toolbar)}
+    <StartRecording testId="new-note" compact={calendar && !agendaOpen} emptyActions={emptyActions} onGone={() => setCalendarRevision(revision => revision + 1)} />
     <div className="native-library" ref={past.setRoot} tabIndex={-1}>
       <h1>{t('Your meetings')}</h1>
-      <LoadingContent pending={!past.cards} testId="meetings-loading" skeleton={<MeetingListLoading />} className="library-load">{noMeetings ? <section data-testid="past-empty" className="library-empty empty-state"><div className="empty-state-content">
-        <div className="empty-tile"><FileText size={28} strokeWidth={1.5} aria-hidden="true" /></div><h2>{t('Your notes will show up here')}</h2>
-        <p>{t('Yogurt writes a summary after you finish recording.')}</p>
-      </div></section> : <PastNotes cards={past.cards ?? []} day={day} more={past.more} sentinel={past.setSentinel} onOpen={open} openFolder={openFolder} />}</LoadingContent>
+      {past.failed && !!past.cards?.length && <InlineError testId="meetings-read-error" retry={past.retry} />}
+      <LoadingContent pending={!past.cards && !past.failed} testId="meetings-loading" skeleton={<MeetingListLoading />} className="library-load">{!past.cards?.length ? <LibraryEmpty testId="past-empty" icon={<FileText size={28} aria-hidden="true" />} title={t('Your notes will show up here')} description={t('Your summary appears after you stop recording.')} retry={past.failed ? past.retry : undefined}><div ref={setEmptyActions} /></LibraryEmpty> : <PastNotes cards={past.cards ?? []} day={day} more={past.more} sentinel={past.setSentinel} onOpen={open} openFolder={openFolder} />}</LoadingContent>
     </div>
-    {calendar && <Agenda revision={calendarRevision} recording={recording} onStart={start} onOpen={open} jumpTo={agendaJump} />}
+    {calendar && <div ref={panel} id="home-agenda" className="home-agenda-panel" inert={!agendaOpen}>
+      {(agendaOpen || agendaMotion) && <Agenda revision={calendarRevision} recording={recording} onStart={start} onOpen={open} jumpTo={agendaJump} />}
+    </div>}
   </div>
+}
+
+export function LibraryEmpty({ testId, icon, title, description, retry, children }: {
+  testId: string; icon: ReactNode; title: string; description: string; retry?: () => void; children?: ReactNode
+}) {
+  if (retry) return <ReadError testId="meetings-read-error" retry={retry} className="library-empty" />
+  return <section data-testid={testId} className="library-empty empty-state">
+    <div className="empty-state-content">
+      <div className="empty-tile">{icon}</div>
+      <h2>{title}</h2>
+      <p>{description}</p>
+      {children}
+    </div>
+  </section>
 }
 
 /**
@@ -60,6 +103,7 @@ export function Home({ open, openFolder, agendaJump }: { open: (id: string) => v
 export function usePastNotes(folder?: string) {
   const [cards, setCards] = useState<MeetingCard[]>()
   const [more, setMore] = useState(false)
+  const [failed, setFailed] = useState<'list' | 'page'>()
   const [root, setRoot] = useState<HTMLDivElement | null>(null)
   const [sentinel, setSentinel] = useState<HTMLDivElement | null>(null)
   const memoryKey = folder ? `folder/${folder}` : 'meetings'
@@ -75,9 +119,10 @@ export function usePastNotes(folder?: string) {
     // however far down the person scrolled, in steps (one call to main is capped)
     void readMeetingRows(() => loadUpTo((o) => window.yogurt.meetings.cards({ ...o, ...(folder ? { folder } : {}) }), shown.current, PAGE)).then(({ cards: list, more }) => {
       if (mine !== seq.current) return
+      setFailed(undefined)
       animateRows(list)
       shown.current = list.length; loadedCounts.set(memoryKey, list.length); setCards(list); setMore(more)
-    })
+    }).catch(() => { if (mine === seq.current) setFailed('list') })
   }, [folder, animateRows])
   useEffect(() => {
     reload()
@@ -86,7 +131,7 @@ export function usePastNotes(folder?: string) {
     const later = () => { clearTimeout(timer); timer = setTimeout(reload, 150) }
     const off = window.yogurt.meetings.onChange(later)
     const offFolders = window.yogurt.folders.onChange(later)
-    return () => { off(); offFolders(); clearTimeout(timer) }
+    return () => { off(); offFolders(); clearTimeout(timer); seq.current++ }
   }, [reload, folder])
 
   const next = useCallback(() => {
@@ -95,8 +140,8 @@ export function usePastNotes(folder?: string) {
     const last = cards[cards.length - 1]
     const mine = seq.current
     void window.yogurt.meetings.cards({ limit: PAGE, before: { at: last.startedAt, id: last.id }, ...(folder ? { folder } : {}) }).then((page) => {
-      loading.current = false
       if (mine !== seq.current) return
+      setFailed(undefined)
       setCards((cur) => {
         const have = new Set(cur?.map((c) => c.id))
         const all = [...(cur ?? []), ...page.filter((c) => !have.has(c.id))]
@@ -104,7 +149,7 @@ export function usePastNotes(folder?: string) {
         return all
       })
       setMore(page.length === PAGE)
-    })
+    }).catch(() => { if (mine === seq.current) setFailed('page') }).finally(() => { loading.current = false })
   }, [cards, folder])
 
   useEffect(() => {
@@ -114,7 +159,7 @@ export function usePastNotes(folder?: string) {
     return () => io.disconnect()
   }, [sentinel, root, more, next])
 
-  return { cards, more, setRoot: attachRoot, setSentinel }
+  return { cards, more, failed, retry: failed === 'page' ? next : reload, setRoot: attachRoot, setSentinel }
 }
 
 /** Delete on a row moves the meeting to the Trash at once (Undo in the note at the bottom) */
@@ -209,7 +254,7 @@ export function PastCard({ c, onOpen, openFolder, openFolders, more, when, fixed
   }}>
     <button data-meeting-id={c.id} disabled={loading} onClick={() => onOpen(c.id)} aria-pressed={selected} className="native-meeting-link">
     <span className="meeting-content">
-    <span className={`meeting-identity ${recording ? 'recording' : ''}`} aria-hidden="true">{loading ? null : recording ? <Mic size={16} /> : c.attendees.length > 1 ? <Users size={16} /> : initials || <FileText size={16} />}</span>
+    <span className={`meeting-identity ${recording ? 'recording' : ''}`} aria-hidden="true">{loading ? null : selected ? <Check size={16} data-testid="meeting-selected" /> : recording ? <Mic className="flex-none" size={16} /> : c.attendees.length > 1 ? <Users size={16} /> : initials || <FileText size={16} />}</span>
     <span className="meeting-description"><strong>{loading ? <span className="loading-bar" style={{ width: c.title.length * 6, maxWidth: '85%' }} /> : c.title}</strong><span data-testid={loading ? undefined : "past-note-attendees"} title={c.attendees.map((p) => p.name).join(', ') || undefined}>{loading ? <span className="loading-bar" style={{ width: 110 }} /> : transcriptionLabel(c.transcriptionState) || (c.attendees.length ? peopleSummary(c.attendees, me) : t('Personal notes'))}</span>
     </span>
     </span>

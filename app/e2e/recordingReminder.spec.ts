@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -18,7 +19,7 @@ for (const theme of ['light', 'dark'] as const) test(`standard recording reminde
       Object.defineProperty(document, 'hasFocus', { configurable: true, value: () => true })
       window.dispatchEvent(new Event('focus'))
     })
-    await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
     const toast = page.getByTestId('recording-reminder')
     await expect(toast).toHaveText("Let everyone know you're recording.")
@@ -32,7 +33,7 @@ for (const theme of ['light', 'dark'] as const) test(`standard recording reminde
     await page.getByTestId('chat-open').click()
     await expect.poll(async () => {
       const a = await toast.boundingBox(), b = await page.getByTestId('chat-panel').boundingBox()
-      return !!a && !!b && a.x + a.width + 10 <= b.x
+      return !!a && !!b && b.y + b.height + 8 <= a.y
     }).toBe(true)
     await toast.hover()
     await page.getByTestId('chat-panel').evaluate(el => Promise.allSettled([el, ...el.querySelectorAll('.chat-morph-surface,.chat-panel-contents')].flatMap(node => node.getAnimations()).map(a => a.finished)))
@@ -71,7 +72,7 @@ for (const theme of ['light', 'dark'] as const) test(`standard recording reminde
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
     await expect(toast).toHaveCount(0)
     await page.getByTestId('note-stop').click()
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     const toggle = page.getByTestId('recording-reminder-toggle')
     await expect(toggle).toHaveAttribute('aria-checked', 'true')
     // the loaded settings, not the fading placeholder copy that holds the same words for a moment
@@ -80,16 +81,16 @@ for (const theme of ['light', 'dark'] as const) test(`standard recording reminde
     await page.reload()
     await expect(toggle).toHaveAttribute('aria-checked', 'false')
     await page.getByTestId('nav-home').click()
-    await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
     await expect(toast).toHaveCount(0)
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     await toggle.click()
     await page.getByTestId('recording-return').click()
     await expect(toast).toHaveCount(0)
     await page.getByTestId('note-stop').click()
     await page.getByTestId('nav-home').click()
-    await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
     await expect(toast).toBeVisible()
   } finally { await app.close() }
 })

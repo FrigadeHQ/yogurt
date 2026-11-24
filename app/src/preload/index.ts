@@ -1,7 +1,9 @@
+import type { MeterPacket } from '../shared/speechWave'
 import { audioUpload } from './audioUpload'
 import type { WidgetLayout } from '../shared/widgetMorph'
 import { contextBridge, ipcRenderer } from 'electron'
 import { capabilities, platformOf } from '../shared/platform'
+import { phoneCompanionOn, type CompanionStatus } from '../shared/companion'
 import type { ChatView, ConversationSummary, ConversationView, NoteView, PromptAction, SetupState, UpdateStatus, WidgetView, YogurtApi } from '../shared/types'
 
 const api: YogurtApi = {
@@ -10,6 +12,7 @@ const api: YogurtApi = {
   os: platformOf(process.platform, process.env),
   capabilities: capabilities(platformOf(process.platform, process.env)),
   fake: process.env.YOGURT_FAKE === '1',
+  phone: phoneCompanionOn(process.env),
   setup: {
     state: () => ipcRenderer.invoke('setup:state'),
     onState: (cb) => {
@@ -34,7 +37,7 @@ const api: YogurtApi = {
       return () => { ipcRenderer.removeListener('widget:state', on) }
     },
     onLevel: (cb) => {
-      const on = (_e: unknown, lv: { me: number; them: number }) => cb(lv)
+      const on = (_e: unknown, lv: MeterPacket) => cb(lv)
       ipcRenderer.on('widget:level', on)
       return () => { ipcRenderer.removeListener('widget:level', on) }
     },
@@ -65,7 +68,8 @@ const api: YogurtApi = {
     takeRecordingReminder: () => ipcRenderer.invoke('meetings:take-recording-reminder'),
     get: (id) => ipcRenderer.invoke('meetings:get', id),
     cards: (o) => ipcRenderer.invoke('meetings:cards', o),
-    start: (eventId) => ipcRenderer.invoke('meetings:start', eventId),
+    start: (eventId, folderId) => ipcRenderer.invoke('meetings:start', eventId, folderId),
+    createFolderNote: folderId => ipcRenderer.invoke('meetings:folder-note', folderId),
     prepare: (eventId, day) => ipcRenderer.invoke('meetings:prepare', eventId, day),
     startPrepared: (id) => ipcRenderer.invoke('meetings:start-prepared', id),
     resume: (id) => ipcRenderer.invoke('meetings:resume', id),
@@ -134,6 +138,7 @@ const api: YogurtApi = {
     },
   },
   share: {
+    appLink: (x, y) => ipcRenderer.invoke('share:app-link', x, y),
     copy: (id, what, side) => ipcRenderer.invoke('share:copy', id, what, side),
     save: (id, side) => ipcRenderer.invoke('share:save', id, side),
   },
@@ -166,6 +171,12 @@ const api: YogurtApi = {
     },
   },
   conversations: {
+    waitsForMeeting: () => ipcRenderer.invoke('conversations:waits-for-meeting'),
+    onRecordingWait: cb => {
+      const on = (_e: unknown, waiting: boolean) => cb(waiting)
+      ipcRenderer.on('conversations:recording-wait', on)
+      return () => { ipcRenderer.removeListener('conversations:recording-wait', on) }
+    },
     current: (chips, fresh) => ipcRenderer.invoke('conversations:current', chips, fresh),
     context: (id, chips) => ipcRenderer.invoke('conversations:context', id, chips),
     removeContext: (id, chip) => ipcRenderer.invoke('conversations:remove-context', id, chip),
@@ -196,7 +207,7 @@ const api: YogurtApi = {
     onChange: (cb) => { ipcRenderer.on('calendar:changed', cb); return () => { ipcRenderer.off('calendar:changed', cb) } },
     comingUp: () => ipcRenderer.invoke('calendar:coming-up'),
     connect: () => ipcRenderer.invoke('calendar:connect'),
-    day: (at) => ipcRenderer.invoke('calendar:day', at),
+    day: (at, purpose) => ipcRenderer.invoke('calendar:day', at, purpose),
     links: () => ipcRenderer.invoke('calendar:links'),
     addLink: (url) => ipcRenderer.invoke('calendar:add-link', url),
     removeLink: (id) => ipcRenderer.invoke('calendar:remove-link', id),
@@ -218,7 +229,15 @@ const api: YogurtApi = {
   mcp: {
     status: () => ipcRenderer.invoke('mcp:status'),
     set: (on) => ipcRenderer.invoke('mcp:set', on),
+    setChanges: (on) => ipcRenderer.invoke('mcp:set-changes', on),
     onClients: (fn) => { const f = (_e: unknown, c: string[]) => fn(c); ipcRenderer.on('mcp:clients', f); return () => { ipcRenderer.off('mcp:clients', f) } },
+  },
+  companion: {
+    status: () => ipcRenderer.invoke('companion:status'),
+    startPairing: () => ipcRenderer.invoke('companion:start-pairing'),
+    cancelPairing: () => ipcRenderer.invoke('companion:cancel-pairing'),
+    unpair: () => ipcRenderer.invoke('companion:unpair'),
+    onStatus: (fn) => { const f = (_e: unknown, s: CompanionStatus) => fn(s); ipcRenderer.on('companion:status', f); return () => { ipcRenderer.off('companion:status', f) } },
   },
   updates: {
     status: () => ipcRenderer.invoke('updates:status'),
@@ -238,10 +257,13 @@ const api: YogurtApi = {
     get: () => ipcRenderer.invoke('settings:get'),
     setTheme: (v) => ipcRenderer.invoke('settings:theme', v),
     setShowInMenuBar: (on) => ipcRenderer.invoke('settings:menu-bar', on),
+    setShowNextMeeting: (on) => ipcRenderer.invoke('settings:next-meeting', on),
+    setShowRecordingPill: (on) => ipcRenderer.invoke('settings:recording-pill', on),
     setAppVisibility: (choice) => ipcRenderer.invoke('settings:visibility', choice),
     setOpenAtLogin: (on) => ipcRenderer.invoke('settings:login', on),
     setName: (name) => ipcRenderer.invoke('settings:name', name),
     setStopWhenCallEnds: (on) => ipcRenderer.invoke('settings:auto-stop', on),
+    setIncludeRecordingCredit: (on) => ipcRenderer.invoke('settings:recording-credit', on),
     setRecordingReminder: (on) => ipcRenderer.invoke('settings:recording-reminder', on),
     setKeepRecordings: (on) => ipcRenderer.invoke('settings:keep-recordings', on),
     setJargon: (terms) => ipcRenderer.invoke('settings:jargon', terms),
@@ -261,6 +283,8 @@ const api: YogurtApi = {
     appearance: (id, appearance) => ipcRenderer.invoke('folders:appearance', id, appearance),
     rename: (id, name) => ipcRenderer.invoke('folders:rename', id, name),
     delete: (id) => ipcRenderer.invoke('folders:delete', id),
+    meetingChoices: id => ipcRenderer.invoke('folders:meeting-choices', id),
+    addMany: (id, ids) => ipcRenderer.invoke('folders:add-many', id, ids),
     add: (id, meetingId) => ipcRenderer.invoke('folders:add', id, meetingId),
     remove: (id, meetingId) => ipcRenderer.invoke('folders:remove', id, meetingId),
     onChange: (cb) => {

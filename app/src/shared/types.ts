@@ -1,3 +1,5 @@
+import type { CompanionStatus } from './companion'
+import type { MeterPacket } from './speechWave'
 import type { AudioUploadFile, AudioUploadStatus } from './audioUpload'
 import type { RendererError } from './rendererError'
 import type { WidgetLayout, WidgetSurface } from './widgetMorph'
@@ -23,6 +25,7 @@ export type Theme = 'light' | 'dark' | 'system'
 export type AppVisibility = 'both' | 'menu-bar' | 'dock'
 /** The capture has stopped, but its final database state may still need an explicit retry. */
 export type MeetingView = Meeting & { stopSavePending?: true; paused?: true; liveTranscriptFinishing?: true }
+export type FolderMeetingChoice = Pick<Meeting, 'id' | 'title' | 'startedAt'> & { inFolder: boolean }
 export type MeetingCard = StoredMeetingCard & { paused?: true }
 
 /** What the window sees of the app: window.yogurt (the preload bridge, contextIsolation on) */
@@ -35,6 +38,8 @@ export type YogurtApi = {
   capabilities: Capabilities
   /** test mode: stand-ins for models, audio and calendars */
   fake: boolean
+  /** the iPhone companion is turned on (shared/companion.ts PHONE_COMPANION, or YOGURT_PHONE=1); Settings → Phone shows only then */
+  phone: boolean
   setup: {
     state(): Promise<SetupState>
     /** called with each change; returns the way to stop listening */
@@ -54,7 +59,7 @@ export type YogurtApi = {
     state(): Promise<WidgetView | null>
     onState(cb: (v: WidgetView | null) => void): () => void
     /** sound levels 0..1, about 10 a second */
-    onLevel(cb: (lv: { me: number; them: number }) => void): () => void
+    onLevel(cb: (lv: MeterPacket) => void): () => void
     open(): void
     stop(): void
     layout(): Promise<WidgetLayout | null>
@@ -76,8 +81,10 @@ export type YogurtApi = {
     get(id: string): Promise<MeetingView | undefined>
     /** past and current meetings for home, newest first, a page at a time (before: the last card already shown) */
     cards(o: { before?: { at: number; id: string }; limit: number; /** only the meetings in this folder */ folder?: string }): Promise<MeetingCard[]>
+    /** creates a written note without starting the microphone */
+    createFolderNote(folderId: string): Promise<string>
     /** starts notes or opens the event's existing note with a guarded resume request */
-    start(eventId: string | null): Promise<StartResult>
+    start(eventId: string | null, folderId?: string): Promise<StartResult>
     /** opens the note for this occurrence, creating a prepared note if needed; never records */
     prepare(eventId: string, day: number): Promise<StartResult>
     /** records into an existing prepared note, keeping its title, people and typed notes */
@@ -147,8 +154,9 @@ export type YogurtApi = {
     /** status, the draft as it is written, and the saved notes; returns the way to stop listening */
     onChange(cb: (v: NoteView) => void): () => void
   }
-  /** copying and exporting a meeting's notes or transcript; `side` is the notes shown (the person's own or the enhanced ones) */
   share: {
+    /** opens the Mac share menu for the public Yogurt website, anchored in renderer CSS pixels */
+    appLink(x: number, y: number): Promise<boolean>
     /** puts the notes or the transcript on the clipboard as text and HTML; nothing: there was nothing to copy */
     copy(meetingId: string, what: 'notes' | 'transcript', side: 'mine' | 'enhanced'): Promise<'copied' | 'nothing' | 'failed'>
     /** asks where to save a Markdown file, then writes it */
@@ -159,7 +167,17 @@ export type YogurtApi = {
   mcp: {
     status(): Promise<McpStatus>
     set(on: boolean): Promise<McpStatus>
+    setChanges(on: boolean): Promise<McpStatus>
     onClients(fn: (clients: string[]) => void): () => void
+  }
+  /** Settings → Phone: pairing the iPhone app with this computer over the local network; null when it isn't running */
+  companion: {
+    status(): Promise<CompanionStatus | null>
+    /** ok: false when it couldn't (the status says why when it knows: keychain, listen) */
+    startPairing(): Promise<{ ok: boolean; status: CompanionStatus | null }>
+    cancelPairing(): Promise<CompanionStatus | null>
+    unpair(): Promise<CompanionStatus | null>
+    onStatus(fn: (s: CompanionStatus) => void): () => void
   }
   updates: {
     status(): Promise<UpdateStatus>
@@ -215,6 +233,8 @@ export type YogurtApi = {
   }
   /** questions across every meeting, in saved conversations (the Chat page) */
   conversations: {
+    waitsForMeeting(): Promise<boolean>
+    onRecordingWait(cb: (waiting: boolean) => void): () => void
     /** newest first */
     list(): Promise<ConversationSummary[]>
     current(chips: ContextChip[], fresh?: boolean): Promise<string>
@@ -223,8 +243,8 @@ export type YogurtApi = {
     draft(id: string, text: string): Promise<void>
     targets(query: string): Promise<ContextTarget[]>
     get(id: string): Promise<ConversationView | null>
-    /** id null starts a new conversation; resolves to its id once the question is saved (null: nothing asked). The answer streams in through onChange */
-    ask(id: string | null, question: string): Promise<string | null>
+    /** id null starts a new conversation; resolves to its id once the question is saved (null for an invalid request), or the active recording wait. The answer streams in through onChange */
+    ask(id: string | null, question: string): Promise<string | null | { waitsForMeeting: true }>
     /** a conversation about one meeting opened: its meeting is read into the model ahead of a question */
     warm(id: string): void
     stop(id: string): void
@@ -244,11 +264,11 @@ export type YogurtApi = {
     /** not asked yet: asks; turned off: opens the Mac's settings */
     connect(): Promise<CalendarStatus>
     /** the events on the day of this time, earliest first (none without Calendar access) */
-    day(at: number): Promise<{ status: CalendarStatus; events: AgendaEvent[] }>
+    day(at: number, purpose?: 'link-event'): Promise<{ status: CalendarStatus; events: AgendaEvent[]; unavailable?: string[] }>
     /** Windows and Linux: the calendar links connected (never their addresses) */
     links(): Promise<CalendarLinkInfo[]>
     /** connect a private calendar address; why not when it can't be */
-    addLink(url: string): Promise<{ ok: true; id: string; name: string } | { ok: false; error: 'bad-url' | 'unreachable' | 'not-calendar' | 'public-address' }>
+    addLink(url: string): Promise<{ ok: true; id: string; name: string } | { ok: false; error: 'bad-url' | 'unreachable' | 'not-calendar' | 'public-address' | 'too-big' }>
     removeLink(id: string): Promise<boolean>
   }
   /** what Yogurt may use: read it, ask for it (the Mac's own prompt), or open its pane of System Settings */
@@ -273,15 +293,18 @@ export type YogurtApi = {
   }
   settings: {
     /** myName: what the person is called in meetings (their Mac's full name, macName, when they never changed it) */
-    get(): Promise<{ theme: Theme; openAtLogin: boolean; showInMenuBar: boolean; appVisibility: AppVisibility; /** the language picked; '' follows the Mac */ language: string; /** the language in use */ locale: string; /** the Mac's language, among Yogurt's */ systemLocale: string; myName: string; macName: string; /** a recording stops by itself when its call ends (off: ask first) */ stopWhenCallEnds: boolean; recordingReminder: boolean; keepRecordings: boolean; /** personal jargon, spelled as typed */ jargon: string[]; /** the language people speak in meetings */ spoken: import('./spoken').Spoken; /** default summary language; '' follows the meeting */ summaryLanguage: string }>
+    get(): Promise<{ theme: Theme; openAtLogin: boolean; showInMenuBar: boolean; showNextMeeting: boolean; showRecordingPill: boolean; appVisibility: AppVisibility; /** the language picked; '' follows the Mac */ language: string; /** the language in use */ locale: string; /** the Mac's language, among Yogurt's */ systemLocale: string; myName: string; macName: string; /** a recording stops by itself when its call ends (off: ask first) */ stopWhenCallEnds: boolean; recordingReminder: boolean; includeRecordingCredit: boolean; keepRecordings: boolean; /** personal jargon, spelled as typed */ jargon: string[]; /** the language people speak in meetings */ spoken: import('./spoken').Spoken; /** default summary language; '' follows the meeting */ summaryLanguage: string }>
     /** blank goes back to the Mac's full name */
     setName(name: string): Promise<void>
     setTheme(v: Theme): Promise<void>
     setOpenAtLogin(on: boolean): Promise<void>
     setShowInMenuBar(on: boolean): Promise<void>
+    setShowNextMeeting(on: boolean): Promise<void>
+    setShowRecordingPill(on: boolean): Promise<void>
     setAppVisibility(choice: AppVisibility): Promise<void>
     setStopWhenCallEnds(on: boolean): Promise<void>
     setRecordingReminder(on: boolean): Promise<void>
+    setIncludeRecordingCredit(on: boolean): Promise<void>
     setKeepRecordings(on: boolean): Promise<void>
     /** saves the whole list; gives back what was kept */
     setJargon(terms: string[]): Promise<string[]>
@@ -309,6 +332,8 @@ export type YogurtApi = {
     appearance(id: string, appearance: FolderAppearance): Promise<boolean>
     rename(id: string, name: string): Promise<void>
     delete(id: string): Promise<void>
+    meetingChoices(id: string): Promise<FolderMeetingChoice[]>
+    addMany(id: string, meetingIds: string[]): Promise<boolean>
     add(id: string, meetingId: string): Promise<void>
     remove(id: string, meetingId: string): Promise<void>
     onChange(cb: () => void): () => void
@@ -389,6 +414,8 @@ export type NoteView = {
   peopleChanged: boolean
   /** the notes were just written again (for new people): what they replaced, so an open editor with no edits since takes them */
   rewrittenFrom?: string
+  /** My notes were just changed from the iPhone: what they replaced, so an open editor with no edits since takes them */
+  mineFrom?: string
   /** latest acknowledged edit revision on each side; failed text is retained in main and overlaid above */
   saves?: Partial<Record<NoteSide, NoteSaveResult>>
 }
@@ -459,6 +486,7 @@ export type ConversationView = {
 export type ConversationSummary = { id: string; title: string; updatedAt: number; chips: ContextTarget[]; draft: string }
 
 /** enabled: in Settings. clients: apps connected now. command: the program to give an AI app */
-export type McpStatus = { enabled: boolean; clients: string[]; command: string }
+/** changes: AI apps may also change meetings, notes and a few settings (off unless turned on) */
+export type McpStatus = { enabled: boolean; changes: boolean; clients: string[]; command: string }
 /** Settings → Updates. available: this build updates itself (not in development or a preview); next: the version found */
 export type UpdateStatus = { version: string; available: boolean; on: boolean; state: 'idle' | 'checking' | 'latest' | 'downloading' | 'ready' | 'error'; next?: string; dismissed?: boolean }

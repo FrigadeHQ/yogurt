@@ -35,6 +35,8 @@ export type Meeting = {
   language: string | null
   /** where the title came from: only a generic or auto one is replaced by a title from the notes */
   titleSource: TitleSource
+  /** Preserve the saved list on calendar links after a manual edit or an import without edit history. */
+  keepAttendees?: boolean
   /** Recorded duration when pauses or resumed sessions make wall duration inaccurate. */
   durationMs?: number
   /** Some recorded audio still needs a saved transcript, including earlier sessions. */
@@ -61,6 +63,7 @@ const toMeeting = (r: Row): Meeting => ({
   id: String(r.id), title: String(r.title), startedAt: Number(r.started_at), endedAt: r.ended_at == null ? null : Number(r.ended_at),
   eventId: r.event_id == null ? null : String(r.event_id), app: r.app == null ? null : String(r.app),
   attendees: JSON.parse(String(r.attendees)), state: r.state as Meeting['state'], language: r.language == null ? null : String(r.language),
+  ...(r.keep_attendees ? { keepAttendees: true } : {}),
   titleSource: (r.title_source ?? 'user') as TitleSource,
   ...(r.source == null ? {} : { source: String(r.source) }),
   ...(r.source_id == null ? {} : { sourceId: String(r.source_id) }),
@@ -151,6 +154,52 @@ function around(raw: string, pairs: string[]): SnippetPart[] {
   return parts
 }
 
+/**
+ * What the iPhone has to fetch again, by trigger so every write path is seen (the app, backup import, the Trash).
+ * One row per thing: a new change drops its older row, so the log never outgrows what it describes and a
+ * phone behind by any amount gets each thing once. companion/records.ts reads it.
+ */
+const COMPANION_SOURCES: Array<{ table: string; entity: string; id: string; update: string }> = [
+  // only what the phone shows: opening a note or a folder suggestion is no change to it
+  { table: 'meetings', entity: 'meeting', id: 'id', update: 'title, started_at, ended_at, attendees, app, trashed_at, language' },
+  { table: 'notes', entity: 'notes', id: 'meeting_id', update: 'mine, enhanced' },
+  { table: 'segments', entity: 'segments', id: 'meeting_id', update: 'start_ms, end_ms, text, speaker, hidden' },
+  { table: 'folders', entity: 'folder', id: 'id', update: 'name' },
+  { table: 'folder_meetings', entity: 'folderMembers', id: 'folder_id', update: 'folder_id, meeting_id' },
+  { table: 'people', entity: 'people', id: 'email', update: 'display_name' },
+]
+/** Raise when the triggers change: a database with an older set gets them made again. */
+const COMPANION_TRIGGERS = 1
+function companionTables(db: DatabaseSync) {
+  // one transaction: a crash between making the log and filling it would leave old history out for good
+  db.exec('BEGIN')
+  try {
+    const fresh = !db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'companion_changes'").get()
+    db.exec(`CREATE TABLE IF NOT EXISTS companion_changes (seq INTEGER PRIMARY KEY AUTOINCREMENT, entity TEXT NOT NULL, entity_id TEXT NOT NULL, at INTEGER NOT NULL);
+      CREATE UNIQUE INDEX IF NOT EXISTS companion_changes_entity ON companion_changes(entity, entity_id);
+      CREATE TABLE IF NOT EXISTS companion_devices (id TEXT PRIMARY KEY, name TEXT NOT NULL, public_key TEXT NOT NULL, paired_at INTEGER NOT NULL, last_seen INTEGER);
+      CREATE TABLE IF NOT EXISTS companion_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);`)
+    // the epoch names this log: a phone seeing a new one starts again from 0 (its seq numbers mean nothing here)
+    db.prepare(`INSERT ${fresh ? 'OR REPLACE' : 'OR IGNORE'} INTO companion_meta (key, value) VALUES ('epoch', ?)`).run(randomUUID())
+    const version = db.prepare("SELECT value FROM companion_meta WHERE key = 'triggers'").get()?.value
+    if (fresh || Number(version) !== COMPANION_TRIGGERS) {
+      for (const r of db.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'companion\\_%' ESCAPE '\\'").all()) db.exec(`DROP TRIGGER "${String(r.name)}"`)
+      // delete then insert, not OR REPLACE: an upsert outside a trigger overrides its conflict policy
+      const log = (entity: string, id: string) => `DELETE FROM companion_changes WHERE entity = '${entity}' AND entity_id = ${id};
+        INSERT INTO companion_changes (entity, entity_id, at) VALUES ('${entity}', ${id}, CAST(unixepoch('subsec') * 1000 AS INTEGER));`
+      for (const s of COMPANION_SOURCES) {
+        db.exec(`CREATE TRIGGER companion_${s.table}_ai AFTER INSERT ON ${s.table} BEGIN ${log(s.entity, `new.${s.id}`)} END;
+          CREATE TRIGGER companion_${s.table}_ad AFTER DELETE ON ${s.table} BEGIN ${log(s.entity, `old.${s.id}`)} END;
+          CREATE TRIGGER companion_${s.table}_au AFTER UPDATE OF ${s.update} ON ${s.table} BEGIN ${log(s.entity, `old.${s.id}`)} ${log(s.entity, `new.${s.id}`)} END;`)
+      }
+      db.prepare("INSERT OR REPLACE INTO companion_meta (key, value) VALUES ('triggers', ?)").run(String(COMPANION_TRIGGERS))
+    }
+    // a database from before the log: everything in it is new to a phone
+    if (fresh) for (const s of COMPANION_SOURCES) db.exec(`INSERT OR IGNORE INTO companion_changes (entity, entity_id, at) SELECT DISTINCT '${s.entity}', ${s.id}, 0 FROM ${s.table}`)
+    db.exec('COMMIT')
+  } catch (e) { db.exec('ROLLBACK'); throw e }
+}
+
 /** Meetings, transcripts and notes in one SQLite file, with full-text search. */
 export class Store {
   /** public only so tests can poke at tables */
@@ -227,6 +276,8 @@ export class Store {
     if (!meetingCols.includes('duration_ms')) this.db.exec('ALTER TABLE meetings ADD COLUMN duration_ms INTEGER')
     if (!meetingCols.includes('language')) this.db.exec('ALTER TABLE meetings ADD COLUMN language TEXT')
     if (!meetingCols.includes('trashed_at')) this.db.exec('ALTER TABLE meetings ADD COLUMN trashed_at INTEGER')
+    // Existing notes and older backups have no attendee edit history, including lists cleared by hand.
+    if (!meetingCols.includes('keep_attendees')) this.db.exec('ALTER TABLE meetings ADD COLUMN keep_attendees INTEGER NOT NULL DEFAULT 1')
     if (!meetingCols.includes('title_source')) {
       // meetings from before: worked out from the title and the event, as a new one would be
       this.db.exec("ALTER TABLE meetings ADD COLUMN title_source TEXT NOT NULL DEFAULT 'user'")
@@ -260,6 +311,7 @@ export class Store {
     const hadPeople = this.db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'people'").get()
     this.db.exec('CREATE TABLE IF NOT EXISTS people (email TEXT PRIMARY KEY, display_name TEXT, seen_names TEXT NOT NULL DEFAULT "[]", first_seen INTEGER NOT NULL, last_seen INTEGER NOT NULL)')
     if (!hadPeople) backfillPeople(this.db)
+    companionTables(this.db)
     // chat across meetings: its chunks, vectors and saved conversations (library/store.ts)
     libraryTables(this.db)
     // voices told apart by letter (Speaker A, B) are gone: a database from then loses the letters, so those lines say Them
@@ -298,6 +350,7 @@ export class Store {
         this.db.prepare('UPDATE meetings SET attendees = ? WHERE id = ?').run(JSON.stringify(people), id)
         this.db.prepare('UPDATE notes SET written_with = ? WHERE meeting_id = ? AND written_with = ?').run(attendeeMembership(people), id, previous)
       }
+      this.db.prepare('UPDATE meetings SET keep_attendees = 1 WHERE id = ?').run(id)
       this.db.exec('RELEASE rename_person')
       return true
     } catch (e) { this.db.exec('ROLLBACK TO rename_person; RELEASE rename_person'); throw e }
@@ -311,23 +364,42 @@ export class Store {
   }
   close() { this.db.close() }
 
-  createMeeting(m: Omit<Meeting, 'id' | 'language' | 'titleSource'> & { language?: string | null; titleSource?: TitleSource }, id: string = randomUUID()): Meeting {
-    const language = m.language ?? null
-    const ownEmail = m.eventId ? ownAddress(m.ownEmail) : null
-    this.rememberOwnEmail(ownEmail)
-    const titleSource = m.titleSource ?? sourceOf(m.title, m.eventId)
-    this.db.prepare('INSERT INTO meetings (id, title, started_at, ended_at, event_id, app, attendees, state, language, title_source, duration_ms, event_started_at, event_ended_at, event_title, event_calendar_name, event_calendar_source, source, transcription_pending, own_email) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      .run(id, m.title, m.startedAt, m.endedAt, m.eventId, m.app, JSON.stringify(m.attendees), m.state, language, titleSource, m.durationMs ?? null, m.eventStartedAt ?? null, m.eventEndedAt ?? null, m.eventTitle ?? null, m.eventCalendarName ?? null, m.eventCalendarSource ?? null, m.source ?? null, Number(!!m.transcriptionPending), ownEmail)
-    rememberPeople(this.db, m.attendees)
-    return this.meeting(id)!
+  private writeAtomically<T>(write: () => T): T {
+    this.db.exec('SAVEPOINT meeting_write')
+    try {
+      const result = write()
+      this.db.exec('RELEASE meeting_write')
+      return result
+    } catch (error) {
+      this.db.exec('ROLLBACK TO meeting_write; RELEASE meeting_write')
+      throw error
+    }
+  }
+
+  createMeeting(m: Omit<Meeting, 'id' | 'language' | 'titleSource'> & { language?: string | null; titleSource?: TitleSource; folderId?: string }, id: string = randomUUID()): Meeting {
+    return this.writeAtomically(() => {
+      const language = m.language ?? null
+      const ownEmail = m.eventId ? ownAddress(m.ownEmail) : null
+      this.rememberOwnEmail(ownEmail)
+      const titleSource = m.titleSource ?? sourceOf(m.title, m.eventId)
+      this.db.prepare('INSERT INTO meetings (id, title, started_at, ended_at, event_id, app, attendees, state, language, title_source, duration_ms, event_started_at, event_ended_at, event_title, event_calendar_name, event_calendar_source, source, source_id, transcription_pending, own_email, keep_attendees) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        .run(id, m.title, m.startedAt, m.endedAt, m.eventId, m.app, JSON.stringify(m.attendees), m.state, language, titleSource, m.durationMs ?? null, m.eventStartedAt ?? null, m.eventEndedAt ?? null, m.eventTitle ?? null, m.eventCalendarName ?? null, m.eventCalendarSource ?? null, m.source ?? null, m.sourceId ?? null, Number(!!m.transcriptionPending), ownEmail, Number(!!m.keepAttendees))
+      rememberPeople(this.db, m.attendees)
+      if (m.folderId !== undefined) this.addToFolder(m.folderId, id)
+      return this.meeting(id)!
+    })
   }
   updateMeeting(id: string, patch: Partial<Omit<Meeting, 'id'>>) {
     if (patch.ownEmail) this.rememberOwnEmail(patch.ownEmail)
     if (patch.attendees) rememberPeople(this.db, patch.attendees)
-    const col: Record<string, string> = { title: 'title', startedAt: 'started_at', endedAt: 'ended_at', eventId: 'event_id', eventStartedAt: 'event_started_at', eventEndedAt: 'event_ended_at', eventTitle: 'event_title', eventCalendarName: 'event_calendar_name', eventCalendarSource: 'event_calendar_source', ownEmail: 'own_email', app: 'app', attendees: 'attendees', state: 'state', language: 'language', titleSource: 'title_source', durationMs: 'duration_ms', transcriptionPending: 'transcription_pending', transcriptionState: 'transcription_state', transcriptionAgain: 'transcription_again' }
+    const col: Record<string, string> = { title: 'title', startedAt: 'started_at', endedAt: 'ended_at', eventId: 'event_id', eventStartedAt: 'event_started_at', eventEndedAt: 'event_ended_at', eventTitle: 'event_title', eventCalendarName: 'event_calendar_name', eventCalendarSource: 'event_calendar_source', ownEmail: 'own_email', app: 'app', attendees: 'attendees', keepAttendees: 'keep_attendees', state: 'state', language: 'language', titleSource: 'title_source', durationMs: 'duration_ms', transcriptionPending: 'transcription_pending', transcriptionState: 'transcription_state', transcriptionAgain: 'transcription_again', sourceId: 'source_id' }
     const keys = Object.keys(patch).filter((k) => k in col && (patch as Row)[k] !== undefined)
     if (!keys.length) return
-    const vals = keys.map((k) => (k === 'attendees' ? JSON.stringify(patch.attendees) : (k === 'transcriptionPending' || k === 'transcriptionAgain') ? Number(k === 'transcriptionPending' ? patch.transcriptionPending : patch.transcriptionAgain) : (patch as Row)[k]) as string | number | null)
+    const vals = keys.map(k => {
+      const value = (patch as Row)[k]
+      if (k === 'attendees') return JSON.stringify(value)
+      return typeof value === 'boolean' ? Number(value) : value as string | number | null
+    })
     this.db.prepare(`UPDATE meetings SET ${keys.map((k) => `${col[k]} = ?`).join(', ')} WHERE id = ?`).run(...vals, id)
   }
   /** Refresh every note still linked to this occurrence, including alternate calendar IDs. */
@@ -348,7 +420,8 @@ export class Store {
     const rows = this.db.prepare(`SELECT m.*, n.mine, n.enhanced, n.edited,
       (SELECT count(*) FROM segments s WHERE s.meeting_id = m.id) AS segments,
       (SELECT count(*) FROM chat_turns c WHERE c.meeting_id = m.id) AS chats
-      FROM meetings m LEFT JOIN notes n ON n.meeting_id = m.id WHERE m.state = 'prepared' AND m.trashed_at IS NULL`).all() as Row[]
+      FROM meetings m LEFT JOIN notes n ON n.meeting_id = m.id WHERE m.state = 'prepared' AND m.prepared_event_end IS NOT NULL AND m.trashed_at IS NULL
+      AND NOT EXISTS (SELECT 1 FROM folder_meetings fm WHERE fm.meeting_id = m.id)`).all() as Row[]
     let removed = 0
     for (const r of rows) {
       if (!unusedPreparedNote({ state: String(r.state), eventEnd: r.prepared_event_end == null ? null : Number(r.prepared_event_end),
@@ -381,6 +454,11 @@ export class Store {
     const r = this.db.prepare('SELECT * FROM meetings WHERE id = ?').get(id) as Row | undefined
     return r ? this.readMeeting(r) : undefined
   }
+  /** a meeting brought in from another app, by that app's own id for it (backups and imports keep it) */
+  meetingFromSource(source: string, sourceId: string): Meeting | undefined {
+    const r = this.db.prepare('SELECT * FROM meetings WHERE source = ? AND source_id = ? LIMIT 1').get(source, sourceId) as Row | undefined
+    return r ? this.readMeeting(r) : undefined
+  }
   /** EventKit ids include the occurrence date, so recurring meetings keep separate notes. */
   meetingForEvent(eventId: string): Meeting | undefined {
     const r = this.db.prepare('SELECT * FROM meetings WHERE event_id = ? AND trashed_at IS NULL ORDER BY started_at DESC, rowid DESC LIMIT 1').get(eventId) as Row | undefined
@@ -393,6 +471,11 @@ export class Store {
     return (rows as Row[]).map(r => this.readMeeting(r))
   }
 
+  /** Waiting or queued labels on meetings with nothing left to transcribe (recordings, not uploads or replacements): cleared, their ids returned */
+  clearFinishedTranscriptionStates(): string[] {
+    return (this.db.prepare(`UPDATE meetings SET transcription_state=NULL WHERE transcription_pending=0 AND transcription_again=0 AND COALESCE(source,'')!='audio-file'
+      AND transcription_state IN ('queued','transcribing','waiting-model','waiting-recording') RETURNING id`).all() as Array<{ id: string }>).map(r => r.id)
+  }
   clearTranscriptionState(id:string) { this.db.prepare('UPDATE meetings SET transcription_state=NULL,transcription_again=0 WHERE id=?').run(id);this.clearTranscriptionDraft(id) }
   interruptAudioPreparations() {
     this.db.prepare("UPDATE meetings SET transcription_state='error',transcription_pending=0 WHERE source='audio-file' AND transcription_state='preparing'").run()
@@ -732,14 +815,27 @@ export class Store {
   }
   /** The folder goes; its meetings stay where they are (only the links go, by ON DELETE CASCADE) */
   deleteFolder(id: string) { this.db.prepare('DELETE FROM folders WHERE id = ?').run(id) }
+  folderMeetingChoices(folderId: string) {
+    const rows = this.db.prepare(`SELECT m.id, m.title, m.started_at, fm.folder_id FROM meetings m
+      LEFT JOIN folder_meetings fm ON fm.meeting_id = m.id AND fm.folder_id = ?
+      WHERE m.trashed_at IS NULL ORDER BY m.started_at DESC, m.id DESC`).all(folderId)
+    return rows.map(row => ({ id: String(row.id), title: String(row.title), startedAt: Number(row.started_at), inFolder: row.folder_id != null }))
+  }
+  addMeetingsToFolder(folderId: string, ids: string[]): boolean {
+    return this.writeAtomically(() => {
+      const available = this.db.prepare('SELECT 1 FROM meetings WHERE id = ? AND trashed_at IS NULL')
+      const selected = [...new Set(ids)]
+      if (!selected.length || selected.some(id => !available.get(id))) return false
+      for (const id of selected) this.addToFolder(folderId, id)
+      return true
+    })
+  }
   /** in a folder already: nothing changes */
   addToFolder(folderId: string, meetingId: string) {
-    this.db.exec('SAVEPOINT file_meeting')
-    try {
+    this.writeAtomically(() => {
       this.db.prepare('INSERT OR IGNORE INTO folder_meetings (folder_id, meeting_id, added_at) VALUES (?, ?, ?)').run(folderId, meetingId, Date.now())
       this.db.prepare("UPDATE meetings SET suggestion_state = CASE WHEN suggested_folder_id = ? THEN 'accepted' ELSE 'dismissed' END WHERE id = ? AND (suggestion_state IS NULL OR suggestion_state = 'pending')").run(folderId, meetingId)
-      this.db.exec('RELEASE file_meeting')
-    } catch (e) { this.db.exec('ROLLBACK TO file_meeting; RELEASE file_meeting'); throw e }
+    })
   }
   folderSuggestion(id: string): FolderSuggestionRecord {
     const r = this.db.prepare('SELECT suggested_folder_id, suggestion_state, suggestion_confidence, suggestion_attempt FROM meetings WHERE id = ?').get(id) as Row | undefined

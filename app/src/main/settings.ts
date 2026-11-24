@@ -18,6 +18,10 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   openAtLogin?: boolean
   /** the native menu bar icon; on unless turned off */
   showInMenuBar?: boolean
+  /** Show a meeting title beside the icon or in its tooltip. Defaults on. */
+  showNextMeeting?: boolean
+  /** the floating recording control; on by default */
+  showRecordingPill?: boolean
   /** the Dock icon; on unless turned off */
   showInDock?: boolean
   /** Legacy flag, ignored: it may have come from a different app bundle. Removed after a confirmed post. */
@@ -28,10 +32,14 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   axAsked?: boolean
   /** AI apps on this Mac (Claude, Cursor, …) may read meetings through MCP; off unless the person turned it on */
   aiApps?: boolean
+  /** those AI apps may also change meetings, notes and a few settings (never delete for good); off unless turned on */
+  aiAppChanges?: boolean
   /** a recording stops by itself when its call ends; on unless turned off (false: ask first) */
   stopWhenCallEnds?: boolean
   /** a quiet reminder to ask everyone before recording; on unless turned off */
   recordingReminder?: boolean
+  /** Credit on copied summaries and saved Markdown; on unless turned off. */
+  includeRecordingCredit?: boolean
   /** keep audio after its transcript and summary are saved; on unless turned off */
   keepRecordings?: boolean
   /** Only meetings ending after this opt-out may lose their audio automatically. */
@@ -49,15 +57,18 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   /** the default for newly written summaries; the meeting's language when left out */
   summaryLanguage?: string
   /** new versions download by themselves; on unless turned off */
-  autoUpdate?: boolean }
+  autoUpdate?: boolean
+  /** when the updater last fetched latest*.yml (ms): checks happen about once a day (updates.ts) */
+  lastUpdateCheck?: number }
 
 /** "English only" unless Multi-language was picked */
 export const spokenSetting = (s: Settings): Spoken => spokenOf(s.spoken)
 
 export const summaryLanguageSetting = (s: Settings): string => isLocale(s.summaryLanguage) ? s.summaryLanguage : ''
 
-/** "Finish recording when the call ends": on by default */
+/** "Stop recording when the call ends": on by default */
 export const stopsWhenCallEnds = (s: Settings): boolean => s.stopWhenCallEnds !== false
+export const includesRecordingCredit = (s: Settings): boolean => s.includeRecordingCredit !== false
 export const recordingReminderOn = (s: Settings): boolean => s.recordingReminder !== false
 /** Old recordings stay, even if their summaries are saved or rewritten after opting out. */
 export const keepsRecording = (s: Settings, endedAt: number | null): boolean =>
@@ -66,11 +77,12 @@ export const keepsRecording = (s: Settings, endedAt: number | null): boolean =>
 export const autoUpdateOn = (s: Settings): boolean => s.autoUpdate !== false
 
 /** The Dock icon and the menu bar icon, as the person sees them: at least one stays visible, so the app always has an entry point. */
-export type Visibility = { showInMenuBar: boolean; showInDock: boolean }
-/** A hand-edited file with both icons off restores the Dock. */
-export function visibilityOf(s: Settings): Visibility {
+export type Visibility = { showInMenuBar: boolean; showInDock: boolean; showRecordingPill: boolean }
+/** Restore the Dock if both entry points are hidden. Only the Mac menu bar can replace the recording pill. */
+export function visibilityOf(s: Settings, os: string = process.platform): Visibility {
   const showInMenuBar = s.showInMenuBar !== false
-  return { showInMenuBar, showInDock: !showInMenuBar || s.showInDock !== false }
+  return { showInMenuBar, showInDock: !showInMenuBar || s.showInDock !== false,
+    showRecordingPill: os !== 'darwin' || !showInMenuBar || s.showRecordingPill !== false }
 }
 
 export function loadSettings(path: string): Settings {

@@ -8,10 +8,11 @@ const TITLE_TTL = 10_000
 export type Reading = { micApps: MicApp[]; events: CalEvent[]; runningApps?: string[] }
 
 /**
- * Gathers the signals. The mic is asked each time (cheap); the calendar at most once a minute,
+ * Gathers the signals. The mic comes from micApps (the Mac's long-lived mic watch, #143), else a helper each time;
+ * the calendar at most once a minute,
  * since it only matters near a start time. Failed owner checks skip the observation.
  */
-export function createSignals(d: { helper: Helper; events: (from: number, to: number) => Promise<CalEvent[]>; eventsTtlMs?: number }) {
+export function createSignals(d: { helper: Helper; micApps?: () => Promise<unknown>; events: (from: number, to: number) => Promise<CalEvent[]>; eventsTtlMs?: number }) {
   let cache: { at: number; events: CalEvent[] } | undefined
   let override: Reading | undefined
   let revision = 0
@@ -24,8 +25,12 @@ export function createSignals(d: { helper: Helper; events: (from: number, to: nu
       if (override) return override
       let micApps: MicApp[] = []
       try {
-        const raw = await d.helper(['mic-apps'])
-        if (Array.isArray(raw)) micApps = raw.flatMap((r: Record<string, unknown>) => typeof r?.bundleId === 'string' ? [{ bundleId: r.bundleId, name: typeof r.name === 'string' ? r.name : r.bundleId }] : [])
+        const raw = d.micApps ? await d.micApps() : await d.helper(['mic-apps'])
+        if (Array.isArray(raw)) micApps = raw.flatMap((r: Record<string, unknown>) => typeof r?.bundleId === 'string' ? [{
+          bundleId: r.bundleId, name: typeof r.name === 'string' ? r.name : r.bundleId,
+          // which process: two Zoom meetings are two processes, and names come only from the one on the mic (#98)
+          ...(typeof r.pid === 'number' ? { pid: r.pid } : {}),
+        }] : [])
       } catch { /* no helper: no signal */ }
       const owners = [...new Set(micApps.flatMap(m => {
         const id = callAppId(m.bundleId)

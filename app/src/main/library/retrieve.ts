@@ -12,6 +12,9 @@ export const FIND_CHUNKS = 12
 /** meetings whose notes go to the model for an "across" question (newest first when dated, best first otherwise) */
 export const ACROSS_MEETINGS = 12
 const UNDATED_MEETINGS = 8
+/** meetings given for an "overview" question (how one went), best first, each with its notes and best chunks */
+export const OVERVIEW_MEETINGS = 3
+const OVERVIEW_CHUNKS = 4
 /** each search's list before fusing */
 const EACH = 50
 
@@ -21,7 +24,7 @@ export type Retrieved = { kind: Kind; filters: Filters; items: Item[] }
 
 /** words that say nothing about what to find */
 const STOP = new Set(('what when where which while who whom whose why how did does doing done the and for about say said says tell told was were are is that this these those with from have has had having our ours my mine you your yours they them their there here been being will would could should can may might any all some also into just like then than out get got its his her hers she him one two from please give show list want need know meeting meetings call calls talk talked talking mention mentioned think thought anything something everything really very much many more most other others same such only own over under again further once ' +
-  'did not yes').split(' '))
+  'did not yes went going goes gone felt feel').split(' '))
 const wordsOf = (q: string) => [...new Set(q.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length > 2 && !STOP.has(w)))]
 
 type Deps = { store: Pick<Store, 'meeting' | 'notes'>; library: Library; indexer: Pick<Indexer, 'ensure' | 'vectors'>; embedder: Pick<Embedder, 'query' | 'ready'> }
@@ -30,9 +33,11 @@ type Deps = { store: Pick<Store, 'meeting' | 'notes'>; library: Library; indexer
  * What to answer from, for a question across meetings: dates and people (and a scope, say a folder) narrow the
  * meetings; then words (the transcript's search index) and meaning (the embedding model, once it is in) each rank
  * chunks, fused by reciprocal rank. A "find" question gets the best chunks; an "across" one each matching meeting's
- * notes. context: the question before, so a follow-up ("and the price?") is searched for what it follows on from.
+ * notes; an "overview" one (how a meeting went) the few best meetings, each with its notes and best chunks.
+ * context: the question before, so a follow-up ("and the price?") is searched for what it follows on from.
+ * follow: the meetings the answer before used, searched instead of all when the question narrows nothing itself.
  */
-export async function retrieve(d: Deps, question: string, o: { now: number; scope?: string[]; context?: string }): Promise<Retrieved> {
+export async function retrieve(d: Deps, question: string, o: { now: number; scope?: string[]; context?: string; follow?: string[] }): Promise<Retrieved> {
   let meetings = d.library.finished(!!o.scope)
   if (o.scope) { const s = new Set(o.scope); meetings = meetings.filter((m) => s.has(m.id)) }
   const people = new Map(d.library.people().map((p) => [p.meetingId, p.people]))
@@ -44,10 +49,20 @@ export async function retrieve(d: Deps, question: string, o: { now: number; scop
     const all = meetings.filter((m) => filters.people.every((p) => whoOf(m).has(p)))
     meetings = all.length ? all : meetings.filter((m) => filters.people.some((p) => whoOf(m).has(p)))
   }
-  const narrowed = !!o.scope || filters.from !== undefined || filters.people.length > 0
+  // "how did you think it went?" is about the meeting just discussed, unless its words are found only elsewhere (a new subject)
+  let followed = false
+  if (!o.scope && filters.from === undefined && !filters.people.length && o.follow?.length) {
+    const before = new Set(o.follow)
+    const kept = meetings.filter((m) => before.has(m.id))
+    const hits = d.library.chunks(d.library.wordHits(wordsOf(filters.rest), undefined, EACH)).map((c) => c.meetingId)
+    if (kept.length && (!hits.length || hits.some((id) => before.has(id)))) { meetings = kept; followed = true }
+  }
+  const narrowed = !!o.scope || filters.from !== undefined || filters.people.length > 0 || followed
   const ids = meetings.map((m) => m.id)
   const byId = new Map(meetings.map((m) => [m.id, m]))
-  const kind = questionKind(question, filters)
+  let kind = questionKind(question, filters)
+  // how "it" went needs to know which meeting: with nothing narrowing them, search like any question
+  if (kind === 'overview' && !narrowed) kind = 'find'
   if (!meetings.length) return { kind, filters, items: [] }
   d.indexer.ensure(ids)
 
@@ -67,6 +82,18 @@ export async function retrieve(d: Deps, question: string, o: { now: number; scop
     // the line its words were found on, else where it starts
     return { meetingId: c.meetingId, title: m.title, startedAt: m.startedAt, atMs: lineAt.get(c.id) ?? c.startMs, text: spelled(c.meetingId, c.text), transcriptRange: { startMs: c.startMs, endMs: c.endMs } }
   }
+  const notesOf = (id: string) => { const n = d.store.notes(id); return (n.enhanced?.trim() || n.mine.trim()).replace(/<\/?mine>/g, '') }
+  if (kind === 'overview') {
+    // a judgement of the whole meeting: its notes say what it came to, its best chunks how it was said
+    const order = [...new Set([...ranked.map((c) => c.meetingId), ...ids])].slice(0, OVERVIEW_MEETINGS)
+    const items = order.flatMap((id): Item[] => {
+      const m = byId.get(id)!, notes = notesOf(id)
+      const best = ranked.filter((c) => c.meetingId === id)
+      const chunks = [...best, ...d.library.chunksOf(id).filter((c) => !best.some((b) => b.id === c.id))].slice(0, OVERVIEW_CHUNKS)
+      return [...(notes ? [{ meetingId: id, title: m.title, startedAt: m.startedAt, atMs: null, text: spelled(id, notes) }] : []), ...chunks.map(chunkItem)]
+    })
+    return { kind, filters, items }
+  }
   if (kind === 'find') {
     const items = ranked.slice(0, FIND_CHUNKS).map(chunkItem)
     // A prepared note can have typed context before it has any transcript to index.
@@ -85,8 +112,7 @@ export async function retrieve(d: Deps, question: string, o: { now: number; scop
   if (!narrowed && !words.length) order.splice(0, order.length, ...ids.slice(0, UNDATED_MEETINGS))
   const items = order.map((id): Item => {
     const m = byId.get(id)!
-    const n = d.store.notes(id)
-    const notes = (n.enhanced?.trim() || n.mine.trim()).replace(/<\/?mine>/g, '')
+    const notes = notesOf(id)
     if (notes) return { meetingId: id, title: m.title, startedAt: m.startedAt, atMs: null, text: spelled(id, notes) }
     // no notes yet: its best chunk
     const c = ranked.find((x) => x.meetingId === id) ?? d.library.chunksOf(id)[0]

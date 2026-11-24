@@ -1,5 +1,9 @@
+import { CalendarDays, Check, FileText, ICON_STROKE_WIDTH } from '../src/renderer/src/components/Icons'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { App } from '../src/renderer/src/App'
 import { afterEach, expect, it, vi } from 'vitest'
 import { useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from 'react'
+import { useDialogFocus } from '../src/renderer/src/useDialogFocus'
 import { Search } from '../src/renderer/src/components/Search'
 import { Ask } from '../src/renderer/src/components/Chat'
 import { AskContext, scopeLabel } from '../src/renderer/src/components/AskContext'
@@ -7,11 +11,13 @@ import { AskConversation } from '../src/renderer/src/components/AskConversation'
 import type { ConversationView } from '../src/shared/types'
 import { Workspace } from '../src/renderer/src/components/Workspace'
 import { FoldersNav } from '../src/renderer/src/components/FoldersNav'
+import { toasts } from '../src/renderer/src/components/TrashToast'
+import { InlineError } from '../src/renderer/src/components/InlineError'
 import { Agenda } from '../src/renderer/src/components/Agenda'
 
 vi.mock('react', async original => ({
   ...await original<typeof import('react')>(), useState: vi.fn(), useRef: vi.fn(), useEffect: vi.fn(), useLayoutEffect: vi.fn(),
-  useCallback: (callback: unknown) => callback,
+  useCallback: (callback: unknown) => callback, useContext: vi.fn(),
 }))
 vi.mock('motion/react', async original => ({ ...await original<typeof import('motion/react')>(), useDragControls: () => ({ start: vi.fn() }) }))
 vi.mock('react-dom', async original => ({ ...await original<typeof import('react-dom')>(), createPortal: (children: ReactNode) => children }))
@@ -34,50 +40,481 @@ function renderer(component: () => ReactNode) {
   }
 }
 
-it.each([
-  { sidebarMotion: false, reduced: false },
-  { sidebarMotion: true, reduced: false },
-  { sidebarMotion: false, reduced: true },
-  { sidebarMotion: true, reduced: true },
-].flatMap(options => ['/meetings', '/note/m1'].map(route => ({ ...options, route }))))('snaps folder rows only for instant sidebar changes or reduced motion ($sidebarMotion, $reduced) on $route', ({ sidebarMotion, reduced, route }) => {
+it.each([false, true])('returns through a replaced dialog to the original opener (visible %s)', async keyboard => {
+  class Target {
+    isConnected = true
+    focus = vi.fn()
+    constructor(readonly dialog: Target | null = null) {}
+    matches() { return keyboard }
+    closest() { return this.dialog }
+  }
+  vi.stubGlobal('HTMLElement', Target)
+  const opener = new Target(), palette = new Target(), field = new Target(palette), help = new Target()
+  const doc = { activeElement: opener, body: new Target(), documentElement: new Target() }
+  vi.stubGlobal('document', doc)
+  function mount(popup: Target) {
+    renderer(() => { useDialogFocus().popupRef(popup as unknown as HTMLDivElement); return null })()
+    return vi.mocked(useEffect).mock.calls.at(-1)![0]() as () => void
+  }
+  const closePalette = mount(palette)
+  doc.activeElement = field
+  const closeHelp = mount(help)
+  field.isConnected = false
+  doc.activeElement = new Target(help)
+  closePalette()
+  await Promise.resolve()
+  expect(opener.focus).not.toHaveBeenCalled()
+  doc.activeElement = doc.body
+  closeHelp()
+  await Promise.resolve()
+  expect(opener.focus).toHaveBeenCalledExactlyOnceWith({ preventScroll: true, focusVisible: keyboard })
+})
+
+it.each([false, true])('preserves the folder reorder spring and respects reduced motion (%s)', reduced => {
   vi.stubGlobal('window', { matchMedia: () => ({ matches: reduced }) })
   const folders = [{ id: 'f1', name: 'Planning', icon: 'calendar' as const, color: 'violet' as const, count: 2, createdAt: 1 }]
-  let collapsed = false
-  const nav = renderer(() => FoldersNav({ folders, route, collapsed, sidebarMotion, go() {} }))
-  let item: ReactElement<any>
-  const row = renderer(() => (item.type as Function)(item.props))
-  const render = () => {
-    item = find(nav(), 'folder-reorder-list').props.children[0]
-    const element = find(row(), 'sidebar-folder')
-    expect(element.props.layout).toBeUndefined()
-    expect(element.props.dragControls).toBeDefined()
-    expect(element.props.onDragStart).toBeTypeOf('function')
-    vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.length === 1 && deps[0] === collapsed)![0]()
-    return element
+  const nav = renderer(() => FoldersNav({ folders, route: '', go() {} }))()
+  const item = find(nav, 'folder-reorder-list').props.children[0]
+  const row = find(renderer(() => item.type(item.props))(), 'sidebar-folder')
+  expect(row.props.dragControls).toBeDefined()
+  expect(row.props.onDragStart).toBeTypeOf('function')
+  expect(row.props.transition).toEqual(reduced ? { duration: 0 } : { type: 'spring', stiffness: 520, damping: 42 })
+})
+
+it('names the Folders heading and New folder tooltip', () => {
+  const tree = renderer(() => FoldersNav({ folders: [], route: '', go() {} }))()
+  const nav = find(tree, 'sidebar-folders')
+  const [heading, tooltip] = find(nav, 'workspace-folder-header').props.children
+  expect(heading.type).toBe('h2')
+  const toggle = find(heading, 'workspace-folders-toggle').props
+  expect(toggle['aria-label']).toBe('Folders')
+  expect(toggle.children[0].props.children).toBe('Folders')
+  expect(toggle.title).toBeUndefined()
+  const plus = find(tooltip, 'folder-create').props
+  expect(plus['aria-label']).toBe('New folder')
+  expect(plus.title).toBeUndefined()
+  expect(find(tooltip, 'ActionTooltipPopup').props.label).toBe(plus['aria-label'])
+})
+
+it.each(['ltr', 'rtl'])('peeks after a 100ms dwell within the leading 16px below the titlebar (%s)', dir => {
+  vi.useFakeTimers()
+  vi.stubGlobal('document', { documentElement: { dir }, activeElement: {}, querySelector: () => null })
+  vi.stubGlobal('window', { innerWidth: 720 })
+  const go = vi.fn()
+  const render = renderer(() => Workspace({ route: '', go, search() {}, shortcuts() {}, collapsed: true, sidebarMotion: false, toggleSidebar() {}, children: null }))
+  const content = () => find(render(), 'workspace-content').props
+  const panel = () => find(render(), 'workspace-sidebar').props
+  const pointer = { target: { closest: () => null }, clientX: dir === 'rtl' ? 708 : 12, clientY: 52, pointerType: 'mouse', buttons: 0 }
+  for (const event of [
+    { ...pointer, clientX: dir === 'rtl' ? 703 : 16 }, { ...pointer, clientY: 51 },
+    { ...pointer, pointerType: 'touch' }, { ...pointer, pointerType: 'pen' }, { ...pointer, buttons: 1 },
+    { ...pointer, target: { closest: () => ({ tagName: 'BUTTON' }) } },
+  ]) {
+    content().onPointerMoveCapture(pointer)
+    content().onPointerMoveCapture(event)
+    vi.runAllTimers()
+    expect(panel().inert).toBe(true)
   }
-  const reorder = reduced ? { duration: 0 } : { type: 'spring', stiffness: 520, damping: 42 }
-  expect(render().props.transition).toEqual(reorder)
-  for (const next of [true, false, true, false]) {
-    collapsed = next
-    expect(render().props.transition).toEqual(reduced || !sidebarMotion ? { duration: 0 } : reorder)
-    // Reordering after a keyboard toggle still uses the original spring.
-    const element = render()
-    element.props.onDragStart()
-    expect(render().props.transition).toEqual(reorder)
+  for (const cancel of ['onPointerLeave', 'onPointerDownCapture', 'onPointerCancel', 'onWheelCapture']) {
+    content().onPointerMoveCapture(pointer)
+    vi.advanceTimersByTime(40)
+    content()[cancel]()
+    vi.runAllTimers()
+    expect(panel().inert).toBe(true)
+  }
+  const bar = () => find(render(), 'workspace-window-bar').props
+  bar().onPointerEnter()
+  vi.runAllTimers()
+  expect(panel().inert).toBe(true)
+  content().onPointerMoveCapture(pointer)
+  vi.advanceTimersByTime(75)
+  content().onPointerMoveCapture({ ...pointer, clientX: dir === 'rtl' ? 704 : 15 })
+  vi.advanceTimersByTime(24)
+  expect(panel().inert).toBe(true)
+  vi.advanceTimersByTime(1)
+  expect(panel().inert).toBe(false)
+  panel().onPointerLeave()
+  panel().onPointerEnter()
+  vi.runAllTimers()
+  expect(panel().inert).toBe(false)
+  expect(find(render(), 'workspace').props.onPointerMoveCapture).toBeUndefined()
+  panel().onPointerLeave()
+  vi.advanceTimersByTime(79)
+  expect(panel().inert).toBe(false)
+  vi.advanceTimersByTime(1)
+  expect(panel().inert).toBe(true)
+  content().onPointerMoveCapture(pointer)
+  vi.runAllTimers()
+  find(render(), 'nav-chat').props.onClick()
+  expect(go).toHaveBeenCalledWith('/chat')
+  expect(panel().inert).toBe(true)
+})
+
+it('peeks on a deliberate Show sidebar hover', () => {
+  vi.useFakeTimers()
+  const querySelector = vi.fn()
+  vi.stubGlobal('document', { activeElement: {}, querySelector })
+  const render = renderer(() => Workspace({ route: '', go() {}, search() {}, shortcuts() {}, collapsed: true, sidebarMotion: true, toggleSidebar() {}, children: null }))
+  const button = () => find(render(), 'sidebar-expand').props
+  const panel = () => find(render(), 'workspace-sidebar').props
+  const mouse = { pointerType: 'mouse', buttons: 0 }
+  for (const event of [{ ...mouse, pointerType: 'touch' }, { ...mouse, pointerType: 'pen' }, { ...mouse, buttons: 1 }]) {
+    button().onPointerEnter(event)
+    vi.runAllTimers()
+    expect(panel().inert).toBe(true)
+  }
+  for (const stop of ['onPointerLeave', 'onPointerDown', 'onPointerCancel']) {
+    button().onPointerEnter(mouse)
+    vi.advanceTimersByTime(100)
+    button()[stop]()
+    vi.runAllTimers()
+    expect(panel().inert).toBe(true)
+  }
+  querySelector.mockReturnValueOnce({})
+  button().onPointerEnter(mouse)
+  vi.runAllTimers()
+  expect(panel().inert).toBe(true)
+  button().onPointerEnter(mouse)
+  vi.advanceTimersByTime(179)
+  expect(panel().inert).toBe(true)
+  vi.advanceTimersByTime(1)
+  expect(panel().inert).toBe(false)
+})
+
+it.each([
+  { dir: 'ltr', crossing: 25 }, { dir: 'ltr', crossing: 450 }, { dir: 'rtl', crossing: 450 },
+])('keeps a button peek through a $crossing ms crossing in $dir and closes on the page', ({ dir, crossing }) => {
+  vi.useFakeTimers()
+  vi.stubGlobal('document', { documentElement: { dir }, activeElement: {}, querySelector: () => null })
+  vi.stubGlobal('window', { innerWidth: 720 })
+  const render = renderer(() => Workspace({ route: '', go() {}, search() {}, shortcuts() {}, collapsed: true, sidebarMotion: true, toggleSidebar() {}, children: null }))
+  const props = (name: string) => find(render(), name).props
+  const move = (clientX: number, clientY: number) => props('workspace').onPointerMoveCapture({ clientX, clientY })
+  props('workspace-sidebar').ref.current = { offsetLeft: dir === 'rtl' ? 512 : 0, offsetWidth: 208, offsetTop: 52, contains: () => false }
+  props('sidebar-expand').ref.current = { getBoundingClientRect: () => ({ left: 88, right: 116 }) }
+  props('sidebar-expand').onPointerEnter({ pointerType: 'mouse', buttons: 0 })
+  vi.advanceTimersByTime(180)
+  expect(props('workspace-sidebar').inert).toBe(false)
+
+  // Cross the native title bar beyond the 124px window bar before entering the moving panel.
+  props('workspace-window-bar').onPointerLeave()
+  move(150, 47)
+  vi.advanceTimersByTime(crossing)
+  expect(props('workspace-sidebar').inert).toBe(false)
+  move(dir === 'rtl' ? 550 : 170, 64)
+  vi.advanceTimersByTime(100)
+  expect(props('workspace-sidebar').inert).toBe(false)
+  props('workspace-sidebar').onPointerEnter()
+
+  // Native window chrome can interrupt renderer events on the way back to the button.
+  props('workspace').onPointerLeave()
+  vi.advanceTimersByTime(300)
+  expect(props('workspace-sidebar').inert).toBe(false)
+  props('workspace').onPointerEnter()
+  move(101, 27)
+  vi.advanceTimersByTime(100)
+  expect(props('workspace-sidebar').inert).toBe(false)
+
+  // Re-entering cancels dismissal. Further moves on the page don't extend its 80ms delay.
+  move(350, 110)
+  vi.advanceTimersByTime(50)
+  move(dir === 'rtl' ? 550 : 170, 110)
+  vi.advanceTimersByTime(100)
+  expect(props('workspace-sidebar').inert).toBe(false)
+  move(350, 110)
+  vi.advanceTimersByTime(79)
+  move(365, 110)
+  expect(props('workspace-sidebar').inert).toBe(false)
+  vi.advanceTimersByTime(1)
+  expect(props('workspace-sidebar').inert).toBe(true)
+})
+
+it.each(['edge', 'button'])('keeps a %s peek open across the titlebar and docks directly from it', trigger => {
+  vi.useFakeTimers()
+  vi.stubGlobal('document', { documentElement: { dir: 'ltr' }, activeElement: {}, querySelector: () => null })
+  let collapsed = true
+  const toggleSidebar = vi.fn()
+  const render = renderer(() => Workspace({ route: '', go() {}, search() {}, shortcuts() {}, collapsed, sidebarMotion: true, toggleSidebar, children: null }))
+  const panel = () => find(render(), 'workspace-sidebar')
+  const mouse = { pointerType: 'mouse', buttons: 0 }
+  if (trigger === 'button') find(render(), 'sidebar-expand').props.onPointerEnter(mouse)
+  else find(render(), 'workspace-content').props.onPointerMoveCapture({ ...mouse, target: { closest: () => null }, clientX: 12, clientY: 200 })
+  vi.runAllTimers()
+  panel().props.onPointerLeave()
+  find(render(), 'workspace-window-bar').props.onPointerEnter()
+  vi.runAllTimers()
+  expect(panel().props.inert).toBe(false)
+  const footer = find(panel(), 'workspace-sidebar-footer')
+  expect(find(footer, 'CornerMenu').props.visible).toBe(true)
+  find(render(), 'sidebar-expand').props.onClick({ detail: 1 })
+  expect(toggleSidebar).toHaveBeenCalledExactlyOnceWith(true)
+  // The panel stays exposed even before the parent commits its docked width.
+  expect(panel().props.inert).toBe(false)
+  collapsed = false
+  expect(panel().props.inert).toBe(false)
+  expect(find(render(), 'workspace').props['data-peeking']).toBe(false)
+  expect(find(render(), 'sidebar-collapse').props.onPointerEnter).toBeUndefined()
+})
+
+it('opens a keyboard peek, respects a child menu and returns Escape focus to its opener', () => {
+  const opener = { isConnected: true, focus: vi.fn() }
+  const search = { focus: vi.fn() }, listeners = new Map<string, Function>()
+  const querySelector = vi.fn()
+  vi.stubGlobal('document', { activeElement: opener, querySelector, addEventListener() {}, removeEventListener() {} })
+  vi.stubGlobal('window', { addEventListener: (name: string, fn: Function) => listeners.set(name, fn), removeEventListener() {} })
+  const render = renderer(() => Workspace({ route: '', go() {}, search() {}, shortcuts() {}, collapsed: true, sidebarMotion: false, toggleSidebar() {}, children: null }))
+  find(render(), 'sidebar-expand').props.onKeyDown({ key: 'ArrowDown', preventDefault() {} })
+  const tree = render(), panel = find(tree, 'workspace-sidebar').props
+  expect(panel.inert).toBe(false)
+  expect(find(tree, 'sidebar-expand').props['aria-expanded']).toBe(true)
+  panel.ref.current = { querySelector: () => search, contains: () => false }
+  const cleanup = vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.includes('keyboard'))![0]() as () => void
+  expect(search.focus).toHaveBeenCalledWith({ preventScroll: true })
+  querySelector.mockReturnValueOnce({})
+  const escape = { key: 'Escape', preventDefault: vi.fn(), stopPropagation: vi.fn() }
+  listeners.get('keydown')!(escape)
+  expect(escape.preventDefault).not.toHaveBeenCalled()
+  listeners.get('keydown')!(escape)
+  expect(find(render(), 'workspace-sidebar').props.inert).toBe(true)
+  expect(opener.focus).toHaveBeenCalledWith({ preventScroll: true })
+  cleanup()
+})
+
+it('remembers the folders disclosure and opens a newly created folder even from a closed section', () => {
+  const stored = new Map<string, string>()
+  vi.stubGlobal('window', { localStorage: { getItem: (key: string) => stored.get(key), setItem: (key: string, value: string) => stored.set(key, value) } })
+  const go = vi.fn()
+  const mount = () => renderer(() => FoldersNav({ folders: [], route: '', go }))
+  let render = mount()
+  const toggle = () => find(render(), 'workspace-folders-toggle').props
+  const panel = () => find(render(), toggle()['aria-controls']).props
+  const caret = () => find(render(), 'workspace-folder-caret')
+  const openCaret = caret()
+  expect(openCaret.type).toBe('svg')
+  expect(toggle()['aria-expanded']).toBe(true)
+  expect(find(render(), 'workspace-folder-header').props['data-empty']).toBe(true)
+  toggle().onClick()
+  expect(caret().type).toBe(openCaret.type)
+  expect(caret().props.children.props.d).toBe(openCaret.props.children.props.d)
+  render = mount()
+  expect(toggle()['aria-expanded']).toBe(false)
+  expect(panel().inert).toBe(true)
+  const create = () => find(render(), 'folder-create').props.onClick()
+  create()
+  find(render(), 'FolderName').props.onDone()
+  expect(toggle()['aria-expanded']).toBe(false)
+  expect(go).not.toHaveBeenCalled()
+  create()
+  find(render(), 'FolderName').props.onDone({ id: 'new' })
+  expect(go).toHaveBeenCalledExactlyOnceWith('/folder/new')
+  render = mount()
+  expect(toggle()['aria-expanded']).toBe(true)
+  expect(panel().inert).toBe(false)
+})
+
+it.each([0, 1, 99, 100, 1234])('shows the capped count and describes the full count for a folder with %i meetings', count => {
+  vi.stubGlobal('window', { matchMedia: () => ({ matches: true }) })
+  const folders = [{ id: 'f', name: 'Planning', count, icon: 'folder' as const, color: 'default' as const, createdAt: 1 }]
+  const nav = renderer(() => FoldersNav({ folders, route: '/folder/f', go() {} }))()
+  const item = find(nav, 'folder-reorder-list').props.children[0]
+  const row = renderer(() => item.type(item.props))()
+  expect(find(row, 'sidebar-folder-open').props).toMatchObject({ 'aria-current': 'page', 'aria-label': 'Planning',
+    'aria-description': count === 1 ? '1 meeting' : `${count.toLocaleString('en-US')} meetings` })
+  expect(find(row, 'sidebar-folder-count').props.children.props).toMatchObject({ dir: 'ltr', children: count > 99 ? '99+' : count })
+  expect(find(row, 'sidebar-folder-more').props['aria-haspopup']).toBe('menu')
+})
+
+it.each(['button', 'right-click', 'keyboard'])('opens the same folder actions via %s', method => {
+  vi.stubGlobal('window', { matchMedia: () => ({ matches: true }) })
+  vi.stubGlobal('getComputedStyle', () => ({ direction: 'ltr' }))
+  const folders = [{ id: 'f', name: 'Planning', count: 1, icon: 'folder' as const, color: 'default' as const, createdAt: 1 }]
+  const nav = renderer(() => FoldersNav({ folders, route: '', go() {} }))()
+  const item = find(nav, 'folder-reorder-list').props.children[0]
+  const render = renderer(() => item.type(item.props))
+  const row = find(render(), 'sidebar-folder')
+  row.props.ref.current = { getBoundingClientRect: () => ({ left: 10, bottom: 70, width: 188 }) }
+  const opener = find(row, 'sidebar-folder-open').props
+  if (method === 'button') {
+    const more = find(row, 'sidebar-folder-more')
+    expect(more.type).toBe('button')
+    expect(more.props.tabIndex).not.toBe(-1)
+    more.props.onClick()
+  } else if (method === 'right-click') opener.onContextMenu({ preventDefault() {} })
+  else opener.onKeyDown({ key: 'F10', shiftKey: true, preventDefault() {} })
+  const result = render()
+  expect(find(result, 'sidebar-folder-more').props['aria-expanded']).toBe(true)
+  const menu = find(result, 'sidebar-folder-menu')
+  for (const action of ['appearance', 'rename', 'up', 'down', 'delete']) {
+    expect(find(menu, 'sidebar-folder-' + action).props.role).toBe('menuitem')
   }
 })
+
 function find(node: ReactNode, testId: string): ReactElement<any> {
   const visit = (value: ReactNode): ReactElement<any> | undefined => {
     if (Array.isArray(value)) return value.map(visit).find(Boolean)
     if (!value || typeof value !== 'object' || !('props' in value)) return
     const element = value as ReactElement<any>
-    if (element.props['data-testid'] === testId || element.props.id === testId || element.props['aria-label'] === testId || element.props.className === testId) return element
+    if ((typeof element.type === 'function' && element.type.name === testId) || element.props['data-testid'] === testId || element.props.id === testId || element.props['aria-label'] === testId || element.props.className === testId) return element
     return visit(element.props.children)
   }
   const result = visit(node)
   if (!result) throw new Error(`Missing ${testId}`)
   return result
 }
+
+
+afterEach(() => { vi.mocked(toasts.add).mockRestore?.() })
+
+function watchRetryToast() {
+  return vi.spyOn(toasts, 'add').mockReturnValue('test-toast')
+}
+
+it.each([
+  ['darwin', true, 'Appears while you record with Yogurt in the background.'],
+  ['darwin', false, 'Show Yogurt in the menu bar to hide the pill.'],
+  ['win32', true, null], ['linux', true, null],
+])('describes the pill switch on %s with menu bar visibility %s', async (os, showInMenuBar, description) => {
+  const { Settings } = await import('../src/renderer/src/screens/Settings')
+  const settings = { get: async () => ({ showInMenuBar, showRecordingPill: true }) }
+  vi.stubGlobal('window', { yogurt: { os, settings, capabilities: {} } })
+  const draw = renderer(() => Settings({ revision: 17 }))
+  draw()
+  vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.includes(17))![0]()
+  await Promise.resolve()
+  const tree = draw()
+  if (description === null) {
+    expect(() => find(tree, 'recording-pill-toggle')).toThrow()
+  } else {
+    const toggle = find(tree, 'recording-pill-toggle')
+    expect(find(tree, toggle.props['aria-describedby']).props.children).toBe(description)
+    expect(toggle.props['aria-disabled']).toBe(!showInMenuBar)
+  }
+})
+
+it('gives a library read failure a quiet message and keeps its working retry', async () => {
+  const { LibraryEmpty } = await import('../src/renderer/src/screens/Home')
+  const props = { testId: 'past-empty', title: 'Your notes will show up here', description: 'Record a meeting.', icon: null }
+  const retry = vi.fn()
+  const normal = LibraryEmpty(props)
+  const error = LibraryEmpty({ ...props, retry })
+  const { ReadError } = await import('../src/renderer/src/components/InlineError')
+  expect(error.type).toBe(ReadError)
+  const failed = ReadError(error.props)
+  expect(find(normal, 'empty-tile')).toBeTruthy()
+  expect(failed.props.role).toBe('alert')
+  expect(() => find(failed, 'empty-tile')).toThrow()
+  find(failed, 'workspace-button').props.onClick()
+  expect(retry).toHaveBeenCalledOnce()
+})
+
+it('uses the standard secondary button for inline recovery', () => {
+  const retry = vi.fn()
+  const row = InlineError({ testId: 'read-error', retry })
+  const button = find(row, 'workspace-button')
+  expect(button.type).toBe('button')
+  button.props.onClick()
+  expect(retry).toHaveBeenCalledOnce()
+})
+
+it('keeps a failed preference actionable when another preference saves', async () => {
+  const { Settings } = await import('../src/renderer/src/screens/Settings')
+  const toast = watchRetryToast()
+  const close = vi.spyOn(toasts, 'close').mockImplementation(() => {})
+  const reminder = vi.fn().mockRejectedValueOnce(new Error('read only')).mockResolvedValue(undefined)
+  const settings = { get: async () => ({ myName: 'Meeting host', recordingReminder: true, theme: 'system' }), setRecordingReminder: reminder, setTheme: vi.fn().mockResolvedValue(undefined) }
+  vi.stubGlobal('window', { yogurt: { settings, capabilities: {} } })
+  try {
+    const draw = renderer(() => Settings({ revision: 17 }))
+    draw()
+    vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.includes(17))![0]()
+    await Promise.resolve()
+    find(draw(), 'recording-reminder-toggle').props.onClick()
+    await vi.waitFor(() => expect(toast).toHaveBeenCalled())
+    const failed = toast.mock.lastCall![0]
+    close.mockClear()
+    find(draw(), 'settings-theme').props.onChange({ target: { value: 'light' } })
+    await vi.waitFor(() => expect(settings.setTheme).toHaveBeenCalledWith('light'))
+    expect(close).not.toHaveBeenCalledWith(failed.id)
+    await (failed.actionProps!.onClick as Function)()
+    expect(reminder.mock.calls).toEqual([[false], [false]])
+  } finally { close.mockRestore() }
+})
+
+it.each([false, true])('retries the last requested AI access setting (reopen Settings: %s)', async reopen => {
+  const { Settings } = await import('../src/renderer/src/screens/Settings')
+  const toast = watchRetryToast()
+  let saved = { enabled: true, command: 'test', clients: [] }
+  let reject!: (reason: Error) => void
+  const set = vi.fn(async (enabled: boolean) => (saved = { ...saved, enabled }))
+    .mockImplementationOnce(() => new Promise((_, no) => { reject = no }))
+  vi.stubGlobal('window', { yogurt: { capabilities: {}, mcp: { status: async () => saved, onClients: () => () => {}, set } } })
+  const panel = find(renderer(() => Settings({}))(), 'AiApps')
+  const mount = async () => {
+    const render = renderer(() => (panel.type as Function)(panel.props))
+    render()
+    const cleanups = vi.mocked(useEffect).mock.calls.map(([effect]) => effect())
+    await Promise.resolve()
+    return { render, unmount: () => cleanups.forEach(cleanup => cleanup?.()) }
+  }
+  let view = await mount()
+  const toggle = () => find(view.render(), 'ai-apps-toggle').props
+  const pending = toggle().onClick()
+  expect(toggle()['aria-checked']).toBe(true)
+  expect(toggle().disabled).toBe(true)
+  reject(new Error('write failed'))
+  await pending
+  expect(toggle()['aria-checked']).toBe(true)
+  expect(() => find(view.render(), 'ai-apps-retry')).toThrow('Missing')
+  const notice = toast.mock.lastCall?.[0]
+  expect(notice).toMatchObject({ title: "Couldn't save your changes", timeout: 0, actionProps: { children: 'Try again' } })
+  if (reopen) {
+    view.unmount()
+    view = await mount()
+    expect(toggle()['aria-checked']).toBe(true)
+  }
+  try {
+    await (notice!.actionProps!.onClick as Function)()
+    expect(toggle()['aria-checked']).toBe(false)
+    expect(set.mock.calls).toEqual([[false], [false]])
+  } finally { view.unmount() }
+})
+
+it('offers letting AI apps make changes only once they can read, off until turned on', async () => {
+  const { Settings } = await import('../src/renderer/src/screens/Settings')
+  let saved = { enabled: false, changes: false, command: 'test', clients: [] as string[] }
+  const setChanges = vi.fn(async (changes: boolean) => (saved = { ...saved, changes }))
+  vi.stubGlobal('window', { yogurt: { capabilities: {}, mcp: { status: async () => saved, onClients: () => () => {}, set: vi.fn(), setChanges } } })
+  const panel = find(renderer(() => Settings({}))(), 'AiApps')
+  const mount = async () => {
+    const render = renderer(() => (panel.type as Function)(panel.props))
+    render()
+    vi.mocked(useEffect).mock.calls.map(([effect]) => effect())
+    await Promise.resolve()
+    return render
+  }
+  let render = await mount()
+  expect(() => find(render(), 'ai-apps-changes-toggle')).toThrow('Missing')
+  saved = { ...saved, enabled: true }
+  render = await mount()
+  const toggle = () => find(render(), 'ai-apps-changes-toggle').props
+  expect(toggle()['aria-checked']).toBe(false)
+  await toggle().onClick()
+  expect(setChanges).toHaveBeenCalledWith(true)
+  expect(toggle()['aria-checked']).toBe(true)
+})
+
+it('opens a command-search question as a draft when recording prevents an answer', async () => {
+  vi.stubGlobal('document', { activeElement: null })
+  vi.stubGlobal('HTMLButtonElement', class {})
+  const draft = vi.fn().mockResolvedValue(undefined), onNavigate = vi.fn()
+  const conversations = { current: async () => 'draft-id', ask: async () => ({ waitsForMeeting: true }), draft }
+  vi.stubGlobal('window', { yogurt: { capabilities: { calendar: false }, conversations } })
+  const render = renderer(() => Search({ onOpen() {}, onNavigate, onSettingsChange() {}, onShortcuts() {}, onClose() {}, sidebarCollapsed: false, onToggleSidebar() {} }))
+  find(render(), 'search-input').props.onChange({ target: { value: 'What did we decide?' } })
+  find(render(), 'search').props.onKeyDown({ key: 'Enter', metaKey: true, nativeEvent: {}, preventDefault() {} })
+  await vi.waitFor(() => expect(onNavigate).toHaveBeenCalledExactlyOnceWith('/chat/draft-id'))
+  expect(draft).toHaveBeenCalledExactlyOnceWith('draft-id', 'What did we decide?')
+})
 
 it.each([true, false])('offers and runs the date command only with an agenda (calendar: %s)', async calendar => {
   vi.useFakeTimers()
@@ -95,7 +532,7 @@ it.each([true, false])('offers and runs the date command only with an agenda (ca
   if (!calendar) { expect(() => find(tree, 'command-agenda-date')).toThrow('Missing'); return }
   const row = find(tree, 'command-agenda-date')
   expect(row.props['aria-selected']).toBe(true)
-  expect(row.props.children[0].type.displayName).toBe('CalendarDays')
+  expect(row.props.children[0].type).toBe(CalendarDays)
   expect(row.props.children[1].props.children[0]).toBe('Go to Nov 11, 2028')
   find(tree, 'search').props.onKeyDown({ key: 'Enter', nativeEvent: {}, preventDefault() {} })
   expect(onNavigate).toHaveBeenCalledExactlyOnceWith('', new Date(2028, 10, 11).getTime())
@@ -148,6 +585,45 @@ it('jumps a mounted agenda to the day and week, closes details, and keeps arrows
   cleanup?.()
 })
 
+it.each(['dark', 'mode'])('executes the ranked result when Enter beats a slow search for %s', async term => {
+  vi.useFakeTimers()
+  vi.stubGlobal('document', { activeElement: null })
+  vi.stubGlobal('HTMLButtonElement', class {})
+  const meeting = { meetingId: 'm1', title: 'Dark mode planning', startedAt: 1, parts: [], confident: true }
+  const query = vi.fn(async () => { await new Promise(resolve => setTimeout(resolve, 300)); return [meeting] })
+  const setTheme = vi.fn().mockResolvedValue(undefined), onOpen = vi.fn()
+  vi.stubGlobal('window', { yogurt: { capabilities: {}, settings: { get: async () => ({ theme: 'light' }), setTheme }, search: { query } } })
+  const render = renderer(() => Search({ onOpen, onNavigate() {}, onSettingsChange() {}, onShortcuts() {}, onClose() {}, sidebarCollapsed: false, onToggleSidebar() {} }))
+  render()
+  vi.mocked(useEffect).mock.calls[1][0]()
+  await Promise.resolve()
+  find(render(), 'search-input').props.onChange({ target: { value: term } })
+  const tree = render()
+  vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.[0] === term && deps.length > 1)![0]()
+  find(tree, 'search').props.onKeyDown({ key: 'Enter', nativeEvent: {}, preventDefault() {} })
+  await vi.runAllTimersAsync()
+  if (term === 'dark') {
+    expect(setTheme).toHaveBeenCalledExactlyOnceWith('dark')
+    expect(onOpen).not.toHaveBeenCalled()
+  } else {
+    expect(onOpen).toHaveBeenCalledExactlyOnceWith('m1')
+    expect(setTheme).not.toHaveBeenCalled()
+  }
+})
+
+it('offers another read when a palette query fails', async () => {
+  vi.stubGlobal('document', { activeElement: null })
+  const query = vi.fn().mockRejectedValueOnce(new Error('read failed')).mockResolvedValue([])
+  vi.stubGlobal('window', { yogurt: { capabilities: { calendar: true }, search: { query } } })
+  const render = renderer(() => Search({ onOpen() {}, onNavigate() {}, onSettingsChange() {}, onShortcuts() {}, onClose() {}, sidebarCollapsed: false, onToggleSidebar() {} }))
+  render()
+  vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.length === 6)![0]()
+  await new Promise(resolve => setTimeout(resolve, 0))
+  await find(render(), 'search-retry').props.onClick()
+  expect(query).toHaveBeenCalledTimes(2)
+})
+
+
 it('keeps initial search results still, ignores stationary hover, and scrolls only for keyboard selection', async () => {
   const meetings = [{ meetingId: 'm1', title: 'Recent meeting', startedAt: 1000, parts: [] }]
   vi.stubGlobal('document', { activeElement: null })
@@ -176,7 +652,7 @@ it('keeps initial search results still, ignores stationary hover, and scrolls on
   tree = render(); scroll()
   expect(find(tree, 'command-meetings').props['aria-selected']).toBe(true)
   expect(() => find(tree, 'search-intent-icon')).toThrow('Missing')
-  expect(find(tree, 'command-meetings').props.children[0].type.displayName).toBe('FileText')
+  expect(find(tree, 'command-meetings').props.children[0].type).toBe(FileText)
   expect(scrollIntoView).not.toHaveBeenCalled()
   find(tree, 'search').props.onKeyDown({ key: 'ArrowDown', nativeEvent: {}, preventDefault() {} })
   tree = render(); scroll()
@@ -221,7 +697,10 @@ it('keeps row glyphs stable across typing, filters, and keyboard selection witho
       if (icons.has(props.id)) expect(icon.type).toBe(icons.get(props.id))
       icons.set(props.id, icon.type)
       if (icon.props.appearance) expect(icon.props.appearance).toBe(folders[0])
-      else expect(icon.props).toMatchObject({ size: 16, strokeWidth: 1.75, 'aria-hidden': 'true' })
+      else {
+        expect(icon.props).toMatchObject({ size: 16, 'aria-hidden': 'true' })
+        expect(renderToStaticMarkup(icon)).toContain(`stroke-width="${ICON_STROKE_WIDTH}"`)
+      }
     }
     inspect(props.children)
   }
@@ -242,6 +721,21 @@ it('keeps row glyphs stable across typing, filters, and keyboard selection witho
   expect([...icons.keys()]).toEqual(expect.arrayContaining(['search-m1', 'search-ask', 'command-agenda-date', 'command-folder-f1', 'command-theme-light', 'search-person-email%3Aparticipant%40example.test']))
 })
 
+it.each(['/chat', '/chat/saved'])('focuses Ask without a conversation lookup or navigation on %s', async route => {
+  const current = vi.fn().mockResolvedValue('other'), go = vi.fn(), focus = vi.fn()
+  const keydown = vi.fn(), onAsk = vi.fn(), takeAsk = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true)
+  vi.stubGlobal('window', { addEventListener: keydown, yogurt: { os: 'win32', conversations: { current }, nav: { onAsk, takeAsk } } })
+  vi.stubGlobal('document', { querySelector: () => null, getElementById: (id: string) => id === 'library-question' ? { focus } : null })
+  renderer(() => Workspace({ route, go, search() {}, shortcuts() {}, collapsed: false, sidebarMotion: false, toggleSidebar() {}, children: null }))()
+  vi.mocked(useEffect).mock.lastCall![0]()
+  keydown.mock.calls[0][1]({ code: 'KeyJ', ctrlKey: true, preventDefault() {} })
+  onAsk.mock.calls[0][0]()
+  await Promise.resolve()
+  expect(focus.mock.calls).toEqual([[{ preventScroll: true }], [{ preventScroll: true }]])
+  expect(current).not.toHaveBeenCalled()
+  expect(go).not.toHaveBeenCalled()
+})
+
 it.each(['darwin', 'win32'])('toggles the meeting panel once per shortcut press on %s', os => {
   const listeners = new Map<string, (e: any) => void>()
   vi.stubGlobal('window', { matchMedia: () => ({ matches: false }), addEventListener: (name: string, fn: (e: any) => void) => listeners.set(name, fn), removeEventListener() {},
@@ -251,7 +745,7 @@ it.each(['darwin', 'win32'])('toggles the meeting panel once per shortcut press 
   const click = vi.fn(() => { find(tree, 'chat-open').props.onClick(); tree = renderAsk() })
   const querySelector = vi.fn().mockReturnValue(null)
   vi.stubGlobal('document', { querySelector, getElementById: () => ({ click }) })
-  const renderWorkspace = renderer(() => Workspace({ route: '/note/m1', go() {}, search() {}, collapsed: false, sidebarMotion: false, toggleSidebar() {}, children: null }))
+  const renderWorkspace = renderer(() => Workspace({ route: '/note/m1', go() {}, search() {}, shortcuts() {}, collapsed: false, sidebarMotion: false, toggleSidebar() {}, children: null }))
   renderWorkspace()
   vi.mocked(useEffect).mock.lastCall![0]()
   const press = (extra = {}) => listeners.get('keydown')!({ code: 'KeyJ', metaKey: os === 'darwin', ctrlKey: os !== 'darwin', preventDefault() {}, ...extra })
@@ -270,89 +764,100 @@ it.each(['darwin', 'win32'])('toggles the meeting panel once per shortcut press 
   expect(click).toHaveBeenCalledTimes(3)
 })
 
-it.each([false, true])('keeps the composer clip inside the growing shape through open, close and reversal (narrow: %s)', narrow => {
+it.each([[false, false], [true, false], [false, true], [true, true]])('clips the suggestions and composer with the moving surface (narrow %s, reduced motion %s)', async (narrow, reduced) => {
   const rect = (x: number, y: number, width: number, height: number) => ({ x, y, width, height, top: y, left: x, right: x + width, bottom: y + height })
   const to = narrow ? rect(16, 16, 328, 640) : rect(760, 200, 420, 440)
   // Exercise a button outside the final panel, anchored on either side.
   const from = narrow ? rect(20, 700, 140, 30) : rect(1040, 670, 140, 30)
-  const box = rect(to.x + 1, to.y + 1, to.width - 2, to.height - 2)
   const node = (bounds: ReturnType<typeof rect>, computed: Record<string, string>) => ({
-    getBoundingClientRect: () => bounds, computed,
-    animate: vi.fn((_frames: Keyframe[], _options: KeyframeAnimationOptions) => ({
-      playState: 'running', cancel() { this.playState = 'idle' }, finished: new Promise<void>(() => {}),
-    })),
+    getBoundingClientRect: () => bounds, computed, style: { overflow: '' },
+    animate: vi.fn((_frames: Keyframe[], _options: KeyframeAnimationOptions) => {
+      let finish!: () => void
+      const finished = new Promise<void>(resolve => { finish = resolve })
+      return { playState: 'running', cancel() { this.playState = 'idle' }, finished, finish }
+    }),
   })
   const button = { ...node(from, { opacity: '1', borderRadius: '6px' }), focus: vi.fn() }
   const shell = node(to, { left: '-1px', top: '-1px', width: `${to.width}px`, height: `${to.height}px`, borderRadius: '12px', opacity: '1' })
-  const body = node(box, { clipPath: 'none', opacity: '1' })
+  const body = node(to, { opacity: '1' })
   const input = { focus: vi.fn() }
-  const dialog = { ...node(to, { opacity: '1' }), style: { setProperty() {} }, show() {}, showModal() {}, close() {}, querySelector: () => input }
+  const dialog = { ...node(to, { opacity: '1' }), style: { setProperty() {} }, show: vi.fn(), showModal: vi.fn(), close() {}, querySelector: () => input }
   const anchor = { getBoundingClientRect: () => to } as HTMLElement
-  vi.stubGlobal('window', { matchMedia: (query: string) => ({ matches: query.includes('max-width') && narrow }), addEventListener() {}, removeEventListener() {} })
+  const viewport = { matches: narrow, addEventListener: vi.fn() }
+  vi.stubGlobal('window', { matchMedia: (query: string) => query.includes('max-width') ? viewport : { matches: reduced }, addEventListener() {}, removeEventListener() {} })
   vi.stubGlobal('innerHeight', 800)
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
   vi.stubGlobal('getComputedStyle', (element: { computed: Record<string, string> }) => element.computed)
   const render = renderer(() => Ask({ id: 'morph', recording: false, anchor, onSource() {} }))
   let tree = render()
+  for (const [effect] of vi.mocked(useEffect).mock.calls) effect()
   find(tree, 'chat-open').props.ref.current = button
   find(tree, 'chat-open').props.onClick()
   tree = render()
   const panel = find(tree, 'chat-panel')
   panel.props.ref.current = dialog
-  panel.props.children[0].props.ref.current = shell
-  panel.props.children[1].props.ref.current = body
-  // The conversation mounts before its ID resolves; clipping must not postpone the editable composer.
-  expect(panel.props.children[1].props.children[1].props).toMatchObject({ id: '', panel: true, pendingDraftKey: 'meeting/morph' })
-  vi.mocked(useLayoutEffect).mock.lastCall![0]()
+  const surface = find(panel, 'chat-morph-surface')
+  surface.props.ref.current = shell
+  find(surface, 'chat-panel-contents').props.ref.current = body
+  const conversation = find(surface, 'AskConversation')
+  expect(surface.props['aria-hidden']).toBeUndefined()
+  expect(conversation.props).toMatchObject({ id: '', panel: true, pendingDraftKey: 'meeting/morph' })
+  const dispose = vi.mocked(useLayoutEffect).mock.lastCall![0]() as () => void
   expect(input.focus).toHaveBeenCalledWith({ preventScroll: true })
+  const view = renderer(() => AskConversation(conversation.props))()
+  expect(find(view, 'chat-suggestions')).toBeDefined()
+  expect(find(view, 'chat-box').type).toBe('form')
 
-  const lerp = (a: string, b: string, p: number) => parseFloat(a) + (parseFloat(b) - parseFloat(a)) * p
-  const clip = (value: string) => {
-    const n = value.match(/-?\d+(?:\.\d+)?/g)!.map(Number)
-    return n.length === 2 ? [n[0], n[0], n[0], n[0], n[1]] : n
+  const toggle = () => find(tree, 'chat-open').props.onClick()
+  if (reduced) {
+    expect(dialog.animate.mock.lastCall?.[0]).toEqual([{ opacity: 0 }, { opacity: 1 }])
+    toggle()
+    expect(dialog.animate.mock.lastCall?.[0].at(-1)).toEqual({ opacity: 0 })
+    expect(dialog.animate.mock.lastCall?.[1].duration).toBe(120)
+    expect(shell.animate).not.toHaveBeenCalled()
+    expect(shell.style.overflow).toBe('')
+    // Cross the modal breakpoint before the close fade finishes.
+    viewport.matches = !narrow
+    viewport.addEventListener.mock.calls[0][1]()
+    dispose()
+    render()
+    vi.mocked(useLayoutEffect).mock.lastCall![0]()
+    await Promise.resolve()
+    expect(narrow ? dialog.show : dialog.showModal).not.toHaveBeenCalled()
+    expect(find(render(), 'chat-open').props['aria-expanded']).toBe(false)
+    expect(button.focus).toHaveBeenCalledWith({ preventScroll: true })
+    return
   }
-  const check = (expand: boolean) => {
-    const [shape, shapeTiming] = shell.animate.mock.calls.at(-2)!
-    const [crop, cropTiming] = body.animate.mock.calls.at(-2)!
-    expect(shapeTiming.duration).toBe(cropTiming.duration)
-    expect(shapeTiming.easing).toBe(cropTiming.easing)
-    expect(cropTiming.fill).toBe(expand ? 'backwards' : 'forwards')
-    expect(shapeTiming.fill).toBe('both')
-    expect(shape[1].width).toBe(expand ? 'calc(100% + 2px)' : `${from.width}px`)
-    expect(shape.every(frame => !frame.transform)).toBe(true)
-    const at = (p: number) => {
-      const used = (frame: Keyframe, key: string) => String(frame[key]).includes('100%') ? `${to[key as 'width' | 'height']}px` : String(frame[key])
-      const bounds = Object.fromEntries(['left', 'top', 'width', 'height', 'borderRadius'].map(key => [key, lerp(used(shape[0], key), used(shape[1], key), p)]))
-      const start = clip(String(crop[0].clipPath)), end = clip(String(crop[1].clipPath))
-      const inset = start.map((value, i) => value + (end[i] - value) * p)
-      return { bounds, inset }
-    }
-    // All intermediate rectangles AND rounded corners agree, not just the two endpoints.
-    for (let frame = 0; frame <= 100; frame++) {
-      const { bounds, inset: [top, right, bottom, left, radius] } = at(frame / 100)
-      expect(box.left + left).toBeCloseTo(to.left + 1 + bounds.left + 1)
-      expect(box.top + top).toBeCloseTo(to.top + 1 + bounds.top + 1)
-      expect(box.right - right).toBeCloseTo(to.left + 1 + bounds.left + bounds.width - 1)
-      expect(box.bottom - bottom).toBeCloseTo(to.top + 1 + bounds.top + bounds.height - 1)
-      expect(radius).toBeCloseTo(bounds.borderRadius - 1)
-    }
-    // A fast toggle resumes from the same on-screen bounds and radius.
-    const { bounds, inset } = at(.4)
-    Object.assign(shell.computed, Object.fromEntries(Object.entries(bounds).map(([key, value]) => [key, `${value}px`])))
-    body.computed.clipPath = `inset(${inset.slice(0, 4).map(n => `${n}px`).join(' ')} round ${inset[4]}px)`
+  const collapsed = { '--ask-left': `${from.left - to.left - 1}px`, '--ask-top': `${from.top - to.top - 1}px`, width: `${from.width}px`, height: `${from.height}px`, borderRadius: '6px' }
+  const expanded = { '--ask-left': '-1px', '--ask-top': '-1px', width: 'calc(100% + 2px)', height: 'calc(100% + 2px)', borderRadius: '12px' }
+  const shape = () => shell.animate.mock.calls.at(-2)!
+  expect(shape()[0]).toEqual([collapsed, expanded])
+  expect(shape()[1].duration).toBe(180)
+  expect(shell.style.overflow).toBe('clip')
+  expect(body.animate.mock.calls.flatMap(([frames]) => frames).every(frame => Object.keys(frame).every(k => k === 'opacity'))).toBe(true)
+  const first = shell.animate.mock.results.at(-2)!.value
+
+  // Reverse from the painted bounds. A late completion from the first opening cannot release the new clip.
+  const midway = { left: '40px', top: '80px', width: '210px', height: '140px', borderRadius: '8px' }
+  Object.assign(shell.computed, midway)
+  toggle()
+  const resumed = { '--ask-left': midway.left, '--ask-top': midway.top, width: midway.width, height: midway.height, borderRadius: midway.borderRadius }
+  expect(shape()[0]).toEqual([resumed, collapsed])
+  expect(shape()[1].duration).toBe(150)
+  toggle()
+  expect(shape()[0]).toEqual([resumed, expanded])
+  first.finish()
+  await Promise.resolve()
+  expect(shell.style.overflow).toBe('clip')
+  shell.animate.mock.results.at(-2)!.value.finish()
+  await Promise.resolve()
+  expect(shell.style.overflow).toBe('')
+  for (const el of [shell, body, button]) {
+    for (const result of el.animate.mock.results) result.value.playState = 'finished'
   }
-  check(true)
-  find(tree, 'chat-open').props.onClick()
-  check(false)
-  find(tree, 'chat-open').props.onClick()
-  check(true)
-  for (const element of [shell, body, button, dialog]) {
-    for (const result of element.animate.mock.results) result.value.playState = 'finished'
-  }
-  Object.assign(shell.computed, { left: '-1px', top: '-1px', width: `${to.width}px`, height: `${to.height}px`, borderRadius: '12px' })
-  body.computed.clipPath = 'none'
-  find(tree, 'chat-open').props.onClick()
-  check(false)
+  toggle()
+  expect(shape()[0]).toEqual([expanded, collapsed])
+  expect(shell.style.overflow).toBe('clip')
 })
 
 
@@ -370,7 +875,7 @@ it.each(['send', 'load', 'resolve'] as const)('keeps an early Enter through load
   } })
   const render = renderer(() => AskConversation({ id, loadError, pendingDraftKey: `meeting/early-${failure}`, panel: true, onSelect() {}, onDeleted() {}, onSource() {} }))
   const flush = async () => { for (let i = 0; i < 5; i++) await Promise.resolve() }
-  const drain = () => vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.length === 2 && deps[1] === loadError)![0]()
+  const drain = () => vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.length === 3 && deps[1] === loadError && deps[2] === false)![0]()
   const enter = (tree: ReactNode) => find(tree, 'chat-input').props.onKeyDown({ key: 'Enter', nativeEvent: {}, preventDefault() {} })
   let tree = render()
   const focus = vi.fn()
@@ -404,6 +909,10 @@ it.each(['send', 'load', 'resolve'] as const)('keeps an early Enter through load
   }
   expect(find(tree, 'chat-input').props.readOnly).toBe(false)
   expect(find(tree, 'chat-input').props.value).toBe('Who owns the next step?')
+  if (failure === 'load') {
+    await find(tree, 'conversation-load-retry').props.onClick()
+    expect(get).toHaveBeenCalledTimes(2)
+  }
   if (failure === 'send') {
     expect(find(tree, 'chat-send').props.disabled).toBe(false)
     enter(tree)
@@ -597,6 +1106,39 @@ it.each([false, true].flatMap(panel => [false, true].flatMap(inline => [
   },
 )
 
+it.each([true, false])('focuses the first available Share action when a summary exists: %s', async hasEnhanced => {
+  const { ShareMenu } = await import('../src/renderer/src/components/ShareMenu')
+  vi.stubGlobal('document', new EventTarget())
+  const render = renderer(() => ShareMenu({ id: 'note', shown: 'mine', status: 'idle', hasEnhanced, beforeUse: async () => true }))
+  find(render(), 'share-button').props.onClick({ detail: 0 })
+  const menu = find(render(), 'share-menu')
+  const items = menu.props.children.filter((item: ReactElement<any>) => item.props.role === 'menuitem')
+  expect(items.map((item: ReactElement<any>) => item.props['data-testid'])).toEqual(['share-copy-summary', 'share-copy-notes', 'share-copy-transcript', 'share-export'])
+  const focused = vi.fn()
+  for (const item of items) item.props.ref({ disabled: item.props.disabled, focus: () => focused(item.props['data-testid']) })
+  const cleanup = vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.includes('keyboard'))![0]()
+  expect(focused).toHaveBeenCalledExactlyOnceWith(hasEnhanced ? 'share-copy-summary' : 'share-copy-notes')
+  if (typeof cleanup === 'function') cleanup()
+})
+
+it('retains an export error and reopens the file save action on retry', async () => {
+  vi.useFakeTimers()
+  const toast = watchRetryToast()
+  const { ShareMenu } = await import('../src/renderer/src/components/ShareMenu')
+  const save = vi.fn().mockResolvedValueOnce('failed').mockResolvedValueOnce('saved')
+  vi.stubGlobal('window', { yogurt: { share: { save } } })
+  const render = renderer(() => ShareMenu({ id: 'note', shown: 'mine', status: 'idle', hasEnhanced: false, beforeUse: async () => true }))
+  find(render(), 'share-button').props.onClick({ detail: 0 })
+  find(render(), 'share-export').props.onClick()
+  await vi.advanceTimersByTimeAsync(2100)
+  expect(() => find(render(), 'share-export-retry')).toThrow('Missing')
+  const notice = toast.mock.lastCall?.[0]
+  expect(notice).toMatchObject({ title: "Couldn't save the file", timeout: 0, actionProps: { children: 'Try again' } })
+  await (notice!.actionProps!.onClick as Function)()
+  expect(save.mock.calls).toEqual([['note', 'mine'], ['note', 'mine']])
+})
+
+
 it('collapses expanded results for a new search and each new button opening', async () => {
   const c = mentionComposer(false)
   c.targets.mockResolvedValue(Array.from({ length: 20 }, (_, i) => ({ kind: 'meeting', id: String(i), title: `Plan ${i}` })))
@@ -614,14 +1156,24 @@ it('collapses expanded results for a new search and each new button opening', as
 })
 
 
+it.each([false, true])('uses a ghost scope button only for All meetings (panel: %s)', panel => {
+  const c = mentionComposer(panel)
+  const scope = () => find(c.render(), 'ask-scope').props
+  expect(scope().className.split(' ')).not.toContain('ghost-btn')
+  expect(find(c.render(), 'ask-scope-clear').props['aria-label']).toBe('Clear meetings')
+  c.initial.chips = []
+  expect(scope()['aria-label']).toBe('Choose meetings or folders')
+  expect(scope().className.split(' ')).toContain('ghost-btn')
+})
+
 it.each([0, 1, 2, 5])('labels a scope of %s items without truncating its count', count => {
   const chips = Array.from({ length: count }, (_, i) => ({ kind: 'meeting' as const, id: String(i), title: 'A very long meeting title '.repeat(20) }))
   const label = scopeLabel(chips)
   expect(label.name).toBe(count ? chips[0].title.trim() : 'All meetings')
-  expect(label.others).toBe(count > 1 ? `and ${count - 1} ${count === 2 ? 'other' : 'others'}` : '')
+  expect(label.others).toBe(count > 1 ? `and ${count - 1} more` : '')
   const contents = AskContext({ chips })
   expect(find(contents, 'ask-scope-name').props.children).toBe(label.name)
-  if (count > 1) expect(find(contents, 'ask-scope-others').props.children).toBe(` ${label.others}`)
+  if (count > 1) expect(find(contents, 'ask-scope-others').props.children[1].props).toMatchObject({ dir: 'ltr', children: `+${count - 1}` })
 })
 
 it('caps selected scope at three, reveals the rest, and gives query matches the full list', async () => {
@@ -630,7 +1182,7 @@ it('caps selected scope at three, reveals the rest, and gives query matches the 
   c.popup().onOpenChange(true)
   await c.lookup()
   expect(find(c.render(), 'In this chat').props.children[1]).toHaveLength(3)
-  expect(find(c.render(), `${c.prefix}-context-3`).props.children[1].props.children).toBe('2 more')
+  expect(find(c.render(), `${c.prefix}-context-3`).props.children[1].props.children).toBe('and 2 more')
   expect(find(c.render(), `${c.prefix}-context-4`).props.children[1].props.children).toBe('Already attached')
   find(c.render(), `${c.prefix}-context-3`).props.onClick()
   expect(find(c.render(), 'In this chat').props.children[1]).toHaveLength(5)
@@ -664,6 +1216,31 @@ it.each(['picker', 'pill'])('clears saved and draft scope from the %s and keeps 
   expect(() => find(c.render(), 'In this chat')).toThrow('Missing')
   expect(c.initial.firstChips).toEqual([scope[0]])
 })
+
+it('retries a failed player track while keeping the healthy track mounted', async () => {
+  const { Player } = await import('../src/renderer/src/components/Player')
+  const hook = vi.spyOn(await import('react'), 'useImperativeHandle').mockImplementation(() => {})
+  try {
+    const openTranscript = vi.fn()
+    const player = Player({ id: 'test', tracks: ['me', 'them'], openTranscript })!
+    const render = renderer(() => (player.type as Function)(player.props))
+    find(render(), 'player-audio-them').props.onError({ currentTarget: { error: { code: 2 } } })
+    expect(find(render(), 'player-audio-me').key).toBe('me')
+    find(render(), 'player-retry').props.onClick()
+    expect(find(render(), 'player-audio-them').key).toBe('them')
+    expect(find(render(), 'player-audio-me').key).toBe('me')
+    for (const track of ['me', 'them']) {
+      find(render(), 'player-audio-' + track).props.onError({ currentTarget: { error: { code: 4 } } })
+    }
+    const link = find(render(), 'player-open-transcript')
+    expect(link.type).toBe('a')
+    expect(link.props.href).toBe('#transcript-lines')
+    expect(find(render(), 'player-retry').props.className).toBe('workspace-button')
+    link.props.onClick({ preventDefault() {} })
+    expect(openTranscript).toHaveBeenCalledOnce()
+  } finally { hook.mockRestore() }
+})
+
 
 it('adds only pending scope after a chat starts and disables toggles during an answer', async () => {
   const c = mentionComposer(true)
@@ -733,6 +1310,25 @@ it('keeps checked scope and reports failed removal without closing', async () =>
 })
 
 
+it('uses a required native clock and keeps incomplete times out of the upload', async () => {
+  const { AudioUploadWhen } = await import('../src/renderer/src/components/AudioUploadWhen')
+  const at = +new Date(2025, 0, 3, 8), onChange = vi.fn()
+  const fields = renderer(() => AudioUploadWhen({ at, durationMs: 60000, onChange }))
+  const render = () => find(fields(), 'Start time').props
+  expect(render()).toMatchObject({ type: 'time', required: true })
+  const field = { value: '', setCustomValidity: vi.fn() }
+  render().onChange({ currentTarget: field })
+  render().onBlur({ currentTarget: field })
+  expect(render()['aria-invalid']).toBe(true)
+  expect(find(fields(), 'upload-time-error').props.id).toBe(render()['aria-describedby'])
+  expect(onChange).not.toHaveBeenCalled()
+  field.value = '23:59'
+  render().onChange({ currentTarget: field })
+  expect(onChange).toHaveBeenLastCalledWith(+new Date(2025, 0, 3, 23, 59))
+  expect(render()['aria-invalid']).toBeUndefined()
+})
+
+
 it('prefills a reopened picker and anchors it to the composer without sideways fallback', async () => {
   const c = mentionComposer(false)
   find(c.render(), 'ask-scope').props.onPointerEnter()
@@ -752,7 +1348,7 @@ it('checks an inline match already in scope and consumes its mention without add
   c.type('@Already')
   await c.lookup()
   const row = find(c.render(), `${c.prefix}-context-0`).props
-  expect(row.children[2].type.displayName).toBe('Check')
+  expect(row.children[2].type).toBe(Check)
   c.key(c.input(), 'Enter')
   await c.flush()
   expect(c.context).not.toHaveBeenCalled()
@@ -776,4 +1372,36 @@ it.each([false, true])('keeps Copy on the current answer without revealing older
   initial.turns[2].status = 'failed'
   initial.turns[2].answer = ''
   expect(turns().map(turn => turn.props.showCopy)).toEqual([false, false, true])
+})
+
+it('hands the same shell from the Mac launch to a read error, checking and the ready workspace', async () => {
+  vi.useFakeTimers()
+  let checking!: (s: { phase: string }) => void
+  vi.stubGlobal('window', { innerWidth: 1100, yogurt: { platform: 'darwin',
+    setup: { state: vi.fn().mockRejectedValue(new Error('read')), onState: (update: typeof checking) => { checking = update; return () => {} } },
+    onboarding: { plan: async () => ({ steps: [], intro: false }) },
+  } })
+  const render = renderer(App)
+  let tree = render()
+  expect(find(tree, 'MacLaunch').props.active).toBe(true)
+  const shell = find(tree, 'app-shell')
+  expect(shell.props.inert).toBe(true)
+  const [readSetup, readPlan] = vi.mocked(useEffect).mock.calls.slice(2, 4)
+  readSetup[0](); readPlan[0]()
+  await Promise.resolve()
+  tree = render()
+  expect(find(tree, 'MacLaunch').props.active).toBe(false)
+  expect(find(tree, 'ReadError').props.testId).toBe('setup-read-error')
+  checking({ phase: 'checking' })
+  expect(find(render(), 'MacLaunch').props.active).toBe(true)
+  checking({ phase: 'ready' })
+  render()
+  vi.mocked(useEffect).mock.calls[4][0]() // readiness releases the launch hold
+  vi.runAllTimers()
+  tree = render()
+  expect(find(tree, 'app-shell').type).toBe(shell.type)
+  expect(find(tree, 'app-shell').props.inert).toBeUndefined()
+  expect(find(tree, 'MacLaunch').props.active).toBe(false)
+  const workspace = find(tree, 'Workspace')
+  expect(workspace.props.route).toBe('')
 })

@@ -29,16 +29,16 @@ const now = new Date(2026, 10, 13, 12).getTime()
 const event = (id: string, start = now - 60_000, end = now + 30 * 60_000): AgendaEvent => ({ id, title: `Planning ${id}`, start, end, url: null, attendees: [{ name: 'Robin Vale', email: null }] })
 const start = vi.fn()
 const day = vi.fn()
-const started = vi.fn()
+const uploaded = vi.fn()
 const gone = vi.fn()
 let calendarChanged: () => void
 let meetingsChanged: () => void
 let widgetChanged: (view: WidgetView | null) => void
 let cleanups: (() => void)[]
 const flush = async () => { await Promise.resolve(); await Promise.resolve() }
-const render = () => {
+const render = (emptyActions?: HTMLElement, folderId?: string) => {
   hooks.state = 0; hooks.ref = 0; hooks.effects = []; hooks.layout = []
-  return StartRecording({ onStarted: started, onGone: gone }) as ReactElement<Record<string, unknown>> | null
+  return StartRecording({ folderId, onUploaded: uploaded, onGone: gone, emptyActions }) as ReactElement<Record<string, unknown>> | null
 }
 const run = (effect: () => (() => void) | void) => { const cleanup = effect(); if (cleanup) cleanups.push(cleanup) }
 type Element = ReactElement<Record<string, unknown>>
@@ -76,9 +76,27 @@ it('keeps upload and the unattached action available outside the live/15-minute 
     expect(find(tree, 'recording-choices').type).toBe(Menu.Trigger)
     expect(find(tree, 'recording-upload')).toBeDefined()
     await click(find(tree, 'start-recording'))
-    expect(start).toHaveBeenLastCalledWith(null)
+    expect(start).toHaveBeenLastCalledWith(null, undefined)
   }
 })
+it('starts an unattached recording from the empty library even during a calendar event', async () => {
+  await calendar([event('live')])
+  const tree = render(document.getElementById('empty')!)
+  const cta = find(tree, 'empty-start-recording')
+  expect(renderToStaticMarkup(cta.props.children as ReactNode)).toContain('Start recording')
+  await click(cta)
+  expect(start).toHaveBeenCalledExactlyOnceWith(null, undefined)
+})
+
+it('carries the folder through the toolbar, calendar, unattached and empty-state record actions', async () => {
+  await calendar([event('live')])
+  const tree = render(document.getElementById('empty')!, 'reviews')
+  for (const [action, eventId] of [['start-recording', 'live'], ['recording-meeting', 'live'], ['recording-unattached', null], ['empty-start-recording', null]] as const) {
+    await click(find(tree, action))
+    expect(start).toHaveBeenLastCalledWith(eventId, 'reviews')
+  }
+})
+
 it('attaches the one live meeting and preserves its full title while CSS truncates the label', async () => {
   const live = { ...event('live'), title: 'Planning the next release and reviewing every open question '.repeat(4) }
   const tree = await calendar([event('soon', now + 8 * 60_000), live])
@@ -86,8 +104,8 @@ it('attaches the one live meeting and preserves its full title while CSS truncat
   expect(find(tree, 'start-recording').props.title).toBe(`Take notes · ${live.title}`)
   expect(find(tree, 'recording-choices').type).toBe(Menu.Trigger)
   await click(find(tree, 'start-recording'))
-  expect(start).toHaveBeenCalledExactlyOnceWith(live.id)
-  expect(started).toHaveBeenCalledExactlyOnceWith('note')
+  expect(start).toHaveBeenCalledExactlyOnceWith(live.id, undefined)
+  expect(uploaded).not.toHaveBeenCalled()
   const css = readFileSync(new URL('../src/renderer/src/workspace.css', import.meta.url), 'utf8')
   expect(css).toMatch(/\.recording-label \{[^}]*max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap/)
   expect(css).toMatch(/\.recording-split \{[^}]*max-width:min\(100%,276px\)/)
@@ -106,16 +124,16 @@ it('uses the menu trigger for two live meetings, with live choices first, New re
   expect(renderToStaticMarkup(items[0].props.children as ReactNode)).toContain('Now')
   const soon = renderToStaticMarkup(items[2].props.children as ReactNode)
   expect(soon).toContain('in 8 min'); expect(soon).toContain('Robin Vale')
-  await click(items[2]); expect(start).toHaveBeenLastCalledWith('soon')
+  await click(items[2]); expect(start).toHaveBeenLastCalledWith('soon', undefined)
   expect(render()!.props.open).toBe(false)
-  await click(find(render(), 'recording-unattached')); expect(start).toHaveBeenLastCalledWith(null)
+  await click(find(render(), 'recording-unattached')); expect(start).toHaveBeenLastCalledWith(null, undefined)
 })
 it('suggests an upcoming meeting but keeps the main action unattached', async () => {
   const tree = await calendar([event('soon', now + 8 * 60_000)])
   expect(label(tree)).toContain('Start recording')
   expect(find(tree, 'recording-choices').type).toBe(Menu.Trigger)
   await click(find(tree, 'start-recording'))
-  expect(start).toHaveBeenCalledExactlyOnceWith(null)
+  expect(start).toHaveBeenCalledExactlyOnceWith(null, undefined)
 })
 it.each(['stopped', 'done'] as const)('labels a %s note for resume in the title bar and menu without suggesting a new folder', async state => {
   const live = { ...event('live'), note: { id: 'existing', state } }
@@ -126,25 +144,25 @@ it.each(['stopped', 'done'] as const)('labels a %s note for resume in the title 
   const html = renderToStaticMarkup(row.props.children as ReactNode)
   expect(html).toContain('Resume notes · Planning live')
   // resume keeps the mic: a counterclockwise arrow reads as undo
-  expect(html).not.toContain('lucide-rotate-ccw')
+  expect(html).not.toContain('data-icon="RotateCcw"')
   expect(html).toContain('<svg')
   expect(html).toContain('Now')
   start.mockResolvedValue({ id: 'existing', resumeRequested: true })
   await click(find(tree, 'start-recording'))
   await click(row)
   expect(start).toHaveBeenCalledTimes(2)
-  expect(start).toHaveBeenLastCalledWith(live.id)
-  expect(started).not.toHaveBeenCalled()
+  expect(start).toHaveBeenLastCalledWith(live.id, undefined)
+  expect(uploaded).not.toHaveBeenCalled()
 })
 it('keeps the take-notes label and start path for a prepared note', async () => {
   const tree = await calendar([{ ...event('prepared'), note: { id: 'prepared-note', state: 'prepared' } }])
   expect(label(tree)).toContain('Take notes · Planning prepared')
   const html = renderToStaticMarkup(find(tree, 'recording-meeting').props.children as ReactNode)
   expect(html).not.toContain('Resume notes')
-  expect(html).not.toContain('lucide-rotate-ccw')
+  expect(html).not.toContain('data-icon="RotateCcw"')
   expect(html).toContain('<svg')
   await click(find(tree, 'start-recording'))
-  expect(start).toHaveBeenCalledExactlyOnceWith('prepared')
+  expect(start).toHaveBeenCalledExactlyOnceWith('prepared', undefined)
 })
 it('refreshes the resume label when the linked note changes or is trashed', async () => {
   const live = event('live')
@@ -204,10 +222,10 @@ it('reports a removed event, refreshes choices, and never reports a failed or ra
   expect(toasts.add).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'That meeting is no longer on your calendar.' }))
   expect(gone).toHaveBeenCalledOnce()
   expect(find(render(), 'recording-meeting')).toBeUndefined()
-  expect(started).not.toHaveBeenCalled()
+  expect(uploaded).not.toHaveBeenCalled()
   start.mockResolvedValueOnce({ id: 'existing', alreadyRecording: true })
   await click(find(render(), 'start-recording'))
-  expect(started).not.toHaveBeenCalled()
+  expect(uploaded).not.toHaveBeenCalled()
   start.mockRejectedValueOnce(new Error('fixture start failure'))
   await click(find(render(), 'start-recording'))
   expect(toasts.add).toHaveBeenLastCalledWith(expect.objectContaining({ title: "Yogurt couldn't start the notes. Try again in a moment." }))
@@ -232,5 +250,5 @@ it('opens the upload flow with the current destination callback without starting
   expect(start).not.toHaveBeenCalled()
   expect(pick).toHaveBeenCalledOnce()
   expect(dispatchEvent).toHaveBeenCalledOnce()
-  expect(dispatchEvent.mock.calls[0][0]).toMatchObject({ type: 'audio-upload-open', detail: { file, onCreated: started } })
+  expect(dispatchEvent.mock.calls[0][0]).toMatchObject({ type: 'audio-upload-open', detail: { file, onCreated: uploaded } })
 })

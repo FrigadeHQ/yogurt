@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -15,11 +16,28 @@ test('paused recording controls fit the minimum window and keep focus inside eac
   const { app, page } = await launch()
   try {
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(720, 520))
-    await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
+    const stop = page.getByTestId('note-stop'), pause = page.getByTestId('note-pause')
+    const tooltip = page.getByRole('tooltip')
+    await expect(pause).toHaveAccessibleName('Pause recording')
+    await pause.locator('svg[data-icon=Pause]').hover()
+    await expect(tooltip).toHaveText('Pause recording')
+    // Hold the exit so both popups are mounted during the handoff on every run.
+    const holdExit = await page.addStyleTag({ content: `
+      @keyframes hold-tooltip-exit { to { opacity: 0 } }
+      [role="tooltip"][data-closed] { animation: hold-tooltip-exit 1s paused; }
+    ` })
+    await stop.hover()
+    await expect(tooltip).toHaveText('Stop recording')
+    await expect(page.locator('[role="tooltip"][data-closed]')).toHaveText('Pause recording')
+    await holdExit.evaluate(style => { style.parentNode?.removeChild(style) })
     await page.getByTestId('note-pause').click()
     await expect(page.getByTestId('rec-mic')).toHaveText('Recording paused')
+    await page.getByTestId('note-title').hover()
+    await expect(tooltip).toHaveCount(0)
     await page.keyboard.press('Tab')
     await page.getByTestId('note-pause').focus()
+    await expect(tooltip).toHaveText('Resume recording')
     await page.screenshot({ path: testInfo.outputPath('paused-minimum.png') })
     await expect(page.getByTestId('rec-mic-chip').locator('[data-icon=Pause]')).toHaveAttribute('fill', 'currentColor')
     await expect(page.getByTestId('note-pause')).toHaveCSS('outline-offset', '-2px')
@@ -34,12 +52,28 @@ test('paused recording controls fit the minimum window and keep focus inside eac
     await expect(page.getByTestId('note-pause')).toHaveAccessibleName('Resume recording')
     await page.keyboard.press('Tab')
     await expect(page.getByTestId('note-stop')).toBeFocused()
-    await expect(page.getByTestId('note-stop')).toHaveCSS('background-color', 'rgb(111, 0, 255)')
-    await expect(page.getByTestId('note-stop').locator('svg')).toHaveCount(0)
+    await expect(page.getByTestId('note-stop')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+    await expect(page.getByTestId('note-stop')).toHaveCSS('outline-offset', '-2px')
+    expect(await page.getByTestId('note-stop').evaluate(el => getComputedStyle(el, '::before').width)).toBe('8px')
     for (const button of await buttons.all()) {
       expect(await button.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
     }
-    await expect(page.getByTestId('note-stop')).toHaveText('Finish')
+    await expect(stop).toHaveAccessibleName('Stop recording')
+    await expect(tooltip).toHaveText('Stop recording')
+    const selected = await group.getAttribute('data-treatment')
+    expect(['neutral-icons', 'accent-icons', 'word']).toContain(selected)
+    for (const treatment of ['neutral-icons', 'accent-icons', 'word']) {
+      await group.evaluate((el, value) => { el.dataset.treatment = value }, treatment)
+      const withWord = treatment === 'word'
+      await expect(stop).toHaveText(withWord ? 'Stop' : '', { useInnerText: true })
+      const pauseBox = (await pause.boundingBox())!, stopBox = (await stop.boundingBox())!
+      expect(stopBox.height).toBe(pauseBox.height)
+      if (withWord) expect(stopBox.width).toBeGreaterThan(pauseBox.width)
+      else expect(stopBox.width).toBe(pauseBox.width)
+      const neutral = await stop.evaluate(el => getComputedStyle(el, '::before').backgroundColor === getComputedStyle(el).color)
+      expect(neutral).toBe(treatment === 'neutral-icons')
+    }
+    await group.evaluate((el, value) => { el.dataset.treatment = value! }, selected)
     await page.getByTestId('note-pause').click()
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-paused', 'false')
     await expect(page.getByTestId('note-wave')).toBeVisible()
@@ -52,7 +86,7 @@ test('paused recording controls fit the minimum window and keep focus inside eac
 test('Custom words has the same visible unfocused field boundary in light and dark mode', async ({}, testInfo) => {
   const { app, page } = await launch()
   try {
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     for (const theme of ['light', 'dark'] as const) {
       await page.evaluate(theme => window.yogurt.settings.setTheme(theme), theme)
       const input = page.getByTestId('jargon-input')

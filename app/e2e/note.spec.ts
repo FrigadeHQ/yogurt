@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { selectNoteVersion } from './noteVersion'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs'
@@ -42,7 +43,7 @@ const heard = (page: Page, id: string) => expect.poll(async () => (await page.ev
 
 test('Stop ends recording when its metadata cannot save, and Retry saves without stopping twice', async () => {
   const { app, page, userData } = await launch()
-  const db = new DatabaseSync(join(userData, 'yogurt.db'))
+  const db = new DatabaseSync(join(userData, 'yogurt.db'), { timeout: 5000 })
   try {
     const id = await record(app, page)
     await page.getByTestId('note-mine').fill('Remember to send the launch plan.')
@@ -74,7 +75,7 @@ test('Stop ends recording when its metadata cannot save, and Retry saves without
     await page.getByTestId('past-note').click()
     await expect.poll(() => page.getByTestId('trash-toast').evaluate((toast) => {
       const footer = document.querySelector('.note-footer')!.getBoundingClientRect()
-      return footer.top - toast.getBoundingClientRect().bottom
+      return toast.getBoundingClientRect().top - footer.bottom
     })).toBeGreaterThanOrEqual(12)
     await page.getByTestId('note-stop-retry').click()
     await expect(page.getByTestId('note-stop-unsaved')).toBeVisible()
@@ -235,6 +236,15 @@ test('edits to the enhanced notes are saved; Write again asks first, then writes
     await page.getByTestId('note-write-again').click()
     await expect(page.getByTestId('note-regenerate')).toBeVisible()
     await expect(page.getByTestId('note-confirm')).toBeVisible()
+    const sizes = await page.locator('.note-prose').first().evaluate(prose => {
+      const sample = prose.cloneNode(false) as HTMLElement
+      sample.innerHTML = '<h2>Planning</h2><h3>Dates</h3>'
+      prose.parentElement!.append(sample)
+      const values = Array.from(sample.children, child => parseFloat(getComputedStyle(child).fontSize))
+      sample.remove()
+      return values
+    })
+    expect(sizes[0]).toBeGreaterThan(sizes[1])
     await expect(page.getByTestId('note-regenerate-input')).toHaveValue('')
     await page.getByTestId('note-regenerate-input').press('Enter')
     await expect(page.getByTestId('note-enhanced')).toHaveAttribute('data-status', 'writing', { timeout: 30_000 })
@@ -366,7 +376,7 @@ test('the recording header keeps status, time and actions while Transcript and A
   } finally { await app.close() }
 })
 
-test('Finish in the note header stops the meeting and hides the widget', async () => {
+test('Stop in the note header stops the meeting and hides the widget', async () => {
   const { app, page } = await launch()
   try {
     const id = await record(app, page)
@@ -460,7 +470,7 @@ test('delete from the note menu: not while it records; to the Trash with Undo; d
     await page.getByTestId('note-delete').click()
     await expect(page.getByTestId('home')).toBeVisible()
     // Delete forever, from the Trash: asks first, Cancel focused
-    await page.getByTestId('nav-trash').click()
+    await openFromCorner(page, 'nav-trash')
     await expect(page.getByTestId('trash-row')).toHaveCount(1)
     await page.getByTestId('trash-row').hover()
     await page.getByTestId('trash-delete').click()

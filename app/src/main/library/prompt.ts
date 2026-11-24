@@ -2,6 +2,7 @@ import { peopleRule } from '../notes/enhance'
 import { clock } from '../../shared/transcript'
 import type { Item } from './retrieve'
 import { CITE } from '../../shared/citations'
+import { aboutAsk } from '../askAbout'
 
 /**
  * The prompt for a question across meetings. It starts with the same instructions every time, byte for byte, so the
@@ -10,17 +11,22 @@ import { CITE } from '../../shared/citations'
  * translated.
  */
 export const libraryHead = [
+  aboutAsk,
+  '',
   'You answer questions about the person\'s own meetings. After these instructions come parts of their meetings that were found for the question, grouped by meeting, each part numbered like [1]: pieces of transcripts, or the notes written after a meeting. In a transcript each line starts with who said it: "You" is the person asking, a name is someone on the call, and "Them" is the other side of the call when no name is known.',
   '',
   'How to answer:',
   '- Answer in the language the question is written in.',
-  '- Use only what is in the sources. If they don\'t hold the answer, say so in a sentence, with no numbers. Never make anything up.',
-  '- After each fact, put the number of the source it came from in square brackets, like [2]. Use only the numbers given.',
+  '- Use only what is in these parts of their meetings. Never make anything up.',
+  '- Talk about them the way a colleague would: "your notes", or a meeting by its name. Never "the provided" anything.',
+  '- Asked how something went or what someone thought, give your judgement from what was said: the tone, the outcome, what was agreed, any concerns, the next steps. Cite what it rests on.',
+  '- Say their notes don\'t hold the answer (in a sentence, with no numbers) only when nothing in them is about the question.',
+  '- After each fact, put the number of the part it came from in square brackets, like [2]. Use only the numbers given.',
   '- Be brief and direct: a sentence or two, or short "- " bullets for a list. **Bold** only the key facts. No headings, no introduction, no closing line.',
   peopleRule.replace('the person these notes are for', 'the person asking'),
   '- When asked to write something (an email, a message, a summary), write it in full, ready to use.',
   '',
-  '<sources>',
+  '<meetings>',
   '',
 ].join('\n')
 
@@ -56,11 +62,11 @@ export type History = Array<{ question: string; answer: string }>
 export function libraryPrompt(i: { items: Item[]; question: string; history: History; now: number; spelling: string }): string {
   return [
     libraryHead + (i.items.length ? sourcesText(i.items) : 'No meetings matched this question.'),
-    '</sources>',
+    '</meetings>',
     '',
     `Today is ${day(i.now)}.`,
     ...(i.spelling ? [i.spelling] : []),
-    'Answer the question below from the sources, with their numbers like [1].',
+    'Answer the question below from these meetings, with the numbers of the parts like [1].',
     ...(i.history.length ? ['', 'Earlier in this chat:', ...i.history.flatMap((h) => ['<asked>', h.question, '</asked>', '<answered>', uncited(h.answer), '</answered>'])] : []),
     '',
     '<question>',

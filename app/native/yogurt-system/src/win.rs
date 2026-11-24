@@ -12,7 +12,8 @@ use windows::Win32::Media::Audio::{
 use windows::Win32::System::Com::{CoCreateInstance, CoInitializeEx, CLSCTX_ALL, COINIT_MULTITHREADED};
 use windows::Win32::System::Diagnostics::ToolHelp::{CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W, TH32CS_SNAPPROCESS};
 use windows::Win32::System::Threading::{OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION};
-use windows::Win32::UI::WindowsAndMessaging::{EnumWindows, GetForegroundWindow, GetWindowTextW, GetWindowThreadProcessId, IsWindowVisible};
+use windows::Win32::Graphics::Dwm::{DwmGetWindowAttribute, DWMWA_CLOAKED};
+use windows::Win32::UI::WindowsAndMessaging::{EnumWindows, GetForegroundWindow, GetWindowTextW, GetWindowThreadProcessId, IsIconic, IsWindowVisible};
 use winreg::enums::HKEY_CURRENT_USER;
 use winreg::RegKey;
 
@@ -179,4 +180,14 @@ pub fn window_title(id: &str) -> Option<String> {
     let windows: Vec<(u64, bool, String)> =
         found.into_iter().map(|(h, pid, title)| (h, procs.get(&pid).is_some_and(|p| parse::exe_id(&p.exe) == id), title)).collect();
     parse::pick_window(&windows, (active != 0).then_some(active))
+}
+
+/** Whether a window is minimised, or cloaked (on another virtual desktop): there, but out of sight */
+pub fn out_of_sight(hwnd: u64) -> bool {
+    let h = HWND(hwnd as usize as *mut core::ffi::c_void);
+    unsafe {
+        let mut cloaked = 0u32;
+        let got = DwmGetWindowAttribute(h, DWMWA_CLOAKED, &mut cloaked as *mut u32 as *mut core::ffi::c_void, std::mem::size_of::<u32>() as u32);
+        IsIconic(h).as_bool() || (got.is_ok() && cloaked != 0)
+    }
 }

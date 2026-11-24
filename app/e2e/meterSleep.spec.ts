@@ -1,3 +1,4 @@
+import { meterHeights } from './meterGeometry'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -12,7 +13,7 @@ test('the level meter stops drawing while its window is hidden and once the room
   try {
     const page = await app.firstWindow()
     await expect(page.getByTestId('home')).toBeVisible()
-    await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
     const wave = page.getByTestId('note-wave')
     // the fake mic talks for its first 16.5 s
     await expect(wave).toHaveAttribute('data-live', '1')
@@ -32,7 +33,7 @@ test('the level meter stops drawing while its window is hidden and once the room
     // the fake mic falls silent: the meter settles at rest, still drawn, and the loop sleeps
     await expect(wave).toHaveAttribute('data-live', '0', { timeout: 30_000 })
     await expect(wave).toHaveAttribute('data-level', '0.00')
-    expect(await wave.evaluate((c: HTMLCanvasElement) => c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data.some((v, i) => i % 4 === 3 && v > 0))).toBe(true)
+    expect((await meterHeights(wave)).map(Math.round)).toEqual([3, 3, 3, 3, 3])
     await page.waitForTimeout(500)
     await expect(wave).toHaveAttribute('data-live', '0')
   } finally { await app.close() }

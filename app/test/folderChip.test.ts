@@ -1,13 +1,15 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { FolderGlyph } from '../src/renderer/src/components/FolderAppearance'
+import type { FolderIconId } from '../src/shared/folderAppearance'
 import type { Folder, MeetingCard } from '../src/shared/types'
 import { PastNotes } from '../src/renderer/src/screens/Home'
 import { FolderChip, FolderPicker } from '../src/renderer/src/components/FolderPicker'
 
 const state = vi.hoisted(() => ({ all: [] as Folder[], mine: [] as Folder[] }))
-vi.mock('../src/renderer/src/folders', () => ({ useFolders: (id?: string) => id ? state.mine : state.all, setMeetingsInFolder: vi.fn() }))
-vi.mock('../src/renderer/src/i18n', () => ({ useLanguage: () => 'en' }))
+vi.mock('../src/renderer/src/folders', () => ({ useFolderRead: () => ({ folders: state.mine }), useFolders: (id?: string) => id ? state.mine : state.all, setMeetingsInFolder: vi.fn() }))
+vi.mock('../src/renderer/src/i18n', async original => ({ ...await original<typeof import('../src/renderer/src/i18n')>(), useLanguage: () => 'en' }))
 vi.mock('../src/renderer/src/motion', async original => ({ ...await original<typeof import('../src/renderer/src/motion')>(), useReducedMotion: () => false }))
 vi.mock('../src/renderer/src/components/TrashToast', () => ({ toasts: { add: vi.fn(), close: vi.fn() } }))
 const suggested: Folder = { id: 'suggested', name: 'Customer research and planning', icon: 'rocket', color: 'violet', count: 0, createdAt: 1 }
@@ -35,6 +37,15 @@ it('shows the filed chip when another folder was chosen', () => {
   const html = chip()
   expect(html).not.toContain('data-testid="folder-suggestion"')
   expect(html).toContain('>Alpha</span>')
+})
+
+it('uses the named folder’s appearance on a multi-folder picker button', () => {
+  state.mine = [{ ...alpha, icon: 'star', color: 'amber' }, suggested]
+  const html = chip()
+  expect(html).toContain('>Alpha <bdi dir="ltr">+1</bdi></span>')
+  expect(html).toContain('aria-label="Alpha and 1 more"')
+  expect(html).toContain('data-folder-icon="star"')
+  expect(html).toContain('data-folder-color="amber"')
 })
 
 it('renders the row suggestion as a folder pill with three keyboard controls and smaller action icons', () => {
@@ -111,4 +122,18 @@ it('keeps the meeting link then More before any folder controls in DOM tab order
     for (const button of buttons.slice(2)) expect(button).toContain('data-testid="past-note-folder"')
     for (const button of buttons) expect(button).not.toMatch(/disabled|tabindex/)
   }
+})
+
+it('keeps a distinct drawing for each stored folder icon', () => {
+  const stored = [
+    'folder', 'star', 'heart', 'flag', 'bookmark', 'briefcase', 'users', 'handshake', 'message', 'video', 'calendar', 'clock',
+    'target', 'lightbulb', 'rocket', 'code', 'palette', 'megaphone', 'graduation', 'book', 'flask', 'coffee', 'house', 'plane',
+  ] satisfies FolderIconId[]
+  const glyphs = stored.map(icon => {
+    const html = renderToStaticMarkup(createElement(FolderGlyph, { appearance: { icon, color: 'violet' } }))
+    expect(html).toContain(`data-folder-icon="${icon}"`)
+    expect(html).toContain('data-folder-color="violet"')
+    return html.match(/<svg[^>]*>(.*?)<\/svg>/)![1]
+  })
+  expect(new Set(glyphs).size).toBe(stored.length)
 })

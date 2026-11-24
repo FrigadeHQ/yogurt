@@ -68,4 +68,15 @@ describe('the kind of question', () => {
     expect(k('what are my next steps?')).toBe('across')
     expect(k('recap of this week')).toBe('across')
   })
+  it('how a meeting went, or what to make of it, is "overview"', () => {
+    expect(k('how did the call with Tarun go?')).toBe('overview')
+    expect(k('how was the call?')).toBe('overview')
+    expect(k('what happened in the call with Bo?')).toBe('overview')
+    expect(k("that's the call! how did you think it went?")).toBe('overview')
+    expect(k('what did you think of it?')).toBe('overview')
+    // a capital May is a person, not the month
+    expect(questionKind('how did the call with May go?', parseFilters('how did the call with May go?', { now, names: ['May Lin'] }))).toBe('overview')
+    // many meetings at once still gather their notes
+    expect(k('how did my meetings go this week?')).toBe('across')
+  })
 })

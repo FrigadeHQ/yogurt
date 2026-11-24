@@ -16,7 +16,7 @@ use windows::Win32::UI::Accessibility::{
     UIA_HelpTextPropertyId, UIA_NamePropertyId,
 };
 
-use crate::call::{call_window, is_call_tree, kind, now_ms, Kind};
+use crate::call::{call_window, is_call_tree, kind, look, now_ms, to_read, Kind, Look};
 use crate::parse;
 
 /// at most this many call windows of the app per reading
@@ -134,6 +134,7 @@ pub fn watch(every_ms: u64, ids: &[String]) -> ! {
     let ids: Vec<String> = ids.iter().map(|id| id.to_lowercase()).collect();
     let mut uia: Option<Uia> = None;
     let mut complained = false;
+    let mut last: Option<u64> = None;
     loop {
         let started = Instant::now();
         if uia.is_none() {
@@ -148,7 +149,7 @@ pub fn watch(every_ms: u64, ids: &[String]) -> ! {
             }
         }
         let line = match &uia {
-            Some(u) => read_once(u, &ids),
+            Some(u) => read_once(u, &ids, &mut last),
             None => json!({ "t": now_ms(), "error": "no-accessibility" }),
         };
         crate::out(line);
@@ -158,33 +159,63 @@ pub fn watch(every_ms: u64, ids: &[String]) -> ! {
     }
 }
 
-/// The first app asked about with a call window, and its call windows, top first
-fn read_once(u: &Uia, ids: &[String]) -> Value {
+/// The first app asked about with a call window, and its call windows, top first. `last` is the Teams window that was
+/// the call: it is read alone while it still is one (call::to_read).
+fn read_once(u: &Uia, ids: &[String], last: &mut Option<u64>) -> Value {
     let t = now_ms();
     let procs = crate::win::processes();
     let mut seen = false;
-    let mut app: Option<String> = None;
-    let mut windows = Vec::new();
+    let mut mine = Vec::new();
     for (hwnd, pid, title) in crate::win::top_windows() {
         let Some(p) = procs.get(&pid) else { continue };
         let exe = parse::exe_id(&p.exe);
         let Some(id) = ids.iter().find(|id| **id == exe) else { continue };
         seen = true;
-        if windows.len() == MAX_WINDOWS || app.as_ref().is_some_and(|a| a != id) {
+        if call_window(kind(id), &title) {
+            mine.push((hwnd, (id.clone(), title)));
+        }
+    }
+    let (first, alone) = to_read(mine.clone(), *last);
+    let mut checked = None;
+    if alone {
+        let (hwnd, (id, title)) = &first[0];
+        let tree = u.tree(*hwnd);
+        match look(tree.as_ref(), crate::win::out_of_sight(*hwnd)) {
+            Look::Call => return json!({ "t": t, "app": id, "windows": [{ "title": title, "tree": tree }] }),
+            // it did not answer in time: the other windows would be as slow, so this reading is skipped
+            Look::Slow => return json!({ "t": t, "error": "slow-call-window" }),
+            // minimised or on another desktop: kept, and Yogurt is told the call is not over (#83: auto end on Windows)
+            Look::Hidden => return json!({ "t": t, "error": "no-call-window", "hidden": true }),
+            Look::Gone => {
+                *last = None;
+                checked = Some(*hwnd);
+            }
+        }
+    }
+    let mut app: Option<String> = None;
+    let mut windows = Vec::new();
+    for (hwnd, (id, title)) in mine {
+        if windows.len() == MAX_WINDOWS || app.as_ref().is_some_and(|a| *a != id) {
             continue;
         }
-        let k = kind(id);
-        if !call_window(k, &title) {
+        if checked == Some(hwnd) {
             continue;
         }
+        let k = kind(&id);
         let Some(tree) = u.tree(hwnd) else { continue };
         // Teams's calendar and chat windows look like the call's: only a window with call controls is sent, so their
-        // text never reaches the JSON or the log
-        if k == Kind::Teams && !is_call_tree(&tree) {
-            continue;
+        // text never reaches the JSON or the log. Teams has one call window: once found, it is the one read.
+        if k == Kind::Teams {
+            if !is_call_tree(&tree) {
+                continue;
+            }
+            *last = Some(hwnd);
         }
         app = Some(id.clone());
         windows.push(json!({ "title": title, "tree": tree }));
+        if k == Kind::Teams {
+            break;
+        }
     }
     match app {
         Some(app) => json!({ "t": t, "app": app, "windows": windows }),

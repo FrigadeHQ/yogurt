@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -24,7 +25,7 @@ test('first reads have skeletons; a loaded transcript stays mounted across tabs'
         ipcMain.handle(channel, async (...args) => { await new Promise(resolve => setTimeout(resolve, 650)); return old(...args) })
       }
     })
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     await expect(page.getByTestId('settings-loading')).toBeVisible()
     await expect(page.getByTestId('settings-heading')).toBeVisible()
     await expect(page.getByTestId('login-toggle')).toHaveCount(0)
@@ -35,7 +36,7 @@ test('first reads have skeletons; a loaded transcript stays mounted across tabs'
     await expect(page.getByTestId('new-note')).toBeVisible()
     expect((await page.getByTestId('workspace-heading').boundingBox())!.x).toBe(startX)
     await expect(page.getByTestId('meetings-loading')).toHaveCount(0)
-    await page.getByTestId('nav-trash').click()
+    await openFromCorner(page, 'nav-trash')
     await expect(page.getByTestId('meetings-loading')).toBeVisible()
     await expect(page.getByTestId('trash-none')).toHaveCount(0)
     await expect(page.getByTestId('trash-none')).toBeVisible()
@@ -63,7 +64,7 @@ test('first reads have skeletons; a loaded transcript stays mounted across tabs'
   } finally { await app.close() }
 })
 
-test('toast yields to Ask Yogurt and returns without replacing its Undo action', async ({}, testInfo) => {
+test('Undo stays in its window corner across pages and above the modal backdrop', async ({}, testInfo) => {
   const { app, page } = await launch()
   try {
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(w => !w.isDestroyed())!.setSize(1280, 900))
@@ -77,29 +78,46 @@ test('toast yields to Ask Yogurt and returns without replacing its Undo action',
     await removal.hover()
     await removal.getByTestId('past-note-more').click()
     await page.getByTestId('past-note-trash').click()
-    await expect(page.getByTestId('trash-toast')).toBeVisible()
+    const toast = page.getByTestId('trash-toast')
+    const expectCorner = () => expect.poll(() => toast.evaluate(el => {
+      const rect = el.getBoundingClientRect()
+      return [Math.round(innerWidth - rect.right), Math.round(innerHeight - rect.bottom)]
+    })).toEqual([20, 20])
+    await expectCorner()
     await page.getByTestId('nav-chat').click()
     await expect.poll(async () => {
       const toast = await page.getByTestId('trash-toast').boundingBox(), composer = await page.getByTestId('chat-page-box').boundingBox()
       return !!toast && !!composer && composer.y + composer.height < toast.y
     }).toBe(true)
+    await expectCorner()
+    await page.evaluate(() => window.yogurt.nav.go('/settings'))
+    await expect(page.locator('.settings-screen')).toBeVisible()
+    await expectCorner()
+    await page.getByTestId('sidebar-collapse').click()
+    await expectCorner()
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.evaluate(() => window.yogurt.nav.go('/trash'))
+    await expect(page.getByTestId('trash-page')).toBeVisible()
+    await expectCorner()
     await page.evaluate(id => window.yogurt.nav.go(`/note/${id}`), ids[0])
-    const toast = page.getByTestId('trash-toast')
+    await expect(page.getByTestId('chat-open')).toBeVisible()
+    await expectCorner()
     await toast.hover()
     await page.screenshot({ path: testInfo.outputPath('toast-closed.png') })
-    const before = await toast.boundingBox()
     await page.getByTestId('chat-open').click()
     await expect.poll(async () => {
       const a = await toast.boundingBox(), b = await page.getByTestId('chat-panel').boundingBox()
-      return !!a && !!b && a.x + a.width + 10 <= b.x
+      return !!a && !!b && b.y + b.height + 8 <= a.y
     }).toBe(true)
     await toast.hover()
     await page.getByTestId('chat-panel').evaluate(el => Promise.allSettled([el, ...el.querySelectorAll('.chat-morph-surface,.chat-panel-contents')].flatMap(node => node.getAnimations()).map(a => a.finished)))
     await page.emulateMedia({ colorScheme: 'dark' })
-    await page.screenshot({ path: testInfo.outputPath('toast-beside-chat.png') })
+    await expectCorner()
+    await page.screenshot({ path: testInfo.outputPath('toast-below-chat.png') })
     await page.getByTestId('chat-close').click()
-    await expect.poll(async () => Math.abs((await toast.boundingBox())!.x - before!.x)).toBeLessThan(2)
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(w => !w.isDestroyed())!.setSize(820, 740))
+    await expect(page.getByTestId('chat-open')).toHaveAttribute('aria-expanded', 'false')
+    await expectCorner()
     await page.getByTestId('chat-open').click()
     await expect(page.getByTestId('chat-panel')).toHaveAttribute('aria-modal', 'true')
     await expect.poll(async () => {
@@ -108,6 +126,7 @@ test('toast yields to Ask Yogurt and returns without replacing its Undo action',
     }).toBe(true)
     await page.getByTestId('chat-panel').evaluate(el => Promise.allSettled([el, ...el.querySelectorAll('.chat-morph-surface,.chat-panel-contents')].flatMap(node => node.getAnimations()).map(a => a.finished)))
     await page.screenshot({ path: testInfo.outputPath('toast-narrow-chat.png') })
+    await expectCorner()
     await page.getByTestId('trash-undo').click()
     await expect(toast).toHaveCount(0)
   } finally { await app.close() }

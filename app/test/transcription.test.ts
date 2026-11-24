@@ -2,13 +2,17 @@ import { AUDIO_SPEAKER } from '../src/shared/audioUpload'
 import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { Capture, encodeFrame, hookCapture, recordingFinished, type CaptureProc } from '../src/main/capture'
-import { hookTranscription, transcribeRecorded, settleTranscription, speechLocaleFor, spokenChanged, stopTranscriptionServer, transcribing, releaseIdleSpeech, liveTranscriptFinishing } from '../src/main/asr'
+import { Capture, encodeFrame, hookCapture, setRecordingPaused, recordingFinished, type CaptureProc } from '../src/main/capture'
+import { liveSilentMs, hookTranscription, transcribeRecorded, settleTranscription, speechLocaleFor, spokenChanged, stopTranscriptionServer, transcribing, releaseIdleSpeech, liveTranscriptFinishing } from '../src/main/asr'
 import type { Spoken } from '../src/shared/spoken'
 import type { TranscriptPartial } from '../src/shared/types'
 import { openStore, type Meeting, type Store } from '../src/main/store'
 import type { Line } from '../src/main/asr/transcribe'
 import type { Chunk } from '../src/main/asr/chunker'
+
+// these tests are about the session around the pipeline; the echo canceller is tested on its own (aec.test.ts), and its
+// work on minutes of test audio would only make them slow on CI
+vi.mock('../src/main/asr/aec3', () => ({ loadAec3: async () => {}, aec3: () => null }))
 
 const RATE = 16000
 const tone = (sec: number) => Float32Array.from({ length: Math.round(sec * RATE) }, (_, i) => 0.3 * Math.sin(i / 10))
@@ -44,7 +48,7 @@ const disposers: Array<() => void> = []
 afterEach(async () => { disposers.splice(0).forEach((d) => d()); await settleTranscription(2000); stopTranscriptionServer() })
 
 /** both hooks over one shared start/stop fan-out, registered in the order asked for */
-function rig(order: 'capture-first' | 'transcription-first', t: { transcriber?: (c: Chunk, heard?: (language: string, chars: number) => void) => Promise<Line[]> | Line[]; modelPath?: () => string | undefined; refresh?: (id: string) => void; holdMs?: number } = {}) {
+function rig(order: 'capture-first' | 'transcription-first', t: { transcriber?: (c: Chunk, heard?: (language: string, chars: number) => void) => Promise<Line[]> | Line[]; modelPath?: () => string | undefined; refresh?: (id: string) => void; finishingChanged?: () => void; holdMs?: number; queued?: (id: string) => void } = {}) {
   const starts: Array<(m: Meeting) => void> = [], stops: Array<(m: Meeting) => void> = []
   const onStart = (fn: (m: Meeting) => void) => { starts.push(fn); return () => {} }
   const onStop = (fn: (m: Meeting) => void) => { stops.push(fn); return () => {} }
@@ -52,7 +56,7 @@ function rig(order: 'capture-first' | 'transcription-first', t: { transcriber?: 
   const sent: string[] = [], warns: string[] = []
   const hookT = () => disposers.push(hookTranscription({
     store, modelPath: t.modelPath ?? (() => '/model.bin'), send: (s) => sent.push(`${s.track}:${s.text}`), warn: (c) => warns.push(c),
-    refresh: t.refresh, holdMs: t.holdMs, transcriber: 'transcriber' in t ? t.transcriber : async (c) => says(c), onStart, onStop, pidFile: undefined,
+    refresh: t.refresh, finishingChanged: t.finishingChanged, holdMs: t.holdMs, queued: t.queued, transcriber: 'transcriber' in t ? t.transcriber : async (c) => says(c), onStart, onStop, pidFile: undefined,
   }))
   const hookC = () => hookCapture({
     dirOf: (id) => `/m/${id}`, onStart, onStop, stopMeeting: (id) => stops.forEach((f) => f({ id } as Meeting)),
@@ -70,7 +74,9 @@ function rig(order: 'capture-first' | 'transcription-first', t: { transcriber?: 
 
 describe('live transcription of a meeting', () => {
   it('only clears pending audio after transcription saves, and retains older unfinished sessions', async () => {
-    const r = rig('transcription-first'), m = meeting()
+    const m = meeting()
+    const finishingStates: boolean[] = []
+    const r = rig('transcription-first', { finishingChanged: () => finishingStates.push(liveTranscriptFinishing(m.id)) })
     r.begin(m)
     expect(store.meeting(m.id)?.transcriptionPending).toBe(true)
     r.procs[0].say('them', 500)
@@ -79,6 +85,7 @@ describe('live transcription of a meeting', () => {
     expect(liveTranscriptFinishing(m.id)).toBe(true)
     await stopped
     expect(liveTranscriptFinishing(m.id)).toBe(false)
+    expect(finishingStates).toEqual([true, false])
     expect(store.segments(m.id).length).toBeGreaterThan(0)
     expect(store.meeting(m.id)?.transcriptionPending).not.toBe(true)
     store.updateMeeting(m.id, { transcriptionPending: true })
@@ -437,15 +444,20 @@ describe('a meeting recorded before the speech model was in (#30)', () => {
     expect(await transcribeRecorded(m.id, { them: track(1) })).toBe(false)
     expect(store.meeting(m.id)?.transcriptionPending).toBe(true)
   })
-  it('a meeting with some transcript is never transcribed again (no lines twice)', async () => {
-    const r = rig('transcription-first', { transcriber: async () => { throw new Error('whisper fell over') } })
+  it('whisper failing partway through a live meeting queues the rest of its saved recording for later (#127)', async () => {
+    let calls = 0
+    const queued: string[] = []
+    const r = rig('transcription-first', { transcriber: async (c) => { if (calls++) throw new Error('whisper-server exited (SIGKILL)'); return says(c) }, queued: (id) => queued.push(id) })
     const m = meeting()
-    r.begin(m); r.procs[0].say('them', 500)
+    r.begin(m); r.procs[0].say('them', 500); r.procs[0].say('them', 4000)
+    await tick()
     await r.stop(m)
     store.updateMeeting(m.id, { state: 'stopped' })
-    store.addSegments([{ meetingId: m.id, track: 'them', startMs: 0, endMs: 900, text: 'one line made it', speaker: null }])
-    expect(store.meeting(m.id)?.transcriptionPending).toBe(true)
-    expect(store.untranscribedMeetings()).toEqual([])
+    expect(store.segments(m.id)).toHaveLength(1)
+    expect(store.meeting(m.id)).toMatchObject({ transcriptionPending: true, transcriptionState: 'queued' })
+    // the saved recording carries on from where its lines end (savedTranscription's fromMs), so no line comes twice
+    expect(store.untranscribedMeetings().map((x) => x.id)).toEqual([m.id])
+    expect(queued).toEqual([m.id])
   })
   it('without the model yet, nothing happens and the meeting keeps waiting', async () => {
     rig('transcription-first', { modelPath: () => undefined })
@@ -453,5 +465,54 @@ describe('a meeting recorded before the speech model was in (#30)', () => {
     store.updateMeeting(m.id, { state: 'stopped', transcriptionPending: true })
     expect(await transcribeRecorded(m.id, { them: track(1) })).toBe(false)
     expect(store.meeting(m.id)?.transcriptionPending).toBe(true)
+  })
+})
+
+
+describe('live silence for call detection', () => {
+  it('requires fresh input on both tracks and resets for either voice, pause, gaps and live words', async () => {
+    let now = 10_000, ms = 0
+    const time = vi.spyOn(Date, 'now').mockImplementation(() => now)
+    const r = rig('transcription-first', { transcriber: () => [] }), m = meeting()
+    r.begin(m)
+    const output = r.procs[0].proc.stdout as PassThrough
+    const frame = (voice?: 'me' | 'them', tracks = ['me', 'them'] as const) => {
+      now += 100; ms += 100
+      for (const track of tracks) output.write(encodeFrame({ t: 'pcm', track, ms, samples: voice === track ? tone(0.1) : new Float32Array(1600) }))
+    }
+    const quiet = (n: number) => { for (let i = 0; i < n; i++) frame() }
+    try {
+      expect(liveSilentMs(m.id)).toBe(0)
+      quiet(601)
+      expect(liveSilentMs(m.id)).toBe(60_000)
+      frame('me'); expect(liveSilentMs(m.id)).toBe(0)
+      quiet(620); expect(liveSilentMs(m.id)).toBeGreaterThanOrEqual(60_000)
+      frame('them'); expect(liveSilentMs(m.id)).toBe(0)
+      quiet(620)
+      expect(setRecordingPaused(m.id, true)).toBe(true)
+      quiet(620); expect(liveSilentMs(m.id)).toBe(0)
+      expect(setRecordingPaused(m.id, false)).toBe(true)
+      frame(); expect(liveSilentMs(m.id)).toBeLessThan(1000)
+      quiet(610); expect(liveSilentMs(m.id)).toBeGreaterThanOrEqual(60_000)
+      now += 3001; expect(liveSilentMs(m.id)).toBe(0)
+      frame(); expect(liveSilentMs(m.id)).toBe(0)
+      quiet(610)
+      output.write(encodeFrame({ t: 'speech', track: 'me', final: false, text: 'Still talking', startMs: ms, endMs: ms + 100 }))
+      expect(liveSilentMs(m.id)).toBe(0)
+      quiet(610)
+      // One missing track is unknown input, not a quiet conversation.
+      for (let i = 0; i < 31; i++) { now += 100; ms += 100; output.write(encodeFrame({ t: 'pcm', track: 'me', ms, samples: new Float32Array(1600) })) }
+      expect(liveSilentMs(m.id)).toBe(0)
+      frame(); expect(liveSilentMs(m.id)).toBe(0)
+    } finally { time.mockRestore(); await r.stop(m) }
+    expect(liveSilentMs(m.id)).toBe(0)
+  })
+  it('cannot claim silence without a speech pipeline, before capture, or for an unknown meeting', async () => {
+    const r = rig('transcription-first', { modelPath: () => undefined }), m = meeting()
+    expect(liveSilentMs(m.id)).toBe(0)
+    r.begin(m)
+    r.procs[0].say('me', 0)
+    expect(liveSilentMs(m.id, Date.now() + 60_000)).toBe(0)
+    await r.stop(m)
   })
 })

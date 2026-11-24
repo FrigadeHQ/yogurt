@@ -486,7 +486,7 @@ it('migrates old meetings with nullable snapshot columns and preserves them acro
       expect(schema.find(c => c.name === name)).toMatchObject({ notnull: 0, dflt_value: null })
       expect(row[name]).toBeNull()
     }
-    expect(migrated.meeting('old')).toMatchObject({ title: 'My old note', startedAt: 50, eventId: 'event', eventStartedAt: 100 })
+    expect(migrated.meeting('old')).toMatchObject({ title: 'My old note', keepAttendees: true, attendees: [], startedAt: 50, eventId: 'event', eventStartedAt: 100 })
     expect(migrated.meeting('old')).not.toHaveProperty('eventEndedAt')
     migrated.rememberEvent({ id: 'event', title: 'Event', start: 100, end: 200, attendees: [], url: null, calendar: { id: 'work', name: 'Work', source: 'Calendar' } })
   } finally { migrated.close() }
@@ -529,4 +529,12 @@ it('a store already marked by 0.3.31 (only stopped meetings) is marked again for
   expect(s.untranscribedMeetings().map((m) => m.id)).toEqual([done.id])
   s.close()
   rmSync(dir, { recursive: true, force: true })
+})
+
+it('keeps where an imported meeting came from, and its id there, so it is brought in once', () => {
+  const s = fresh()
+  const m = s.createMeeting({ ...base, state: 'done', startedAt: 1000, source: 'import', sourceId: 'granola-123' })
+  expect(s.meeting(m.id)).toMatchObject({ source: 'import', sourceId: 'granola-123' })
+  expect(s.meetingFromSource('import', 'granola-123')?.id).toBe(m.id)
+  expect(s.meetingFromSource('import', 'other')).toBeUndefined()
 })

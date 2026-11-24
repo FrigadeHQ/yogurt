@@ -49,7 +49,7 @@ it('prefetches a complete linked event and color together before the popover is 
   const { useNoteCalendar } = await import('../src/renderer/src/useNoteCalendar')
   const note = renderer(useNoteCalendar)
   expect(note.render(meeting).details).toBeUndefined()
-  expect(api.day).toHaveBeenCalledWith(at)
+  expect(api.day).toHaveBeenCalledWith(at, 'link-event')
   expect(api.list).toHaveBeenCalledOnce()
   day.resolve(dayValue); await flush()
   expect(note.render(meeting).details).toBeUndefined()

@@ -1,11 +1,11 @@
 {
   "name": "@yogurt/app",
-  "version": "0.3.48",
+  "version": "0.3.72",
   "private": true,
   "type": "module",
   "main": "out/main/index.js",
   "scripts": {
-    "dev": "electron-vite dev",
+    "dev": "node scripts/dev.mjs",
     "build": "node scripts/native.mjs && electron-vite build",
     "test": "vitest run",
     "e2e": "node scripts/native.mjs && electron-vite build && playwright test",
@@ -13,9 +13,12 @@
     "typecheck": "tsc -p ."
   },
   "dependencies": {
+    "@ennuicastr/webrtcaec3.js": "0.3.0",
+    "bonjour-service": "1.4.4",
     "chrono-node": "2.10.3",
     "electron-updater": "6.8.10",
     "ical.js": "2.2.1",
+    "libsodium-wrappers-sumo": "0.8.4",
     "node-llama-cpp": "3.22.1"
   },
   "devDependencies": {
@@ -39,10 +42,9 @@
     "@types/yazl": "3.3.1",
     "@vitejs/plugin-react": "6.1.2",
     "@yogurt/picker": "workspace:^",
-    "electron": "44.7.2",
+    "electron": "44.9.1",
     "electron-builder": "26.17.0",
     "electron-vite": "6.0.0",
-    "lucide-react": "1.49.0",
     "motion": "14.4.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",

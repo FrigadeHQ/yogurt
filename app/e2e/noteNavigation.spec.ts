@@ -37,10 +37,10 @@ test('post-call navigation shows Transcript, My notes and Summary without hidden
   } finally { await app.close() }
 })
 
-test('primary tabs preserve the editor and its latest text through pause, resume and Finish', async () => {
+test('primary tabs preserve the editor and its latest text through pause, resume and Stop', async () => {
   const { app, page } = await launch()
   try {
-    await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
     const transcript = page.getByTestId('note-transcript-toggle'), notes = page.getByTestId('note-notes-tab')
     await expect(notes).toHaveAttribute('aria-selected', 'true')
     await expect(page.getByTestId('note-mine')).toBeVisible()
@@ -83,10 +83,10 @@ test('primary tabs preserve the editor and its latest text through pause, resume
   } finally { await app.close() }
 })
 
-test('Finish opens and streams Summary; reopening keeps the completed summary', async () => {
+test('Stop opens and streams Summary; reopening keeps the completed summary', async () => {
   const { app, page } = await launch()
   try {
-    await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
     const id = (await page.evaluate(() => window.yogurt.nav.current())).slice('/note/'.length)
     await expect.poll(async () => (await page.evaluate((id) => window.yogurt.transcript.get(id), id)).length, { timeout: 20_000 }).toBeGreaterThan(0)
     await page.getByTestId('note-stop').click()
@@ -117,7 +117,12 @@ test('the underline slides on pointer tab changes without moving the reading pan
       await page.evaluate(dir => document.documentElement.dir = dir, dir)
       for (const tab of [transcript, notes, page.getByTestId('note-summary-tab')]) {
         await tab.hover()
-        if (process.env.YOGURT_UI_REVIEW !== 'before') expect(await tab.locator('svg, svg path').evaluateAll(els => els.every(el => getComputedStyle(el).animationName === 'none'))).toBe(true)
+        if (process.env.YOGURT_UI_REVIEW !== 'before') {
+          await expect(tab.locator('svg')).toHaveCount(0)
+          await expect(tab).toHaveCSS('padding-inline-start', '4px')
+          await expect(tab).toHaveCSS('padding-inline-end', '4px')
+          await expect(tab).toHaveCSS('column-gap', '4px')
+        }
         await tab.click()
         await expect(pane).toHaveCSS('animation-name', 'none')
         await expect(pane).toHaveCSS('transform', 'none')
@@ -151,11 +156,11 @@ test('the underline slides on pointer tab changes without moving the reading pan
 })
 
 for (const reducedMotion of ['reduce', 'no-preference'] as const) for (const from of ['notes', 'transcript'] as const) {
-  test(`Finish reveals Summary before switching from ${from}; motion ${reducedMotion}`, async () => {
+  test(`Stop reveals Summary before switching from ${from}; motion ${reducedMotion}`, async () => {
     const { app, page } = await launch()
     try {
       await page.emulateMedia({ reducedMotion })
-      await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+      await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
       const id = (await page.evaluate(() => window.yogurt.nav.current())).slice('/note/'.length)
       await page.getByTestId('note-mine').fill('Keep the trial date on Friday.')
       if (from === 'transcript') await page.getByTestId('note-transcript-toggle').click()
@@ -188,11 +193,11 @@ for (const reducedMotion of ['reduce', 'no-preference'] as const) for (const fro
   })
 }
 
-test('choosing another tab cancels the pending Finish arrival', async () => {
+test('choosing another tab cancels the pending Stop arrival', async () => {
   const { app, page } = await launch()
   try {
     await page.emulateMedia({ reducedMotion: 'no-preference' })
-    await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
     await page.getByTestId('note-transcript-toggle').click()
     await page.evaluate(() => {
       const observer = new MutationObserver(() => {

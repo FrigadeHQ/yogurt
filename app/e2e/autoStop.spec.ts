@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -41,12 +42,13 @@ async function callAndRecord(app: ElectronApplication, page: Page) {
   await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
 }
 
-test('the call ends: after the grace the recording stops by itself, with no question, and says so', async () => {
+test('the quiet call ends: after the grace the recording stops by itself, with no question, and says so', async () => {
   const { app, page } = await launch({ env: { YOGURT_BACKGROUND: '1' } })
   try {
     await callAndRecord(app, page)
+    await fake(app, 'silence', 60_000)
     await signals(app, { micApps: [], events: [event()] })
-    // the grace is 4 s (CALL_GONE_MS)
+    // Already quiet for a minute; the app grace is still 4 s (CALL_GONE_MS).
     await advance(app, 3_000)
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
     await advance(app, 1_500)
@@ -67,6 +69,7 @@ test('a blip shorter than the grace does nothing', async () => {
   const { app, page } = await launch()
   try {
     await callAndRecord(app, page)
+    await fake(app, 'silence', 60_000)
     await signals(app, { micApps: [], events: [event()] })
     await advance(app, 2_000)
     await signals(app, { micApps: [zoom], events: [event()] })
@@ -80,6 +83,7 @@ test('the grace can be shortened in fake mode', async () => {
   const { app, page } = await launch({ env: { YOGURT_FAKE_CALL_GONE_MS: '1000' } })
   try {
     await callAndRecord(app, page)
+    await fake(app, 'silence', 60_000)
     await signals(app, { micApps: [], events: [event()] })
     await advance(app, 1_500)
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', /^(stopped|done)$/)
@@ -89,13 +93,14 @@ test('the grace can be shortened in fake mode', async () => {
 test('switched off in Settings: it asks as before', async () => {
   const { app, page, userData } = await launch()
   try {
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     const toggle = page.getByTestId('autostop-toggle')
     await expect(toggle).toHaveAttribute('aria-checked', 'true')
     await toggle.click()
     await expect(toggle).toHaveAttribute('aria-checked', 'false')
     await expect.poll(() => JSON.parse(readFileSync(join(userData, 'settings.json'), 'utf8')).stopWhenCallEnds).toBe(false)
     await callAndRecord(app, page)
+    await fake(app, 'silence', 60_000)
     await signals(app, { micApps: [], events: [event()] })
     await advance(app, 31_000)
     await expect((await card(app)).getByTestId('prompt-heading')).toHaveText('Stop recording?')
@@ -164,11 +169,29 @@ test('FaceTime audio/video and handed-off calls offer a card for the shared mic 
     const id = await page.evaluate(() => window.yogurt.nav.current().then(route => route.slice('/note/'.length)))
     expect(await page.evaluate(id => window.yogurt.meetings.get(id).then(m => m?.app), id)).toBe('FaceTime')
     await signals(app, { micApps, events: [], runningApps: ['com.apple.FaceTime'] })
+    await fake(app, 'silence', 60_000)
     await signals(app, { micApps: [], events: [], runningApps: ['com.apple.FaceTime'] })
     await advance(app, 11000)
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', /^(stopped|done)$/)
     const logs = readFileSync(join(userData, 'logs/main.log'), 'utf8')
     expect(logs).toContain('CALL offer app=FaceTime mic=com.apple.avconferenced')
     expect(logs).toContain(`CALL gone meeting=${id} app=FaceTime idle_ms=`)
+  } finally { await app.close() }
+})
+
+
+test('speech keeps recording after the app leaves the mic; only confirmed silence lets it stop', async () => {
+  const { app, page } = await launch()
+  try {
+    await callAndRecord(app, page)
+    await fake(app, 'silence', 0)
+    await signals(app, { micApps: [], events: [] })
+    await advance(app, 10 * 60_000)
+    await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
+    expect(cards(app)).toBe(0)
+    await fake(app, 'silence', 59_999)
+    await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
+    await fake(app, 'silence', 60_000)
+    await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', /^(stopped|done)$/)
   } finally { await app.close() }
 })

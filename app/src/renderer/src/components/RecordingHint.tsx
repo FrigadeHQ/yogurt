@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, MicOff, RotateCw, TriangleAlert } from 'lucide-react'
+import { Check, MicOff, RotateCw, TriangleAlert } from './Icons'
 import type { PermissionKind, PermissionStatus, WidgetView } from '../../../shared/types'
 import { TurnOn } from './TurnOn'
 import { t } from '../../../shared/i18n'
@@ -28,7 +28,7 @@ export function RecordingHint({ hint }: { hint: NonNullable<WidgetView['note']> 
   const Icon = hint.tone === 'hiccup' ? RotateCw : on ? Check : hint.code === 'no-mic' ? MicOff : TriangleAlert
   return (
     <div data-testid="rec-hint" data-tone={hint.tone} data-code={hint.code} className="pointer-events-auto mx-auto mt-3 flex w-fit max-w-[640px] items-center gap-2.5 rounded-xl border border-line bg-float px-4 py-2 text-[13px] leading-snug shadow-[var(--shadow)]" role="status">
-      <Icon size={14} strokeWidth={1.75} className={`shrink-0 ${on ? 'text-accent' : 'text-danger'}`} aria-hidden="true" />
+      <Icon size={14} className={`shrink-0 ${on ? 'text-accent' : 'text-danger'}`} aria-hidden="true" />
       <span>{on ? (kinds.length > 1 ? t('Your next recording will use both the microphone and call audio.') : kind === 'mic' ? t('Microphone is on. Your next recording uses it.') : t('Call audio is on. Your next recording uses it.')) : hint.text}</span>
       {/* Windows: no prompt to ask with, so its own microphone page (Linux never reads as off) */}
       {!window.yogurt.capabilities.permissionPrompts && kind && access === 'denied' && (

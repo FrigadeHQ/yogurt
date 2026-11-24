@@ -1,9 +1,10 @@
 import { FolderGlyph } from './FolderAppearance'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
-import { Check, FolderIcon, Minus, Plus, X } from 'lucide-react'
+import { Check, Folder as FolderIcon, Minus, Plus, X } from './Icons'
 import type { Folder, MeetingCard } from '../../../shared/types'
-import { t } from '../../../shared/i18n'
-import { setMeetingsInFolder, useFolders } from '../folders'
+import { moreItems, t } from '../../../shared/i18n'
+import { compactCount } from '../i18n'
+import { setMeetingsInFolder, useFolderRead, useFolders } from '../folders'
 import { folderCheck, nextFolderCheck, reconcileFolderChecks, type FolderMemberships, type PendingFolderChecks } from '../folderSelection'
 import { toasts } from './TrashToast'
 import { motion, useReducedMotion, usePopoverPresence } from '../motion'
@@ -75,7 +76,7 @@ export function FolderChip({ meetingId, onNew, suggestion: manualSuggestion, row
     return () => { seq++; off(); offMeetings() }
   }, [meetingId])
   const suggestion = manualSuggestion ?? (automatic ? { folder: automatic, dismiss: () => setAutomatic(null) } : undefined)
-  const mine = useFolders(row ? null : meetingId)
+  const { folders: mine, failed } = useFolderRead(row ? null : meetingId)
   const folders = row ? rowFolders : mine
   const reduced = useReducedMotion()
   const [transition, setTransition] = useState<{ folder: Folder; phase: 'saving' | 'accepted' | 'dismissed' | 'settled' } | null>(null)
@@ -112,7 +113,8 @@ export function FolderChip({ meetingId, onNew, suggestion: manualSuggestion, row
   const held = transition && !(transition.phase === 'settled' && folders?.length) ? transition : null
   const proposed = held?.folder ?? (folders?.length === 0 ? suggestion?.folder : undefined)
   const accepted = held?.phase === 'accepted' || held?.phase === 'settled'
-  const label = proposed?.name ?? (!folders?.length ? t('Add to folder') : folders.length === 1 ? folders[0].name : t('{name} + {more}', { name: folders[0].name, more: folders.length - 1 }))
+  const label = proposed?.name ?? folders?.[0]?.name ?? t('Add to folder')
+  const more = !proposed && folders && folders.length > 1 ? folders.length - 1 : 0
   const focusAfterSuggestion = () => row ? root.current?.closest('li')?.querySelector<HTMLButtonElement>('.native-meeting-link') : chip.current
   const clearSuggestion = (focus: HTMLButtonElement | null | undefined) => {
     focusAfterCommit.current = focus ?? null
@@ -153,12 +155,13 @@ export function FolderChip({ meetingId, onNew, suggestion: manualSuggestion, row
     const timer = setTimeout(finish, reduced ? motion.micro : motion.base)
     return () => clearTimeout(timer)
   }, [transition, reduced])
-  const appearance = proposed ?? (folders?.length === 1 ? folders[0] : undefined)
+  const appearance = proposed ?? folders?.[0]
   if (row && !proposed) return children
-  const trigger = <button ref={chip} data-testid="note-folders" aria-haspopup="menu" aria-expanded={onChoose ? undefined : !!open} onClick={(e) => { if (onChoose && proposed) onChoose(proposed.id); else setOpen((o) => o ? false : e.detail > 0 ? 'pointer' : 'keyboard') }}
+  if (!row && !mine && !failed) return null
+  const trigger = <button ref={chip} data-testid="note-folders" aria-label={more ? `${label} ${moreItems(more)}` : undefined} aria-haspopup="menu" aria-expanded={onChoose ? undefined : !!open} onClick={(e) => { if (onChoose && proposed) onChoose(proposed.id); else setOpen((o) => o ? false : e.detail > 0 ? 'pointer' : 'keyboard') }}
     title={proposed?.name ?? (folders?.map((s) => s.name).join(', ') || undefined)}
     className={proposed ? 'note-folder-name' : 'note-chip flex max-w-64 items-center gap-1.5 rounded-md border border-line px-2.5 text-[13px] text-muted'}>
-    {row && proposed ? <span className="meeting-folder-dot" data-folder-color={proposed.color} aria-hidden="true" /> : appearance ? <FolderGlyph appearance={appearance} size={14} /> : <FolderIcon size={14} aria-hidden="true" className="shrink-0" />}<span data-testid="note-folders-summary" className="truncate">{label}</span>
+    {row && proposed ? <span className="meeting-folder-dot" data-folder-color={proposed.color} aria-hidden="true" /> : appearance ? <FolderGlyph appearance={appearance} size={14} /> : <FolderIcon size={14} aria-hidden="true" className="shrink-0" />}<span data-testid="note-folders-summary" className="truncate">{label}{more > 0 && <> {compactCount(more)}</>}</span>
   </button>
   return (
     <div ref={root} className={row ? 'meeting-folder-suggestion' : 'relative'} onClick={row ? e => e.stopPropagation() : undefined}>

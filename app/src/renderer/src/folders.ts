@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { createContext, useEffect, useState } from 'react'
 import type { Folder } from '../../shared/types'
+
+export const WorkspaceFolders = createContext<Folder[] | undefined>(undefined)
 
 /** what a dragged meeting row carries: its id, under a type only Yogurt's own rows use */
 export const MEETING_DRAG = 'application/x-yogurt-meeting'
@@ -9,20 +11,26 @@ export const MEETING_DRAG = 'application/x-yogurt-meeting'
  * imported changes the counts). meetingId: only the folders that meeting is in.
  */
 export function useFolders(meetingId?: string | null): Folder[] | undefined {
+  return useFolderRead(meetingId).folders
+}
+
+export function useFolderRead(meetingId?: string | null) {
   const [folders, setFolders] = useState<Folder[]>()
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   useEffect(() => {
     if (meetingId === null) return
     let seq = 0
     const load = () => {
       const mine = ++seq
-      void (meetingId ? window.yogurt.folders.of(meetingId) : window.yogurt.folders.list()).then((list) => { if (mine === seq) setFolders(list) }, () => {})
+      void (meetingId ? window.yogurt.folders.of(meetingId) : window.yogurt.folders.list()).then((list) => { if (mine === seq) { setFolders(list); setFailed(false) } }, () => { if (mine === seq) setFailed(true) })
     }
     load()
     const offFolders = window.yogurt.folders.onChange(load)
     const offMeetings = window.yogurt.meetings.onChange(load)
     return () => { seq++; offFolders(); offMeetings() }
-  }, [meetingId])
-  return folders
+  }, [meetingId, attempt])
+  return { folders, failed, retry: () => setAttempt(n => n + 1) }
 }
 
 /** Folder writes are idempotent; wait for every result before reporting a failure. */

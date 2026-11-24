@@ -42,15 +42,19 @@ function setup(day: ReturnType<typeof vi.fn>, onClose = vi.fn()) {
   vi.stubGlobal('requestAnimationFrame', vi.fn())
   vi.stubGlobal('window', { yogurt: { capabilities: { calendar: true }, calendar: { day, onChange: () => () => {} } }, matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }), addEventListener() {}, removeEventListener() {} })
   h.details = undefined
-  h.values = ['pointer']; h.index = 0
-  const first = NoteDate({ m: linked }) as any
-  const cardElement = first.props.children[1]
-  h.index = 0
-  expect((NoteDate({ m: unlinked }) as any).props.children[1].key).toBe(cardElement.key)
+  function cardFor(m: Meeting) {
+    const cardState = h.values
+    h.values = ['pointer']; h.index = 0
+    const card = (NoteDate({ m }) as any).props.children[1]
+    h.values = cardState
+    return card
+  }
+  expect(cardFor(unlinked).key).toBe(cardFor(linked).key)
   h.values = []; h.effects.clear()
   return (m: Meeting) => {
+    const card = cardFor(m)
     let tree: any
-    do { h.dirty = false; h.index = 0; h.pending = []; tree = cardElement.type({ ...cardElement.props, m, details: m.eventId ? h.details : undefined, chip: { current: null }, onClose }) } while (h.dirty)
+    do { h.dirty = false; h.index = 0; h.pending = []; tree = card.type({ ...card.props, chip: { current: null }, onClose }) } while (h.dirty)
     for (const effect of h.pending) {
       const old = h.effects.get(effect.index)
       if (!old || !effect.deps || effect.deps.some((dep: unknown, i: number) => !Object.is(dep, old.deps?.[i]))) {
@@ -211,7 +215,7 @@ it('opens choices on the note day, browses another day and keeps empty days navi
   tree = render(unlinked)
   expect(picker(tree).props.day).toBe(nextDay)
   expect(picker(tree).props.result.events).toEqual([other])
-  expect(byId(tree, 'note-date-heading').props['aria-label']).toContain('Nov 11')
+  expect(byId(tree, 'note-date-heading').props['aria-label']).toContain('November 11')
   byId(tree, 'note-date-next').props.onClick({ detail: 1 })
   render(unlinked)
   await Promise.resolve(); await Promise.resolve()
@@ -229,7 +233,7 @@ it('opens an uploaded note on its inferred start day and offers that day’s cal
   render(imported)
   await vi.advanceTimersByTimeAsync(0)
   const choices = picker(render(imported))
-  expect(day).toHaveBeenCalledWith(startedAt)
+  expect(day).toHaveBeenCalledWith(startedAt, 'link-event')
   expect(choices.props.day).toBe(startedAt)
   expect(choices.props.result.events).toEqual([dayEvent])
 })

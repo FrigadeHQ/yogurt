@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -22,17 +23,18 @@ test('compact meeting labels stop at three first names and the note keeps every 
       return { meeting: meeting.id, folder: folder.id }
     }, names)
     await page.reload()
-    await expect(page.getByTestId('past-note-attendees')).toHaveText('Ann, Bo, Cy + 5')
+    await expect(page.getByTestId('past-note-attendees')).toHaveText('Ann, Bo, Cy and 5 more')
     await page.getByTestId('sidebar-folder-open').filter({ hasText: 'Research' }).click()
-    await expect(page.getByTestId('past-note-attendees')).toHaveText('Ann, Bo, Cy + 5')
+    await expect(page.getByTestId('past-note-attendees')).toHaveText('Ann, Bo, Cy and 5 more')
     await page.getByTestId('past-note').click()
-    await expect(page.getByTestId('note-attendees-summary')).toHaveText('Ann, Bo + 6')
+    await expect(page.getByTestId('note-attendees-summary')).toHaveText('Ann, Bo +6')
+    await expect(page.getByTestId('note-attendees')).toHaveAccessibleName('Ann, Bo and 6 more')
     await page.getByTestId('note-attendees').click()
     await expect(page.getByTestId('people-row')).toHaveCount(names.length)
     for (const name of names) await expect(page.getByTestId('people-list')).toContainText(name)
     await page.keyboard.press('Escape')
     await page.evaluate(id => window.yogurt.meetings.trash(id), ids.meeting)
-    await page.getByTestId('nav-trash').click()
-    await expect(page.getByTestId('past-note-attendees')).toHaveText('Ann, Bo, Cy + 5')
+    await openFromCorner(page, 'nav-trash')
+    await expect(page.getByTestId('past-note-attendees')).toHaveText('Ann, Bo, Cy and 5 more')
   } finally { await app.close() }
 })

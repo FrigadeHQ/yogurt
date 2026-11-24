@@ -123,26 +123,46 @@ it('keeps the anchored panel curve monotonic with a shorter close', () => {
   const styles = readFileSync(new URL('../src/renderer/src/styles.css', import.meta.url), 'utf8')
   const surface = styles.match(/\.chat-morph-surface \{([^}]+)\}/)![1]
   // Animated left/top and width/height must not be overconstrained by right/bottom in RTL.
-  expect(surface).toContain('inset:-1px auto auto -1px')
+  expect(surface).toContain('inset:var(--ask-top) auto auto var(--ask-left)')
   expect(surface).toContain('width:calc(100% + 2px);height:calc(100% + 2px)')
   expect(surface).not.toContain('transform')
+  expect(surface).not.toContain('pointer-events:none')
+  expect(styles).toMatch(/\.chat-panel-viewport \{[^}]*container-type:size/)
+  const contents = styles.match(/\.chat-panel-contents \{([^}]+)\}/)![1]
+  expect(contents).toContain('width:100cqw;height:100cqh')
+  for (const edge of ['left', 'top']) {
+    expect(styles).toContain(`@property --ask-${edge} { syntax:"<length>";inherits:true;initial-value:-1px; }`)
+    expect(contents).toContain(`${edge}:calc(-1px - var(--ask-${edge}))`)
+  }
 })
 
 it('moves the sidebar and page together with the original timing and child layout', () => {
   const css = readFileSync(new URL('../src/renderer/src/workspace.css', import.meta.url), 'utf8')
   const source = readFileSync(new URL('../src/renderer/src/components/Workspace.tsx', import.meta.url), 'utf8')
   expect(source).toContain('duration: sidebarMotion ? 0.2 : 0, ease: [0.22, 1, 0.36, 1]')
-  for (const component of ['Gap', 'Container']) {
-    expect(source).toMatch(new RegExp(`<Sidebar\\.${component}[^>]+transition=\\{sidebarTransition\\}`))
-  }
-  expect(css).toContain('.workspace-sidebar::after { content:"";position:absolute;inset-block:52px 0;inset-inline-end:-1px;')
+  expect(source).toContain('<Sidebar.Gap className="workspace-sidebar-gap" transition={sidebarTransition}')
+  expect(css).toContain('.workspace-sidebar[inert] { transform:translateX(-100%)')
+  expect(css).toContain('.workspace:dir(rtl) .workspace-sidebar[inert] { transform:translateX(100%)')
+  expect(css).toContain('.workspace-sidebar::after { content:"";position:absolute;inset-block:0;inset-inline-end:-1px;')
   expect(css).not.toContain('.workspace-sidebar-gap::after')
   expect(css).toContain('.workspace-sidebar-inner { display:flex;flex-direction:column;height:100%;min-height:0; }')
-  expect(css).not.toContain('.sidebar-collapsed .workspace-sidebar-inner')
+  expect(css).toMatch(/\.workspace-sidebar \{[^}]*inset-block:52px 0;/)
+  expect(css).not.toMatch(/\.sidebar-collapsed \.workspace-sidebar \{[^}]*(inset|top):/)
+  expect(source + css).not.toContain('workspace-peek-shade')
   expect(css).toContain('.workspace[data-sidebar-motion=true] .workspace-toolbar { transition:padding-inline-start 200ms cubic-bezier(.22,1,.36,1); }')
-  expect(css).toContain('.workspace[data-sidebar-motion=true] .workspace-folder-label { transition:height 200ms cubic-bezier(.22,1,.36,1),margin 200ms cubic-bezier(.22,1,.36,1),opacity 120ms ease; }')
+  expect(css).toMatch(/@media \(prefers-reduced-motion:reduce\)\s*\{\s*\.workspace-folder-caret,\.workspace-folder-panel,\.workspace-folder-panel>\* \{ transition:none;/)
   const styles = readFileSync(new URL('../src/renderer/src/styles.css', import.meta.url), 'utf8')
   for (const animation of ['icon-lift', 'icon-write', 'icon-turn']) expect(css + styles).not.toContain(animation)
+})
+
+it('turns the folder caret and fades the rows in step with the disclosure height', () => {
+  const css = readFileSync(new URL('../src/renderer/src/workspace.css', import.meta.url), 'utf8')
+  expect(css).toMatch(/\.workspace-folder-caret \{[^}]*transform:rotate\(0deg\);transition:transform 160ms ease;/)
+  expect(css).toMatch(/\.workspace-folder-toggle:dir\(rtl\) \.workspace-folder-caret \{ transform:rotate\(180deg\)/)
+  expect(css).toMatch(/\.workspace-folder-toggle\[aria-expanded=true\] \.workspace-folder-caret \{ transform:rotate\(90deg\)/)
+  for (const property of ['grid-template-rows', 'opacity']) {
+    expect(css).toContain(`transition:${property} var(--folder-duration) var(--folder-ease);`)
+  }
 })
 
 // DOM geometry is supplied here; the browser owns interpolation and hit testing.

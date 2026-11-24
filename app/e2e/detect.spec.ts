@@ -6,7 +6,7 @@ import { join } from 'node:path'
 const main = join(import.meta.dirname, '../out/main/index.js')
 const zoom = { bundleId: 'us.zoom.xos', name: 'zoom.us' }
 
-/** askFirst: "Finish recording when the call ends" off, so the end of a call asks (autoStop.spec.ts has it on) */
+/** askFirst: "Stop recording when the call ends" off, so the end of a call asks (autoStop.spec.ts has it on) */
 async function launch(o: { askFirst?: boolean; background?: boolean } = {}) {
   const userData = mkdtempSync(join(tmpdir(), 'yogurt-e2e-'))
   if (o.askFirst) writeFileSync(join(userData, 'settings.json'), JSON.stringify({ stopWhenCallEnds: false }))
@@ -127,11 +127,20 @@ test('when the call ends the card asks, and Stop stops the meeting; Keep going w
     // still on the call: nothing asked
     await advance(app, 20_000)
     await signals(app, { micApps: [zoom], events: [event()] })
-    // the mic is free for 31 s
+    // Already quiet for a minute; the app must also be off the mic for 30 s.
+    await app.evaluate(() => (globalThis as any).__fake__.silence(60_000))
     await signals(app, { micApps: [], events: [event()] })
     await advance(app, 31_000)
     const p = await card(app)
     await expect(p.getByTestId('prompt-heading')).toHaveText('Stop recording?')
+    expect(await p.evaluate(() => [innerWidth, innerHeight])).toEqual([381, 60])
+    await expect(p.locator('.call-prompt-icon')).toBeVisible()
+    await expect(p.getByTestId('prompt-title')).toHaveText('Design review')
+    await expect(p.getByTestId('prompt-countdown')).toHaveCount(0)
+    await expect(p.getByRole('button', { name: 'Close', exact: true })).toHaveAttribute('data-testid', 'prompt-dismiss-stop')
+    const boxes = await Promise.all(['prompt-keep-going', 'prompt-stop', 'prompt-dismiss-stop'].map(id => p.getByTestId(id).boundingBox()))
+    const centres = boxes.map(b => b!.y + b!.height / 2)
+    expect(Math.max(...centres) - Math.min(...centres)).toBeLessThan(1)
     await p.clock.install(); await p.reload()
     await expect(p.getByTestId('prompt-keep-going')).toBeVisible()
     await p.clock.fastForward(20_000)
@@ -161,7 +170,8 @@ test('the window is away: clicking the "Take notes?" notification starts the not
     // the card closed with it
     await expect.poll(() => app.windows().filter((w) => !w.isClosed() && w.url().includes('#prompt')).length).toBe(0)
     expect(await notice()).toBeNull()
-    // the call ends: the stop card and its notification
+    // the call ends quietly: the stop card and its notification
+    await app.evaluate(() => (globalThis as any).__fake__.silence(60_000))
     await signals(app, { micApps: [], events: [event()] })
     await advance(app, 31_000)
     await expect.poll(notice).toMatchObject({ title: 'Stop recording?' })

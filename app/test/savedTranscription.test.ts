@@ -75,3 +75,37 @@ it('retains a complete original when a replacement finishes without usable words
  const id=note().id;store.addSegments([line(id,0,300,'Original')]);await jobs.start(id,true)
  await vi.waitFor(()=>expect(jobs.owns(id)).toBe(false));expect(store.segments(id).map(l=>l.text)).toEqual(['Original']);expect(store.meeting(id)?.transcriptionAgain).not.toBe(true);expect(summarize).not.toHaveBeenCalled()
 })
+
+it('rewrites the notes of a phone recording once its transcript is replaced, then never again over them',async()=>{
+ const id=note().id;store.addSegments([line(id,0,300,'Phone line')]);store.setNotes(id,{enhanced:'Phone draft'});store.updateMeeting(id,{sourceId:`phone-draft:${id}`})
+ transcribe.mockImplementationOnce(async(_id,_tracks,options)=>{options.save([line(id,0,300,'Computer line')]);return true})
+ await jobs.start(id,true);await vi.waitFor(()=>expect(store.meeting(id)?.transcriptionState).toBe('done'))
+ expect(store.segments(id).map(s=>s.text)).toEqual(['Computer line']);expect(summarize).toHaveBeenCalledExactlyOnceWith(id)
+ expect(store.meeting(id)?.sourceId).toBe(`phone:${id}`)
+ transcribe.mockImplementationOnce(async(_id,_tracks,options)=>{options.save([line(id,0,300,'Again')]);return true})
+ await jobs.start(id,true);await vi.waitFor(()=>expect(store.segments(id)[0]?.text).toBe('Again'));expect(summarize).toHaveBeenCalledOnce()
+})
+
+it("a phone recording is transcribed in the language the phone said it was spoken in; other meetings follow the setting", async () => {
+ const phone=note().id;store.updateMeeting(phone,{language:'german',sourceId:`phone:${phone}`})
+ const other=note().id;store.updateMeeting(other,{language:'french'})
+ await jobs.start(phone);await vi.waitFor(()=>expect(store.meeting(phone)?.transcriptionState).toBe('done'))
+ await jobs.start(other);await vi.waitFor(()=>expect(store.meeting(other)?.transcriptionState).toBe('done'))
+ expect(transcribe.mock.calls[0][2].language).toBe('de')
+ expect(transcribe.mock.calls[1][2].language).toBeUndefined()
+})
+
+it('leaves a meeting alone while its live transcript is still being finished (#127)',async()=>{
+ const id=note().id;store.updateMeeting(id,{transcriptionPending:true});let live=true
+ jobs=createSavedTranscriptions({store,ready:()=>model,recording:()=>recording,live:()=>live,tracks:async()=>({them:(async function*(){yield new Float32Array(1600)})()}),transcribe,summarize,changed})
+ recording=true;await jobs.pump();recording=false;await jobs.pump()
+ expect(transcribe).not.toHaveBeenCalled();expect(store.meeting(id)?.transcriptionState).toBeUndefined()
+ live=false;await jobs.pump();await vi.waitFor(()=>expect(store.meeting(id)?.transcriptionState).toBe('done'))
+})
+it('clears a waiting label left on a meeting whose transcript is already done (#127)',async()=>{
+ const id=note().id;store.updateMeeting(id,{state:'done',transcriptionPending:false,transcriptionState:'waiting-recording'})
+ const upload=note().id;store.db.prepare('UPDATE meetings SET source=? WHERE id=?').run('audio-file',upload);store.updateMeeting(upload,{transcriptionPending:false,transcriptionState:'preparing'})
+ await jobs.pump()
+ expect(store.meeting(id)?.transcriptionState).toBeUndefined();expect(changed).toHaveBeenCalledWith(id)
+ expect(store.meeting(upload)?.transcriptionState).toBe('preparing')
+})

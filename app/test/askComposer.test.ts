@@ -2,6 +2,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { createElement, useEffect, type ChangeEvent, type ComponentProps } from 'react'
 import { jsxDEV } from 'react/jsx-dev-runtime'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { AskRecordingWait, watchRecordingWait } from '../src/renderer/src/askAvailability'
 import { AskConversation } from '../src/renderer/src/components/AskConversation'
 import type { ConversationTurn, ConversationView } from '../src/shared/types'
 
@@ -78,3 +79,53 @@ it('keeps the landing input labeled without repeating its heading as a placehold
   expect(input).toContain('aria-label="Ask about your meetings"')
   expect(input).not.toContain('placeholder=')
 })
+
+it('keeps the latest recording event when a slower initial read arrives', async () => {
+  let snapshot!: (waiting: boolean) => void, publish!: (waiting: boolean) => void
+  const update = vi.fn(), off = vi.fn()
+  const stop = watchRecordingWait({
+    onRecordingWait(cb) { publish = cb; return off },
+    waitsForMeeting: () => new Promise(resolve => { snapshot = resolve }),
+  }, update)
+  publish(true)
+  publish(false)
+  snapshot(true)
+  await Promise.resolve()
+  expect(update.mock.calls).toEqual([[true], [false]])
+  stop()
+  expect(off).toHaveBeenCalledOnce()
+})
+
+it.each([true, false])('keeps a blocked field focusable and preserves the draft through recording stop (panel %s)', panel => {
+  const ask = vi.fn(), draft = vi.fn()
+  vi.stubGlobal('window', { matchMedia: () => ({ matches: false }), yogurt: { os: 'darwin', conversations: { ask, draft } } })
+  const initial: ConversationView = { id: 'draft', title: '', chips: [], draft: 'Keep this question', draftChips: [], firstChips: null,
+    turns: [], waitsForMeeting: true, waitsForModel: false }
+  const ui = createElement(AskConversation, { id: initial.id, initial, panel, home: !panel, onSelect() {}, onDeleted() {}, onSource() {} })
+  const locked = renderToStaticMarkup(createElement(AskRecordingWait.Provider, { value: true }, ui))
+  const input = locked.match(/<textarea[^>]*>/)![0]
+  expect(input).toContain('aria-disabled="true"')
+  expect(input).toContain('aria-description="Available after recording"')
+  expect(input).toContain('readOnly=""')
+  expect(input).not.toContain(' disabled=')
+  expect(locked).toMatch(/data-testid="chat(?:-page)?-send"[^>]*disabled=/)
+  const form = vi.mocked(jsxDEV).mock.calls.filter(([type]) => type === 'form').at(-1)![1] as ComponentProps<'form'>
+  form.onSubmit!({ preventDefault() {} } as Parameters<NonNullable<typeof form.onSubmit>>[0])
+  expect(ask).not.toHaveBeenCalled()
+  expect(draft).not.toHaveBeenCalled()
+  const unlocked = renderToStaticMarkup(createElement(AskRecordingWait.Provider, { value: false }, ui))
+  expect(unlocked).toContain('Keep this question')
+  expect(unlocked.match(/<textarea[^>]*>/)![0]).not.toMatch(/aria-disabled|readOnly|aria-description/)
+  expect(unlocked).not.toMatch(/data-testid="chat(?:-page)?-send"[^>]*disabled=/)
+})
+
+it.each([['darwin', true, true], ['darwin', false, false], ['win32', true, false], ['linux', true, false]] as const)(
+  'uses the conversation wait while the first recording snapshot is pending (%s, wait %s)', (os, waitsForMeeting, locked) => {
+    vi.stubGlobal('window', { matchMedia: () => ({ matches: false }), yogurt: { os } })
+    const initial: ConversationView = { id: 'call', title: '', chips: [], draft: '', draftChips: [], firstChips: null,
+      turns: [], waitsForMeeting, waitsForModel: false }
+    const ui = createElement(AskConversation, { id: initial.id, initial, panel: true, recording: true, onSelect() {}, onDeleted() {}, onSource() {} })
+    const input = renderToStaticMarkup(ui).match(/<textarea[^>]*>/)![0]
+    expect(input.includes('aria-disabled="true"')).toBe(locked)
+    expect(input.includes('readOnly=""')).toBe(locked)
+  })

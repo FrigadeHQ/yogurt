@@ -1,3 +1,4 @@
+import { ReadError } from './components/InlineError'
 import { LoadingContent } from './components/LoadingContent'
 import { MeetingListLoading } from './screens/Home'
 import { StartRecording } from './components/StartRecording'
@@ -14,13 +15,18 @@ import { command, onMac } from './keys'
 import { TrashToast } from './components/TrashToast'
 import { Trash } from './screens/Trash'
 import { ChatPage } from './screens/ChatPage'
-import { BootScreen } from './components/BootScreen'
+import { BootScreen, MacLaunch } from './components/BootScreen'
 import { bootHoldMs } from '../../shared/onboarding'
 import { Folder } from './screens/Folder'
-import { useFolders } from './folders'
+import { AskRecordingWait, watchRecordingWait } from './askAvailability'
+import { useFolderRead } from './folders'
 import type { LibrarySource, MeetingView, OnboardingPlan, SetupState } from '../../shared/types'
 
 export function App() {
+  const [setupFailed, setSetupFailed] = useState(false)
+  const [setupAttempt, setSetupAttempt] = useState(0)
+  const [recordingWait, setRecordingWait] = useState<boolean>()
+  useEffect(() => watchRecordingWait(window.yogurt.conversations, setRecordingWait), [])
   const [setup, setSetup] = useState<SetupState>()
   // where the app was told to go, e.g. /note/<id>
   const [route, setRouteNow] = useState('')
@@ -75,10 +81,11 @@ export function App() {
     return off
   }, [])
   useEffect(() => {
-    const stop = window.yogurt.setup.onState(setSetup)
-    void window.yogurt.setup.state().then((s) => setSetup((cur) => cur ?? s))
-    return stop
-  }, [])
+    let active = true
+    const stop = window.yogurt.setup.onState(s => { setSetupFailed(false); setSetup(s) })
+    void window.yogurt.setup.state().then(s => { if (active) { setSetupFailed(false); setSetup(cur => cur ?? s) } }, () => { if (active) setSetupFailed(true) })
+    return () => { active = false; stop() }
+  }, [setupAttempt])
 
   // first run: the intro and the questions still to ask; nothing on later launches
   const [plan, setPlan] = useState<OnboardingPlan>()
@@ -121,7 +128,7 @@ export function App() {
   const openShortcuts = () => { setSearching(false); setShortcuts(true) }
   const [searching, setSearching] = useState(false)
   const [settingsRevision, setSettingsRevision] = useState(0)
-  const folders = useFolders()
+  const { folders, failed: foldersFailed, retry: retryFolders } = useFolderRead()
   const [suggestedFolders, setSuggestedFolders] = useState<Record<string, string>>({})
   const dismissFolderSuggestion = (id: string) => setSuggestedFolders((current) => {
     const next = { ...current }; delete next[id]; return next
@@ -134,7 +141,13 @@ export function App() {
       const mac = onMac()
       if (e.isComposing || !command(e) || e.altKey || (mac && e.shiftKey) || document.querySelector('dialog:modal, .app-modal[aria-modal="true"]')) return
       if (mac ? e.ctrlKey : e.shiftKey) {
-        if (e.code === 'KeyS' && !document.querySelector('[aria-modal="true"]')) {
+        if (document.querySelector('[aria-modal="true"]')) return
+        const agenda = e.code === 'KeyA' && document.getElementById('home-agenda-toggle')
+        if (agenda) {
+          e.preventDefault(); e.stopPropagation(); if (!e.repeat) agenda.click()
+          return
+        }
+        if (e.code === 'KeyS') {
           e.preventDefault(); e.stopPropagation(); if (!e.repeat) toggleSidebar()
         }
         return
@@ -148,6 +161,11 @@ export function App() {
         return
       }
       if (document.querySelector('[aria-modal="true"]')) return
+      if (e.code === 'KeyN') {
+        const button = document.getElementById('folder-new-note')
+        if (button) { e.preventDefault(); if (!e.repeat) button.click() }
+        return
+      }
       if (e.code === 'BracketLeft') { e.preventDefault(); back() }
       if (e.code === 'BracketRight') { e.preventDefault(); forward() }
     }
@@ -170,8 +188,6 @@ export function App() {
     open(s.meetingId)
   }
 
-  // still starting, or checking what is on disk: the launch screen, so a finished install never flashes the first-run screen
-  if (!setup || !plan || holding) return <div data-testid="app-shell" className="h-full bg-bg"><TitleBar /><BootScreen /></div>
   const noteId = route.startsWith('/note/') ? route.slice(6) : null
   const settings = route === '/settings' || route.startsWith('/settings/')
   const trash = route === '/trash'
@@ -180,21 +196,31 @@ export function App() {
   const folder = folderId ? folders?.find((s) => s.id === folderId) : undefined
   const suggestedFolder = noteId ? folders?.find((s) => s.id === suggestedFolders[noteId]) : undefined
   // a folder's page waits for the list; a folder that is gone shows Meetings
-  const folderScreen = folderId && (folder ? <Folder key={folder.id} folder={folder} open={open} onStarted={(id) => setSuggestedFolders((current) => ({ ...current, [id]: folder.id }))} /> : !folders ? <div className="native-folder"><StartRecording /><div className="native-library"><LoadingContent pending testId="meetings-loading" skeleton={<><div className="folder-page-heading"><h1><span className="loading-bar" style={{ width: 140 }} /></h1></div><MeetingListLoading showFolders={false} /></>} /></div></div> : null)
+  const folderScreen = folderId && (folder ? <Folder key={folder.id} folder={folder} open={open} onUploaded={(id) => setSuggestedFolders((current) => ({ ...current, [id]: folder.id }))} /> : foldersFailed ? <div className="native-library"><ReadError className="library-empty" testId="folder-list-error" retry={retryFolders} /></div> : !folders ? <div className="native-folder"><StartRecording folderId={folderId} /><div className="native-library"><LoadingContent pending testId="meetings-loading" skeleton={<><div className="folder-page-heading"><h1><span className="loading-bar" style={{ width: 140 }} /></h1></div><MeetingListLoading showFolders={false} /></>} /></div></div> : null)
   const screen = settings ? <Settings revision={settingsRevision} focus={route.startsWith('/settings/') ? route.slice('/settings/'.length) : undefined} /> : noteId ? <Note key={noteId} id={noteId} onSource={openSource} onTitleChange={setMeeting} at={jump?.id === noteId ? jump : undefined}
     onResumeRequested={resumeRequested ? () => { setResumeRequested(false); rememberRoute(route) } : undefined}
     folderSuggestion={suggestedFolder ? { folder: suggestedFolder, dismiss: () => dismissFolderSuggestion(noteId) } : undefined} />
     : chatId !== undefined ? <ChatPage id={chatId} go={go} openSource={openSource} />
     : trash ? <Trash open={open} /> : folderScreen || <Home open={open} openFolder={(id) => go(`/folder/${id}`)} agendaJump={agendaJump} />
-  return (
-    <div data-testid="app-shell" className={`h-full text-ink ${ready ? 'bg-transparent' : 'bg-bg'}`}>
-      {ready ? <Workspace route={route} meeting={meeting} folders={folders} go={go} back={history.current.length ? back : undefined} forward={future.current.length ? forward : undefined} search={() => setSearching(true)} collapsed={sidebarCollapsed} sidebarMotion={sidebarMotion} toggleSidebar={toggleSidebar}>{screen}</Workspace>
-        : <><TitleBar />{setup.phase === 'checking' && firstRunDone ? <BootScreen /> : <Onboarding state={setup} plan={plan} onDone={() => setPlan({ intro: false, steps: [] })} />}</>}
-      {ready && searching && <Search folder={folder} folders={folders} onOpen={open} onNavigate={go} onShortcuts={openShortcuts} onSettingsChange={() => setSettingsRevision((v) => v + 1)} onClose={() => setSearching(false)} sidebarCollapsed={sidebarCollapsed} onToggleSidebar={() => toggleSidebar()} />}
-      {ready && shortcuts && <Shortcuts onClose={() => setShortcuts(false)} />}
-      {ready && <TrashToast go={go} />}
+  const mac = window.yogurt.platform === 'darwin'
+  const startupError = !setup && setupFailed
+  const launching = mac && !startupError && (!booted || holding)
+  const boot = mac ? null : <BootScreen />
+  const starting = !setup || !plan || holding
+  const inWorkspace = !starting && ready
+  const page = starting
+    ? <><TitleBar />{startupError ? <ReadError testId="setup-read-error" retry={() => setSetupAttempt(n => n + 1)} /> : boot}</>
+    : ready ? <Workspace route={route} meeting={meeting} folders={folders} go={go} back={history.current.length ? back : undefined} forward={future.current.length ? forward : undefined} search={() => setSearching(true)} shortcuts={openShortcuts} collapsed={sidebarCollapsed} sidebarMotion={sidebarMotion} toggleSidebar={toggleSidebar}>{screen}</Workspace>
+    : <><TitleBar />{setup.phase === 'checking' && firstRunDone ? boot : <Onboarding state={setup} plan={plan} onDone={() => setPlan({ intro: false, steps: [] })} />}</>
+  return <AskRecordingWait value={recordingWait}>
+    {mac && <MacLaunch active={launching} />}
+    <div data-testid="app-shell" inert={launching || undefined} className={starting ? 'app-shell flex h-full flex-col bg-bg' : `app-shell h-full text-ink ${ready ? 'bg-transparent' : 'bg-bg'}`}>
+      {page}
+      {inWorkspace && searching && <Search folder={folder} folders={folders} onOpen={open} onNavigate={go} onShortcuts={openShortcuts} onSettingsChange={() => setSettingsRevision((v) => v + 1)} onClose={() => setSearching(false)} sidebarCollapsed={sidebarCollapsed} onToggleSidebar={() => toggleSidebar()} />}
+      {inWorkspace && shortcuts && <Shortcuts onClose={() => setShortcuts(false)} />}
+      {inWorkspace && <TrashToast go={go} />}
     </div>
-  )
+  </AskRecordingWait>
 }
 
 /** Keep the native traffic-light strip clear during setup; draggable, and the page's own colour so first run reads as one surface. */

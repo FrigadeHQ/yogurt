@@ -56,7 +56,7 @@ test('sidebar reveal keeps its toggle anchored and can reverse before it finishe
       return true
     })).toBe(true)
     const midway = await gap.evaluate(el => el.getBoundingClientRect().width)
-    expect(midway).toBeGreaterThan(56)
+    expect(midway).toBeGreaterThan(0)
     expect(midway).toBeLessThan(208)
     await motionStyle.evaluate(el => { el.parentNode?.removeChild(el) })
     await page.mouse.click(before!.x + before!.width / 2, before!.y + before!.height / 2)
@@ -65,6 +65,62 @@ test('sidebar reveal keeps its toggle anchored and can reverse before it finishe
     await expect(page.getByRole('complementary', { name: 'Main navigation' })).toBeVisible()
     expect((await content.boundingBox())!.x).toBe(208)
     expect(await toggle.evaluate((el) => getComputedStyle(el).getPropertyValue('-webkit-app-region'))).toBe('no-drag')
+  } finally { await app.close() }
+})
+
+test('docking an edge peek keeps its footer still while the loaded page moves into place', async () => {
+  const { app, page } = await launch()
+  try {
+    await app.evaluate(() => (globalThis as unknown as { __fake__: { manyMeetings(o: { n: number; clean: boolean }): void } }).__fake__.manyMeetings({ n: 1, clean: true }))
+    await page.reload()
+    const row = page.getByTestId('past-note').first()
+    await expect(row).toBeVisible()
+    const toggle = page.locator('.workspace-sidebar-toggle')
+    const panel = page.locator('#workspace-sidebar')
+    const corner = page.getByTestId('corner-menu-button')
+    const gap = page.locator('.workspace-sidebar-gap')
+    const content = page.locator('.workspace-content')
+    for (const reduced of [false, true]) {
+      await page.emulateMedia({ reducedMotion: reduced ? 'reduce' : 'no-preference' })
+      await toggle.press('Enter')
+      await expect.poll(() => content.evaluate(el => el.contains(document.elementFromPoint(12, 200)))).toBe(true)
+      await page.mouse.move(12, 200)
+      await expect(panel).toHaveAttribute('aria-hidden', 'false')
+      await expect.poll(() => panel.evaluate(el => el.getBoundingClientRect().x)).toBe(0)
+      const before = await corner.boundingBox()
+      expect(await content.evaluate(el => el.contains(document.elementFromPoint(innerWidth - 32, 160)))).toBe(true)
+      await toggle.hover()
+      await expect(panel).toHaveAttribute('aria-hidden', 'false')
+      expect((await content.boundingBox())!.x).toBe(0)
+      if (!reduced) {
+        // Hold the width transition on its first frame so driver latency cannot skip the motion.
+        await gap.evaluate(el => el.addEventListener('transitionrun', () => {
+          el.getAnimations().find(a => a instanceof CSSTransition && a.transitionProperty === 'width')?.pause()
+        }, { once: true }))
+      }
+      await toggle.click()
+      await expect(page.getByTestId('sidebar-collapse')).toBeVisible()
+      if (!reduced) {
+        await expect.poll(() => gap.evaluate(el => el.getAnimations()[0]?.playState)).toBe('paused')
+        await expect(gap).toHaveCSS('transition-duration', '0.2s')
+        await expect(gap).toHaveCSS('transition-timing-function', 'cubic-bezier(0.22, 1, 0.36, 1)')
+        let previous = -1
+        for (const time of [0, 50, 100, 199]) {
+          await gap.evaluate((el, t) => { el.getAnimations()[0].currentTime = t }, time)
+          const x = (await content.boundingBox())!.x
+          expect(x).toBeGreaterThan(previous)
+          expect((await panel.boundingBox())!.x).toBe(0)
+          expect(await corner.boundingBox()).toEqual(before)
+          await expect(row).toBeVisible()
+          previous = x
+        }
+        await gap.evaluate(el => el.getAnimations()[0].finish())
+      } else {
+        expect(await gap.evaluate(el => el.getAnimations().length)).toBe(0)
+      }
+      expect((await content.boundingBox())!.x).toBe(208)
+      expect(await corner.boundingBox()).toEqual(before)
+    }
   } finally { await app.close() }
 })
 
@@ -89,7 +145,7 @@ test('native titlebar drag regions leave the sidebar and toolbar controls clicka
                 const style = getComputedStyle(el), kind = style.getPropertyValue('-webkit-app-region')
                 return kind !== 'none' && style.visibility === 'visible' ? [{ kind, bounds: el.getBoundingClientRect() }] : []
               })
-              return Array.from(document.querySelectorAll('.workspace-sidebar-toggle, .workspace-toolbar button')).flatMap((el) => {
+              return Array.from(document.querySelectorAll('.workspace-sidebar-toggle, .corner-trigger, .workspace-toolbar button')).flatMap((el) => {
                 const bounds = el.getBoundingClientRect()
                 if (!bounds.width || !bounds.height) return []
                 const x = bounds.x + bounds.width / 2, y = bounds.y + bounds.height / 2
@@ -114,8 +170,8 @@ for (const reducedTransparency of ['no-preference', 'reduce']) test(`titlebar ch
     await page.getByTestId('past-note').click()
     await expect(page.getByTestId('note')).toBeVisible()
     const cdp = await page.context().newCDPSession(page)
-    const divider = await page.locator('.workspace-sidebar').evaluate(el => ({ border: getComputedStyle(el).borderInlineEndColor, start: getComputedStyle(el, '::after').top }))
-    expect(divider).toEqual({ border: 'rgba(0, 0, 0, 0)', start: '52px' })
+    const divider = await page.locator('.workspace-sidebar').evaluate(el => ({ border: getComputedStyle(el).borderInlineEndColor, start: el.getBoundingClientRect().top + parseFloat(getComputedStyle(el, '::after').top) }))
+    expect(divider).toEqual({ border: 'rgba(0, 0, 0, 0)', start: 52 })
     for (const colorScheme of ['light', 'dark'] as const) {
       await cdp.send('Emulation.setEmulatedMedia', { features: [
         { name: 'prefers-color-scheme', value: colorScheme },
@@ -180,10 +236,12 @@ test('keyboard, reduced motion and narrow-window sidebar changes remain immediat
     await page.keyboard.press('Enter')
     await expect(toggle).toHaveAttribute('aria-expanded', 'false')
     expect(await gap.evaluate((el) => el.getAnimations().some((a) => a.playState === 'running'))).toBe(false)
-    expect((await gap.boundingBox())!.width).toBe(56)
-    await expect(page.getByTestId('nav-home')).toBeVisible()
-    await page.keyboard.press('Tab')
+    expect(await gap.evaluate(el => el.getBoundingClientRect().width)).toBe(0)
+    await expect(page.getByRole('complementary', { name: 'Main navigation' })).toHaveCount(0)
+    await toggle.press('ArrowDown')
     await expect(page.getByTestId('search-open')).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(toggle).toBeFocused()
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await toggle.click()
     expect(await gap.evaluate((el) => el.getAnimations().some((a) => a.playState === 'running'))).toBe(false)

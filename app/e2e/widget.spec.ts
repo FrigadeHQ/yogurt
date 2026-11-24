@@ -1,3 +1,4 @@
+import { meterHeights } from './meterGeometry'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -63,10 +64,17 @@ test('the widget is a compact horizontal recorder with one live wave and no exte
     await expect(w.getByTestId('widget-stop')).toHaveCount(0)
     await expect(w.getByTestId('widget-resume')).toHaveCount(0)
     await expect(w.getByTestId('logo')).toBeVisible()
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await w.emulateMedia({ colorScheme })
+      // The charcoal recorder keeps the light brand purple in both appearances.
+      const accent = 'rgb(183, 128, 255)'
+      await expect(w.getByTestId('logo').locator('path')).toHaveCSS('fill', accent)
+      await expect(w.getByTestId('widget-wave')).toHaveCSS('color', accent)
+    }
   } finally { await app.close() }
 })
 
-test('Finish closes the floating recorder and prepares a completion notification', async () => {
+test('Stop closes the floating recorder and prepares a completion notification', async () => {
   const { app, page } = await launch()
   try {
     const w = await record(app, page)
@@ -260,11 +268,11 @@ test('hints retain both unavailable recording inputs', async () => {
   } finally { await app.close() }
 })
 
-test('with reduced motion the meter stays three static dots', async () => {
+test('reduced motion keeps five visible bars without travel', async () => {
   const { app, page } = await launch()
   try {
     const w = await record(app, page)
-    const drawn = (id: string) => w.getByTestId(id).evaluate((c: HTMLCanvasElement) => c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data.some((v, i) => i % 4 === 3 && v > 0))
+    const drawn = async (id: string) => (await meterHeights(w.getByTestId(id))).filter(h => h > 0).length === 5
     // the setting changing while the widget is up is picked up
     await w.emulateMedia({ reducedMotion: 'reduce' })
     await expect.poll(() => drawn('widget-wave')).toBe(true)

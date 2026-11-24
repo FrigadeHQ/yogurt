@@ -22,6 +22,14 @@ export function pickAsr(hw: Hardware, c: Catalog, opts: { exclude?: string[] } =
  * (final) reading of a clip takes at most half the clip's length.
  */
 export const KEEPS_UP_RTF = 0.5
+/**
+ * small may take up to 1.25 times the clip's length rather than fall back to base or tiny, which are very weak outside
+ * English (#107). It lags behind live; whisper skips silence, so with each side talking about half the time a meeting's
+ * transcript ends at most about a quarter of its length after the meeting does.
+ */
+export const LAGS_A_LITTLE_RTF = 1.25
+/** part of the speed check's key: a change to how it picks measures every computer again, once */
+export const SPEED_CHECK_VERSION = 'v2'
 
 /**
  * Windows and Linux: the speech models the speed check tries, best first (a Mac has none: it never measures). On the
@@ -37,15 +45,15 @@ export function asrCandidates(hw: Hardware, c: Catalog, opts: { exclude?: string
  * Times the candidates in order and keeps the first that keeps up; nothing smaller is timed after it.
  * measure gives the realtime factor (time taken over the clip's length), or null when it ran out of time.
  */
-export async function pickBySpeed<M extends { id: string }>(candidates: M[], measure: (m: M) => Promise<number | null>): Promise<{ model: M | null; rtf: Record<string, number | null> }> {
+export async function pickBySpeed<M extends { id: string }>(candidates: M[], measure: (m: M) => Promise<number | null>, opts: { lagsOk?: (m: M) => boolean } = {}): Promise<{ model: M | null; rtf: Record<string, number | null> }> {
   const rtf: Record<string, number | null> = {}
   for (const m of candidates) {
     const r = await measure(m)
     rtf[m.id] = r
-    if (r !== null && r <= KEEPS_UP_RTF) return { model: m, rtf }
+    if (r !== null && r <= (opts.lagsOk?.(m) ? LAGS_A_LITTLE_RTF : KEEPS_UP_RTF)) return { model: m, rtf }
   }
   return { model: null, rtf }
 }
 
 /** What the speed depends on: the processor and the graphics. A different one of either and the check runs again. */
-export const speedKey = (hw: Hardware): string => [hw.os, hw.arch, hw.cpuModel, hw.cores ?? '', hw.gpu.kind, hw.gpu.name].join('|')
+export const speedKey = (hw: Hardware): string => [SPEED_CHECK_VERSION, hw.os, hw.arch, hw.cpuModel, hw.cores ?? '', hw.gpu.kind, hw.gpu.name].join('|')

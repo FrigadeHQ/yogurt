@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test, type ElectronApplication } from '@playwright/test'
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -71,13 +72,13 @@ test('deleting audio asks first, preserves the note and search, and survives Tra
 test('turning retention off deletes only after saved transcript and summary and updates the open player', async () => {
   const { app, page, userData } = await launch({ YOGURT_FAKE_NOTES_MODEL_MS: '16000' })
   try {
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     const toggle = page.getByTestId('keep-recordings-toggle')
     await expect(toggle).toHaveAttribute('aria-checked', 'true')
     await toggle.click(); await expect(toggle).toHaveAttribute('aria-checked', 'false')
     expect(JSON.parse(readFileSync(join(userData, 'settings.json'), 'utf8')).keepRecordings).toBe(false)
     await page.getByTestId('nav-home').click()
-    await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
     const id = (await page.evaluate(() => window.yogurt.nav.current())).slice('/note/'.length)
     await expect.poll(async () => (await page.evaluate(id => window.yogurt.transcript.get(id), id)).length, { timeout: 30_000 }).toBeGreaterThan(0)
     await page.getByTestId('note-stop').click()
@@ -98,12 +99,12 @@ test('@everywhere a backup with deleted audio restores text without recreating r
   try {
     id = await fake<string>(a.app, 'bigMeeting', 4)
     expect(await a.page.evaluate(id => window.yogurt.audio.delete(id), id)).toBe('deleted')
-    await a.page.getByTestId('settings-open').click(); await a.page.getByTestId('backup-export').click()
+    await openFromCorner(a.page, 'settings-open'); await a.page.getByTestId('backup-export').click()
     await expect(a.page.getByTestId('backup-said')).toContainText('Exported 1 meeting')
   } finally { await a.app.close() }
   const b = await launch({ YOGURT_BACKUP_PATH: file })
   try {
-    await b.page.getByTestId('settings-open').click(); await b.page.getByTestId('backup-import').click()
+    await openFromCorner(b.page, 'settings-open'); await b.page.getByTestId('backup-import').click()
     await expect(b.page.getByTestId('backup-said')).toHaveText('Added 1 meeting.')
     expect(await b.page.evaluate(id => window.yogurt.audio.tracks(id), id)).toEqual([])
     expect((await b.page.evaluate(id => window.yogurt.transcript.get(id), id)).length).toBe(4)
@@ -113,7 +114,7 @@ test('@everywhere a backup with deleted audio restores text without recreating r
 test('a meeting with deleted audio resumes after its retained transcript', async () => {
   const { app, page } = await launch({ YOGURT_FAKE_LLM_MS: '1' })
   try {
-    await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
     const id = (await page.evaluate(() => window.yogurt.nav.current())).slice('/note/'.length)
     await expect.poll(async () => (await page.evaluate(id => window.yogurt.transcript.get(id), id)).length, { timeout: 20_000 }).toBeGreaterThan(0)
     await page.getByTestId('note-stop').click()
@@ -136,8 +137,9 @@ test('turning retention off leaves older recordings even when their summaries ar
   const { app, page, userData } = await launch({ YOGURT_FAKE_LLM_MS: '1' })
   try {
     const id = await fake<string>(app, 'bigMeeting', 4)
-    await page.getByTestId('settings-open').click()
-    await expect(page.getByText("When off, new meetings' audio is deleted once the summary is saved.")).toBeVisible()
+    await openFromCorner(page, 'settings-open')
+    // inside the setting itself: the loading view shows the same words for a moment
+    await expect(page.getByTestId('recording-setting').getByText("When off, new meetings' audio is deleted once the summary is saved.")).toBeVisible()
     await page.getByTestId('keep-recordings-toggle').click()
     await expect(page.getByTestId('keep-recordings-toggle')).toHaveAttribute('aria-checked', 'false')
     await page.evaluate(id => window.yogurt.notes.writeAgain(id), id)

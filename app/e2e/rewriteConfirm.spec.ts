@@ -100,6 +100,7 @@ test('explicit rewrite confirmation closes before a delayed save; a failed save 
     await trigger.click()
     await page.getByTestId('note-write-again').click()
     await expect(page.getByTestId('note-confirm')).toBeVisible()
+    await expect(page.getByTestId('note-confirm')).toHaveCSS('white-space', 'normal')
     await page.getByTestId('note-write-again-confirm').click()
     await expect.poll(() => app.evaluate(() => (globalThis as unknown as { __saveRequested: boolean }).__saveRequested)).toBe(true)
     await expect(page.getByTestId('note-confirm')).toHaveCount(0)

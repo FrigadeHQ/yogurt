@@ -92,6 +92,19 @@ it('keeps the inferred local time when the chosen day has a different daylight-s
   const inferred = +new Date(2026, 0, 15, 12, 55, 30, 500)
   expect(uploadDateTime('2026-07-15', '12:55', inferred)).toBe(+new Date(2026, 6, 15, 12, 55, 30, 500))
 })
+it('rejects a skipped wall-clock minute without silently changing the time', () => {
+  const previous = process.env.TZ
+  try {
+    process.env.TZ = 'America/Los_Angeles'
+    const reference = +new Date(2026, 2, 7, 2, 30)
+    expect(uploadDateTime('2026-03-08', '02:30', reference)).toBeUndefined()
+    expect(uploadDateTime('2026-03-08', '02:45', reference)).toBeUndefined()
+    expect(uploadDateTime('2026-03-08', '03:00', reference)).toBe(+new Date(2026, 2, 8, 3))
+  } finally {
+    if (previous === undefined) delete process.env.TZ
+    else process.env.TZ = previous
+  }
+})
 it('allows bounded metadata reads before creating any output or meeting', async () => {
   const file = await uploads.select(1,path)
   expect(uploads.info(1,file.token)).toEqual(file)

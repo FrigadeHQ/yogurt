@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 const menus = [
-  { trigger: 'share-button', surface: 'share-menu', first: 'share-copy-notes', logical: false },
+  { trigger: 'share-button', surface: 'share-menu', first: 'share-copy-summary', logical: false },
   { trigger: 'note-menu-button', surface: 'note-menu', first: 'note-rename', logical: true, end: true },
   { trigger: 'note-date', surface: 'note-date-card', first: 'note-date-heading', logical: true },
   { trigger: 'note-attendees', surface: 'people-card', first: 'people-add', logical: true },
@@ -63,8 +63,14 @@ test('pointer menus share anchored entry in LTR and RTL; reduced motion keeps on
         const left = menu.logical && (menu.end ? dir === 'rtl' : dir === 'ltr')
         expect(actual.x).toBeCloseTo(left ? 0 : actual.width, 1)
         await expect(page.getByTestId(menu.first)).toBeFocused()
+        if (menu.surface === 'note-menu') {
+          await page.keyboard.press('ArrowDown')
+          await expect(surface.locator(':focus')).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+        }
         await page.keyboard.press('Escape')
         await expect(surface).toHaveCount(0)
+        await expect(page.getByTestId(menu.trigger)).toBeFocused()
+        await expect(page.getByTestId(menu.trigger)).toHaveCSS('outline-style', 'none')
       }
     }
     await page.emulateMedia({ reducedMotion: 'reduce' })

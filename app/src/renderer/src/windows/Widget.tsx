@@ -4,12 +4,11 @@ import { widgetDragDelta, isWidgetClick, type WidgetPress } from '../../../share
 import { Loading } from '../components/Loading'
 import { bubbles, turns, withLive } from '../../../shared/transcript'
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { ArrowDown, TriangleAlert } from 'lucide-react'
+import { ArrowDown } from '../components/Icons'
 import type { Segment, TranscriptPartial, WidgetView } from '../../../shared/types'
 import { formatElapsed } from '../../../shared/wave'
 import { t } from '../../../shared/i18n'
-import { Logo } from '../components/Logo'
-import { LevelBars } from '../components/LevelBars'
+import { RecordingPill } from '../components/RecordingPill'
 import { LiveWords } from '../components/Transcript'
 import { glide } from '../motion'
 import { afterFinal, joinWords } from '../../../shared/liveWords'
@@ -102,18 +101,13 @@ function Recording({ view }: { view: WidgetView }) {
   const card = useRef<HTMLDivElement>(null)
   const hover = useWidgetMorph(card, !!view.note, time)
   const press = useDragOrClick(() => window.yogurt.widget.open(), hover)
-  return <div ref={card} data-testid="widget" data-kind="recording" data-open={hover.open} role="group" tabIndex={0}
-    className="widget-pill widget-morph" {...press}
+  return <RecordingPill ref={card} time={time} warning={!!view.note} data-testid="widget" data-kind="recording" data-open={hover.open} role="group" tabIndex={0}
+    className="widget-morph" {...press}
     onMouseMove={e => hover.pointer(e.clientX, e.clientY)}
     onMouseLeave={() => hover.pointer(-1, -1)}
     aria-label={t('Open {title}', { title: view.title })} title={view.note?.text ?? t('Recording {title}', { title: view.title })}>
-    <div className="widget-details" aria-hidden="true">
-      <span className="text-[var(--pill-accent)]">{view.note ? <TriangleAlert data-testid="widget-warning" size={18} /> : <Logo size={18} />}</span>
-      <LevelBars testId="widget-wave" height={16} className="text-[var(--pill-accent)]" />
-      <span data-testid="widget-time" className="widget-time">{time}</span>
-    </div>
     <Preview view={view} open={hover.open} />
-  </div>
+  </RecordingPill>
 }
 
 const RECENT_LINES = 80

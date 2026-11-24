@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { execFile, spawn } from 'node:child_process'
 import { copyFileSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
@@ -93,7 +94,7 @@ test('HE-AAC 16k preserves both tracks, mixed legacy joins and Chromium playback
     await expect.poll(async () => (await state()).every(a => a.error === null && a.paused && Math.abs(a.time - 24) < 0.1)).toBe(true)
     await page.getByTestId('player-toggle').click()
     await expect.poll(async () => (await state()).every(a => !a.paused && a.time > 24)).toBe(true)
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     await expect(page.getByTestId('audio-storage')).toHaveCount(0)
     await expect(page.getByTestId('audio-delete-originals')).toHaveCount(0)
   } finally { await app.close() }

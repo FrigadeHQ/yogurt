@@ -1,15 +1,15 @@
 import type { KeyboardEvent } from 'react'
-import { Folder, Star, Heart, Flag, Bookmark, BriefcaseBusiness, UsersRound, Handshake, MessageCircle, Video, CalendarDays, Clock, Target, Lightbulb, Rocket, Code, Palette, Megaphone, GraduationCap, BookOpen, FlaskConical, Coffee, House, Plane } from 'lucide-react'
+import { Folder, Star, Heart, Flag, Bookmark, BriefcaseBusiness, FolderPeople, Handshake, FolderChat, Video, CalendarDays, Clock, Target, Lightbulb, Rocket, Code, Palette, Megaphone, GraduationCap, BookOpen, FlaskConical, Coffee, House, Plane } from './Icons'
 import { FOLDER_ICONS, FOLDER_COLORS, type FolderAppearance, type FolderIconId, type FolderColor } from '../../../shared/folderAppearance'
 import { t } from '../../../shared/i18n'
 
-const icons = { folder: Folder, star: Star, heart: Heart, flag: Flag, bookmark: Bookmark, briefcase: BriefcaseBusiness, users: UsersRound,
-  handshake: Handshake, message: MessageCircle, video: Video, calendar: CalendarDays, clock: Clock, target: Target, lightbulb: Lightbulb,
+const icons = { folder: Folder, star: Star, heart: Heart, flag: Flag, bookmark: Bookmark, briefcase: BriefcaseBusiness, users: FolderPeople,
+  handshake: Handshake, message: FolderChat, video: Video, calendar: CalendarDays, clock: Clock, target: Target, lightbulb: Lightbulb,
   rocket: Rocket, code: Code, palette: Palette, megaphone: Megaphone, graduation: GraduationCap, book: BookOpen, flask: FlaskConical, coffee: Coffee, house: House, plane: Plane }
 
 export function FolderGlyph({ appearance, size = 16 }: { appearance: FolderAppearance; size?: number }) {
   const Icon = icons[appearance.icon] ?? Folder
-  return <span className="folder-glyph" data-folder-icon={appearance.icon} data-folder-color={appearance.color} aria-hidden="true"><Icon size={size} strokeWidth={1.75} /></span>
+  return <span className="folder-glyph" data-folder-icon={appearance.icon} data-folder-color={appearance.color} aria-hidden="true"><Icon size={size} /></span>
 }
 
 function arrowChoice(e: KeyboardEvent<HTMLDivElement>, columns: number) {
@@ -27,7 +27,7 @@ function arrowChoice(e: KeyboardEvent<HTMLDivElement>, columns: number) {
 export function FolderChoices({ value, onChange, disabled }: { value: FolderAppearance; onChange: (value: FolderAppearance) => void; disabled: boolean }) {
   return <div className="folder-choices">
     <div className="folder-choice-label">{t('Icon')}</div>
-    <div className="folder-icon-grid" role="radiogroup" aria-label={t('Icon')} onKeyDown={(e) => arrowChoice(e, 6)}>
+    <div className="folder-icon-grid" data-folder-color={value.color} role="radiogroup" aria-label={t('Icon')} onKeyDown={(e) => arrowChoice(e, 6)}>
       {(Object.keys(FOLDER_ICONS) as FolderIconId[]).map((icon) => <button key={icon} type="button" role="radio" aria-checked={icon === value.icon}
         data-dialog-focus={icon === value.icon ? true : undefined} aria-label={t(FOLDER_ICONS[icon])} title={t(FOLDER_ICONS[icon])} tabIndex={icon === value.icon ? 0 : -1} disabled={disabled}
         data-testid={`folder-icon-${icon}`} onClick={() => onChange({ ...value, icon })}>

@@ -3,7 +3,7 @@ import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
 import { Capture, activeCapture, hookCapture, recordingFinished, type CaptureProc } from '../src/main/capture'
 import { openStore, type Store } from '../src/main/store'
-import { activeMeeting, bindMeetingApp, getMeeting, initMeetings, onMeetingChange, onMeetingStart, onMeetingStop, onMeetingStopSaved, prepareMeeting, startPreparedMeeting, resumeMeeting, pauseMeetingClock, renameMeeting, retryStopSave, setAttendees, refreshEventSnapshots, linkEvent, unlinkEvent, startMeeting, stopMeeting, withStopState } from '../src/main/meeting'
+import { activeMeeting, bindMeetingApp, getMeeting, initMeetings, onMeetingChange, onMeetingStart, onMeetingStop, onMeetingStopSaved, createFolderNote, prepareMeeting, startPreparedMeeting, resumeMeeting, pauseMeetingClock, renameMeeting, retryStopSave, setAttendees, refreshEventSnapshots, linkEvent, unlinkEvent, startMeeting, stopMeeting, withStopState } from '../src/main/meeting'
 
 let store: Store
 beforeEach(() => { store = openStore(':memory:'); initMeetings(store) })
@@ -11,6 +11,47 @@ beforeEach(() => { store = openStore(':memory:'); initMeetings(store) })
 const event = { id: 'e1', title: 'Design review', start: 1000, end: 2000, attendees: [{ name: 'Ann', email: 'ann@x.com' }], url: null }
 
 describe('meeting lifecycle', () => {
+  // #127: a recording ended a second after it started, and nothing in main.log said what ended it
+  it('says in the log what stopped a recording, and how long after it started', () => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {})
+    try {
+      const m = startMeeting({ title: '', event: null, app: 'Teams' })
+      stopMeeting(m.id, 'note')
+      expect(info.mock.calls.map((c) => c.join(' ')).join('\n')).toMatch(new RegExp(`CALL stop meeting=${m.id} app=Teams by=note after_ms=\\d+`))
+      info.mockClear()
+      stopMeeting(m.id, 'menu')
+      expect(info).not.toHaveBeenCalled()
+    } finally { info.mockRestore() }
+  })
+  it('files new notes and recordings before their first change, and reuses a written note when recording', () => {
+    const folder = store.createFolder('Reviews')
+    const firstRead: string[][] = []
+    const off = onMeetingChange(m => firstRead.push(store.foldersOf(m.id).map(f => f.id)))
+    try {
+      const draft = createFolderNote(folder.id)
+      expect(draft.state).toBe('prepared')
+      expect(activeMeeting()).toBeNull()
+      store.setNotes(draft.id, { mine: 'First question' })
+      expect(startPreparedMeeting(draft.id)?.id).toBe(draft.id)
+      stopMeeting(draft.id)
+      const recording = startMeeting({ title: event.title, event, app: null, folderId: folder.id })
+      expect(store.folderMeetingIds(folder.id)).toEqual(expect.arrayContaining([draft.id, recording.id]))
+      expect(store.notes(draft.id).mine).toBe('First question')
+      expect(firstRead).toEqual(Array(4).fill([folder.id]))
+    } finally { off() }
+  })
+  it('rolls back a missing destination before recording, and never refiles an existing recording or event', () => {
+    const folder = store.createFolder('Reviews')
+    expect(() => createFolderNote('missing')).toThrow()
+    expect(() => startMeeting({ title: '', event, app: null, folderId: 'missing' })).toThrow()
+    expect(activeMeeting()).toBeNull()
+    expect(store.meetings({ limit: 10 })).toEqual([])
+    const original = startMeeting({ title: '', event, app: null })
+    expect(startMeeting({ title: '', event: null, app: null, folderId: folder.id }).id).toBe(original.id)
+    stopMeeting(original.id)
+    expect(startMeeting({ title: '', event, app: null, folderId: folder.id }).id).toBe(original.id)
+    expect(store.folderMeetingIds(folder.id)).toEqual([])
+  })
   it.each(['stopped', 'done'] as const)('returns the existing %s event note without starting capture before the guarded resume', state => {
     const original = startMeeting({ title: event.title, event, app: null })
     stopMeeting(original.id)
@@ -304,6 +345,37 @@ describe('meeting lifecycle', () => {
     expect(store.meeting(m.id)).toMatchObject({ eventId: 'e1', eventStartedAt: event.start, title: 'Design review' })
     expect(unlinkEvent(m.id)?.eventStartedAt).toBeUndefined()
   })
+  it.each(['generic', 'auto', 'calendar', 'imported'] as const)('adopts the event title on a %s title, including on relink', titleSource => {
+    const m = store.createMeeting({ title: 'Earlier title', titleSource, startedAt: 1, endedAt: 2, eventId: null, app: null, attendees: [], state: 'done' })
+    expect(linkEvent(m.id, { ...event, title: '' })).toMatchObject({ title: m.title, titleSource })
+    expect(linkEvent(m.id, event)).toMatchObject({ title: event.title, titleSource: 'calendar', eventTitle: event.title })
+    const next = { ...event, id: 'new', title: 'New event', attendees: [] }
+    expect(linkEvent(m.id, next)).toMatchObject({ title: next.title, titleSource: 'calendar', eventTitle: next.title, attendees: [] })
+    expect(unlinkEvent(m.id)).toMatchObject({ title: next.title, titleSource: 'calendar' })
+  })
+  it('keeps a manually named note through linking, relinking and unlinking', () => {
+    const m = startMeeting({ title: 'Meeting', event: null, app: null })
+    renameMeeting(m.id, 'Therapy')
+    const title = { title: 'Therapy', titleSource: 'user' }
+    expect(linkEvent(m.id, event)).toMatchObject({ ...title, eventTitle: event.title, eventId: event.id })
+    expect(linkEvent(m.id, { ...event, id: 'busy', title: 'Eric Busy' })).toMatchObject({ ...title, eventTitle: 'Eric Busy', eventId: 'busy' })
+    expect(unlinkEvent(m.id)).toMatchObject({ ...title, eventId: null })
+    expect(store.meeting(m.id)).not.toHaveProperty('eventTitle')
+  })
+  it('keeps a manually edited attendee list, including an intentional empty list', () => {
+    const m = startMeeting({ title: 'Meeting', event: null, app: null })
+    const guests = [{ name: 'Bo', email: null }]
+    setAttendees(m.id, guests)
+    expect(linkEvent(m.id, event)?.attendees).toEqual(guests)
+    setAttendees(m.id, [])
+    expect(unlinkEvent(m.id)?.attendees).toEqual([])
+    expect(linkEvent(m.id, { ...event, id: 'other' })?.attendees).toEqual([])
+  })
+  it.each([null, 'old@example.com'])('preserves a person renamed on this note (%s)', email => {
+    const m = prepareMeeting({ ...event, attendees: [{ name: 'Old', email }] })
+    expect(store.renameAttendee(m.id, 0, 'Preferred name')).toBe(true)
+    expect(linkEvent(m.id, { ...event, id: 'other' })?.attendees).toEqual([{ name: 'Preferred name', email }])
+  })
   it('relinking an empty prepared note uses the new event end for cleanup', () => {
     const day = 86_400_000, now = Date.now()
     const m = prepareMeeting({ ...event, start: now - 3 * day, end: now - 3 * day + 1000 })
@@ -363,12 +435,12 @@ it('calendar reads refresh active snapshots without changing manual edits or not
   } finally { off() }
 })
 
-it('links an uploaded note to the exact event time, title and people without changing its audio timeline', () => {
+it('links an uploaded note to the event time and people while keeping its title and audio timeline', () => {
   const startedAt = +new Date(2026, 10, 16, 9, 15), durationMs = 45 * 60_000
   const imported = store.createMeeting({ source: 'audio-file', title: 'Planning audio', titleSource: 'user', startedAt, endedAt: startedAt + durationMs, durationMs, state: 'done', eventId: null, app: null, attendees: [] })
   store.setNotes(imported.id, { mine: 'Keep my notes.', enhanced: 'Keep this summary.' })
   const invite = { id: 'sample-event', title: 'Project planning', start: +new Date(2026, 10, 16, 9), end: +new Date(2026, 10, 16, 10), attendees: [{ name: 'Alex', email: 'alex@example.com' }], url: null }
   linkEvent(imported.id, invite)
-  expect(store.meeting(imported.id)).toMatchObject({ source: 'audio-file', startedAt, durationMs, endedAt: startedAt + durationMs, eventId: invite.id, eventStartedAt: invite.start, eventEndedAt: invite.end, title: invite.title, titleSource: 'calendar', attendees: invite.attendees })
+  expect(store.meeting(imported.id)).toMatchObject({ source: 'audio-file', startedAt, durationMs, endedAt: startedAt + durationMs, eventId: invite.id, eventStartedAt: invite.start, eventEndedAt: invite.end, title: imported.title, titleSource: 'user', eventTitle: invite.title, attendees: invite.attendees })
   expect(store.notes(imported.id)).toMatchObject({ mine: 'Keep my notes.', enhanced: 'Keep this summary.' })
 })

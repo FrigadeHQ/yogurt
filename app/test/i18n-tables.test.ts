@@ -12,9 +12,9 @@ const blanks = (s: string) => [...new Set(s.match(/\{\w+\}/g) ?? [])].sort()
 const forms = (e: Entry) => (typeof e === 'string' ? [e] : Object.values(e))
 
 it('translates summary cancellation and its restart state in every locale', () => {
-  for (const { id } of LOCALES) for (const key of ['Stop summary', 'Summary stopped.', 'Generate summary']) {
+  for (const { id } of LOCALES) for (const key of ['Stop summarizing', 'Preparing…', 'Writing the summary', 'Summary stopped.', 'Generate summary']) {
     expect(keys).toContain(key)
-    if (id === 'en' && key === 'Generate summary') continue
+    if (id === 'en' && (key === 'Generate summary' || key === 'Preparing…')) continue
     expect(load(id)[key]).toBeTypeOf('string')
     expect(load(id)[key]).not.toBe('')
     if (id !== 'en') expect(load(id)[key]).not.toBe(key)
@@ -91,7 +91,7 @@ it('translates agenda marker labels in every locale', () => {
 it('translates the contextual recording action and menu timing in every locale', () => {
   for (const { id } of LOCALES) {
     const table = load(id)
-    for (const key of ['Take notes · {title}', 'Resume notes · {title}', 'Take notes · {count} now', 'Now', 'in {count} min']) {
+    for (const key of ['New recording', 'Record {title}', 'Take notes · {title}', 'Resume notes · {title}', 'Take notes · {count} now', 'Now', 'in {count} min']) {
       expect(keys).toContain(key)
       expect(table[key]).toBeDefined()
       expect(forms(table[key]).every(value => value.trim().length > 0)).toBe(true)
@@ -242,14 +242,14 @@ it('translates additional context results and their singular form', () => {
 
 
 it('translates scope labels and actions in every locale', () => {
-  for (const key of ['All meetings', 'Choose meetings or folders', 'In this chat', 'and {count} others', '{count} more', 'Clear']) {
+  for (const key of ['All meetings', 'Choose meetings or folders', 'In this chat', 'and {count} others', 'and {count} more', 'Clear']) {
     expect(keys).toContain(key)
     for (const { id } of LOCALES) {
       expect(load(id)[key]).toBeDefined()
       if (id !== 'en') expect(forms(load(id)[key])).not.toContain(key)
     }
   }
-  expect(load('en')['and {count} others']).toEqual({ one: 'and {count} other', other: 'and {count} others' })
+  expect(load('en')['and {count} others']).toEqual({ one: 'and {count} more', other: 'and {count} more' })
 })
 
 

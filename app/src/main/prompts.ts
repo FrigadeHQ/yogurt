@@ -5,21 +5,24 @@ import type { Meeting } from './store'
 import type { PromptAction, PromptView } from '../shared/types'
 import { t } from '../shared/i18n'
 import { floatingType, floatOverFullScreen } from './float'
+import { activeMeeting, onMeetingStop } from './meeting'
 
 const BACKGROUND = process.env.YOGURT_BACKGROUND === '1'
 const ACTIONS: readonly string[] = ['take-notes', 'close', 'stop', 'keep-going'] satisfies PromptAction[]
 
-/** the card at the top right: small, frameless, on top of everything, never takes focus from what the person is doing */
+/** the card at the top right: small, frameless, on top of everything, appears without taking focus from what the person is doing */
 function createCard(kind: PromptView['kind'], os = 'darwin'): BrowserWindow {
   const { workArea } = screen.getPrimaryDisplay()
-  const width = kind === 'start' ? 381 : 380, height = kind === 'start' ? 60 : 128
+  const width = 381, height = 60
   const background = () => nativeTheme.shouldUseDarkColors ? '#29292B' : '#FFFFFF'
-  const type = floatingType(os)
+  // A Mac: the Take notes card is a non-activating panel like the widget, so clicking it (its X included) never makes
+  // Yogurt the active app and brings its window forward. The stop card takes keyboard focus, so it stays a plain window.
+  const type = floatingType(os, kind === 'start' ? 'panel' : undefined)
   const w = new BrowserWindow({
     ...(type ? { type } : {}),
     width, height, x: workArea.x + workArea.width - width - 16, y: workArea.y + 12,
     frame: false, resizable: false, movable: false, minimizable: false, maximizable: false, fullscreenable: false,
-    skipTaskbar: true, focusable: false, acceptFirstMouse: true, show: false, hasShadow: true, roundedCorners: true,
+    skipTaskbar: true, focusable: kind === 'stop', acceptFirstMouse: true, show: false, hasShadow: true, roundedCorners: true,
     backgroundColor: background(),
     webPreferences: { preload: join(__dirname, '../preload/index.cjs'), sandbox: false, backgroundThrottling: false },
   })
@@ -43,6 +46,7 @@ export function createPrompts(d: {
   stop(meetingId: string): void
   dismissed(key: string): void
   keepGoing(): void
+  dismissStop(): void
   /** show a meeting's note (clicking "Call ended") */
   open(meetingId: string): void
   /** the computer the card is made for (a tool window off a Mac) */
@@ -60,6 +64,9 @@ export function createPrompts(d: {
     card = undefined
     notice?.n?.close(); notice = null
   }
+  onMeetingStop((m) => {
+    if (view?.kind === 'stop' && view.meetingId === m.id) close()
+  })
   /** a button on the card, or a click on its notification (the card's yes: take notes, or stop) */
   const act = (action: PromptAction) => {
     const v = view, p = prompt
@@ -68,8 +75,11 @@ export function createPrompts(d: {
     if (v.kind === 'start') {
       if (action === 'take-notes' && p) d.takeNotes(p)
       else d.dismissed(v.key)
-    } else if (action === 'stop') d.stop(v.meetingId)
-    else d.keepGoing()
+    } else if (activeMeeting()?.id === v.meetingId) {
+      if (action === 'stop') d.stop(v.meetingId)
+      else if (action === 'close') d.dismissStop()
+      else if (action === 'keep-going') d.keepGoing()
+    }
   }
   const show = (v: PromptView) => {
     view = v

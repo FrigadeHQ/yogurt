@@ -296,7 +296,8 @@ export class SetupController {
       if (t.gpuOff) gpuOff = true
       console.log(`speed check: ${m.id} took ${t.rtf === null ? 'too long' : `${t.rtf.toFixed(2)} x`} the clip's length`)
       return t.rtf
-    })
+    // small may lag a little behind live: base and tiny are very weak outside English (#107)
+    }, { lagsOk: (m) => m.id.startsWith('whisper-small') })
     for (const [id, p] of paths) if (id !== r.model?.id) rmSync(p, { force: true })
     return { path: r.model && paths.get(r.model.id), result: { model: r.model?.id ?? null, rtf: r.rtf, ...(gpuOff ? { gpuOff } : {}) } }
   }

@@ -61,7 +61,7 @@ export function supportedKinds(c: Capabilities): PermissionKind[] {
 }
 
 /** keys a Mac shortcut means something else on Windows and Linux (⌃⌘ is no pair there; full screen is F11) */
-const PC_KEYS: Record<string, string> = { '⌃⌘S': 'Ctrl+Shift+S', '⌃⌘F': 'F11', '⌥⇧⌘V': 'Ctrl+Shift+V' }
+const PC_KEYS: Record<string, string> = { '⌃⌘S': 'Ctrl+Shift+S', '⌃⌘A': 'Ctrl+Shift+A', '⌃⌘F': 'F11', '⌥⇧⌘V': 'Ctrl+Shift+V' }
 /** A shortcut written the Mac's way (⌘K, ⇧⌘C) as this computer writes it: the same on a Mac, Ctrl+K and Ctrl+Shift+C elsewhere */
 export function shortcutLabel(mac: string, platform: string): string {
   if (platform === 'darwin') return mac

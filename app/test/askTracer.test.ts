@@ -5,7 +5,7 @@ beforeEach(() => vi.useFakeTimers())
 afterEach(() => vi.useRealTimers())
 const idle: TracerState = { focused: false, hovered: false, hasText: false, reduced: false, hidden: false }
 const setup = (initial = idle) => {
-  const play = vi.fn(), stop = vi.fn()
+  const play = vi.fn(() => TRACER_LAP_MS), stop = vi.fn()
   const schedule = createTracerSchedule(initial, play, stop)
   return { ...schedule, play, stop }
 }
@@ -140,5 +140,18 @@ it.each([false, true])('finishes the original lap through typing, clearing, focu
   expect(s.stop).toHaveBeenCalledTimes(stops + 1)
   vi.advanceTimersByTime(24000)
   expect(s.play).toHaveBeenCalledTimes(plays)
+  s.dispose()
+})
+
+it('finishes each selected duration and keeps the eight-second start cadence when the route changes', () => {
+  const s = setup()
+  s.play.mockReturnValueOnce(500).mockReturnValueOnce(750)
+  vi.advanceTimersByTime(TRACER_DELAY_MS + 500)
+  expect(s.stop).toHaveBeenCalledOnce()
+  vi.advanceTimersByTime(8000 - 500 - 1)
+  expect(s.play).toHaveBeenCalledOnce()
+  vi.advanceTimersByTime(1 + 750)
+  expect(s.play).toHaveBeenCalledTimes(2)
+  expect(s.stop).toHaveBeenCalledTimes(2)
   s.dispose()
 })

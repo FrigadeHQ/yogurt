@@ -1,6 +1,8 @@
 import ICAL from 'ical.js'
+import { parseEvents } from '../src/main/calendar'
 import { describe, expect, it, vi } from 'vitest'
 import { icsEvents, icsFeed, icsName } from '../src/main/calendarLink/ics'
+import { bigCalendar } from './helpers/bigCalendar'
 
 // A made-up feed in the shape Google's "Secret address in iCal format" gives: its own time zone, attendees, a Meet link
 const feed = (events: string) => `BEGIN:VCALENDAR
@@ -131,6 +133,24 @@ END:VEVENT`
     expect(details.mock.calls.length).toBeLessThan(20)
     details.mockRestore()
   })
+  it('an occurrence moved into the window from a date long after it still shows', () => {
+    const weekly = `BEGIN:VEVENT
+UID:sync@example.com
+SUMMARY:Sync
+DTSTART:20261102T150000Z
+DTEND:20261102T153000Z
+RRULE:FREQ=WEEKLY
+END:VEVENT
+BEGIN:VEVENT
+UID:sync@example.com
+RECURRENCE-ID:20261214T150000Z
+SUMMARY:Moved up
+DTSTART:20261120T180000Z
+DTEND:20261120T183000Z
+END:VEVENT`
+    const got = icsEvents(feed(weekly), at('2026-11-20T00:00:00Z'), at('2026-11-21T00:00:00Z'), link)
+    expect(got.map((e) => e.title)).toEqual(['Moved up'])
+  })
   it('building a feed of many events does not look through the whole feed once per event (thousands of events took seconds)', () => {
     const many = Array.from({ length: 50 }, (_, i) => `BEGIN:VEVENT\nUID:one-${i}@example.com\nSUMMARY:One ${i}\nDTSTART:20190101T1000${String(i).padStart(2, '0')}Z\nDTEND:20190101T1100${String(i).padStart(2, '0')}Z\nEND:VEVENT`).join('\n')
     const scans = vi.spyOn(ICAL.Component.prototype, 'getAllSubcomponents')
@@ -146,4 +166,86 @@ END:VEVENT`
     expect(parse).toHaveBeenCalledTimes(1)
     parse.mockRestore()
   })
+
+  // #146: a work calendar with years of history: thousands of meetings, hundreds of series, long invites
+  describe('a feed with years of history', () => {
+    const text = bigCalendar()
+    const day = [at('2026-11-23T00:00:00Z'), at('2026-11-24T00:00:00Z')] as const
+    /** every occurrence of every series walked from its start: slow, but plainly right */
+    function reference(text: string, fromMs: number, toMs: number) {
+      const root = new ICAL.Component(ICAL.parse(text))
+      for (const tz of root.getAllSubcomponents('vtimezone')) ICAL.TimezoneService.register(tz)
+      const vevents = root.getAllSubcomponents('vevent')
+      const moved = new Map<unknown, ICAL.Component[]>()
+      for (const v of vevents) if (v.hasProperty('recurrence-id')) moved.set(v.getFirstPropertyValue('uid'), [...moved.get(v.getFirstPropertyValue('uid')) ?? [], v])
+      const out: string[] = []
+      for (const v of vevents) {
+        if (v.hasProperty('recurrence-id')) continue
+        const ev = new ICAL.Event(v, { exceptions: moved.get(v.getFirstPropertyValue('uid')) ?? [] })
+        const it = ev.iterator()
+        for (let next = it.next(); next; next = it.next()) {
+          const d = ev.getOccurrenceDetails(next)
+          const s = d.startDate.toJSDate().getTime(), e = d.endDate.toJSDate().getTime()
+          if (s >= toMs + 30 * 86_400_000) break
+          if (s < toMs && e > fromMs) out.push(`${ev.uid}|${new Date(s).toISOString()}`)
+        }
+      }
+      return out.sort()
+    }
+
+    it('is tens of megabytes, as the reporter\'s was', () => {
+      expect(text.length).toBeGreaterThan(15 * 2 ** 20)
+    })
+    it('gives the same meetings as walking every series from its start, today and years back', () => {
+      // fewer of them, so walking every series the slow way stays quick
+      const small = bigCalendar({ oneOffs: 600, series: 200 })
+      const f = icsFeed(small, link)
+      for (const [from, to] of [[at('2026-11-16T00:00:00Z'), at('2026-11-30T00:00:00Z')], [at('2021-03-01T00:00:00Z'), at('2021-03-15T00:00:00Z')]] as const) {
+        const got = f.events(from, to).map((e) => e.id).sort()
+        expect(got.length).toBeGreaterThan(5)
+        expect(got).toEqual(reference(small, from, to))
+      }
+    }, 30_000)
+    it('series running for years are not walked occurrence by occurrence to reach today', () => {
+      const steps = vi.spyOn(ICAL.RecurExpansion.prototype, 'next')
+      icsFeed(text, link).events(...day)
+      // ~600 series and a few weeks of each; walking each from its start is hundreds of thousands
+      expect(steps.mock.calls.length).toBeLessThan(20_000)
+      steps.mockRestore()
+    })
+  })
+
+  it('a daily meeting that has run for more than ten years still shows today', () => {
+    const old = `BEGIN:VEVENT
+UID:daily@example.com
+SUMMARY:Daily check-in
+DTSTART:20120102T090000Z
+DTEND:20120102T091500Z
+RRULE:FREQ=DAILY
+END:VEVENT`
+    expect(icsEvents(feed(old), at('2026-11-23T00:00:00Z'), at('2026-11-24T00:00:00Z'), link).map((e) => [e.title, e.start]))
+      .toEqual([['Daily check-in', '2026-11-23T09:00:00.000Z']])
+  })
+})
+
+it('marks a decline only when the feed identifies the attendee as its owner', () => {
+  const text = (owner: string, respondent: string) => `BEGIN:VCALENDAR
+VERSION:2.0
+X-WR-CALNAME:${owner}
+BEGIN:VEVENT
+UID:meeting
+DTSTART:20261118T100000Z
+DTEND:20261118T103000Z
+SUMMARY:Weekly sync
+ATTENDEE;PARTSTAT=DECLINED:mailto:${respondent}
+END:VEVENT
+END:VCALENDAR`
+  for (const [owner, attendee, declined] of [
+    ['owner@example.com', 'owner@example.com', true],
+    ['owner@example.com', 'guest@example.com', false],
+    ['Shared calendar', 'guest@example.com', false],
+  ] as const) {
+    const raw = icsEvents(text(owner, attendee), at('2026-11-18T00:00:00Z'), at('2026-11-19T00:00:00Z'), link)
+    expect(parseEvents(raw)[0].declined === true).toBe(declined)
+  }
 })

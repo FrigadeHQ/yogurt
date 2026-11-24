@@ -1,11 +1,12 @@
 import {previousSpeaker} from '../../shared/transcriptReplacement'
 import { AUDIO_SPEAKER } from '../../shared/audioUpload'
-import { onCaptureStart, recordingFinished, type TranscribeWarn, type Track } from '../capture'
+import { onCaptureStart, recordingFinished, recordingPaused, type TranscribeWarn, type Track } from '../capture'
 import { onMeetingStart, onMeetingStop } from '../meeting'
 import { isFake } from '../paths'
 import { feedRecording } from './backfill'
 import type { Meeting, Segment, Store } from '../store'
 import { createPipeline, type Pipeline } from './pipeline'
+import { loadAec3 } from './aec3'
 import { echoConfidence } from './echo'
 import { appleSpeechAvailable, installSpeechLocale, readSpeechLocales, speechDisagrees, speechFits, wantedSpeechLocale, type SpeechHost, type SpeechLocales } from './appleSpeech'
 import { whisperLanguage, type Spoken } from '../../shared/spoken'
@@ -24,9 +25,13 @@ import type { Chunk } from './chunker'
 type Session = { complete?: () => boolean; pipeline: Pipeline | null; priorLines: Set<number>; done?: Promise<void>; store?: SessionStore; refresh?: (id: string) => void
   /** a saved recording that could not be read to the end (transcribeRecorded): the meeting keeps waiting */
   failed?: boolean
+  /** a live meeting whose speech engine was there: a transcript left incomplete is queued for its saved recording */
+  liveEngine?: boolean
   replacement?: boolean
   /** Apple's speech listens in this locale for the meeting (null: whisper only); off once whisper hears another language */
-  speech?: string | null }
+  speech?: string | null
+  /** Live input only: saved-file transcription must never influence call detection. */
+  live?: { quietSince: number; frames: Partial<Record<Track, number>> } }
 
 /**
  * The saved transcript comes from whisper; Apple's words are the live view. Languages listed here are the ones where Apple's
@@ -89,7 +94,16 @@ type SessionStore = Pick<Store, 'updateMeeting'> & Partial<Pick<Store, 'segments
 let server: WhisperServer | undefined
 let serverKey: string | undefined
 const sessions = new Map<string, Session>()
-export type RecordedOptions = { signal?: AbortSignal; progress?: (ms: number) => void; fromMs?: Partial<Record<Track,number>>; save?: (segments: Omit<Segment,'id'>[]) => void }
+/** Unknown, stale or paused input is not evidence that a conversation ended. */
+export function liveSilentMs(id: string, now = Date.now()): number {
+  const s = sessions.get(id), live = s?.live
+  if (!s?.pipeline || !live || recordingPaused(id)) return 0
+  if (['me', 'them'].some(track => now - (live.frames[track as Track] ?? -Infinity) > 3000)) return 0
+  return Math.max(0, now - live.quietSince)
+}
+
+/** language: a code whisper is told for every chunk instead of the spoken setting (a phone recording's own) */
+export type RecordedOptions = { signal?: AbortSignal; progress?: (ms: number) => void; fromMs?: Partial<Record<Track,number>>; save?: (segments: Omit<Segment,'id'>[]) => void; language?: string }
 type Recorded = (id: string, tracks: Partial<Record<Track, AsyncIterable<Float32Array>>>, stopped?: () => boolean, options?: RecordedOptions) => Promise<boolean>
 let recorded: Recorded = async () => false
 /**
@@ -112,6 +126,9 @@ export function meetingLanguage(id: string): string | null {
 export const SERVER_IDLE_MS = 10 * 60_000
 let idleTimer: NodeJS.Timeout | undefined
 let idleMs = SERVER_IDLE_MS
+
+/** a live meeting's transcript came out incomplete and its saved recording is queued (savedTranscription picks it up) */
+let queuedListener: ((id: string) => void) | undefined
 
 /** whisper-server left the graphics card during a meeting (Windows and Linux) */
 let gpuOffListener: (() => void) | undefined
@@ -174,8 +191,13 @@ export function hookTranscription(p: {
   speech?: { host: SpeechHost; binary: string; ui: () => string; last: () => string | null; locales?: () => Promise<SpeechLocales>; install?: (locale: string) => Promise<boolean> }
   /** the spoken language picked in Settings or the note (English only when left out) */
   spoken?: () => Spoken
+  /** a live transcript came out incomplete (whisper-server died, #127): its saved recording waits to be transcribed */
+  queued?: (meetingId: string) => void
 }): () => void {
   idleMs = p.serverIdleMs ?? SERVER_IDLE_MS
+  // the echo canceller is ready long before the first meeting: the mic's copy of their voice goes before whisper reads it
+  void loadAec3()
+  queuedListener = p.queued
   spokenNow = p.spoken ?? (() => 'en')
   if (p.speech && appleSpeechAvailable(p.speech.host)) {
     const sp = p.speech
@@ -213,7 +235,7 @@ export function hookTranscription(p: {
         // the model takes a few seconds to load: start now, so the first chunk does not wait for it
         srv.url().catch((e) => console.error('whisper-server did not start', e))
         transcribe = createTranscriber({ url: () => srv.url(), recover: recoverer(srv), onLanguage: (_t, lang, chars, locked) => hear(lang, chars, locked), prompt: promptOf,
-          language: () => whisperLanguage(spokenNow()), signal: options?.signal })
+          language: () => options?.language ?? whisperLanguage(spokenNow()), signal: options?.signal })
       } else {
         console.warn('no speech model yet: this meeting is recorded but not transcribed')
         setTimeout(() => warnOnce('no-speech-model'), NO_MODEL_NOTE_DELAY_MS)
@@ -233,11 +255,17 @@ export function hookTranscription(p: {
     }
     const s: Session = {
       complete: () => !!transcribe && !pendingBefore && !saveFailed && !warned.has('transcribe-failed') && !s.failed && !options?.signal?.aborted,
-      replacement: !!options?.save, store: p.store, refresh: p.refresh, speech: speechLocaleFor(id), priorLines: new Set(p.store.segments?.(id).map((s) => s.id) ?? []),
+      replacement: !!options?.save, liveEngine: !later && !!transcribe, store: p.store, refresh: p.refresh, speech: speechLocaleFor(id), priorLines: new Set(p.store.segments?.(id).map((s) => s.id) ?? []),
       pipeline: transcribe ? createPipeline({ meetingId: id, transcribe, save: (segs) => {
         try { if(options?.save) options.save(segs); else p.store.addSegments(segs) } catch (e) { saveFailed = true; throw e }
         if (segs.some(s => s.hidden)) p.refresh?.(id)
-      }, emit: options?.save ? () => {} : p.send, emitPartial: options?.save ? undefined : p.sendPartial, holdMs: p.holdMs, extraWaitMs: p.extraWaitMs, onWarn: warnOnce,
+      }, emit: options?.save ? () => {} : seg => {
+        if (s.live && seg.text.trim()) s.live.quietSince = Date.now()
+        p.send(seg)
+      }, emitPartial: options?.save || !p.sendPartial ? undefined : part => {
+        if (s.live && part.text.trim()) s.live.quietSince = Date.now()
+        p.sendPartial?.(part)
+      }, holdMs: p.holdMs, extraWaitMs: p.extraWaitMs, onWarn: warnOnce,
         nameOf: (a, b) => p.store.meeting?.(id)?.source === 'audio-file' ? AUDIO_SPEAKER : p.nameOf?.(id, a, b) ?? previousSpeaker(priorSegments,'them',a,b),
         respell: (t) => { const m = p.store.meeting?.(id); return m ? respell(t, meetingWords(m)) : t } }) : null,
     }
@@ -264,7 +292,15 @@ export function hookTranscription(p: {
   // each capture of a meeting (a restarted recorder is a new one) feeds that meeting's session
   const offCapture = onCaptureStart((c, meetingId) => {
     const s = open(meetingId)
-    c.on('pcm', (track, ms, samples) => s.pipeline?.push(track, ms, samples))
+    s.live = { quietSince: Date.now(), frames: {} }
+    c.on('pcm', (track, ms, samples) => {
+      if (!samples.length) return
+      s.pipeline?.push(track, ms, samples)
+      const now = Date.now(), live = s.live!
+      // A gap, restart or pause must earn a new quiet minute, not count missing audio as silence.
+      if (now - (live.frames[track] ?? -Infinity) > 3000 || recordingPaused(meetingId) || s.pipeline?.talking('me') || s.pipeline?.talking('them')) live.quietSince = now
+      live.frames[track] = now
+    })
     // Apple's speech that never speaks up: the helper says so, or someone has talked for a while with no word from it
     c.on('speech-off', () => speechOff(s, 'the helper could not run it'))
     // Apple listening on one track only: whisper's own quick readings cover the other
@@ -275,10 +311,11 @@ export function hookTranscription(p: {
       if (s.pipeline.talking('me') || s.pipeline.talking('them')) talkedPolls++
       if (talkedPolls >= SPEECH_WATCH_POLLS) { clearInterval(watch); speechOff(s, 'no words came while people talked') }
     }, 1000)
-    c.on('ended', () => clearInterval(watch))
+    c.on('ended', () => { clearInterval(watch); if (s.live) s.live.frames = {} })
     // Apple's words: the live view (whisper's line replaces them), or the saved line too where Apple measured as good
     c.on('speech', (f) => {
       heardSpeech = true
+      if (s.live && f.text.trim()) s.live.quietSince = Date.now()
       if (!s.speech || !s.pipeline) return
       const saves = APPLE_FINALS_LANGUAGES.has(s.speech.split('-')[0])
       if (f.final && saves) s.pipeline.speechLines(f.track, [{ track: f.track, startMs: Math.round(f.startMs), endMs: Math.round(f.endMs), text: f.text }])
@@ -322,9 +359,13 @@ function sweepEcho(id: string, s: Session) {
 /** After the recorder is done (no more audio coming), the pipeline finishes what it has, then echoes are swept */
 function finishSession(id: string, s: Session, audioDone: () => Promise<void> = () => Promise.resolve(), store?: SessionStore): Promise<void> {
   s.store ??= store
+  let queued = false
   s.done ??= audioDone().then(() => s.pipeline?.finish()).then(() => {
     if (!s.replacement) sweepEcho(id, s)
     if (!s.replacement && s.complete?.()) s.store?.updateMeeting(id, { transcriptionPending: false })
+    // whisper-server went down partway (#127): the audio is all in the saved recording, so the rest is transcribed from
+    // there, from where the lines end. Queued (not left as is) because a meeting with some lines is otherwise never picked up.
+    else if (s.liveEngine) { s.store?.updateMeeting(id, { transcriptionState: 'queued' }); queued = true; console.warn('ASR the transcript is incomplete: the rest is transcribed from the saved recording') }
   }).catch((e) => { s.failed = true; console.error('finishing the transcript failed', e) }).finally(() => {
     // the meeting's main language is kept with it, for notes written later (after a restart too)
     const lang = meetingLanguage(id)
@@ -332,9 +373,13 @@ function finishSession(id: string, s: Session, audioDone: () => Promise<void> = 
     heard.delete(id)
     if (sessions.get(id) === s) sessions.delete(id)
     armServerIdle()
+    if (queued) { try { queuedListener?.(id) } catch (e) { console.error('queueing the saved recording failed', e) } }
   })
   return s.done
 }
+
+/** The meeting's live transcript is still being worked on or finished: its saved recording must wait */
+export const transcriptOpen = (id: string): boolean => sessions.has(id)
 
 /** Resolves when the meeting's transcript is all saved (after it stops); at once when there is nothing left to do */
 export const transcriptFinished = (id: string): Promise<void> => sessions.get(id)?.done ?? Promise.resolve()

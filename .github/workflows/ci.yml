@@ -2,14 +2,14 @@
 # The Mac job runs everything; Windows and Linux typecheck, unit-test, build their helpers and run the e2e specs that work there.
 name: CI
 
-# Docs, the website and licence text don't run it (site.yml checks the website). A newer push to the same branch
+# Docs and licence text don't run it. A newer push to the same branch
 # stops the run before it: macOS minutes cost ten times Linux ones.
 on:
   push:
     branches: [main]
-    paths-ignore: ['site/**', 'docs/**', '**/*.md', 'LICENSE', '.github/workflows/site.yml']
+    paths-ignore: ['docs/**', '**/*.md', 'LICENSE']
   pull_request:
-    paths-ignore: ['site/**', 'docs/**', '**/*.md', 'LICENSE', '.github/workflows/site.yml']
+    paths-ignore: ['docs/**', '**/*.md', 'LICENSE']
   workflow_dispatch:
 
 concurrency:
@@ -134,6 +134,34 @@ jobs:
         run: |
           cd app
           if [ "$RUNNER_OS" = "Linux" ]; then xvfb-run -a pnpm exec playwright test --grep @everywhere; else pnpm exec playwright test --grep @everywhere; fi
+      # Windows: the real installer, clicked through page by page (custom install and models folders), then updated
+      # over silently the way the app does it, then with the defaults (scripts/windows-installer-check.py)
+      - name: Package the installer (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          mkdir -p app/resources/vad
+          cd app && pnpm exec electron-builder --win --publish never -c.extraMetadata.yogurtPreview=true
+      - uses: actions/setup-python@v5
+        if: runner.os == 'Windows'
+        with:
+          python-version: '3.12'
+      - name: Click through the installer (Windows)
+        if: runner.os == 'Windows'
+        timeout-minutes: 25
+        run: |
+          python -m pip install --quiet pywinauto==0.6.9 pillow==11.1.0
+          python app/scripts/windows-installer-check.py app/dist/Yogurt-windows-x64.exe installer-pages
+      - name: Keep the installer's pages
+        if: always() && runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer-pages
+          path: installer-pages
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Keep the test report
         if: failure()
         uses: actions/upload-artifact@v4

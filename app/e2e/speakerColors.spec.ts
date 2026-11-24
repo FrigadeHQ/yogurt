@@ -17,10 +17,10 @@ for (const theme of ['light', 'dark'] as const) test(`speaker colours agree acro
     await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' })
     const win = await app.browserWindow(page)
     await win.evaluate(w => w.setContentSize(1200, 850))
-    await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
     const id = await page.evaluate(async () => (await window.yogurt.nav.current()).slice('/note/'.length))
-    db = new DatabaseSync(join(userData, 'yogurt.db'))
+    db = new DatabaseSync(join(userData, 'yogurt.db'), { timeout: 5000 })
     const insert = db.prepare('INSERT INTO segments(meeting_id,track,start_ms,end_ms,text,speaker) VALUES(?,?,?,?,?,?)')
     // These first appearances are outside the preview's initial 80-line slice.
     for (let i = 0; i < names.length; i++) insert.run(id, 'them', 100000 + i * 3000, 101000 + i * 3000, 'Earlier discussion.', names[i])
@@ -44,11 +44,11 @@ for (const theme of ['light', 'dark'] as const) test(`speaker colours agree acro
     for (let i = 0; i < names.length; i++) await expect(previewNames.filter({ hasText: names[i] })).toHaveAttribute('data-color', String(i))
     await expect(previewNames.filter({ hasText: 'You' }).first()).not.toHaveAttribute('data-color')
     await preview.getByTestId('widget-preview-text').evaluate(el => { el.scrollTop = el.scrollHeight })
-    // The app appearance changes the note palette; the floating preview always stays dark.
+    // Violet follows the app appearance in the note; the charcoal recorder keeps the light brand purple.
     const noteColour = await noteNames.filter({ hasText: names[0] }).last().evaluate(el => getComputedStyle(el).color)
     const previewColour = await previewNames.filter({ hasText: names[0] }).evaluate(el => getComputedStyle(el).color)
-    expect(noteColour).toBe(theme === 'dark' ? 'rgb(185, 149, 255)' : 'rgb(116, 52, 202)')
-    expect(previewColour).toBe('rgb(185, 149, 255)')
+    expect(noteColour).toBe(theme === 'dark' ? 'rgb(183, 128, 255)' : 'rgb(111, 0, 255)')
+    expect(previewColour).toBe('rgb(183, 128, 255)')
     await preview.reload()
     await preview.getByTestId('widget').hover()
     await expect(preview.locator('.widget-preview-speaker').filter({ hasText: names[0] })).toHaveAttribute('data-color', '0')

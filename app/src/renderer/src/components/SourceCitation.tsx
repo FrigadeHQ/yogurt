@@ -1,8 +1,9 @@
 import { useId, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { Popover } from '@base-ui/react/popover'
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight } from './Icons'
 import type { LibrarySource } from '../../../shared/types'
-import { language, t } from '../../../shared/i18n'
+import { language, moreItems, t } from '../../../shared/i18n'
+import { compactCount } from '../i18n'
 import { motion, surfaceMotion, useReducedMotion } from '../motion'
 import { clock } from '../../../shared/transcript'
 import { citationCardPassage } from '../../../shared/citationCard'
@@ -67,8 +68,8 @@ export function SourceCitationCard({ source, sentence, triggerId, open, animate,
               {groups.map((group, index) => {
                 const item = group[0], fullName = group.map(s => s.title || t('Untitled')).join(', ')
                 const moment = sameMeeting && item.atMs !== null ? clock(citationCardPassage(item, sentence).match.atMs ?? item.atMs) : null
-                const label = group.length > 1 ? `+${group.length}` : moment ?? fullName
-                const name = group.length > 1 ? `${t('{count} more', { count: group.length })} · ${fullName}` : moment ? `${fullName} · ${moment}` : fullName
+                const label = group.length > 1 ? compactCount(group.length) : moment ?? fullName
+                const name = group.length > 1 ? `${moreItems(group.length)} · ${fullName}` : moment ? `${fullName} · ${moment}` : fullName
                 return <button key={index} type="button" role="tab" id={`${tabsId}-tab-${index}`} aria-controls={`${tabsId}-panel-${index}`} aria-selected={active === index} tabIndex={active === index ? 0 : -1} title={name} aria-label={name} data-overflow={group.length > 1} onClick={() => select(index)} onKeyDown={event => {
                   const direction = document.documentElement.dir === 'rtl' ? -1 : 1
                   const next = event.key === 'Home' ? 0 : event.key === 'End' ? groups.length - 1 : event.key === 'ArrowRight' ? (index + direction + groups.length) % groups.length : event.key === 'ArrowLeft' ? (index - direction + groups.length) % groups.length : -1

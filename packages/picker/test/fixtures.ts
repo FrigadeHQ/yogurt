@@ -29,6 +29,8 @@ export const machines = {
   // a 16 GB Mac reports about 17.2 GB (bytes / 1e9)
   m3air16: hw({ cpuModel: 'Apple M3', totalRamGB: 17.2, gpu: { kind: 'unified', name: 'Apple M3', vramGB: 12 } }),
   m1_16: hw({ cpuModel: 'Apple M1', totalRamGB: 16, gpu: { kind: 'unified', name: 'Apple M1', vramGB: 12 } }),
+  // a 24 GB Mac reports about 25.8 GB
+  m4pro24: hw({ cpuModel: 'Apple M4 Pro', totalRamGB: 25.8, gpu: { kind: 'unified', name: 'Apple M4 Pro', vramGB: 18 } }),
   m1max32: hw({ cpuModel: 'Apple M1 Max', totalRamGB: 32, gpu: { kind: 'unified', name: 'Apple M1 Max', vramGB: 24 } }),
   m4max128: hw({ cpuModel: 'Apple M4 Max', totalRamGB: 128, gpu: { kind: 'unified', name: 'Apple M4 Max', vramGB: 96 } }),
   cpu32: hw({ os: 'linux', arch: 'x64', cpuModel: 'Intel Core i7-12700', totalRamGB: 32, gpu: { kind: 'none', name: '', vramGB: 0 } }),

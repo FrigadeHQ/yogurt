@@ -20,4 +20,9 @@ describe('Windows signing', () => {
     expect(preview).toContain('azureSignOptions.endpoint=https://eus.codesigning.azure.net/')
     expect(preview).toContain('Get-AuthenticodeSignature')
   })
+  it("signs the libraries too (#99: Code Integrity blocked an unsigned whisper.dll), and a release fails if a helper of Yogurt's own isn't signed", () => {
+    const builder = readFileSync(join(root, 'app/electron-builder.yml'), 'utf8')
+    expect(builder).toMatch(/signExts: \[".dll", ".node"\]/)
+    expect(preview).toContain('resources\\\\bin')
+  })
 })

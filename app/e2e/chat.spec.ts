@@ -2,6 +2,7 @@ import { _electron as electron, expect, test, type ElectronApplication, type Pag
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { revealSidebar } from './cornerNavigation'
 
 const main = join(import.meta.dirname, '../out/main/index.js')
 const zoom = { bundleId: 'us.zoom.xos', name: 'zoom.us' }
@@ -23,6 +24,40 @@ const windowOf = async (app: ElectronApplication, hash: string): Promise<Page> =
   }
   throw new Error(`no ${hash} window`)
 }
+
+test('recording on a small Mac leaves Ask readable and explains when typing resumes', async () => {
+  const { app, page } = await launch({ YOGURT_FAKE_PLATFORM: 'darwin', YOGURT_FAKE_SMALL_MAC: '1' })
+  try {
+    await page.getByTestId('new-note').click()
+    await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
+    const id = await page.evaluate(async () => (await window.yogurt.nav.current()).slice('/note/'.length))
+    await page.keyboard.press('Meta+j')
+    const noteInput = page.getByTestId('chat-input')
+    await expect(noteInput).toBeFocused()
+    await expect(noteInput).toHaveAccessibleDescription('Available after recording')
+    await expect(noteInput).not.toBeEditable()
+    await expect(page.getByRole('tooltip')).toHaveText('Available after recording')
+    await page.getByTestId('chat-close').focus()
+    await noteInput.hover()
+    await expect(page.getByRole('tooltip')).toBeVisible()
+    await page.getByTestId('chat-close').click()
+    await page.getByTestId('nav-chat').click()
+    const homeInput = page.getByTestId('chat-page-input')
+    await expect(homeInput).toHaveAttribute('aria-disabled', 'true')
+    await page.keyboard.press('Meta+k')
+    await page.getByTestId('search-input').fill('What did we decide?')
+    await page.keyboard.press('Meta+Enter')
+    await expect(homeInput).toHaveValue('What did we decide?')
+    await expect(homeInput).not.toBeEditable()
+    await homeInput.press('Enter')
+    await expect(page.getByTestId('chat-page-turn')).toHaveCount(0)
+    await page.evaluate(id => window.yogurt.meetings.stop(id), id)
+    await expect(homeInput).toBeEditable()
+    await expect(homeInput).toHaveValue('What did we decide?')
+    await expect(page.getByTestId('chat-page-send')).toBeEnabled()
+    await expect(page.getByTestId('chat-page-turn')).toHaveCount(0)
+  } finally { await app.close() }
+})
 
 test('Ask opens one contained panel, keeps the note usable, and restores focus when closed', async () => {
   const { app, page } = await launch()
@@ -347,6 +382,21 @@ test('Ask grows from its button identically for either trigger and keeps typing 
     expect(parseFloat(String(motion[0].frames[0].width))).toBeCloseTo((await trigger.boundingBox())!.width)
     expect(String(motion[0].frames.at(-1)!.width)).toContain('100%')
     expect(motion[0].frames.every(frame => !frame.transform)).toBe(true)
+    // Sample the opening itself, including the frame where the shell is still on the button.
+    const insets = await surface.evaluate(el => {
+      const shape = el.getAnimations().find(a => (a.effect as KeyframeEffect).getKeyframes().some(f => f.width))!
+      const dialog = el.closest('dialog')!.getBoundingClientRect()
+      const body = el.querySelector('.chat-panel-contents')!, composer = body.querySelector('.chat-composer')!
+      shape.pause()
+      const samples = [0, 45, 90, 180].map(ms => {
+        shape.currentTime = ms
+        const bounds = body.getBoundingClientRect()
+        return [bounds.left - dialog.left, bounds.top - dialog.top, dialog.right - bounds.right, dialog.bottom - composer.getBoundingClientRect().bottom]
+      })
+      shape.finish()
+      return samples
+    })
+    for (const sample of insets) for (const inset of sample) expect(inset).toBeCloseTo(1, 1)
     await expect(page.getByTestId('chat-input')).toBeFocused()
     await expect(page.locator('.chat-panel-contents')).toHaveCSS('transform', 'none')
     await expect(page.locator('.chat-panel-contents')).toHaveCSS('filter', 'none')
@@ -401,8 +451,23 @@ for (const width of [1100, 720]) test(`Command-J toggles Ask from any focus at $
     await fake(app, 'go', '')
     await expect(page.getByTestId('home')).toBeVisible()
     await page.keyboard.press('Meta+j')
-    await expect(page.locator('#library-question')).toBeVisible()
-    await page.keyboard.press('Meta+j')
-    await expect(page.locator('#library-question')).toBeFocused()
+    await expect(page.getByTestId('chat-page-input')).toBeEditable()
+    await expect.poll(() => page.evaluate(() => window.yogurt.nav.current())).toMatch(/^\/chat\/.+/)
+
+    await revealSidebar(page)
+    await page.getByTestId('nav-chat').click()
+    await expect(page.getByTestId('chat-empty')).toBeVisible()
+    const field = page.locator('textarea#library-question')
+    await field.fill('Keep this draft')
+    await field.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(5, 9))
+    for (const invoke of [() => page.keyboard.press('Meta+j'), () => fake(app, 'trayClick', 'ask')]) {
+      await page.getByTestId('chat-recent').focus()
+      await invoke()
+      await expect(field).toBeFocused()
+      await page.keyboard.press('Meta+j')
+      await expect(field).toHaveValue('Keep this draft')
+      expect(await field.evaluate((el: HTMLTextAreaElement) => [el.selectionStart, el.selectionEnd])).toEqual([5, 9])
+      expect(await page.evaluate(() => window.yogurt.nav.current())).toBe('/chat')
+    }
   } finally { await app.close() }
 })

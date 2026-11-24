@@ -4,6 +4,7 @@ copyright: Copyright © 2026 Frigade
 # GitHub Releases: every v* tag builds Mac, Windows and Linux (.github/workflows/release.yml).
 # Fixed file names, so releases/latest/download/Yogurt-mac-arm64.dmg (and the Windows and Linux ones) point at the newest.
 # Installed copies update from the same release (latest-mac.yml, latest.yml, latest-linux.yml; src/main/updates.ts).
+# The website links the .dmg and, on Windows and Linux, the -setup copies release.yml adds; latest*.yml keep these names.
 publish:
   provider: github
   owner: FrigadeHQ
@@ -27,12 +28,9 @@ extraResources:
   - from: resources/vad
     to: vad
   # the Mac's menu bar icon (tray.ts reads it from Resources; @2x is picked up next to it)
-  - from: resources/tray.png
-    to: tray.png
-  - from: resources/tray@2x.png
-    to: tray@2x.png
+  - { from: resources, to: ., filter: ["tray.png", "tray@2x.png", "tray-titled.png", "tray-titled@2x.png"] }
   # licenses of things bundled or downloaded: fonts, whisper.cpp, Silero VAD, libopus, the native recorders' crates,
-  # whisper-server's headers, animate-ui and the CUDA runtime
+  # whisper-server's headers, animate-ui, the CUDA runtime and the echo canceller (webrtcaec3.js)
   - from: resources/licenses
     to: licenses
   # the Mac's About window shows Resources/Credits.html under the version, with its link
@@ -85,6 +83,8 @@ mac:
     NSCalendarsFullAccessUsageDescription: Yogurt reads your calendar to name your notes after the meeting and to know who is in it. Nothing leaves your Mac.
     NSCalendarsUsageDescription: Yogurt reads your calendar to name your notes after the meeting and to know who is in it. Nothing leaves your Mac.
     NSAppleEventsUsageDescription: Yogurt checks the browser tab's name to tell when you're in a call, and pauses your music while it records.
+    # macOS 15 and later ask before an app can be found on the local network (Bonjour), which the iPhone app needs
+    NSLocalNetworkUsageDescription: Yogurt lets your iPhone find this computer on your Wi-Fi so your notes can sync. Nothing goes through the internet.
     # Electron's own defaults ("This app needs access to..."): Yogurt never asks for these, so plain words instead
     NSCameraUsageDescription: Yogurt doesn't use the camera.
     NSBluetoothAlwaysUsageDescription: Yogurt doesn't use Bluetooth.
@@ -107,12 +107,21 @@ win:
     # the tray's colour icons (tray.ts; @2x next to them), a Mac uses its template tray.png
     - { from: resources, to: ., filter: ["tray-color*.png", "tray-recording*.png"] }
   artifactName: Yogurt-windows-${arch}.${ext}
+  # a release signs the DLLs and native modules too, not just the programs: with Windows Code Integrity on, an unsigned
+  # whisper.dll or ggml.dll is blocked from loading and speech setup fails (#99)
+  signExts: [".dll", ".node"]
   target:
     - target: nsis
       arch: [x64]
   icon: build/icon.png
 nsis:
-  oneClick: true
+  # an installer with pages (not one click): where Yogurt goes, then where its AI models go (build/installer.nsh), for a
+  # small C: drive. Still per user, no admin prompt; updates install silently as before. The include also carries on
+  # when an update's old uninstaller fails (#126)
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  allowElevation: false
+  include: build/installer.nsh
   perMachine: false
   # never true: uninstalling would delete every meeting, transcript and recording with the models
   deleteAppDataOnUninstall: false

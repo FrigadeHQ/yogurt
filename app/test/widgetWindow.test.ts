@@ -19,7 +19,7 @@ const state = vi.hoisted(() => ({
 vi.mock('electron', () => ({
   BrowserWindow: class {
     static getAllWindows() { return state.windows }
-    bounds: any; options: any; dead = false
+    bounds: any; options: any; dead = false; listeners = new Map<string, () => void>()
     webContents = { send: vi.fn(), once: (_name: string, fn: () => void) => fn(), setBackgroundThrottling: vi.fn() }
     constructor(options: any) { this.options = options; this.bounds = { x: options.x, y: options.y, width: options.width, height: options.height }; state.windows.push(this) }
     getBounds() { return { ...this.bounds } }
@@ -27,10 +27,10 @@ vi.mock('electron', () => ({
     setIgnoreMouseEvents = vi.fn()
     isDestroyed() { return this.dead }
     isVisible() { return false }
-    on() {}
-    hide() {}
+    on(name: string, fn: () => void) { this.listeners.set(name, fn) }
+    hide = vi.fn()
     showInactive() {}
-    destroy() { this.dead = true }
+    destroy() { this.dead = true; this.listeners.get('closed')?.() }
     loadFile() { return Promise.resolve() }
   },
   ipcMain: { on: (name: string, fn: (...args: any[]) => unknown) => state.handlers.set(name, fn), handle: vi.fn() },
@@ -59,6 +59,7 @@ vi.mock('../src/main/meeting', () => ({
 const send = (channel: string, ...args: unknown[]) => state.handlers.get(channel)!({ sender: win.webContents }, ...args)
 let win: any
 const open = vi.fn()
+let showRecordingPill = true
 let widget: ReturnType<typeof import('../src/main/widget').createWidget>
 beforeEach(async () => {
   vi.useFakeTimers()
@@ -68,7 +69,8 @@ beforeEach(async () => {
   state.notifications.length = 0; state.fake = false; state.stopPending = false; state.supported = true
   state.finished.mockReset().mockResolvedValue(); open.mockReset()
   const { createWidget } = await import('../src/main/widget')
-  widget = createWidget({ open, stop: vi.fn(), foreground: () => false })
+  showRecordingPill = true
+  widget = createWidget({ open, stop: vi.fn(), foreground: () => false, platform: 'darwin', showRecordingPill: () => showRecordingPill })
   state.start!({ id: 'meeting', title: 'Review', startedAt: 0 })
   win = state.windows[0]
 })
@@ -85,9 +87,31 @@ describe('floating recorder placement', () => {
   })
   it('uses a tool window on Windows without taking focus', async () => {
     const { createWidget } = await import('../src/main/widget')
-    createWidget({ open, stop: vi.fn(), foreground: () => false, windowOs: 'win32' })
+    createWidget({ open, stop: vi.fn(), foreground: () => false, windowOs: 'win32', platform: 'win32' })
     state.start!({ id: 'meeting2', title: 'Review', startedAt: 0 })
     expect(state.windows.at(-1).options).toMatchObject({ type: 'toolbar', focusable: false, skipTaskbar: true })
+  })
+  it('on Linux, hides a stopped pill and destroys it only once the next recording has its own', async () => {
+    // X11: Electron crashes on a window destroyed while the X server still answers about its size (a quick stop)
+    const { createWidget } = await import('../src/main/widget')
+    const linux = createWidget({ open, stop: vi.fn(), foreground: () => false, platform: 'linux' })
+    state.start!({ id: 'first', title: 'Review', startedAt: 0 })
+    const first = state.windows.at(-1)
+    state.stop!({ id: 'first' })
+    expect(first.dead).toBe(false)
+    expect(first.hide).toHaveBeenCalled()
+    expect(linux.snapshot().bounds).toBeNull()
+    state.start!({ id: 'second', title: 'Next', startedAt: 1 })
+    const second = state.windows.at(-1)
+    expect(second).not.toBe(first)
+    expect(first.dead).toBe(true)
+    expect(second.dead).toBe(false)
+    // the old window's closed event leaves the new one in place
+    expect(linux.snapshot().bounds).not.toBeNull()
+  })
+  it('destroys a stopped pill at once elsewhere', () => {
+    state.stop!({ id: 'meeting' })
+    expect(win.dead).toBe(true)
   })
   it('moves the surface and pill together and remembers the pill for the next meeting', () => {
     const before = widget.snapshot().bounds!, frame = win.getBounds()
@@ -298,7 +322,7 @@ describe('finished meeting notifications', () => {
   it('skips the success banner when Yogurt was in front, but still warns', async () => {
     vi.resetModules()
     const { createWidget } = await import('../src/main/widget')
-    widget = createWidget({ open, stop: vi.fn(), foreground: () => true })
+    widget = createWidget({ open, stop: vi.fn(), foreground: () => true, platform: 'darwin' })
     state.start!({ id: 'meeting', title: 'Review', startedAt: 0 })
     finish(); await Promise.resolve()
     expect(widget.snapshot().notice).toMatchObject({ title: 'Meeting captured' })
@@ -337,7 +361,7 @@ describe('finished meeting notifications', () => {
     if (mode === 'background') {
       vi.stubEnv('YOGURT_BACKGROUND', '1'); vi.resetModules()
       const { createWidget } = await import('../src/main/widget')
-      widget = createWidget({ open, stop: vi.fn(), foreground: () => false })
+      widget = createWidget({ open, stop: vi.fn(), foreground: () => false, platform: 'darwin' })
       state.start!({ id: 'meeting', title: 'Review', startedAt: 0 })
     } else if (mode === 'fake') state.fake = true
     else state.supported = false
@@ -348,7 +372,7 @@ describe('finished meeting notifications', () => {
   it('does not notify for startup/recovery changes without a recording started in this run', async () => {
     vi.resetModules()
     const { createWidget } = await import('../src/main/widget')
-    widget = createWidget({ open, stop: vi.fn(), foreground: () => false })
+    widget = createWidget({ open, stop: vi.fn(), foreground: () => false, platform: 'darwin' })
     finish(); await Promise.resolve()
     expect(widget.snapshot().notice).toBeNull()
     expect(state.notifications).toHaveLength(0)
@@ -359,7 +383,7 @@ describe('hidden, the recorder does no work (the audit: its 4/s clock and meter 
   it('is throttled like any hidden window while Yogurt is in front, and runs freely while it floats', async () => {
     let front = true
     const { createWidget } = await import('../src/main/widget')
-    const w = createWidget({ open, stop: vi.fn(), foreground: () => front })
+    const w = createWidget({ open, stop: vi.fn(), foreground: () => front, platform: 'darwin' })
     state.start!({ id: 'meeting3', title: 'Review', startedAt: 0 })
     const win3 = state.windows.at(-1)
     send('widget:size', 127, 42)
@@ -369,4 +393,22 @@ describe('hidden, the recorder does no work (the audit: its 4/s clock and meter 
     w.visibilityChanged()
     expect(win3.webContents.setBackgroundThrottling).toHaveBeenLastCalledWith(false)
   })
+})
+
+it('hides an expanded pill immediately and keeps the note recording and warning active', () => {
+  const show = vi.spyOn(win, 'showInactive')
+  const hide = vi.spyOn(win, 'hide')
+  send('widget:surface', { x: 0, y: 0, width: 310, height: 200, radius: 10 })
+  expect(show).toHaveBeenCalled()
+  show.mockClear()
+  showRecordingPill = false; widget.visibilityChanged()
+  expect(hide).toHaveBeenCalled()
+  state.recording!({ t: 'warn', code: 'falling-behind' })
+  expect(widget.snapshot()).toMatchObject({ visible: false, view: { kind: 'recording', note: { text: 'Yogurt is falling behind. Some lines may be missing.' } } })
+  expect(win.webContents.send).toHaveBeenCalledWith('widget:reset')
+  expect(show).not.toHaveBeenCalled()
+  expect(state.notifications).toHaveLength(0)
+  showRecordingPill = true; widget.visibilityChanged()
+  expect(widget.snapshot().visible).toBe(true)
+  expect(show).toHaveBeenCalledOnce()
 })

@@ -1,10 +1,11 @@
-import { AudioLines, CalendarDays, Check, Lock, Mic, Plus, X } from 'lucide-react'
+import { AudioLines, CalendarDays, Mic, PhoneOff, Plus, Video, X } from './Icons'
 import type { PermissionKind } from '../../../shared/types'
-import type { ScreenId } from '../../../shared/onboarding'
-import { Logo } from './Logo'
+import { AppIcon, Logo } from './Logo'
 import { t } from '../../../shared/i18n'
-import { osWords } from '../keys'
-import macIcon from '../../../../build/icon.png'
+import { RecordingPill } from './RecordingPill'
+import ninaPhoto from '../assets/onboarding/nina.webp'
+import lincolnPhoto from '../assets/onboarding/lincoln.webp'
+import mayaPhoto from '../assets/onboarding/maya.webp'
 
 /*
  * The first run's pictures, built from the app's own surfaces so they match both themes. Each shows what its screen
@@ -15,45 +16,41 @@ import macIcon from '../../../../build/icon.png'
 
 const d = (i: number) => ({ ['--i' as string]: i })
 
-/** W1: the conversation written down and kept on this Mac. */
+const nina = { name: 'Nina', photo: ninaPhoto, width: 600, height: 556 }
+const maya = { name: 'Maya', photo: mayaPhoto, width: 308, height: 308 }
+
+function CallWindow({ welcome = false }: { welcome?: boolean }) {
+  const you = { name: t('You'), photo: lincolnPhoto, width: 600, height: 556 }
+  const people = welcome ? [nina, you] : [nina, you, maya]
+  return <div className="ob-call">
+    <div className="ob-call-grid">
+      {people.map(person => <div key={person.photo} className="ob-tile" data-talking={person === nina}>
+        <img src={person.photo} width={person.width} height={person.height} alt="" />
+        <span className="ob-tile-name">{person.name}</span>
+      </div>)}
+    </div>
+    <div className="ob-call-controls"><Mic size={13} /><Video size={14} /><PhoneOff size={13} /></div>
+    {welcome && <RecordingPill illustration time="0:24" />}
+  </div>
+}
+
 export function WelcomeArt() {
-  return (
-    <div className="ob-scene ob-conversation">
-      <div className="ob-card">
-        <div className="ob-card-head"><AudioLines size={14} strokeWidth={2} />{t('Transcript')}</div>
-        <div className="ob-chat">
-          <Bubble i={0} who="Ann" text={t('The site goes live on Tuesday.')} />
-          <Bubble i={1} me text={t('Great. Who is writing the copy?')} />
-          <Bubble i={2} who="Bo" text={t("I'll send a draft by Friday.")} />
-        </div>
-      </div>
-      <span className="ob-chip"><Lock size={11} strokeWidth={2.25} />{osWords({ mac: t('Saved on this Mac'), other: t('Saved on this computer') })}</span>
-    </div>
-  )
+  return <div className="ob-scene ob-conversation"><CallWindow welcome /></div>
 }
 
-/** One line of a call, as the transcript shows it: the other side at the start under their name, yours at the end */
-function Bubble({ i, who, text, me }: { i: number; who?: string; text: string; me?: boolean }) {
-  return (
-    <div className={me ? 'ob-turn ob-turn-me' : 'ob-turn'} style={d(i)}>
-      {who && <span className="ob-turn-who">{who}</span>}
-      <span className={me ? 'ob-bubble ob-bubble-me' : 'ob-bubble'}>{text}</span>
-    </div>
-  )
-}
-
-/** The picture of one permission screen; on: what is turned on so far */
-export function ScreenArt({ id, on }: { id: ScreenId; on: readonly PermissionKind[] }) {
-  switch (id) {
-    case 'record': return <RecordArt on={on} />
+/** The picture explains the current permission. Permission status is in the step text. */
+export function ScreenArt({ kind }: { kind: PermissionKind }) {
+  switch (kind) {
+    case 'mic':
+    case 'systemAudio': return <RecordArt active={kind} />
     case 'calendar': return <CalendarArt />
     case 'notifications': return <NoticeArt />
     case 'accessibility': return <SpeakerNamesArt />
   }
 }
 
-/** The two things Yogurt hears: you through the mic, everyone else through the Mac's sound. Each comes alive once it is on. */
-function RecordArt({ on }: { on: readonly PermissionKind[] }) {
+/** The five bars match the website’s per-speaker meter. Only the source being explained speaks. */
+function RecordArt({ active }: { active: 'mic' | 'systemAudio' }) {
   const lanes = [
     { kind: 'mic' as const, Icon: Mic, who: t('You'), from: t('Microphone') },
     { kind: 'systemAudio' as const, Icon: AudioLines, who: t('Everyone else'), from: t("Your Mac's sound") },
@@ -62,18 +59,17 @@ function RecordArt({ on }: { on: readonly PermissionKind[] }) {
     <div data-testid="record-art" className="ob-scene">
       <div className="ob-card ob-record">
         {lanes.map(({ kind, Icon, who, from }, i) => (
-          <div key={kind} className="ob-lane" data-on={on.includes(kind)} style={d(i)}>
-            <span className="ob-lane-icon"><Icon size={15} strokeWidth={1.9} /></span>
+          <div key={kind} className="ob-lane" data-active={kind === active} data-channel={kind} style={d(i)}>
+            <span className="ob-lane-icon"><Icon size={15} /></span>
             <span className="ob-lane-copy"><span className="ob-lane-who">{who}</span><span className="ob-lane-from">{from}</span></span>
-            <span className="ob-wave">{WAVE.map((h, j) => <i key={j} style={{ ['--h' as string]: h, ['--j' as string]: j + i * 3 }} />)}</span>
-            <span className="ob-lane-state"><Check size={11} strokeWidth={3} /></span>
+            <span className="ob-wave">{[.54, .8, 1, .72, .42].map((peak, j) =>
+              <i key={j} style={{ ['--peak' as string]: peak, ['--lag' as string]: `${-j * 30}ms` }} />)}</span>
           </div>
         ))}
       </div>
     </div>
   )
 }
-const WAVE = [.35, .6, .9, .55, .75, 1, .65, .4, .8, .5, .95, .6, .3, .7, .45, .85, .5, .65]
 
 /** A day in the calendar, and the note that already knows the meeting's name and who's in it */
 function CalendarArt() {
@@ -81,14 +77,14 @@ function CalendarArt() {
   return (
     <div className="ob-scene ob-calendar">
       <div className="ob-card ob-day">
-        <div className="ob-card-head"><CalendarDays size={12} strokeWidth={2} />{t('Today')}</div>
+        <div className="ob-card-head"><CalendarDays size={12} />{t('Today')}</div>
         <div className="ob-hours">
           {['9:00', '10:00', '11:00', '12:00'].map((h) => <span key={h} className="ob-hour">{h}</span>)}
           <span className="ob-event"><span className="ob-event-title">{t('Design review')}</span><span className="ob-event-time">10:00</span></span>
         </div>
       </div>
       <div className="ob-card ob-meeting-note">
-        <p className="ob-note-meta"><CalendarDays size={11} strokeWidth={2} />{t('Today, 10:00')}</p>
+        <p className="ob-note-meta"><CalendarDays size={11} />{t('Today, 10:00')}</p>
         <p className="ob-doc-title">{t('Design review')}</p>
         <ul className="ob-people">{people.map((p, i) => <li key={p} style={d(i)}><span>{p.slice(0, 1)}</span>{p}</li>)}</ul>
         <span className="ob-skeleton" /><span className="ob-skeleton ob-skeleton-short" />
@@ -97,17 +93,16 @@ function CalendarArt() {
   )
 }
 
-/** The notification alone, with its countdown held while the person reads the first run. */
+/** A still example of the reminder that appears when a call starts. */
 function NoticeArt() {
   return (
     <div className="ob-scene ob-notice">
-        <div className="ob-prompt" data-testid="notice-art">
-          <span className="ob-prompt-countdown" />
-            <img src={macIcon} alt="" className="ob-prompt-icon" />
-            <span className="ob-prompt-copy"><span className="ob-prompt-label">{t('Take notes?')}</span><span className="ob-prompt-title">{t('{app} call', { app: 'Zoom' })}</span></span>
-            <span className="ob-prompt-button">{t('Start recording')}</span>
-            <X size={13} className="ob-prompt-close" />
-        </div>
+      <div className="ob-prompt" data-testid="notice-art">
+        <AppIcon className="ob-prompt-icon" />
+        <span className="ob-prompt-copy"><span className="ob-prompt-label">{t('Take notes?')}</span><span className="ob-prompt-title">{t('{app} call', { app: 'Zoom' })}</span></span>
+        <span className="ob-prompt-button">{t('Start recording')}</span>
+        <X size={13} className="ob-prompt-close" />
+      </div>
     </div>
   )
 }
@@ -115,22 +110,19 @@ function NoticeArt() {
 /** Why Accessibility: the names the call shows, and the same lines turning from Them into those names */
 export function SpeakerNamesArt() {
   const lines: { who?: string; text: string }[] = [
-    { who: 'Chris', text: t('Sure. The site goes live on Tuesday.') },
-    { text: t('Great. Who is writing the copy?') },
-    { who: 'Jenny', text: t("I'll send a draft by Friday.") },
+    { who: nina.name, text: t("I'll send a draft by Friday.") },
+    { text: t("I'll review it that afternoon.") },
+    { who: maya.name, text: t('Then I can get the final copy ready for Tuesday.') },
   ]
   return (
     <div data-testid="speaker-names-art" className="ob-scene ob-names">
-      <div className="ob-call">
-        {['Chris', 'Jenny', t('You')].map((n, i) => <span key={n} className="ob-tile" data-talking={i === 0}><span className="ob-tile-face">{n.slice(0, 1)}</span><span className="ob-tile-name">{n}</span></span>)}
-      </div>
-      <div className="ob-card ob-chat ob-names-chat">
-        {lines.map((l, i) => l.who ? (
-          <div key={i} className="ob-turn">
-            <span className="ob-turn-who ob-swap" style={d(i)}><span className="ob-swap-from">{t('Them')}</span><span className="ob-swap-to">{l.who}</span></span>
-            <span className="ob-bubble">{l.text}</span>
-          </div>
-        ) : <div key={i} className="ob-turn ob-turn-me"><span className="ob-bubble ob-bubble-me">{l.text}</span></div>)}
+      <CallWindow />
+      <div className="ob-card ob-transcript">
+        {lines.map((line, i) => <p key={i} className="ob-turn">
+          {line.who ? <b className="ob-swap" style={d(i)}><span className="ob-swap-from">{t('Them')}</span><span className="ob-swap-to">{line.who}</span></b>
+            : <b>{t('You')}</b>}
+          {line.text}
+        </p>)}
       </div>
     </div>
   )
@@ -154,7 +146,7 @@ export function SettingsWindowArt({ pane, section }: { pane: string; section?: s
             <span className="ob-settings-app">Yogurt</span>
             <span className="ob-switch ob-switch-on" />
           </div>
-          <div className="ob-settings-tools"><Plus size={11} strokeWidth={2.25} /><span className="ob-settings-minus" /></div>
+          <div className="ob-settings-tools"><Plus size={11} /><span className="ob-settings-minus" /></div>
         </div>
       </div>
     </div>

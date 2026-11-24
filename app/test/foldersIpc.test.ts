@@ -20,6 +20,35 @@ beforeEach(() => {
 afterEach(() => { store.close(); rmSync(dir, { recursive: true, force: true }) })
 
 describe('folders IPC', () => {
+  it('lists all eligible meetings newest first and adds a selection once, preserving other folders', () => {
+    const dest = store.createFolder('Reviews'), other = store.createFolder('Planning')
+    const ids = Array.from({ length: 201 }, (_, i) => store.createMeeting({ title: i === 0 ? 'A'.repeat(200) : 'Review', startedAt: i, endedAt: i, eventId: null, app: null, attendees: [], state: 'done' }).id)
+    store.trashMeeting(ids[200])
+    store.addToFolder(other.id, ids[0])
+    expect(store.folderMeetingIds(dest.id)).toHaveLength(0)
+    expect(call('folders:add-many', dest.id, [ids[1]])).toBe(true)
+    expect(store.folderMeetingIds(dest.id)).toHaveLength(1)
+    const choices = call('folders:meeting-choices', dest.id) as { id: string; title: string; inFolder: boolean }[]
+    expect(choices.map(row => row.id)).toEqual(ids.slice(0, 200).reverse())
+    expect(choices.at(-1)).toMatchObject({ title: 'A'.repeat(200), inFolder: false })
+    expect(choices.at(-2)?.inFolder).toBe(true)
+    for (const stale of [ids[200], 'missing', '../bad']) {
+      expect(call('folders:add-many', dest.id, [ids[0], stale])).toBe(false)
+      expect(store.folderMeetingIds(dest.id)).toEqual([ids[1]])
+    }
+    store.saveFolderSuggestion(ids[2], { folderId: dest.id, confidence: 1 }, 'folders-v1')
+    const write = store.addToFolder.bind(store)
+    const add = vi.spyOn(store, 'addToFolder').mockImplementationOnce(write)
+    add.mockImplementationOnce(() => { throw new Error('write failed') })
+    expect(() => call('folders:add-many', dest.id, [ids[2], ids[0]])).toThrow('write failed')
+    add.mockRestore()
+    expect(store.folderMeetingIds(dest.id)).toEqual([ids[1]])
+    expect(store.folderSuggestion(ids[2]).state).toBe('pending')
+    expect(call('folders:add-many', dest.id, [...ids.slice(0, 200), ids[0]])).toBe(true)
+    expect(changed).toHaveBeenCalledTimes(2)
+    expect(store.folderMeetingIds(dest.id)).toHaveLength(200)
+    expect(store.folderMeetingIds(other.id)).toEqual([ids[0]])
+  })
   it('never returns a pending suggestion for a meeting in any folder', async () => {
     const suggested = store.createFolder('Customers'), other = store.createFolder('Planning')
     const m = store.createMeeting({ title: 'Kickoff', startedAt: 1, endedAt: 2, eventId: null, app: null, attendees: [], state: 'done' })

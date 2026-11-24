@@ -26,15 +26,29 @@ pub fn kind(id: &str) -> Kind {
 /// the controls only a call window has: the calendar and chat views have none
 pub const CALL_CONTROLS: &[&str] = &["leave", "leave call", "hang up", "end call", "mute mic", "unmute mic", "close participants pane"];
 
-/// Whether a tree has a call control: the calendar and chat views have no Leave or Mute, the call window always does
+/// A button's label without the shortcut it can carry: "Leave (Ctrl+Shift+H)" is "leave", as on the Mac (#83)
+fn control_label(s: &str) -> String {
+    let s = s.trim();
+    let s = match (s.ends_with(')'), s.rfind('(')) {
+        (true, Some(i)) => &s[..i],
+        _ => s,
+    };
+    s.trim().to_ascii_lowercase()
+}
+
+/// Whether a tree has a call control: the calendar and chat views have no Leave or Mute, the call window always does.
+/// Teams' hang-up button keeps its page id in every language, so that counts too, as on the Mac (#83).
 pub fn is_call_tree(tree: &Value) -> bool {
     fn walk(n: &Value) -> bool {
         let Some(o) = n.as_object() else { return false };
+        if o.get("i").and_then(Value::as_str) == Some("hangup-button") {
+            return true;
+        }
         let role = o.get("r").and_then(Value::as_str).unwrap_or("");
         if matches!(role, "button" | "push button" | "toggle button" | "menu item") {
             for key in ["t", "d"] {
                 if let Some(s) = o.get(key).and_then(Value::as_str) {
-                    if CALL_CONTROLS.contains(&s.trim().to_ascii_lowercase().as_str()) {
+                    if CALL_CONTROLS.contains(&control_label(s).as_str()) {
                         return true;
                     }
                 }
@@ -58,6 +72,40 @@ pub fn call_window(kind: Kind, title: &str) -> bool {
 /// "Meet - abc-defg-hij" has the word; "Meeting notes" does not
 pub fn has_word(title: &str, word: &str) -> bool {
     title.split(|c: char| !c.is_alphanumeric()).any(|w| w.eq_ignore_ascii_case(word))
+}
+
+/// Which of the app's windows to read: the one that was the call last time, alone, while it is still open. Teams keeps
+/// its big chat and calendar windows open beside the call, and reading every one each time made a German call's
+/// reading take 10 s (#83). With no such window, all of them.
+#[cfg_attr(not(windows), allow(dead_code))]
+pub fn to_read<T>(mut windows: Vec<(u64, T)>, last: Option<u64>) -> (Vec<(u64, T)>, bool) {
+    match last.and_then(|h| windows.iter().position(|w| w.0 == h)) {
+        Some(i) => (vec![windows.swap_remove(i)], true),
+        None => (windows, false),
+    }
+}
+
+/// What a reading of the window that was the call says about it
+#[derive(Debug, PartialEq)]
+pub enum Look {
+    /// still the call
+    Call,
+    /// it did not answer in time: nothing can be told
+    Slow,
+    /// minimised or on another desktop: Yogurt must not take that for the call ending (#83)
+    Hidden,
+    /// open and in sight, with no call controls: the call is over
+    Gone,
+}
+
+#[cfg_attr(not(windows), allow(dead_code))]
+pub fn look(tree: Option<&Value>, out_of_sight: bool) -> Look {
+    match tree {
+        Some(t) if is_call_tree(t) => Look::Call,
+        _ if out_of_sight => Look::Hidden,
+        None => Look::Slow,
+        Some(_) => Look::Gone,
+    }
 }
 
 pub fn now_ms() -> u64 {
@@ -110,5 +158,44 @@ mod tests {
         ] });
         assert!(!is_call_tree(&calendar));
         assert!(!is_call_tree(&json!({})));
+    }
+
+    #[test]
+    fn a_control_label_can_carry_its_shortcut() {
+        // Teams on Windows names its buttons with the shortcut, as the Mac reader already allows (#83)
+        let call = json!({ "r": "frame", "k": [{ "r": "button", "t": "Leave (Ctrl+Shift+H)" }] });
+        assert!(is_call_tree(&call));
+        let muted = json!({ "r": "frame", "k": [{ "r": "toggle button", "t": "Unmute mic (Ctrl+Shift+M)" }] });
+        assert!(is_call_tree(&muted));
+        assert!(!is_call_tree(&json!({ "r": "frame", "k": [{ "r": "button", "t": "Leave chat (Ctrl+Shift+L)" }] })));
+    }
+
+    #[test]
+    fn the_last_call_window_is_read_alone_while_it_is_open() {
+        let wins = vec![(1u64, "Chat | Microsoft Teams"), (2, "Anna, Jonas | Microsoft Teams"), (3, "Calendar | Microsoft Teams")];
+        assert_eq!(to_read(wins.clone(), Some(2)), (vec![(2, "Anna, Jonas | Microsoft Teams")], true));
+        // closed, or none yet: every window, top first
+        assert_eq!(to_read(wins.clone(), Some(9)), (wins.clone(), false));
+        assert_eq!(to_read(wins.clone(), None), (wins, false));
+    }
+
+    #[test]
+    fn a_minimised_call_window_is_hidden_not_gone() {
+        let call = json!({ "r": "frame", "k": [{ "r": "button", "t": "Leave", "i": "hangup-button" }] });
+        let after = json!({ "r": "frame", "k": [{ "r": "button", "t": "Rejoin" }] });
+        assert_eq!(look(Some(&call), false), Look::Call);
+        assert_eq!(look(Some(&call), true), Look::Call);
+        assert_eq!(look(Some(&after), true), Look::Hidden);
+        assert_eq!(look(None, true), Look::Hidden);
+        assert_eq!(look(None, false), Look::Slow);
+        assert_eq!(look(Some(&after), false), Look::Gone);
+    }
+
+    #[test]
+    fn the_hang_up_id_is_a_call_in_any_language() {
+        // Teams in Portuguese labels Leave "Sair": its page id stays "hangup-button", as the Mac reader matches (#83)
+        let call = json!({ "r": "frame", "k": [{ "r": "button", "t": "Sair (Ctrl+Shift+H)", "i": "hangup-button" }] });
+        assert!(is_call_tree(&call));
+        assert!(!is_call_tree(&json!({ "r": "frame", "k": [{ "r": "button", "t": "Sair", "i": "leave-chat-button" }] })));
     }
 }

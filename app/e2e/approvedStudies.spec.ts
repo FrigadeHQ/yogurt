@@ -52,7 +52,9 @@ test('approved speaker names keep the stagger and soften focus without moving te
     const page = await app.firstWindow()
     await page.getByTestId('intro-next').click()
     for (let i = 0; i < 3; i++) await page.getByTestId('step-later').click()
-    await expect(page.getByTestId('speaker-names-art')).toBeVisible()
+    const art = page.getByTestId('speaker-names-art')
+    await expect(art).toBeVisible()
+    if (!before) await expect(art.locator('.ob-tile img')).toHaveCount(3)
     for (const colorScheme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme, reducedMotion: 'no-preference' })
       await page.locator('.ob-swap').evaluateAll(els => {
@@ -83,13 +85,24 @@ test('approved welcome conversation and wordmark belong to the introduction', as
     const page = await app.firstWindow()
     await expect(page.getByTestId('intro-page')).toBeVisible()
     await page.emulateMedia({ reducedMotion: 'reduce' })
+    if (!before) {
+      await page.emulateMedia({ reducedMotion: 'no-preference' })
+      const stage = page.locator('.ob-stage-art')
+      expect(await stage.evaluate(el => el.getAnimations({ subtree: true }).length)).toBe(0)
+    }
     for (const colorScheme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme })
       if (!before) {
         await expect(page.locator('.ob-copy .ob-brand')).toBeVisible()
-        await expect(page.locator('.ob-conversation .ob-card')).toHaveCount(1)
-        await expect(page.locator('.ob-conversation .ob-card-head')).toHaveText('Transcript')
-        await expect(page.locator('.ob-conversation .ob-chip')).toHaveText('Saved on this Mac')
+        const call = page.locator('.ob-conversation .ob-call')
+        await expect(call.locator('img')).toHaveCount(2)
+        await expect(call.getByTestId('widget-wave')).toBeVisible()
+        await expect.poll(() => call.locator('img').evaluateAll(tiles => tiles.every(tile => tile instanceof HTMLImageElement && tile.complete && tile.naturalWidth > 0))).toBe(true)
+        await expect(call.locator('.ob-tile-name')).toHaveText(['Nina', 'You'])
+        await expect(call.getByTestId('widget-time')).toHaveText('0:24')
+        await expect(page.locator('.ob-conversation .ob-transcript')).toHaveCount(0)
+        const activeTile = call.locator('[data-talking=true]')
+        expect(await activeTile.evaluate(el => getComputedStyle(el, '::after').borderTop)).toBe('2px solid rgb(91, 212, 138)')
         const brand = (await page.locator('.ob-brand').boundingBox())!, title = (await page.getByTestId('step-title').boundingBox())!
         expect(brand.x).toBe(title.x)
         expect(title.y - brand.y - brand.height).toBe(23)
@@ -126,7 +139,7 @@ test('approved compact call card shows the Dock icon and pausing countdown in bo
     }
     if (!before) {
       await prompt.emulateMedia({ reducedMotion: 'reduce' })
-      await expect(prompt.getByTestId('prompt-countdown')).toHaveCSS('animation-timing-function', 'steps(12)')
+      await expect(prompt.getByTestId('prompt-countdown')).toBeHidden()
     }
   } finally { await app.close() }
 })

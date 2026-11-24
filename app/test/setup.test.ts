@@ -476,16 +476,23 @@ describe('the speed check (Windows and Linux): speech models timed on this compu
     expect(s.stored()).toBeUndefined()
   })
 
-  it('on the processor alone: small first (never turbo), then smaller until one keeps up; the result is stored', async () => {
+  it('on the processor alone: small first (never turbo), kept even when it lags a little, since base is weak outside English (#107); the result is stored', async () => {
     const s = speed({ 'whisper-small-q5_1': 0.88, 'whisper-base-q5_1': 0.42, 'whisper-tiny-q5_1': 0.19 })
     const { c, rec } = setup({ getHardware: async () => cpuPc, speed: s.deps })
     await c.start(); await c.idle()
     expect(c.state.phase).toBe('ready')
-    expect(s.timed).toEqual(['whisper-small-q5_1', 'whisper-base-q5_1'])
+    expect(s.timed).toEqual(['whisper-small-q5_1'])
     expect(rec.asked).not.toContain(turboUrl)
+    expect(c.installed()?.asr).toContain('ggml-small-q5_1.bin')
+    expect(s.stored()).toMatchObject({ key: speedKey(cpuPc), model: 'whisper-small-q5_1', rtf: { 'whisper-small-q5_1': 0.88 } })
+  })
+  it('small slower than the clip itself: then smaller until one keeps up', async () => {
+    const s = speed({ 'whisper-small-q5_1': 1.3, 'whisper-base-q5_1': 0.42, 'whisper-tiny-q5_1': 0.19 })
+    const { c, rec } = setup({ getHardware: async () => cpuPc, speed: s.deps })
+    await c.start(); await c.idle()
+    expect(s.timed).toEqual(['whisper-small-q5_1', 'whisper-base-q5_1'])
     expect(rec.asked).not.toContain(url('whisper-tiny-q5_1'))
     expect(c.installed()?.asr).toContain('ggml-base-q5_1.bin')
-    expect(s.stored()).toMatchObject({ key: speedKey(cpuPc), model: 'whisper-base-q5_1', rtf: { 'whisper-small-q5_1': 0.88, 'whisper-base-q5_1': 0.42 } })
   })
 
   it('with graphics turbo is timed first and kept when it keeps up', async () => {

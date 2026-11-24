@@ -114,6 +114,25 @@ describe.skipIf(process.platform === 'win32')('whisper server', () => {
     expect(args()).toContain('-ng')
   })
 
+  // #127: quitting killed a whisper-server still loading; that kill was taken for a graphics driver crash
+  it('killed by Yogurt while loading (quitting) is not a graphics card failure', async () => {
+    const bin = fakeBinary(1500)
+    const args = () => JSON.parse(readFileSync(join(bin, '../args'), 'utf8')) as string[]
+    const off = vi.fn()
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const s = make(bin, { gpuFallback: true, onGpuOff: off })
+    const loading = s.url()
+    await vi.waitFor(() => expect(launchPids(bin)).toHaveLength(1))
+    s.kill()
+    await expect(loading).rejects.toThrow(/exited/)
+    expect(off).not.toHaveBeenCalled()
+    expect(s.cpuOnly).toBe(false)
+    expect(errors.mock.calls.flat().join(' ')).not.toMatch(/without the graphics card/)
+    errors.mockRestore()
+    await s.url()
+    expect(args()).not.toContain('-ng')
+  })
+
   // #76: a GTX 1050 Ti under Vulkan loaded fine but never answered; three relaunches on the card, then empty transcripts
   it('off a Mac, a server that hangs on the graphics card twice starts again without it, with its relaunches back', async () => {
     const bin = fakeBinary(0, ['wedge', 'wedge', 'ok'])
@@ -185,6 +204,14 @@ describe.skipIf(process.platform === 'win32')('whisper server', () => {
     try {
       await make(fakeBinary()).url()
       await vi.waitFor(() => expect(info.mock.calls.map((a) => a.join(' '))).toContain('ASR whisper-server runs on Vulkan0'))
+    } finally { info.mockRestore() }
+  })
+
+  it('says in the log which speech model it runs, and where (#107: a report could not tell)', async () => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {})
+    try {
+      await make(fakeBinary()).url()
+      expect(info.mock.calls.map((a) => a.join(' ')).some((l) => /^ASR whisper-server starts with \S+\.bin on the graphics card if it can$/.test(l))).toBe(true)
     } finally { info.mockRestore() }
   })
 

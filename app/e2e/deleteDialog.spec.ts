@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { motion } from '../src/renderer/src/motion'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
@@ -15,7 +16,7 @@ test('delete is centered over the whole workspace, traps focus safely and restor
     await page.reload()
     // Delete forever lives in the Trash: every meeting goes there first
     await page.evaluate(async () => { for (const c of await window.yogurt.meetings.cards({ limit: 10 })) await window.yogurt.meetings.trash(c.id) })
-    await page.getByTestId('nav-trash').click()
+    await openFromCorner(page, 'nav-trash')
     const opener = page.getByTestId('trash-delete')
     const modal = page.getByTestId('delete-confirm')
     const cancel = page.getByTestId('delete-cancel')

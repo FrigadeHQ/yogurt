@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import ICAL from 'ical.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createCalendarLinks } from '../src/main/calendarLink'
+import { CalendarTooBig } from '../src/main/calendarLink/get'
 
 const ics = (name: string) => `BEGIN:VCALENDAR\nVERSION:2.0\nX-WR-CALNAME:${name}\nBEGIN:VEVENT\nUID:a@example.com\nSUMMARY:Standup\nDTSTART:20261117T170000Z\nDTEND:20261117T171500Z\nEND:VEVENT\nEND:VCALENDAR\n`
 const dirs: string[] = []
@@ -45,6 +46,10 @@ describe('calendar links (Windows and Linux): a private calendar address, kept o
     expect(await rig(() => { throw new Error('offline') }).links.add('https://example.com/cal.ics')).toEqual({ ok: false, error: 'unreachable' })
     expect(await rig(() => '<html>Sign in</html>').links.add('https://example.com/cal.ics')).toEqual({ ok: false, error: 'not-calendar' })
   })
+  it('a calendar too big or too slow to read says so, and a network failure still says it could not be reached (#146)', async () => {
+    expect(await rig(() => { throw new CalendarTooBig() }).links.add('https://example.com/cal.ics')).toEqual({ ok: false, error: 'too-big' })
+    expect(await rig(() => { throw new TypeError('fetch failed') }).links.add('https://example.com/cal.ics')).toEqual({ ok: false, error: 'unreachable' })
+  })
   it("Google's public address says so when it fails (it works only for a public calendar), and works when the calendar is public", async () => {
     const pub = 'https://calendar.google.com/calendar/ical/alex%40example.com/public/basic.ics'
     expect(await rig(() => { throw new Error('404') }).links.add(pub)).toEqual({ ok: false, error: 'public-address' })
@@ -61,6 +66,39 @@ describe('calendar links (Windows and Linux): a private calendar address, kept o
     r.tick(5 * 60_000 + 1); fail = true
     expect((await r.links.events(...day)).map((e) => e.title)).toEqual(['Standup'])
     expect(r.fetched).toHaveLength(2)
+  })
+  it('distinguishes an unavailable cold feed from a successfully read empty day', async () => {
+    const r = rig(() => ics('Work'))
+    const added = await r.links.add('https://example.com/work.ics')
+    if (!added.ok) throw new Error('fixture did not connect')
+    const cold = createCalendarLinks({ file: r.file, get: async () => { throw new Error('offline') }, open: () => 'https://example.com/work.ics', seal: s => s })
+    const unavailable: string[] = []
+    const events = await cold.events(...day, unavailable)
+    expect(events).toEqual([])
+    expect(unavailable).toEqual(['Work'])
+  })
+  it('keeps cached and healthy meetings, skips hidden feeds, and clears the warning on recovery', async () => {
+    let offline = false
+    const r = rig(url => {
+      const name = url.endsWith('work.ics') ? 'Work' : 'Team'
+      if (offline && name === 'Work') throw new Error('offline')
+      return ics(name).replace('SUMMARY:Standup', 'SUMMARY:' + name)
+    })
+    const work = await r.links.add('https://example.com/work.ics')
+    await r.links.add('https://example.com/team.ics')
+    if (!work.ok) throw new Error('fixture did not connect')
+    r.tick(5 * 60_000 + 1)
+    offline = true
+    const unavailable: string[] = []
+    expect((await r.links.events(...day, unavailable)).map(e => e.title).sort()).toEqual(['Team', 'Work'])
+    expect(unavailable).toEqual(['Work'])
+    const hidden: string[] = []
+    expect((await r.links.events(...day, hidden, [work.id])).map(e => e.title)).toEqual(['Team'])
+    expect(hidden).toEqual([])
+    offline = false
+    const recovered: string[] = []
+    expect(await r.links.events(...day, recovered)).toHaveLength(2)
+    expect(recovered).toEqual([])
   })
   it('reading the calendar again and again (call detection, the agenda) reuses the parsed feed until it is fetched again', async () => {
     const r = rig(() => ics('Team'))

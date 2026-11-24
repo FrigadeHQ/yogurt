@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync, readFileSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
@@ -29,8 +30,17 @@ test('@everywhere on win32: the agenda sends you to Settings, a calendar link co
     await page.getByTestId('calendar-off').getByRole('button').click()
     const form = page.getByTestId('calendar-link-form')
     await expect(form).toBeVisible()
+    await expect(page.getByTestId('calendar-link-add')).toContainText('Add a calendar by link')
+    await expect(form.getByTestId('calendar-link-input')).toBeFocused()
+    await expect(page.getByText("Calendars from the Mac's Calendar app appear above automatically.", { exact: true })).toHaveCount(0)
     await expect(form.getByTestId('calendar-link-open')).toHaveAttribute('href', /calendar\.google\.com/)
     await form.getByTestId('calendar-link-provider-outlook').click()
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme })
+      const selected = form.getByRole('tab', { selected: true })
+      await expect(selected).toHaveCSS('background-color', colorScheme === 'dark' ? 'rgb(59, 59, 62)' : 'rgb(228, 228, 231)')
+      await expect(selected).toHaveCSS('color', colorScheme === 'dark' ? 'rgb(231, 230, 235)' : 'rgb(41, 41, 44)')
+    }
     await expect(form.getByTestId('calendar-link-open')).toHaveAttribute('href', /outlook\.office\.com/)
     // a page that isn't a calendar says so, and nothing is connected
     await form.getByTestId('calendar-link-input').fill(`${base}/page`)
@@ -40,12 +50,19 @@ test('@everywhere on win32: the agenda sends you to Settings, a calendar link co
     await form.getByTestId('calendar-link-connect').click()
     await expect(page.getByTestId('calendar-choice')).toHaveCount(1)
     await expect(page.getByTestId('calendar-choice')).toContainText('Team calendar')
+    await expect(page.getByTestId('calendar-disconnect-all')).toHaveCount(0)
+    const enabled = page.getByTestId('calendar-choice').getByRole('checkbox')
+    await enabled.uncheck()
+    await expect(enabled).not.toBeChecked()
+    await expect(enabled).toBeEnabled()
+    await enabled.check()
+    await expect(enabled).toBeChecked()
     // the address is kept, but never as written in the settings file
     expect(readFileSync(join(profile, 'settings.json'), 'utf8')).not.toContain('/cal.ics')
     await page.getByTestId('nav-back').click()
     await expect(page.getByTestId('event').filter({ hasText: 'Launch planning' })).toBeVisible()
     // removed: no calendar, and the form is back
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     await page.getByTestId('calendar-link-remove').click()
     await expect(page.getByTestId('calendar-link-form')).toBeVisible()
     await expect(page.getByTestId('calendar-choice')).toHaveCount(0)
@@ -71,13 +88,31 @@ test('@everywhere a Mac keeps its own calendar and can add a calendar link next 
   try {
     const page = await app.firstWindow()
     await expect(page.getByTestId('home')).toBeVisible({ timeout: 15_000 })
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     const settings = page.getByTestId('calendar-settings')
     if (await settings.getByTestId('calendar-settings-toggle').getAttribute('aria-expanded') !== 'true') await settings.getByTestId('calendar-settings-toggle').click()
+    await expect(settings.getByTestId('calendar-link-add')).toContainText('Add a calendar by link')
+    await expect(settings.getByTestId('calendar-link-add')).toContainText("Calendars from the Mac's Calendar app appear above automatically.")
+    await expect(settings.getByTestId('calendar-disconnect')).toHaveCount(0)
+    await expect(settings.getByTestId('calendar-disconnect-all')).toHaveCount(0)
     const before = await settings.getByTestId('calendar-choice').count()
     await settings.getByTestId('calendar-link-add').click()
     const form = settings.getByTestId('calendar-link-form')
     await expect(form.getByRole('tab')).toHaveCount(0)
+    await expect(form.getByTestId('calendar-link-input')).toBeFocused()
+    await form.getByTestId('calendar-link-input').fill('not an address')
+    await expect(form.getByTestId('calendar-link-connect')).toBeDisabled()
+    await settings.getByRole('heading', { name: 'Calendars' }).click()
+    await expect(form.getByTestId('calendar-link-error')).toBeVisible()
+    await form.getByTestId('calendar-link-cancel').click()
+    await expect(form).toBeHidden()
+    await expect(settings.getByTestId('calendar-link-add')).toBeFocused()
+    await settings.getByTestId('calendar-link-add').click()
+    await expect(form.getByTestId('calendar-link-input')).toHaveValue('not an address')
+    await form.getByTestId('calendar-link-input').press('Escape')
+    await expect(form).toBeHidden()
+    await expect(settings.getByTestId('calendar-link-add')).toBeFocused()
+    await settings.getByTestId('calendar-link-add').click()
     await form.getByTestId('calendar-link-input').fill(`${base}/cal.ics`)
     await form.getByTestId('calendar-link-connect').click()
     await expect(settings.getByTestId('calendar-choice')).toHaveCount(before + 1)
@@ -85,4 +120,26 @@ test('@everywhere a Mac keeps its own calendar and can add a calendar link next 
     // the Mac's own calendars have no Remove: they live in the Mac's Calendar app
     await expect(settings.getByTestId('calendar-link-remove')).toHaveCount(1)
   } finally { await app.close(); server.close() }
+})
+
+test('an unavailable source offers Retry without claiming the day is empty', async () => {
+  const app = await electron.launch({ args: [join(import.meta.dirname, '../out/main/index.js')], env: {
+    ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: mkdtempSync(join(tmpdir(), 'yogurt-feed-retry-')),
+  } })
+  try {
+    const page = await app.firstWindow()
+    const setUnavailable = (names: string[]) => app.evaluate(({ ipcMain }, unavailable) => {
+      ipcMain.removeHandler('calendar:day')
+      ipcMain.handle('calendar:day', () => ({ status: 'granted', events: [], unavailable }))
+    }, names)
+    await setUnavailable(['Team calendar'])
+    await page.reload()
+    const agenda = page.getByRole('complementary', { name: 'Agenda' })
+    await expect(agenda.getByRole('alert')).toContainText('Team calendar')
+    await expect(agenda.getByText('No meetings')).toHaveCount(0)
+    await setUnavailable([])
+    await agenda.getByRole('button', { name: 'Try again' }).click()
+    await expect(agenda.getByText('No meetings')).toBeVisible()
+    await expect(agenda.getByRole('alert')).toHaveCount(0)
+  } finally { await app.close() }
 })

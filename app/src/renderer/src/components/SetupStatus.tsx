@@ -1,4 +1,4 @@
-import { Check, LoaderCircle, Lock } from 'lucide-react'
+import { Check, LoaderCircle, Lock } from './Icons'
 import type { SetupState } from '../../../shared/types'
 import { language, t } from '../../../shared/i18n'
 import { osWords } from '../keys'

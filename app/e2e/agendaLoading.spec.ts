@@ -126,7 +126,7 @@ test('agenda uses each date once while preserving Today and Tomorrow labels', as
   } finally { await app.close() }
 })
 
-test('the compact calendar keeps its original type and geometry with a bright today in both themes', async () => {
+test('the compact calendar keeps its original type and geometry with distinct selected and current dates in both themes', async () => {
   const app = await electron.launch({ args: [join(import.meta.dirname, '../out/main/index.js')], env: {
     ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: mkdtempSync(join(tmpdir(), 'yogurt-agenda-states-')),
   } })
@@ -139,9 +139,21 @@ test('the compact calendar keeps its original type and geometry with a bright to
     const week = page.locator('.agenda-week')
     for (const colorScheme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' })
+      const accent = colorScheme === 'light' ? 'rgb(111, 0, 255)' : 'rgb(183, 128, 255)'
+      const fill = 'rgb(111, 0, 255)', white = 'rgb(255, 255, 255)'
+      for (const id of ['new-note', 'recording-choices']) {
+        const control = page.getByTestId(id)
+        await expect(control).toHaveCSS('background-color', fill)
+        await expect(control).toHaveCSS('color', white)
+        await expect(control.locator('svg')).toHaveCSS('stroke', white)
+      }
+      const selectedFill = colorScheme === 'dark' ? 'rgb(59, 59, 62)' : 'rgb(228, 228, 231)'
+      const ink = colorScheme === 'dark' ? 'rgb(231, 230, 235)' : 'rgb(41, 41, 44)'
       const today = week.locator('[aria-current=date]')
-      await expect(today.locator('b')).toHaveCSS('background-color', 'rgb(111, 0, 255)')
-      await expect(today.locator('b')).toHaveCSS('color', 'rgb(255, 255, 255)')
+      await today.click()
+      await expect(today.locator('b')).toHaveCSS('background-color', selectedFill)
+      await expect(today.locator('b')).toHaveCSS('color', ink)
+      await expect(today.locator('b')).toHaveCSS('border-color', accent)
       await expect(today.locator('b')).toHaveCSS('font-size', '11px')
       await expect(today.locator('b')).toHaveCSS('width', '26px')
       await expect(today.locator('b')).toHaveCSS('height', '26px')
@@ -152,13 +164,18 @@ test('the compact calendar keeps its original type and geometry with a bright to
       await expect(page.locator('.agenda-day > span')).toHaveCSS('font-weight', '400')
       const other = week.locator('button:not([aria-current=date])').first()
       await other.focus()
+      await page.keyboard.press('Tab')
+      await page.keyboard.press('Shift+Tab')
+      await expect(other).toBeFocused()
       await page.keyboard.press('Space')
       await expect(other).toHaveAttribute('aria-pressed', 'true')
       await expect(today).toHaveAttribute('aria-pressed', 'false')
-      await expect(today.locator('b')).toHaveCSS('background-color', 'rgb(111, 0, 255)')
+      await expect(today.locator('b')).toHaveCSS('border-color', accent)
       await today.hover()
-      await expect(today.locator('b')).toHaveCSS('background-color', 'rgb(111, 0, 255)')
-      await expect(other.locator('b')).toHaveCSS('background-color', colorScheme === 'light' ? 'rgb(241, 230, 255)' : 'rgb(44, 22, 74)')
+      await expect(today.locator('b')).toHaveCSS('color', accent)
+      await expect(today.locator('b')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+      await expect(other.locator('b')).toHaveCSS('background-color', selectedFill)
+      await expect(other.locator('b')).toHaveCSS('color', ink)
       await expect(other).toHaveCSS('outline-style', 'solid')
       await expect(other).toHaveCSS('outline-width', '2px')
       // Logical order and hit targets stay within the compact calendar in either direction.
@@ -177,5 +194,21 @@ test('the compact calendar keeps its original type and geometry with a bright to
       await expect(today).toHaveAttribute('aria-pressed', 'true')
       await expect(page.locator('.agenda-day h3')).toHaveText('Today')
     }
+  } finally { await app.close() }
+})
+
+test('a narrow agenda can scroll the header and the last event into view', async () => {
+  const app = await electron.launch({ args: [join(import.meta.dirname, '../out/main/index.js')], env: { ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: mkdtempSync(join(tmpdir(), 'yogurt-agenda-width-')) } })
+  try {
+    const page = await app.firstWindow()
+    await seedAgendaAtNoon(app, page)
+    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.setZoomFactor(2))
+    const agenda = page.getByRole('complementary', { name: 'Agenda' })
+    await expect(agenda).toHaveCSS('overflow-y', 'auto')
+    const event = agenda.getByTestId('event').last()
+    await event.scrollIntoViewIfNeeded()
+    await expect(event).toBeInViewport()
+    await agenda.getByRole('button', { name: 'Today' }).scrollIntoViewIfNeeded()
+    await expect(agenda.getByRole('button', { name: 'Today' })).toBeInViewport()
   } finally { await app.close() }
 })

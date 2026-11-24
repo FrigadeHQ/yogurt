@@ -1,9 +1,11 @@
+import { useDialogFocus } from '../useDialogFocus'
+import { InlineError } from './InlineError'
 import { Dialog } from '@animate-ui/react/primitives/base-ui/dialog'
 import { MotionPopup } from './MotionPopup'
 import { motion } from '../motion'
 import { FolderGlyph } from './FolderAppearance'
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { AudioLines, CalendarDays, FileText, FolderIcon, Keyboard, LogIn, MessageCircle, Monitor, Moon, PanelLeft, Settings, Sun, Trash2, UserRound, X } from 'lucide-react'
+import { AudioLines, CalendarDays, FileText, Folder as FolderIcon, Keyboard, LogIn, MessageCircle, Monitor, Moon, PanelLeft, Settings, Sun, Trash2, UserRound, X } from './Icons'
 import type { SearchResult, SnippetPart, Folder, Person } from '../../../shared/types'
 import { t, language } from '../../../shared/i18n'
 import { command, keys, osWords } from '../keys'
@@ -60,6 +62,8 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
     const off = window.yogurt.meetings.onChange(load)
     return () => { live = false; off() }
   }, [])
+  const [queryFailed, setQueryFailed] = useState(false)
+  const retry = useRef<() => void>(() => {})
   const seq = useRef(0)
   const list = useRef<HTMLUListElement>(null)
   const scrollSelection = useRef(false)
@@ -71,20 +75,24 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
   }
 
   useEffect(() => {
-    const mine = ++seq.current
-    const run = () => void window.yogurt.search.query(q, scope?.id, selectedPeople).then((list) => {
-      // an answer to an older question never replaces a newer one
-      if (mine !== seq.current) return
-      setResults({ q, scopeId: scope?.id, peopleKey, list }); setActive(null)
-    })
-    if (!q.trim()) { run(); return }
-    const timer = setTimeout(run, DEBOUNCE_MS)
+    const scheduled = ++seq.current
+    setQueryFailed(false)
+    const run = (request: number) => {
+      // Enter or Retry can supersede this read before the debounce fires.
+      if (request !== seq.current) return
+      void window.yogurt.search.query(q, scope?.id, selectedPeople).then(list => {
+        if (request !== seq.current) return
+        setQueryFailed(false); setResults({ q, scopeId: scope?.id, peopleKey, list }); setActive(null)
+      }, () => { if (request === seq.current) setQueryFailed(true) })
+    }
+    retry.current = () => run(++seq.current)
+    if (!q.trim()) { run(scheduled); return }
+    const timer = setTimeout(() => run(scheduled), DEBOUNCE_MS)
     return () => clearTimeout(timer)
   }, [q, scope, peopleKey, people, searchOptions.language, searchOptions.locale])
 
-  // focus goes back where it was when search closes: read during the first render, before the input takes it
-  const [before] = useState(() => document.activeElement as HTMLElement | null)
-  useEffect(() => () => { seq.current++; if (before?.isConnected) before.focus({ preventScroll: true }) }, [before])
+  const { popupRef } = useDialogFocus()
+  useEffect(() => () => { seq.current++ }, [])
   const input = useRef<HTMLInputElement>(null)
   const highlight = useRef<HTMLDivElement>(null)
   const syncHighlight = () => { if (highlight.current && input.current) highlight.current.scrollLeft = input.current.scrollLeft }
@@ -111,7 +119,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
     { id: 'theme-system', synonyms: ['theme', 'appearance', 'mode', 'system'], label: osWords({ mac: t('Match my Mac'), windows: t('Match Windows'), linux: t('Match my system') }), group: t('Appearance'), Icon: Monitor, run: () => settingsAction(() => window.yogurt.settings.setTheme('system')) },
     ...(prefs ? [
       { id: 'login', label: prefs.openAtLogin ? t('Turn off open at login') : t('Open Yogurt at login'), group: t('Settings'), Icon: LogIn, run: () => settingsAction(() => window.yogurt.settings.setOpenAtLogin(!prefs.openAtLogin)) },
-      { id: 'auto-stop', label: prefs.stopWhenCallEnds ? t('Keep recording when the call ends') : t('Finish recording when the call ends'), group: t('Settings'), Icon: AudioLines, run: () => settingsAction(() => window.yogurt.settings.setStopWhenCallEnds(!prefs.stopWhenCallEnds)) },
+      { id: 'auto-stop', label: prefs.stopWhenCallEnds ? t('Keep recording when the call ends') : t('Stop recording when the call ends'), group: t('Settings'), Icon: AudioLines, run: () => settingsAction(() => window.yogurt.settings.setStopWhenCallEnds(!prefs.stopWhenCallEnds)) },
     ] : []),
   ].filter((c) => !c.id.startsWith('theme-') || !!prefs)
   const suggestions = matchSearchPeople(typed, people, chosenPeople, searchOptions).suggestions.slice(0, 5)
@@ -158,7 +166,8 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
       const id = await window.yogurt.conversations.current(scope ? [{ kind: 'folder', id: scope.id }] : [], true)
       const sent = await window.yogurt.conversations.ask(id, query)
       if (!sent) throw new Error('Question was not saved')
-      onNavigate(`/chat/${sent}`); setOpen(false)
+      if (typeof sent !== 'string') await window.yogurt.conversations.draft(id, query)
+      onNavigate(`/chat/${typeof sent === 'string' ? sent : id}`); setOpen(false)
     } catch { setError(true); setRunning(false) }
   }
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -181,6 +190,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
   const enter = () => {
     if (selected?.kind === 'person') { pickPerson(selected); return }
     if (selected?.kind === 'ask' && active !== null) { void ask(selected.query); return }
+    if (queryFailed && q.trim()) { void ask(q.trim()); return }
     if (settled) {
       if (selected?.kind === 'ask') void ask(selected.query)
       else if (selected?.kind === 'meeting') onOpen(selected.meeting.meetingId)
@@ -195,15 +205,15 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
       if (first?.kind === 'ask') void ask(first.query)
       else if (first?.kind === 'meeting') onOpen(first.meeting.meetingId)
       else if (first?.kind === 'command') void runCommand(first.command)
-      else { setResults({ q, scopeId: scope?.id, peopleKey, list }); setActive(null) }
-    })
+      else { setQueryFailed(false); setResults({ q, scopeId: scope?.id, peopleKey, list }); setActive(null) }
+    }).catch(() => { if (mine === seq.current) setQueryFailed(true) })
   }
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
     <Dialog.Portal keepMounted>
       <Dialog.Backdrop className="search-backdrop no-drag fixed inset-0 z-[100]" transition={{ ease: motion.out, duration: motion.micro / 1000 }} exitTransition={{ ease: motion.out, duration: motion.micro / 1000 }} />
-      <MotionPopup initialFocus={input} finalFocus={() => before} data-testid="search" role="dialog" aria-modal="true" aria-label={t('Search and commands')} onKeyDown={onKeyDown}
+      <MotionPopup ref={popupRef} initialFocus={input} finalFocus={false} data-testid="search" role="dialog" aria-modal="true" aria-label={t('Search and commands')} onKeyDown={onKeyDown}
         // a click anywhere in the panel keeps typing, arrows and Esc in the search box
         onMouseDown={(e) => { if (e.target !== input.current) { e.preventDefault(); input.current?.focus() } }}
         className="search-panel flex max-h-[74vh] w-full max-w-[640px] flex-col overflow-hidden rounded-2xl border border-line bg-float">
@@ -227,23 +237,30 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
               <button data-testid="search-scope-clear" onClick={() => { setScope(undefined); input.current?.focus() }} aria-label={t('Search all meetings')} title={t('Search all meetings')}><X size={13} aria-hidden="true" /></button>
             </span>}
             {selectedPeople.map(person => <span key={searchPersonKey(person)} data-testid="search-person-filter" className="search-filter">
-              <UserRound size={14} strokeWidth={1.75} aria-hidden="true" /><span className="truncate" title={person.email || person.name}>{person.name || person.email}</span>
+              <UserRound size={14} aria-hidden="true" /><span className="truncate" title={person.email || person.name}>{person.name || person.email}</span>
               <button onClick={() => clearPerson(person)} aria-label={t('Remove {name}', { name: person.name || person.email || '' })}><X size={13} aria-hidden="true" /></button>
             </span>)}
             {dateLabel && <span data-testid="search-date" className="search-filter">
-              <CalendarDays size={14} strokeWidth={1.75} aria-hidden="true" /><span className="truncate" title={dateLabel}>{dateLabel}</span>
+              <CalendarDays size={14} aria-hidden="true" /><span className="truncate" title={dateLabel}>{dateLabel}</span>
               <button data-testid="search-date-clear" onClick={clearDate} aria-label={t('Remove {name}', { name: dateLabel })}><X size={13} aria-hidden="true" /></button>
             </span>}
           </div>}
         </div>
-        <ul ref={list} id="search-results" role="listbox" aria-label={t('Results')} aria-busy={running || !settled} className="min-h-0 flex-1 overflow-y-auto [overflow-anchor:none] px-2 pb-2">
+        {queryFailed && <InlineError testId="search-read-error"><span>{t("Couldn't load this content.")}</span>
+          <div className="inline-error-actions">
+            <button type="button" data-testid="search-retry" className="workspace-button" onClick={() => retry.current()}>{t('Try again')}</button>
+            {!!q.trim() && <button type="button" className="workspace-button" onClick={() => void ask(q.trim())}>{t('Ask')}</button>}
+          </div>
+        </InlineError>}
+        {queryFailed && results && <p className="px-5 text-xs text-muted">{t('Previous results')}{typed && ' · ' + typed}</p>}
+        <ul ref={list} id="search-results" role="listbox" aria-label={t('Results')} aria-busy={running || !settled && !queryFailed} className="min-h-0 flex-1 overflow-y-auto [overflow-anchor:none] px-2 pb-2 scroll-pb-2">
           {rows.map((row, i) => {
             const previous = rows[i - 1]
             if (row.kind === 'ask') return <Fragment key="ask">
               <li role="presentation" className="command-section">{t('Ask')}</li>
               <li id="search-ask" data-testid="search-ask" role="option" aria-selected={activeIndex === i} aria-disabled={running}
                 onMouseMove={(e) => hover(e, i)} onClick={() => void ask(row.query)} className="search-row command-row">
-                <MessageCircle size={16} strokeWidth={1.75} aria-hidden="true" />
+                <MessageCircle size={16} aria-hidden="true" />
                 <span className="shrink-0">{t('Ask Yogurt')}</span><span className="command-label truncate text-muted">{row.query}</span>
                 <kbd className="search-key search-return" aria-hidden="true">↵</kbd>
               </li>
@@ -252,7 +269,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
               {previous?.kind !== 'person' && <li role="presentation" className="command-section">{t('People')}</li>}
               <li id={`search-person-${encodeURIComponent(searchPersonKey(row.person))}`} data-testid="search-person" role="option" aria-selected={activeIndex === i}
                 onMouseMove={(e) => hover(e, i)} onClick={() => pickPerson(row)} className="search-row command-row">
-                <UserRound size={16} strokeWidth={1.75} aria-hidden="true" />
+                <UserRound size={16} aria-hidden="true" />
                 <span className="command-label">{t('Meetings with {name}', { name: row.person.name || row.person.email || '' })}</span>
                 {row.person.email && <span className="search-metadata truncate">{row.person.email}</span>}
                 <kbd className="search-key search-return" aria-hidden="true">↵</kbd>
@@ -267,7 +284,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
                   onMouseMove={(e) => hover(e, i)} onClick={() => onOpen(r.meetingId)}
                   className="search-row search-meeting"
                 >
-                  <FileText size={16} strokeWidth={1.75} aria-hidden="true" />
+                  <FileText size={16} aria-hidden="true" />
                   <span className="min-w-0 flex-1">
                     <span data-testid="search-result-title" className="block truncate text-sm font-medium leading-5"><Marked parts={markWords(r.title, typed)} /></span>
                     {typed && r.parts.length > 0 && <span className="mt-0.5 line-clamp-1 text-xs leading-5 text-muted"><Marked parts={r.parts} /></span>}
@@ -283,7 +300,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
               {(previous?.kind !== 'command' || previous.command.group !== c.group) && <p className="command-section">{c.group}</p>}
               <div id={`command-${c.id}`} data-testid={`command-${c.id}`} role="option" aria-selected={activeIndex === i} aria-current={current || undefined} aria-disabled={running}
                 onMouseMove={(e) => hover(e, i)} onClick={() => void runCommand(c)} className="search-row command-row">
-                {'folder' in c ? <FolderGlyph appearance={c.folder} /> : <c.Icon size={16} strokeWidth={1.75} aria-hidden="true" />}
+                {'folder' in c ? <FolderGlyph appearance={c.folder} /> : <c.Icon size={16} aria-hidden="true" />}
                 <span className="command-label">{c.label}{current && <span aria-hidden="true"> ✓</span>}</span>{'shortcut' in c && <kbd className="search-key search-shortcut">{c.shortcut}</kbd>}
                 <kbd className="search-key search-return" aria-hidden="true">↵</kbd>
               </div>
@@ -292,7 +309,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
         {settled && filtered && !items.length && <li role="presentation" data-testid="search-filter-empty" className="px-5 py-8 text-center text-sm text-muted">
           {searchFilterEmptyMessage(selectedPeople, dateLabel)}
         </li>}
-        {results && !count && !filtered && (
+        {!queryFailed && results && !count && !filtered && (
           <li role="presentation" data-testid="search-none" className="flex h-full items-center justify-center px-5 py-8 text-center text-sm text-muted">
             {scope ? t('No meetings in this folder yet.') : t('No notes yet.')}
           </li>

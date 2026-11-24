@@ -1,3 +1,4 @@
+import { meterHeights } from './meterGeometry'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -10,10 +11,21 @@ test('recording controls stay in the header and Ask lives in the footer with sta
   try {
     const page = await app.firstWindow()
     await expect(page.getByTestId('home')).toBeVisible()
-    await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
+    const reminder = page.getByTestId('recording-reminder')
+    await reminder.hover()
+    await expect.poll(() => reminder.evaluate(el => {
+      const footer = document.querySelector('.note-footer-bar')
+      return !!footer && footer.getBoundingClientRect().bottom + 8 <= el.getBoundingClientRect().top
+    })).toBe(true)
+    await reminder.getByRole('button', { name: 'Close', exact: true }).click()
+    await expect(page.locator('.note-footer')).toHaveCSS('margin-block-end', '0px')
     await expect(page.getByTestId('note-notes-tab')).toHaveAttribute('aria-selected', 'true')
     await page.getByTestId('note-transcript-toggle').click()
     const header = page.locator('.note-header'), controls = header.getByTestId('note-state')
+    await expect(header.getByTestId('note-elapsed')).toHaveAccessibleName('Recorded time')
+    await expect(header.getByTestId('note-elapsed')).toBeVisible()
+    await expect(controls.locator('time, [data-testid="note-wave"]')).toHaveCount(0)
     await expect(controls).toHaveAccessibleName('Recording')
     await expect(controls.getByTestId('note-pause')).toBeVisible()
     await expect(controls.getByTestId('note-stop')).toBeVisible()
@@ -22,11 +34,12 @@ test('recording controls stay in the header and Ask lives in the footer with sta
     await expect(controls.getByTestId('note-stop')).toHaveCSS('border-top-width', '0px')
     await expect(header.getByTestId('chat-open')).toHaveCount(0)
     await expect(page.locator('.note-footer').getByTestId('chat-open')).toContainText('⌘J')
-    const brand = (await page.locator('.workspace-brand').boundingBox())!
+    await expect(header.getByTestId('note-elapsed')).toMatchAriaSnapshot(String.raw`- timer "Recorded time": /^(?:\d+:)?\d+:\d{2}$/`)
+    const corner = (await page.locator('.workspace-corner').boundingBox())!
     const footer = (await page.locator('.note-footer-bar').boundingBox())!
     const content = (await page.locator('.workspace-content').boundingBox())!
-    expect(Math.abs(footer.y - brand.y)).toBeLessThan(1)
-    expect(Math.abs(footer.height - brand.height)).toBeLessThan(1)
+    expect(Math.abs(footer.y - corner.y)).toBeLessThan(1)
+    expect(Math.abs(footer.height - corner.height)).toBeLessThan(1)
     expect(Math.abs(footer.x - content.x)).toBeLessThan(1)
     expect(Math.abs(footer.width - content.width)).toBeLessThan(1)
     await expect.poll(async () => Number(await page.getByTestId('note-wave').getAttribute('data-level')), { timeout: 15_000 }).toBeGreaterThan(0.05)
@@ -39,19 +52,28 @@ test('recording controls stay in the header and Ask lives in the footer with sta
           gap: bar.top - reading.bottom, masked: [el, el.parentElement!].some(node => getComputedStyle(node).maskImage !== 'none') }
       })
       expect(edges).toEqual({ left: 0, right: 0, bottom: 0, gap: 0, masked: false })
-      const finishStyle = await page.getByTestId('note-stop').evaluate(el => ({ background: getComputedStyle(el).backgroundColor, color: getComputedStyle(el).color }))
-      expect(finishStyle.background).not.toBe(await page.getByTestId('note-pause').evaluate(el => getComputedStyle(el).backgroundColor))
-      expect(finishStyle.color).not.toBe(finishStyle.background)
+      const stopStyle = await page.getByTestId('note-stop').evaluate(el => ({ background: getComputedStyle(el).backgroundColor, color: getComputedStyle(el).color }))
+      expect(stopStyle.background).toBe(await page.getByTestId('note-pause').evaluate(el => getComputedStyle(el).backgroundColor))
+      expect(stopStyle.color).not.toBe(stopStyle.background)
       const groupBox = (await controls.boundingBox())!, capBox = (await page.getByTestId('note-stop').boundingBox())!
-      expect(capBox.y).toBe(groupBox.y)
-      expect(capBox.height).toBe(groupBox.height)
+      expect(capBox.y).toBe(groupBox.y + 1)
+      expect(capBox.height).toBe(groupBox.height - 2)
       const rtl = await controls.evaluate(el => getComputedStyle(el).direction === 'rtl')
-      expect(rtl ? capBox.x : capBox.x + capBox.width).toBe(rtl ? groupBox.x : groupBox.x + groupBox.width)
+      expect(rtl ? capBox.x : capBox.x + capBox.width).toBe(rtl ? groupBox.x + 1 : groupBox.x + groupBox.width - 1)
       for (const dir of ['ltr', 'rtl']) {
         await page.evaluate((direction) => document.documentElement.dir = direction, dir)
         await page.setViewportSize({ width: 720, height: 520 })
         await expect.poll(() => page.evaluate(() => innerWidth)).toBe(720)
         await expect(page.getByTestId('workspace')).toHaveClass(/sidebar-collapsed/)
+        const gaps = await page.getByTestId('rec-bar').evaluate(bar => {
+          const digits = document.createRange()
+          digits.selectNodeContents(bar.querySelector('time')!)
+          const [left, middle, right] = [bar.querySelector('[data-testid="note-wave"]')!.getBoundingClientRect(),
+            digits.getBoundingClientRect(), bar.querySelector('[data-testid="note-state"]')!.getBoundingClientRect()]
+            .sort((a, b) => a.left - b.left)
+          return [Math.round(middle.left - left.right), Math.round(right.left - middle.right)]
+        })
+        expect(gaps).toEqual([8, 8])
         const targets = [page.getByTestId('note-pause'), page.getByTestId('note-stop'), page.getByTestId('chat-open'), page.getByTestId('note-transcript-toggle'), page.getByTestId('note-notes-tab')]
         const width = await page.evaluate(() => innerWidth)
         for (const target of targets) {
@@ -85,9 +107,10 @@ test('recording controls stay in the header and Ask lives in the footer with sta
     await expect(page.getByTestId('note-pause')).toHaveAccessibleName('Resume recording')
     await expect(controls).toHaveAccessibleName('Paused')
     expect(Math.abs((await controls.boundingBox())!.width - recordingWidth)).toBeLessThan(1)
-    const pausedWave = await page.getByTestId('note-wave').evaluate(el => (el as HTMLCanvasElement).toDataURL())
+    const pausedWave = await meterHeights(page.getByTestId('note-wave'))
+    expect(pausedWave.map(Math.round)).toEqual([3, 3, 3, 3, 3])
     await page.waitForTimeout(150)
-    expect(await page.getByTestId('note-wave').evaluate(el => (el as HTMLCanvasElement).toDataURL())).toBe(pausedWave)
+    expect(await meterHeights(page.getByTestId('note-wave'))).toEqual(pausedWave)
     await page.getByTestId('note-pause').focus()
     await page.keyboard.press('Tab')
     await expect(page.getByTestId('note-stop')).toBeFocused()

@@ -102,6 +102,18 @@ describe('conversations across meetings', () => {
     expect(t.chats.list()).toHaveLength(1)
   })
 
+  it('a follow-up that names no meeting stays on the meetings the answer before used', async () => {
+    const t = await rig()
+    const wedding = t.store.createMeeting({ title: 'Wedding plans', startedAt: now - 3_600_000, endedAt: now, eventId: null, app: null, attendees: [{ name: 'Dee Ray', email: null }], state: 'done' })
+    t.store.addSegments([{ meetingId: wedding.id, track: 'them', startMs: 1000, endMs: 2000, text: 'The tasting went really well.', speaker: 'Dee Ray' }])
+    await t.deps.indexer.schedule()
+    const first = t.chats.ask(null, 'What did Tarun say about the price?')
+    await first.done
+    await t.chats.ask(first.id, "that's the call! how did you think it went?").done
+    expect(t.prompts[1]).toContain('Meeting: Pricing call')
+    expect(t.prompts[1]).not.toContain('Wedding plans')
+  })
+
   it('rename and delete; the list is newest first', async () => {
     const t = await rig()
     const a = t.chats.ask(null, 'First?'); await a.done
@@ -358,5 +370,32 @@ describe('questions waiting for the first notes download', () => {
     expect(resumed.view(other)?.turns[0].status).toBe('stopped')
     ready = true; queue.modelArrived()
     expect(t.prompts).toEqual([])
+  })
+})
+
+describe('one question from another app (askOnce)', () => {
+  it('answers across meetings with the sources it cites, and keeps no conversation in Ask', async () => {
+    const t = await rig()
+    const got = await t.chats.askOnce('What did Tarun say about the price?', [])
+    expect(got).toEqual({ answer: 'It is **twenty dollars** a seat [1].', sources: [expect.objectContaining({ n: 1, meetingId: t.meeting.id, title: 'Pricing call', atMs: 724_000 })] })
+    expect(t.chats.list()).toEqual([])
+    expect(t.library.conversations()).toEqual([])
+  })
+  it('reads only the meetings it is given', async () => {
+    const t = await rig()
+    const folder = t.store.createFolder('Project')
+    await t.chats.askOnce('What was decided?', [{ kind: 'folder', id: folder.id }])
+    expect(t.prompts[0]).not.toContain('Twenty dollars a seat')
+  })
+  it('says the notes model is not ready instead of waiting for it', async () => {
+    const t = await rig({ waitsForModel: () => true })
+    expect(await t.chats.askOnce('What did Tarun say?', [])).toEqual({ unavailable: 'model' })
+    expect(t.prompts).toEqual([])
+    expect(t.library.conversations()).toEqual([])
+  })
+  it('stops an answer that takes too long and gives what was written', async () => {
+    const t = await rig({ llm: { chat: (_p, onToken) => new Promise(() => { onToken('Twenty ') }) } })
+    const got = await t.chats.askOnce('What did Tarun say?', [], { timeoutMs: 50 })
+    expect(got).toMatchObject({ answer: 'Twenty', stopped: true })
   })
 })

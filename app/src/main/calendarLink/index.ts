@@ -1,6 +1,9 @@
+import { calendarAddress as normalize } from '../../shared/calendarLink'
+export { normalize }
 import { randomUUID } from 'node:crypto'
 import { loadSettings, updateSettings } from '../settings'
-import { icsFeed, icsName, type IcsFeed, type RawEvent } from './ics'
+import { CalendarTooBig } from './get'
+import { icsFeed, type IcsFeed, type RawEvent } from './ics'
 
 /**
  * Calendar links: Windows and Linux have no system calendar Yogurt can read, so the person pastes their calendar's
@@ -9,21 +12,13 @@ import { icsFeed, icsName, type IcsFeed, type RawEvent } from './ics'
  * come out in the Mac helper's shape, so the agenda, call detection and attendees work as on a Mac (calendar.ts).
  */
 
-export type LinkError = 'bad-url' | 'unreachable' | 'not-calendar' | 'public-address'
+export type LinkError = 'bad-url' | 'unreachable' | 'not-calendar' | 'public-address' | 'too-big'
 export type AddResult = { ok: true; id: string; name: string } | { ok: false; error: LinkError }
 type Stored = { id: string; name: string; host: string; url: string }
 
 /** how long a fetched feed is used before asking for it again */
 export const REFRESH_MS = 5 * 60_000
 
-/** https (webcal is the same address), or plain http only on this computer (tests) */
-export function normalize(raw: string): URL | null {
-  let url: URL
-  try { url = new URL(raw.trim().replace(/^webcals?:\/\//i, 'https://')) } catch { return null }
-  if (url.protocol === 'https:') return url
-  if (url.protocol === 'http:' && ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)) return url
-  return null
-}
 
 export function createCalendarLinks(d: {
   file: string
@@ -40,12 +35,15 @@ export function createCalendarLinks(d: {
   const urlOf = (l: Stored) => { try { return d.open(l.url) } catch { return null } }
 
   /** the feed's text: the cached copy for five minutes, a fresh one after, the last good copy when that fails */
-  async function feed(l: Stored): Promise<IcsFeed | null> {
+  async function feed(l: Stored, unavailable?: string[]): Promise<IcsFeed | null> {
     const hit = cache.get(l.id)
     const parsed = (c: { text: string; feed?: IcsFeed }) => (c.feed ??= icsFeed(c.text, { id: l.id, name: l.name }))
     if (hit && now() - hit.at < REFRESH_MS) return parsed(hit)
     const url = urlOf(l)
-    const last = () => (hit ? parsed(hit) : null)
+    const last = () => {
+      unavailable?.push(l.name)
+      return hit ? parsed(hit) : null
+    }
     if (!url) return last()
     try {
       const t = await d.get(url)
@@ -68,14 +66,20 @@ export function createCalendarLinks(d: {
       // Google's public address only answers for a public calendar; work accounts often have no secret one to use instead
       const publicGoogle = url.hostname === 'calendar.google.com' && /\/public\/[^/]*\.ics$/i.test(url.pathname)
       let t: string
-      try { t = await d.get(url.toString()) } catch { return { ok: false, error: publicGoogle ? 'public-address' : 'unreachable' } }
-      let name: string | null
-      try { name = icsName(t).name } catch { return { ok: false, error: publicGoogle ? 'public-address' : 'not-calendar' } }
+      try { t = await d.get(url.toString()) } catch (e) {
+        // reached, but more than Yogurt reads (#146): saying it couldn't be reached sent people checking their connection
+        if (e instanceof CalendarTooBig) return { ok: false, error: 'too-big' }
+        return { ok: false, error: publicGoogle ? 'public-address' : 'unreachable' }
+      }
       const id = randomUUID()
+      // parsed once here, and kept: a feed with years of history takes a moment to read
+      const ref = { id, name: '' }
+      let f: IcsFeed
+      try { f = icsFeed(t, ref) } catch { return { ok: false, error: publicGoogle ? 'public-address' : 'not-calendar' } }
       const host = url.hostname
-      const label = name ?? host
+      const label = ref.name = f.name ?? host
       updateSettings(d.file, { calendarLinks: [...stored(), { id, name: label, host, url: d.seal(url.toString()) }] })
-      cache.set(id, { text: t, at: now() })
+      cache.set(id, { text: t, at: now(), feed: f })
       return { ok: true, id, name: label }
     },
     remove(id: string) {
@@ -85,12 +89,12 @@ export function createCalendarLinks(d: {
     /** one per link, as calendar.ts's calendars() gives the Mac's */
     async calendars() { return stored().map((l) => ({ id: l.id, name: l.name, source: l.host })) },
     /** every link's events between two times; a link that can't be read gives none, never an error */
-    async events(fromMs: number, toMs: number): Promise<RawEvent[]> {
-      const all = await Promise.all(stored().map(async (l) => {
+    async events(fromMs: number, toMs: number, unavailable?: string[], hidden: string[] = []): Promise<RawEvent[]> {
+      const all = await Promise.all(stored().filter(l => !hidden.includes(l.id)).map(async (l) => {
         try {
-          const f = await feed(l)
+          const f = await feed(l, unavailable)
           return f ? f.events(fromMs, toMs) : []
-        } catch { return [] }
+        } catch { unavailable?.push(l.name); return [] }
       }))
       return all.flat()
     },

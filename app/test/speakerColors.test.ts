@@ -22,9 +22,18 @@ it('uses the seven folder inks on the note and always-dark preview', async () =>
   const css = readFileSync(new URL('../src/renderer/src/workspace.css', import.meta.url), 'utf8')
   expect(SPEAKER_COLORS).toEqual(['violet', 'blue', 'teal', 'green', 'amber', 'orange', 'rose'])
   const inks = [...css.matchAll(/\[data-folder-color=(\w+)\] \{ --folder-ink:light-dark\((#[\dA-F]{6}),(#[\dA-F]{6})\); \}/g)]
-  expect(inks.map(m => m[1])).toEqual(SPEAKER_COLORS)
+  expect(css).toContain('[data-folder-color=violet] { --folder-ink:var(--accent); }')
+  expect(['violet', ...inks.map(m => m[1])]).toEqual(SPEAKER_COLORS)
   expect(css).toContain('.widget [data-folder-color] { color-scheme:dark; }')
-  const palettes = [inks.map(m => m[2]), inks.map(m => m[3])]
+  const theme = readFileSync(new URL('../src/renderer/src/styles.css', import.meta.url), 'utf8')
+  const accents = [...theme.matchAll(/--accent: (#[\dA-F]{6});/g)].map(match => match[1])
+  expect(accents).toEqual(['#6F00FF', '#B780FF'])
+  expect(theme).toContain('.line-who[data-folder-color=violet] { background:var(--bg)')
+  // The charcoal recorder's names sit straight on the pill, never on a white chip.
+  expect(theme).not.toMatch(/widget-preview-speaker[^{]*\{[^}]*background/)
+  const violetBackgrounds = [...theme.matchAll(/--bg: (#[\dA-F]{6});/g)].map(match => match[1])
+  expect(violetBackgrounds).toEqual(['#FFFFFF', '#18191D', '#FFFFFF', '#1B1B1D'])
+  const palettes = accents.map((accent, i) => [accent, ...inks.map(m => m[i + 2])])
   const luminance = (hex: string) => {
     const rgb = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(c => c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4)
     return rgb[0] * .2126 + rgb[1] * .7152 + rgb[2] * .0722
@@ -33,9 +42,12 @@ it('uses the seven folder inks on the note and always-dark preview', async () =>
   for (const [i, palette] of palettes.entries()) {
     expect(palette).toHaveLength(7)
     // Names sit outside bubbles: note canvas and a lighter worst-case dark preview.
-    for (const bg of i === 0 ? ['#FFFFFF'] : ['#242426', '#333335', '#39393C']) for (const colour of palette) {
-      const a = luminance(colour), b = luminance(bg)
-      expect((Math.max(a, b) + .05) / (Math.min(a, b) + .05), `${colour} on ${bg}`).toBeGreaterThanOrEqual(4.5)
+    const surfaces = i === 0 ? ['#FFFFFF'] : ['#242426', '#333335', '#39393C']
+    for (const [index, colour] of palette.entries()) {
+      for (const background of index === 0 ? [violetBackgrounds[i], violetBackgrounds[i + 2]] : surfaces) {
+        const a = luminance(colour), b = luminance(background)
+        expect((Math.max(a, b) + .05) / (Math.min(a, b) + .05), `${colour} on ${background}`).toBeGreaterThanOrEqual(4.5)
+      }
     }
   }
 })

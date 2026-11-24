@@ -1,3 +1,6 @@
+import { importPhoneRecording } from './companion/phoneImport'
+import { loadWindowState, placeWindow, saveWindowState } from './windowState'
+import { trustSystemCertificates } from './systemCerts'
 import { createSavedTranscriptions } from './savedTranscription'
 import { transcriptionBusy } from '../shared/transcription'
 import { hookAudioUploads } from './audioUploadIpc'
@@ -17,15 +20,15 @@ import { isAppRoute } from '../shared/routes'
 import { resumesNote } from '../shared/agendaNote'
 import { relaunchOptions, stripAppImageEnv } from './relaunch'
 import { capabilities, micListHelper, platformOf, supportedKinds } from '../shared/platform'
-import { app, BrowserWindow, dialog, ipcMain, nativeTheme, Notification, protocol, safeStorage, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, nativeTheme, Notification, protocol, safeStorage, screen, shell } from 'electron'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { isFake, userDataDir } from './paths'
+import { isFake, modelsFolder, userDataDir } from './paths'
 import { logToFile } from './log'
-import { loadSettings, localeOf, keepsRecording, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings, visibilityOf, summaryLanguageSetting } from './settings'
-import { CALL_GONE_MS, useCallApps, watchEveryMs } from './detect'
+import { includesRecordingCredit, loadSettings, localeOf, keepsRecording, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings, visibilityOf, summaryLanguageSetting } from './settings'
+import { CALL_GONE_MS, micPids, useCallApps, watchEveryMs, type MicApp } from './detect'
 import { systemLocale } from './locale'
 import { language as uiLanguage, onLanguage, setLanguage, t } from '../shared/i18n'
 import bundledCatalog from '../../../catalog/catalog.json'
@@ -40,6 +43,7 @@ import { hookPreferences, onboardingShowing } from './preferences'
 import { loginItemOn, openedAtLogin, setLoginItem, syncLoginItem } from './loginItem'
 import { createMedia } from './media'
 import { createTray, linuxTrayHost } from './tray'
+import { trayWindowEnd } from './trayMenu'
 import { SetupController } from './setup'
 import { fakeMeasure, measureSpeed, speedClipPath, speedStore } from './asr/speedCheck'
 import { vadModelPath, whisperServerPath } from './asr/server'
@@ -48,16 +52,17 @@ import { calendars, eventIds, matchesEvent, setCalendarSelection, setCalendarOwn
 import { createCalendarLinks } from './calendarLink'
 import { getCalendar } from './calendarLink/get'
 import { createSignals } from './detectSignals'
+import { createMicWatch, spawnMicWatch } from './micWatch'
 import { Watcher } from './watch'
 import { createPrompts } from './prompts'
-import { activeMeeting, bindMeetingApp, getMeeting, initMeetings, onMeetingBound, onMeetingChange, onMeetingStart, onMeetingStop, onMeetingStopSaved, refreshEventSnapshots, linkEvent, unlinkEvent, prepareMeeting, startPreparedMeeting, resumeMeeting, pauseMeetingClock, renameMeeting, retryStopSave, setAttendees, startMeeting, stopMeeting, stopSavePending, withStopState } from './meeting'
+import { activeMeeting, bindMeetingApp, getMeeting, initMeetings, onMeetingBound, onMeetingChange, onMeetingStart, onMeetingStop, onMeetingStopSaved, createFolderNote, refreshEventSnapshots, linkEvent, unlinkEvent, prepareMeeting, startPreparedMeeting, resumeMeeting, pauseMeetingClock, renameMeeting, retryStopSave, setAttendees, startMeeting, stopMeeting, stopSavePending, withStopState } from './meeting'
 import { deleteMeeting } from './deleteMeeting'
 import { emptyTrash, moveToTrash, purgeTrash } from './trash'
 import { isId, text, rewriteNote } from './ipcArgs'
 import { hookMics } from './mics'
 import { activeCapture, audioHelperPath, hookCapture, joinParts, onCaptureStart, onRecordingEvent, prepareAppend, recordingFinished, recordingPaused, recordingSettled, rejoinInterrupted, setRecordingPaused, settleRecording, tell, type WarnCode } from './capture'
 import { createWidget } from './widget'
-import { hookTranscription, transcribeRecorded, onWhisperGpuOff, meetingLanguage, settleTranscription, speechLocaleFor, spokenChanged, transcriptionBacklogMs, stopTranscriptionServer, releaseIdleSpeech, transcriptFinished, transcriptPartials, liveTranscriptFinishing } from './asr'
+import { liveSilentMs, hookTranscription, transcribeRecorded, onWhisperGpuOff, meetingLanguage, settleTranscription, speechLocaleFor, spokenChanged, transcriptionBacklogMs, stopTranscriptionServer, releaseIdleSpeech, transcriptFinished, transcriptOpen, transcriptPartials, liveTranscriptFinishing } from './asr'
 import { hookCallNames, type Watch } from './callNames'
 import { helperWatch, killAllWatches } from './callNames/watch'
 import { macFullName } from './user'
@@ -80,11 +85,17 @@ import { hookShare } from './share'
 import { hookBackup } from './backupIpc'
 import { hookFolders } from './foldersIpc'
 import { hookMcp } from './mcp'
-import { startedHidden } from './mcp/paths'
+import { createQuietStart } from './quietStart'
+import { startArgs, startReason, type StartReason } from './startReason'
 import { deleteRecording } from './deleteRecording'
 import { AUDIO_SCHEME, audioExts, createAudioHandler, trackFile, type AudioExt } from './audio'
 import { helperDecode, wavDecode } from './asr/backfill'
 import { finishQuit, hookUpdates, isPreviewBuild, updatesOn } from './updates'
+import { createCompanion, type Companion } from './companion'
+import { askSources } from './companion/handlers'
+import { hookCompanion } from './companion/ipc'
+import { companionWanted } from './companion/gate'
+import { copyFile, mkdir, rename } from 'node:fs/promises'
 import type { NoteSaveResult, StartResult } from '../shared/types'
 
 // the transcript's player streams each meeting's audio from here; seeking needs stream support (before ready)
@@ -94,6 +105,8 @@ app.setName('Yogurt')
 // Windows shows notifications only for an app with this id (the installer's shortcut carries the same one, electron-builder appId)
 if (process.platform === 'win32') app.setAppUserModelId('so.yogurt.app')
 app.setPath('userData', userDataDir())
+// before anything goes online: a company's own HTTPS certificate, installed in the system, is trusted too (#115)
+const systemCerts = trustSystemCertificates()
 mkdirSync(userDataDir(), { recursive: true })
 logToFile(join(userDataDir(), 'logs', 'main.log'))
 hookRendererErrors()
@@ -107,16 +120,28 @@ if (x11) { stripAppImageEnv(); app.relaunch(x11); app.exit(0) }
 // One Yogurt at a time: a second launch focuses the existing window
 else if (!app.requestSingleInstanceLock()) app.quit()
 let win: BrowserWindow | undefined
+/** the iPhone companion once it has started (Settings → Phone pairs and unpairs through it) */
+let companion: Companion | undefined
 let allowQuit = false
 let presentMain = (_foreground = false) => {}
 let updateMainMenu = () => {}
-let setTrayVisible = (_on: boolean) => {}
-/** whether the tray icon is there to reopen Yogurt from (Windows and Linux minimise on close without it) */
-let trayShown = () => true
+let menuBar: ReturnType<typeof createTray> | undefined
 /** test runs: no window on screen, never takes focus from what the person is doing */
 const BACKGROUND = process.env.YOGURT_BACKGROUND === '1'
-// an AI app's yogurt-mcp starting Yogurt while it was still opening (--hidden) brings no window forward
-app.on('second-instance', (_e, argv) => { if (app.isReady() && !startedHidden(process.platform, argv)) showMain() })
+/** how this Yogurt started (#147): an AI app's start waits quietly, with no call watching, until the person opens it */
+let quietStart: ReturnType<typeof createQuietStart> | undefined
+/** work a quiet Yogurt waits for before quitting by itself (set once notes and setup exist) */
+let busyNow = () => !!activeMeeting()
+/** Linux: the program that started Yogurt (an older yogurt-mcp passed only --hidden); elsewhere it costs a process to ask */
+const parentName = () => { if (process.platform !== 'linux') return undefined; try { return readFileSync(`/proc/${process.ppid}/comm`, 'utf8').trim() } catch { return undefined } }
+// an AI app's yogurt-mcp or the login item starting Yogurt while it was still opening (--hidden) brings no window forward
+app.on('second-instance', (_e, argv) => {
+  if (!app.isReady()) return
+  const why: StartReason = startReason({ argv, env: {} })
+  console.info('APP', `started again by=${why} args=${startArgs(argv)}`)
+  if (why === 'ai-app' || why === 'login') quietStart?.startedAgain(why)
+  else showMain()
+})
 
 /** Links open in the user's browser, never inside the app window. */
 function openExternally(url: string) {
@@ -125,10 +150,16 @@ function openExternally(url: string) {
 }
 
 let updateWidgetVisibility = () => {}
+let recordingPillChanged = (_on: boolean) => {}
 let sendWidgetTranscript = (_channel: string, _value: unknown) => {}
 function createWindow() {
+  // the size and place it was left at (windowState.ts); test runs (fake mode) always start at the default, so one
+  // test's resize never carries into the next
+  const remember = !isFake()
+  const stateFile = join(userDataDir(), 'window.json')
+  const place = placeWindow(remember ? loadWindowState(stateFile) : null, screen.getAllDisplays().map((d) => d.workArea), { width: 1100, height: 760, minWidth: 720, minHeight: 520 })
   win = new BrowserWindow({
-    width: 1100, height: 760, minWidth: 720, minHeight: 520,
+    x: place.x, y: place.y, width: place.width, height: place.height, minWidth: 720, minHeight: 520,
     title: 'Yogurt',
     ...windowChrome(process.platform, nativeTheme.shouldUseDarkColors),
     show: false,
@@ -136,13 +167,23 @@ function createWindow() {
     webPreferences: { preload: join(__dirname, '../preload/index.cjs'), sandbox: false, ...(BACKGROUND ? { backgroundThrottling: false } : {}) },
   })
   presentMain = keepMainWindow(win, { background: BACKGROUND, canClose: () => allowQuit, activate: () => app.focus({ steal: true }),
-    closeTo: () => closeAction(process.platform, trayShown()), glass: process.platform === 'darwin', lift: process.platform === 'darwin' })
+    closeTo: () => closeAction(process.platform, menuBar?.shown() ?? true), glass: process.platform === 'darwin', lift: process.platform === 'darwin' })
   if (process.platform !== 'darwin') {
     win.setMenuBarVisibility(false)
     // the window buttons follow light and dark mode
     const recolor = () => { if (win && !win.isDestroyed()) { win.setTitleBarOverlay(titleBarOverlay(nativeTheme.shouldUseDarkColors)); win.setBackgroundColor(titleBarOverlay(nativeTheme.shouldUseDarkColors).color) } }
     nativeTheme.on('updated', recolor)
     win.on('closed', () => nativeTheme.off('updated', recolor))
+  }
+  if (place.maximized) win.maximize()
+  if (remember) {
+    // saved a moment after a move or resize settles, and whenever the window is hidden or closed
+    const w = win
+    let timer: NodeJS.Timeout | undefined
+    const save = () => { clearTimeout(timer); if (!w.isDestroyed() && !w.isFullScreen()) saveWindowState(stateFile, { ...w.getNormalBounds(), maximized: w.isMaximized() }) }
+    const later = () => { clearTimeout(timer); timer = setTimeout(save, 500) }
+    w.on('resize', later); w.on('move', later)
+    w.on('hide', save); w.on('close', save)
   }
   win.webContents.setWindowOpenHandler(({ url }) => { openExternally(url); return { action: 'deny' } })
   win.webContents.on('will-navigate', (e, url) => {
@@ -170,7 +211,9 @@ function createWindow() {
 /** Windows and Linux: what graphics the notes engine can use; null when it can't tell (or crashed checking: it then runs without them) */
 let probeGpu: () => Promise<GpuProbe | null> = async () => null
 function createSetup(): SetupController {
-  const modelsDir = join(userDataDir(), 'models')
+  const modelsDir = modelsFolder()
+  // the Windows installer may have put them on another drive: the log says where they are looked for
+  console.info(`MODELS dir=${modelsDir}`)
   return new SetupController({
     modelsDir,
     upgradePreference: {
@@ -221,6 +264,7 @@ const permissions = createPermissions({
 
 /** Reuse the hidden main window, including its route, scroll, drafts and position. */
 function showMain() {
+  quietStart?.opened()
   if (!win) { createWindow(); presented++ }
   presentMain(true)
 }
@@ -235,6 +279,7 @@ function askFromMenu() {
   win?.webContents.send('nav:ask')
 }
 function goTo(next: string, resume = false) {
+  quietStart?.opened()
   route = next
   resumeRequested = resume
   if (!win) createWindow()
@@ -256,8 +301,8 @@ let relaunched = 0
 /** fake mode: how many times Yogurt would have restarted to install a new version */
 let updateRestarts = 0
 
-async function readCalendar(from: number, to: number, keep?: (event: CalEvent) => boolean): Promise<CalEvent[]> {
-  const events = await upcoming(from, to, keep)
+async function readCalendar(...range: Parameters<typeof upcoming>): Promise<CalEvent[]> {
+  const events = await upcoming(...range)
   refreshEventSnapshots(events)
   return events
 }
@@ -270,10 +315,10 @@ async function comingUp(): Promise<CalEvent[]> {
 }
 
 /** The events on the day of this time, earliest first */
-async function eventsOn(at: number): Promise<CalEvent[]> {
+async function eventsOn(at: number, purpose?: 'link-event', unavailable?: string[]): Promise<CalEvent[]> {
   const from = new Date(at); from.setHours(0, 0, 0, 0)
   const to = new Date(from); to.setDate(to.getDate() + 1)
-  return (await readCalendar(from.getTime(), to.getTime(), event => eventIds(event).some(id => !!storeRef?.meetingForEvent(id)))).sort((a, b) => a.start - b.start)
+  return (await readCalendar(from.getTime(), to.getTime(), purpose ?? (event => eventIds(event).some(id => !!storeRef?.meetingForEvent(id))), unavailable)).sort((a, b) => a.start - b.start)
 }
 
 /** the Mac's full name: who "You" is unless Settings says otherwise (fake mode: a fixed one) */
@@ -285,6 +330,17 @@ const fakeCallWatch: Watch = (ids, onLine) => {
 }
 const macName = () => (isFake() ? process.env.YOGURT_FAKE_FULL_NAME ?? 'Sam Rivera' : macFullName())
 
+/** starting and pausing a recording the way home and the widget do, for AI apps (set once detection starts) */
+let recordingControls: { start(o: { eventId?: string; title?: string }): Promise<StartResult>; pause(id: unknown, paused: unknown): boolean } | undefined
+
+/** the processes of a call app on the mic at the last reading (set once detection starts): names come only from them (#98) */
+let micPidsNow: (app: string) => number[] = () => []
+
+/** the meeting's call window as the call names reader sees it (set once call names start). Mac and Windows: their
+ * readers also say when the call window is just minimised or on another desktop, so that is never taken for the call
+ * ending (#83: on Windows a recording started from the agenda never ended by itself) */
+let callWindowOf: (meetingId: string) => { goneMs: number } | null = () => null
+
 /** fake mode's hooks reach the store and the notes through these */
 let storeRef: Store | undefined
 let indexerRef: { schedule(): Promise<unknown> } | undefined
@@ -292,34 +348,50 @@ let indexerRef: { schedule(): Promise<unknown> } | undefined
 /** Notice calls, offer to take notes, stop when the call ends (or ask, with that setting off). Starts nothing without a click. */
 function startDetection() {
   if (isFake()) setHelper(fakeHelper)
-  const signals = createSignals({ helper: runHelper, events: readCalendar })
+  // On a Mac one mic watch runs for Yogurt's whole life: a new helper per reading wore out coreaudiod and powerd (#143)
+  const micWatch = process.platform === 'darwin' && !isFake()
+    ? createMicWatch({ start: spawnMicWatch(helperPath), poll: () => runHelper(['mic-apps']), recording: () => !!activeMeeting() })
+    : undefined
+  app.on('will-quit', () => micWatch?.stop())
+  const signals = createSignals({ helper: runHelper, micApps: micWatch?.read, events: readCalendar })
   refreshCalendarConsumers = () => signals.invalidateCalendar()
+  let lastReading: { micApps: MicApp[]; runningApps?: string[] } | undefined
+  // yogurt-system (Windows, Linux) reads no single process yet; the Mac helper does
+  if (process.platform === 'darwin') micPidsNow = (app) => (lastReading ? micPids(lastReading.micApps, lastReading.runningApps, app) : [])
   const now = isFake() ? fakeNow : Date.now
+  let fakeSilence: number | undefined
   const watcher: Watcher = new Watcher({
-    read: (at) => signals.read(at), now, active: activeMeeting, bindApp: bindMeetingApp,
+    read: async (at) => (lastReading = await signals.read(at)), now, active: activeMeeting, bindApp: bindMeetingApp,
     offer: (p) => prompts.offer(p), askStop: (m) => prompts.askStop(m), hide: () => prompts.hide(),
     // the call ended: the same stop as the widget's Stop button, then say so
-    autoStop: (m) => { widget.callEnded(m.id); stopMeeting(m.id); prompts.stopped(m) },
+    autoStop: (m) => { widget.callEnded(m.id); stopMeeting(m.id, 'call-ended'); prompts.stopped(m) },
+    silentMs: () => { if (isFake() && fakeSilence !== undefined) return fakeSilence; const m = activeMeeting(); return m ? liveSilentMs(m.id) : 0 },
     autoStopOn: () => stopsWhenCallEnds(loadSettings(join(userDataDir(), 'settings.json'))),
     // no "Take notes?" while onboarding is still on screen
     ready: () => !onboardingShowing(),
     // fake mode: tests can shorten the grace
     graceMs: isFake() && process.env.YOGURT_FAKE_CALL_GONE_MS ? Number(process.env.YOGURT_FAKE_CALL_GONE_MS) : CALL_GONE_MS,
+    callWindow: (id) => callWindowOf(id),
   })
   onMeetingStop(() => { watcher.cleared() })
   const prompts = createPrompts({
     windowVisible: () => !!win && win.isVisible() && !win.isMinimized(),
     takeNotes: (p) => begin({ title: p.title || t('{app} call', { app: p.app ?? '' }).trim(), event: p.event, app: p.app }),
-    stop: (id) => { stopMeeting(id) },
+    stop: (id) => { stopMeeting(id, 'card') },
     dismissed: (key) => watcher.dismiss(key),
     keepGoing: () => watcher.keepGoing(),
+    dismissStop: () => watcher.dismissStop(),
     open: (id) => goTo(`/note/${id}`),
     os: process.platform,
   })
+  const preferences = loadSettings(join(userDataDir(), 'settings.json'))
+  const visibility = visibilityOf(preferences, platform)
+  let showRecordingPill = visibility.showRecordingPill
   const widget = createWidget({
+    showRecordingPill: () => showRecordingPill,
     os: platform, windowOs: process.platform,
     open: (id) => goTo(`/note/${id}`),
-    stop: (id) => { stopMeeting(id) },
+    stop: (id) => { stopMeeting(id, 'widget') },
     foreground: () => !!win && !win.isDestroyed() && win.isVisible() && !win.isMinimized() && win.isFocused(),
   })
   onMeetingStart(() => { prompts.hide(); watcher.cleared() })
@@ -337,29 +409,38 @@ function startDetection() {
   updateWidgetVisibility = widget.visibilityChanged
   sendWidgetTranscript = widget.transcript
   /** The one way notes start: the card's Take notes, and home's Start notes and New note. Opens the note. */
-  function begin(p: { title: string; event: CalEvent | null; app: string | null }) {
+  function begin(p: { title: string; event: CalEvent | null; app: string | null; folderId?: string }) {
     const alreadyRecording = !!activeMeeting()
     const m = startMeeting(p)
     const resume = resumesNote(m)
     prompts.hide(); watcher.cleared(); goTo(`/note/${m.id}`, resume)
     return { id: m.id, ...(resume ? { resumeRequested: true as const } : {}), ...(alreadyRecording ? { alreadyRecording: true as const } : {}) }
   }
-  // home: Start notes for a calendar event (looked up here, never taken from the page), or New note with none
+  // home: Start notes for a calendar event (looked up here, never taken from the page), or New note with none; an AI
+  // app's start_recording the same way, with its own title if it gave one
   // gone: the event left the calendar since the page showed it (moved, cancelled); failed: anything else, in plain words on the page
-  ipcMain.handle('meetings:start', async (_e, eventId: unknown): Promise<StartResult> => {
+  const startNotes = async (o: { eventId?: string; title?: string; folderId?: string }): Promise<StartResult> => {
     try {
       const cur = activeMeeting()
       if (cur) { goTo(`/note/${cur.id}`); return { id: cur.id, alreadyRecording: true } }
       let event: CalEvent | null = null
-      if (typeof eventId === 'string') {
-        event = (await comingUp()).find((e) => matchesEvent(e, eventId)) ?? null
+      if (o.eventId !== undefined) {
+        event = (await comingUp()).find((e) => matchesEvent(e, o.eventId!)) ?? null
         if (!event) return { error: 'gone' }
       }
-      return begin({ title: event?.title ?? '', event, app: null })
+      return begin({ title: o.title ?? event?.title ?? '', event, app: null, folderId: o.folderId })
     } catch (e) {
       console.error('start notes failed', e)
       return { error: 'failed' }
     }
+  }
+  ipcMain.handle('meetings:start', (_e, eventId: unknown, folderId?: unknown): Promise<StartResult> | StartResult => {
+    if (folderId !== undefined && !isId(folderId)) return { error: 'failed' }
+    return startNotes({ eventId: typeof eventId === 'string' ? eventId : undefined, folderId })
+  })
+  ipcMain.handle('meetings:folder-note', (_e, folderId: unknown) => {
+    if (!isId(folderId)) throw new Error('Invalid folder')
+    return createFolderNote(folderId).id
   })
   ipcMain.handle('meetings:prepare', async (_e, eventId: unknown, at: unknown): Promise<StartResult> => {
     if (typeof eventId !== 'string' || typeof at !== 'number' || !Number.isFinite(at) || !Number.isFinite(new Date(at).getTime())) return { error: 'gone' }
@@ -387,7 +468,7 @@ function startDetection() {
     }
   })
   // the note's own Stop button: the same stop as the widget and the menu bar
-  ipcMain.on('meetings:stop', (_e, id: unknown) => { if (isId(id) && activeMeeting()?.id === id) stopMeeting(id) })
+  ipcMain.on('meetings:stop', (_e, id: unknown) => { if (isId(id) && activeMeeting()?.id === id) stopMeeting(id, 'note') })
   const pauseRecording = (id: unknown, paused: unknown) => {
     if (!isId(id) || typeof paused !== 'boolean' || activeMeeting()?.id !== id) return false
     const changed = setRecordingPaused(id, paused)
@@ -395,41 +476,48 @@ function startDetection() {
     return changed
   }
   ipcMain.handle('meetings:set-paused', (_e, id: unknown, paused: unknown) => pauseRecording(id, paused))
+  recordingControls = { start: startNotes, pause: pauseRecording }
   ipcMain.handle('meetings:retry-stop-save', (_e, id: unknown) => isId(id) && retryStopSave(id))
   // the menu bar: open, new note or stop, quit; Yogurt stays there with its window closed
   const tray = createTray({
-    show: !BACKGROUND, visible: loadSettings(join(userDataDir(), 'settings.json')).showInMenuBar !== false,
+    show: !BACKGROUND, visible: visibility.showInMenuBar, showNextMeeting: preferences.showNextMeeting,
+    showRecordingPill: () => showRecordingPill,
     open: () => { presented++; showMain() },
     newNote: () => { if (!activeMeeting()) begin({ title: '', event: null, app: null }) },
-    stop: (id) => { stopMeeting(id) },
+    stop: (id) => { stopMeeting(id, 'menu') },
     pause: pauseRecording,
     ask: askFromMenu, settings: () => goTo('/settings'),
     openNote: (id) => { const note = storeRef?.meeting(id); if (note && note.trashedAt == null) goTo(`/note/${id}`) },
     recent: () => storeRef?.meetingCards({ limit: 5 }) ?? [],
-    events: comingUp, now,
+    events: () => {
+      const at = now()
+      return readCalendar(at, trayWindowEnd(at), undefined, undefined, { fullRange: true })
+    },
+    now,
     elapsed: widget.elapsed,
     os: platform,
     host: process.platform === 'linux' && !BACKGROUND ? linuxTrayHost : undefined,
-    event: async (event, join) => {
-      const current = (await comingUp()).find(e => matchesEvent(e, event.id))
-      if (!current) return
-      if (join) {
-        if (activeMeeting() || !current.url?.trim()) return
-        begin({ title: current.title, event: current, app: null })
-        openExternally(current.url.trim())
-      } else { const note = prepareMeeting(current); goTo(`/note/${note.id}`) }
+    event: (event, join) => {
+      const m = begin({ title: event.title, event, app: null })
+      if (join && m) watcher.joined(m.id)
+      if (join && event.url) openExternally(event.url.trim())
     },
   })
   refreshCalendarConsumers = () => { signals.invalidateCalendar(); void tray.refreshCalendar() }
-  setTrayVisible = tray.setVisible
-  trayShown = tray.shown
-  // cheap, and only while Yogurt runs; more often while recording, so a call that ended stops within a few seconds
+  menuBar = tray
+  recordingPillChanged = (on) => {
+    showRecordingPill = on
+    widget.visibilityChanged()
+    tray.refresh()
+  }
+  // cheap, and only while Yogurt runs; more often while recording, so the end of a quiet call is noticed promptly
   let timer: NodeJS.Timeout | undefined
-  const watchLoop = () => { timer = setTimeout(() => { void watcher.tick().catch((e) => console.error('detect failed', e)).finally(watchLoop) }, watchEveryMs(!!activeMeeting())) }
+  const watchLoop = () => { timer = setTimeout(() => { void quietStart!.detect(() => watcher.tick()).catch((e) => console.error('detect failed', e)).finally(watchLoop) }, watchEveryMs(!!activeMeeting())) }
   watchLoop()
   app.on('will-quit', () => clearTimeout(timer))
   if (isFake()) {
     installFakeHooks({
+      silence: async (ms) => { fakeSilence = ms ?? undefined; await watcher.tick() },
       signals: async (r) => { signals.override(r); await watcher.tick() },
       advance: () => watcher.tick(),
       widget: () => widget.snapshot(),
@@ -465,12 +553,22 @@ function startDetection() {
 }
 
 app.whenReady().then(() => {
+  console.info('APP', `trusting ${systemCerts} certificates from the system on top of the built-in ones`)
+  // #147: which start this was (login, an AI app, an update, the person), so a log says what opened Yogurt
+  const started = startReason({ argv: process.argv, env: process.env, parent: parentName(), openedAtLogin: openedAtLogin() })
+  console.info('APP', `started by=${started} args=${startArgs(process.argv)}`)
+  quietStart = createQuietStart({ reason: started, quit: () => app.quit(), busy: () => busyNow() })
   // Local Electron launches need the same Dock icon as the packaged application.
   if (!app.isPackaged && process.platform === 'darwin') app.dock?.setIcon(join(__dirname, '../../build/icon.png'))
   const settings = loadSettings(join(userDataDir(), 'settings.json'))
-  // a settings file edited by hand can leave no visible entry point: heal it before the window shows
-  const visible = visibilityOf(settings)
-  if (visible.showInDock && settings.showInDock === false) updateSettings(join(userDataDir(), 'settings.json'), { showInDock: undefined })
+  // Repair conflicting saved choices before the first window or recording.
+  const visible = visibilityOf(settings, platform)
+  if ((visible.showInDock && settings.showInDock === false) || (visible.showRecordingPill && settings.showRecordingPill === false)) {
+    updateSettings(join(userDataDir(), 'settings.json'), {
+      ...(visible.showInDock && { showInDock: undefined }),
+      ...(visible.showRecordingPill && { showRecordingPill: undefined }),
+    })
+  }
   setDockVisible(visible.showInDock)
   // the theme picked in Settings; the system's when none
   nativeTheme.themeSource = settings.theme ?? 'system'
@@ -485,21 +583,23 @@ app.whenReady().then(() => {
   if (!isFake()) syncLoginItem(settings.openAtLogin)
   // Windows and Linux: the calendar is a pasted private calendar address, kept sealed with the system keychain
   // a Mac: the same links, next to its own calendars (Settings → Calendars → Add a calendar link)
+  // no keychain (Linux without a secret service): scrambled, not encrypted, so a secret isn't readable at a glance
+  const sealSecret = (plain: string) => (safeStorage.isEncryptionAvailable() ? `k:${safeStorage.encryptString(plain).toString('base64')}` : `b:${Buffer.from(plain).toString('base64')}`)
+  const openSecret = (sealed: string) => (sealed.startsWith('k:') ? safeStorage.decryptString(Buffer.from(sealed.slice(2), 'base64'))
+    : sealed.startsWith('b:') ? Buffer.from(sealed.slice(2), 'base64').toString() : sealed.replace(/^p:/, ''))
   const calendarLinks = caps.calendar ? createCalendarLinks({
-    file: join(userDataDir(), 'settings.json'), get: getCalendar,
-    // no keychain (Linux without a secret service): scrambled, not encrypted, so the address isn't readable at a glance
-    seal: (plain) => (safeStorage.isEncryptionAvailable() ? `k:${safeStorage.encryptString(plain).toString('base64')}` : `b:${Buffer.from(plain).toString('base64')}`),
-    open: (sealed) => (sealed.startsWith('k:') ? safeStorage.decryptString(Buffer.from(sealed.slice(2), 'base64'))
-      : sealed.startsWith('b:') ? Buffer.from(sealed.slice(2), 'base64').toString() : sealed.replace(/^p:/, '')),
+    file: join(userDataDir(), 'settings.json'), get: getCalendar, seal: sealSecret, open: openSecret,
   }) : null
   if (calendarLinks) setCalendarLinkSource(calendarLinks, { alongside: !caps.calendarLink })
-  hookPreferences({
+  const preferences = hookPreferences({
+    recordingPillChanged: on => recordingPillChanged(on),
     file: join(userDataDir(), 'settings.json'), permissions, kinds: supportedKinds(caps), os: platform,
     ...(calendarLinks && caps.calendarLink ? { calendarLinked: () => calendarLinks.status() === 'granted' } : {}),
     // fake mode asks the first-run questions only when a test sets the permissions
     ask: !isFake() || !!process.env.YOGURT_FAKE_PERMISSIONS,
     setLogin: (on) => { if (!isFake()) setLoginItem(on) },
-    setTrayVisible: (on) => setTrayVisible(on),
+    setTrayVisible: (on) => menuBar?.setVisible(on),
+    setShowNextMeeting: (on) => menuBar?.setShowNextMeeting(on),
     setDockVisible: (on) => setDockVisible(on, win),
     loginOn: (saved) => (isFake() ? !!saved : loginItemOn(saved)),
     macName,
@@ -547,8 +647,9 @@ app.whenReady().then(() => {
     transcribed: async (id) => { await recordingFinished(id); await transcriptFinished(id) },
     // people seen in the call joined the meeting: unedited notes already written get written again for them
     changed: (id) => { win?.webContents.send('transcript:speakers', id); sendWidgetTranscript('transcript:speakers', id); win?.webContents.send('meetings:changed'); notes.applyPeople(id) },
-    onStart: onMeetingStart, onStop: onMeetingStop, onCapture: onCaptureStart, onBind: onMeetingBound,
+    onStart: onMeetingStart, onStop: onMeetingStop, onCapture: onCaptureStart, onBind: onMeetingBound, micPids: (app) => micPidsNow(app),
   })
+  if (process.platform === 'darwin' || process.platform === 'win32') callWindowOf = (id) => callNames.callWindow(id)
   // Windows and Linux: whisper left the graphics card in a meeting, so the speed check (timed with it) runs again next start
   onWhisperGpuOff(() => speedStore(speedFile()).forget())
   hookTranscription({ store, modelPath: () => setup.installed()?.asr, send: (seg) => {
@@ -561,6 +662,8 @@ app.whenReady().then(() => {
     refresh: (id) => { win?.webContents.send('transcript:speakers', id); sendWidgetTranscript('transcript:speakers', id) },
     sendPartial: (part) => { win?.webContents.send('transcript:partial', part); sendWidgetTranscript('transcript:partial', part) },
     warn: (code) => tell({ t: 'warn', code }), pidFile: join(userDataDir(), 'whisper-server.pid'),
+    // whisper-server went down mid-meeting (#127): the rest is read from the saved recording once the transcript is settled
+    queued: () => { void savedTranscriptions.pump() },
     // English only (the default) or Multi-language, read on each chunk so the footer's picker counts at once
     spoken: () => spokenSetting(loadSettings(settingsFile)),
     // Apple's on-device speech for the live words (macOS 26, Apple Silicon); fake mode has a stand-in when a test asks
@@ -597,7 +700,7 @@ app.whenReady().then(() => {
   hookCapture({ dirOf: (id) => join(userDataDir(), 'meetings', id), onStart: onMeetingStart, onStop: onMeetingStop, speech: (id) => speechLocaleFor(id),
     mic: () => loadSettings(settingsFile).mic ?? null,
     // recording that can't go on ends the meeting, with the notes kept
-    stopMeeting: (id) => { stopMeeting(id) } })
+    stopMeeting: (id) => { stopMeeting(id, 'recorder') } })
   // 32 GB and up: the notes model reads each meeting in as it happens (notes/readAhead.ts)
   const readsAhead = !isFake() && readAheadAllowed(os.totalmem())
   // the notes model: one job at a time, recording first; loaded when needed, the best one downloaded
@@ -652,8 +755,9 @@ app.whenReady().then(() => {
     changed: () => { win?.webContents.send('meetings:changed'); void indexer.schedule() },
   })
   let finishing = false, discardUnsaved = false
+  busyNow = () => !!activeMeeting() || queue.busy() || setup.state.phase === 'checking' || setup.state.phase === 'downloading'
   const savedTranscriptions = createSavedTranscriptions({
-    store, ready: () => !!setup.installed()?.asr, recording: () => !!activeMeeting() || !!resumingId || finishing,
+    store, ready: () => !!setup.installed()?.asr, recording: () => !!activeMeeting() || !!resumingId || finishing, live: transcriptOpen,
     tracks: async id => {
       await recordingSettled(id)
       const tracks: Partial<Record<'me'|'them',AsyncIterable<Float32Array>>> = {}
@@ -724,6 +828,14 @@ app.whenReady().then(() => {
       clearTimeout(timer); resumingId = null; analysis.release(!started)
     }
   })
+  const waitsForMeeting = () => smallMac && !!activeMeeting()
+  const askUnavailable = () => platform === 'darwin' && waitsForMeeting()
+  ipcMain.handle('conversations:waits-for-meeting', askUnavailable)
+  if (platform === 'darwin' && smallMac) {
+    const changed = () => win?.webContents.send('conversations:recording-wait', askUnavailable())
+    onMeetingStart(changed)
+    onMeetingStop(changed)
+  }
   // Both Ask surfaces share saved conversations and the same recording-first model queue.
   const conversations = hookConversations({
     store, library, indexer, embedder, queue, model,
@@ -731,7 +843,7 @@ app.whenReady().then(() => {
       win?.webContents.send('conversations:changed', v)
       if (v.chips.length === 1 && v.chips[0].kind === 'meeting') win?.webContents.send('chat:changed', { ...v, meetingId: v.chips[0].id })
     }, sendList: (l) => win?.webContents.send('conversations:list', l),
-    waitsForMeeting: () => smallMac && !!activeMeeting(), waitsForModel: () => !setup.notesPath(),
+    waitsForMeeting, waitsForModel: () => !setup.notesPath(),
     // a meeting read in ahead during a recording only where reading ahead is allowed (32 GB and up; the fake Mac is big)
     warmAllowed: () => !activeMeeting() || (isFake() ? !smallMac : readAheadAllowed(os.totalmem())),
   })
@@ -760,7 +872,7 @@ app.whenReady().then(() => {
   // Compatibility bridge for older renderer clients; all storage and answers now use conversations.
   const meetingChat = (id: string) => library.current([{ kind: 'meeting', id }])
   ipcMain.handle('chat:get', (_e, id: unknown) => isId(id) && store.meeting(id) ? { ...conversations.view(meetingChat(id)), meetingId: id } : undefined)
-  ipcMain.handle('chat:ask', (_e, id: unknown, q: unknown) => { if (isId(id) && store.meeting(id) && typeof q === 'string') conversations.ask(meetingChat(id), q) })
+  ipcMain.handle('chat:ask', (_e, id: unknown, q: unknown) => { if (!askUnavailable() && isId(id) && store.meeting(id) && typeof q === 'string') conversations.ask(meetingChat(id), q) })
   ipcMain.on('chat:stop', (_e, id: unknown) => { if (isId(id) && store.meeting(id)) conversations.stop(meetingChat(id)) })
   ipcMain.handle('chat:clear', (_e, id: unknown) => { if (isId(id) && store.meeting(id)) {
     conversations.stop(meetingChat(id))
@@ -768,7 +880,11 @@ app.whenReady().then(() => {
   } })
   ipcMain.handle('conversations:list', () => conversations.list())
   ipcMain.handle('conversations:get', (_e, id: unknown) => (isId(id) ? conversations.view(id) ?? null : null))
-  ipcMain.handle('conversations:ask', (_e, id: unknown, q: unknown) => ((id === null || isId(id)) && typeof q === 'string' && q.trim() ? conversations.ask(id, q).id : null))
+  ipcMain.handle('conversations:ask', (_e, id: unknown, q: unknown) => {
+    if ((id !== null && !isId(id)) || typeof q !== 'string' || !q.trim()) return null
+    if (askUnavailable()) return { waitsForMeeting: true }
+    return conversations.ask(id, q).id
+  })
   ipcMain.on('conversations:stop', (_e, id: unknown) => { if (isId(id)) conversations.stop(id) })
   ipcMain.on('conversations:warm', (_e, id: unknown) => { if (isId(id)) conversations.warm(id) })
   ipcMain.handle('conversations:rename', (_e, id: unknown, title: unknown) => { if (isId(id) && typeof title === 'string') conversations.rename(id, title) })
@@ -787,20 +903,51 @@ app.whenReady().then(() => {
   })
   // the mic picker under the note's bar: the mics, the chosen one, and switching while recording
   hookMics({ helper: micListHelper(process.platform) === 'system' || isFake() ? runHelper : audioHelper.run, settingsFile, send: (channel, payload) => win?.webContents.send(channel, payload) })
-  hookShare({ store, window: () => win })
-  hookFolders({ store, changed: () => { win?.webContents.send('folders:changed'); folderSuggestions.refresh() } })
+  hookShare({ store, window: () => win, includeRecordingCredit: () => includesRecordingCredit(loadSettings(settingsFile)) })
+  const foldersChanged = () => { win?.webContents.send('folders:changed'); folderSuggestions.refresh() }
+  hookFolders({ store, changed: foldersChanged })
   // every meeting to one file and back; what an import adds shows up on home
-  hookBackup({ db: store.db, meetingsDir: join(userDataDir(), 'meetings'), window: () => win, recording: () => !!activeMeeting() || !!resumingId,
+  hookBackup({ getRecordingPill: () => visibilityOf(loadSettings(settingsFile), platform).showRecordingPill,
+    setRecordingPill: preferences.setRecordingPill, db: store.db, meetingsDir: join(userDataDir(), 'meetings'), window: () => win, recording: () => !!activeMeeting() || !!resumingId,
     changed: () => { win?.webContents.send('meetings:changed'); win?.webContents.send('conversations:list', conversations.list()); void indexer.refresh(); folderSuggestions.refresh() },
     beforeExport: () => { notes.retryDrafts(); return notes.pendingDraftId() } })
+  // AI apps change things only through the functions behind the app's own buttons
+  const noteSaved = (id: string, r: ReturnType<typeof notes.replace>) => { if (r === 'saved') win?.webContents.send('meetings:changed'); return r }
   void hookMcp({
     store, profile: userDataDir(), me, version: app.getVersion(),
     enabled: () => !!loadSettings(settingsFile).aiApps, setEnabled: (on) => { updateSettings(settingsFile, { aiApps: on || undefined }) },
+    changesEnabled: () => !!loadSettings(settingsFile).aiAppChanges, setChangesEnabled: (on) => { updateSettings(settingsFile, { aiAppChanges: on || undefined }) },
+    app: {
+      ask: (question, chips) => conversations.askOnce(question, chips),
+      comingUp: () => calendarComingUp(),
+      calendarDay: (at) => calendarDay(at),
+      settings: () => preferences.read(),
+      changed: (what) => { if (what === 'folders') foldersChanged(); else win?.webContents.send('meetings:changed') },
+      // a meeting from another notes app: on home, in the library for Ask, and offered a folder like any other
+      imported: (id) => { win?.webContents.send('meetings:changed'); void indexer.schedule(); folderSuggestions.schedule(id) },
+      rename: (id, title) => !!renameMeeting(id, title),
+      setAttendees: (id, people) => setPeople(id, people),
+      linkEvent: (id, eventId, day) => linkMeetingEvent(id, eventId, day).catch(() => false),
+      unlinkEvent: (id) => !!unlinkEvent(id),
+      trash: (id) => trashMeeting(id),
+      restore: (id) => restoreMeeting(id),
+      setMyNotes: (id, md) => noteSaved(id, notes.replace(id, 'mine', md)),
+      setSummary: (id, md) => noteSaved(id, notes.replace(id, 'enhanced', md)),
+      rewriteSummary: (id, instruction) => (['waiting', 'writing'].includes(notes.view(id).status) || !writeAgain(id, instruction) ? 'busy' : 'queued'),
+      notesReady: () => !!setup.notesPath(),
+      startRecording: (o) => recordingControls?.start(o) ?? Promise.resolve({ error: 'failed' as const }),
+      pauseRecording: (id, paused) => recordingControls?.pause(id, paused) ?? false,
+      stopRecording: (id) => { if (activeMeeting()?.id !== id) return false; stopMeeting(id, 'ai-app'); return true },
+      recording: () => activeMeeting(),
+      setJargon: (terms) => preferences.setJargon(terms),
+      setSpoken: (v) => preferences.setSpoken(v),
+      setSummaryLanguage: (v) => preferences.setSummaryLanguage(v),
+    },
     audio: async (id) => {
       await rejoined; await recordingSettled(id)
       return (['me', 'them'] as const).flatMap((track) => { const path = trackFile(meetingDir(id), track, audioKinds); return path ? [{ track, path }] : [] })
     },
-    send: (clients) => win?.webContents.send('mcp:clients', clients),
+    send: (clients) => { quietStart?.clients(clients.length); win?.webContents.send('mcp:clients', clients) },
   })
   // notes only for a meeting that exists: saving one for an unknown id would throw (its row must exist)
   const known = (id: unknown): id is string => isId(id) && !!store.meeting(id)
@@ -814,10 +961,14 @@ app.whenReady().then(() => {
   ipcMain.on('notes:flush-sync', (e, id: unknown, side: unknown, md: unknown, revision: unknown) => { e.returnValue = saveEdit(id, side, md, revision) })
   ipcMain.on('notes:kept-edits', (_e, id: unknown) => { if (known(id)) notes.keptEdits(id) })
   ipcMain.handle('notes:stop', (_e, id: unknown) => { if (known(id)) return notes.stop(id) })
-  ipcMain.handle('notes:write-again', (_e, id: unknown, note: unknown) => {
+  // "Write again", from the note or an AI app; false when it can't start now
+  const writeAgain = (id: unknown, note: unknown): boolean => {
     const instruction = rewriteNote(note)
-    if (known(id) && instruction !== undefined && !transcriptionBusy(store.meeting(id)?.transcriptionState)) void notes.writeAgain(id, instruction, true)
-  })
+    if (!known(id) || instruction === undefined || transcriptionBusy(store.meeting(id)?.transcriptionState)) return false
+    void notes.writeAgain(id, instruction, true)
+    return true
+  }
+  ipcMain.handle('notes:write-again', (_e, id: unknown, note: unknown) => { writeAgain(id, note) })
   app.on('will-quit', () => engine.dispose())
   // an earlier quit or crash may have left parts unjoined: try again now
   const rejoined = rejoinInterrupted(join(userDataDir(), 'meetings'), async dir => {
@@ -876,6 +1027,8 @@ app.whenReady().then(() => {
     e.preventDefault()
     if (finishing) return
     finishing = true
+    // #127: a quit left no line of its own, so what it stopped (whisper-server loading) looked like a crash
+    console.info('APP quitting')
      savedTranscriptions.shutdown()
     void (async () => {
       const flushed = await flushRenderer()
@@ -894,9 +1047,11 @@ app.whenReady().then(() => {
       }
       // If final unload is vetoed, the resumed UI must describe the same stopped capture.
       const recording = activeMeeting()
-      if (recording) stopMeeting(recording.id)
+      if (recording) stopMeeting(recording.id, 'quit')
       // Music, recorder files and transcription still receive the same bounded graceful shutdown.
-      await Promise.all([media.resume(), settleRecording().then(() => settleTranscription())])
+      // the companion says goodbye on the network (so the phone sees the computer leave), for half a second at most
+      const companionStopped = Promise.race([companion?.stop(), new Promise((r) => setTimeout(r, 500))])
+      await Promise.all([media.resume(), settleRecording().then(() => settleTranscription()), companionStopped])
       allowQuit = true
       finishQuit()
     })().catch((err) => console.error('quit was cancelled because saving or shutdown failed', err)).finally(() => {
@@ -931,18 +1086,27 @@ app.whenReady().then(() => {
     void indexer.refresh()
     return true
   })
-  ipcMain.handle('meetings:set-attendees', (_e, id: unknown, people: unknown) => { if (isId(id) && setAttendees(id, people)) notes.applyPeople(id) })
-  ipcMain.handle('meetings:link-event', async (_e, id: unknown, eventId: unknown, day?: unknown) => {
+  const setPeople = (id: unknown, people: unknown): boolean => {
+    if (!isId(id) || !setAttendees(id, people)) return false
+    notes.applyPeople(id)
+    return true
+  }
+  ipcMain.handle('meetings:set-attendees', (_e, id: unknown, people: unknown) => { setPeople(id, people) })
+  /** true: linked (null unlinks); an event not on the calendar that day throws */
+  const linkMeetingEvent = async (id: unknown, eventId: unknown, day?: unknown): Promise<boolean> => {
     const m = isId(id) ? store.meeting(id) : undefined
-    if (!m) return
-    if (eventId === null) { unlinkEvent(m.id); return }
-    if (typeof eventId !== 'string') return
+    if (!m) return false
+    if (eventId === null) return !!unlinkEvent(m.id)
+    if (typeof eventId !== 'string') return false
     const at = day ?? m.eventStartedAt ?? m.startedAt
     if (typeof at !== 'number' || !Number.isFinite(at) || !Number.isFinite(new Date(at).getTime())) throw new Error('Invalid calendar day')
-    const event = (await eventsOn(at)).find((e) => matchesEvent(e, eventId))
+    const event = (await eventsOn(at, 'link-event')).find((e) => matchesEvent(e, eventId))
     if (!event) throw new Error('Calendar event unavailable')
-    if (linkEvent(m.id, event)) notes.applyPeople(m.id)
-  })
+    if (!linkEvent(m.id, event)) return false
+    notes.applyPeople(m.id)
+    return true
+  }
+  ipcMain.handle('meetings:link-event', async (_e, id: unknown, eventId: unknown, day?: unknown) => { await linkMeetingEvent(id, eventId, day) })
   // gone for good, audio too; never while it records
   const removeForGood = (id: unknown) => id === resumingId ? Promise.resolve('failed' as const) : isId(id) && stopSavePending(id) ? Promise.resolve('save-pending' as const) : deleteMeeting(id, {
     store, dirOf: meetingDir,
@@ -958,19 +1122,22 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('meetings:delete', (_e, id: unknown) => removeForGood(id))
   // Delete in a list or a note: to the Trash, kept until restored or deleted for good there (30 days at most)
-  ipcMain.handle('meetings:trash', (_e, id: unknown) => id === resumingId ? 'failed' : isId(id) && stopSavePending(id) ? 'save-pending' : moveToTrash(id, {
+  const trashMeeting = (id: unknown) => id === resumingId ? 'failed' as const : isId(id) && stopSavePending(id) ? 'save-pending' as const : moveToTrash(id, {
     store,
     moved: (id) => {
       indexer.forget(id)
       win?.webContents.send('meetings:changed'); win?.webContents.send('folders:changed')
       if (route === `/note/${id}`) { route = ''; win?.webContents.send('nav:go', route) }
     },
-  }))
-  ipcMain.handle('meetings:restore', (_e, id: unknown) => {
-    if (!isId(id) || store.meeting(id)?.trashedAt == null) return
+  })
+  ipcMain.handle('meetings:trash', (_e, id: unknown) => trashMeeting(id))
+  const restoreMeeting = (id: unknown): boolean => {
+    if (!isId(id) || store.meeting(id)?.trashedAt == null) return false
     store.restoreMeeting(id); indexer.restored(id)
     win?.webContents.send('meetings:changed'); win?.webContents.send('folders:changed')
-  })
+    return true
+  }
+  ipcMain.handle('meetings:restore', (_e, id: unknown) => { restoreMeeting(id) })
   ipcMain.handle('meetings:trashed', () => store.trashed())
   ipcMain.handle('meetings:empty-trash', () => emptyTrash({ store, remove: removeForGood }))
   // a meeting in the Trash for 30 days goes for good: at launch, and twice a day for a Yogurt that stays open
@@ -987,6 +1154,50 @@ app.whenReady().then(() => {
     } catch (e) { console.warn('tidying prepared notes failed', e) }
   }
   tidyPrepared(); setInterval(tidyPrepared, 60_000).unref()
+  // the iPhone companion: never started until the iPhone app ships (YOGURT_PHONE=1 turns it on); then off until a phone
+  // is paired or Settings starts pairing. Tests also need YOGURT_FAKE_COMPANION=1
+  app.on('will-quit', () => { void companion?.stop() })
+  const meetingsChanged = () => { win?.webContents.send('meetings:changed'); win?.webContents.send('folders:changed') }
+  const companionOn = companionWanted(process.env, isFake())
+  // Linux without a secret service: the key is only scrambled on disk (the file is the person's own, mode 600)
+  if (companionOn && !safeStorage.isEncryptionAvailable()) console.warn('COMPANION key not sealed: no system keychain')
+  const companionReady = !companionOn ? Promise.resolve(undefined) : createCompanion({
+    store, userDataDir: userDataDir(), seal: sealSecret, open: openSecret, appVersion: app.getVersion(),
+    deviceName: () => os.hostname().replace(/\.local$/i, ''), recording: () => !!activeMeeting(),
+    log: (...parts) => console.info(...parts),
+    // the phone's question asked like one in Ask (it is kept there too), answered once it's written
+    ask: async (question, scope) => {
+      if (askUnavailable()) throw new Error('waits for the meeting')
+      const meetingIds = scope?.meetingIds ?? (scope?.folderId ? store.folderMeetingIds(scope.folderId) : undefined)
+      const { id, done } = conversations.ask(null, question, meetingIds ? { scope: meetingIds } : {})
+      await done
+      const turn = conversations.view(id)?.turns.at(-1)
+      if (!turn || turn.status !== 'done') throw new Error('no answer')
+      return { answer: turn.answer, sources: askSources(turn.sources) }
+    },
+    // a meeting recorded on the phone: its audio goes where an imported file's would, then it is transcribed and its
+    // notes written the same way; the phone's transcript and draft notes show until this computer's replace them
+    importRecording: (m, audioPath, draft) => importPhoneRecording({ store, meetingDir, changed: meetingsChanged,
+      start: (id, again) => savedTranscriptions.start(id, again) }, m, audioPath, draft),
+    audioFiles: async (id) => {
+      await rejoined; await recordingSettled(id)
+      return (['me', 'them'] as const).flatMap((track) => { const path = trackFile(meetingDir(id), track, audioKinds); return path ? [{ track, path }] : [] })
+    },
+    ops: {
+      // a new revision; an open note takes it unless it was typed in since (then both texts are kept)
+      notesRewrite: (id, mine) => { notes.phoneMine(id, mine) },
+      // the same refusals and follow-ups as the window's own Delete and Restore
+      trashBlocked: (id) => id === resumingId || stopSavePending(id),
+      trashed: (id) => {
+        indexer.forget(id)
+        meetingsChanged()
+        if (route === `/note/${id}`) { route = ''; win?.webContents.send('nav:go', route) }
+      },
+      restored: (id) => { indexer.restored(id); meetingsChanged() },
+      foldersChanged: () => { win?.webContents.send('folders:changed'); folderSuggestions.refresh() },
+    },
+  }).then((c) => { companion = c; return c }, (err) => { console.error('COMPANION could not start', (err as Error).name); return undefined })
+  hookCompanion({ companion: companionReady, send: (s) => { if (win && !win.isDestroyed()) win.webContents.send('companion:status', s) } })
   ipcMain.handle('meetings:cards', (_e, o: { before?: { at: number; id: string }; limit?: number; folder?: string }) => {
     const limit = Math.max(1, Math.min(1000, Number(o?.limit) || 40))
     const b = o?.before
@@ -1017,19 +1228,22 @@ app.whenReady().then(() => {
     win?.webContents.send('calendar:changed')
     return true
   })
-  ipcMain.handle('calendar:day', async (_e, at: unknown) => {
-    if (typeof at !== 'number' || !Number.isFinite(at) || !Number.isFinite(new Date(at).getTime())) return { status: 'error', events: [] }
-    const events = (await eventsOn(at)).map((event) => {
+  const calendarDay = async (at: unknown, purpose?: unknown) => {
+    if (typeof at !== 'number' || !Number.isFinite(at) || !Number.isFinite(new Date(at).getTime())) return { status: 'error' as const, events: [] }
+    const unavailable: string[] = []
+    const events = (await eventsOn(at, purpose === 'link-event' ? 'link-event' : undefined, unavailable)).map((event) => {
       const meeting = eventIds(event).map((id) => store.meetingForEvent(id)).find(Boolean)
       const note = meeting && withStopState(meeting)
       return { ...event, attendees: resolvePeople(store.db, event.attendees), ...(note ? { note: { id: note.id, state: note.state, ...(note.source ? { source: note.source } : {}) } } : {}) }
     })
-    return { status: calendarStatus(), events }
-  })
-  ipcMain.handle('calendar:coming-up', async () => {
+    return { status: calendarStatus(), events, unavailable }
+  }
+  ipcMain.handle('calendar:day', (_e, at: unknown, purpose?: unknown) => calendarDay(at, purpose))
+  const calendarComingUp = async () => {
     const events = (await comingUp()).map(event => ({ ...event, attendees: resolvePeople(store.db, event.attendees) }))
     return { status: calendarStatus(), events }
-  })
+  }
+  ipcMain.handle('calendar:coming-up', calendarComingUp)
   // not asked yet: the Mac's own question; turned off: the Mac's settings, where only the person can turn it on
   ipcMain.handle('calendar:links', () => calendarLinks?.list() ?? [])
   ipcMain.handle('calendar:add-link', async (_e, url: unknown) => {
@@ -1046,7 +1260,7 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('calendar:connect', async () => {
     // a calendar link is pasted in Settings' calendars: the same form as the first run's
-    if (calendarLinks && caps.calendarLink) { goTo('/settings'); return refreshCalendarStatus() }
+    if (calendarLinks && caps.calendarLink) { goTo('/settings/calendar'); return refreshCalendarStatus() }
     const was = await refreshCalendarStatus()
     if (was === 'notDetermined') return requestCalendarAccess()
     if (was === 'denied') {
@@ -1086,16 +1300,16 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('nav:current', () => route)
   ipcMain.handle('nav:take-ask', () => { const pending = pendingAsk; pendingAsk = false; return pending })
-  // opened by the Mac at login: just the menu bar, until a call or a click
-  // opened by an AI app's yogurt-mcp off a Mac (--hidden): the same, so no window jumps in front of it
-  if (!openedAtLogin() && !startedHidden(process.platform, process.argv)) createWindow()
+  // opened at login: just the menu bar, until a call or a click
+  // opened by an AI app's yogurt-mcp: the same, so no window jumps in front of it, and no call watching either (#147)
+  if (quietStart!.window()) createWindow()
   startDetection()
   void setup.start()
   // new versions from GitHub Releases, downloaded in the background and installed on quit
   const updatesAvailable = updatesOn({ packaged: app.isPackaged, fake: isFake(), profile: !!process.env.YOGURT_USER_DATA, platform: process.platform, appImage: !!process.env.APPIMAGE,
     feed: app.isPackaged && existsSync(join(process.resourcesPath, 'app-update.yml')),
     preview: app.isPackaged && isPreviewBuild((() => { try { return readFileSync(join(app.getAppPath(), 'package.json'), 'utf8') } catch { return '' } })()) })
-  hookUpdates({ file: join(userDataDir(), 'settings.json'), available: updatesAvailable, recording: () => !!activeMeeting(),
+  hookUpdates({ file: join(userDataDir(), 'settings.json'), available: updatesAvailable, recording: () => !!activeMeeting(), quiet: () => !!quietStart?.quiet(),
     // fake mode: a test pretends a version downloaded
     fake: isFake() && process.env.YOGURT_FAKE_UPDATE ? { version: process.env.YOGURT_FAKE_UPDATE, restarted: () => { updateRestarts++ } } : undefined })
     .catch((err) => console.warn("couldn't start looking for new versions", err))

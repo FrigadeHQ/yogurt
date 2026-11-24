@@ -33,7 +33,7 @@ export function useNoteCalendar(m: Meeting) {
     if (!enabled) return
     let active = true
     void Promise.all([
-      window.yogurt.calendar.day(at).catch(() => ({ status: 'error' as const, events: [] })),
+      window.yogurt.calendar.day(at, 'link-event').catch(() => ({ status: 'error' as const, events: [] })),
       calendarList().catch(() => null),
     ]).then(([result, list]) => {
       if (active) setDetails({ key, result, colors: Object.fromEntries((list?.calendars ?? []).filter(c => /^#[0-9a-f]{6}$/i.test(c.color ?? '')).map(c => [c.id, c.color!])) })

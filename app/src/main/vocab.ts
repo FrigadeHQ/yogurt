@@ -12,6 +12,9 @@ export type MeetingWords = { title: string; names: string[]; companies: string[]
 /** mail providers: their address says nothing about anyone's company */
 const PROVIDERS = new Set(['gmail', 'googlemail', 'outlook', 'hotmail', 'live', 'msn', 'yahoo', 'ymail', 'icloud', 'me', 'mac', 'aol', 'proton', 'protonmail', 'pm', 'gmx', 'yandex', 'mail', 'fastmail', 'hey', 'zoho', 'qq', '163', '126', 'comcast', 'att', 'verizon'])
 
+/** the second-level labels under a country domain (co.uk, com.au) */
+const SECOND_LEVEL = new Set(['co', 'com', 'org', 'net', 'ac', 'gov', 'edu', 'ne', 'or', 'go', 'gob', 'nom'])
+
 /** The company in a work address (person@company.example: Company); null for mail providers and names too short to be sure of */
 export function companyOf(email: string): string | null {
   const host = email.split('@')[1]?.toLowerCase().trim()
@@ -19,7 +22,7 @@ export function companyOf(email: string): string | null {
   if (labels.length < 2) return null
   const tld = labels.pop()!
   // co.uk, com.au: the second-level part is not the name
-  if (tld.length === 2 && labels.length > 1 && labels.at(-1)!.length <= 3) labels.pop()
+  if (tld.length === 2 && labels.length > 1 && SECOND_LEVEL.has(labels.at(-1)!)) labels.pop()
   const name = labels.at(-1)!
   const parts = name.split('-')
   if (PROVIDERS.has(name) || parts.some((p) => !/^[a-z][a-z0-9]+$/.test(p)) || name.length < 3) return null

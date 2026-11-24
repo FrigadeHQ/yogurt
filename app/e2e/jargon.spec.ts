@@ -1,3 +1,4 @@
+import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test, type ElectronApplication } from '@playwright/test'
 import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -19,7 +20,7 @@ test('personal jargon: added with Enter or the suggestion, removed with × or Ba
   const a = await launch()
   const { page } = a
   try {
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     const input = page.getByTestId('jargon-input')
     const chips = page.getByTestId('jargon-chip')
     await input.fill('  zentrik ')
@@ -57,7 +58,7 @@ test('personal jargon: added with Enter or the suggestion, removed with × or Ba
 
   const b = await launch(a.userData)
   try {
-    await b.page.getByTestId('settings-open').click()
+    await openFromCorner(b.page, 'settings-open')
     await expect(b.page.getByTestId('jargon-chip')).toHaveText(['zentrik', 'SOC 2'])
   } finally { await b.app.close() }
 })
@@ -65,7 +66,7 @@ test('personal jargon: added with Enter or the suggestion, removed with × or Ba
 test('personal jargon reaches whisper and the notes', async () => {
   const { app, page } = await launch()
   try {
-    await page.getByTestId('settings-open').click()
+    await openFromCorner(page, 'settings-open')
     const input = page.getByTestId('jargon-input')
     for (const term of ['Kubernetes', 'PostHog']) { await input.fill(term); await input.press('Enter') }
     await expect(page.getByTestId('jargon-chip')).toHaveCount(2)

@@ -1,82 +1,92 @@
 import { useEffect, useRef } from 'react'
-import { barPlan, frameKey, micLevel, Wave } from '../../../shared/wave'
+import { FALL, REST_OPACITY, RISE, SPEECH_PACKET_TIMEOUT, WAVE_PERIOD, silentSpeech, speechAt, speechBars, type SpeechAnchor } from '../../../shared/speechWave'
 
-const BAR_W = 3, GAP = 3
+const WIDTH = 15, STROKE = 1.75, STUB = 3
+type Props = { height: number; className?: string; testId: string; paused?: boolean; stillBars?: boolean; restOpacity?: number }
 
-const reducedQuery = () => window.matchMedia('(prefers-reduced-motion: reduce)')
+// Scale the centreline. Its non-scaling stroke retains the same round caps at every height.
+const scale = (value: number, height: number) => `scaleY(${(STUB + value * (height - STUB) - STROKE) / (height - STROKE)})`
 
-/** Shared live microphone meter, drawn without React renders; no simulated movement. */
-export function LevelBars({ height, className, testId, paused = false, bars = 5, stillBars = false }: { height: number; bars?: 3 | 5; className?: string; testId: string; paused?: boolean; stillBars?: boolean }) {
-  const canvas = useRef<HTMLCanvasElement>(null)
-  const width = bars * BAR_W + (bars - 1) * GAP
+export function LevelBars({ height, className = '', testId, paused = false, stillBars = false, restOpacity = REST_OPACITY }: Props) {
+  const ref = useRef<SVGSVGElement>(null)
+  const recent = useRef(silentSpeech)
   useEffect(() => {
-    const c = canvas.current
-    if (!c) return
-    const wave = new Wave()
-    const mq = reducedQuery()
-    const dpr = window.devicePixelRatio || 1
-    let reduced = mq.matches
-    c.width = width * dpr; c.height = height * dpr
-    // read once (and again when the theme changes), not every frame: getComputedStyle forces a style pass
-    let color = getComputedStyle(c).color
-    let drawn = ''
-    const draw = (force = false) => {
-      const ctx = c.getContext('2d')
-      if (!ctx) return
-      const plan = barPlan({ reduced, paused, level: wave.level, bars, stillBars })
-      // the same pixels as the last frame: nothing new for the compositor
-      const key = frameKey(plan, height - BAR_W)
-      if (!force && key === drawn) return
-      drawn = key
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.clearRect(0, 0, width, height)
-      ctx.fillStyle = color
-      plan.heights.forEach((v, i) => {
-        const h = BAR_W + Math.round(v * (height - BAR_W))
-        ctx.globalAlpha = plan.alpha[i]
-        ctx.beginPath()
-        const inset = (width - plan.heights.length * BAR_W - (plan.heights.length - 1) * GAP) / 2
-        ctx.roundRect(inset + i * (BAR_W + GAP), (height - h) / 2, BAR_W, h, BAR_W / 2)
-        ctx.fill()
+    const svg = ref.current!
+    const bars = [...svg.querySelectorAll('line')]
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const clock = () => performance.timeOrigin + performance.now()
+    let playing = false, animations: Animation[] = [], deadline: ReturnType<typeof setTimeout> | undefined
+    const cancel = () => { for (const animation of animations) animation.cancel(); animations = [] }
+
+    function sync() {
+      clearTimeout(deadline)
+      cancel()
+      const now = clock(), anchor = recent.current, voice = speechAt(anchor, now)
+      const visible = document.visibilityState === 'visible'
+      playing = visible && !paused && anchor.speaking && now < anchor.at + SPEECH_PACKET_TIMEOUT
+      const marker = stillBars && (paused || media.matches)
+      const drive = visible && !paused ? voice.drive : 0
+      const duration = playing ? (1 - drive) * RISE : drive * FALL
+      const planAt = (ms: number) => speechBars({
+        drive: Math.min(1, Math.max(0, drive + ms / (playing ? RISE : -FALL))),
+        phase: voice.phase + ms,
+      }, media.matches, restOpacity)
+      const plan = planAt(0)
+      bars.forEach((bar, i) => {
+        const value = marker ? [.35, .525, .7, .525, .35][i] : plan.heights[i]
+        bar.style.transform = scale(value, height)
+        bar.style.opacity = String(marker ? .835 : plan.alpha[i])
       })
-      ctx.globalAlpha = 1
-      c.dataset.level = wave.level.toFixed(2)
+      svg.dataset.level = drive.toFixed(2)
+      svg.dataset.live = !media.matches && !marker && (playing || duration > 0) ? '1' : '0'
+      if (!visible || paused || marker || (!playing && duration === 0)) return
+
+      // Submit a continuous timeline at gate changes. The display interpolates between samples
+      // even when this window's JS frame callbacks run less frequently.
+      const timelineStart = now - performance.timeOrigin
+      const segment = (at: number, length: number, repeat: boolean) => {
+        const count = Math.max(1, Math.ceil(length / (1000 / 60)))
+        const samples = Array.from({ length: count + 1 }, (_, i) => planAt(at + length * i / count))
+        for (const [i, bar] of bars.entries()) {
+          const frames = samples.map(sample => ({ transform: scale(sample.heights[i], height), opacity: sample.alpha[i] }))
+          const animation = bar.animate(frames, { duration: length, delay: at, iterations: repeat ? Infinity : 1, fill: 'forwards' })
+          animation.startTime = timelineStart
+          animations.push(animation)
+        }
+      }
+      if (duration > 0) segment(0, duration, false)
+      if (playing && !media.matches) segment(duration, WAVE_PERIOD, true)
+      if (playing) armSilence(anchor)
+      else deadline = setTimeout(sync, Math.ceil(duration) + 1)
     }
-    let levelAt = performance.now()
-    const off = window.yogurt.widget.onLevel((lv) => {
-      wave.target = micLevel(lv); levelAt = performance.now()
-      if (reduced) { wave.level = wave.target; draw() } else if (wave.target > 0) wake()
+
+    function armSilence(anchor: SpeechAnchor) {
+      clearTimeout(deadline)
+      deadline = setTimeout(sync, Math.max(0, Math.ceil(anchor.at + SPEECH_PACKET_TIMEOUT - clock())))
+    }
+    const off = window.yogurt.widget.onLevel(({ speech }) => {
+      const previous = recent.current
+      recent.current = speech
+      if (paused || document.visibilityState !== 'visible') return
+      const now = clock(), wasStale = speech.at - previous.at > SPEECH_PACKET_TIMEOUT
+      const speaking = speech.speaking && now < speech.at + SPEECH_PACKET_TIMEOUT
+      if (previous.speaking !== speech.speaking || speaking !== playing || (wasStale && (speech.drive > 0 || speaking))) sync()
+      else if (playing && !(stillBars && media.matches)) armSilence(speech)
+      svg.dataset.level = speechAt(speech, now).drive.toFixed(2)
     })
-    let raf = 0, last = performance.now()
-    // tests read whether the loop runs; set only when that changes
-    const live = (on: boolean) => { if (!on) { cancelAnimationFrame(raf); raf = 0 } c.dataset.live = on ? '1' : '0' }
-    const frame = (now: number) => {
-      const dt = Math.min(100, now - last); last = now
-      if (now - levelAt > 300) wave.target = 0
-      wave.step(dt)
-      // at rest in silence the loop sleeps until the next level wakes it
-      if (wave.settled()) { draw(true); live(false); return }
-      draw()
-      raf = requestAnimationFrame(frame)
-    }
-    const start = () => { last = performance.now(); raf = requestAnimationFrame(frame); live(true) }
-    // nothing runs where it can't be seen: a hidden or covered window, reduced motion, a pause
-    const wake = () => { if (!raf && !reduced && !paused && document.visibilityState === 'visible') start() }
-    // either way something is drawn right away
-    const sync = () => {
-      live(false)
-      if (!reduced && !paused && document.visibilityState === 'visible') start()
-      draw(true)
-    }
-    const onReduced = () => { reduced = mq.matches; sync() }
-    const onVisible = () => { if (document.visibilityState === 'visible') wake(); else live(false) }
-    const onScheme = () => { color = getComputedStyle(c).color; draw(true) }
-    const scheme = window.matchMedia('(prefers-color-scheme: dark)')
-    mq.addEventListener('change', onReduced)
-    scheme.addEventListener('change', onScheme)
-    document.addEventListener('visibilitychange', onVisible)
+    media.addEventListener('change', sync)
+    document.addEventListener('visibilitychange', sync)
     sync()
-    return () => { off(); cancelAnimationFrame(raf); mq.removeEventListener('change', onReduced); scheme.removeEventListener('change', onScheme); document.removeEventListener('visibilitychange', onVisible) }
-  }, [height, width, paused, bars, stillBars])
-  return <canvas ref={canvas} data-testid={testId} aria-hidden="true" className={className} style={{ width, height }} />
+    return () => { off(); clearTimeout(deadline); cancel(); media.removeEventListener('change', sync); document.removeEventListener('visibilitychange', sync) }
+  }, [height, paused, stillBars, restOpacity])
+
+  return <svg ref={ref} data-testid={testId} aria-hidden="true" width={WIDTH} height={height} viewBox={`0 0 ${WIDTH} ${height}`} className={`recording-wave ${className}`}>
+    <g stroke="currentColor" strokeWidth={STROKE} strokeLinecap="round">
+      {Array.from({ length: 5 }, (_, i) => {
+        const x = STROKE / 2 + i * (WIDTH - STROKE) / 4
+        return <line key={i} x1={x} x2={x} y1={STROKE / 2} y2={height - STROKE / 2}
+          vectorEffect="non-scaling-stroke" style={{ transform: scale(0, height), opacity: restOpacity }} />
+      })}
+    </g>
+  </svg>
 }

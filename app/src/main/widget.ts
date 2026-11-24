@@ -1,3 +1,4 @@
+import { micFloor, silentSpeech, speechSample } from '../shared/speechWave'
 import { BrowserWindow, ipcMain, Notification, screen } from 'electron'
 import { join } from 'node:path'
 import type { Meeting } from './store'
@@ -55,11 +56,22 @@ const broadcast = (channel: string, v: unknown) => { for (const w of BrowserWind
  * The recording-only pill grows into its transcript and warning. Finished
  * meetings use a native notification; paused meetings keep no floating surface.
  */
-export function createWidget(d: { open(meetingId: string): void; stop(meetingId: string): void; foreground(): boolean; os?: string
+export function createWidget(d: { open(meetingId: string): void; stop(meetingId: string): void; foreground(): boolean; showRecordingPill?(): boolean; os?: string
   /** the computer the windows are made for (a Mac's panel, a tool window elsewhere) */
-  windowOs?: string }) {
+  windowOs?: string
+  /** the computer Yogurt really runs on (tests pass one) */
+  platform?: NodeJS.Platform }) {
   const model = new WidgetModel(d.os)
+  let speech = silentSpeech
+  let micLevels: number[] = []
   let win: BrowserWindow | undefined
+  /**
+   * Linux (X11): Electron crashes when a window is destroyed while the X server still answers about its size, as
+   * after stopping a recording a moment after it started. There a stopped pill is only hidden, and destroyed once
+   * the next recording has its own window, long after its last resize.
+   */
+  const retires = (d.platform ?? process.platform) === 'linux'
+  let retired: BrowserWindow | undefined
   let pill = { x: 0, y: 0, width: FIRST_W, height: FIRST_H }
   let layout: WidgetLayout | null = null
   let dragFrame: { layout: WidgetLayout; pill: typeof pill; surface: WidgetSurface } | null = null
@@ -107,7 +119,7 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
 
   const visibilityChanged = () => {
     const view = model.view(Date.now())
-    shown = view?.kind === 'recording' && !view.paused && !d.foreground()
+    shown = view?.kind === 'recording' && !view.paused && !d.foreground() && d.showRecordingPill?.() !== false
     if (!shown) { clearTimeout(pointerTimer); pressed = false; win?.webContents.send('widget:reset') }
     hitTest(); poll()
     if (!win || win.isDestroyed()) return
@@ -129,7 +141,9 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
     screen.removeListener('display-added', displayChanged)
     screen.removeListener('display-removed', displayChanged)
     screen.removeListener('display-metrics-changed', displayChanged)
-    if (win && !win.isDestroyed()) win.destroy()
+    if (win && !win.isDestroyed()) {
+      if (retires) { win.hide(); win.webContents.setBackgroundThrottling(true); retired = win } else win.destroy()
+    }
     win = undefined
   }
   const open = () => {
@@ -137,13 +151,17 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
     screen.on('display-added', displayChanged)
     screen.on('display-removed', displayChanged)
     screen.on('display-metrics-changed', displayChanged)
-    win = createWindow(d.windowOs); sized = false; ignoring = true; sentPointer = null
+    const w = win = createWindow(d.windowOs); sized = false; ignoring = true; sentPointer = null
     pill = { ...lastPosition!, width: lastWidth, height: FIRST_H }
     layout = widgetLayout(pill, screen.getDisplayMatching(pill).workArea)
-    win.on('closed', () => { clearTimeout(pointerTimer); win = undefined })
+    w.on('closed', () => { if (win === w) { clearTimeout(pointerTimer); win = undefined } })
+    if (retired && !retired.isDestroyed()) retired.destroy()
+    retired = undefined
   }
 
   onMeetingStart((m) => {
+    speech = silentSpeech
+    micLevels = []
     notifyOnChange = false; notice = null; stopPressed = false
     model.start({ id: m.id, title: m.title, startedAt: m.resume ? m.resume.startedAt - m.resume.capturedMs : m.startedAt })
     open(); push()
@@ -181,8 +199,10 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
   })
   onRecordingEvent((e) => {
     if (!model.meetingId) return
-    if (e.t === 'level') broadcast('widget:level', { me: e.me, them: e.them })
-    else if (e.t === 'paused' && e.meetingId === model.meetingId) { model.pause(e.paused, e.at); push() }
+    if (e.t === 'level') {
+      speech = speechSample(speech, e, performance.timeOrigin + performance.now(), micFloor(micLevels, e))
+      broadcast('widget:level', { me: e.me, them: e.them, speech })
+    } else if (e.t === 'paused' && e.meetingId === model.meetingId) { model.pause(e.paused, e.at); push() }
     else if (e.t === 'warn') { model.warn(e.code); push() }
     else if (e.t === 'gave-up') model.gaveUp()
     else if (e.t === 'hiccup') {

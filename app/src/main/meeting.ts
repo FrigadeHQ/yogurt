@@ -54,7 +54,7 @@ export const withStopState = <T extends Meeting>(m: T): T => {
   return pending ? { ...m, state: 'stopped', endedAt: pending.endedAt, ...(pending.durationMs == null ? {} : { durationMs: pending.durationMs }) } : m
 }
 
-export function startMeeting(p: { title: string; event: CalEvent | null; app: string | null }): Meeting {
+export function startMeeting(p: { title: string; event: CalEvent | null; app: string | null; folderId?: string }): Meeting {
   if (!store) throw new Error('Meetings are not ready yet')
   if (active) return active
   const existing = p.event && eventIds(p.event).map((id) => store!.meetingForEvent(id)).find(Boolean)
@@ -67,7 +67,7 @@ export function startMeeting(p: { title: string; event: CalEvent | null; app: st
     title, titleSource: sourceOf(title, p.event?.id ?? null), startedAt: Date.now(), endedAt: null, eventId: p.event?.id ?? null,
     ...(p.event ? { eventStartedAt: p.event.start, eventEndedAt: p.event.end, eventTitle: p.event.title, ownEmail: p.event.ownEmail ?? null,
       ...(p.event.calendar ? { eventCalendarName: p.event.calendar.name, eventCalendarSource: p.event.calendar.source } : {}) } : {}),
-    app: p.app, attendees: p.event?.attendees ?? [], state: 'recording',
+    app: p.app, attendees: p.event?.attendees ?? [], state: 'recording', folderId: p.folderId,
   })
   active = m
   clock = { startedAt: Date.now(), before: 0, pausedAt: null, pausedMs: 0, measured: false }
@@ -80,6 +80,15 @@ export function bindMeetingApp(id: string, app: string): Meeting | undefined {
   if (!active || active.id !== id || active.app) return undefined
   const m = update(id, { app })
   if (m) run(binds, m)
+  return m
+}
+
+/** A hand-written note can start recording later in the same meeting. */
+export function createFolderNote(folderId: string): Meeting {
+  if (!store) throw new Error('Meetings are not ready yet')
+  const m = store.createMeeting({ title: t('Meeting'), startedAt: Date.now(), endedAt: null, eventId: null,
+    app: null, attendees: [], state: 'prepared', folderId })
+  run(changes, m)
   return m
 }
 
@@ -135,7 +144,10 @@ export function pauseMeetingClock(id: string, paused: boolean) {
   else if (!paused && clock.pausedAt !== null) { clock.pausedMs += Math.max(0, now - clock.pausedAt); clock.pausedAt = null }
 }
 
-export function stopMeeting(id: string): MeetingView | undefined {
+/** What ended a recording, for main.log: a Stop button (the note, the widget, the menu bar, the stop card), the call
+ *  ending, the recorder giving up, quitting, or an AI app */
+export type StopBy = 'note' | 'widget' | 'menu' | 'card' | 'call-ended' | 'recorder' | 'quit' | 'ai-app'
+export function stopMeeting(id: string, by?: StopBy): MeetingView | undefined {
   if (!store) return undefined
   const pending = pendingStops.get(id)
   if (pending) return { ...pending, stopSavePending: true }
@@ -145,6 +157,8 @@ export function stopMeeting(id: string): MeetingView | undefined {
   const endedAt = Date.now()
   const durationMs = active?.id === id && clock?.measured ? Math.max(0, clock.before + (clock.pausedAt ?? endedAt) - clock.startedAt - clock.pausedMs) : undefined
   const m: Meeting = { ...cur, state: 'stopped', endedAt, ...(durationMs == null ? {} : { durationMs }) }
+  // #127: a recording that ended a second in left no trace of what ended it
+  console.info(`CALL stop meeting=${id} app=${cur.app ?? 'none'} by=${by ?? 'unknown'} after_ms=${Math.max(0, endedAt - cur.startedAt)}`)
   pendingStops.set(id, m)
   if (active?.id === id) { active = null; clock = null }
   run(stops, m)
@@ -196,7 +210,7 @@ export function setAttendees(id: string, people: unknown): Meeting | undefined {
     const name = tidy(p?.name, TITLE_MAX)
     return name ? [{ name, email: tidy(p?.email, TITLE_MAX) || null }] : []
   })
-  return update(id, { attendees })
+  return update(id, { attendees, keepAttendees: true })
 }
 
 /** The note belongs to this calendar event: its title and people */
@@ -204,7 +218,12 @@ export function linkEvent(id: string, event: CalEvent): Meeting | undefined {
   const meeting = store?.meeting(id)
   if (!store || !meeting) return undefined
   if (meeting.state === 'prepared') store.markPrepared(id, event.end)
-  return update(id, { eventId: event.id, eventStartedAt: event.start, eventEndedAt: event.end, eventTitle: event.title, ownEmail: event.ownEmail ?? null, eventCalendarName: event.calendar?.name ?? null, eventCalendarSource: event.calendar?.source ?? null, title: event.title || meeting.title, ...(event.title ? { titleSource: 'calendar' as const } : {}), attendees: event.attendees })
+  return update(id, {
+    eventId: event.id, eventStartedAt: event.start, eventEndedAt: event.end, eventTitle: event.title,
+    ownEmail: event.ownEmail ?? null, eventCalendarName: event.calendar?.name ?? null, eventCalendarSource: event.calendar?.source ?? null,
+    ...(event.title && meeting.titleSource !== 'user' ? { title: event.title, titleSource: 'calendar' } : {}),
+    ...(meeting.keepAttendees ? {} : { attendees: event.attendees }),
+  })
 }
 
 /** Reading a calendar updates its snapshot, never the person's title, attendees or notes. */

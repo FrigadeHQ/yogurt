@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { mergeNoteView } from '../src/renderer/src/noteMerge'
 import type { NoteView } from '../src/shared/types'
+import { FROM_IPHONE } from '../src/shared/companion'
 
 const view = (o: Partial<NoteView>): NoteView => ({ meetingId: 'm', mine: '', enhanced: '## A\n- Someone ships', edited: false, status: 'done', draft: '', peopleChanged: false, ...o })
 
@@ -31,5 +32,21 @@ describe('mergeNoteView: a note open on screen when it is written again for new 
       expect(mergeNoteView(cur, view({ status, enhanced: 'older saved text' })).view.enhanced).toBe(enhanced)
     }
     expect(mergeNoteView(view({ status: 'writing', enhanced: 'old text' }), view({ enhanced: 'successful replacement' })).view.enhanced).toBe('successful replacement')
+  })
+
+  describe('My notes changed on the iPhone while the note is open', () => {
+    it('nothing typed here since: the phone text shows', () => {
+      const merged = mergeNoteView(view({ mine: 'desk' }), view({ mine: 'from the phone', mineFrom: 'desk' }))
+      expect(merged.view.mine).toBe('from the phone')
+      expect(merged.resaveMine).toBeUndefined()
+    })
+    it('typed here and not saved yet: theirs stay, the phone text goes under a heading and is saved again', () => {
+      const merged = mergeNoteView(view({ mine: 'desk, typed more' }), view({ mine: 'from the phone', mineFrom: 'desk' }))
+      expect(merged.view.mine).toBe('desk, typed more' + FROM_IPHONE + 'from the phone')
+      expect(merged.resaveMine).toBe(true)
+    })
+    it('an ordinary update still keeps what they typed', () => {
+      expect(mergeNoteView(view({ mine: 'typing' }), view({ mine: 'older' })).view.mine).toBe('typing')
+    })
   })
 })

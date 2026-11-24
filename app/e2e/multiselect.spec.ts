@@ -24,6 +24,7 @@ async function selectFirst(page: Page) {
   await expect(menu.getByRole('separator')).toHaveCount(1)
   await menu.getByTestId('meeting-select').click()
   await expect(row.getByTestId('past-note').locator('.native-meeting-link')).toHaveAttribute('aria-pressed', 'true')
+  await expect(row.getByTestId('meeting-selected')).toBeVisible()
 }
 
 for (const theme of ['light', 'dark'] as const) test(`select from the menu, click to add, delete once and undo all in ${theme}`, async () => {

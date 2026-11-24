@@ -141,11 +141,14 @@ test('a follow-up stays in the chat; New chat starts another; chats can be renam
     const recentTime = recentRow.locator('time')
     await expect(recentTime).toHaveCSS('opacity', '1')
     await expect(recentRow.getByTestId('chat-menu')).toHaveCSS('opacity', '0')
-    await page.getByTestId('chat-recent-list').evaluate(el => Promise.allSettled(el.getAnimations().map(a => a.finished)))
+    // the rows animate in too: every animation in the list settles before the time is measured
+    const settled = () => page.getByTestId('chat-recent-list').evaluate(el => Promise.allSettled(el.getAnimations({ subtree: true }).map(a => a.finished)))
+    await settled()
     const timeBox = await recentTime.boundingBox()
     await page.getByTestId('chat-history-item').nth(1).hover()
     await expect(recentTime).toHaveCSS('opacity', '0')
     await expect(recentRow.getByTestId('chat-menu')).toHaveCSS('opacity', '1')
+    await settled()
     // the time fades out in place: it no longer slides (sliding text jittered)
     expect(await recentTime.boundingBox()).toEqual(timeBox)
     await page.locator('.ask-history-row').nth(1).getByTestId('chat-menu').click()
@@ -204,7 +207,7 @@ test('with no meetings, it says so instead of making something up', async () => 
     await page.getByTestId('nav-chat').click()
     await page.getByTestId('chat-page-input').fill('What did Tarun say?')
     await page.getByTestId('chat-page-input').press('Enter')
-    await expect(page.getByTestId('chat-page-answer')).toHaveText("I couldn't find that in your meetings.", { timeout: 10_000 })
+    await expect(page.getByTestId('chat-page-answer')).toHaveText("I couldn't find that in your notes.", { timeout: 10_000 })
     await expect(page.getByTestId('source-citation')).toHaveCount(0)
   } finally { await app.close() }
 })
@@ -234,7 +237,29 @@ test('a meeting cited for several of its parts shows one mark, and an answer tha
     await input.fill('What did we decide about politics?')
     await input.press('Enter')
     await expect(page.getByTestId('chat-page-turn')).toHaveAttribute('data-status', 'done', { timeout: 15_000 })
-    await expect(page.getByTestId('chat-page-answer')).toHaveText('Nothing in your meetings is about that.')
+    await expect(page.getByTestId('chat-page-answer')).toHaveText('Nothing in your notes is about that.')
     await expect(page.getByTestId('source-citation')).toHaveCount(0)
+  } finally { await app.close() }
+})
+
+test('Ask retries a failed initial lookup', async () => {
+  const { app, page } = await launch()
+  try {
+    await app.evaluate(({ ipcMain }) => {
+      let first = true
+      ipcMain.removeHandler('conversations:current')
+      ipcMain.handle('conversations:current', () => {
+        if (first) { first = false; throw new Error('Offline fixture') }
+        return 'retry-demo'
+      })
+      ipcMain.removeHandler('conversations:get')
+      ipcMain.handle('conversations:get', () => ({ id: 'retry-demo', title: '', draft: '', chips: [], draftChips: [], firstChips: null, turns: [], waitsForMeeting: false, waitsForModel: false }))
+    })
+    await page.evaluate(() => window.yogurt.nav.go('/chat'))
+    const failure = page.getByTestId('chat-page-load-error')
+    await expect(failure).toContainText("Couldn't load this conversation.")
+    await failure.getByRole('button', { name: 'Try again' }).click()
+    await expect(failure).toHaveCount(0)
+    await expect(page.getByTestId('chat-page-input')).toBeEnabled()
   } finally { await app.close() }
 })

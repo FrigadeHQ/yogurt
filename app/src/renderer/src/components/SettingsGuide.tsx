@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink } from './Icons'
 import type { PermissionKind } from '../../../shared/types'
 import { permissionCopy } from '../permissionCopy'
 import { SettingsWindowArt } from './OnboardingArt'

@@ -246,10 +246,13 @@ use sock::{connect, start};
 #[cfg(windows)]
 use pipe::{connect, start};
 
-/// Yogurt with --hidden: it opens without a window, so starting a chat never pulls Yogurt in front
+/// What Yogurt is started with: --hidden opens no window, so starting a chat never pulls Yogurt in front;
+/// --started-by=ai-app also keeps it from watching for calls until the person opens it (#147)
+const START_ARGS: [&str; 2] = ["--hidden", "--started-by=ai-app"];
+
 fn command(target: &Path) -> Command {
     let mut c = Command::new(target);
-    c.arg("--hidden").stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
+    c.args(START_ARGS).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
     c
 }
 
@@ -367,6 +370,13 @@ mod tests {
         let exe = PathBuf::from(r"C:\Users\sam\AppData\Local\Programs\Yogurt\resources\bin\yogurt-mcp.exe");
         assert_eq!(launch_target(true, None, Some(exe)), Some(PathBuf::from(r"C:\Users\sam\AppData\Local\Programs\Yogurt\Yogurt.exe")));
         assert_eq!(launch_target(true, None, Some(PathBuf::from(r"C:\tools\yogurt-mcp.exe"))), None);
+    }
+
+    #[test]
+    fn yogurt_is_told_an_ai_app_started_it() {
+        let c = command(Path::new("Yogurt"));
+        let args: Vec<_> = c.get_args().collect();
+        assert_eq!(args, ["--hidden", "--started-by=ai-app"]);
     }
 
     #[test]
