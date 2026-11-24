@@ -29,7 +29,7 @@
 .workspace:dir(rtl) .workspace-sidebar[inert] { transform:translateX(100%); }
 .workspace[data-peeking=true] .workspace-sidebar-inner { box-shadow:var(--shadow); }
 .sidebar-collapsed .workspace-sidebar { z-index:4; }
-.sidebar-collapsed .workspace-sidebar-inner { background-color:var(--chrome);border-start-end-radius:8px;border-end-end-radius:8px; }
+.sidebar-collapsed .workspace-sidebar-inner { background-color:var(--chrome);border-end-end-radius:8px; }
 @media (prefers-reduced-motion:no-preference) {
   /* Keep the panel opaque until the moving page has cleared its footprint. */
   .workspace[data-sidebar-motion=true]:not(.sidebar-collapsed) .workspace-sidebar-inner { transition:background-color 0s 200ms; }

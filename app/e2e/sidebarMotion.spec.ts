@@ -68,6 +68,55 @@ test('sidebar reveal keeps its toggle anchored and can reverse before it finishe
   } finally { await app.close() }
 })
 
+for (const colorScheme of ['light', 'dark'] as const) test(`the ${colorScheme} sidebar peek fills its corner under the title bar`, async ({}, info) => {
+  const { app, page } = await launch()
+  try {
+    const panel = page.locator('#workspace-sidebar')
+    const fill = panel.locator('.workspace-sidebar-inner')
+    const pinned = (await fill.boundingBox())!
+    const bar = (await page.locator('.workspace-window-bar').boundingBox())!
+    await page.getByTestId('sidebar-collapse').press('Enter')
+    await expect(panel).toHaveAttribute('inert', '')
+    // Stretch the real hover transition so CI can seek to the middle before it completes.
+    await page.addStyleTag({ content: '.workspace[data-peeking=true] .workspace-sidebar { transition-duration:60s!important; }' })
+    await page.mouse.move(12, 200)
+    await expect.poll(() => panel.evaluate(el => {
+      const slide = el.getAnimations().find(a => a instanceof CSSTransition && a.transitionProperty === 'transform')
+      if (!slide) return false
+      slide.pause()
+      slide.currentTime = 30_000
+      return true
+    })).toBe(true)
+
+    const cdp = await page.context().newCDPSession(page)
+    for (const phase of ['sliding', 'open']) {
+      if (phase === 'open') await panel.evaluate(el => el.getAnimations().forEach(a => a.finish()))
+      const box = (await fill.boundingBox())!
+      expect(box.y).toBe(bar.y + bar.height)
+      if (phase === 'sliding') expect(box.x).toBeLessThan(pinned.x)
+      else expect(box).toEqual(pinned)
+      const clip = { x: Math.floor(box.x + box.width) - 48, y: box.y - 16, width: 96, height: 64 }
+      for (const transparency of ['no-preference', 'reduce']) {
+        await cdp.send('Emulation.setEmulatedMedia', { features: [
+          { name: 'prefers-color-scheme', value: colorScheme },
+          { name: 'prefers-reduced-transparency', value: transparency },
+          { name: 'prefers-reduced-motion', value: 'no-preference' },
+          { name: 'prefers-contrast', value: 'no-preference' },
+        ] })
+        const path = info.outputPath(`peek-corner-${colorScheme}-${transparency}-${phase}.png`)
+        const png = await page.screenshot({ clip, path, scale: 'css' })
+        const solid = await app.evaluate(({ nativeImage }, png) => {
+          const image = nativeImage.createFromBuffer(Buffer.from(png, 'base64'))
+          const block = (x: number) => image.crop({ x, y: 16, width: 8, height: 8 }).toBitmap()
+          // Compare the corner just inside the divider to the adjacent flat sidebar fill.
+          return block(39).equals(block(24))
+        }, png.toString('base64'))
+        expect(solid, path).toBe(true)
+      }
+    }
+  } finally { await app.close() }
+})
+
 test('docking an edge peek keeps its footer still while the loaded page moves into place', async () => {
   const { app, page } = await launch()
   try {
