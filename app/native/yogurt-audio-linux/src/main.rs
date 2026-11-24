@@ -242,7 +242,7 @@ impl Recorder {
                     self.me.level();
                     self.mic_muted = off || self.mic.is_none();
                     if !self.mic_muted { self.mic_from = Some(boundary); }
-                    if !off && self.mic.is_none() { self.schedule_mic(0); }
+                    if !off && self.mic.is_none() { self.settle.now(Instant::now()); }
                 }
                 self.send(obj([("t", s("mic-muted")), ("id", n(id as f64)), ("muted", J::Bool(self.mic_muted)), ("ms", n((self.start_ms + boundary).ceil()))]));
                 if changing { self.me.pad_to((boundary * 48.0).ceil() as u64); }
