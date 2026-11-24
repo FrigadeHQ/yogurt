@@ -13,10 +13,20 @@ public struct LiveTranscript: Sendable, Equatable {
     public private(set) var volatile = ""
     private var volatileStart = 0
     private var volatileEnd = 0
+    private var recognizerOffsetMs = 0
 
     public init() {}
 
-    public mutating func update(_ text: String, startMs: Int, endMs: Int, isFinal: Bool) {
+    /// A new language starts its own clock at zero. Keep the last words and continue on the recording's timeline.
+    public mutating func restart(at offsetMs: Int) {
+        lines = settled
+        volatile = ""
+        recognizerOffsetMs = offsetMs
+    }
+
+    public mutating func update(_ text: String, startMs relativeStart: Int, endMs relativeEnd: Int, isFinal: Bool) {
+        let startMs = recognizerOffsetMs + relativeStart
+        let endMs = recognizerOffsetMs + relativeEnd
         let t = text.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
         guard isFinal else {
             volatile = t; volatileStart = startMs; volatileEnd = endMs
@@ -27,7 +37,7 @@ public struct LiveTranscript: Sendable, Equatable {
         // a recogniser started again can report a start before the last end
         let start = max(startMs, lines.last?.endMs ?? 0)
         let end = max(endMs, start)
-        if var last = lines.last, joins(last, t, start) {
+        if var last = lines.last, last.startMs >= recognizerOffsetMs, joins(last, t, start) {
             last.text += " " + t
             last.endMs = end
             lines[lines.count - 1] = last

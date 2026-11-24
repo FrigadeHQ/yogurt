@@ -1,7 +1,7 @@
 import SwiftUI
 import YogurtKit
 
-/// Recording a meeting in the room: a big timer and a gentle level meter, the transcript fading in as people talk,
+/// Recording a meeting in the room: a timer and a gentle level meter, the transcript fading in as people talk,
 /// My notes to type meanwhile, and Stop, which saves it as a meeting. Calm like desktop's recording note.
 struct RecordView: View {
     enum Tab: String, CaseIterable { case transcript, mine }
@@ -11,19 +11,12 @@ struct RecordView: View {
     var preview = false
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
-    @State private var recording: RecordingController
+    @State private var recording = RecordingController()
+    @State private var pickingLanguage = false
     @State private var tab: Tab = .transcript
     @State private var confirmDiscard = false
     @Environment(\.scenePhase) private var phase
     @FocusState private var typing: Bool
-    @Namespace private var underline
-
-    /// language: what this recording listens in, picked beside Record on Home
-    init(language: Locale = Spoken.current, saved: @escaping (String) -> Void, preview: Bool = false) {
-        self.saved = saved
-        self.preview = preview
-        _recording = State(initialValue: RecordingController(language: language))
-    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -44,10 +37,34 @@ struct RecordView: View {
         .padding(.horizontal, 20)
         .background(Theme.bg)
         .safeAreaInset(edge: .bottom) { controls }
+        .alert(S.discardQuestion, isPresented: $confirmDiscard) {
+            Button(S.keepRecording, role: .cancel) {}
+                .accessibilityIdentifier("record-keep")
+            Button(S.discard, role: .destructive) {
+                Task {
+                    #if DEBUG
+                    if preview { dismiss(); return }
+                    #endif
+                    await recording.discard()
+                    dismiss()
+                }
+            }
+            .accessibilityIdentifier("record-discard-confirm")
+        }
+        .sheet(isPresented: $pickingLanguage) {
+            SpokenLanguageList(selection: Binding(get: { recording.spokenSelection }, set: { recording.changeLanguage(to: $0) }),
+                               hint: S.forThisRecording)
+                .safeAreaInset(edge: .top, spacing: 0) { SheetHeader(title: S.spokenLanguage) }
+                .presentationDetents([.medium, .large])
+        }
         .interactiveDismissDisabled()
         .task {
             #if DEBUG
-            if preview { recording.loadPreview(); return }
+            if preview {
+                recording.loadPreview()
+                pickingLanguage = UserDefaults.standard.bool(forKey: "openRecordLanguage")
+                return
+            }
             #endif
             await recording.start(model: model)
         }
@@ -57,49 +74,68 @@ struct RecordView: View {
     // MARK: - Timer and level
 
     private var top: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 8) {
-                Circle().fill(dotColor).frame(width: 8, height: 8)
-                HStack(spacing: 4) {
-                    Text(phaseLabel).font(.footnote.weight(.medium)).foregroundStyle(Theme.muted)
-                        .contentTransition(.opacity)
-                    // picked before it started, so here it's only said
-                    Text("· " + SpokenLanguage.name(of: recording.language, in: .current))
-                        .font(.footnote).foregroundStyle(Theme.muted)
+        VStack(alignment: .leading, spacing: 8) {
+            let languageName = SpokenLanguage.name(of: recording.language, in: .current)
+            HStack {
+                Button { pickingLanguage = true } label: {
+                    HStack(spacing: 5) {
+                        Circle().fill(dotColor).frame(width: 8, height: 8)
+                        Text(phaseLabel).fontWeight(.semibold).foregroundStyle(Theme.ink)
+                        Text("·").accessibilityHidden(true)
+                        Text(languageName)
+                        Image(systemName: "chevron.down").font(.caption2)
+                    }
+                    .font(.footnote)
+                    .foregroundStyle(Theme.muted)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(Theme.card, in: Capsule())
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
                 }
-            }
-            .padding(.top, 18)
-            .frame(maxWidth: .infinity)
-            .accessibilityElement(children: .combine)
-            .overlay(alignment: .topLeading) {
-                if recording.state.isLive && !confirmDiscard {
-                    Button(S.discard) { withAnimation(.easeOut(duration: 0.18)) { confirmDiscard = true } }
-                        .font(.subheadline)
-                        .foregroundStyle(Theme.muted)
-                        .frame(minHeight: 44)
-                        .padding(.top, 6)
+                .buttonStyle(.plain)
+                .disabled(!recording.state.isLive)
+                .accessibilityLabel(phaseLabel + ", " + S.spokenLanguage)
+                .accessibilityValue(languageName)
+                .accessibilityIdentifier("record-language")
+                Spacer(minLength: 8)
+                if recording.state.isLive {
+                    Menu {
+                        Button(role: .destructive) { confirmDiscard = true } label: {
+                            Label(S.discard, systemImage: "trash")
+                        }
                         .accessibilityIdentifier("record-discard")
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .foregroundStyle(Theme.ink)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .accessibilityLabel(S.more)
+                    .accessibilityIdentifier("record-more")
                 }
             }
-            TimelineView(.periodic(from: .now, by: 0.25)) { context in
-                Text(elapsed(recording.state.elapsed(at: context.date)))
-                    .font(.system(size: 64, weight: .light).monospacedDigit())
-                    .foregroundStyle(Theme.heading)
-                    .contentTransition(.numericText())
-                    .accessibilityLabel(S.recordedTime)
-                    .accessibilityValue(elapsed(recording.state.elapsed(at: context.date)))
+            HStack(alignment: .center, spacing: 14) {
+                TimelineView(.periodic(from: .now, by: 0.25)) { context in
+                    Text(elapsed(recording.state.elapsed(at: context.date)))
+                        .font(.largeTitle.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(Theme.heading)
+                        .contentTransition(.numericText())
+                        .accessibilityLabel(S.recordedTime)
+                        .accessibilityValue(elapsed(recording.state.elapsed(at: context.date)))
+                }
+                LevelMeter(level: { recording.level }, still: recording.state.phase != .recording)
+                    .frame(height: 24)
+                    .accessibilityLabel(S.micLevel)
             }
-            LevelMeter(level: { recording.level }, still: recording.state.phase != .recording)
-                .frame(height: 28)
-                .accessibilityLabel(S.micLevel)
             if let notice = recording.transcriptNotice {
-                Text(notice).font(.footnote).foregroundStyle(Theme.muted).multilineTextAlignment(.center)
+                Text(notice).font(.footnote).foregroundStyle(Theme.muted).multilineTextAlignment(.leading)
                     .padding(.top, 4)
                     .transition(.opacity)
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.bottom, 8)
+        .padding(.bottom, 18)
         .animation(.easeOut(duration: 0.2), value: recording.transcriptNotice)
     }
 
@@ -124,32 +160,20 @@ struct RecordView: View {
 
     // MARK: - Transcript and My notes
 
-    /// the note's tab row: plain labels over a hairline, the chosen one underlined in purple
     private var tabs: some View {
-        HStack(spacing: 22) {
+        HStack(spacing: 2) {
             ForEach(Tab.allCases, id: \.self) { t in
-                Button {
+                Button(t == .transcript ? S.liveTranscript : S.myNotes) {
                     withAnimation(.easeOut(duration: 0.18)) { tab = t }
-                    if t == .mine { typing = true } else { typing = false }
-                } label: {
-                    Text(t == .transcript ? S.liveTranscript : S.myNotes)
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(tab == t ? Theme.ink : Theme.muted)
-                        .padding(.horizontal, 2)
-                        .frame(height: 40)
-                        .overlay(alignment: .bottom) {
-                            if tab == t {
-                                Rectangle().fill(Theme.primary).frame(height: 2).matchedGeometryEffect(id: "underline", in: underline)
-                            }
-                        }
+                    typing = t == .mine
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(MeetingTabStyle(selected: tab == t))
                 .accessibilityAddTraits(tab == t ? .isSelected : [])
                 .accessibilityIdentifier("record-tab-\(t.rawValue)")
             }
-            Spacer()
         }
-        .overlay(alignment: .bottom) { Rectangle().fill(Theme.line).frame(height: 1) }
+        .padding(3)
+        .background(Theme.card, in: RoundedRectangle(cornerRadius: 14))
     }
 
     private var notes: some View {
@@ -177,9 +201,6 @@ struct RecordView: View {
     private func failed(_ message: String) -> some View {
         VStack(spacing: 18) {
             Text(message).font(.body).foregroundStyle(Theme.ink).multilineTextAlignment(.center)
-            if message == S.micOff {
-                Button(S.openSettings) { Permission.openSettings() }.buttonStyle(PrimaryButtonStyle())
-            }
         }
         .padding(.top, 40)
         .frame(maxHeight: .infinity, alignment: .top)
@@ -188,42 +209,12 @@ struct RecordView: View {
     // MARK: - Pause and Stop
 
     private var controls: some View {
-        Group {
-            if confirmDiscard && recording.state.isLive { discardConfirm } else { buttons }
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 10)
-        .padding(.bottom, 8)
-        .background(Theme.bg)
-        .animation(.easeOut(duration: 0.18), value: recording.state.phase)
-        .animation(.easeOut(duration: 0.18), value: confirmDiscard)
-    }
-
-    /// asked in place, where Stop was, so it can't be hit by accident
-    private var discardConfirm: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(S.discardQuestion).font(.subheadline).foregroundStyle(Theme.ink).fixedSize(horizontal: false, vertical: true)
-            HStack(spacing: 12) {
-                Button(S.keepRecording) { confirmDiscard = false }
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(Theme.ink)
-                    .frame(maxWidth: .infinity, minHeight: 50)
-                    .background(Theme.control, in: Capsule())
-                    .accessibilityIdentifier("record-keep")
-                Button(S.discard) {
-                    Task {
-                        await recording.discard()
-                        dismiss()
-                    }
-                }
-                .font(.body.weight(.semibold))
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity, minHeight: 50)
-                .background(Theme.danger, in: Capsule())
-                .accessibilityIdentifier("record-discard-confirm")
-            }
-        }
-        .transition(.opacity)
+        buttons
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
+            .padding(.bottom, 8)
+            .background(Theme.bg)
+            .animation(.easeOut(duration: 0.18), value: recording.state.phase)
     }
 
     private var buttons: some View {
@@ -233,11 +224,12 @@ struct RecordView: View {
                 Button {
                     if recording.state.isPaused { recording.resume() } else { recording.pause() }
                 } label: {
-                    Image(systemName: recording.state.isPaused ? "play.fill" : "pause.fill")
-                        .font(.title3)
+                    Label(recording.state.isPaused ? S.resume : S.pause, systemImage: recording.state.isPaused ? "play.fill" : "pause.fill")
+                        .font(.subheadline.weight(.medium))
                         .foregroundStyle(Theme.ink)
-                        .frame(width: 54, height: 54)
-                        .background(Theme.control, in: Circle())
+                        .padding(.horizontal, 16)
+                        .frame(minHeight: 52)
+                        .background(Theme.card, in: Capsule())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(recording.state.isPaused ? S.resume : S.pause)
@@ -251,8 +243,13 @@ struct RecordView: View {
                 ProgressView().frame(height: 54).frame(maxWidth: .infinity)
             case .idle, .starting:
                 Color.clear.frame(height: 54)
-            case .failed:
-                Button(S.close) { dismiss() }.buttonStyle(PrimaryButtonStyle()).frame(maxWidth: .infinity)
+            case .failed(let message):
+                if message == S.micOff {
+                    Button(S.close) { dismiss() }.frame(minHeight: 44)
+                    Button(S.openSettings) { Permission.openSettings() }.buttonStyle(PrimaryButtonStyle())
+                } else {
+                    Button(S.close) { dismiss() }.buttonStyle(PrimaryButtonStyle())
+                }
             }
         }
     }
@@ -309,6 +306,7 @@ struct LiveTranscriptView: View {
             .animation(.easeOut(duration: 0.35), value: transcript.lines.count)
         }
         .defaultScrollAnchor(.bottom)
+        .defaultScrollAnchor(.top, for: .alignment)
         .scrollIndicators(.hidden)
     }
 }

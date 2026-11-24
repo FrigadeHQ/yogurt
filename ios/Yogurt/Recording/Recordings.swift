@@ -34,13 +34,13 @@ final class RecordingController {
     private(set) var transcriptNotice: String?
     let id = UUID().uuidString.lowercased()
     private(set) var startedAt = Date()
-    /// the spoken language picked when it started: the transcript, the draft notes and the computer all use it
-    let language: Locale
-
-    init(language: Locale = Spoken.current) { self.language = language }
+    private(set) var spokenSelection = Spoken.picked ?? ""
+    var language: Locale { SpokenLanguage.locale(picked: spokenSelection, phone: .current) }
 
     @ObservationIgnored private let recorder = Recorder()
     @ObservationIgnored private let relay = TranscriberRelay()
+    @ObservationIgnored private var transcription: Task<Void, Never>?
+    @ObservationIgnored private var recognitionPass = 0
     @ObservationIgnored private var folder: URL?
     @ObservationIgnored private var saving: Task<Void, Never>?
     @ObservationIgnored private var ticker: Task<Void, Never>?
@@ -107,10 +107,38 @@ final class RecordingController {
                 self?.saveProgress()
             }
         }
+        startTranscription()
+    }
+
+    func changeLanguage(to selection: String) {
+        guard state.isLive else { return }
+        let previous = language
+        spokenSelection = selection
+        guard previous.identifier(.bcp47) != language.identifier(.bcp47) else { return }
+        #if DEBUG
+        if previewLevel != nil { return }
+        #endif
+        transcription?.cancel()
+        if let old = relay.restart() { Task { await old.finish() } }
+        transcript.restart(at: recorder.durationMs)
+        transcriptNotice = nil
+        startTranscription()
+        saveProgress()
+    }
+
+    private func startTranscription() {
+        recognitionPass += 1
+        let pass = recognitionPass
         let events = TranscriberEvents(
-            result: { [weak self] text, start, end, final in self?.transcript.update(text, startMs: start, endMs: end, isFinal: final) },
-            notice: { [weak self] in self?.transcriptNotice = $0 })
-        Task { [relay, language] in await LiveTranscription.start(locale: language, events: events, relay: relay) }
+            result: { [weak self] text, start, end, final in
+                guard let self, recognitionPass == pass else { return }
+                transcript.update(text, startMs: start, endMs: end, isFinal: final)
+            },
+            notice: { [weak self] message in
+                guard let self, recognitionPass == pass else { return }
+                transcriptNotice = message
+            })
+        transcription = Task { [relay, language] in await LiveTranscription.start(locale: language, events: events, relay: relay) }
     }
 
     func pause() {
@@ -178,6 +206,7 @@ final class RecordingController {
         ticker?.cancel(); saving?.cancel(); resuming?.cancel()
         clearPausedNotification()
         let durationMs = await recorder.stop()
+        transcription?.cancel()
         if let t = relay.current { await waitAtMost(seconds: 6) { await t.finish() } }
         let progress = currentProgress()
         writeProgress(progress)
@@ -208,6 +237,7 @@ final class RecordingController {
         ticker?.cancel(); saving?.cancel(); resuming?.cancel()
         clearPausedNotification()
         _ = await recorder.stop()
+        transcription?.cancel()
         if let t = relay.current { await waitAtMost(seconds: 1) { await t.finish() } }
         Self.liveId = nil
         if let folder {

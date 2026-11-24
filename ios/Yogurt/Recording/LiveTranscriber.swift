@@ -44,17 +44,34 @@ final class TranscriberRelay: @unchecked Sendable {
         to?.append(buffer)
     }
 
-    func attach(_ t: LiveTranscriber?) {
-        let queued: [AVAudioPCMBuffer] = lock.withLock {
+    func attach(_ t: LiveTranscriber?) -> Bool {
+        let queued: [AVAudioPCMBuffer]? = lock.withLock {
+            guard !Task.isCancelled else { return nil }
             target = t
             off = t == nil
             defer { waiting = [] }
             return waiting
         }
-        for b in queued { t?.append(b) }
+        guard let queued else { return false }
+        for b in queued {
+            guard !Task.isCancelled else { return false }
+            t?.append(b)
+        }
+        return true
     }
 
     var current: LiveTranscriber? { lock.withLock { target } }
+
+    /// The microphone keeps running and buffers the new language while its recognizer starts.
+    func restart() -> LiveTranscriber? {
+        lock.withLock {
+            let previous = target
+            target = nil
+            waiting.removeAll()
+            off = false
+            return previous
+        }
+    }
 }
 
 enum LiveTranscription {
@@ -62,7 +79,7 @@ enum LiveTranscription {
     /// nil when neither can run here; the notice then says why.
     static func start(locale: Locale, events: TranscriberEvents, relay: TranscriberRelay) async {
         if let analyzer = await AnalyzerTranscriber.make(locale: locale, events: events) {
-            relay.attach(analyzer)
+            guard relay.attach(analyzer) else { return }
             do {
                 try await analyzer.run()
                 return
@@ -70,12 +87,13 @@ enum LiveTranscription {
                 log.error("SpeechAnalyzer failed: \(String(describing: error), privacy: .public)")
             }
         }
+        guard !Task.isCancelled else { return }
         if let older = await RecognizerTranscriber.make(locale: locale, events: events) {
-            relay.attach(older)
+            guard relay.attach(older) else { return }
             await events.notice(nil)
             return
         }
-        relay.attach(nil)
+        guard relay.attach(nil) else { return }
         let speechOff = SFSpeechRecognizer.authorizationStatus() == .denied || SFSpeechRecognizer.authorizationStatus() == .restricted
         await events.notice(speechOff ? S.transcriptNeedsSpeech : S.transcriptUnavailable)
     }
@@ -122,6 +140,7 @@ final class AnalyzerTranscriber: LiveTranscriber, @unchecked Sendable {
             }
             await events.notice(nil)
         }
+        try Task.checkCancellation()
         let report = events.result
         results = Task { [transcriber] in
             do {
