@@ -2,7 +2,7 @@ import type { ComponentPropsWithRef } from 'react'
 import { LevelBars } from './LevelBars'
 import { Logo } from './Logo'
 
-type Props = ComponentPropsWithRef<'div'> & { time: string; illustration?: boolean }
+type Props = ComponentPropsWithRef<'div'> & { time: string; expanded?: boolean; illustration?: boolean }
 
 function StillMeter() {
   return <svg data-testid="widget-wave" width="27" height="16" aria-hidden="true" fill="var(--pill-accent)" opacity=".835">
@@ -11,10 +11,10 @@ function StillMeter() {
   </svg>
 }
 
-export function RecordingPill({ time, illustration, className = '', children, ...props }: Props) {
-  return <div {...props} data-illustration={illustration || undefined} className={`widget-pill ${className}`}>
+export function RecordingPill({ time, expanded, illustration, className = '', children, ...props }: Props) {
+  return <div {...props} data-open={expanded} data-illustration={illustration || undefined} className={`widget-pill ${className}`}>
     <div className="widget-details" aria-hidden="true">
-      <span><Logo size={18} className="text-[var(--pill-accent)]" /></span>
+      {expanded && <span className="widget-brand"><Logo size={18} className="text-white" /></span>}
       {illustration ? <StillMeter /> : <LevelBars testId="widget-wave" height={16} className="text-[var(--pill-accent)]" />}
       <span data-testid="widget-time" className="widget-time">{time}</span>
     </div>

@@ -172,6 +172,7 @@ html.widget, .widget-pill[data-illustration] { --pill:#232326;--pill-ink:#F7F7FA
 .widget-morph[data-open=true] { cursor:grab; }
 .widget-details { position:absolute;left:0;top:0;z-index:2; }
 .widget-details>* { position:absolute;left:0;top:0;margin:0; }
+.widget-details>.widget-brand { left:16px;top:17px;animation:motion-fade var(--dur-micro) var(--ease-out) 40ms both; }
 /* The resting recorder in the first-run call. Only the native window morphs on hover. */
 .widget-pill[data-illustration] { width:max-content;border-radius:10px;color:var(--pill-ink);direction:ltr; }
 .widget-pill[data-illustration] .widget-details { position:static;display:flex;align-items:center;gap:12px;height:40px;padding:0 12px; }
