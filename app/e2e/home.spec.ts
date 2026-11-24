@@ -179,11 +179,11 @@ test('New note records with no event, and nothing records before the click', asy
   const { app, page } = await launch()
   try {
     expect(await fake<{ route: string }>(app, 'main')).toMatchObject({ route: '' })
-    // Start recording stays in the header for both populated and empty libraries.
+    // Record stays in the header for both populated and empty libraries.
     await fake(app, 'manyMeetings', 1)
     await page.reload()
     await expect(page.getByTestId('new-note')).toBeVisible()
-    await expect(page.getByTestId('new-note')).toHaveText('Start recording')
+    await expect(page.getByTestId('new-note')).toHaveText('Record')
     const before = await page.evaluate(() => window.yogurt.meetings.cards({ limit: 50 }))
     expect(before.filter((c) => c.state === 'recording')).toEqual([])
     await page.getByTestId('new-note').click()
@@ -206,8 +206,48 @@ test('no meetings yet: plain words and one button', async () => {
     await expect(empty).toBeVisible()
     await expect(empty.getByRole('button')).toHaveCount(1)
     await expect(page.getByTestId('new-note')).toBeVisible()
-    await empty.getByRole('button', { name: 'Start recording', exact: true }).click()
+    await empty.getByRole('button', { name: 'Record', exact: true }).click()
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
+  } finally { await app.close() }
+})
+
+for (const state of ['default', 'live', 'resume'] as const) test(`Home keeps the ${state} recording label when Agenda closes`, async ({}, testInfo) => {
+  const { app, page } = await launch()
+  try {
+    const title = 'Quarterly planning with the customer success and product teams'
+    const now = await page.evaluate(() => new Date().setHours(12, 0, 0, 0))
+    await page.clock.setFixedTime(now)
+    await fake(app, 'manyMeetings', { n: 6, clean: true })
+    await fake(app, 'calendarEvents', [{
+      id: 'planning', title, start: new Date(now + (state === 'default' ? 5 : -5) * 60_000).toISOString(),
+      end: new Date(now + 30 * 60_000).toISOString(), attendees: [],
+    }])
+    if (state === 'resume') await page.evaluate(async at => {
+      const [meeting] = await window.yogurt.meetings.cards({ limit: 1 })
+      await window.yogurt.meetings.linkEvent(meeting.id, 'planning', at)
+    }, now)
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.reload()
+    await expect(page.getByTestId('past-note')).toHaveCount(6)
+    await expect(page.getByTestId('event').filter({ hasText: title })).toBeVisible()
+    const button = page.getByTestId('new-note')
+    const expected = state === 'live' ? `Take notes · ${title}` : state === 'resume' ? 'Resume recording' : 'Record'
+    for (const agenda of ['open', 'hidden'] as const) {
+      if (agenda === 'hidden') {
+        await page.getByRole('button', { name: 'Hide Agenda' }).click()
+        await page.mouse.move(720, 40)
+        await expect(page.getByRole('complementary', { name: 'Agenda' })).toBeHidden()
+      }
+      await expect(button).toHaveText(expected)
+      await expect(button).toHaveAccessibleName(expected)
+      await expect(button).toHaveAttribute('title', expected)
+      if (state === 'live') expect(await button.locator('.recording-label').evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true)
+      for (const theme of ['light', 'dark'] as const) {
+        await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' })
+        await page.screenshot({ path: testInfo.outputPath(`home-record-${state}-agenda-${agenda}-${theme}.png`) })
+      }
+    }
   } finally { await app.close() }
 })
 
@@ -230,7 +270,7 @@ test('Home remembers a hidden Agenda after relaunch and keeps the recording menu
     const record = page.locator('#workspace-actions').getByTestId('new-note')
     await expect(record).toHaveAccessibleName('Record')
     await expect(record.locator('.recording-label')).toHaveText('Record')
-    await expect(record).toHaveAttribute('title', 'Start recording')
+    await expect(record).toHaveAttribute('title', 'Record')
     await page.getByTestId('recording-choices').click()
     await expect(page.getByTestId('recording-unattached')).toBeVisible()
     await page.keyboard.press('Escape')

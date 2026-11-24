@@ -69,7 +69,7 @@ export function Home({ open, openSearch, openFolder, agendaJump }: { open: (id: 
       title={`${label} (${keys('⌃⌘A')})`} data-agenda-motion={agendaMotion} onClick={e => toggleAgenda(e.detail > 0)}>
       <SidebarToggle className="flex-none -scale-x-100 rtl:scale-x-100" size={16} aria-hidden="true" />
     </button>, toolbar)}
-    <StartRecording testId="new-note" compact={calendar && !agendaOpen} emptyActions={emptyActions} onGone={() => setCalendarRevision(revision => revision + 1)} />
+    <StartRecording testId="new-note" emptyActions={emptyActions} onGone={() => setCalendarRevision(revision => revision + 1)} />
     <div className="native-library" ref={past.setRoot} tabIndex={-1}>
       <div className="library-page-heading justify-between">
         <h1>{t('Your meetings')}</h1>

@@ -35,6 +35,6 @@ it('hides unknown recording state and retains state across remounts without acce
   reply(null)
   await Promise.resolve()
   stop?.()
-  expect(render()).toContain('Start recording')
+  expect(render()).toContain('<span class="recording-label">Record</span>')
   expect(render()).not.toContain('disabled')
 })
