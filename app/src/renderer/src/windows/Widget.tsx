@@ -104,7 +104,7 @@ function Recording({ view }: { view: WidgetView }) {
   const time = useElapsed(view)
   const card = useRef<HTMLDivElement>(null)
   const muted = micIsOff(view.micState)
-  const showFeedback = view.micState === 'muting' || view.micState === 'unmuting' || view.micState === 'unconfirmed' || view.micState === 'still-off'
+  const showFeedback = view.micState === 'unconfirmed' || view.micState === 'still-off'
   const hover = useWidgetMorph(card, !!view.note || showFeedback, time, muted)
   const press = useDragOrClick(() => window.yogurt.widget.open(), hover)
   return <RecordingPill ref={card} time={time} data-testid="widget" data-kind="recording" data-open={hover.open} role={hover.open ? 'group' : 'button'} tabIndex={0}

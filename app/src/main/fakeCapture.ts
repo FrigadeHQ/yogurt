@@ -170,7 +170,7 @@ export function fakeCaptureProc(meetingDir: string, startMs = 0, o: { speech?: b
       else if (cmd === 'resume') paused = false
       else if (/^(un)?mute [0-9]+$/.test(cmd)) {
         if (process.env.YOGURT_FAKE_MIC_ACK === 'missing') continue
-        if (process.env.YOGURT_FAKE_MIC_ACK === 'slow') setTimeout(() => applyMute(cmd), 1200)
+        if (process.env.YOGURT_FAKE_MIC_ACK === 'slow') setTimeout(() => applyMute(cmd), 1800)
         else applyMute(cmd)
       }
       else if (cmd.startsWith('mic ')) {

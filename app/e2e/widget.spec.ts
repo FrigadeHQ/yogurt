@@ -140,6 +140,62 @@ test('the header and expanded card share confirmed mute, across collapse, reload
   } finally { await app.close() }
 })
 
+test('one card click changes the mic icon once in each window, after confirmation', async ({}, testInfo) => {
+  const { app, page } = await launch(undefined, 'slow')
+  try {
+    const w = await record(app, page)
+    const pill = w.getByTestId('widget'), card = w.getByTestId('widget-mic')
+    await pill.hover()
+    await card.click({ trial: true })
+    const header = page.getByTestId('note-mic')
+    const preview = w.getByTestId('widget-preview-text')
+    const top = await preview.evaluate(el => el.getBoundingClientRect().top)
+    const watches = await Promise.all([card, header].map(button => button.evaluateHandle(el => {
+      const states: string[] = [], icons: string[] = [], statusDelays: number[] = []
+      const feedback = el.closest('.widget-pill')?.querySelector('.widget-preview > [role="status"]')
+      let pendingAt: number | undefined
+      const take = () => {
+        const state = el.getAttribute('aria-pressed')!
+        const icon = el.querySelector('svg')!.innerHTML
+        if (states.at(-1) !== state) states.push(state)
+        if (icons.at(-1) !== icon) icons.push(icon)
+        if (el.getAttribute('aria-busy') === 'true') pendingAt ??= performance.now()
+        else pendingAt = undefined
+      }
+      take()
+      new MutationObserver(take).observe(el, { attributes: true, childList: true, subtree: true })
+      if (feedback) new MutationObserver(() => {
+        if (pendingAt !== undefined && feedback.classList.contains('mic-pending-status')) statusDelays.push(performance.now() - pendingAt)
+      }).observe(feedback, { attributes: true, attributeFilter: ['class'] })
+      return { states, icons, statusDelays }
+    })))
+    for (const [action, previous, next] of [['Muting', 'false', 'true'], ['Unmuting', 'true', 'false']] as const) {
+      await card.click()
+      await expect(card).toBeDisabled()
+      await expect(card).toHaveAttribute('aria-pressed', previous)
+      // A second click in either window while the helper is busy cannot issue the opposite command.
+      for (const button of [card, header]) await button.evaluate(el => (el as HTMLButtonElement).click())
+      const status = w.getByText(`${action} mic…`, { exact: true })
+      await expect(status).toBeVisible()
+      expect(await preview.evaluate(el => el.getBoundingClientRect().top)).toBeCloseTo(top, 0)
+      await pill.screenshot({ path: testInfo.outputPath(`mic-${action.toLowerCase()}-pending-card.png`) })
+      await expect(card).toHaveAttribute('aria-pressed', next)
+      await expect(header).toHaveAttribute('aria-pressed', next)
+      await expect(status).toBeHidden()
+    }
+    for (const watch of watches) {
+      const { states, icons } = await watch.jsonValue()
+      expect(states).toEqual(['false', 'true', 'false'])
+      expect(icons).toHaveLength(3)
+      expect(icons[0]).toEqual(icons[2])
+      expect(icons[1]).not.toEqual(icons[0])
+    }
+    const { statusDelays } = await watches[0].jsonValue()
+    expect(statusDelays).toHaveLength(2)
+    for (const delay of statusDelays) expect(delay).toBeGreaterThanOrEqual(650)
+  } finally { await app.close() }
+})
+
 test('a failed unmute keeps the mic off and the separate call audio warning visible', async () => {
   const { app, page } = await launch(undefined, 'stay-off')
   try {
@@ -161,7 +217,8 @@ test('a lost mute reply closes the recording and explains the failure in the not
   try {
     await record(app, page)
     await page.getByRole('button', { name: 'Mute my mic', exact: true }).click()
-    await expect(page.getByTestId('note-mic')).toHaveAttribute('aria-pressed', 'mixed')
+    await expect(page.getByTestId('note-mic')).toHaveAttribute('aria-busy', 'true')
+    await expect(page.getByTestId('note-mic')).toHaveAttribute('aria-pressed', 'false')
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', /^(stopped|done)$/, { timeout: 15000 })
     await expect(page.getByText('Mic mute couldn’t be confirmed.', { exact: true })).toBeVisible()
   } finally { await app.close() }
