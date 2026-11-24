@@ -26,6 +26,17 @@ export const engineShim = (platform: string, candidates: string[], exists: (p: s
   // LD_PRELOAD splits on spaces and colons, so a path with one would never load
   platform === 'linux' ? candidates.find((p) => !/[\s:]/.test(p) && exists(p)) : undefined
 
+/** what node-llama-cpp runs the model with: its own pick (CUDA first where it finds CUDA), or Vulkan */
+export type Backend = 'auto' | 'vulkan'
+
+/**
+ * Windows and Linux: the backends to check the graphics with, in order (#32). Inside Electron node-llama-cpp can't test
+ * a build before loading it (patches/), so a CUDA build that won't start is kept and finds no card, where plain Node
+ * would move on to Vulkan. The one that found the card last time goes first; a NODE_LLAMA_CPP_GPU set by hand is left alone.
+ */
+export const backendOrder = (platform: string, env: Record<string, string | undefined>, saved?: Backend): Backend[] =>
+  platform === 'darwin' || env.NODE_LLAMA_CPP_GPU ? ['auto'] : saved === 'vulkan' ? ['vulkan', 'auto'] : ['auto', 'vulkan']
+
 export type ChatRequest = { messages: EngineMessage[]; maxTokens?: number; thoughtBudget?: number; /** instead of the family's sampling temperature */ temperature?: number }
 
 export interface Engine {
@@ -63,14 +74,25 @@ export class UtilityEngine implements Engine {
   private loaded = false
 
   private limits: Limits
+  private backend: Backend
 
   /**
    * cpuCrashes (Linux without the shim): the engine dies on the processor alone (code 132: Electron's allocator refuses
    * llama.cpp's single > 2 GiB weight buffer), so a lost graphics card starts the engine again on the card, not without it.
    * preload: the shim that prevents that crash (engineShim), put in the engine's LD_PRELOAD.
+   * backends (backendOrder): what probe() checks the graphics with until one finds a card; onBackend: the one that did.
    */
-  constructor(private workerPath: string, private opts: { gpuFallback?: boolean; cpuCrashes?: boolean; preload?: string } & Partial<Limits> = {}) {
+  constructor(private workerPath: string, private opts: { gpuFallback?: boolean; cpuCrashes?: boolean; preload?: string; backends?: Backend[]; onBackend?: (b: Backend) => void } & Partial<Limits> = {}) {
     this.limits = { ...WATCH, ...opts }
+    this.backend = opts.backends?.[0] ?? 'auto'
+  }
+
+  /** a different backend means a fresh engine process, and a fresh try on the card */
+  private use(b: Backend) {
+    if (b === this.backend) return
+    this.backend = b
+    this.cpuOnly = false
+    if (this.proc) this.drop(() => new Error('The notes engine was restarted'))
   }
 
   /**
@@ -104,10 +126,12 @@ export class UtilityEngine implements Engine {
   private ensure(): UtilityProcess {
     if (this.proc) return this.proc
     const { preload } = this.opts
-    const env = preload || this.cpuOnly ? {
+    const vulkan = this.backend === 'vulkan'
+    const env = preload || this.cpuOnly || vulkan ? {
       ...process.env,
       ...(preload ? { LD_PRELOAD: [preload, process.env.LD_PRELOAD].filter(Boolean).join(':') } : {}),
-      ...(this.cpuOnly ? { YOGURT_ENGINE_GPU: 'off' } : {}),
+      // off wins: without the card is without it, whichever build
+      ...(this.cpuOnly ? { YOGURT_ENGINE_GPU: 'off' } : vulkan ? { YOGURT_ENGINE_GPU: 'vulkan' } : {}),
     } : undefined
     const proc = utilityProcess.fork(this.workerPath, [], { serviceName: 'Yogurt Notes', ...(env ? { env } : {}) })
     this.loaded = false
@@ -156,8 +180,33 @@ export class UtilityEngine implements Engine {
     return { id, done }
   }
 
-  /** the graphics the engine can use (Windows and Linux, before picking a model) */
-  probe() {
+  /**
+   * The graphics the engine can use (Windows and Linux, before picking a model). Each backend in turn until one finds a
+   * card (#32); with none, what the first one found, and the engine goes back to it.
+   */
+  async probe(): Promise<GpuProbe> {
+    const order = this.opts.backends ?? [this.backend]
+    let first: { probe: GpuProbe } | { error: Error } | undefined
+    let firstCpuOnly = false
+    for (const [i, b] of order.entries()) {
+      this.use(b)
+      const r = await this.probeOnce().then((probe) => ({ probe }), (error: Error) => ({ error }))
+      if ('probe' in r && r.probe.gpuType) {
+        // a change from what was tried first (the one saved last time) is saved for next time
+        if (i > 0) this.opts.onBackend?.(b)
+        return r.probe
+      }
+      if (i === 0) { first = r; firstCpuOnly = this.cpuOnly }
+      if (i < order.length - 1) console.warn(`notes engine: no graphics card found with ${b === 'auto' ? 'the default build' : b}${'error' in r ? ` (${r.error.message})` : ''}; checking with ${order[i + 1] === 'auto' ? 'the default build' : order[i + 1]}`)
+    }
+    // the first one again, as it left things (a crash there: without the card)
+    this.use(order[0])
+    this.cpuOnly = firstCpuOnly
+    if (!first || 'error' in first) throw first?.error ?? new Error('No graphics check ran')
+    return first.probe
+  }
+
+  private probeOnce() {
     const { id, done } = this.call<GpuProbe>({ type: 'probe' })
     this.watch(id, 'checking the graphics', this.limits.probeMs, this.limits.probeMs)
     return done

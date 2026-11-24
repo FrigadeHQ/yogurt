@@ -22,8 +22,10 @@ export function createLlm() {
   let main: LlamaContextSequence | undefined
   /** the embedding model (meaning search across meetings): small, its own context, kept until let go */
   let embedder: { path: string; model: LlamaModel; context: LlamaEmbeddingContext } | undefined
-  // YOGURT_ENGINE_GPU=off: the graphics card crashed the engine before, on Windows or Linux (src/main/engine.ts)
-  const getL = async () => (llama ??= await getLlama(process.env.YOGURT_ENGINE_GPU === 'off' ? { gpu: false } : undefined))
+  // YOGURT_ENGINE_GPU=off: the graphics card crashed the engine before, on Windows or Linux; =vulkan: the default
+  // (CUDA) build found no card but Vulkan did (#32). Both come from src/main/engine.ts.
+  const gpu = process.env.YOGURT_ENGINE_GPU
+  const getL = async () => (llama ??= await getLlama(gpu === 'off' ? { gpu: false } : gpu === 'vulkan' ? { gpu: 'vulkan' } : undefined))
   // Gemma's auto wrapper requests thinking; a zero token budget cuts it off instead of disabling it.
   const threads = (l: Llama) => { const n = engineThreads(process.platform, l.cpuMathCores, availableParallelism()); return n === undefined ? {} : { threads: n } }
   const chatWrapper = () => model?.fileInfo.metadata.general.architecture === 'gemma4' ? new Gemma4ChatWrapper({ reasoning: false }) : 'auto' as const
