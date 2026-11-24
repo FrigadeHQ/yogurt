@@ -146,6 +146,7 @@ const api: YogurtApi = {
     dismissPeopleChange: (id, membership) => ipcRenderer.invoke('notes:dismiss-people-change', id, membership),
     writeAgain: (id, note) => ipcRenderer.invoke('notes:write-again', id, note),
     stop: (id) => ipcRenderer.invoke('notes:stop', id),
+    releaseLabels: (id) => ipcRenderer.invoke('notes:release-labels', id),
     onChange: (cb) => {
       const on = (_e: unknown, v: NoteView) => cb(v)
       ipcRenderer.on('notes:changed', on)
@@ -288,6 +289,7 @@ const api: YogurtApi = {
     setSpoken: (v) => ipcRenderer.invoke('settings:spoken', v),
     setSpeakerProfiles: (on) => ipcRenderer.invoke('settings:set-speaker-profiles', on),
     setSpeakerDiarization: (on) => ipcRenderer.invoke('settings:set-speaker-diarization', on),
+    setSpeakerLabels: (on) => ipcRenderer.invoke('settings:set-speaker-labels', on),
   },
   search: { query: (q, folder, people) => ipcRenderer.invoke('search:query', q, folder, people), people: () => ipcRenderer.invoke('search:people') },
   folders: {

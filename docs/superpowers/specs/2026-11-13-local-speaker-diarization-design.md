@@ -421,6 +421,13 @@ speaker names matter in notes, a “names changed” hint can be added later.
   neither the diarization model nor the speaker model downloads, and transcripts render plain
   **Them** heads — the pre-diarization behaviour. Meetings already diarized keep their labels.
   Voice profiles only apply while it is on (the Settings switch for them waits, dimmed, until it is).
+- `speakerLabels?: boolean` in `settings.json`, **off by default**: on, a diarized meeting whose
+  transcript still has voices called `Speaker N`, voices without a name, or lines nobody claimed
+  holds its summary until everything is labeled — however long that takes. Renaming, merging and
+  assigning re-check; a **Summarize now** button on the note releases the meeting for good
+  (`meetings.labels_released`), and the wait also survives an app restart (the recovery re-arms it
+  instead of summarizing silently). Meetings that never diarized, or whose diarization failed,
+  summarize at once.
 - New setting `speakerProfiles?: boolean` in `settings.json`, **off by default**.
 - First enable shows a consent panel explaining that a voiceprint is biometric data, stays on this
   computer, and can be deleted at any time.

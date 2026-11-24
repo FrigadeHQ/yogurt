@@ -165,6 +165,8 @@ export type YogurtApi = {
     /** writes the enhanced notes again */
     writeAgain(meetingId: string, note?: string): Promise<void>
     stop(meetingId: string): Promise<void>
+    /** the person wants the summary of an unlabeled meeting anyway */
+    releaseLabels(meetingId: string): Promise<void>
     /** status, the draft as it is written, and the saved notes; returns the way to stop listening */
     onChange(cb: (v: NoteView) => void): () => void
   }
@@ -307,7 +309,7 @@ export type YogurtApi = {
   }
   settings: {
     /** myName: what the person is called in meetings (their Mac's full name, macName, when they never changed it) */
-    get(): Promise<{ theme: Theme; openAtLogin: boolean; showInMenuBar: boolean; showNextMeeting: boolean; showRecordingPill: boolean; appVisibility: AppVisibility; /** the language picked; '' follows the Mac */ language: string; /** the language in use */ locale: string; /** the Mac's language, among Yogurt's */ systemLocale: string; myName: string; macName: string; /** a recording stops by itself when its call ends (off: ask first) */ stopWhenCallEnds: boolean; recordingReminder: boolean; includeRecordingCredit: boolean; keepRecordings: boolean; /** personal jargon, spelled as typed */ jargon: string[]; /** the language people speak in meetings */ spoken: import('./spoken').Spoken; /** default summary language; '' follows the meeting */ summaryLanguage: string; /** remember voices across meetings (opt-in) */ speakerProfiles: boolean; /** speakers are separated in the transcript (opt-in; off: plain Them heads like before) */ speakerDiarization: boolean }>
+    get(): Promise<{ theme: Theme; openAtLogin: boolean; showInMenuBar: boolean; showNextMeeting: boolean; showRecordingPill: boolean; appVisibility: AppVisibility; /** the language picked; '' follows the Mac */ language: string; /** the language in use */ locale: string; /** the Mac's language, among Yogurt's */ systemLocale: string; myName: string; macName: string; /** a recording stops by itself when its call ends (off: ask first) */ stopWhenCallEnds: boolean; recordingReminder: boolean; includeRecordingCredit: boolean; keepRecordings: boolean; /** personal jargon, spelled as typed */ jargon: string[]; /** the language people speak in meetings */ spoken: import('./spoken').Spoken; /** default summary language; '' follows the meeting */ summaryLanguage: string; /** remember voices across meetings (opt-in) */ speakerProfiles: boolean; /** speakers are separated in the transcript (opt-in; off: plain Them heads like before) */ speakerDiarization: boolean; /** summaries wait for speaker labels (opt-in) */ speakerLabels: boolean }>
     /** blank goes back to the Mac's full name */
     setName(name: string): Promise<void>
     setTheme(v: Theme): Promise<void>
@@ -322,6 +324,8 @@ export type YogurtApi = {
     setKeepRecordings(on: boolean): Promise<void>
     /** speakers are separated in the transcript after a meeting */
     setSpeakerDiarization(on: boolean): Promise<void>
+    /** summaries wait until voices are named and lines are assigned */
+    setSpeakerLabels(on: boolean): Promise<void>
     /** saves the whole list; gives back what was kept */
     setJargon(terms: string[]): Promise<string[]>
     /** the interface language ('' follows the Mac); gives back the one now in use */
@@ -436,7 +440,9 @@ export type NoteView = {
   /** the notes were just written again (for new people): what they replaced, so an open editor with no edits since takes them */
   rewrittenFrom?: string
   /** My notes were just changed from the iPhone: what they replaced, so an open editor with no edits since takes them */
-  mineFrom?: string
+  mineFrom?: string;
+  /** the summary waits for speaker labels: voices without names or lines without a speaker */
+  labels?: boolean
   /** latest acknowledged edit revision on each side; failed text is retained in main and overlaid above */
   saves?: Partial<Record<NoteSide, NoteSaveResult>>
 }

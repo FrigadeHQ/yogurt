@@ -285,6 +285,7 @@ export class Store {
     if (!meetingCols.includes('prepared_event_end')) this.db.exec('ALTER TABLE meetings ADD COLUMN prepared_event_end INTEGER')
     if (!meetingCols.includes('last_opened_at')) this.db.exec('ALTER TABLE meetings ADD COLUMN last_opened_at INTEGER')
     if (!meetingCols.includes('speaker_order')) this.db.exec("ALTER TABLE meetings ADD COLUMN speaker_order TEXT NOT NULL DEFAULT '[]'")
+    if (!meetingCols.includes('labels_released')) this.db.exec('ALTER TABLE meetings ADD COLUMN labels_released INTEGER NOT NULL DEFAULT 0')
     for (const name of ['source', 'source_id']) if (!meetingCols.includes(name)) this.db.exec(`ALTER TABLE meetings ADD COLUMN ${name} TEXT`)
     for (const [name, type] of [['event_ended_at', 'INTEGER'], ['event_title', 'TEXT'], ['event_calendar_name', 'TEXT'], ['event_calendar_source', 'TEXT'], ['own_email', 'TEXT']]) {
       if (!meetingCols.includes(name)) this.db.exec(`ALTER TABLE meetings ADD COLUMN ${name} ${type}`)
@@ -739,6 +740,21 @@ export class Store {
   setVoicesAllowed(id: string, on: boolean) { this.db.prepare('UPDATE meetings SET voices_allowed = ? WHERE id = ?').run(on ? 1 : 0, id) }
   /** diarization done (error: recorded on the meeting instead, the transcript stays usable) */
   markDiarized(id: string, error?: string) { this.db.prepare('UPDATE meetings SET diarized_at = ?, diarize_error = ? WHERE id = ?').run(error ? null : Date.now(), error ?? null, id) }
+
+  /** Speaker labels missing: diarized, never released, and still a voice called Speaker N, a voice without a name,
+   * or a line the diarizer left unclaimed. Only meetings the diarizer actually ran on can wait. */
+  labelsPending(id: string): boolean {
+    const m = this.db.prepare('SELECT diarized_at, diarize_error, labels_released FROM meetings WHERE id = ?').get(id) as Row | undefined
+    if (!m || m.diarized_at == null || m.diarize_error != null || Number(m.labels_released) === 1) return false
+    const unclaimed = this.db.prepare("SELECT COUNT(*) n FROM segments WHERE meeting_id = ? AND track = 'them' AND hidden = 0 AND speaker_key IS NULL").get(id) as { n: number }
+    if (Number(unclaimed.n) > 0) return true
+    const named = this.db.prepare("SELECT DISTINCT speaker FROM segments WHERE meeting_id = ? AND track = 'them' AND hidden = 0 AND speaker_key IS NOT NULL AND (speaker IS NULL OR speaker LIKE 'Speaker %')").all(id) as Row[]
+    return named.some(r => r.speaker == null || /^Speaker \d+$/.test(String(r.speaker)))
+  }
+  /** the person asked for the summary without labeling: this meeting never waits again */
+  releaseLabels(id: string) { this.db.prepare('UPDATE meetings SET labels_released = 1 WHERE id = ?').run(id) }
+  /** a meeting records again: its labels start over */
+  resetLabels(id: string) { this.db.prepare('UPDATE meetings SET labels_released = 0 WHERE id = ?').run(id) }
 
   /** profiles for Settings: names and counts only, never the vectors */
   voiceProfiles(): Array<{ id: string; name: string; meetings: number; createdAt: number; updatedAt: number }> {

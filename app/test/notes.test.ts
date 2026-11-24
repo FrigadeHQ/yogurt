@@ -19,7 +19,7 @@ const wait = (ms = 5) => new Promise((r) => setTimeout(r, ms))
 /** waits for what an assertion needs, up to 5 s: a fixed sleep was too short on a slow Windows runner */
 const until = (check: () => void) => vi.waitFor(check, { timeout: 5000, interval: 10 })
 
-function setup(o: { source?: string; summaryLanguage?: () => string; me?: string; named?: () => Promise<void>; diarized?: () => Promise<void>; namesWaitMs?: number; reply?: string | ((prompt: string) => string); during?: () => void; load?: Promise<void>; title?: string; recording?: () => boolean; smallMac?: boolean; showLoading?: boolean } = {}) {
+function setup(o: { source?: string; summaryLanguage?: () => string; me?: string; named?: () => Promise<void>; diarized?: () => Promise<void>; labeled?: () => Promise<void>; labelPending?: () => boolean; namesWaitMs?: number; reply?: string | ((prompt: string) => string); during?: () => void; load?: Promise<void>; title?: string; recording?: () => boolean; smallMac?: boolean; showLoading?: boolean } = {}) {
   const d = mkdtempSync(join(tmpdir(), 'yogurt-notes-'))
   dirs.push(d)
   const store = openStore(join(d, 'yogurt.db'))
@@ -41,7 +41,7 @@ function setup(o: { source?: string; summaryLanguage?: () => string; me?: string
   const queue = createQueue({ recording: o.recording ?? (() => false), smallMac: o.smallMac ?? false })
   const notes = hookNotes({
     store, queue, model: { llm: async (signal) => { if (signal) signals.push(signal); await o.load; return llm }, needsLoad: () => true }, showLoading: o.showLoading,
-    transcribed: () => transcript, named: o.named, diarized: o.diarized, namesWaitMs: o.namesWaitMs, language: () => 'spanish', summaryLanguage: o.summaryLanguage,
+    transcribed: () => transcript, named: o.named, diarized: o.diarized, labeled: o.labeled, labelPending: o.labelPending, namesWaitMs: o.namesWaitMs, language: () => 'spanish', summaryLanguage: o.summaryLanguage,
     onStop: (fn) => stops.push(fn), send: (v) => sent.push(v), changed: (id) => changed.push(id), peopleRewriteMs: 30, me: () => o.me ?? '',
   })
   return { store, m, notes, sent, prompts, changed, queue, llm, signals, stop: () => stops.forEach((f) => f(m)), transcribed }
@@ -282,6 +282,24 @@ describe('hookNotes', () => {
     s.store.setSegmentSpeakers([{ id: s.store.segments(s.m.id)[0].id, speaker: 'Ann Lee' }])
     diarized(); await s.notes.written(s.m.id)
     expect(s.prompts[0]).toContain('Ann Lee: We ship Tuesday.')
+  })
+  it('waits for speaker labels before it writes, with no cap, and says so', async () => {
+    let labeled!: () => void
+    let pending = true
+    const s = setup({ labeled: () => new Promise<void>((r) => { labeled = r }), labelPending: () => pending })
+    s.stop(); s.transcribed(); await wait(40)
+    expect(s.prompts).toEqual([])
+    expect(s.sent.at(-1)).toMatchObject({ status: 'waiting', labels: true })
+    // the last voice got its name: the wait is over, the banner goes, the notes write
+    pending = false
+    labeled(); await s.notes.written(s.m.id)
+    expect(s.store.notes(s.m.id).enhanced).not.toBeNull()
+  })
+  it('a released meeting writes even while the label wait would hold', async () => {
+    const s = setup({ labeled: () => Promise.resolve() })
+    s.stop(); s.transcribed()
+    await s.notes.written(s.m.id)
+    expect(s.store.notes(s.m.id).enhanced).not.toBeNull()
   })
   it('a failed diarization still lets the notes be written', async () => {
     const s = setup({ diarized: () => Promise.reject(new Error('nemo failed')) })

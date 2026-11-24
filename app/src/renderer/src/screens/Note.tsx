@@ -10,7 +10,7 @@ import { LoadingContent } from '../components/LoadingContent'
 import { motion, useReducedMotion } from '../motion'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useScrollMemory } from '../useScrollMemory'
-import { Lock, RotateCcw, Trash2, Mic, Pause, Play, X } from '../components/Icons'
+import { AudioLines, Lock, Mic, Pause, Play, RotateCcw, TextAlignStart, Trash2, TriangleAlert, Users, X } from '../components/Icons'
 import { attendeeMembership } from '../../../shared/people'
 import type { MeetingView, NoteSaveResult, NoteSide, NoteView, SetupState, WidgetView } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
@@ -429,6 +429,15 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                 <Trash2 size={16} aria-hidden="true" className="shrink-0 text-muted" />
                 <p className="min-w-48 flex-1">{t('This note is in the Trash.')}</p>
                 <button data-testid="note-restore" onClick={() => void window.yogurt.meetings.restore(id)} className="workspace-button"><RotateCcw size={13} aria-hidden="true" />{t('Restore')}</button>
+              </div>
+            )}
+            {/* the settings switch: the summary waits until every voice has a name and every line a speaker */}
+            {notes.status === 'waiting' && notes.labels && !recording && !finishing && (
+              <div data-testid="note-labels-wait" role="status" className="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-line bg-card px-4 py-3 text-[13px] leading-relaxed">
+                <Users size={16} aria-hidden="true" className="shrink-0 text-muted" />
+                <p className="min-w-48 flex-1">{t('Waiting for speaker labels')}<span className="block text-muted">{t('Name every voice and assign every line, and the summary starts on its own.')}</span></p>
+                <button data-testid="note-labels-transcript" onClick={() => pickTab('transcript')} className="workspace-button"><AudioLines size={13} aria-hidden="true" />{t('Open the transcript')}</button>
+                <button data-testid="note-labels-release" onClick={() => void window.yogurt.notes.releaseLabels(id)} className="workspace-button">{t('Summarize now')}</button>
               </div>
             )}
 

@@ -547,16 +547,18 @@ function AiApps() {
 function VoiceRecognition() {
   const [on, setOn] = useState<boolean>()
   const [diarize, setDiarize] = useState<boolean>()
+  const [labels, setLabels] = useState<boolean>()
   const [profiles, setProfiles] = useState<VoiceProfile[]>([])
   const [consent, setConsent] = useState(false)
   const [confirmAll, setConfirmAll] = useState(false)
   useEffect(() => {
-    void window.yogurt.settings.get().then((s) => { setOn(s.speakerProfiles); setDiarize(s.speakerDiarization) })
+    void window.yogurt.settings.get().then((s) => { setOn(s.speakerProfiles); setDiarize(s.speakerDiarization); setLabels(s.speakerLabels) })
     void window.yogurt.voices.list().then(setProfiles)
     return window.yogurt.voices.onChange(() => void window.yogurt.voices.list().then(setProfiles))
   }, [])
   const set = (next: boolean) => { setOn(next); void window.yogurt.settings.setSpeakerProfiles(next) }
   const setSeparate = (next: boolean) => { setDiarize(next); void window.yogurt.settings.setSpeakerDiarization(next) }
+  const setLabelsSwitch = (next: boolean) => { setLabels(next); void window.yogurt.settings.setSpeakerLabels(next) }
   // the first turn-on asks first: a voiceprint is biometric data. After that once, the toggle answers at once
   const toggle = () => {
     if (!on && localStorage.getItem('voice-consent') !== '1') { setConsent(true); return }
@@ -582,6 +584,15 @@ function VoiceRecognition() {
             <p className="settings-description">{t('Names a speaker the next time their voice is heard. The voiceprint stays on this computer.')}</p>
           </div>
           <button data-testid="voice-toggle" role="switch" aria-checked={!!on} aria-label={t('Remember voices across meetings')} disabled={!diarize} onClick={toggle} className="settings-toggle">
+            <span className="settings-toggle-knob" />
+          </button>
+        </div>
+        <div className="settings-row" data-dimmed={!diarize || undefined}>
+          <div className="settings-row-copy">
+            <p className="settings-label">{t('Wait for speaker labels before summarizing')}</p>
+            <p className="settings-description">{t('A saved meeting waits until voices are named and lines are assigned.')}</p>
+          </div>
+          <button data-testid="labels-toggle" role="switch" aria-checked={!!labels} aria-label={t('Wait for speaker labels before summarizing')} disabled={!diarize} onClick={() => setLabelsSwitch(!labels)} className="settings-toggle">
             <span className="settings-toggle-knob" />
           </button>
         </div>

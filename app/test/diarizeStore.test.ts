@@ -131,6 +131,38 @@ describe('diarization store', () => {
     expect(s.meeting(m.id)).toMatchObject({ diarizeError: 'nemo-speech failed' })
   })
 
+  it('labelsPending: a diarized meeting with a Speaker N voice or an unclaimed line waits, until named or released', () => {
+    const s = fresh()
+    const m = s.createMeeting({ ...base, startedAt: 1 })
+    s.addSegments([
+      { meetingId: m.id, track: 'them', startMs: 0, endMs: 900, text: 'a', speaker: 'Speaker 1', speakerKey: 'v1' },
+      { meetingId: m.id, track: 'them', startMs: 1000, endMs: 1900, text: 'b', speaker: null, speakerKey: null },
+    ])
+    const [named, unclaimed] = s.segments(m.id, { hidden: false })
+    // not diarized yet, so nothing waits
+    expect(s.labelsPending(m.id)).toBe(false)
+    s.markDiarized(m.id)
+    expect(s.labelsPending(m.id)).toBe(true)
+    // a failed diarization never holds the notes
+    s.markDiarized(m.id, 'nemo failed')
+    expect(s.labelsPending(m.id)).toBe(false)
+    s.markDiarized(m.id)
+    // naming the voice still leaves the line nobody claimed
+    s.setSegmentSpeakers([{ id: named.id, speaker: 'Ann' }])
+    expect(s.labelsPending(m.id)).toBe(true)
+    // assigning the leftover line to that voice: fully labeled
+    s.applyDiarization(m.id, { deleteIds: [], insert: [], speakers: [{ key: 'v1', speaker: 'Ann', startMs: 0, endMs: 900 }] })
+    s.assignSegment(m.id, unclaimed.id, 'v1')
+    expect(s.labelsPending(m.id)).toBe(false)
+    // another Speaker N voice waits again, but a release wins for good
+    s.addSegments([{ meetingId: m.id, track: 'them', startMs: 2000, endMs: 2900, text: 'c', speaker: 'Speaker 2', speakerKey: 'v2' }])
+    expect(s.labelsPending(m.id)).toBe(true)
+    s.releaseLabels(m.id)
+    expect(s.labelsPending(m.id)).toBe(false)
+    s.resetLabels(m.id)
+    expect(s.labelsPending(m.id)).toBe(true)
+  })
+
   it('createMeeting persists voicesAllowed and diarizeError, so re-reads agree with the object in hand', () => {
     const s = fresh()
     const m = s.createMeeting({ ...base, startedAt: 1, voicesAllowed: true, diarizeError: 'nemo-speech failed' })

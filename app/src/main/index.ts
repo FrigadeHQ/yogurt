@@ -78,6 +78,7 @@ import { hookReadAhead, readAheadAllowed } from './notes/readAhead'
 import { createQueue, isSmallMac, notesMemory } from './notes/queue'
 import { createDiarizer } from './diarize'
 import { createDiarizeSchedule } from './diarize/afterStop'
+import { createLabelWait } from './labelsWait'
 import { createEmbedClient } from './diarize/embed-client'
 import { nemoSpeechPath } from './diarize/paths'
 import { diarizeTimeoutMs } from './diarize/run'
@@ -721,11 +722,14 @@ app.whenReady().then(() => {
   })
   // a speaker's name by hand: rename one voice, or fold two voices of the same person into one
   let rememberVoice: (id: string, key: string) => void = () => {}
+  // summaries that wait for speaker labels (the settings switch); the notes pipeline and the recovery wait on this
+  const labelsWait = createLabelWait({ wanted: () => loadSettings(settingsFile).speakerLabels === true, pending: (id) => store.labelsPending(id) })
   const speakersChanged = (id: string) => {
     win?.webContents.send('transcript:speakers', id)
     sendWidgetTranscript('transcript:speakers', id)
     win?.webContents.send('meetings:changed')
     notes.refresh(id)
+    labelsWait.recheck(id)
   }
   ipcMain.handle('transcript:rename-speaker', (_e, id: unknown, key: unknown, name: unknown) => {
     if (!isId(id) || typeof key !== 'string' || typeof name !== 'string') return false
@@ -759,6 +763,18 @@ app.whenReady().then(() => {
     updateSettings(settingsFile, { speakerDiarization: on ? true : undefined })
     // the model downloads quietly; a meeting saved before it lands keeps its single-voice transcript
     if (on) setup.ensureDiarization()
+  })
+  // off is the default, so only on is written down
+  ipcMain.handle('settings:set-speaker-labels', (_e, on: unknown) => {
+    if (typeof on !== 'boolean') return
+    updateSettings(settingsFile, { speakerLabels: on ? true : undefined })
+  })
+  // the person wants the summary of an unlabeled meeting anyway: it never waits again
+  ipcMain.handle('notes:release-labels', (_e, id: unknown) => {
+    if (!isId(id)) return
+    store.releaseLabels(id)
+    labelsWait.forget(id)
+    notes.refresh(id)
   })
   // each meeting's audio lives in its own folder; a crash keeps what was recorded up to the last 5 s flush
   hookCapture({ dirOf: (id) => join(userDataDir(), 'meetings', id), onStart: onMeetingStart, onStop: onMeetingStop, speech: (id) => speechLocaleFor(id),
@@ -843,7 +859,7 @@ app.whenReady().then(() => {
     allowed: speakerProfiles,
     fake: isFake(),
     timeoutMs: diarizeTimeoutMs,
-    changed: (id) => { win?.webContents.send('transcript:speakers', id); sendWidgetTranscript('transcript:speakers', id); win?.webContents.send('meetings:changed') },
+    changed: (id) => { win?.webContents.send('transcript:speakers', id); sendWidgetTranscript('transcript:speakers', id); win?.webContents.send('meetings:changed'); labelsWait.recheck(id) },
     notesRefresh: (id) => notes.refresh(id),
     voicesChanged: () => { win?.webContents.send('voices:changed') },
   })
@@ -857,7 +873,7 @@ app.whenReady().then(() => {
     namesWaitMs: NAMES_WAIT_MS, warn: (message, error) => console.warn(message, error),
   })
   // voice recognition opt-in is snapshotted per meeting: enabling it mid-call never captures the call in progress
-  onMeetingStart((m) => { try { store.setVoicesAllowed(m.id, speakerProfiles() && diarizeOn()) } catch (e) { console.warn('voices_allowed snapshot failed', e) }; diarizeSchedule.forget(m.id) })
+  onMeetingStart((m) => { try { store.setVoicesAllowed(m.id, speakerProfiles() && diarizeOn()) } catch (e) { console.warn('voices_allowed snapshot failed', e) }; diarizeSchedule.forget(m.id); labelsWait.forget(m.id); store.resetLabels(m.id) })
   // diarize once the recording, transcript and call names have settled; the notes of the meeting wait for the chain
   onMeetingStopSaved((m) => { void diarizeSchedule.start(m.id) })
   const notes = hookNotes({
@@ -865,7 +881,7 @@ app.whenReady().then(() => {
     // Windows and Linux: a note waiting while the model loads says so (a Mac shows what it always did)
     showLoading: platform !== 'darwin',
     summaryLanguage: () => summaryLanguageSetting(loadSettings(settingsFile)),
-    store, queue, model, language: meetingLanguage, onStop: onMeetingStopSaved, named: (id) => callNames.finished(id), diarized: (id) => diarizeSchedule.wait(id), earlier: (id) => readAhead.parts(id), me,
+    store, queue, model, language: meetingLanguage, onStop: onMeetingStopSaved, named: (id) => callNames.finished(id), diarized: (id) => diarizeSchedule.wait(id), labeled: (id) => labelsWait.wait(id), labelPending: (id) => loadSettings(settingsFile).speakerLabels === true && store.labelsPending(id), earlier: (id) => readAhead.parts(id), me,
     transcribed: async (id) => { await recordingFinished(id); await transcriptFinished(id) },
     send: (v) => win?.webContents.send('notes:changed', v),
     // the notes are written: the meeting goes into the library for chat across meetings
@@ -919,6 +935,8 @@ app.whenReady().then(() => {
     if (!existing || existing.source === 'audio-file' || uploads.owns(id) || existing.trashedAt != null || (existing.state !== 'stopped' && existing.state !== 'done')) return { error: 'gone' }
     if (transcriptionBusy(existing.transcriptionState) || resumingId || stopSavePending(id) || finishing || !notes.retryDrafts(id)) return { error: 'failed' }
     resumingId = id
+    // a meeting waiting for its labels must not hold its old chain (and so the resume) open
+    labelsWait.forget(id)
     const analysis = notes.suspendForResume(id)
     let started = false, timer: NodeJS.Timeout | undefined
     try {
@@ -1263,6 +1281,7 @@ app.whenReady().then(() => {
     store,
     moved: (id) => {
       indexer.forget(id)
+      labelsWait.forget(id)
       win?.webContents.send('meetings:changed'); win?.webContents.send('folders:changed')
       if (route === `/note/${id}`) { route = ''; win?.webContents.send('nav:go', route) }
     },

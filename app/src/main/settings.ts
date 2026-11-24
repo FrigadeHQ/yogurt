@@ -64,6 +64,8 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   speakerProfiles?: boolean
   /** speakers are separated in the transcript after a meeting; off unless turned on (off: the transcript stays as it is) */
   speakerDiarization?: boolean
+  /** summaries wait until voices are named and lines are assigned; off unless turned on */
+  speakerLabels?: boolean
   /** new versions download by themselves; on unless turned off */
   autoUpdate?: boolean
   /** when the updater last fetched latest*.yml (ms): checks happen about once a day (updates.ts) */
