@@ -755,9 +755,10 @@ export class Store {
   releaseLabels(id: string) { this.db.prepare('UPDATE meetings SET labels_released = 1 WHERE id = ?').run(id) }
   /** a meeting records again: its labels start over */
   resetLabels(id: string) { this.db.prepare('UPDATE meetings SET labels_released = 0 WHERE id = ?').run(id) }
-  /** any meeting the person still has to label (the tray's exclamation mark) */
-  anyLabelsPending(): boolean {
-    const ids = this.db.prepare('SELECT id FROM meetings WHERE trashed_at IS NULL AND diarized_at IS NOT NULL AND diarize_error IS NULL AND labels_released = 0').all() as Row[]
+  /** any meeting the person still has to label (the tray's exclamation mark); a day after it started, a meeting
+   * stops asking for attention — older ones keep their banner but the tray stays quiet */
+  anyLabelsPending(now = Date.now()): boolean {
+    const ids = this.db.prepare('SELECT id FROM meetings WHERE trashed_at IS NULL AND diarized_at IS NOT NULL AND diarize_error IS NULL AND labels_released = 0 AND started_at >= ?').all(now - 24 * 60 * 60 * 1000) as Row[]
     return ids.some(r => this.labelsPending(String(r.id)))
   }
 

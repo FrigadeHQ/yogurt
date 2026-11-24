@@ -133,7 +133,8 @@ describe('diarization store', () => {
 
   it('labelsPending: a diarized meeting with a Speaker N voice or an unclaimed line waits, until named or released', () => {
     const s = fresh()
-    const m = s.createMeeting({ ...base, startedAt: 1 })
+    // started now: the meeting is recent enough to ask for attention (the tray's exclamation mark)
+    const m = s.createMeeting({ ...base, startedAt: Date.now() })
     s.addSegments([
       { meetingId: m.id, track: 'them', startMs: 0, endMs: 900, text: 'a', speaker: 'Speaker 1', speakerKey: 'v1' },
       { meetingId: m.id, track: 'them', startMs: 1000, endMs: 1900, text: 'b', speaker: null, speakerKey: null },
@@ -163,6 +164,10 @@ describe('diarization store', () => {
     expect(s.labelsPending(m.id)).toBe(false)
     expect(s.anyLabelsPending()).toBe(false)
     s.resetLabels(m.id)
+    expect(s.labelsPending(m.id)).toBe(true)
+    expect(s.anyLabelsPending()).toBe(true)
+    // a day later the meeting stops asking for attention, though it still waits
+    expect(s.anyLabelsPending(Date.now() + 25 * 60 * 60 * 1000)).toBe(false)
     expect(s.labelsPending(m.id)).toBe(true)
     expect(s.anyLabelsPending()).toBe(true)
   })
