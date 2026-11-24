@@ -16,22 +16,14 @@ enum Theme {
     static let line = dynamic(0xE6E6E8, 0x343436)
     static let accent = dynamic(0x6F00FF, 0xB780FF)
     static let accentSoft = dynamic(0xF1E6FF, 0x2C164A)
-    /// filled buttons and the tab underline stay the brand purple in both themes
-    static let primary = Color(hex: 0x6F00FF)
+    static let onAccent = dynamic(0xFFFFFF, 0x1B1B1D)
     static let control = dynamic(0xECECEE, 0x333335)
-    static let selected = dynamic(0xE4E2E8, 0x3B393F)
     static let rowPressed = dynamic(0xF0F0F1, 0x262628)
     static let live = dynamic(0x416D48, 0xAED4B5)
     static let danger = dynamic(0xB63C4D, 0xF098A5)
-    static let dangerSoft = dynamic(0xF4E5E8, 0x59343C)
     /// the onboarding pictures' purple, as on desktop's first run
     static let art = dynamic(0x7142E8, 0xA48BF4)
     static let artSoft = dynamic(0xEEE9FC, 0x2D2445)
-
-    /// Bricolage Grotesque SemiBold (bundled, OFL), desktop's brand face, for screen titles only.
-    static func brand(_ size: CGFloat, relativeTo style: Font.TextStyle = .title) -> Font {
-        .custom("BricolageGrotesque-SemiBold", size: size, relativeTo: style)
-    }
 
     private static func dynamic(_ light: UInt32, _ dark: UInt32) -> Color {
         Color(UIColor { $0.userInterfaceStyle == .dark ? UIColor(hex: dark) : UIColor(hex: light) })
@@ -45,20 +37,16 @@ extension UIColor {
     }
 }
 
-extension Color {
-    init(hex: UInt32) { self.init(uiColor: UIColor(hex: hex)) }
-}
-
 /// A full-width purple button, like desktop's primary buttons.
 struct PrimaryButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var enabled
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.body.weight(.semibold))
-            .foregroundStyle(.white)
+            .foregroundStyle(enabled ? Theme.onAccent : Theme.accent)
             .padding(.horizontal, 22)
-            .frame(minHeight: 50)
-            .background(Theme.primary.opacity(enabled ? 1 : 0.4), in: Capsule())
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .background(enabled ? Theme.accent : Theme.accentSoft, in: Capsule())
             .opacity(configuration.isPressed ? 0.85 : 1)
             .scaleEffect(configuration.isPressed ? 0.98 : 1)
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
@@ -71,5 +59,53 @@ struct RowButtonStyle: ButtonStyle {
         configuration.label
             .contentShape(Rectangle())
             .background(configuration.isPressed ? Theme.rowPressed : .clear, in: RoundedRectangle(cornerRadius: 10))
+    }
+}
+
+/// One equal-width choice in the meeting and recording tab rows.
+struct MeetingTabStyle: ButtonStyle {
+    let selected: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.subheadline.weight(selected ? .semibold : .regular))
+            .foregroundStyle(selected ? Theme.ink : Theme.muted)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background(selected ? Theme.float : .clear, in: RoundedRectangle(cornerRadius: 11))
+            .contentShape(Rectangle())
+    }
+}
+
+/// An inline sheet heading that can wrap at larger text sizes.
+struct SheetHeader: View {
+    let title: String
+    var dismissLabel = S.done
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(title)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(Theme.heading)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityAddTraits(.isHeader)
+            Button { dismiss() } label: {
+                Text(dismissLabel)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Theme.accent)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .layoutPriority(1)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
+        .background(Theme.bg)
     }
 }

@@ -27,23 +27,15 @@ struct StatusPill: View {
                 .frame(width: 8, height: 8)
                 // refreshed every minute so "last synced 2 h ago" stays true
                 TimelineView(.periodic(from: .now, by: 60)) { context in
-                    // the whole sentence on one line when it fits beside Home's buttons, else without the computer's
-                    // name, else on two lines; never cut off. A problem always gets two, so it can be read.
-                    ViewThatFits(in: .horizontal) {
-                        if !isError { line(shown.label(now: context.date)).lineLimit(1).fixedSize() }
-                        if !isError { line(shown.shortLabel(now: context.date)).lineLimit(1).fixedSize() }
-                        line(shown.label(now: context.date)).lineLimit(2).fixedSize(horizontal: false, vertical: true)
-                    }
+                    line(shown.label(now: context.date))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .padding(.leading, 11).padding(.trailing, 13)
-            .padding(.vertical, 6)
-            .frame(minHeight: 32)
-            .background(isError ? Theme.dangerSoft : Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.line.opacity(isError ? 0 : 1), lineWidth: 0.5))
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        // the label crossfades while the pill's width eases to the new one
+        // Keep brief changes from flickering between connection states.
         .animation(.easeInOut(duration: 0.35), value: shown)
         .onChange(of: status) { _, now in calm.update(now, at: .now) }
         .task(id: calm.nextCheck) {
@@ -59,8 +51,8 @@ struct StatusPill: View {
 
     private func line(_ text: String) -> some View {
         Text(text)
-            .font(.footnote.weight(.medium))
-            .foregroundStyle(isError ? Theme.danger : Theme.ink)
+            .font(.subheadline)
+            .foregroundStyle(isError ? Theme.danger : Theme.muted)
             .contentTransition(.opacity)
     }
 
