@@ -39,6 +39,11 @@ export function turns<L extends Pick<Said, 'track' | 'startMs' | 'speaker'> & { 
   return out
 }
 
+/** A final can correct its own start time. Anchor the row to the line before it. */
+export function transcriptRowKey(track: Said['track'], previous?: Pick<Said, 'track' | 'startMs'>): string {
+  return previous ? `${track}-after-${previous.track}:${previous.startMs}` : track
+}
+
 /** The index of the last line that started by ms (lines sorted by start), -1 for none: a binary search, for long meetings */
 export function lineAt(lines: Array<{ startMs: number }>, ms: number): number {
   let lo = 0, hi = lines.length - 1, found = -1

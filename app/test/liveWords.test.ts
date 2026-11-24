@@ -79,3 +79,11 @@ describe('afterFinal', () => {
     expect(afterFinal(ws, { endMs: 1000, text: '' })).toEqual([])
   })
 })
+
+it('a pre-mute final leaves the same word said again after unmute on screen', () => {
+  const before = { text: 'Testing', startMs: 100, endMs: 300, rough: true, muteMs: 350 }
+  const after = { text: 'Testing', startMs: 400, endMs: 600, rough: true }
+  const pending = replaceWords([before], [after], () => true)
+  expect(pending).toEqual([before, after])
+  expect(afterFinal(pending, { text: 'Testing, testing.', endMs: 350 })).toEqual([after])
+})

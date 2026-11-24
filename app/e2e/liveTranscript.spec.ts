@@ -66,6 +66,32 @@ async function checkSteady(page: Page) {
 }
 
 for (const speech of [false, true]) {
+  test(`muting keeps the ${speech ? 'Apple' : 'Whisper'} mic line in its original bubble until the final arrives`, async ({}, testInfo) => {
+    const { app, page } = await launch(speech ? { YOGURT_FAKE_SPEECH: '1' } : {})
+    try {
+      await record(page)
+      await start(app, page)
+      const mic = page.getByTestId('note-mic')
+      const bubble = page.locator('[data-testid="transcript-bubble"][data-track="me"]').first()
+      await expect(bubble.getByTestId('transcript-partial')).toContainText('Hi,', { timeout: 15_000 })
+      await bubble.evaluate(el => el.setAttribute('data-original-mic-row', ''))
+      const original = page.locator('[data-original-mic-row]')
+      await mic.click()
+      await expect(mic).toHaveAttribute('aria-pressed', 'true')
+      await expect(original.getByTestId('transcript-partial')).toContainText('Hi,')
+      await original.screenshot({ path: testInfo.outputPath('mic-muted-pending.png') })
+      await expect(original.getByTestId('transcript-line')).toContainText('Hi,', { timeout: 20_000 })
+      await expect(original.getByTestId('transcript-partial')).toHaveCount(0)
+      await original.screenshot({ path: testInfo.outputPath('mic-muted-final.png') })
+      await expect(page.locator('[data-testid="transcript-line"][data-track="me"]')).toHaveCount(1)
+      const snapshots = await page.evaluate(() => (window as unknown as { __snaps: Array<{ me: string }> }).__snaps)
+      const first = snapshots.findIndex(s => s.me.includes('Hi,'))
+      expect(first).toBeGreaterThanOrEqual(0)
+      expect(snapshots.slice(first).every(s => s.me.match(/Hi,/g)?.length === 1)).toBe(true)
+      await expect(page.locator('[data-testid="transcript-line"][data-track="them"]').first()).toBeVisible({ timeout: 20_000 })
+    } finally { await app.close() }
+  })
+
   test(`live words ${speech ? "from Apple's speech" : 'from whisper'} never show twice and never vanish once shown`, async () => {
     const { app, page } = await launch(speech ? { YOGURT_FAKE_SPEECH: '1' } : {})
     try {

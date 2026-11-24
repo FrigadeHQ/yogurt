@@ -1,4 +1,4 @@
-import { transcriptSpeaker } from '../../../shared/transcript'
+import { transcriptRowKey, transcriptSpeaker } from '../../../shared/transcript'
 import { SPEAKER_COLORS } from '../../../shared/speakerColors'
 import { widgetDragDelta, isWidgetClick, type WidgetPress } from '../../../shared/widgetGesture'
 import { Loading } from '../components/Loading'
@@ -219,13 +219,13 @@ function Preview({ view, open }: { view: WidgetView; open: boolean }) {
     }}>
       <div ref={content}>
       {!loaded ? <Loading layout="transcript" testId="widget-preview-loading" /> : !grouped.length && <p className="widget-preview-empty">{failed ? t("Couldn't load the transcript. Open Yogurt to try again.") : t('Listening for speech…')}</p>}
-      {grouped.map(turn => {
+      {grouped.map((turn, i) => {
         const first = turn[0], me = first.track === 'me'
         const who = transcriptSpeaker(first)
         const color = me || !('speakerColor' in first) ? undefined : first.speakerColor
-        return <div key={`${first.track}:${first.startMs}`} className="widget-preview-turn" data-me={me}>
+        return <div key={transcriptRowKey(first.track, grouped[i - 1]?.at(-1))} className="widget-preview-turn" data-me={me}>
           <span className="widget-preview-speaker" data-color={color} data-folder-color={color === undefined ? undefined : SPEAKER_COLORS[color]}>{who}</span>
-          {bubbles(turn).map(group => <p key={`${group[0].track}:${group[0].startMs}`} data-testid="widget-preview-bubble" className="widget-preview-bubble" dir="auto">
+          {bubbles(turn).map((group, i, groups) => <p key={transcriptRowKey(first.track, groups[i - 1]?.at(-1))} data-testid="widget-preview-bubble" className="widget-preview-bubble" dir="auto">
             {group.map((line, i) => <Fragment key={`${line.track}:${line.startMs}`}>{i > 0 && ' '}{'live' in line ? <LiveWords said={line.live} /> : line.text}</Fragment>)}
           </p>)}
         </div>

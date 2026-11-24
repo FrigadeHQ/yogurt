@@ -16,6 +16,7 @@ import { createTranscriber, type Line, type Transcribe } from './transcribe'
 import { meetingWords, respell, whisperPrompt } from '../vocab'
 import type { TranscriptPartial } from '../../shared/types'
 import type { Chunk } from './chunker'
+import { MicInput } from './micInput'
 
 /**
  * Live transcription of the meeting being recorded: the capture's audio goes through a pipeline (chunks, whisper-server,
@@ -30,8 +31,9 @@ type Session = { complete?: () => boolean; pipeline: Pipeline | null; priorLines
   replacement?: boolean
   /** Apple's speech listens in this locale for the meeting (null: whisper only); off once whisper hears another language */
   speech?: string | null
+  micQuickAfterFinal?: boolean
   /** Live input only: saved-file transcription must never influence call detection. */
-  live?: { quietSince: number; micFrom?: number; frames: Partial<Record<Track, number>> } }
+  live?: { quietSince: number; mic: MicInput; micFrom?: number; frames: Partial<Record<Track, number>> } }
 
 /**
  * The saved transcript comes from whisper; Apple's words are the live view. Languages listed here are the ones where Apple's
@@ -42,12 +44,21 @@ export const APPLE_FINALS_LANGUAGES: ReadonlySet<string> = new Set<string>()
 
 /** seconds of someone talking with no word from Apple's speech before whisper's own readings take over (its first words can take a while to warm up) */
 const SPEECH_WATCH_POLLS = 15
+/** Switching live readers clears its words, so give the pre-mute final the first turn. */
+function micQuickReads(s: Session, on: boolean) {
+  const words = s.pipeline?.partials().find(part => part.track === 'me')?.words ?? []
+  if (words.some(word => word.muteMs !== undefined)) { s.micQuickAfterFinal = on; return }
+  delete s.micQuickAfterFinal
+  s.pipeline?.setQuickReads(on, 'me')
+}
+
 /** Apple's speech is set aside for the rest of this meeting: whisper's quick readings come back */
 function speechOff(s: Session, why: string) {
   if (!s.speech) return
   console.log(`speech: ${why}: Apple's words are set aside for this meeting`)
   s.speech = null
-  s.pipeline?.setQuickReads(true)
+  s.pipeline?.setQuickReads(true, 'them')
+  micQuickReads(s, true)
 }
 
 /** what the Mac's speech can do, read once at start-up (nothing where it is not available) */
@@ -244,8 +255,14 @@ export function hookTranscription(p: {
     if (transcribe && !later) {
       const read = transcribe
       transcribe = async (chunk, opts) => {
-        const lines = await read(chunk, opts)
-        return opts?.partial && chunk.track === 'me' && chunk.startMs < (s.live?.micFrom ?? 0) ? [] : lines
+        if (chunk.track !== 'me' || !s.live) return read(chunk, opts)
+        const lines: Line[] = []
+        for (const clip of s.live.mic.audible(chunk)) {
+          if (opts?.partial && clip.startMs < (s.live.micFrom ?? 0)) continue
+          const result = await read(clip, opts)
+          if (!opts?.partial || clip.startMs >= (s.live.micFrom ?? 0)) lines.push(...result)
+        }
+        return lines
       }
     }
     if (transcribe && options) {
@@ -272,6 +289,7 @@ export function hookTranscription(p: {
       }, emitPartial: options?.save || !p.sendPartial ? undefined : part => {
         if (s.live && part.text.trim()) s.live.quietSince = Date.now()
         p.sendPartial?.(part)
+        if (part.track === 'me' && s.micQuickAfterFinal !== undefined && !part.words?.length) micQuickReads(s, s.micQuickAfterFinal)
       }, holdMs: p.holdMs, extraWaitMs: p.extraWaitMs, onWarn: warnOnce,
         nameOf: (a, b) => p.store.meeting?.(id)?.source === 'audio-file' ? AUDIO_SPEAKER : p.nameOf?.(id, a, b) ?? previousSpeaker(priorSegments,'them',a,b),
         respell: (t) => { const m = p.store.meeting?.(id); return m ? respell(t, meetingWords(m)) : t } }) : null,
@@ -299,15 +317,23 @@ export function hookTranscription(p: {
   // each capture of a meeting (a restarted recorder is a new one) feeds that meeting's session
   const offCapture = onCaptureStart((c, meetingId) => {
     const s = open(meetingId)
-    const live: NonNullable<Session['live']> = { quietSince: Date.now(), micFrom: s.live?.micFrom, frames: {} }
+    const live: NonNullable<Session['live']> = { quietSince: Date.now(), mic: s.live?.mic ?? new MicInput(), micFrom: s.live?.micFrom, frames: {} }
     s.live = live
-    let appleMic = !!s.speech
+    const silence = (ms: number, samples: Float32Array) => s.pipeline?.push('me', ms, samples)
+    c.on('level', () => { if (s.live === live) live.mic.tick(silence) })
+    let appleMic = !!s.speech, appleCall = !!s.speech
     c.on('mic-boundary', ({ muted, ms }) => {
       if (s.live !== live) return
       live.micFrom = muted ? Infinity : ms
       live.quietSince = Date.now()
-      s.pipeline?.push('me', ms, new Float32Array(0))
-      s.pipeline?.setQuickReads(!muted && !(s.speech && appleMic), 'me')
+      live.mic.boundary(muted, ms, silence)
+      if (muted) {
+        const part = s.pipeline?.partials().find(part => part.track === 'me')
+        if (part?.words?.length) {
+          for (const word of part.words) word.muteMs ??= ms
+          try { p.sendPartial?.(part) } catch (error) { console.error('sending held mic words failed', error) }
+        }
+      }
     })
     c.on('pcm', (track, ms, samples) => {
       if (s.live !== live || !samples.length || (track === 'me' && ms < (live.micFrom ?? 0))) return
@@ -318,14 +344,16 @@ export function hookTranscription(p: {
       live.frames[track] = now
     })
     // Apple's speech that never speaks up: the helper says so, or someone has talked for a while with no word from it
-    c.on('speech-off', () => speechOff(s, 'the helper could not run it'))
+    c.on('speech-off', () => { if (s.live === live) speechOff(s, 'the helper could not run it') })
     // Apple listening on one track only: whisper's own quick readings cover the other
     c.on('speech-ready', (tracks) => {
       if (s.live !== live || !s.speech || !s.pipeline) return
       const heardMic = tracks.includes('me')
-      if (!heardMic || heardMic !== appleMic) s.pipeline.setQuickReads(!heardMic && live.micFrom !== Infinity, 'me')
+      if (heardMic !== appleMic) micQuickReads(s, !heardMic)
       appleMic = heardMic
-      if (!tracks.includes('them')) s.pipeline.setQuickReads(true, 'them')
+      const heardCall = tracks.includes('them')
+      if (heardCall !== appleCall) s.pipeline.setQuickReads(!heardCall, 'them')
+      appleCall = heardCall
     })
     let heardSpeech = false, talkedPolls = 0
     const watch = setInterval(() => {
