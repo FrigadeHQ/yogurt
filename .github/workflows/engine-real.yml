@@ -46,6 +46,8 @@ jobs:
         if: inputs.run_id == ''
         run: |
           cd app && pnpm exec electron-vite build
+          # Linux: the notes engine's allocator shim (#32), as scripts/native.mjs builds it
+          if [ "$RUNNER_OS" = Linux ]; then mkdir -p resources/bin && gcc -O2 -fPIC -shared -Wall -Wextra -Werror -o resources/bin/libyogurt-bigalloc.so native/bigalloc/bigalloc.c; fi
           echo "ASAR=$GITHUB_WORKSPACE/app" >> "$GITHUB_ENV"
       - name: The preview installer
         if: inputs.run_id != ''

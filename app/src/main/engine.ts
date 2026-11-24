@@ -16,6 +16,16 @@ type Limits = typeof WATCH
 /** Vulkan's "the graphics card was reset" (a driver hang): the process that saw it can never use the card again */
 export const deviceLost = (message: string): boolean => /ErrorDeviceLost|VK_ERROR_DEVICE_LOST/i.test(message)
 
+/**
+ * Linux (#32): Electron's own allocator traps (SIGILL, code 132) on one allocation over 2 GiB, and llama.cpp makes one
+ * when the model runs on the processor (its repacked weights, a big context). libyogurt-bigalloc.so (native/bigalloc)
+ * sends those to mmap instead. Only the notes engine gets it, and only when it was shipped.
+ */
+export const SHIM = 'libyogurt-bigalloc.so'
+export const engineShim = (platform: string, candidates: string[], exists: (p: string) => boolean): string | undefined =>
+  // LD_PRELOAD splits on spaces and colons, so a path with one would never load
+  platform === 'linux' ? candidates.find((p) => !/[\s:]/.test(p) && exists(p)) : undefined
+
 export type ChatRequest = { messages: EngineMessage[]; maxTokens?: number; thoughtBudget?: number; /** instead of the family's sampling temperature */ temperature?: number }
 
 export interface Engine {
@@ -55,10 +65,11 @@ export class UtilityEngine implements Engine {
   private limits: Limits
 
   /**
-   * cpuCrashes (Linux): the engine dies on the processor alone (code 132: Electron's allocator refuses llama.cpp's
-   * single > 2 GiB weight buffer), so a lost graphics card starts the engine again on the card, not without it.
+   * cpuCrashes (Linux without the shim): the engine dies on the processor alone (code 132: Electron's allocator refuses
+   * llama.cpp's single > 2 GiB weight buffer), so a lost graphics card starts the engine again on the card, not without it.
+   * preload: the shim that prevents that crash (engineShim), put in the engine's LD_PRELOAD.
    */
-  constructor(private workerPath: string, private opts: { gpuFallback?: boolean; cpuCrashes?: boolean } & Partial<Limits> = {}) {
+  constructor(private workerPath: string, private opts: { gpuFallback?: boolean; cpuCrashes?: boolean; preload?: string } & Partial<Limits> = {}) {
     this.limits = { ...WATCH, ...opts }
   }
 
@@ -92,7 +103,13 @@ export class UtilityEngine implements Engine {
 
   private ensure(): UtilityProcess {
     if (this.proc) return this.proc
-    const proc = utilityProcess.fork(this.workerPath, [], { serviceName: 'Yogurt Notes', ...(this.cpuOnly ? { env: { ...process.env, YOGURT_ENGINE_GPU: 'off' } } : {}) })
+    const { preload } = this.opts
+    const env = preload || this.cpuOnly ? {
+      ...process.env,
+      ...(preload ? { LD_PRELOAD: [preload, process.env.LD_PRELOAD].filter(Boolean).join(':') } : {}),
+      ...(this.cpuOnly ? { YOGURT_ENGINE_GPU: 'off' } : {}),
+    } : undefined
+    const proc = utilityProcess.fork(this.workerPath, [], { serviceName: 'Yogurt Notes', ...(env ? { env } : {}) })
     this.loaded = false
     proc.on('message', (e: EngineEvent) => {
       const p = this.pending.get(e.id)

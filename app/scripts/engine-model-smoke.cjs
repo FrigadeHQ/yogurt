@@ -3,9 +3,9 @@
 // app's context sizes, and writes a few words. Each step's time is printed, so a stall shows where it stopped.
 // CI only (preview.yml, engine-real.yml): no real profile, microphone or meeting is opened.
 const { app, utilityProcess } = require('electron')
-const { mkdtempSync, rmSync, existsSync } = require('node:fs')
+const { mkdtempSync, rmSync, existsSync, readFileSync } = require('node:fs')
 const { tmpdir } = require('node:os')
-const { join, resolve } = require('node:path')
+const { dirname, join, resolve } = require('node:path')
 
 const [archive, model] = process.argv.slice(2).filter((a) => !a.startsWith('--'))
 const gpuOff = process.argv.includes('--gpu-off')
@@ -20,8 +20,14 @@ app.setName('Yogurt Engine Model Smoke')
 app.setPath('userData', profile)
 
 app.whenReady().then(async () => {
+  // Linux: the allocator shim (#32), next to an installed app.asar or in this commit's resources/bin, preloaded as the app does
+  const shim = process.platform === 'linux'
+    ? [join(dirname(resolve(archive)), 'bin'), join(resolve(archive), 'resources', 'bin')].map((d) => join(d, 'libyogurt-bigalloc.so')).find(existsSync)
+    : undefined
+  if (process.platform === 'linux' && !shim) throw new Error('libyogurt-bigalloc.so was not found next to the app')
+  const env = { ...(shim ? { LD_PRELOAD: shim } : {}), ...(gpuOff ? { YOGURT_ENGINE_GPU: 'off' } : {}) }
   const child = utilityProcess.fork(join(resolve(archive), 'out/main/engine.js'), [], {
-    serviceName: 'Yogurt Engine Model Smoke', stdio: 'pipe', ...(gpuOff ? { env: { ...process.env, YOGURT_ENGINE_GPU: 'off' } } : {}),
+    serviceName: 'Yogurt Engine Model Smoke', stdio: 'pipe', ...(Object.keys(env).length ? { env: { ...process.env, ...env } } : {}),
   })
   child.stdout.on('data', (c) => process.stdout.write(`[engine] ${c}`))
   child.stderr.on('data', (c) => process.stderr.write(`[engine] ${c}`))
@@ -52,6 +58,9 @@ app.whenReady().then(async () => {
   let failed = null
   try {
     await timed('probe', { type: 'probe' })
+    // the utility process must really have loaded the shim (it answered, so it is running)
+    if (shim && !readFileSync(`/proc/${child.pid}/maps`, 'utf8').includes(shim)) throw new Error(`The notes engine did not load ${shim}`)
+    if (shim) console.log(`The notes engine loaded ${shim}`)
     await timed('load', { type: 'load', modelPath: resolve(model), contextSize: CONTEXT, minContext: MIN_CONTEXT })
     const answer = await timed('chat', { type: 'chat', messages: [{ role: 'user', content: 'Say hello in five words.' }], thoughtBudget: 0, maxTokens: 24 })
     if (!String(answer).trim()) throw new Error('The model wrote nothing')

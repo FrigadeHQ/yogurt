@@ -70,7 +70,7 @@ import { setJargon, setOwnerName } from './vocab'
 import { cleanJargon } from '../shared/jargon'
 import { setGenericTitles } from './titles'
 import { installAppMenu } from './appMenu'
-import { UtilityEngine } from './engine'
+import { engineShim, SHIM, UtilityEngine } from './engine'
 import { createNotesModel } from './notes/model'
 import { FakeEngine } from './notes/fake'
 import { hookNotes } from './notes'
@@ -703,7 +703,10 @@ app.whenReady().then(() => {
   // 32 GB and up: the notes model reads each meeting in as it happens (notes/readAhead.ts)
   const readsAhead = !isFake() && readAheadAllowed(os.totalmem())
   // the notes model: one job at a time, recording first; loaded when needed, the best one downloaded
-  const engine = isFake() ? new FakeEngine() : new UtilityEngine(join(__dirname, 'engine.js'), { gpuFallback: process.platform !== 'darwin', cpuCrashes: process.platform === 'linux' })
+  // Linux: the shim that keeps the engine from crashing on the processor (#32); without it, the card is the only way
+  const shim = engineShim(process.platform, [process.resourcesPath && join(process.resourcesPath, 'bin', SHIM), join(__dirname, '../../resources/bin', SHIM)].filter((x): x is string => !!x), existsSync)
+  if (process.platform === 'linux') console.info('NOTES', shim ? `big allocations go through ${shim}` : `${SHIM} is missing: the notes engine can crash on the processor`)
+  const engine = isFake() ? new FakeEngine() : new UtilityEngine(join(__dirname, 'engine.js'), { gpuFallback: process.platform !== 'darwin', cpuCrashes: process.platform === 'linux' && !shim, ...(shim ? { preload: shim } : {}) })
   if (engine instanceof UtilityEngine) probeGpu = () => engine.probe().then((g) => {
     console.info('NOTES', `graphics: ${g.gpuType || 'none'}${g.gpuNames.length ? ` (${g.gpuNames.join(', ')})` : ''}, ${g.vramTotalGB.toFixed(1)} GB`)
     return g

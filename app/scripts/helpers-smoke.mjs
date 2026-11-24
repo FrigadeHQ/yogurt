@@ -22,6 +22,8 @@ const run = (exe, args, env = {}) => spawnSync(exe, args, { encoding: 'utf8', ti
 
 for (const name of ['yogurt-audio', 'yogurt-system', 'yogurt-mcp']) check(existsSync(bin(name)), `${name} is installed`, bin(name))
 check(existsSync(join(a.resources, 'dict', 'words')), 'the word list is installed')
+// Linux: the notes engine's allocator shim (#32)
+if (process.platform === 'linux') check(existsSync(bin('libyogurt-bigalloc.so')), 'the notes engine\'s allocator shim is installed', bin('libyogurt-bigalloc.so'))
 if (!a['no-whisper']) {
   check(existsSync(bin('whisper-server')), 'whisper-server is installed', bin('whisper-server'))
   check(existsSync(join(a.resources, 'vad', 'ggml-silero-v6.2.0.bin')), 'the VAD model is installed')

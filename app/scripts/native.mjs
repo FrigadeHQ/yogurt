@@ -6,6 +6,7 @@
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { chmodSync, copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -57,6 +58,22 @@ for (const [crate, name] of CRATES) {
   copyFileSync(join(dir, 'target', 'release', exe(name)), out)
   if (!win) chmodSync(out, 0o755)
   console.log(`built ${out}`)
+}
+
+// Linux: the notes engine's allocator shim (#32, native/bigalloc), with the system's gcc. Checked before it ships: it
+// exports both functions, and its own test passes.
+if (!win) {
+  const src = join(app, 'native', 'bigalloc')
+  const so = join(bin, 'libyogurt-bigalloc.so')
+  run('gcc', ['-O2', '-fPIC', '-shared', '-Wall', '-Wextra', '-Werror', '-o', so, join(src, 'bigalloc.c')])
+  const syms = spawnSync('nm', ['-D', '--defined-only', so], { encoding: 'utf8' }).stdout ?? ''
+  for (const name of ['ggml_aligned_malloc', 'ggml_aligned_free']) {
+    if (!new RegExp(`\\sT ${name}$`, 'm').test(syms)) { console.error(`${so} doesn't export ${name}`); process.exit(1) }
+  }
+  const test = join(tmpdir(), 'yogurt-bigalloc-test')
+  run('gcc', ['-O2', '-Wall', '-Werror', '-o', test, join(src, 'test.c'), so, `-Wl,-rpath,${bin}`])
+  run(test, [])
+  console.log(`built ${so}`)
 }
 
 // The word list a Mac has in /usr/share/dict/words (Webster's Second International, 1934, public domain), from FreeBSD at a
