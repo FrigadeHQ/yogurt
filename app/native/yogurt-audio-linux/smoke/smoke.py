@@ -204,6 +204,31 @@ check(r.wait_for(lambda m: m["t"] == "warn" and m["code"] == "mic-gone", since=n
 m = r.wait_for(lambda m: m["t"] == "mic" and m["uid"] is None, since=n0, timeout=5)
 check(m is not None and m["name"] == "VirtualMic", "and goes back to Auto")
 time.sleep(1.5)
+def input_stream_ids():
+    return {line.split()[0] for line in pactl("list", "short", "source-outputs").splitlines() if line.strip()}
+
+before_mute = input_stream_ids()
+mute_at = time.time() - r.t0
+r.send("mute 1")
+muted = r.wait_for(lambda m: m["t"] == "mic-muted" and m["id"] == 1 and m["muted"])
+check(muted is not None, "helper confirms mic off")
+check(muted is not None and muted["_at"] - mute_at < 0.2, "warm mute confirms within 200 ms")
+check(before_mute and input_stream_ids() == before_mute, "mute keeps the same input stream open")
+r.send("mic virtmic")
+time.sleep(1.2)
+before_unmute = input_stream_ids()
+unmute_at = time.time() - r.t0
+r.send("unmute 2")
+unmuted = r.wait_for(lambda m: m["t"] == "mic-muted" and m["id"] == 2 and not m["muted"])
+check(unmuted is not None, "helper confirms the selected mic is back on")
+check(unmuted is not None and unmuted["_at"] - unmute_at < 0.2, "warm unmute confirms within 200 ms")
+check(before_unmute and input_stream_ids() == before_unmute, "unmute reuses the selected input stream")
+if muted and unmuted:
+    interval = r.lines[r.lines.index(muted) + 1:r.lines.index(unmuted)]
+    check(not any(m["t"] == "pcm" and m["track"] == "me" for m in interval), "no mic PCM between acknowledgments")
+    check(any(m["t"] == "pcm" and m["track"] == "them" and rms(m["samples"]) > 0.05 for m in interval), "call tone continues while muted")
+check(r.wait_for(lambda m: m["t"] == "pcm" and m["track"] == "me" and rms(m["samples"]) > 0.05,
+                 since=r.lines.index(unmuted) + 1 if unmuted else len(r.lines)) is not None, "fresh mic audio after unmuting")
 r.send("bogus")
 elapsed = time.time() - r.t0
 code = r.stop()
@@ -235,6 +260,13 @@ for track in ["me", "them"]:
     f = os.path.join(meet, track + ".ogg")
     check(os.path.exists(f), f + " exists")
     check(ffmpeg_clean(f), track + ".ogg decodes with ffmpeg without errors")
+    if muted and unmuted:
+        # Skip codec overlap at the two edges. The body of the protected interval loses only the mic tone.
+        raw = subprocess.check_output([helper, "decode", f])
+        lo, hi = (int((muted["ms"] + 100) * 16), int((unmuted["ms"] - 100) * 16))
+        samples = struct.unpack("<%df" % (len(raw) // 4), raw)[lo:hi]
+        check(len(samples) == hi - lo and (rms(samples) < 0.001 if track == "me" else rms(samples) > 0.05),
+              track + ".ogg preserves the mute interval on meeting time")
     sec = ffprobe_seconds(f)
     check(abs(sec - elapsed) < 2.0, "%s.ogg lasts the recording (%.2f s of %.2f s)" % (track, sec, elapsed))
     check(mean_db(f) > -35, "%s.ogg is not silent (%.1f dB)" % (track, mean_db(f)))
@@ -247,10 +279,11 @@ check(code == 0 and all(0 < info["tracks"][t]["bitsPerSecond"] < 40000 for t in 
 first_ms = info.get("durationMs", 0)
 
 # --- a restart: part 1 on meeting time, then join ----------------------------------------------------
-r2 = Run(["record", "--dir", meet, "--part", "1", "--start-ms", str(first_ms)])
+r2 = Run(["record", "--dir", meet, "--part", "1", "--start-ms", str(first_ms), "--mic-muted"])
 time.sleep(3)
 code = r2.stop(eof=True)
 check(code == 0, "end of stdin finishes and exits 0 (got %s)" % code)
+check(not r2.of("pcm", track="me"), "a replacement helper is muted from its first sample through Stop")
 pcm = r2.of("pcm", track="them")
 check(pcm and pcm[0]["ms"] >= first_ms, "part 1's pcm carries on from --start-ms (%s >= %s)" % (pcm and pcm[0]["ms"], first_ms))
 check(os.path.exists(os.path.join(meet, "me.1.ogg")) and os.path.exists(os.path.join(meet, "them.1.ogg")), "part 1 writes me.1.ogg and them.1.ogg")

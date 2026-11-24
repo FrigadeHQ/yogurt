@@ -745,5 +745,17 @@
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhoneは同じWi-Fi上でのみこのコンピュータと通信します。インターネットを経由するものはありません。",
   "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhoneが今このコンピュータに接続できません。Yogurtを再起動してみてください。",
   "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "iPhoneからこのコンピュータが見えません。システム設定 → プライバシーとセキュリティで、Yogurtのローカルネットワークを許可してください。",
-  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhoneからこのコンピュータが見えません。ファイアウォールで、プライベートネットワークでのYogurtの通信を許可してください。"
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhoneからこのコンピュータが見えません。ファイアウォールで、プライベートネットワークでのYogurtの通信を許可してください。",
+  "Mute my mic in Yogurt": "Yogurt で自分のマイクをミュート",
+  "Mute my mic": "自分のマイクをミュート",
+  "Mic is still off. Try again.": "マイクはまだオフです。もう一度お試しください。",
+  "Muting mic…": "マイクをミュートしています…",
+  "Mic off in Yogurt": "Yogurt のマイクはオフです",
+  "Unmuting mic…": "マイクのミュートを解除しています…",
+  "Unmute my mic": "自分のマイクのミュートを解除",
+  "Mic on in Yogurt": "Yogurt のマイクはオンです",
+  "Unmute my mic in Yogurt": "Yogurt で自分のマイクのミュートを解除",
+  "Mic will stay off on resume": "録音を再開してもマイクはオフのままです",
+  "Mic mute couldn’t be confirmed.": "マイクがミュートされたか確認できませんでした。",
+  "Mic off. Yogurt can’t hear call audio.": "マイクはオフです。Yogurt に通話音声が届いていません。"
 }

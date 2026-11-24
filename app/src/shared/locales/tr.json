@@ -775,5 +775,17 @@
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone’un bu bilgisayarla yalnızca aynı Wi-Fi ağında konuşur. Hiçbir şey internetten geçmez.",
   "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhone’un şu anda bu bilgisayara ulaşamıyor. Yogurt’u yeniden başlatmayı dene.",
   "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "iPhone’un bu bilgisayarı göremiyor. Sistem Ayarları → Gizlilik ve Güvenlik’te Yogurt için Yerel Ağ’a izin ver.",
-  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone’un bu bilgisayarı göremiyor. Güvenlik duvarında özel ağlar için Yogurt’a izin ver."
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone’un bu bilgisayarı göremiyor. Güvenlik duvarında özel ağlar için Yogurt’a izin ver.",
+  "Mute my mic in Yogurt": "Yogurt’ta mikrofonumu sessize al",
+  "Mute my mic": "Mikrofonumu sessize al",
+  "Mic is still off. Try again.": "Mikrofon hâlâ kapalı. Tekrar deneyin.",
+  "Muting mic…": "Mikrofon sessize alınıyor…",
+  "Mic off in Yogurt": "Yogurt’ta mikrofon kapalı",
+  "Unmuting mic…": "Mikrofon açılıyor…",
+  "Unmute my mic": "Mikrofonumu aç",
+  "Mic on in Yogurt": "Yogurt’ta mikrofon açık",
+  "Unmute my mic in Yogurt": "Yogurt’ta mikrofonumu aç",
+  "Mic will stay off on resume": "Kayıt devam ettiğinde mikrofon kapalı kalacak",
+  "Mic mute couldn’t be confirmed.": "Mikrofonun sessize alındığı doğrulanamadı.",
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofon kapalı. Yogurt aramanın sesini alamıyor."
 }

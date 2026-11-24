@@ -1,11 +1,11 @@
-import { micFloor, silentSpeech, speechSample } from '../shared/speechWave'
+import { recordingSpeech, silentSpeech } from '../shared/speechWave'
 import { BrowserWindow, ipcMain, Notification, screen } from 'electron'
 import { join } from 'node:path'
 import type { Meeting } from './store'
 import { WidgetModel } from './widgetModel'
 import { onRecordingEvent, recordingFinished } from './capture'
 import { onMeetingChange, onMeetingStart, onMeetingStop, stopSavePending } from './meeting'
-import type { WidgetView } from '../shared/types'
+import { micIsOff, type WidgetView } from '../shared/types'
 import { floatingType, floatOverFullScreen } from './float'
 import { isFake } from './paths'
 import { t, onLanguage } from '../shared/i18n'
@@ -63,7 +63,7 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
   platform?: NodeJS.Platform }) {
   const model = new WidgetModel(d.os)
   let speech = silentSpeech
-  let micLevels: number[] = []
+  const floors = { me: [] as number[], them: [] as number[] }
   let win: BrowserWindow | undefined
   /**
    * Linux (X11): Electron crashes when a window is destroyed while the X server still answers about its size, as
@@ -161,7 +161,7 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
 
   onMeetingStart((m) => {
     speech = silentSpeech
-    micLevels = []
+    floors.me.length = floors.them.length = 0
     notifyOnChange = false; notice = null; stopPressed = false
     model.start({ id: m.id, title: m.title, startedAt: m.resume ? m.resume.startedAt - m.resume.capturedMs : m.startedAt })
     open(); push()
@@ -200,8 +200,12 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
   onRecordingEvent((e) => {
     if (!model.meetingId) return
     if (e.t === 'level') {
-      speech = speechSample(speech, e, performance.timeOrigin + performance.now(), micFloor(micLevels, e))
+      speech = recordingSpeech(speech, e, floors, micIsOff(model.micState), performance.timeOrigin + performance.now())
       broadcast('widget:level', { me: e.me, them: e.them, speech })
+    } else if (e.t === 'mic-state' && e.meetingId === model.meetingId) {
+      if (micIsOff(model.micState) !== micIsOff(e.state)) speech = silentSpeech
+      model.micState = e.state
+      push()
     } else if (e.t === 'paused' && e.meetingId === model.meetingId) { model.pause(e.paused, e.at); push() }
     else if (e.t === 'warn') { model.warn(e.code); push() }
     else if (e.t === 'gave-up') model.gaveUp()
@@ -283,6 +287,7 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
 
   return {
     visibilityChanged,
+    owns: (sender: Electron.WebContents) => !!win && !win.isDestroyed() && sender === win.webContents,
     elapsed: () => model.view(Date.now())?.elapsedMs ?? 0,
     /** the recording is about to stop because its call ended: the finished card says so */
     callEnded: (meetingId: string) => { if (model.meetingId === meetingId) model.callEnded() },

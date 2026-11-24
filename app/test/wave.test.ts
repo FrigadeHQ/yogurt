@@ -1,11 +1,22 @@
 import { describe, expect, it } from 'vitest'
-import { micFloor, silentSpeech, speechAt, speechBars, speechRestAt, speechSample } from '../src/shared/speechWave'
+import { recordingSpeech, micFloor, silentSpeech, speechAt, speechBars, speechRestAt, speechSample } from '../src/shared/speechWave'
 
 const input = (db: number) => ({ me: Math.max(0, (db + 60) / 60), them: 0 })
 const on = speechSample(silentSpeech, input(-25), 0)
 const atStrength = (phase: number, reduced = false) => speechBars({ drive: 1, phase }, reduced).heights
 
 describe('recording speech wave', () => {
+  it('uses call audio only while muted, with a separate room and call noise floor', () => {
+    const floors = { me: Array(60).fill(-30), them: Array(60).fill(-50) }
+    const speaks = (me: number, them: number, muted: boolean) =>
+      recordingSpeech(silentSpeech, { me: input(me).me, them: input(them).me }, floors, muted, 100).speaking
+    expect(speaks(-25, -25, false)).toBe(false)
+    expect(speaks(-15, -60, false)).toBe(true)
+    expect(speaks(-15, -60, true)).toBe(false)
+    expect(speaks(-60, -42, true)).toBe(false)
+    expect(speaks(-60, -36, true)).toBe(true)
+  })
+
   it('uses only the microphone and keeps small fluctuations inside the speech gate from moving it', () => {
     expect(speechSample(silentSpeech, { me: 0, them: 1 }, 0).speaking).toBe(false)
     expect(speechSample(silentSpeech, input(-47), 0).speaking).toBe(false)

@@ -57,6 +57,20 @@ describe('widget model', () => {
     expect(w.view(22000)).toMatchObject({ kind: 'captured', elapsedMs: 10000 })
     expect(w.view(22000)?.paused).toBeUndefined()
   })
+  it('keeps the clock and call warning while muted and clears mute on a new recording', () => {
+    const w = new WidgetModel()
+    w.start(m); w.micState = 'off'; w.warn('no-mic')
+    expect(w.view(6000)).toMatchObject({ micState: 'off', elapsedMs: 5000, note: null })
+    w.warn('no-system-audio')
+    expect(w.view(7000)?.note).toMatchObject({ code: 'no-system-audio', text: 'Mic off. Yogurt can’t hear call audio.' })
+    w.pause(true, 7000)
+    expect(w.view(8500)).toMatchObject({ paused: true, micState: 'off', elapsedMs: 6000 })
+    w.micState = 'unconfirmed'; w.stop(9000)
+    expect(w.view(9500)?.note?.text).toBe('Mic mute couldn’t be confirmed.')
+    w.start(m)
+    expect(w.micState).toBe('on')
+  })
+
   it('hints stay until the call is over; device changes say nothing', () => {
     const w = new WidgetModel()
     w.start(m)

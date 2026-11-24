@@ -23,6 +23,7 @@ import { Transcript } from '../components/Transcript'
 import { Ask } from '../components/Chat'
 import { LevelBars } from '../components/LevelBars'
 import { RecordingTime } from '../components/RecordingTime'
+import { MicToggle, MicFeedback } from '../components/MicToggle'
 import { RecordingAction } from '../components/RecordingAction'
 import { ShareMenu } from '../components/ShareMenu'
 import { NoteMenu, summaryAction } from '../components/NoteMenu'
@@ -161,7 +162,6 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   }, [at?.seq, notes, m, hasEnhanced])
 
   // the recorder's hints (the widget shows them too), while this meeting records
-  const isRecording = m?.id === id && m.state === 'recording'
   const togglePause = async () => {
     const paused = !m?.paused
     setPausing(true); setPauseFailed(null)
@@ -172,11 +172,13 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
     finally { setPausing(false) }
   }
   useEffect(() => {
-    if (!isRecording) { setRecorder(null); return }
+    let current = true, updated = false
+    setRecorder(null)
     const take = (v: WidgetView | null) => setRecorder(v && v.meetingId === id ? v : null)
-    void window.yogurt.widget.state().then(take)
-    return window.yogurt.widget.onState(take)
-  }, [id, isRecording])
+    const off = window.yogurt.widget.onState(v => { updated = true; take(v) })
+    void window.yogurt.widget.state().then(v => { if (current && !updated) take(v) })
+    return () => { current = false; off() }
+  }, [id])
 
   useEffect(() => {
     let version = 0
@@ -397,6 +399,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                 </>}
                 <div data-testid="note-state" data-state={m.state} data-paused={!!m.paused} className="note-recording-group" data-treatment={RECORDING_CONTROL_TREATMENT} data-recording={recording && !finishing} role="group" aria-label={recording ? m.paused ? t('Paused') : t('Recording') : t('Meeting controls')}>
                   {recording && !finishing && <>
+                    <MicToggle id={id} state={recorder?.micState} paused={!!m.paused || recorder?.kind !== 'recording' || recorder.meetingId !== id} />
                     <RecordingAction data-testid="note-pause" disabled={pausing} onClick={() => { void togglePause() }}
                       label={m.paused ? t('Resume recording') : t('Pause recording')} className="note-record-action note-pause-action">
                       <Swap show={m.paused ? 'play' : 'pause'} options={{ pause: <Pause className="flex-none" size={14} fill="currentColor" strokeWidth={0} />, play: <Play className="flex-none" size={14} fill="currentColor" strokeWidth={0} /> }} />
@@ -499,6 +502,8 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
           {startFailed && <p role="alert" className="pointer-events-auto mx-auto mt-3 w-fit text-[13px] text-danger">{t("Yogurt couldn't start the notes. Try again in a moment.")}</p>}
           {resumeFailed && <p data-testid="note-resume-failed" role="alert" className="pointer-events-auto mx-auto mt-3 w-fit max-w-[calc(100%-32px)] text-[13px] text-danger">{t("Couldn't resume recording. Your existing note and audio are kept. Try again.")}</p>}
           {pauseFailed && recording && <p role="alert" className="pointer-events-auto mx-auto mt-3 w-fit text-[13px] text-danger">{pauseFailed === 'pause' ? t("Couldn't pause the recording. Try again.") : t("Couldn't resume the recording. Try again.")}</p>}
+          {recording && recorder?.meetingId === id && <MicFeedback state={recorder.micState} paused={!!m.paused} />}
+          {!recording && recorder?.meetingId === id && recorder.micState === 'unconfirmed' && <MicFeedback state="unconfirmed" />}
           {recording && hint && <RecordingHint hint={hint} />}
           <div className="note-footer-bar">
           <div className="note-status pointer-events-auto flex flex-wrap items-center gap-1.5 text-[11px] text-muted">

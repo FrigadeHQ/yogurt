@@ -745,5 +745,17 @@
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone kamu hanya berbicara dengan komputer ini di Wi-Fi yang sama. Tidak ada yang lewat internet.",
   "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhone kamu tidak bisa menjangkau komputer ini sekarang. Coba mulai ulang Yogurt.",
   "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "iPhone kamu tidak bisa melihat komputer ini. Izinkan Jaringan Lokal untuk Yogurt di Pengaturan Sistem → Privasi & Keamanan.",
-  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone kamu tidak bisa melihat komputer ini. Izinkan Yogurt melewati firewall kamu di jaringan pribadi."
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone kamu tidak bisa melihat komputer ini. Izinkan Yogurt melewati firewall kamu di jaringan pribadi.",
+  "Mute my mic in Yogurt": "Bisukan mikrofon saya di Yogurt",
+  "Mute my mic": "Bisukan mikrofon saya",
+  "Mic is still off. Try again.": "Mikrofon masih nonaktif. Coba lagi.",
+  "Muting mic…": "Membisukan mikrofon…",
+  "Mic off in Yogurt": "Mikrofon nonaktif di Yogurt",
+  "Unmuting mic…": "Mengaktifkan mikrofon…",
+  "Unmute my mic": "Aktifkan mikrofon saya",
+  "Mic on in Yogurt": "Mikrofon aktif di Yogurt",
+  "Unmute my mic in Yogurt": "Aktifkan mikrofon saya di Yogurt",
+  "Mic will stay off on resume": "Mikrofon akan tetap nonaktif saat perekaman dilanjutkan",
+  "Mic mute couldn’t be confirmed.": "Status bisu mikrofon tidak dapat dipastikan.",
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofon nonaktif. Yogurt tidak dapat mendengar audio panggilan."
 }

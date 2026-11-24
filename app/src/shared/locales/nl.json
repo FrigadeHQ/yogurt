@@ -787,5 +787,17 @@
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Je iPhone praat alleen via hetzelfde wifi-netwerk met deze computer. Er gaat niets via internet.",
   "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "Je iPhone kan deze computer nu niet bereiken. Probeer Yogurt opnieuw te starten.",
   "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "Je iPhone ziet deze computer niet. Sta het lokale netwerk toe voor Yogurt in Systeeminstellingen → Privacy en beveiliging.",
-  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "Je iPhone ziet deze computer niet. Laat Yogurt door je firewall op privénetwerken."
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "Je iPhone ziet deze computer niet. Laat Yogurt door je firewall op privénetwerken.",
+  "Mute my mic in Yogurt": "Mijn microfoon dempen in Yogurt",
+  "Mute my mic": "Mijn microfoon dempen",
+  "Mic is still off. Try again.": "De microfoon staat nog uit. Probeer het opnieuw.",
+  "Muting mic…": "Microfoon wordt gedempt…",
+  "Mic off in Yogurt": "Microfoon uit in Yogurt",
+  "Unmuting mic…": "Microfoon wordt aangezet…",
+  "Unmute my mic": "Mijn microfoon aanzetten",
+  "Mic on in Yogurt": "Microfoon aan in Yogurt",
+  "Unmute my mic in Yogurt": "Mijn microfoon aanzetten in Yogurt",
+  "Mic will stay off on resume": "De microfoon blijft uit bij het hervatten",
+  "Mic mute couldn’t be confirmed.": "Het dempen van de microfoon kon niet worden bevestigd.",
+  "Mic off. Yogurt can’t hear call audio.": "Microfoon uit. Yogurt ontvangt geen gespreksaudio."
 }

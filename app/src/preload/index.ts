@@ -74,6 +74,7 @@ const api: YogurtApi = {
     startPrepared: (id) => ipcRenderer.invoke('meetings:start-prepared', id),
     resume: (id) => ipcRenderer.invoke('meetings:resume', id),
     stop: (id) => { ipcRenderer.send('meetings:stop', id) },
+    setMicMuted: (id, muted) => ipcRenderer.invoke('meetings:set-mic-muted', id, muted),
     setPaused: (id, paused) => ipcRenderer.invoke('meetings:set-paused', id, paused),
     retryStopSave: (id) => ipcRenderer.invoke('meetings:retry-stop-save', id),
     rename: (id, title) => ipcRenderer.invoke('meetings:rename', id, title),

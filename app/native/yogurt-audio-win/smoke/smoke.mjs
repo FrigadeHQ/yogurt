@@ -72,7 +72,7 @@ function record(dir, ms, commands = [], args = []) {
 
 function protocolChecks(frames, label) {
   check(!frames.some((f) => f.t === 'bad' || f.t === 'torn'), `${label}: every line is JSON and every pcm payload is whole`)
-  const known = new Set(['pcm', 'level', 'warn', 'mic', 'speech-off'])
+  const known = new Set(['pcm', 'level', 'warn', 'mic', 'mic-muted', 'speech-off'])
   check(frames.every((f) => known.has(f.t)), `${label}: only messages the app knows`)
   const codes = new Set(['no-system-audio', 'device-changed', 'no-mic', 'mic-gone'])
   check(frames.filter((f) => f.t === 'warn').every((f) => codes.has(f.code)), `${label}: warnings are known codes`)
@@ -151,7 +151,10 @@ async function basic() {
   const eof = spawnSync(exe, ['record', '--dir', tmp('eof')], { input: '', timeout: 15_000 })
   check(eof.status === 0, 'closing stdin stops record', `${eof.status}`)
   const part = tmp('part')
-  await record(part, 800, [], ['--part', '2', '--start-ms', '61000'])
+  const mutedPart = await record(part, 800, [[300, 'mute 1']], ['--part', '2', '--start-ms', '61000', '--mic-muted'])
+  check(mutedPart.frames.some(f => f.t === 'mic-muted' && f.id === 1 && f.muted && f.ms >= 61000), 'replacement confirms muted on meeting time')
+  check(!mutedPart.frames.some(f => f.t === 'pcm' && f.track === 'me'), 'replacement captures no mic from launch')
+  check(existsSync(join(part, 'me.2.ogg')), 'a trailing muted interval is saved through Stop')
   check(json(readFileSync(join(part, 'part.2.json'), 'utf8'))?.startMs === 61000, 'a restart notes where its part starts')
 }
 
@@ -169,7 +172,21 @@ async function live(excluded) {
   }
   const dir = tmp('live')
   const cmds = cable ? [[3000, `mic ${cable.uid}`], [5000, 'mic auto']] : []
+  cmds.push([5600, 'mute 1'], [6700, 'unmute 2'])
   const res = await record(dir, 8000, cmds)
+  const off = res.frames.findIndex(f => f.t === 'mic-muted' && f.id === 1 && f.muted)
+  const on = res.frames.findIndex(f => f.t === 'mic-muted' && f.id === 2 && (!cable || !f.muted))
+  check(off >= 0 && on > off, 'mic commands confirm the effective state in order')
+  const interval = res.frames.slice(off + 1, on)
+  check(!interval.some(f => f.t === 'pcm' && f.track === 'me'), 'no mic PCM passes the confirmed mute')
+  if (!excluded) check(interval.some(f => f.t === 'pcm' && f.track === 'them' && f.rms > 0.02), 'call tone continues during mute')
+  if (off >= 0 && on > off && cable) {
+    const decoded = spawnSync(exe, ['decode', join(dir, 'me.ogg')])
+    const lo = Math.ceil((res.frames[off].ms + 100) * 16), hi = Math.floor((res.frames[on].ms - 100) * 16)
+    let peak = 0
+    for (let i = lo; i < hi && i * 4 < decoded.stdout.length; i++) peak = Math.max(peak, Math.abs(decoded.stdout.readFloatLE(i * 4)))
+    check(decoded.status === 0 && hi > lo && decoded.stdout.length >= hi * 4 && peak < .001, 'saved mic is silent inside the acknowledged interval')
+  }
   player?.kill()
   protocolChecks(res.frames, excluded ? 'excluded' : 'live')
   check(res.code === 0, 'record stops cleanly', `${res.code}`)

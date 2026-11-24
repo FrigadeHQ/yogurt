@@ -30,6 +30,17 @@ describe('chunker', () => {
     expect(secs(out[1])).toBeGreaterThanOrEqual(2)
   })
 
+  it('cuts a short mic mute immediately while a remote sentence stays open', () => {
+    const out: Chunk[] = []
+    const c = chunker(x => out.push(x))
+    feed(c.push, 'me', tone(1)); feed(c.push, 'them', tone(1))
+    c.push('me', 1000, new Float32Array(0))
+    expect(c.isOpen('them')).toBe(true)
+    feed(c.push, 'me', tone(1), 1050); feed(c.push, 'them', tone(1), 1000)
+    c.flush()
+    expect(out.map(x => [x.track, x.startMs, secs(x)])).toEqual([['me', 0, 1], ['me', 1050, 1], ['them', 0, 2]])
+  })
+
   it('drops leading silence and starts the chunk where the voice starts', () => {
     const out = run(cat(quiet(2), tone(1.5)))
     expect(out).toHaveLength(1)

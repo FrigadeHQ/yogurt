@@ -10,6 +10,8 @@ export type LiveWord = {
   glue?: boolean
   /** its time is a guess, spread over a reading that gave no time per word (Apple's volatile words) */
   rough?: boolean
+  /** visible at a confirmed mute: only the final reading of this audio can replace it */
+  muteMs?: number
 }
 export type Heard = { startMs: number; endMs: number; text: string; words?: Array<{ text: string; startMs: number; endMs: number }> }
 
@@ -55,7 +57,7 @@ export const joinWords = (ws: LiveWord[]): string => ws.map((w, i) => (i === 0 |
 
 /** the words `drop` says a new reading reads again go, its words come in; kept in time order */
 export function replaceWords(cur: LiveWord[], incoming: LiveWord[], drop: (w: LiveWord) => boolean): LiveWord[] {
-  return [...cur.filter((w) => !drop(w)), ...incoming].sort((a, b) => a.startMs - b.startMs)
+  return [...cur.filter((w) => w.muteMs !== undefined || !drop(w)), ...incoming].sort((a, b) => a.startMs - b.startMs)
 }
 
 const norm = (s: string) => s.toLocaleLowerCase().replace(/[^\p{L}\p{N}']/gu, '')
@@ -90,7 +92,8 @@ function covered(rough: LiveWord[], finalText: string): number {
 export function afterFinal(ws: LiveWord[], f: { endMs: number; text: string }): LiveWord[] {
   const exact = ws.filter((w) => !w.rough && mid(w) >= f.endMs)
   const rough = ws.filter((w) => w.rough)
-  const byText = covered(rough, f.text)
+  const muteMs = rough.find(w => w.muteMs !== undefined && f.endMs <= w.muteMs)?.muteMs
+  const byText = covered(muteMs === undefined ? rough : rough.filter(w => w.startMs < muteMs), f.text)
   const byTime = rough.filter((w) => mid(w) < f.endMs - ROUGH_SLACK_MS).length
-  return [...exact, ...rough.slice(byText || byTime)].sort((a, b) => a.startMs - b.startMs)
+  return [...exact, ...rough.slice(byText || byTime).filter(w => w.muteMs === undefined || mid(w) >= f.endMs)].sort((a, b) => a.startMs - b.startMs)
 }

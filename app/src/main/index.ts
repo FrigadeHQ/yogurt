@@ -60,7 +60,7 @@ import { deleteMeeting } from './deleteMeeting'
 import { emptyTrash, moveToTrash, purgeTrash } from './trash'
 import { isId, text, rewriteNote } from './ipcArgs'
 import { hookMics } from './mics'
-import { activeCapture, audioHelperPath, hookCapture, joinParts, onCaptureStart, onRecordingEvent, prepareAppend, recordingFinished, recordingPaused, recordingSettled, rejoinInterrupted, setRecordingPaused, settleRecording, tell, type WarnCode } from './capture'
+import { activeCapture, audioHelperPath, hookCapture, joinParts, onCaptureStart, onRecordingEvent, prepareAppend, recordingFinished, recordingPaused, recordingSettled, rejoinInterrupted, setMicMuted, setRecordingPaused, settleRecording, tell, type WarnCode } from './capture'
 import { createWidget } from './widget'
 import { liveSilentMs, hookTranscription, transcribeRecorded, onWhisperGpuOff, meetingLanguage, settleTranscription, speechLocaleFor, spokenChanged, transcriptionBacklogMs, stopTranscriptionServer, releaseIdleSpeech, transcriptFinished, transcriptOpen, transcriptPartials } from './asr'
 import { hookCallNames, type Watch } from './callNames'
@@ -476,6 +476,10 @@ function startDetection() {
     return changed
   }
   ipcMain.handle('meetings:set-paused', (_e, id: unknown, paused: unknown) => pauseRecording(id, paused))
+  ipcMain.handle('meetings:set-mic-muted', (e, id: unknown, muted: unknown) => {
+    if (e.senderFrame !== e.sender.mainFrame || (e.sender !== win?.webContents && !widget.owns(e.sender))) return false
+    return isId(id) && typeof muted === 'boolean' && activeMeeting()?.id === id && setMicMuted(id, muted, e.sender === win?.webContents ? 'note' : 'widget')
+  })
   recordingControls = { start: startNotes, pause: pauseRecording }
   ipcMain.handle('meetings:retry-stop-save', (_e, id: unknown) => isId(id) && retryStopSave(id))
   // the menu bar: open, new note or stop, quit; Yogurt stays there with its window closed

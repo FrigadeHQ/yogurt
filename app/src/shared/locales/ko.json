@@ -745,5 +745,17 @@
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone은 같은 Wi-Fi에서만 이 컴퓨터와 통신합니다. 인터넷을 거치는 것은 없습니다.",
   "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhone이 지금 이 컴퓨터에 연결할 수 없습니다. Yogurt를 다시 시작해 보세요.",
   "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "iPhone에서 이 컴퓨터가 보이지 않습니다. 시스템 설정 → 개인정보 보호 및 보안에서 Yogurt의 로컬 네트워크를 허용하세요.",
-  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone에서 이 컴퓨터가 보이지 않습니다. 방화벽에서 개인 네트워크에 대해 Yogurt를 허용하세요."
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone에서 이 컴퓨터가 보이지 않습니다. 방화벽에서 개인 네트워크에 대해 Yogurt를 허용하세요.",
+  "Mute my mic in Yogurt": "Yogurt에서 내 마이크 음소거",
+  "Mute my mic": "내 마이크 음소거",
+  "Mic is still off. Try again.": "마이크가 아직 꺼져 있습니다. 다시 시도하세요.",
+  "Muting mic…": "마이크 음소거 중…",
+  "Mic off in Yogurt": "Yogurt에서 마이크가 꺼져 있습니다",
+  "Unmuting mic…": "마이크 음소거 해제 중…",
+  "Unmute my mic": "내 마이크 음소거 해제",
+  "Mic on in Yogurt": "Yogurt에서 마이크가 켜져 있습니다",
+  "Unmute my mic in Yogurt": "Yogurt에서 내 마이크 음소거 해제",
+  "Mic will stay off on resume": "녹음을 재개해도 마이크는 꺼진 상태로 유지됩니다",
+  "Mic mute couldn’t be confirmed.": "마이크가 음소거되었는지 확인할 수 없습니다.",
+  "Mic off. Yogurt can’t hear call audio.": "마이크가 꺼져 있습니다. Yogurt에서 통화 소리를 들을 수 없습니다."
 }

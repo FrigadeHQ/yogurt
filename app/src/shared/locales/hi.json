@@ -775,5 +775,17 @@
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "आपका iPhone इस कंप्यूटर से सिर्फ़ एक ही Wi-Fi पर बात करता है। कुछ भी इंटरनेट से नहीं जाता।",
   "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "आपका iPhone अभी इस कंप्यूटर तक नहीं पहुँच पा रहा। Yogurt को फिर से शुरू करके देखें।",
   "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "आपका iPhone इस कंप्यूटर को नहीं देख पा रहा। सिस्टम सेटिंग्ज़ → गोपनीयता और सुरक्षा में Yogurt को लोकल नेटवर्क की अनुमति दें।",
-  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "आपका iPhone इस कंप्यूटर को नहीं देख पा रहा। निजी नेटवर्क पर अपने फ़ायरवॉल में Yogurt को अनुमति दें।"
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "आपका iPhone इस कंप्यूटर को नहीं देख पा रहा। निजी नेटवर्क पर अपने फ़ायरवॉल में Yogurt को अनुमति दें।",
+  "Mute my mic in Yogurt": "Yogurt में मेरा माइक म्यूट करें",
+  "Mute my mic": "मेरा माइक म्यूट करें",
+  "Mic is still off. Try again.": "माइक अभी भी बंद है। फिर कोशिश करें।",
+  "Muting mic…": "माइक म्यूट किया जा रहा है…",
+  "Mic off in Yogurt": "Yogurt में माइक बंद है",
+  "Unmuting mic…": "माइक अनम्यूट किया जा रहा है…",
+  "Unmute my mic": "मेरा माइक अनम्यूट करें",
+  "Mic on in Yogurt": "Yogurt में माइक चालू है",
+  "Unmute my mic in Yogurt": "Yogurt में मेरा माइक अनम्यूट करें",
+  "Mic will stay off on resume": "रिकॉर्डिंग फिर शुरू होने पर माइक बंद रहेगा",
+  "Mic mute couldn’t be confirmed.": "माइक म्यूट होने की पुष्टि नहीं हो सकी।",
+  "Mic off. Yogurt can’t hear call audio.": "माइक बंद है। Yogurt को कॉल की आवाज़ सुनाई नहीं दे रही है।"
 }

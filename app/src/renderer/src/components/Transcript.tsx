@@ -11,7 +11,7 @@ import { AudioLines, ArrowDown } from './Icons'
 import type { Segment, TranscriptPartial } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
 import { useLanguage } from '../i18n'
-import { transcriptSpeaker, bubbles, clock, echoRuns, lineAt, recentRuns, stableKeys, turns, withLive, type LiveSaid } from '../../../shared/transcript'
+import { transcriptRowKey, transcriptSpeaker, bubbles, clock, echoRuns, lineAt, recentRuns, stableKeys, turns, withLive, type LiveSaid } from '../../../shared/transcript'
 import { TranscriptFind } from './TranscriptFind'
 import { Player, type PlayerHandle } from './Player'
 import { attachPlayerVisibility } from '../playerVisibility'
@@ -385,7 +385,7 @@ export function Transcript({ id, notice, processing=false, replacing=false, reco
     else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); follow(); player.current?.playFrom(lines[i].startMs) }
   }
 
-  const grouped = useMemo(() => timeline.map(run => ({ ...run, k: key(run.lines[0]) })), [timeline])
+  const grouped = useMemo(() => timeline.map((run, i) => ({ ...run, k: key(run.lines[0]), rowKey: transcriptRowKey(run.lines[0].track, timeline[i - 1]?.lines.at(-1)) })), [timeline])
   const drawn = useMemo(() => (recording && !showAll ? recentRuns(grouped, LIVE_LINES, LIVE_STEP) : { runs: grouped, earlier: 0 }), [grouped, recording, showAll])
   const find = useCallback((open: boolean) => {
     setFinding(open)
@@ -413,21 +413,21 @@ export function Transcript({ id, notice, processing=false, replacing=false, reco
             </div>
           </li>}
           {drawn.earlier > 0 && <li className="flex justify-center"><button data-testid="transcript-earlier" onClick={() => { visibility.current?.programmatic(); stick.current = false; setShowAll(true) }} className="ghost-btn">{t('Show earlier lines')}</button></li>}
-          {drawn.runs.map(run => <Fragment key={run.k}>
-            {turns(run.lines).map((turn) => {
+          {drawn.runs.map(run => <Fragment key={run.rowKey}>
+            {turns(run.lines).map((turn, i, groups) => {
             const me = turn[0].track === 'me', first = turn[0]
             const color = me || !('speakerColor' in first) ? undefined : first.speakerColor
             // a name comes with the first final line; until then its place is kept, so nothing moves when it shows
             const named = turn.some((x) => !('live' in x))
             return (
-              <li key={key(first)} data-testid="transcript-turn" data-track={first.track} className={`transcript-turn flex flex-col gap-[5px] ${me ? 'items-end' : 'items-start'}`}>
+              <li key={transcriptRowKey(first.track, groups[i - 1]?.at(-1))} data-testid="transcript-turn" data-track={first.track} className={`transcript-turn flex flex-col gap-[5px] ${me ? 'items-end' : 'items-start'}`}>
                 {/* the other side's name heads their turn; the mic's side needs none, its bubbles sit at the end */}
                 <p className={me ? 'sr-only' : 'turn-head flex items-baseline gap-2 px-1 text-xs'}>
                   <span data-testid="transcript-who" data-color={color} data-folder-color={color === undefined ? undefined : SPEAKER_COLORS[color]} className={`line-who font-medium ${me ? '' : 'text-muted'} ${named ? 'name-in' : 'invisible'}`}>{who(first)}</span>
                   <time className="turn-time tabular-nums text-muted">{clock(first.startMs)}</time>
                 </p>
-                {bubbles(turn).map((b) => (
-                  <p key={key(b[0])} data-testid="transcript-bubble" data-track={first.track} dir="auto" className={`bubble ${me ? 'bubble-me' : 'bubble-them'}`}>
+                {bubbles(turn).map((b, i, groups) => (
+                  <p key={transcriptRowKey(first.track, groups[i - 1]?.at(-1))} data-testid="transcript-bubble" data-track={first.track} dir="auto" className={`bubble ${me ? 'bubble-me' : 'bubble-them'}`}>
                     {b.map((x, i) => {
                       if ('live' in x) return <Fragment key="live">{i > 0 && ' '}<LiveWords said={x.live} /></Fragment>
                       const k = key(x)

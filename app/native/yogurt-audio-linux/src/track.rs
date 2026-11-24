@@ -80,7 +80,7 @@ impl Track {
             self.last_heard_end = Some(heard + dur);
         }
         if self.base_ms.is_none() {
-            let ms = heard_ms.unwrap_or(arrived_ms - dur).max(0.0);
+            let ms = heard_ms.unwrap_or((self.pts as f64 / 48.0).max(arrived_ms - dur)).max(0.0);
             self.base_ms = Some(ms);
             self.sent_since = 0;
             self.pad_to((ms * 48.0) as u64);
@@ -195,6 +195,19 @@ mod tests {
         assert_eq!(f, vec![(500.0, 1600), (600.0, 1600)]);
         assert!(t.finish());
         assert_eq!(crate::ogg_opus::info(&d.join("me.ogg")).unwrap().samples, 700 * 48);
+    }
+
+    #[test]
+    fn a_short_mute_keeps_the_next_pcm_on_the_saved_timeline() {
+        let d = dir();
+        let (mut t, _) = track(&d, 0, 0.0);
+        t.append(&[0.1; 4800], None, 100.0);
+        t.resync();
+        t.pad_to(150 * 48);
+        t.append(&[0.1; 4800], None, 240.0);
+        assert_eq!(t.base_ms, Some(150.0));
+        assert_eq!(t.pts, 250 * 48);
+        assert!(t.finish());
     }
 
     #[test]

@@ -803,5 +803,17 @@
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Votre iPhone ne communique avec cet ordinateur que sur le même réseau Wi-Fi. Rien ne passe par Internet.",
   "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "Votre iPhone ne peut pas joindre cet ordinateur pour le moment. Essayez de redémarrer Yogurt.",
   "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "Votre iPhone ne voit pas cet ordinateur. Autorisez le réseau local pour Yogurt dans Réglages Système → Confidentialité et sécurité.",
-  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "Votre iPhone ne voit pas cet ordinateur. Autorisez Yogurt dans votre pare-feu pour les réseaux privés."
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "Votre iPhone ne voit pas cet ordinateur. Autorisez Yogurt dans votre pare-feu pour les réseaux privés.",
+  "Mute my mic in Yogurt": "Couper mon micro dans Yogurt",
+  "Mute my mic": "Couper mon micro",
+  "Mic is still off. Try again.": "Le micro est toujours coupé. Réessayez.",
+  "Muting mic…": "Désactivation du micro…",
+  "Mic off in Yogurt": "Micro coupé dans Yogurt",
+  "Unmuting mic…": "Réactivation du micro…",
+  "Unmute my mic": "Réactiver mon micro",
+  "Mic on in Yogurt": "Micro actif dans Yogurt",
+  "Unmute my mic in Yogurt": "Réactiver mon micro dans Yogurt",
+  "Mic will stay off on resume": "Le micro restera coupé à la reprise",
+  "Mic mute couldn’t be confirmed.": "Impossible de confirmer la coupure du micro.",
+  "Mic off. Yogurt can’t hear call audio.": "Micro coupé. Yogurt ne reçoit pas le son de l’appel."
 }

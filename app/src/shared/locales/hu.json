@@ -775,5 +775,17 @@
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Az iPhone-od csak ugyanazon a Wi-Fi-hálózaton beszél ezzel a számítógéppel. Semmi sem megy át az interneten.",
   "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "Az iPhone-od most nem éri el ezt a számítógépet. Próbáld újraindítani a Yogurtot.",
   "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "Az iPhone-od nem látja ezt a számítógépet. Engedélyezd a Yogurtnak a helyi hálózatot a Rendszerbeállítások → Adatvédelem és biztonság alatt.",
-  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "Az iPhone-od nem látja ezt a számítógépet. Engedélyezd a Yogurtot a tűzfaladon a magánhálózatokon."
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "Az iPhone-od nem látja ezt a számítógépet. Engedélyezd a Yogurtot a tűzfaladon a magánhálózatokon.",
+  "Mute my mic in Yogurt": "Mikrofonom némítása a Yogurtban",
+  "Mute my mic": "Mikrofonom némítása",
+  "Mic is still off. Try again.": "A mikrofon továbbra is néma. Próbálja újra.",
+  "Muting mic…": "Mikrofon némítása…",
+  "Mic off in Yogurt": "Mikrofon némítva a Yogurtban",
+  "Unmuting mic…": "Mikrofon bekapcsolása…",
+  "Unmute my mic": "Mikrofonom bekapcsolása",
+  "Mic on in Yogurt": "Mikrofon bekapcsolva a Yogurtban",
+  "Unmute my mic in Yogurt": "Mikrofonom bekapcsolása a Yogurtban",
+  "Mic will stay off on resume": "Folytatáskor a mikrofon néma marad",
+  "Mic mute couldn’t be confirmed.": "Nem sikerült megerősíteni a mikrofon némítását.",
+  "Mic off. Yogurt can’t hear call audio.": "A mikrofon néma. A Yogurt nem érzékeli a hívás hangját."
 }

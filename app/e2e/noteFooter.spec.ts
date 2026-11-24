@@ -20,6 +20,7 @@ test('recording controls stay in the header and Ask lives in the footer with sta
     })).toBe(true)
     await reminder.getByRole('button', { name: 'Close', exact: true }).click()
     await expect(page.locator('.note-footer')).toHaveCSS('margin-block-end', '0px')
+    await expect(page.locator('.note-footer').getByRole('status').filter({ hasText: 'Mic on in Yogurt' })).toHaveText('Mic on in Yogurt')
     await expect(page.getByTestId('note-notes-tab')).toHaveAttribute('aria-selected', 'true')
     await page.getByTestId('note-transcript-toggle').click()
     const header = page.locator('.note-header'), controls = header.getByTestId('note-state')
@@ -27,6 +28,10 @@ test('recording controls stay in the header and Ask lives in the footer with sta
     await expect(header.getByTestId('note-elapsed')).toBeVisible()
     await expect(controls.locator('time, [data-testid="note-wave"]')).toHaveCount(0)
     await expect(controls).toHaveAccessibleName('Recording')
+    const mic = controls.getByRole('button', { name: 'Mute my mic', exact: true })
+    await expect(mic).toHaveAttribute('aria-pressed', 'false')
+    await mic.hover()
+    await expect(page.getByRole('tooltip', { name: 'Mute my mic in Yogurt' })).toBeVisible()
     await expect(controls.getByTestId('note-pause')).toBeVisible()
     await expect(controls.getByTestId('note-stop')).toBeVisible()
     await expect(controls).toHaveCSS('border-top-width', '1px')
@@ -74,7 +79,7 @@ test('recording controls stay in the header and Ask lives in the footer with sta
           return [Math.round(middle.left - left.right), Math.round(right.left - middle.right)]
         })
         expect(gaps).toEqual([8, 8])
-        const targets = [page.getByTestId('note-pause'), page.getByTestId('note-stop'), page.getByTestId('chat-open'), page.getByTestId('note-transcript-toggle'), page.getByTestId('note-notes-tab')]
+        const targets = [mic, page.getByTestId('note-pause'), page.getByTestId('note-stop'), page.getByTestId('chat-open'), page.getByTestId('note-transcript-toggle'), page.getByTestId('note-notes-tab')]
         const width = await page.evaluate(() => innerWidth)
         for (const target of targets) {
           await expect(target).toBeInViewport()
@@ -92,7 +97,7 @@ test('recording controls stay in the header and Ask lives in the footer with sta
     await page.evaluate(() => document.documentElement.dir = 'ltr')
     // The effective viewport of a720×520 window zoomed to1.6× still exposes every primary action.
     await page.setViewportSize({ width: 450, height: 325 })
-    for (const id of ['note-pause', 'note-stop', 'note-transcript-toggle', 'note-notes-tab']) {
+    for (const id of ['note-mic', 'note-pause', 'note-stop', 'note-transcript-toggle', 'note-notes-tab']) {
       await expect(page.getByTestId(id)).toBeInViewport()
       const box = (await page.getByTestId(id).boundingBox())!
       expect(box.x).toBeGreaterThanOrEqual(0)

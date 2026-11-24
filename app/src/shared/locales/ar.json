@@ -843,5 +843,17 @@
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "يتواصل iPhone مع هذا الكمبيوتر فقط على شبكة Wi-Fi نفسها. لا شيء يمر عبر الإنترنت.",
   "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "لا يستطيع iPhone الوصول إلى هذا الكمبيوتر الآن. جرّب إعادة تشغيل Yogurt.",
   "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "لا يستطيع iPhone رؤية هذا الكمبيوتر. اسمح لـ Yogurt بالشبكة المحلية في إعدادات النظام ← الخصوصية والأمن.",
-  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "لا يستطيع iPhone رؤية هذا الكمبيوتر. اسمح لـ Yogurt بالمرور عبر جدار الحماية على الشبكات الخاصة."
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "لا يستطيع iPhone رؤية هذا الكمبيوتر. اسمح لـ Yogurt بالمرور عبر جدار الحماية على الشبكات الخاصة.",
+  "Mute my mic in Yogurt": "كتم الميكروفون الخاص بي في Yogurt",
+  "Mute my mic": "كتم الميكروفون الخاص بي",
+  "Mic is still off. Try again.": "لا يزال الميكروفون مكتومًا. حاول مجددًا.",
+  "Muting mic…": "جارٍ كتم الميكروفون…",
+  "Mic off in Yogurt": "الميكروفون مكتوم في Yogurt",
+  "Unmuting mic…": "جارٍ إلغاء كتم الميكروفون…",
+  "Unmute my mic": "إلغاء كتم الميكروفون الخاص بي",
+  "Mic on in Yogurt": "الميكروفون مفعّل في Yogurt",
+  "Unmute my mic in Yogurt": "إلغاء كتم الميكروفون الخاص بي في Yogurt",
+  "Mic will stay off on resume": "سيظل الميكروفون مكتومًا عند الاستئناف",
+  "Mic mute couldn’t be confirmed.": "تعذّر التأكد من كتم الميكروفون.",
+  "Mic off. Yogurt can’t hear call audio.": "الميكروفون مكتوم. لا يستطيع Yogurt سماع صوت المكالمة."
 }

@@ -815,5 +815,17 @@
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone связывается с этим компьютером только в одной сети Wi-Fi. Ничего не идёт через интернет.",
   "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhone сейчас не может связаться с этим компьютером. Попробуйте перезапустить Yogurt.",
   "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "iPhone не видит этот компьютер. Разрешите Yogurt доступ к локальной сети в Системных настройках → Конфиденциальность и безопасность.",
-  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone не видит этот компьютер. Разрешите Yogurt в брандмауэре для частных сетей."
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone не видит этот компьютер. Разрешите Yogurt в брандмауэре для частных сетей.",
+  "Mute my mic in Yogurt": "Выключить мой микрофон в Yogurt",
+  "Mute my mic": "Выключить мой микрофон",
+  "Mic is still off. Try again.": "Микрофон по-прежнему выключен. Попробуйте ещё раз.",
+  "Muting mic…": "Выключение микрофона…",
+  "Mic off in Yogurt": "Микрофон выключен в Yogurt",
+  "Unmuting mic…": "Включение микрофона…",
+  "Unmute my mic": "Включить мой микрофон",
+  "Mic on in Yogurt": "Микрофон включён в Yogurt",
+  "Unmute my mic in Yogurt": "Включить мой микрофон в Yogurt",
+  "Mic will stay off on resume": "При возобновлении записи микрофон останется выключенным",
+  "Mic mute couldn’t be confirmed.": "Не удалось подтвердить отключение микрофона.",
+  "Mic off. Yogurt can’t hear call audio.": "Микрофон выключен. Yogurt не слышит звук звонка."
 }

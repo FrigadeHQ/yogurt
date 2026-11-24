@@ -800,5 +800,17 @@
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Tu iPhone habla con este ordenador solo en la misma red Wi-Fi. Nada pasa por internet.",
   "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "Tu iPhone no puede comunicarse con este ordenador ahora. Prueba a reiniciar Yogurt.",
   "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "Tu iPhone no ve este ordenador. Permite la red local para Yogurt en Ajustes del Sistema → Privacidad y seguridad.",
-  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "Tu iPhone no ve este ordenador. Permite Yogurt en tu cortafuegos para redes privadas."
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "Tu iPhone no ve este ordenador. Permite Yogurt en tu cortafuegos para redes privadas.",
+  "Mute my mic in Yogurt": "Silenciar mi micrófono en Yogurt",
+  "Mute my mic": "Silenciar mi micrófono",
+  "Mic is still off. Try again.": "El micrófono sigue silenciado. Inténtalo de nuevo.",
+  "Muting mic…": "Silenciando el micrófono…",
+  "Mic off in Yogurt": "Micrófono silenciado en Yogurt",
+  "Unmuting mic…": "Activando el micrófono…",
+  "Unmute my mic": "Activar mi micrófono",
+  "Mic on in Yogurt": "Micrófono activo en Yogurt",
+  "Unmute my mic in Yogurt": "Activar mi micrófono en Yogurt",
+  "Mic will stay off on resume": "El micrófono seguirá silenciado al reanudar",
+  "Mic mute couldn’t be confirmed.": "No se pudo confirmar que el micrófono esté silenciado.",
+  "Mic off. Yogurt can’t hear call audio.": "Micrófono silenciado. Yogurt no puede oír el audio de la llamada."
 }

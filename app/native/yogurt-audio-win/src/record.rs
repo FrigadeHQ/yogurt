@@ -15,6 +15,7 @@ pub struct Options {
     pub part: u32,
     pub start_ms: f64,
     pub mic: Option<String>,
+    pub mic_muted: bool,
     pub speech: bool,
 }
 
@@ -24,6 +25,10 @@ struct Recorder {
     mic: Option<Stream>,
     sys: Option<Stream>,
     paused: bool,
+    mic_muted: bool,
+    mic_generation: u64,
+    mic_from: Option<f64>,
+    start_ms: f64,
     /// the microphone the person chose (its ID); None is Auto, Windows' default input, followed as it changes
     mic_uid: Option<String>,
     mic_rebuild: Option<Instant>,
@@ -42,6 +47,10 @@ pub fn run(dir: &Path, o: Options) -> i32 {
         mic: None,
         sys: None,
         paused: false,
+        mic_muted: o.mic_muted,
+        mic_generation: 0,
+        mic_from: None,
+        start_ms: o.start_ms,
         mic_uid: o.mic,
         mic_rebuild: None,
         sys_rebuild: None,
@@ -79,9 +88,16 @@ pub fn run(dir: &Path, o: Options) -> i32 {
             due = due.min(d);
         }
         match rx.recv_timeout(due.saturating_duration_since(now)) {
-            Ok(Ev::Mic(b)) => {
-                if !r.paused {
-                    r.me.append(&b, None, r.clock.now_ms())
+            Ok(Ev::Mic(b, generation, heard)) => {
+                if !r.paused && !r.mic_muted && generation == r.mic_generation {
+                    let skip = match (r.mic_from, heard) {
+                        (Some(from), Some(at)) => ((from - at) * 48.0).ceil() as usize,
+                        (Some(_), None) => b.len(),
+                        (None, _) => 0,
+                    };
+                    if skip < b.len() {
+                        r.me.append(&b[skip..], None, r.clock.now_ms())
+                    }
                 }
             }
             Ok(Ev::Sys(b, heard)) => {
@@ -89,7 +105,7 @@ pub fn run(dir: &Path, o: Options) -> i32 {
                     r.them.append(&b, Some(heard), r.clock.now_ms())
                 }
             }
-            Ok(Ev::MicLost) => r.schedule_mic(SETTLE),
+            Ok(Ev::MicLost(generation)) => { if generation == r.mic_generation { r.mic.take(); r.schedule_mic(SETTLE) } }
             Ok(Ev::SysLost) => r.sys_rebuild = Some(Instant::now() + SETTLE),
             Ok(Ev::Default(true)) => r.sys_rebuild = Some(Instant::now() + SETTLE),
             // Auto follows Windows' input; a chosen mic stays put
@@ -128,6 +144,7 @@ pub fn run(dir: &Path, o: Options) -> i32 {
         }
         if now >= next_level {
             next_level = now + tick;
+            if r.mic_muted && !r.paused { r.me.pad_to((r.clock.now_ms() * 48.0) as i64); }
             let (me, them) = if r.paused { (0.0, 0.0) } else { (r.me.level(), r.them.level()) };
             out::level(me, them);
         }
@@ -158,7 +175,8 @@ impl Recorder {
 
     /// The chosen mic, else the default; false when neither records. gone: tell the picker when the chosen one failed
     fn start_mic(&mut self, gone: bool) -> bool {
-        match win::start_mic(self.mic_uid.clone(), self.tx.clone()) {
+        self.mic_generation += 1;
+        match win::start_mic(self.mic_uid.clone(), self.tx.clone(), self.mic_generation, self.clock) {
             Ok(s) => {
                 self.mic = Some(s);
                 return true;
@@ -176,7 +194,7 @@ impl Recorder {
             if gone {
                 out::warn("mic-gone");
             }
-            if let Ok(s) = win::start_mic(None, self.tx.clone()) {
+            if let Ok(s) = win::start_mic(None, self.tx.clone(), self.mic_generation, self.clock) {
                 self.mic = Some(s);
                 return true;
             }
@@ -277,6 +295,22 @@ impl Recorder {
                 self.me.resync();
                 self.them.resync();
             }
+            _ if c.starts_with("mute ") || c.starts_with("unmute ") => {
+                let Some((action, id)) = c.split_once(' ') else { return false };
+                let Ok(id) = id.parse::<u32>() else { return false };
+                let off = action == "mute";
+                let boundary = (self.start_ms + self.clock.now_ms().max(self.me.pts as f64 / 48.0)).ceil() - self.start_ms;
+                let changing = off != self.mic_muted;
+                if changing {
+                    self.me.resync();
+                    self.me.level();
+                    self.mic_muted = off || self.mic.is_none();
+                    if !self.mic_muted { self.mic_from = Some(boundary); }
+                    if !off && self.mic.is_none() { self.schedule_mic(SETTLE); }
+                }
+                out::send(&format!(r#"{{"t":"mic-muted","id":{id},"muted":{},"ms":{}}}"#, self.mic_muted, (self.start_ms + boundary).ceil()), None);
+                if changing { self.me.pad_to((boundary * 48.0).ceil() as i64); }
+            }
             "stop" => return true,
             _ if c.starts_with("mic ") => self.choose_mic(c[4..].trim()),
             _ => log(&format!("unknown command: {c}")),
@@ -285,6 +319,7 @@ impl Recorder {
     }
 
     fn finish(&mut self) {
+        if self.mic_muted { self.me.pad_to((self.clock.now_ms() * 48.0) as i64); }
         if let Some(s) = self.mic.take() {
             s.stop();
         }

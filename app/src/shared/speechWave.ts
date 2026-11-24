@@ -37,6 +37,13 @@ export function speechSample(previous: SpeechAnchor, input: { me: number; them: 
   return { ...speechAt(previous, now), at: now, speaking: db >= Math.max(-44.4, floor + 10) || (held && db > Math.max(-49.2, floor + 6)) }
 }
 
+/** The two recording waves share a source and its own noise floor. */
+export function recordingSpeech(previous: SpeechAnchor, levels: { me: number; them: number }, floors: { me: number[]; them: number[] }, muted: boolean, now: number) {
+  const source = muted ? 'them' : 'me'
+  const input = { me: levels[source], them: 0 }
+  return speechSample(previous, input, now, micFloor(floors[source], input))
+}
+
 export function speechBars({ drive, phase }: ReturnType<typeof speechAt>, reduced: boolean, restOpacity = REST_OPACITY) {
   const energy = drive * drive * (3 - 2 * drive)
   // The captured crest is 48 px tall and the trough 14 px. Our 3 px resting stub supplies part of that trough.

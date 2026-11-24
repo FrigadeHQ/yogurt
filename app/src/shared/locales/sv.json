@@ -787,5 +787,17 @@
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "Din iPhone pratar bara med den här datorn på samma wifi. Inget går via internet.",
   "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "Din iPhone når inte den här datorn just nu. Testa att starta om Yogurt.",
   "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "Din iPhone ser inte den här datorn. Tillåt lokalt nätverk för Yogurt i Systeminställningar → Integritet och säkerhet.",
-  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "Din iPhone ser inte den här datorn. Släpp igenom Yogurt i brandväggen på privata nätverk."
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "Din iPhone ser inte den här datorn. Släpp igenom Yogurt i brandväggen på privata nätverk.",
+  "Mute my mic in Yogurt": "Stäng av min mikrofon i Yogurt",
+  "Mute my mic": "Stäng av min mikrofon",
+  "Mic is still off. Try again.": "Mikrofonen är fortfarande av. Försök igen.",
+  "Muting mic…": "Stänger av mikrofonen…",
+  "Mic off in Yogurt": "Mikrofonen är av i Yogurt",
+  "Unmuting mic…": "Slår på mikrofonen…",
+  "Unmute my mic": "Slå på min mikrofon",
+  "Mic on in Yogurt": "Mikrofonen är på i Yogurt",
+  "Unmute my mic in Yogurt": "Slå på min mikrofon i Yogurt",
+  "Mic will stay off on resume": "Mikrofonen förblir avstängd när inspelningen återupptas",
+  "Mic mute couldn’t be confirmed.": "Det gick inte att bekräfta att mikrofonen stängts av.",
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofonen är av. Yogurt kan inte höra samtalsljudet."
 }

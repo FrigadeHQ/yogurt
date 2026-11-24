@@ -745,5 +745,17 @@
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "你的 iPhone 只在同一 Wi-Fi 下与这台电脑通信。任何内容都不经过互联网。",
   "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "你的 iPhone 现在无法连接这台电脑。请尝试重新启动 Yogurt。",
   "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "你的 iPhone 看不到这台电脑。请在“系统设置”→“隐私与安全性”中允许 Yogurt 使用本地网络。",
-  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "你的 iPhone 看不到这台电脑。请在防火墙中允许 Yogurt 在专用网络上通信。"
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "你的 iPhone 看不到这台电脑。请在防火墙中允许 Yogurt 在专用网络上通信。",
+  "Mute my mic in Yogurt": "在 Yogurt 中将我的麦克风静音",
+  "Mute my mic": "将我的麦克风静音",
+  "Mic is still off. Try again.": "麦克风仍处于静音状态。请重试。",
+  "Muting mic…": "正在将麦克风静音…",
+  "Mic off in Yogurt": "Yogurt 中的麦克风已关闭",
+  "Unmuting mic…": "正在取消麦克风静音…",
+  "Unmute my mic": "取消我的麦克风静音",
+  "Mic on in Yogurt": "Yogurt 中的麦克风已开启",
+  "Unmute my mic in Yogurt": "在 Yogurt 中取消我的麦克风静音",
+  "Mic will stay off on resume": "继续录制后麦克风将保持静音",
+  "Mic mute couldn’t be confirmed.": "无法确认麦克风是否已静音。",
+  "Mic off. Yogurt can’t hear call audio.": "麦克风已关闭。Yogurt 无法接收通话音频。"
 }

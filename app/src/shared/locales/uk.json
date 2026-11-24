@@ -815,5 +815,17 @@
   "Your iPhone talks to this computer only on the same Wi-Fi. Nothing goes through the internet.": "iPhone спілкується з цим комп’ютером лише в тій самій мережі Wi-Fi. Нічого не йде через інтернет.",
   "Your iPhone can't reach this computer right now. Try restarting Yogurt.": "iPhone зараз не може зв’язатися з цим комп’ютером. Спробуйте перезапустити Yogurt.",
   "Your iPhone can't see this computer. Allow Local Network for Yogurt in System Settings → Privacy & Security.": "iPhone не бачить цей комп’ютер. Дозвольте Yogurt доступ до локальної мережі в Системних параметрах → Приватність і безпека.",
-  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone не бачить цей комп’ютер. Дозвольте Yogurt у брандмауері для приватних мереж."
+  "Your iPhone can't see this computer. Allow Yogurt through your firewall on private networks.": "iPhone не бачить цей комп’ютер. Дозвольте Yogurt у брандмауері для приватних мереж.",
+  "Mute my mic in Yogurt": "Вимкнути мій мікрофон у Yogurt",
+  "Mute my mic": "Вимкнути мій мікрофон",
+  "Mic is still off. Try again.": "Мікрофон досі вимкнено. Спробуйте ще раз.",
+  "Muting mic…": "Вимкнення мікрофона…",
+  "Mic off in Yogurt": "Мікрофон вимкнено в Yogurt",
+  "Unmuting mic…": "Увімкнення мікрофона…",
+  "Unmute my mic": "Увімкнути мій мікрофон",
+  "Mic on in Yogurt": "Мікрофон увімкнено в Yogurt",
+  "Unmute my mic in Yogurt": "Увімкнути мій мікрофон у Yogurt",
+  "Mic will stay off on resume": "Після відновлення запису мікрофон залишиться вимкненим",
+  "Mic mute couldn’t be confirmed.": "Не вдалося підтвердити вимкнення мікрофона.",
+  "Mic off. Yogurt can’t hear call audio.": "Мікрофон вимкнено. Yogurt не чує звуку дзвінка."
 }

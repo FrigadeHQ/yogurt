@@ -1,13 +1,15 @@
-import { transcriptSpeaker } from '../../../shared/transcript'
+import { transcriptRowKey, transcriptSpeaker } from '../../../shared/transcript'
 import { SPEAKER_COLORS } from '../../../shared/speakerColors'
 import { widgetDragDelta, isWidgetClick, type WidgetPress } from '../../../shared/widgetGesture'
 import { Loading } from '../components/Loading'
 import { bubbles, turns, withLive } from '../../../shared/transcript'
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { ArrowDown } from '../components/Icons'
+import { ArrowDown, MicOff, TriangleAlert } from '../components/Icons'
 import type { Segment, TranscriptPartial, WidgetView } from '../../../shared/types'
 import { formatElapsed } from '../../../shared/wave'
 import { t } from '../../../shared/i18n'
+import { MicFeedback, MicToggle } from '../components/MicToggle'
+import { micIsOff } from '../../../shared/types'
 import { RecordingPill } from '../components/RecordingPill'
 import { LiveWords } from '../components/Transcript'
 import { glide } from '../motion'
@@ -84,8 +86,10 @@ function useWidgetView() {
   const [view, setView] = useState<WidgetView | null>(null)
   useEffect(() => {
     document.documentElement.classList.add('widget')
-    void window.yogurt.widget.state().then(setView)
-    return window.yogurt.widget.onState(setView)
+    let current = true, updated = false
+    const off = window.yogurt.widget.onState(v => { updated = true; setView(v) })
+    void window.yogurt.widget.state().then(v => { if (current && !updated) setView(v) })
+    return () => { current = false; off() }
   }, [])
   return view
 }
@@ -99,13 +103,21 @@ export function Widget() {
 function Recording({ view }: { view: WidgetView }) {
   const time = useElapsed(view)
   const card = useRef<HTMLDivElement>(null)
-  const hover = useWidgetMorph(card, !!view.note, time)
+  const muted = micIsOff(view.micState)
+  const showFeedback = view.micState === 'unconfirmed' || view.micState === 'still-off'
+  const hover = useWidgetMorph(card, !!view.note || showFeedback, time, muted)
   const press = useDragOrClick(() => window.yogurt.widget.open(), hover)
-  return <RecordingPill ref={card} time={time} warning={!!view.note} data-testid="widget" data-kind="recording" data-open={hover.open} role="group" tabIndex={0}
+  return <RecordingPill ref={card} time={time} data-testid="widget" data-kind="recording" data-open={hover.open} role={hover.open ? 'group' : 'button'} tabIndex={0}
     className="widget-morph" {...press}
+    onFocus={e => { if (e.target.matches(':focus-visible')) hover.focus(true) }}
+    onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) hover.focus(false) }}
     onMouseMove={e => hover.pointer(e.clientX, e.clientY)}
     onMouseLeave={() => hover.pointer(-1, -1)}
-    aria-label={t('Open {title}', { title: view.title })} title={view.note?.text ?? t('Recording {title}', { title: view.title })}>
+    aria-label={[t('Open {title}', { title: view.title }), muted && t('Mic off in Yogurt')].filter(Boolean).join('. ')} title={view.note?.text ?? t('Recording {title}', { title: view.title })}>
+    {hover.open ? <MicToggle pill id={view.meetingId} state={view.micState} />
+      : muted && <span className="widget-mic-status" aria-hidden="true">
+        <span className="widget-mic-off" data-testid="widget-mic-off"><MicOff size={14} /></span>
+      </span>}
     <Preview view={view} open={hover.open} />
   </RecordingPill>
 }
@@ -192,8 +204,9 @@ function Preview({ view, open }: { view: WidgetView; open: boolean }) {
   const note = view.note
   const permission = widgetSettings(note)
   return <div data-testid="widget-preview" className="widget-preview" role="region" aria-label={t('Live transcript')} inert={!open} aria-hidden={!open}>
+    <MicFeedback state={view.micState} />
     {note && <div className="widget-preview-warning" role="status">
-      <p data-testid="widget-note" data-tone={note.tone}>{note.text}</p>
+      <p data-testid="widget-note" data-tone={note.tone}><TriangleAlert data-testid="widget-warning" size={14} aria-hidden="true" />{note.text}</p>
       {permission && <button className="workspace-button widget-settings" onClick={() => { void window.yogurt.permissions.open(permission) }}>{t('Open Settings')}</button>}
     </div>}
     <ScrollFade>
@@ -206,13 +219,13 @@ function Preview({ view, open }: { view: WidgetView; open: boolean }) {
     }}>
       <div ref={content}>
       {!loaded ? <Loading layout="transcript" testId="widget-preview-loading" /> : !grouped.length && <p className="widget-preview-empty">{failed ? t("Couldn't load the transcript. Open Yogurt to try again.") : t('Listening for speech…')}</p>}
-      {grouped.map(turn => {
+      {grouped.map((turn, i) => {
         const first = turn[0], me = first.track === 'me'
         const who = transcriptSpeaker(first)
         const color = me || !('speakerColor' in first) ? undefined : first.speakerColor
-        return <div key={`${first.track}:${first.startMs}`} className="widget-preview-turn" data-me={me}>
+        return <div key={transcriptRowKey(first.track, grouped[i - 1]?.at(-1))} className="widget-preview-turn" data-me={me}>
           <span className="widget-preview-speaker" data-color={color} data-folder-color={color === undefined ? undefined : SPEAKER_COLORS[color]}>{who}</span>
-          {bubbles(turn).map(group => <p key={`${group[0].track}:${group[0].startMs}`} data-testid="widget-preview-bubble" className="widget-preview-bubble" dir="auto">
+          {bubbles(turn).map((group, i, groups) => <p key={transcriptRowKey(first.track, groups[i - 1]?.at(-1))} data-testid="widget-preview-bubble" className="widget-preview-bubble" dir="auto">
             {group.map((line, i) => <Fragment key={`${line.track}:${line.startMs}`}>{i > 0 && ' '}{'live' in line ? <LiveWords said={line.live} /> : line.text}</Fragment>)}
           </p>)}
         </div>
