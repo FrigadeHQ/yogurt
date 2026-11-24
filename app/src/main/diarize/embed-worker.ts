@@ -1,4 +1,5 @@
-import { SpeakerEmbeddingExtractor, type OnlineStream } from 'sherpa-onnx-node'
+import sherpa from 'sherpa-onnx-node'
+import type { OnlineStream, SpeakerEmbeddingExtractor as Extractor } from 'sherpa-onnx-node'
 import { embedRange, readWavSamples } from './wav'
 
 /**
@@ -9,15 +10,18 @@ import { embedRange, readWavSamples } from './wav'
  */
 const SAMPLE_RATE = 16000
 
-let extractor: SpeakerEmbeddingExtractor | undefined
-const extractorFor = (model: string) => extractor ??= new SpeakerEmbeddingExtractor({ modelConfig: { model, numThreads: 2, provider: 'cpu', debug: 0 } })
+// sherpa-onnx-node is CommonJS: only its default export is reliable from this ES module
+const { SpeakerEmbeddingExtractor } = sherpa
 
-const embedOne = (ex: SpeakerEmbeddingExtractor, samples: Float32Array, r: { startMs: number; endMs: number }): Float32Array | null => {
+let extractor: Extractor | undefined
+const extractorFor = (model: string) => extractor ??= new SpeakerEmbeddingExtractor({ model, numThreads: 2, provider: 'cpu', debug: 0 })
+
+const embedOne = (ex: Extractor, samples: Float32Array, r: { startMs: number; endMs: number }): Float32Array | null => {
   const range = embedRange(r, samples.length, SAMPLE_RATE)
   if (!range) return null
   const stream: OnlineStream = ex.createStream()
   stream.acceptWaveform({ sampleRate: SAMPLE_RATE, samples: samples.subarray(range.from, range.to) })
-  const v = ex.compute(stream)
+  const v = ex.compute(stream, false)
   let sum = 0
   for (let i = 0; i < v.length; i++) sum += v[i] * v[i]
   const n = Math.sqrt(sum) || 1
