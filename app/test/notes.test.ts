@@ -411,6 +411,21 @@ describe('hookNotes', () => {
     await wait(80)
     expect(s.prompts).toHaveLength(1)
   })
+  it('removing a duplicate from an older note neither shows a hint nor queues a rewrite', async () => {
+    const s = setup(), ann = { name: 'Ann Lee', email: null }
+    s.store.setNotes(s.m.id, { enhanced: 'Original summary' })
+    s.store.setWrittenWith(s.m.id, 'members:["name:Ann  Lee","name:Ann Lee"]')
+    s.store.updateMeeting(s.m.id, { attendees: [ann] })
+    expect(s.notes.view(s.m.id).peopleChanged).toBe(false)
+    s.notes.applyPeople(s.m.id)
+    await wait(80)
+    expect(s.prompts).toHaveLength(0)
+    s.store.setNotes(s.m.id, { edited: true })
+    s.store.updateMeeting(s.m.id, { attendees: [] })
+    expect(s.notes.view(s.m.id).peopleChanged).toBe(true)
+    s.store.updateMeeting(s.m.id, { attendees: [ann, ann] })
+    expect(s.notes.view(s.m.id).peopleChanged).toBe(false)
+  })
   it('written() resolves once the notes after the meeting are done', async () => {
     const s = setup()
     s.stop()

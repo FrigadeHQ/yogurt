@@ -1,4 +1,4 @@
-import { attendeeMembership as stamp } from '../../shared/people'
+import { attendeeMembership as stamp, sameAttendeeMembership } from '../../shared/people'
 import type { Meeting, Store } from '../store'
 import type { NotesModel } from './model'
 import type { NoteSaveResult, NoteSide, NoteStatus, NoteView } from '../../shared/types'
@@ -67,7 +67,7 @@ export function hookNotes(p: {
   /** the notes were written with other people than the meeting has now (not known for notes older than this) */
   const peopleChanged = (id: string, written: boolean) => {
     const was = p.store.writtenWith(id)
-    return written && was != null && was !== stamp(p.store.meeting(id)?.attendees ?? [])
+    return written && was != null && !sameAttendeeMembership(was, stamp(p.store.meeting(id)?.attendees ?? []))
   }
 
   /** out of date, unless they are being written again on their own right now (then no hint) */

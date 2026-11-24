@@ -4,7 +4,7 @@ import { matchSearchPeople, searchPersonKey, uniqueSearchPeople } from '../share
 import { oneEdit, parseSearchQuery, type SearchOptions } from '../shared/searchQuery'
 import { echoConfidence } from './asr/echo'
 import { backfillPeople, rememberPeople, resolvePeople } from './people'
-import { attendeeMembership, matchingOwnEmail, ownAddress, personEmail } from '../shared/people'
+import { attendeeMembership, matchingOwnEmail, ownAddress, personEmail, sameAttendeeMembership } from '../shared/people'
 import type { FolderSuggestionRecord } from '../shared/folderSuggestion'
 import { unusedPreparedNote } from '../shared/agendaNote'
 import { speakerOrder } from '../shared/speakerColors'
@@ -348,7 +348,7 @@ export class Store {
         const previous = attendeeMembership(people)
         person.name = name
         this.db.prepare('UPDATE meetings SET attendees = ? WHERE id = ?').run(JSON.stringify(people), id)
-        this.db.prepare('UPDATE notes SET written_with = ? WHERE meeting_id = ? AND written_with = ?').run(attendeeMembership(people), id, previous)
+        if (sameAttendeeMembership(this.writtenWith(id), previous)) this.setWrittenWith(id, attendeeMembership(people))
       }
       this.db.prepare('UPDATE meetings SET keep_attendees = 1 WHERE id = ?').run(id)
       this.db.exec('RELEASE rename_person')
