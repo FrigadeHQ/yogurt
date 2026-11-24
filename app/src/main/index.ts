@@ -813,8 +813,9 @@ app.whenReady().then(() => {
     if (!editSender(e) || !isId(id)) throw new Error('Invalid transcript request')
     await Promise.all([recordingFinished(id), transcriptFinished(id), callNames.finished(id)])
     const order = store.speakerOrder(id)
-    return { lines: store.segments(id, { hidden: true }).map(s => ({ ...s, speakerColor: speakerColor(s.track,s.speaker,order) })),
-      removed: store.removedSpans(id), revision: store.meeting(id)?.transcriptRevision ?? 0, editable: canEditTranscript(id) }
+    const revision = store.meeting(id)?.transcriptRevision ?? 0
+    return { ...store.transcriptHistory(id,revision), changes:store.transcriptDifferences(id), lines: store.segments(id, { hidden: true }).map(s => ({ ...s, speakerColor: speakerColor(s.track,s.speaker,order) })),
+      removed: store.removedSpans(id), revision, editable: canEditTranscript(id) }
   })
   ipcMain.handle('transcript:removed', (e, id: unknown) => editSender(e) && isId(id) && canEditTranscript(id) ? store.removedLines(id) : [])
   ipcMain.handle('transcript:change', async (e, id: unknown, revision: unknown, change: unknown) => {

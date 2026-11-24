@@ -14,7 +14,7 @@ import { defaultMeetingTitle, sourceOf, type TitleSource } from './titles'
 import { libraryTables } from './library/store'
 import { DEFAULT_FOLDER_APPEARANCE, isFolderIcon, isFolderColor, type FolderAppearance } from '../shared/folderAppearance'
 
-import { validChange, type TranscriptChange, type EditResult, type RemovedSpan } from '../shared/transcriptEdit'
+import { validChange, type TranscriptChange, type EditResult, type RemovedSpan, type TranscriptDifference, type TranscriptHistory } from '../shared/transcriptEdit'
 import { transcriptionBusy } from '../shared/transcription'
 
 type Row = Record<string, unknown>
@@ -448,7 +448,7 @@ export class Store {
     }
     return removed
   }
-  deleteMeeting(id: string) { this.db.prepare('DELETE FROM meetings WHERE id = ?').run(id) }
+  deleteMeeting(id: string) { this.db.prepare('DELETE FROM meetings WHERE id = ?').run(id); this.editHistory.delete(id) }
   /**
    * Moved to the Trash: everything of it stays (lines, notes, audio, its places in folders) so a restore puts it back
    * as it was, but every list, search and chat leaves it out. Never while it records. false: it wasn't moved.
@@ -638,7 +638,18 @@ export class Store {
       .run(id, id, enhanced, id, revision).changes
   }
 
-  private undoChange?: { meeting: string; revision: number; apply: () => void }
+  private editHistory = new Map<string, { revision:number; undo: Array<(redo:boolean)=>void>; redo: Array<(redo:boolean)=>void> }>()
+
+  transcriptHistory(id:string, revision:number):TranscriptHistory {
+    const h = this.editHistory.get(id)
+    return {canUndo:h?.revision === revision && h.undo.length > 0, canRedo:h?.revision === revision && h.redo.length > 0}
+  }
+
+  transcriptDifferences(id:string):TranscriptDifference[] {
+    return this.db.prepare(`SELECT id, start_ms AS startMs, COALESCE(original_text,text) AS original,
+      CASE WHEN removed_batch IS NULL THEN text END AS current FROM segments WHERE meeting_id=?
+      AND (removed_batch IS NOT NULL OR (hidden=0 AND original_text IS NOT NULL)) ORDER BY start_ms,id`).all(id) as TranscriptDifference[]
+  }
 
   changeTranscript(id: string, revision: number, change: TranscriptChange): EditResult {
     if (!validChange(change)) return { status: 'unavailable' }
@@ -650,46 +661,73 @@ export class Store {
         return reject({ status: 'unavailable' })
       const current = m.transcriptRevision ?? 0
       const wording = change.kind === 'wording' || change.kind === 'original'
-      const row = wording ? this.db.prepare('SELECT text,original_text FROM segments WHERE meeting_id=? AND id=? AND hidden=0').get(id,change.id) : undefined
-      if (wording && row && (row.text !== change.expected || revision !== current))
-        return reject({ status: 'conflict', text: String(row.text), revision: current })
-      if (revision !== current || (wording && !row)) return reject({ status: 'stale' })
-      let undo: (() => void) | undefined, count = 1
-      this.beforeTranscriptChange(id)
-      if (wording && row) {
-        const text = change.kind === 'wording' ? change.text : String(row.original_text ?? row.text)
-        if (text === row.text) return reject({ status: 'unchanged' })
-        const set = this.db.prepare('UPDATE segments SET text=?,original_text=? WHERE meeting_id=? AND id=?')
-        const original = row.original_text ?? row.text
-        set.run(text, text === original ? null : original, id, change.id)
-        undo = () => { set.run(row.text, row.original_text, id, change.id) }
-      } else if (change.kind === 'undo') {
-        if (this.undoChange?.meeting !== id || this.undoChange.revision !== revision) return reject({ status: 'stale' })
-        this.undoChange.apply()
-      } else if (change.kind === 'remove' || change.kind === 'restore') {
-        const batch = change.kind === 'remove' ? randomUUID() : null
-        const rows = change.kind === 'remove'
-          ? this.db.prepare('SELECT id,text,removed_batch FROM segments WHERE meeting_id=? AND hidden=0 AND id IN (SELECT value FROM json_each(?))').all(id,JSON.stringify(change.ids))
-          : this.db.prepare('SELECT id,text,removed_batch FROM segments WHERE meeting_id=? AND removed_batch IS NOT NULL AND (? IS NULL OR removed_batch=?)').all(id,change.batch,change.batch)
-        if (!rows.length || (change.kind === 'remove' && rows.length !== new Set(change.ids).size)) return reject({ status: 'stale' })
-        const set = this.db.prepare('UPDATE segments SET hidden=?,removed_batch=? WHERE meeting_id=? AND id=?')
+      const get = this.db.prepare('SELECT id,text,original_text,removed_batch FROM segments WHERE meeting_id=? AND id=? AND hidden=0')
+      const line = wording ? get.get(id,change.id) : undefined
+      if (wording && line && (line.text !== change.expected || revision !== current))
+        return reject({status:'conflict',text:String(line.text),revision:current})
+      if (revision !== current || (wording && !line)) return reject({status:'stale'})
+
+      const existing = this.editHistory.get(id)
+      const history = existing?.revision === current ? existing : {revision:current,undo:[],redo:[]}
+      const replay = change.kind === 'undo' || change.kind === 'redo' ? history[change.kind].at(-1) : undefined
+      if ((change.kind==='undo' || change.kind==='redo') && !replay) return reject({status:'unchanged'})
+
+      type RowState = {text:string; original:string | null; batch:string | null}
+      const edits:Array<{id:number; before:RowState; after:RowState}> = []
+      const batch = randomUUID()
+      const add = (row:Row, text:string, toBatch:string | null) => {
+        const before = {text:String(row.text),original:row.original_text as string | null,batch:row.removed_batch as string | null}
+        const original = before.original ?? before.text
+        if (text!==before.text || toBatch!==before.batch)
+          edits.push({id:Number(row.id),before,after:{text,original:text===original ? null : original,batch:toBatch}})
+      }
+      if (wording && line) add(line,change.kind==='wording' ? change.text : String(line.original_text ?? line.text),null)
+      if (change.kind === 'selection' || change.kind === 'remove') {
+        const selection = change.kind==='selection' ? change.rows : [...new Set(change.ids)].map(id=>({id,expected:undefined,text:null}))
+        for (const edit of selection) {
+          const row = get.get(id,edit.id)
+          if (!row || (edit.expected!==undefined && row.text!==edit.expected)) return reject({status:'stale'})
+          add(row,edit.text ?? String(row.text),edit.text===null ? batch : null)
+        }
+      }
+      if (change.kind==='restore' || change.kind==='restoreLine' || change.kind==='revert') {
+        const eligible = change.kind==='revert'
+          ? '(removed_batch IS NOT NULL OR (hidden=0 AND original_text IS NOT NULL))' : 'removed_batch IS NOT NULL'
+        const column = change.kind==='restore' ? 'removed_batch' : 'id'
+        const target = change.kind==='restore' ? change.batch : change.id
+        const rows = this.db.prepare(`SELECT id,text,original_text,removed_batch FROM segments
+          WHERE meeting_id=? AND ${eligible} AND (? IS NULL OR ${column}=?)`).all(id,target,target)
+        if (!rows.length) return reject({status:'stale'})
+        for (const row of rows) add(row,String(change.kind==='revert' ? row.original_text ?? row.text : row.text),null)
+      }
+      if (!replay && !edits.length) return reject({status:'unchanged'})
+      const apply = (forward:boolean) => {
+        const wording = this.db.prepare('UPDATE segments SET text=?,original_text=? WHERE meeting_id=? AND id=?')
+        const visibility = this.db.prepare('UPDATE segments SET hidden=?,removed_batch=? WHERE meeting_id=? AND id=?')
         const hide = this.db.prepare("INSERT INTO segments_fts(segments_fts,rowid,text) VALUES ('delete',?,?)")
         const show = this.db.prepare('INSERT INTO segments_fts(rowid,text) VALUES (?,?)')
-        const apply = (reverse: boolean) => {
-          for (const r of rows) {
-            const target = reverse ? r.removed_batch : batch
-            set.run(Number(target != null), target, id, r.id)
-            ;(target == null ? show : hide).run(r.id,r.text)
+        for (const edit of edits) {
+          const from = forward ? edit.before : edit.after, to = forward ? edit.after : edit.before
+          // The wording trigger indexes visible rows. Change visibility after replacing their text.
+          if (from.text!==to.text || from.original!==to.original) wording.run(to.text,to.original,id,edit.id)
+          if (from.batch!==to.batch) {
+            visibility.run(Number(to.batch!==null),to.batch,id,edit.id)
+            if (from.batch===null) hide.run(edit.id,to.text)
+            if (to.batch===null) show.run(edit.id,to.text)
           }
         }
-        apply(false)
-        count = rows.length
-        undo = () => apply(true)
       }
+      this.beforeTranscriptChange(id)
+      if (replay) replay(change.kind==='redo')
+      else apply(true)
       this.transcriptChanged(id)
       this.db.exec('COMMIT')
-      this.undoChange = undo && { meeting: id, revision: current + 1, apply: undo }
-      return { status: 'saved', revision: current + 1, count }
+      if (change.kind==='undo') history.redo.push(history.undo.pop()!)
+      else if (change.kind==='redo') history.undo.push(history.redo.pop()!)
+      else { history.undo.push(apply); history.redo.length=0 }
+      history.revision=current+1
+      this.editHistory.set(id,history)
+      return {status:'saved',revision:history.revision,count:edits.length || 1}
     } catch (error) { this.db.exec('ROLLBACK'); throw error }
   }
 

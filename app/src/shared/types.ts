@@ -121,7 +121,7 @@ export type YogurtApi = {
   }
   /** the words heard in a meeting, live */
   transcript: {
-    snapshot(id: string): Promise<{ lines: Segment[]; removed: RemovedSpan[]; revision: number; editable: boolean }>
+    snapshot(id: string): Promise<{ lines: Segment[]; removed: RemovedSpan[]; changes: import('./transcriptEdit').TranscriptDifference[]; canUndo:boolean; canRedo:boolean; revision: number; editable: boolean }>
     removed(id: string): Promise<Array<Segment & { batch: string }>>
     change(id: string, revision: number, change: TranscriptChange): Promise<EditResult>
     draft(meetingId:string):Promise<Segment[]>
