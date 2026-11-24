@@ -4,6 +4,8 @@ import type { Turn } from '../src/main/diarize/rttm'
 
 const identity = (t: string) => t
 const w = (text: string, startMs: number, endMs: number) => ({ text: /^[^\p{L}\p{N}]/u.test(text) ? text : ' ' + text, startMs, endMs })
+/** verbatim whisper pieces, spacing included (" geb"+"ür"+"t"+"iger" is " gebürtiger") */
+const word = (text: string, startMs: number, endMs: number) => ({ text, startMs, endMs })
 const row = (id: number, text: string, startMs: number, endMs: number, speaker: string | null = null): SplitRow =>
   ({ id, text, startMs, endMs, speaker, words: text.split(' ').map((t, i, a) => w(t, startMs + i * Math.round((endMs - startMs) / a.length), startMs + (i + 1) * Math.round((endMs - startMs) / a.length))) })
 const turns: Turn[] = [{ key: 'v1', startMs: 0, endMs: 1000 }, { key: 'v2', startMs: 2000, endMs: 4000 }]
@@ -88,6 +90,36 @@ describe('splitPlan', () => {
       ['host', ' Wie viel de iner Zeit ar beit est du ohne KI?'],
       ['guest', ' Ich glaube weniger als fünf Prozent. Platz'],
     ])
+  })
+  it('a whole sentence no turn overlaps joins the voice that speaks next (diarizer missed the utterance)', () => {
+    // real leftovers: whisper transcribed speech Nemotron gave no turn to; the next turn starts 2.03–2.29 s
+    // later, a hair past the 2 s stray-word cutoff, so every word stayed Them and the row kept its old self
+    const question: SplitRow = {
+      id: 1, text: '. Du bist also auch gebürtiger Berliner', startMs: 99729, endMs: 102549, speaker: null,
+      words: [word('.', 99729, 99729), word(' Du', 100729, 100729), word(' bist', 100729, 100729), word(' also', 100729, 100729),
+        word(' auch', 100769, 100989), word(' geb', 100989, 101249), word('ür', 101259, 101439), word('t', 101439, 101529),
+        word('iger', 101529, 101879), word(' Ber', 101999, 102159), word('liner', 102159, 102549)],
+    }
+    const turns: Turn[] = [{ key: 'v1', startMs: 96021, endMs: 98429 }, { key: 'v2', startMs: 104581, endMs: 106769 }]
+    const { keep, runs } = splitPlan([question], turns, identity)
+    expect(keep).toEqual([])
+    // the stray '.' closes the sentence before it; in a meeting the one-word rule merges it into that line
+    expect(runs.map(r => [r.key, r.text])).toEqual([[null, '.'], ['v2', ' Du bist also auch gebürtiger Berliner']])
+    // 5 s past the sentence the guess would be a coin flip: the row stays as it is
+    const far: Turn[] = [{ key: 'v1', startMs: 96021, endMs: 98429 }, { key: 'v2', startMs: 107549, endMs: 109749 }]
+    expect(splitPlan([{ ...question, id: 2 }], far, identity).keep).toEqual([2])
+  })
+
+  it('a narrated sentence in a turn gap goes to the turn after it', () => {
+    // the other real leftover: "Als Lead Engineer bei Wunderlist half" sits in a 4.5 s gap between two turns
+    // of the same voice, 2.06 s before the next one starts
+    const narration: SplitRow = {
+      id: 3, text: ' Als Lead Engineer bei Wunderlist half', startMs: 15834, endMs: 17474, speaker: null,
+      words: [word(' Als', 15834, 15934), word(' Lead', 16044, 16174), word(' Engineer', 16194, 16574), word(' bei', 16574, 16714),
+        word(' W', 16714, 16774), word('under', 16774, 17014), word('list', 17014, 17194), word(' half', 17234, 17474)],
+    }
+    const gap: Turn[] = [{ key: 'v2', startMs: 12221, endMs: 14999 }, { key: 'v2', startMs: 19531, endMs: 31249 }]
+    expect(splitPlan([narration], gap, identity).runs.map(r => [r.key, r.text])).toEqual([['v2', ' Als Lead Engineer bei Wunderlist half']])
   })
   it('a voiceless sliver in a gap no turn covers stays an untouched row', () => {
     const both: Turn[] = [{ key: 'v1', startMs: 0, endMs: 2000 }, { key: 'v2', startMs: 6000, endMs: 8000 }]

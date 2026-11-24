@@ -255,7 +255,10 @@ Whisper line. On a first run that is every `them` row; after a resume it is only
    each word's source line and its call-app name.
 2. For each word, pick the turn with the greatest overlap with `[word.start, word.end]`
    (ties go to the earlier turn).
-3. No overlap → nearest turn within 2 s; none → no speaker, stays **Them** (`speaker_key` NULL).
+3. No overlap → nearest turn within 2 s; none → no speaker, stays **Them** (`speaker_key` NULL). A whole
+   sentence (one whisper utterance) no turn even overlaps goes to the turn that starts within 3 s after
+   it: the diarizer missed the utterance, not just its edges, and the voice that speaks next is the
+   best guess available.
 4. Group consecutive words with the same cluster into runs.
 5. Each run becomes one `segments` row:
    - `start_ms` = first word start; `end_ms` = last word end

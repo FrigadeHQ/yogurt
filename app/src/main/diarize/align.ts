@@ -32,6 +32,19 @@ function turnFor(span: { startMs: number; endMs: number }, turns: Turn[]): Turn 
   return gap <= NEAR_MS ? near : null
 }
 
+/** A whole sentence no turn overlaps at all: the diarizer missed the utterance, not just its edges, so the sentence
+ * goes to the turn that starts within 3 s after it (the voice that speaks next). A longer gap may hide a voice the
+ * diarizer never clustered, and a lone stray word still follows turnFor's stricter 2 s rule. */
+const SENTENCE_NEAR_MS = 3000
+function sentenceTurn(span: { startMs: number; endMs: number }, turns: Turn[]): Turn | null {
+  let near: Turn | null = null, gap = Infinity
+  for (const t of turns) {
+    const d = t.startMs >= span.endMs ? t.startMs - span.endMs : Infinity
+    if (d < gap) { near = t; gap = d }
+  }
+  return gap <= SENTENCE_NEAR_MS ? near : null
+}
+
 /** lines whisper gave no words for: the whole line goes to the turn it overlaps most */
 export function lineTurn(line: { startMs: number; endMs: number }, turns: Turn[]): Turn | null { return turnFor(line, turns) }
 
@@ -80,7 +93,11 @@ export function splitPlan(rows: SplitRow[], turns: Turn[], spell: (t: string) =>
     const rest = ranked.slice(1).reduce((n, [, s]) => n + s, 0)
     const whole = !!bestKey && bestSum / (bestSum + rest) >= 2 / 3 && group.length <= SENTENCE_WORDS && group[group.length - 1].word.endMs - group[0].word.startMs <= SENTENCE_MS
     const best = turns.find(t => t.key === bestKey) ?? null
-    for (const { word } of group) claims.set(word, whole && turns.some(t => overlap(word, t) > 0) ? best : turnFor(word, turns))
+    // no word of a whole sentence is inside any turn, and no turn even grazes it: the diarizer missed the utterance
+    const span = { startMs: group[0].word.startMs, endMs: group[group.length - 1].word.endMs }
+    const missed = !bestKey && group.length >= 2 && group.length <= SENTENCE_WORDS && span.endMs - span.startMs <= SENTENCE_MS
+      && !turns.some(t => overlap(span, t) > 0) ? sentenceTurn(span, turns) : null
+    for (const { word } of group) claims.set(word, missed ?? (whole && turns.some(t => overlap(word, t) > 0) ? best : turnFor(word, turns)))
     group = null
   }
   for (const row of rows) for (const word of row.words ?? []) {
