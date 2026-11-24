@@ -5,7 +5,7 @@ import { MotionPopup } from './MotionPopup'
 import { motion } from '../motion'
 import { FolderGlyph } from './FolderAppearance'
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { AudioLines, CalendarDays, FileText, Folder as FolderIcon, Keyboard, LogIn, MessageCircle, Monitor, Moon, PanelLeft, Search as SearchIcon, Settings, Sun, Trash2, UserRound, X } from './Icons'
+import { AudioLines, CalendarDays, FileText, Folder as FolderIcon, Keyboard, LogIn, MessageCircle, Monitor, Moon, PanelLeft, Settings, Sun, Trash2, UserRound, X } from './Icons'
 import type { SearchResult, SnippetPart, Folder, Person } from '../../../shared/types'
 import { t, language } from '../../../shared/i18n'
 import { command, keys, osWords } from '../keys'
@@ -210,9 +210,6 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
     }).catch(() => { if (mine === seq.current) setQueryFailed(true) })
   }
 
-  const question = rows[0]?.kind === 'ask'
-  const IntentIcon = question ? MessageCircle : dateLabel ? CalendarDays : shown.people.length ? UserRound
-    : rows[palette.active]?.kind === 'command' ? Keyboard : SearchIcon
   const enterAsks = queryFailed ? !!q.trim() : !!typed && !selected
   const primaryHint = enterAsks || selected?.kind === 'ask' ? t('Ask')
     : selected?.kind === 'meeting' ? t('Open note')
@@ -228,19 +225,16 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
         onMouseDown={(e) => { if (e.target !== input.current) { e.preventDefault(); input.current?.focus() } }}
         className="search-panel flex max-h-[74vh] w-full flex-col overflow-hidden rounded-2xl border border-line bg-float">
         <div className="search-header">
-          <div className="search-input-row">
-            <div className="search-field">
-              <div ref={highlight} className="search-input-highlight" aria-hidden="true">
-                <span>{searchFilterHighlights(q, personQuery.matches, parsed.dateSpan).map((part, i) => part.kind
-                  ? <mark key={i} data-testid={`search-${part.kind}-highlight`}>{part.text}</mark> : <Fragment key={i}>{part.text}</Fragment>)}</span>
-              </div>
-              <input
-                data-testid="search-input" ref={input} autoFocus value={q} onChange={(e) => { scrollSelection.current = true; setQ(e.target.value); setError(false) }} onScroll={syncHighlight}
-                placeholder={t('Ask, search, or open a meeting…')} aria-label={t('Search')} spellCheck={false}
-                role="combobox" aria-expanded="true" aria-controls="search-results" aria-activedescendant={selected?.kind === 'meeting' ? `search-${selected.meeting.meetingId}` : selected?.kind === 'command' ? `command-${selected.command.id}` : selected?.kind === 'person' ? `search-person-${encodeURIComponent(searchPersonKey(selected.person))}` : selected ? 'search-ask' : undefined}
-              />
+          <div className="search-field">
+            <div ref={highlight} className="search-input-highlight" aria-hidden="true">
+              <span>{searchFilterHighlights(q, personQuery.matches, parsed.dateSpan).map((part, i) => part.kind
+                ? <mark key={i} data-testid={`search-${part.kind}-highlight`}>{part.text}</mark> : <Fragment key={i}>{part.text}</Fragment>)}</span>
             </div>
-            {!!q.trim() && <IntentIcon data-testid="search-intent-icon" size={19} aria-hidden="true" className={question ? 'text-accent' : 'text-muted'} />}
+            <input
+              data-testid="search-input" ref={input} autoFocus value={q} onChange={(e) => { scrollSelection.current = true; setQ(e.target.value); setError(false) }} onScroll={syncHighlight}
+              placeholder={t('Ask, search, or open a meeting…')} aria-label={t('Search')} spellCheck={false}
+              role="combobox" aria-expanded="true" aria-controls="search-results" aria-activedescendant={selected?.kind === 'meeting' ? `search-${selected.meeting.meetingId}` : selected?.kind === 'command' ? `command-${selected.command.id}` : selected?.kind === 'person' ? `search-person-${encodeURIComponent(searchPersonKey(selected.person))}` : selected ? 'search-ask' : undefined}
+            />
           </div>
           {(shown.scope || filtered) && <div className="search-filters">
             {shown.scope && <span data-testid="search-scope" className="search-filter">

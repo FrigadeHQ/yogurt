@@ -641,7 +641,6 @@ it('keeps initial search results still, ignores stationary hover, and scrolls on
   let tree = render()
   find(tree, 'search-results').props.ref.current = { querySelector: () => ({ scrollIntoView }) }
   expect(find(tree, 'search-results').props.className).toContain('[overflow-anchor:none]')
-  expect(() => find(tree, 'search-intent-icon')).toThrow('Missing')
   scroll()
   expect(scrollIntoView).not.toHaveBeenCalled()
   // Receiving the recent meetings does not move the list.
@@ -653,11 +652,9 @@ it('keeps initial search results still, ignores stationary hover, and scrolls on
   find(tree, 'search-m2').props.onMouseMove({ movementX: 0, movementY: 0 })
   tree = render(); scroll()
   expect(find(tree, 'search-result').props['aria-selected']).toBe(true)
-  expect(() => find(tree, 'search-intent-icon')).toThrow('Missing')
   find(tree, 'search-m2').props.onMouseMove({ movementX: 1, movementY: 0 })
   tree = render(); scroll()
   expect(find(tree, 'search-m2').props['aria-selected']).toBe(true)
-  expect(() => find(tree, 'search-intent-icon')).toThrow('Missing')
   expect(find(tree, 'search-preview').props.children.props.children).toBe('m2 notes')
   expect(scrollIntoView).not.toHaveBeenCalled()
   find(tree, 'search').props.onKeyDown({ key: 'ArrowDown', nativeEvent: {}, preventDefault() {} })
@@ -674,7 +671,7 @@ it('keeps initial search results still, ignores stationary hover, and scrolls on
   expect(scrollIntoView).not.toHaveBeenCalled()
 })
 
-it('keeps row glyphs and the parsed intent stable across keyboard selection', async () => {
+it('keeps row glyphs stable across keyboard selection', async () => {
   vi.useFakeTimers()
   vi.stubGlobal('document', { activeElement: null })
   vi.stubGlobal('HTMLButtonElement', class {})
@@ -716,15 +713,12 @@ it('keeps row glyphs and the parsed intent stable across keyboard selection', as
     render()
     vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.length === 6)![0]()
     await vi.runAllTimersAsync()
-    let tree = render()
-    const intentIcon = query && find(tree, 'search-intent-icon').type
+    const tree = render()
     inspect(tree)
     if (query === 'Sample attendee') expect(find(tree, 'search-person-filter')).toBeDefined()
     if (query === 'November 11, 2028') expect(find(tree, 'search-date')).toBeDefined()
     find(tree, 'search').props.onKeyDown({ key: 'ArrowDown', nativeEvent: {}, preventDefault() {} })
-    tree = render()
-    if (query) expect(find(tree, 'search-intent-icon').type).toBe(intentIcon)
-    inspect(tree)
+    inspect(render())
   }
   expect([...icons.keys()]).toEqual(expect.arrayContaining(['search-m1', 'search-ask', 'command-agenda-date', 'command-folder-f1', 'command-theme-light', 'search-person-email%3Aparticipant%40example.test']))
 })

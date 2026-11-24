@@ -414,9 +414,7 @@ html.widget, .widget-pill[data-illustration] { --pill:#232326;--pill-ink:#F7F7FA
 .search-backdrop { background:var(--scrim); }
 .search-panel { position:fixed;top:12vh;left:50%;translate:-50% 0;z-index:101;width:min(680px,calc(100vw - 32px));outline:none;box-shadow:var(--shadow);border-radius:18px; }
 .search-header { flex:none;margin:0 10px;border-bottom:1px solid var(--line); }
-.search-input-row { display:flex;align-items:center;gap:14px;padding-inline:14px; }
-.search-input-row>svg { flex:none; }
-.search-field { position:relative;min-width:0;flex:1;font-size:clamp(19px,3vw,24px);line-height:32px;letter-spacing:-.025em; }
+.search-field { position:relative;margin-inline:14px 10px;font-size:clamp(19px,3vw,24px);line-height:32px;letter-spacing:-.025em; }
 .search-field input,.search-input-highlight { padding:20px 0; }
 .search-field input { position:relative;display:block;width:100%;min-width:0;border:0;background:transparent;color:var(--ink);caret-color:var(--accent);font:inherit;letter-spacing:inherit;outline:none; }
 .search-field input::placeholder { color:var(--muted);font-weight:400; }
@@ -450,8 +448,8 @@ html.widget, .widget-pill[data-illustration] { --pill:#232326;--pill-ink:#F7F7FA
 .search-footer kbd { font:inherit; }
 .search-footer .search-ask-hint:hover { color:var(--accent); }
 @media (max-width:480px) {
-  .search-field { font-size:19px; }
-  .search-input-row,.search-preview { padding-inline:8px; }
+  .search-field { margin-inline:8px 6px;font-size:19px; }
+  .search-preview { padding-inline:8px; }
   .search-filters { padding-inline:8px; }
   .search-row { padding-inline:9px; }
   .search-meeting { column-gap:7px; }
