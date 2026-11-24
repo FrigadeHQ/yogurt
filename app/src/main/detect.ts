@@ -160,6 +160,4 @@ export function callGone(o: { app: string | null; seen: boolean; micIdleMs: numb
  * never counts a window that is only minimised or on another desktop.
  */
 export const WINDOW_GONE_MS = 8_000
-/** with the window gone, both tracks quiet this long: people still talking in the room are never cut off */
-export const WINDOW_QUIET_MS = 15_000
-export const windowGone = (o: { goneMs: number; silentMs: number }): boolean => o.goneMs >= WINDOW_GONE_MS && o.silentMs >= WINDOW_QUIET_MS
+export const windowGone = (goneMs: number): boolean => goneMs >= WINDOW_GONE_MS

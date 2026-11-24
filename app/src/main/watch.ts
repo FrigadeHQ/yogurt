@@ -155,10 +155,10 @@ export class Watcher {
       r.windowLogAt = now
       console.info(`CALL window-gone meeting=${m.id} app=${m.app} window_ms=${goneMs} on_mic=${onMic} mic=${mic} silent_ms=${silentMs}`)
     } else if (goneMs === 0) r.windowLogAt = undefined
-    const byWindow = windowGone({ goneMs, silentMs })
+    const byWindow = windowGone(goneMs)
     const byMic = !r.byHand && callGone({ app: m.app, seen: r.seen, micIdleMs: now - r.lastMic, silentMs, graceMs: this.d.graceMs })
     if ((byWindow || byMic) && this.d.autoStop && this.d.autoStopOn?.()) {
-      console.info(`CALL gone meeting=${m.id} app=${m.app} idle_ms=${now - r.lastMic} silent_ms=${silentMs} via=${byMic ? 'mic' : 'window'} window_ms=${goneMs} mic=${mic}`)
+      console.info(`CALL gone meeting=${m.id} app=${m.app} idle_ms=${now - r.lastMic} silent_ms=${silentMs} via=${byWindow ? 'window' : 'mic'} window_ms=${goneMs} mic=${mic}`)
       r.stopped = true
       if (this.shown === 'stop') { this.shown = null; this.d.hide() }
       this.d.autoStop(m)
@@ -166,7 +166,7 @@ export class Watcher {
     }
     const over = byWindow || ended(now - r.lastMic, silentMs)
     if (over && this.shown !== 'stop' && now >= r.snoozeUntil) {
-      console.info(`CALL stop-card meeting=${m.id} app=${m.app ?? 'none'} reason=${byWindow ? 'window-gone-and-silent' : 'mic-idle-and-silent'} window_ms=${goneMs} idle_ms=${now - r.lastMic} silent_ms=${silentMs}`)
+      console.info(`CALL stop-card meeting=${m.id} app=${m.app ?? 'none'} reason=${byWindow ? 'window-gone' : 'mic-idle-and-silent'} window_ms=${goneMs} idle_ms=${now - r.lastMic} silent_ms=${silentMs}`)
       this.shown = 'stop'; this.d.askStop(m)
     }
     else if (!over && this.shown === 'stop') { this.shown = null; this.d.hide() }
