@@ -1,4 +1,4 @@
-import { transcriptMatches, type TranscriptMatch } from '../../shared/transcriptFind'
+import { transcriptKey, transcriptMatches, type TranscriptMatch } from '../../shared/transcriptFind'
 
 type TextSpan = { node: Text; start: number; end: number }
 
@@ -19,7 +19,7 @@ export function transcriptFindRanges(list: HTMLElement, lines: ReadonlyArray<{ t
     }
     rows.set(row.dataset.key!, { root, text: chunks.join(''), spans })
   }
-  const rendered = lines.map(line => ({ ...line, text: rows.get(`${line.track}:${line.startMs}`)?.text ?? '' }))
+  const rendered = lines.map(line => ({ ...line, text: rows.get(transcriptKey(line))?.text ?? '' }))
   const matches: TranscriptMatch[] = [], ranges: Range[] = []
   for (const hit of transcriptMatches(rendered, query)) {
     const row = rows.get(hit.key)!

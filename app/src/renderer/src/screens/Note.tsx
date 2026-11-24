@@ -471,7 +471,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                 : !hasAudio && m.transcriptionState === 'error'
                   ? { kind: 'upload', run: () => void openAudioUpload() }
                   : undefined
-            } id={id} processing={transcribing} replacing={!!m.transcriptionAgain} recording={recording} active={primary === 'transcript'} inline toolbar={transcriptToolbar} focus={at?.ms != null ? { ...at, ms: at.ms } : undefined} />
+            } id={id} settled={!recording && !starting && !finishing && !m.stopSavePending && !trashed && !m.transcriptionPending && !transcribing && ['stopped','done'].includes(m.state)} processing={transcribing} replacing={!!m.transcriptionAgain} recording={recording} active={primary === 'transcript'} inline toolbar={transcriptToolbar} focus={at?.ms != null ? { ...at, ms: at.ms } : undefined} />
           </section>}
           </div>
         </div>

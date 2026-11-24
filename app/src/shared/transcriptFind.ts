@@ -1,3 +1,4 @@
+export const transcriptKey = (line: { id?: number; track: string; startMs: number }) => line.id === undefined ? `${line.track}:${line.startMs}` : String(line.id)
 export type TranscriptMatch = { key: string; start: number; end: number }
 
 /** Literal, case-insensitive occurrences. RegExp offsets refer to the original UTF-16 text, even when case folding changes length. */
@@ -7,7 +8,7 @@ export function transcriptMatches(lines: ReadonlyArray<{ track: string; startMs:
   const pattern = new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'giu')
   const matches: TranscriptMatch[] = []
   for (const line of lines) {
-    for (const match of line.text.matchAll(pattern)) matches.push({ key: `${line.track}:${line.startMs}`, start: match.index, end: match.index + match[0].length })
+    for (const match of line.text.matchAll(pattern)) matches.push({ key: transcriptKey(line), start: match.index, end: match.index + match[0].length })
   }
   return matches
 }
