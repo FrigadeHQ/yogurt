@@ -1,3 +1,4 @@
+import type { TranscriptChange, EditResult, RemovedSpan } from './transcriptEdit'
 import type { CompanionStatus } from './companion'
 import type { MeterPacket } from './speechWave'
 import type { AudioUploadFile, AudioUploadStatus } from './audioUpload'
@@ -120,10 +121,13 @@ export type YogurtApi = {
   }
   /** the words heard in a meeting, live */
   transcript: {
+    snapshot(id: string): Promise<{ lines: Segment[]; removed: RemovedSpan[]; revision: number; editable: boolean }>
+    removed(id: string): Promise<Array<Segment & { batch: string }>>
+    change(id: string, revision: number, change: TranscriptChange): Promise<EditResult>
     draft(meetingId:string):Promise<Segment[]>
     onDraft(cb:(meetingId:string)=>void):()=>void
     onReplaced(cb:(meetingId:string)=>void):()=>void
-    run(meetingId:string,again:boolean):Promise<boolean>
+    run(meetingId:string,again:boolean, approved?:number):Promise<boolean>
     stop(meetingId:string):Promise<void>
     /** the meeting's lines; hidden: the echo lines hidden after the meeting too (each marked hidden); last: only the latest lines */
     get(meetingId: string, o?: { hidden?: boolean; last?: number }): Promise<Segment[]>

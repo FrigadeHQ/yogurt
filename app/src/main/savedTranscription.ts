@@ -29,6 +29,12 @@ export function createSavedTranscriptions(d: {
         const id=meeting.id
         const current=d.store.meeting(id)
         if(!current||current.trashedAt!=null||['stopped','error','preparing','done'].includes(current.transcriptionState??''))continue
+        if (current.transcriptionAgain) {
+          const approved = d.store.db.prepare('SELECT replacement_revision FROM meetings WHERE id=?').get(id)?.replacement_revision
+          if (!d.store.replacementAllowed(id, typeof approved === 'number' ? approved : undefined)) {
+            d.store.cancelTranscriptionReplacement(id); d.changed(id); continue
+          }
+        }
         if(d.live?.(id))continue
         if(d.recording()){set(id,'waiting-recording');continue}
         if(!d.ready()){set(id,'waiting-model');continue}
@@ -62,10 +68,10 @@ export function createSavedTranscriptions(d: {
     } finally {draining=false;if(!quitting&&!d.recording()&&d.ready()&&d.store.untranscribedMeetings().some(m=>m.transcriptionState==='queued'))queueMicrotask(()=>void pump())}
   }
   return {
-    async start(id:string,again=false) {
+    async start(id:string,again=false,approved?:number) {
       const meeting=d.store.meeting(id)
       if(!meeting||meeting.trashedAt!=null||meeting.state==='recording'||running?.id===id)return false
-      if(again)d.store.beginTranscriptionReplacement(id)
+      if(again && !d.store.beginTranscriptionReplacement(id,approved))return false
       d.store.updateMeeting(id,{transcriptionPending:true,transcriptionState:'queued'});d.changed(id);void pump();return true
     },
     stop(id:string) {

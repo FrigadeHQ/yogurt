@@ -13,6 +13,7 @@ const ENGLISH = /^(?:.{1,40} call|meeting|untitled|new note|google meet|(?:zoom|
  */
 type Generic = { meeting: string; /** "{app} call" with the app's place marked by \u0000 */ appCall: string }
 let local: Generic = { meeting: 'Meeting', appCall: '\u0000 call' }
+export const defaultMeetingTitle = () => local.meeting
 export const setGenericTitles = (g: Generic) => { local = g }
 
 /** a title that says nothing about the meeting: "Zoom call", "Meeting", "Untitled", in English or the interface's language */

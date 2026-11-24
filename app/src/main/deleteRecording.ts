@@ -6,7 +6,7 @@ import type { DeleteRecordingResult } from '../shared/types'
 
 /** Only audio files go away. No meeting rows, text, people or folder links change. */
 export async function deleteRecording(id: string, p: {
-  store: Pick<Store, 'meeting' | 'segments' | 'notes'>
+  store: Pick<Store, 'meeting' | 'hasSavedTranscript' | 'notes'>
   dirOf: (id: string) => string
   busy: (id: string) => boolean
   settle: (id: string) => Promise<void>
@@ -20,7 +20,7 @@ export async function deleteRecording(id: string, p: {
     if (!m) return 'missing'
     if (m.state === 'recording' || p.busy(id)) return 'recording'
     if (p.keep && (p.keep(m.endedAt) || !p.store.notes(id).enhanced?.trim())) return 'kept'
-    if (m.transcriptionPending || !p.store.segments(id).some(s => s.text.trim())) return 'not-transcribed'
+    if (m.transcriptionPending || !p.store.hasSavedTranscript(id)) return 'not-transcribed'
   }
   try {
     const before = blocked()

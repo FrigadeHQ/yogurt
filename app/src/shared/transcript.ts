@@ -28,11 +28,11 @@ export function clock(ms: number): string {
 }
 
 /** Lines in a row from the same voice, so each turn shows its name and time once */
-export function turns<L extends Pick<Said, 'track' | 'startMs' | 'speaker'> & { endMs?: number }>(lines: L[]): L[][] {
+export function turns<L extends Pick<Said, 'track' | 'startMs' | 'speaker'> & { endMs?: number; breakBefore?: boolean }>(lines: L[]): L[][] {
   const out: L[][] = []
   for (const l of lines) {
     const turn = out[out.length - 1], prev = turn?.[turn.length - 1]
-    const same = prev && prev.track === l.track && prev.speaker === l.speaker && l.startMs - (prev.endMs ?? prev.startMs) < NEW_TURN_AFTER_MS
+    const same = !l.breakBefore && prev && prev.track === l.track && prev.speaker === l.speaker && l.startMs - (prev.endMs ?? prev.startMs) < NEW_TURN_AFTER_MS
     if (same) turn.push(l)
     else out.push([l])
   }

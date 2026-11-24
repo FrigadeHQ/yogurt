@@ -2,6 +2,7 @@ import { importPhoneRecording } from './companion/phoneImport'
 import { loadWindowState, placeWindow, saveWindowState } from './windowState'
 import { trustSystemCertificates } from './systemCerts'
 import { createSavedTranscriptions } from './savedTranscription'
+import { validChange } from '../shared/transcriptEdit'
 import { transcriptionBusy } from '../shared/transcription'
 import { hookAudioUploads } from './audioUploadIpc'
 import { uploadedAudio } from './audioUpload'
@@ -790,7 +791,7 @@ app.whenReady().then(() => {
     },
     transcribe: (id,tracks,options) => transcribeRecorded(id,tracks,undefined,options),
     draft:id=>win?.webContents.send('transcript:draft',id),
-    changed: (id,replaced) => {win?.webContents.send('meetings:changed');if(replaced){win?.webContents.send('transcript:replaced',id);void indexer.schedule()}},
+    changed: (id,replaced) => {win?.webContents.send('meetings:changed');if(replaced)transcriptEdited(id)},
     summarize: id => {void notes.writeAgain(id)},
   })
   const uploads = hookAudioUploads({
@@ -801,11 +802,40 @@ app.whenReady().then(() => {
   setup.onState(() => {uploads.resume();savedTranscriptions.resume()})
   onMeetingStart(m => {store.clearTranscriptionState(m.id);savedTranscriptions.pause()})
   onMeetingStopSaved(() => {uploads.resume();savedTranscriptions.resume()})
-  ipcMain.handle('transcript:run', (e,id:unknown,again:unknown) => {
+  const canEditTranscript = (id: string) => {
+    const m = store.meeting(id)
+    return !!m && ['done','stopped'].includes(m.state) && m.trashedAt == null && !m.transcriptionPending &&
+      !transcriptionBusy(m.transcriptionState) && !transcriptOpen(id) && !stopSavePending(id) && resumingId !== id && activeMeeting()?.id !== id
+  }
+  const editSender = (e: Electron.IpcMainInvokeEvent) => e.sender === win?.webContents && e.senderFrame === e.sender.mainFrame
+  ipcMain.handle('transcript:snapshot', async (e, id: unknown) => {
+    if (!editSender(e) || !isId(id)) throw new Error('Invalid transcript request')
+    await Promise.all([recordingFinished(id), transcriptFinished(id), callNames.finished(id)])
+    const order = store.speakerOrder(id)
+    return { lines: store.segments(id, { hidden: true }).map(s => ({ ...s, speakerColor: speakerColor(s.track,s.speaker,order) })),
+      removed: store.removedSpans(id), revision: store.meeting(id)?.transcriptRevision ?? 0, editable: canEditTranscript(id) }
+  })
+  ipcMain.handle('transcript:removed', (e, id: unknown) => editSender(e) && isId(id) && canEditTranscript(id) ? store.removedLines(id) : [])
+  ipcMain.handle('transcript:change', async (e, id: unknown, revision: unknown, change: unknown) => {
+    if (!editSender(e) || !isId(id) || typeof revision !== 'number' || !Number.isSafeInteger(revision) || !validChange(change) || !canEditTranscript(id)) return { status: 'unavailable' }
+    await Promise.all([recordingFinished(id), transcriptFinished(id), callNames.finished(id)])
+    if (!canEditTranscript(id)) return { status: 'unavailable' }
+    const result = store.changeTranscript(id, revision, change)
+    if (result.status === 'saved') transcriptEdited(id)
+    return result
+  })
+  function transcriptEdited(id: string) {
+    indexer.forget(id)
+    void indexer.schedule()
+    win?.webContents.send('transcript:replaced', id)
+    win?.webContents.send('meetings:changed')
+    notes.refresh(id)
+  }
+  ipcMain.handle('transcript:run', (e,id:unknown,again:unknown,approved:unknown) => {
     if(e.sender!==win?.webContents||!isId(id)||typeof again!=='boolean')return false
     const meeting=store.meeting(id)
     if(!meeting||stopSavePending(id)||transcriptionBusy(meeting.transcriptionState))return false
-    return savedTranscriptions.start(id,again)
+    return savedTranscriptions.start(id,again,typeof approved === 'number' ? approved : undefined)
   })
   ipcMain.handle('transcript:stop', async (e,id:unknown) => {
     if(e.sender!==win?.webContents||!isId(id))return
@@ -834,7 +864,7 @@ app.whenReady().then(() => {
       if (finishing || !store.meeting(id)) return { error: 'failed' }
       const append = await prepareAppend(join(userDataDir(), 'meetings', id))
       // Deleted audio must not restart a retained transcript at zero.
-      if (!append.startMs) append.startMs = store.segments(id, { hidden: true }).reduce((end, s) => Math.max(end, s.endMs), Math.max(append.startMs, store.meeting(id)?.durationMs ?? 0))
+      if (!append.startMs) append.startMs = Math.max(store.lastSegmentEnd(id), store.meeting(id)?.durationMs ?? 0)
       // Another explicit start may have happened while the old files were settling.
       if (finishing || activeMeeting()) return { error: 'failed' }
       const m = resumeMeeting(id, append)

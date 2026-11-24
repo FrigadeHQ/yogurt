@@ -9,10 +9,13 @@ import type { FolderSuggestionRecord } from '../shared/folderSuggestion'
 import { unusedPreparedNote } from '../shared/agendaNote'
 import { speakerOrder } from '../shared/speakerColors'
 import { DatabaseSync } from 'node:sqlite'
-import { randomUUID } from 'node:crypto'
-import { sourceOf, type TitleSource } from './titles'
+import { createHash, randomUUID } from 'node:crypto'
+import { defaultMeetingTitle, sourceOf, type TitleSource } from './titles'
 import { libraryTables } from './library/store'
 import { DEFAULT_FOLDER_APPEARANCE, isFolderIcon, isFolderColor, type FolderAppearance } from '../shared/folderAppearance'
+
+import { validChange, type TranscriptChange, type EditResult, type RemovedSpan } from '../shared/transcriptEdit'
+import { transcriptionBusy } from '../shared/transcription'
 
 type Row = Record<string, unknown>
 
@@ -42,6 +45,7 @@ export type Meeting = {
   /** Some recorded audio still needs a saved transcript, including earlier sessions. */
   transcriptionPending?: boolean
   transcriptionState?: TranscriptionState
+  transcriptRevision?: number
   transcriptionAgain?: boolean
   /** when it was moved to the Trash; there it is out of every list, search and chat until restored */
   trashedAt?: number
@@ -49,14 +53,17 @@ export type Meeting = {
 /** speaker: 'me' on the mic; on the other side the name the call app showed talking (callNames), null for Them */
 export type Segment = { id: number; meetingId: string; track: 'me' | 'them'; startMs: number; endMs: number; text: string; speaker: string | null
   /** an echo of the other side found on the mic: kept, but out of the transcript, notes, search and export until shown again */
+  corrected?: boolean
+  breakBefore?: boolean
   hidden?: boolean
   /** High-confidence echo: retained for recovery, omitted from inline disclosures. */
   echoConfident?: boolean
   /** Shared display-only palette index, supplied by the transcript bridge. */
   speakerColor?: number }
-export type Notes = { mine: string; enhanced: string | null; edited: boolean }
+export type Notes = { mine: string; enhanced: string | null; edited: boolean; needsReview?: boolean }
 
 const toMeeting = (r: Row): Meeting => ({
+  ...(r.transcript_revision ? { transcriptRevision: Number(r.transcript_revision) } : {}),
   ...(r.transcription_state ? { transcriptionState: r.transcription_state as TranscriptionState } : {}),
   ...(r.transcription_again ? { transcriptionAgain: true } : {}),
   ...(r.transcription_pending ? { transcriptionPending: true } : {}),
@@ -79,6 +86,7 @@ const toMeeting = (r: Row): Meeting => ({
 const toSegment = (r: Row): Segment => ({
   id: Number(r.id), meetingId: String(r.meeting_id), track: r.track as Segment['track'], startMs: Number(r.start_ms), endMs: Number(r.end_ms),
   text: String(r.text), speaker: r.speaker == null ? null : String(r.speaker), hidden: Number(r.hidden ?? 0) === 1,
+  ...(r.original_text != null ? { corrected: true } : {}),
   ...(Number(r.echo_confident ?? 0) === 1 ? { echoConfident: true } : {}),
 })
 
@@ -162,14 +170,14 @@ function around(raw: string, pairs: string[]): SnippetPart[] {
 const COMPANION_SOURCES: Array<{ table: string; entity: string; id: string; update: string }> = [
   // only what the phone shows: opening a note or a folder suggestion is no change to it
   { table: 'meetings', entity: 'meeting', id: 'id', update: 'title, started_at, ended_at, attendees, app, trashed_at, language' },
-  { table: 'notes', entity: 'notes', id: 'meeting_id', update: 'mine, enhanced' },
+  { table: 'notes', entity: 'notes', id: 'meeting_id', update: 'mine, enhanced, needs_review, reviewed_hash' },
   { table: 'segments', entity: 'segments', id: 'meeting_id', update: 'start_ms, end_ms, text, speaker, hidden' },
   { table: 'folders', entity: 'folder', id: 'id', update: 'name' },
   { table: 'folder_meetings', entity: 'folderMembers', id: 'folder_id', update: 'folder_id, meeting_id' },
   { table: 'people', entity: 'people', id: 'email', update: 'display_name' },
 ]
 /** Raise when the triggers change: a database with an older set gets them made again. */
-const COMPANION_TRIGGERS = 1
+const COMPANION_TRIGGERS = 2
 function companionTables(db: DatabaseSync) {
   // one transaction: a crash between making the log and filling it would leave old history out for good
   db.exec('BEGIN')
@@ -287,6 +295,13 @@ export class Store {
     // who was at the meeting when its notes were written (a "names" column from voice naming is left as it is, unread)
     if (!(this.db.prepare('PRAGMA table_info(notes)').all() as Row[]).some((r) => r.name === 'written_with')) this.db.exec('ALTER TABLE notes ADD COLUMN written_with TEXT')
     const segmentCols = (this.db.prepare('PRAGMA table_info(segments)').all() as Row[]).map((r) => String(r.name))
+    if (!segmentCols.includes('original_text')) this.db.exec('ALTER TABLE segments ADD COLUMN original_text TEXT')
+    if (!segmentCols.includes('removed_batch')) this.db.exec('ALTER TABLE segments ADD COLUMN removed_batch TEXT')
+    if (!meetingCols.includes('transcript_revision')) this.db.exec('ALTER TABLE meetings ADD COLUMN transcript_revision INTEGER NOT NULL DEFAULT 0')
+    if (!meetingCols.includes('transcript_hash')) this.db.exec('ALTER TABLE meetings ADD COLUMN transcript_hash TEXT')
+    if (!meetingCols.includes('replacement_revision')) this.db.exec('ALTER TABLE meetings ADD COLUMN replacement_revision INTEGER')
+    if (!this.db.prepare("SELECT 1 FROM pragma_table_info('notes') WHERE name='reviewed_hash'").get())
+      this.db.exec('ALTER TABLE notes ADD COLUMN reviewed_hash TEXT; ALTER TABLE notes ADD COLUMN needs_review INTEGER NOT NULL DEFAULT 0')
     if (!segmentCols.includes('hidden')) this.db.exec('ALTER TABLE segments ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0')
     if (!segmentCols.includes('echo_confident')) {
       this.db.exec('BEGIN')
@@ -480,9 +495,15 @@ export class Store {
   interruptAudioPreparations() {
     this.db.prepare("UPDATE meetings SET transcription_state='error',transcription_pending=0 WHERE source='audio-file' AND transcription_state='preparing'").run()
   }
-  beginTranscriptionReplacement(id:string) {
+  replacementAllowed(id: string, approved?: number) {
+    return !this.removedSpans(id).length && (!this.db.prepare('SELECT 1 FROM segments WHERE meeting_id=? AND original_text IS NOT NULL').get(id)
+      || (approved !== undefined && approved === this.meeting(id)?.transcriptRevision))
+  }
+  beginTranscriptionReplacement(id:string, approved?: number) {
+    if (!this.replacementAllowed(id, approved)) return false
     this.clearTranscriptionDraft(id)
-    this.db.prepare('UPDATE meetings SET transcription_was_pending=CASE WHEN transcription_again=1 THEN transcription_was_pending ELSE transcription_pending END, transcription_again=1 WHERE id=?').run(id)
+    this.db.prepare('UPDATE meetings SET transcription_was_pending=CASE WHEN transcription_again=1 THEN transcription_was_pending ELSE transcription_pending END, transcription_again=1, replacement_revision=? WHERE id=?').run(approved ?? null, id)
+    return true
   }
   cancelTranscriptionReplacement(id:string) {
     this.db.exec('BEGIN')
@@ -500,9 +521,12 @@ export class Store {
   }
   clearTranscriptionDraft(id: string) { this.db.prepare('DELETE FROM transcription_drafts WHERE meeting_id = ?').run(id) }
   commitTranscriptionDraft(id: string) {
+    const approved = this.db.prepare('SELECT replacement_revision FROM meetings WHERE id=?').get(id)?.replacement_revision
+    if (!this.replacementAllowed(id, typeof approved === 'number' ? approved : undefined)) throw new Error('Transcript changed before replacement')
     const segments = this.transcriptionDraft(id)
     this.db.exec('BEGIN')
     try {
+      this.beforeTranscriptChange(id)
       this.db.prepare('DELETE FROM segments WHERE meeting_id = ?').run(id)
       const insert = this.db.prepare('INSERT INTO segments (meeting_id,track,start_ms,end_ms,text,speaker,hidden,echo_confident) VALUES (?,?,?,?,?,?,?,?)')
       for (const s of segments) {
@@ -511,7 +535,7 @@ export class Store {
       }
       this.clearTranscriptionDraft(id)
       // A replacement can keep the same line count, text length and timestamps.
-      this.db.prepare("UPDATE library_sources SET signature='' WHERE meeting_id=?").run(id)
+      this.transcriptChanged(id)
       this.updateMeeting(id,{transcriptionAgain:false,transcriptionPending:false,transcriptionState:'done'})
       this.db.exec('COMMIT')
     } catch(error) { this.db.exec('ROLLBACK'); throw error }
@@ -531,10 +555,115 @@ export class Store {
   /** the meeting's lines in order; hidden echo lines left out unless asked for */
   /** last: only the latest lines (the recorder's hover reads a recent tail, however long the meeting runs) */
   segments(meetingId: string, o: { hidden?: boolean; last?: number } = {}): Segment[] {
-    const where = o.hidden ? 'meeting_id = ?' : 'meeting_id = ? AND hidden = 0'
+    const where = o.hidden ? 'meeting_id = ? AND removed_batch IS NULL' : 'meeting_id = ? AND hidden = 0'
     if (o.last) return (this.db.prepare(`SELECT * FROM (SELECT * FROM segments WHERE ${where} ORDER BY start_ms DESC, id DESC LIMIT ?) ORDER BY start_ms, id`).all(meetingId, o.last) as Row[]).map(toSegment)
-    return (this.db.prepare(`SELECT * FROM segments WHERE ${where} ORDER BY start_ms, id`).all(meetingId) as Row[]).map(toSegment)
+    const lines = (this.db.prepare(`SELECT * FROM segments WHERE ${where} ORDER BY start_ms, id`).all(meetingId) as Row[]).map(toSegment)
+    const removed = this.removedSpans(meetingId)
+    let next = 0
+    for (const line of lines) {
+      if (line.hidden) continue
+      while (next < removed.length && (removed[next].startMs < line.startMs || (removed[next].startMs === line.startMs && removed[next].id < line.id))) {
+        line.breakBefore = true
+        next++
+      }
+    }
+    return lines
   }
+  lastSegmentEnd(id: string) {
+    return Number(this.db.prepare('SELECT max(end_ms) AS end FROM segments WHERE meeting_id=?').get(id)?.end ?? 0)
+  }
+
+  hasSavedTranscript(id: string) {
+    return !!this.db.prepare("SELECT 1 FROM segments WHERE meeting_id=? AND (hidden=0 OR removed_batch IS NOT NULL) AND trim(text)!='' LIMIT 1").get(id)
+  }
+
+  removedSpans(id: string): RemovedSpan[] {
+    return this.db.prepare('SELECT id, start_ms AS startMs, end_ms AS endMs FROM segments WHERE meeting_id=? AND removed_batch IS NOT NULL ORDER BY start_ms,id').all(id) as RemovedSpan[]
+  }
+
+  removedLines(id: string) {
+    return (this.db.prepare('SELECT * FROM segments WHERE meeting_id=? AND removed_batch IS NOT NULL ORDER BY start_ms,id').all(id) as Row[])
+      .map(r => ({ ...toSegment(r), batch: String(r.removed_batch) }))
+  }
+
+  private fingerprint(id: string) {
+    const hash = createHash('sha256')
+    for (const r of this.db.prepare('SELECT track,speaker,start_ms,end_ms,text FROM segments WHERE meeting_id=? AND hidden=0 ORDER BY start_ms,id').iterate(id))
+      hash.update(JSON.stringify([r.track, r.speaker, r.start_ms, r.end_ms, r.text]) + '\n')
+    return hash.digest('hex')
+  }
+
+  private beforeTranscriptChange(id: string) {
+    if (this.db.prepare('SELECT 1 FROM notes WHERE meeting_id=? AND enhanced IS NOT NULL AND reviewed_hash IS NULL').get(id))
+      this.db.prepare('UPDATE notes SET reviewed_hash=? WHERE meeting_id=?').run(this.fingerprint(id), id)
+  }
+
+  private transcriptChanged(id: string) {
+    const hash = this.fingerprint(id)
+    this.db.prepare('UPDATE meetings SET transcript_revision=transcript_revision+1, transcript_hash=? WHERE id=?').run(hash, id)
+    this.db.prepare('UPDATE notes SET needs_review=(enhanced IS NOT NULL AND reviewed_hash IS NOT ?) WHERE meeting_id=?').run(hash, id)
+    if (this.notes(id).needsReview) this.db.prepare("UPDATE meetings SET title=?, title_source='generic' WHERE id=? AND title_source='auto'").run(defaultMeetingTitle(), id)
+    this.db.prepare('DELETE FROM library_sources WHERE meeting_id=?').run(id)
+    this.db.prepare('DELETE FROM library_chunks WHERE meeting_id=?').run(id)
+  }
+
+  reviewSummary(id: string, revision: number, enhanced: string) {
+    return !!this.db.prepare(`UPDATE notes SET reviewed_hash=(SELECT transcript_hash FROM meetings WHERE id=?), needs_review=0
+      WHERE meeting_id=? AND enhanced=? AND EXISTS (SELECT 1 FROM meetings WHERE id=? AND transcript_revision=? AND trashed_at IS NULL)`)
+      .run(id, id, enhanced, id, revision).changes
+  }
+
+  private undoChange?: { meeting: string; revision: number; apply: () => void }
+
+  changeTranscript(id: string, revision: number, change: TranscriptChange): EditResult {
+    const m = this.meeting(id)
+    if (!validChange(change) || !m || m.trashedAt != null || !['done','stopped'].includes(m.state) || m.transcriptionPending || transcriptionBusy(m.transcriptionState)) return { status: 'unavailable' }
+    const current = m.transcriptRevision ?? 0
+    const wording = change.kind === 'wording' || change.kind === 'original'
+    const row = wording ? this.db.prepare('SELECT text,original_text FROM segments WHERE meeting_id=? AND id=? AND hidden=0').get(id,change.id) : undefined
+    if (wording && row && row.text !== change.expected) return { status: 'conflict', text: String(row.text), revision: current }
+    if (revision !== current || (wording && !row)) return { status: 'stale' }
+    let undo: (() => void) | undefined, count = 1
+    this.db.exec('BEGIN IMMEDIATE')
+    try {
+      this.beforeTranscriptChange(id)
+      if (wording && row) {
+        const text = change.kind === 'wording' ? change.text : String(row.original_text ?? row.text)
+        if (text === row.text) { this.db.exec('ROLLBACK'); return { status: 'unchanged' } }
+        const set = this.db.prepare('UPDATE segments SET text=?,original_text=? WHERE meeting_id=? AND id=?')
+        const original = row.original_text ?? row.text
+        set.run(text, text === original ? null : original, id, change.id)
+        undo = () => { set.run(row.text, row.original_text, id, change.id) }
+      } else if (change.kind === 'undo') {
+        if (this.undoChange?.meeting !== id || this.undoChange.revision !== revision) { this.db.exec('ROLLBACK'); return { status: 'stale' } }
+        this.undoChange.apply()
+      } else if (change.kind === 'remove' || change.kind === 'restore') {
+        const batch = change.kind === 'remove' ? randomUUID() : null
+        const rows = change.kind === 'remove'
+          ? this.db.prepare('SELECT id,text,removed_batch FROM segments WHERE meeting_id=? AND hidden=0 AND id IN (SELECT value FROM json_each(?))').all(id,JSON.stringify(change.ids))
+          : this.db.prepare('SELECT id,text,removed_batch FROM segments WHERE meeting_id=? AND removed_batch IS NOT NULL AND (? IS NULL OR removed_batch=?)').all(id,change.batch,change.batch)
+        if (!rows.length || (change.kind === 'remove' && rows.length !== new Set(change.ids).size)) { this.db.exec('ROLLBACK'); return { status: 'stale' } }
+        const set = this.db.prepare('UPDATE segments SET hidden=?,removed_batch=? WHERE meeting_id=? AND id=?')
+        const hide = this.db.prepare("INSERT INTO segments_fts(segments_fts,rowid,text) VALUES ('delete',?,?)")
+        const show = this.db.prepare('INSERT INTO segments_fts(rowid,text) VALUES (?,?)')
+        const apply = (reverse: boolean) => {
+          for (const r of rows) {
+            const target = reverse ? r.removed_batch : batch
+            set.run(Number(target != null), target, id, r.id)
+            ;(target == null ? show : hide).run(r.id,r.text)
+          }
+        }
+        apply(false)
+        count = rows.length
+        undo = () => apply(true)
+      }
+      this.transcriptChanged(id)
+      this.db.exec('COMMIT')
+      this.undoChange = undo && { meeting: id, revision: current + 1, apply: undo }
+      return { status: 'saved', revision: current + 1, count }
+    } catch (error) { this.db.exec('ROLLBACK'); throw error }
+  }
+
   /** Full saved history establishes legacy colours; new names append even after late attribution. */
   speakerOrder(meetingId: string, arriving?: string | null): string[] {
     const row = this.db.prepare('SELECT speaker_order FROM meetings WHERE id = ?').get(meetingId) as Row | undefined
@@ -567,7 +696,7 @@ export class Store {
   }
   /** The person wants the hidden lines back: all of a meeting's, or the ones given */
   showSegments(meetingId: string, ids?: number[]) {
-    const rows = (this.db.prepare('SELECT id, text FROM segments WHERE meeting_id = ? AND hidden = 1').all(meetingId) as Row[]).filter((r) => !ids || ids.includes(Number(r.id)))
+    const rows = (this.db.prepare('SELECT id, text FROM segments WHERE meeting_id = ? AND hidden = 1 AND removed_batch IS NULL').all(meetingId) as Row[]).filter((r) => !ids || ids.includes(Number(r.id)))
     if (!rows.length) return
     this.db.exec('BEGIN')
     try {
@@ -608,8 +737,8 @@ export class Store {
 
   /** edited: the person changed the enhanced notes since they were written */
   notes(meetingId: string): Notes {
-    const r = this.db.prepare('SELECT mine, enhanced, edited FROM notes WHERE meeting_id = ?').get(meetingId) as Row | undefined
-    return r ? { mine: String(r.mine), enhanced: r.enhanced == null ? null : String(r.enhanced), edited: Number(r.edited) === 1 } : { mine: '', enhanced: null, edited: false }
+    const r = this.db.prepare('SELECT mine, enhanced, edited, needs_review FROM notes WHERE meeting_id = ?').get(meetingId) as Row | undefined
+    return r ? { mine: String(r.mine), enhanced: r.enhanced == null ? null : String(r.enhanced), edited: Number(r.edited) === 1, ...(r.needs_review ? { needsReview: true } : {}) } : { mine: '', enhanced: null, edited: false }
   }
   setNotes(meetingId: string, patch: Partial<Notes>) {
     const cur = this.notes(meetingId)
