@@ -20,6 +20,9 @@ public struct ShareExport: Sendable {
     public static let website = "https://yogurt.so"
     /// a pause this long starts a new turn, so the time shows again (desktop's NEW_TURN_AFTER_MS)
     static let newTurnAfterMs = 30_000
+    /// one voice talking on (an iPhone recording is all one voice) gets a new paragraph and time every minute, so a
+    /// long recording isn't one huge block
+    static let splitTurnAfterMs = 60_000
 
     let meeting: Meeting
     let labels: Labels
@@ -91,13 +94,15 @@ public struct ShareExport: Sendable {
         }
     }
 
-    /// Lines in a row from the same voice, unless a long pause comes between them, like desktop's turns().
+    /// Lines in a row from the same voice, unless a long pause comes between them, like desktop's turns(), and a new
+    /// one each minute.
     private func turns(_ segments: [Segment]) -> [(speaker: String?, startMs: Int, text: String)] {
         var out: [(speaker: String?, startMs: Int, text: String, endMs: Int)] = []
         for s in segments.sorted(by: { ($0.startMs, $0.index) < ($1.startMs, $1.index) }) {
             let text = s.text.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty else { continue }
-            if let last = out.last, last.speaker == s.speaker, s.startMs - last.endMs < Self.newTurnAfterMs {
+            if let last = out.last, last.speaker == s.speaker, s.startMs - last.endMs < Self.newTurnAfterMs,
+               s.startMs - last.startMs < Self.splitTurnAfterMs {
                 out[out.count - 1].text += " " + text
                 out[out.count - 1].endMs = s.endMs
             } else {

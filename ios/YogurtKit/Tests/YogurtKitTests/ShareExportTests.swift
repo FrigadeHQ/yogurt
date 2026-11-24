@@ -92,6 +92,16 @@ import Testing
         #expect(md.contains("**You** (0:00)\n\nOne.\n\n**You** (0:40)\n\nTwo.\n\n**You** (1:02:05)\n\nLate."))
     }
 
+    @Test func aLongStretchOfOneVoiceIsSplitEveryMinuteSoTimesShow() {
+        // an iPhone recording is one voice with no long pauses: it used to come out as one huge block
+        var m = Self.meeting
+        m.oneMic = true
+        let lines = (0..<30).map { Self.seg($0, $0 * 10_000, "Line \($0).") }
+        let md = export(m).transcript(lines)
+        #expect(md.contains("**0:00**\n\nLine 0. Line 1. Line 2. Line 3. Line 4. Line 5.\n\n**1:00**\n\nLine 6."))
+        #expect(md.contains("**4:00**\n\nLine 24."))
+    }
+
     @Test func oneMicTurnsHaveTheTimeOnly() {
         var m = Self.meeting
         m.oneMic = true
