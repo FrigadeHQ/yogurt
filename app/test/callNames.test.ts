@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { openStore, type Meeting, type Store } from '../src/main/store'
-import { hookCallNames, watchIds, type WatchLine } from '../src/main/callNames'
+import { hookCallNames, watchIds, zoomMeetingNumber, type WatchLine } from '../src/main/callNames'
 import { readCall, type AxNode } from '../src/main/callNames/parse'
 
 const dirs: string[] = [], stores: Store[] = []
@@ -44,12 +44,12 @@ const webexCurrentWindows = (): WatchLine['windows'] => [{ title: 'Webex meeting
 ] }] } }]
 const webexLine = (t: number): WatchLine => ({ t, app: 'Cisco-Systems.Spark', windows: webexWindows() })
 
-function setup(o: { app?: string | null; attendees?: Meeting['attendees']; micPids?: Record<string, number[]>; myNames?: string[] } = {}) {
+function setup(o: { app?: string | null; attendees?: Meeting['attendees']; micPids?: Record<string, number[]>; myNames?: string[]; meetingNumber?: (m: Meeting) => Promise<string | undefined> } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'yogurt-callnames-')); dirs.push(root)
   const store = openStore(join(root, 'yogurt.db')); stores.push(store)
   const m = store.createMeeting({ title: 'Sync', startedAt: 1_000_000, endedAt: null, eventId: null, app: o.app === undefined ? 'Zoom' : o.app, attendees: o.attendees ?? [], state: 'recording' })
   let clock = 1_000_000
-  const watched: string[][] = [], watchedPids: Array<number[] | undefined> = []
+  const watched: string[][] = [], watchedPids: Array<number[] | undefined> = [], watchedConfno: Array<string | undefined> = []
   const micPids = { ...o.micPids }
   let emit!: (l: WatchLine) => void
   let stopped = 0
@@ -60,13 +60,13 @@ function setup(o: { app?: string | null; attendees?: Meeting['attendees']; micPi
   const done = new Promise<void>((r) => { transcribed = r })
   const hook = hookCallNames({
     store, myNames: () => o.myNames ?? ['Alex Morgan'], transcribed: () => done, changed: (id) => changed.push(id), log: (s) => logs.push(s), now: () => clock, every: () => {},
-    watch: (ids, onLine, pids) => { watched.push(ids); watchedPids.push(pids); emit = onLine; return { stop: () => { stopped++ } } },
-    micPids: (app) => micPids[app] ?? [],
+    watch: (ids, onLine, pids, confno) => { watched.push(ids); watchedPids.push(pids); watchedConfno.push(confno); emit = onLine; return { stop: () => { stopped++ } } },
+    micPids: (app) => micPids[app] ?? [], meetingNumber: o.meetingNumber,
     onStart: (fn) => starts.push(fn), onStop: (fn) => stops.push(fn), onCapture: (fn) => captures.push(fn), onBind: (fn) => binds.push(fn),
   })
   const capture = new EventEmitter()
   return {
-    store, m, hook, watched, watchedPids, changed, logs, transcribed, stopped: () => stopped,
+    store, m, hook, watched, watchedPids, watchedConfno, changed, logs, transcribed, stopped: () => stopped,
     /** the processes of an app on the mic now */
     setMic(app: string, pids: number[]) { micPids[app] = pids },
     start() { starts.forEach((f) => f(m)); captures.forEach((f) => f(capture, m.id)) },
@@ -601,4 +601,56 @@ describe('callWindow: the call window seen, then gone', () => {
     for (let t = 1_000_500; t <= 1_060_000; t += 500) { s.at(t); s.emit({ t, app: 'com.google.Chrome', error: 'no-call-window' }) }
     expect(s.hook.callWindow(s.m.id)).toBeNull()
   })
+})
+
+describe('two Zoom meetings and nothing on the mic: the meeting number tells them apart', () => {
+  it('reads the meeting number from a Zoom link, and nothing else of it', () => {
+    expect(zoomMeetingNumber('https://us02web.zoom.us/j/95475305118?pwd=Secret.1')).toBe('95475305118')
+    expect(zoomMeetingNumber('https://company.zoomgov.com/j/1612345678')).toBe('1612345678')
+    expect(zoomMeetingNumber('https://zoom.us/w/98765432101?tk=x')).toBe('98765432101')
+    expect(zoomMeetingNumber('zoommtg://zoom.us/join?action=join&confno=81234567890&pwd=x')).toBe('81234567890')
+    // a personal link carries no number, and a link that is not Zoom's is not read
+    expect(zoomMeetingNumber('https://zoom.us/my/alex.morgan')).toBeUndefined()
+    expect(zoomMeetingNumber('https://meet.google.com/abc-defg-hij')).toBeUndefined()
+    expect(zoomMeetingNumber(null)).toBeUndefined()
+  })
+
+  it('with Zoom not on the mic, the reader is told the meeting number, and the log does not say it', async () => {
+    const s = setup({ meetingNumber: async () => '95475305118' })
+    s.start()
+    await wait()
+    expect(s.watchedConfno).toEqual(['95475305118'])
+    expect(s.watchedPids).toEqual([undefined])
+    expect(s.logs.join('\n')).not.toContain('95475305118')
+    expect(s.logs.some((l) => l.includes("reading the Zoom process started for this meeting's number"))).toBe(true)
+  })
+
+  it('the process on the mic still comes first: no number asked for, and none given', async () => {
+    let asked = 0
+    const s = setup({ micPids: { Zoom: [80305] }, meetingNumber: async () => { asked++; return '95475305118' } })
+    s.start()
+    await wait()
+    expect(asked).toBe(0)
+    expect(s.watchedPids).toEqual([[80305]])
+    expect(s.watchedConfno).toEqual([undefined])
+  })
+
+  it('a meeting without a number in its event is read as before', async () => {
+    const s = setup({ meetingNumber: async () => undefined })
+    s.start()
+    await wait()
+    expect(s.watchedConfno).toEqual([undefined])
+    expect(s.watched).toHaveLength(1)
+  })
+
+  it('a recording that ended before the calendar answered starts no reader', async () => {
+    let answer!: (n: string) => void
+    const s = setup({ meetingNumber: () => new Promise((r) => { answer = r }) })
+    s.start()
+    s.stop()
+    answer('95475305118')
+    await wait()
+    expect(s.watched).toHaveLength(0)
+  })
+
 })

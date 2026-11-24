@@ -63,7 +63,7 @@ import { hookMics } from './mics'
 import { activeCapture, audioHelperPath, hookCapture, joinParts, onCaptureStart, onRecordingEvent, prepareAppend, recordingFinished, recordingPaused, recordingSettled, rejoinInterrupted, setRecordingPaused, settleRecording, tell, type WarnCode } from './capture'
 import { createWidget } from './widget'
 import { liveSilentMs, hookTranscription, transcribeRecorded, onWhisperGpuOff, meetingLanguage, settleTranscription, speechLocaleFor, spokenChanged, transcriptionBacklogMs, stopTranscriptionServer, releaseIdleSpeech, transcriptFinished, transcriptOpen, transcriptPartials } from './asr'
-import { hookCallNames, type Watch } from './callNames'
+import { hookCallNames, zoomMeetingNumber, type Watch } from './callNames'
 import { helperWatch, killAllWatches } from './callNames/watch'
 import { macFullName } from './user'
 import { setJargon, setOwnerName } from './vocab'
@@ -648,6 +648,11 @@ app.whenReady().then(() => {
     // people seen in the call joined the meeting: unedited notes already written get written again for them
     changed: (id) => { win?.webContents.send('transcript:speakers', id); sendWidgetTranscript('transcript:speakers', id); win?.webContents.send('meetings:changed'); notes.applyPeople(id) },
     onStart: onMeetingStart, onStop: onMeetingStop, onCapture: onCaptureStart, onBind: onMeetingBound, micPids: (app) => micPidsNow(app),
+    meetingNumber: async (m) => {
+      if (!m.eventId) return undefined
+      const event = (await eventsOn(m.eventStartedAt ?? m.startedAt)).find((e) => matchesEvent(e, m.eventId))
+      return zoomMeetingNumber(event?.url)
+    },
   })
   if (process.platform === 'darwin' || process.platform === 'win32') callWindowOf = (id) => callNames.callWindow(id)
   // Windows and Linux: whisper left the graphics card in a meeting, so the speed check (timed with it) runs again next start

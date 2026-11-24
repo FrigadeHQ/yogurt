@@ -408,6 +408,42 @@ func callWindows(_ app: AXUIElement, _ id: String) -> (wins: [AXUIElement], tab:
 }
 
 /// The app a process on the mic belongs to: itself, or the app above it (Zoom's CptHost runs under zoom.us)
+/// The meeting number a Zoom process was started for, from its command line: a meeting joined from a link runs as its
+/// own process with `--url=zoommtg://…/join?confno=N&pwd=…`. Only the number leaves here: the rest of the line carries
+/// the meeting's password, so it is never printed or kept.
+func zoomMeetingNumber(_ pid: pid_t) -> String? {
+  var mib: [Int32] = [CTL_KERN, KERN_PROCARGS2, pid]
+  var size = 0
+  guard sysctl(&mib, 3, nil, &size, nil, 0) == 0, size > MemoryLayout<Int32>.size else { return nil }
+  var buf = [UInt8](repeating: 0, count: size)
+  guard sysctl(&mib, 3, &buf, &size, nil, 0) == 0, size > MemoryLayout<Int32>.size else { return nil }
+  let argc = Int(buf.withUnsafeBytes { $0.load(as: Int32.self) })
+  // the executable's path, then padding, then argc NUL-ended arguments
+  var i = MemoryLayout<Int32>.size
+  while i < size && buf[i] != 0 { i += 1 }
+  while i < size && buf[i] == 0 { i += 1 }
+  var start = i, seen = 0
+  while i < size && seen < argc {
+    if buf[i] == 0 {
+      let arg = String(decoding: buf[start..<i], as: UTF8.self)
+      if let n = meetingNumberIn(arg) { return n }
+      seen += 1; start = i + 1
+    }
+    i += 1
+  }
+  return nil
+}
+/// "confno=95475305118" in a zoommtg:// or zoomus:// link, or "/j/95475305118" in an https one
+func meetingNumberIn(_ text: String) -> String? {
+  guard text.contains("zoom") else { return nil }
+  for pattern in ["[?&]confno=([0-9]{9,12})", "/[jw]/([0-9]{9,12})"] {
+    if let m = text.range(of: pattern, options: .regularExpression) {
+      return String(text[m].filter(\.isNumber))
+    }
+  }
+  return nil
+}
+
 func owningApp(_ pid: pid_t, ids: [String]) -> NSRunningApplication? {
   var pid = pid
   for _ in 0..<8 {
@@ -470,7 +506,10 @@ func callWindowOutOfSight(_ app: AXUIElement, _ pid: pid_t) -> Bool {
   return !known.intersection(alive).subtracting(listed).isEmpty
 }
 
-func watchCalls(every: Int, ids: [String], pids: [pid_t] = []) {
+/// a process's command line does not change: its meeting number is read once ("" for none)
+var zoomMeetingNumbers: [pid_t: String] = [:]
+
+func watchCalls(every: Int, ids: [String], pids: [pid_t] = [], confno: String? = nil) {
   // Yogurt closes stdin to stop the watch (and a crashed Yogurt closes it too)
   DispatchQueue.global().async { _ = FileHandle.standardInput.readDataToEndOfFile(); DispatchQueue.main.sync { resetTrees() }; exit(0) }
   let line = { (v: [String: Any]) in
@@ -493,7 +532,18 @@ func watchCalls(every: Int, ids: [String], pids: [pid_t] = []) {
       // being recorded must never give this meeting its names (#98). Without them (nothing on the mic yet, or a meeting
       // joined without computer audio), every process of each app, not just the first: keeping only the first read the
       // wrong meeting's window, or none at all when that process had no call window.
-      let apps = pids.isEmpty ? ids.flatMap { NSRunningApplication.runningApplications(withBundleIdentifier: $0) } : pids.compactMap { owningApp($0, ids: ids) }
+      var apps = pids.isEmpty ? ids.flatMap { NSRunningApplication.runningApplications(withBundleIdentifier: $0) } : pids.compactMap { owningApp($0, ids: ids) }
+      // Nothing on the mic, but the meeting's number known (from its calendar event): only the Zoom process started for
+      // that meeting, when one was. A meeting joined from inside Zoom has no number on its process; then every process,
+      // as before.
+      if pids.isEmpty, let confno {
+        let numbered = apps.filter { a in
+          let pid = a.processIdentifier
+          if zoomMeetingNumbers[pid] == nil { zoomMeetingNumbers[pid] = zoomMeetingNumber(pid) ?? "" }
+          return zoomMeetingNumbers[pid] == confno
+        }
+        if !numbered.isEmpty { apps = numbered }
+      }
       // the frontmost first, the rest in the order given (sorted(by:) wants a strict weak ordering, which "is this one
       // frontmost" is not, and it does not promise to keep equal elements in order)
       let running = apps.filter { $0.processIdentifier == front } + apps.filter { $0.processIdentifier != front }
@@ -693,12 +743,17 @@ case "media-resume":
 case "ax-auth":
   out(["trusted": AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)])
 case "call-watch":
-  guard args.count >= 3, let every = Int(args[1]) else { fail("call-watch MS [--pid N]... BUNDLE_ID...") }
-  var rest = Array(args.dropFirst(2)), pids: [pid_t] = []
-  while rest.count >= 2, rest[0] == "--pid", let pid = pid_t(rest[1]) { pids.append(pid); rest.removeFirst(2) }
-  watchCalls(every: max(100, every), ids: rest, pids: pids)
+  guard args.count >= 3, let every = Int(args[1]) else { fail("call-watch MS [--pid N]... [--confno N] BUNDLE_ID...") }
+  var rest = Array(args.dropFirst(2)), pids: [pid_t] = [], confno: String?
+  while rest.count >= 2 {
+    if rest[0] == "--pid", let pid = pid_t(rest[1]) { pids.append(pid) }
+    else if rest[0] == "--confno", rest[1].allSatisfy(\.isNumber) { confno = rest[1] }
+    else { break }
+    rest.removeFirst(2)
+  }
+  watchCalls(every: max(100, every), ids: rest, pids: pids, confno: confno)
 case "mic-devices":
   out(["devices": inputDevices()])
 default:
-  fail("usage: yogurt-mac calendar-status | calendar-auth | events FROM TO | mic-apps | mic-watch | running-apps ID... | browser-title ID | permissions | media-auth | mic-auth | audio-auth | media-pause | media-resume ID... | mic-devices | ax-auth | call-watch MS [--pid N]... ID...")
+  fail("usage: yogurt-mac calendar-status | calendar-auth | events FROM TO | mic-apps | mic-watch | running-apps ID... | browser-title ID | permissions | media-auth | mic-auth | audio-auth | media-pause | media-resume ID... | mic-devices | ax-auth | call-watch MS [--pid N]... [--confno N] ID...")
 }

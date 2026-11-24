@@ -16,8 +16,20 @@ import { readCall, summarize, type AxWindow, type CallKind } from './parse'
 /** hidden: no call window accessibility can see, but the Mac still has the one that was the call (another desktop, a full
  * screen Space): the call is not over */
 export type WatchLine = { t: number; app?: string; windows?: AxWindow[]; error?: string; macWindows?: number; hidden?: boolean }
-/** pids: read only these processes' windows (the call app's processes on the mic); none known, the app's frontmost with a call */
-export type Watch = (ids: string[], onLine: (l: WatchLine) => void, pids?: number[]) => { stop(): void }
+/**
+ * pids: read only these processes' windows (the call app's processes on the mic); none known, the app's frontmost with a
+ * call. confno: with no pids, only the Zoom process started for this meeting number, when there is one.
+ */
+export type Watch = (ids: string[], onLine: (l: WatchLine) => void, pids?: number[], confno?: string) => { stop(): void }
+
+/**
+ * The Zoom meeting number in a meeting link: "https://…zoom.us/j/95475305118?pwd=…" gives "95475305118". A personal
+ * link ("/my/name") carries none. Only the number is kept: the rest of a link can carry the meeting's password.
+ */
+export const zoomMeetingNumber = (url: string | null | undefined): string | undefined => {
+  if (!url || !/zoom(gov)?\.(us|com)/i.test(url)) return undefined
+  return /\/(?:j|w|s)\/(\d{9,12})(?!\d)/.exec(url)?.[1] ?? /[?&]confno=(\d{9,12})(?!\d)/.exec(url)?.[1]
+}
 
 /** the call apps that can be read, by the name meeting detection gives them (detect.ts), and the kind of window each
  * has. A Mac's ids are bundle ids; Linux's are program names or Flatpak app ids; Windows's are program file names,
@@ -65,7 +77,7 @@ const MAX_RESTARTS = 20
 const LOGGED_CHANGES = 30
 
 type Sample = Omit<CallSample, 'ms'> & { t: number }
-type Session = { app: string | null; ids: string[]; pids?: number[]; heardAt: number; quietMs: number; restarts: number; samples: Sample[]; priorLines: Set<number>; watch?: { stop(): void }; everyApp: boolean; offset?: number; startedAt: number; pictured: boolean; missPictured?: boolean; errors: Set<string>; last: string; logged: number; /** a call window with people was read (Zoom, Teams) */ windowSeen?: CallKind; /** since when the readings say that window is gone, and the last one that said so */ goneSince?: number; goneAt?: number }
+type Session = { app: string | null; ids: string[]; pids?: number[]; /** the Zoom meeting number from the meeting's calendar event, for when nothing is on the mic */ confno?: string; /** the recording ended: nothing starts reading again */ stopped?: boolean; heardAt: number; quietMs: number; restarts: number; samples: Sample[]; priorLines: Set<number>; watch?: { stop(): void }; everyApp: boolean; offset?: number; startedAt: number; pictured: boolean; missPictured?: boolean; errors: Set<string>; last: string; logged: number; /** a call window with people was read (Zoom, Teams) */ windowSeen?: CallKind; /** since when the readings say that window is gone, and the last one that said so */ goneSince?: number; goneAt?: number }
 
 export function hookCallNames(p: {
   store: Pick<Store, 'meeting' | 'segments' | 'setSegmentSpeakers' | 'updateMeeting'>
@@ -81,6 +93,8 @@ export function hookCallNames(p: {
   onCapture: (fn: (c: { on(e: 'pcm', fn: (track: 'me' | 'them', ms: number, samples: Float32Array) => void): unknown }, meetingId: string) => void) => unknown
   /** the processes of a call app on the mic now (detect.ts micPids): two Zoom meetings are two processes (#98) */
   micPids?: (app: string) => number[]
+  /** the Zoom meeting number of the meeting's calendar event (zoomMeetingNumber of its link), when it has one */
+  meetingNumber?: (m: Meeting) => Promise<string | undefined>
   /** a recording started by hand learned its call app from the mic (watch.ts, CALL bind) */
   onBind?: (fn: (m: Meeting) => void) => unknown
   log?: (msg: string) => void
@@ -160,7 +174,7 @@ export function hookCallNames(p: {
   const begin = (id: string, s: Session) => {
     const pids = s.pids ?? (s.app ? p.micPids?.(s.app) : undefined)
     s.pids = pids?.length ? pids : undefined
-    try { s.watch = p.watch(s.ids, (l) => onLine(id, s, l), s.pids) } catch (e) { console.error('call names: the watch did not start', e) }
+    try { s.watch = p.watch(s.ids, (l) => onLine(id, s, l), s.pids, s.pids ? undefined : s.confno) } catch (e) { console.error('call names: the watch did not start', e) }
   }
 
   p.onStart((m) => {
@@ -168,6 +182,16 @@ export function hookCallNames(p: {
     const s: Session = { app: m.app, ids, heardAt: now(), quietMs: QUIET_MS, restarts: 0, everyApp: !m.app, samples: [], priorLines: new Set(p.store.segments(m.id, { hidden: true }).map((line) => line.id)), startedAt: m.resume ? m.resume.startedAt - m.resume.startMs : m.startedAt, pictured: false, errors: new Set(), last: '', logged: 0 }
     sessions.set(m.id, s)
     if (!ids.length) { log(`call names: ${m.app} can't be read, the other side is Them`); return }
+    // Zoom not on the mic yet (audio not joined, or joined without computer audio): two meetings can still be told apart
+    // by the meeting number the calendar event and the Zoom process both carry. The number stays out of the log.
+    if (ids.includes('us.zoom.xos') && p.meetingNumber && !(s.app && p.micPids?.(s.app).length)) {
+      void p.meetingNumber(m).catch(() => undefined).then((confno) => {
+        if (sessions.get(m.id) !== s || s.watch || s.stopped) return
+        if (confno) { s.confno = confno; log('call names: nothing on the mic, reading the Zoom process started for this meeting\'s number') }
+        begin(m.id, s)
+      })
+      return
+    }
     begin(m.id, s)
   })
 
@@ -203,6 +227,7 @@ export function hookCallNames(p: {
   p.onStop((m) => {
     const s = sessions.get(m.id)
     if (!s) return
+    s.stopped = true
     s.watch?.stop(); s.watch = undefined
     const final = (async () => {
       await p.transcribed(m.id)
