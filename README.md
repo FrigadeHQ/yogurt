@@ -8,6 +8,11 @@
 <span> · </span>
 <a href="https://github.com/FrigadeHQ/yogurt">GitHub</a>
 </div>
+<div align="center">
+<strong>English</strong>
+<span> · </span>
+<a href="README.vi.md">Tiếng Việt</a>
+</div>
 
 ## Introduction
 
