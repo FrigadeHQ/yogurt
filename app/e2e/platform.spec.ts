@@ -49,7 +49,6 @@ for (const platform of ['win32', 'linux']) {
       await openFromCorner(page, 'settings-open', 'meetings')
       await expect(page.getByTestId('settings')).toBeVisible()
       await expect(page.getByTestId('permission-row')).toHaveCount(names ? 3 : 2)
-      await expect(page.locator('[data-testid="permission-row"][data-kind="calendar"]')).toHaveCount(0)
       await expect(page.locator('[data-testid="permission-row"][data-kind="accessibility"]')).toHaveCount(names ? 1 : 0)
       // Manage only where there is a page to open (#70): never on names from calls here, and on Linux nowhere
       await expect(page.locator('[data-testid="permission-row"][data-kind="accessibility"] [data-testid="permission-open"]')).toHaveCount(0)
@@ -60,6 +59,7 @@ for (const platform of ['win32', 'linux']) {
       await page.getByTestId('settings-nav-connections').click()
       await expect(page.getByTestId('calendar-settings')).toBeVisible()
       await expect(page.getByTestId('calendar-link-form')).toBeVisible()
+      await expect(page.locator('[data-testid="permission-row"][data-kind="calendar"]')).toHaveCount(0)
     } finally { await app.close() }
   })
 

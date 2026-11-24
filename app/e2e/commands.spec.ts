@@ -111,10 +111,6 @@ test('@everywhere search returns focus with the same ring the opener had', async
     await page.keyboard.press('Enter')
     await expect(page.getByTestId('settings')).toBeVisible()
     await expect(search).toHaveCount(0)
-    if (await page.evaluate(() => window.yogurt.capabilities.calendarLink)) {
-      await expect(page.getByTestId('calendar-link-add')).toHaveAttribute('aria-expanded', 'true')
-      await expect(page.getByTestId('calendar-link-input')).not.toBeFocused()
-    }
     await expect(opener).toBeFocused()
     await expect(opener).toHaveCSS('outline-style', 'none')
 
@@ -125,6 +121,14 @@ test('@everywhere search returns focus with the same ring the opener had', async
     await page.keyboard.press('Escape')
     await expect(search).toHaveCount(0)
     await expect.poll(() => page.evaluate(() => document.activeElement === document.body)).toBe(true)
+
+    if (await page.evaluate(() => window.yogurt.capabilities.calendarLink)) {
+      await page.getByTestId('settings-nav-connections').click()
+      await expect(page.getByTestId('calendar-link-add')).toHaveAttribute('aria-expanded', 'true')
+      const input = page.getByTestId('calendar-link-input')
+      await expect(input).toBeVisible()
+      await expect(input).not.toBeFocused()
+    }
   } finally { await app.close() }
 })
 

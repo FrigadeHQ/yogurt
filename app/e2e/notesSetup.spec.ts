@@ -402,6 +402,7 @@ test('Settings download, Skip, restart and Remove use the real setup controller'
     const action = page.getByTestId('settings-notes-model-action')
     await expect(action).toHaveText('Remove')
     await expect(page.getByTestId('settings-notes-model')).toContainText('Removing this model restores the smaller one.')
+    await expect(page.getByTestId('settings-page-notes')).not.toContainText(/gemma|qwen|gpt-oss|gguf|\bLLM\b|quantiz/i)
     await action.click()
     await expect(action).toHaveText(/^Download \([\d.]+ GB\)$/)
     await expect(page.getByTestId('settings-notes-model')).toContainText("More detailed, accurate notes. Replaces the current model, so you don't keep both.")
