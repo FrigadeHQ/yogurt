@@ -29,6 +29,8 @@ export function hookNotes(p: {
   transcribed: (id: string) => Promise<void>
   /** the names from the call are on its lines (callNames) */
   named?: (id: string) => Promise<void>
+  /** the meeting's diarization has settled (successful or not); the notes wait for it with no cap */
+  diarized?: (id: string) => Promise<void>
   /** the language most of the meeting was in, when the transcription knows it */
   language: (id: string) => string | null
   /** read when writing, so regenerations use the current default */
@@ -243,6 +245,9 @@ export function hookNotes(p: {
       await p.transcribed(m.id)
       // the names from the call are quick; a stuck pass never holds the notes back for long
       if (p.named) await upTo(p.named(m.id), p.namesWaitMs ?? NAMES_WAIT_MS)
+      // the notes describe the voices, so a diarization still running is waited for however long it takes;
+      // a broken one settles its promise too and must not keep the notes away
+      if (p.diarized) await p.diarized(m.id).catch(() => {})
       if (!resuming.has(m.id) && afterStop.get(m.id) === done) await queueWrite(m.id)
     }).catch((e) => console.error('notes after the meeting failed', e)).finally(() => { if (afterStop.get(m.id) === done) afterStop.delete(m.id) })
     afterStop.set(m.id, done)
