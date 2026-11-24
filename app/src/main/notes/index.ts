@@ -365,11 +365,14 @@ export function hookNotes(p: {
     },
     /** at launch: meetings a quit or crash left without notes get them now, one at a time */
     recover() {
-      for (const m of p.store.unenhancedMeetings()) if (!live.has(m.id) && !resuming.has(m.id)) void (async () => {
-        // a meeting that waited for its speaker labels when the app closed waits again, not silently summarized
-        if (p.labeled) await p.labeled(m.id).catch(() => {})
-        queueWrite(m.id)
-      })()
+      for (const m of p.store.unenhancedMeetings()) if (!live.has(m.id) && !resuming.has(m.id)) {
+        // held or not, the meeting shows as getting ready; a label wait keeps it there with the banner up
+        set(m.id, 'waiting')
+        void (async () => {
+          if (p.labeled) await p.labeled(m.id).catch(() => {})
+          queueWrite(m.id)
+        })()
+      }
     },
   }
   return notes

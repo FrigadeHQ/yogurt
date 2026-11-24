@@ -367,6 +367,17 @@ describe('hookNotes', () => {
     s.notes.recover()
     await until(() => expect(s.store.notes(s.m.id).enhanced).not.toBeNull())
   })
+  it('at launch, an unlabeled meeting waits again and says so', async () => {
+    let labeled!: () => void
+    const s = setup({ labeled: () => new Promise<void>((r) => { labeled = r }), labelPending: () => true })
+    s.notes.recover()
+    await wait(20)
+    // held: nothing written, and the view says waiting-for-labels so the banner is up
+    expect(s.store.notes(s.m.id).enhanced).toBeNull()
+    expect(s.sent.at(-1)).toMatchObject({ status: 'waiting', labels: true })
+    labeled()
+    await vi.waitFor(() => expect(s.store.notes(s.m.id).enhanced).not.toBeNull())
+  })
   it('notes edited while the rewrite was being written keep the edit', async () => {
     // eslint-disable-next-line prefer-const
     let s: ReturnType<typeof setup>
