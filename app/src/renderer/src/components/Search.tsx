@@ -5,7 +5,7 @@ import { MotionPopup } from './MotionPopup'
 import { motion } from '../motion'
 import { FolderGlyph } from './FolderAppearance'
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { AudioLines, CalendarDays, FileText, Folder as FolderIcon, Keyboard, LogIn, MessageCircle, Monitor, Moon, PanelLeft, Settings, Sun, Trash2, UserRound, X } from './Icons'
+import { AudioLines, CalendarDays, FileText, Folder as FolderIcon, Keyboard, LogIn, MessageCircle, Monitor, Moon, PanelLeft, Search as SearchIcon, Settings, Sun, Trash2, UserRound, X } from './Icons'
 import type { SearchResult, SnippetPart, Folder, Person } from '../../../shared/types'
 import { t, language } from '../../../shared/i18n'
 import { command, keys, osWords } from '../keys'
@@ -99,9 +99,9 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
   useEffect(syncHighlight, [q])
 
   // Keep one coherent result set on screen until the next search is ready.
-  const typed = (results?.q ?? '').trim()
+  const typed = q.trim() ? (results?.q ?? '').trim() : ''
   const settled = results?.q === q && results?.scopeId === scope?.id && results?.peopleKey === peopleKey
-  const items = results?.list ?? []
+  const items = q.trim() || !results?.q.trim() ? results?.list ?? [] : []
   const navigate = (route: string) => { onNavigate(route) }
   const settingsAction = async (run: () => Promise<void>) => { await run(); onSettingsChange() }
   const dateCommand = window.yogurt.capabilities.calendar ? searchDateCommand(parsed.date, q) : undefined
@@ -112,8 +112,8 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
     { id: 'trash', label: t('Trash'), group: t('Go to'), Icon: Trash2, run: () => navigate('/trash'), shortcut: keys('⌘3') },
     { id: 'settings', synonyms: ['preferences', 'prefs'], label: t('Settings'), group: t('Go to'), Icon: Settings, run: () => navigate('/settings'), shortcut: keys('⌘,') },
     { id: 'shortcuts', label: t('Keyboard shortcuts'), group: t('Go to'), Icon: Keyboard, run: onShortcuts, shortcut: keys('⌘/') },
-    { id: 'sidebar', label: sidebarCollapsed ? t('Show Sidebar') : t('Hide Sidebar'), group: t('View'), Icon: PanelLeft, run: onToggleSidebar, shortcut: keys('⌃⌘S') },
-    ...(folders ?? []).map((f) => ({ id: `folder-${f.id}`, label: f.name, group: t('Folders'), Icon: FolderIcon, folder: f, run: () => navigate(`/folder/${f.id}`) })),
+    { id: 'sidebar', label: sidebarCollapsed ? t('Show Sidebar') : t('Hide Sidebar'), group: t('Go to'), synonyms: [t('View')], Icon: PanelLeft, run: onToggleSidebar, shortcut: keys('⌃⌘S') },
+    ...(folders ?? []).map((f) => ({ id: `folder-${f.id}`, label: f.name, group: t('Go to'), synonyms: [t('Folders')], Icon: FolderIcon, folder: f, run: () => navigate(`/folder/${f.id}`) })),
     { id: 'theme-light', synonyms: ['theme', 'appearance', 'mode', 'light'], label: t('Light theme'), group: t('Appearance'), Icon: Sun, run: () => settingsAction(() => window.yogurt.settings.setTheme('light')) },
     { id: 'theme-dark', synonyms: ['theme', 'appearance', 'mode', 'dark'], label: t('Dark theme'), group: t('Appearance'), Icon: Moon, run: () => settingsAction(() => window.yogurt.settings.setTheme('dark')) },
     { id: 'theme-system', synonyms: ['theme', 'appearance', 'mode', 'system'], label: osWords({ mac: t('Match my Mac'), windows: t('Match Windows'), linux: t('Match my system') }), group: t('Appearance'), Icon: Monitor, run: () => settingsAction(() => window.yogurt.settings.setTheme('system')) },
@@ -122,15 +122,16 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
       { id: 'auto-stop', label: prefs.stopWhenCallEnds ? t('Keep recording when the call ends') : t('Stop recording when the call ends'), group: t('Settings'), Icon: AudioLines, run: () => settingsAction(() => window.yogurt.settings.setStopWhenCallEnds(!prefs.stopWhenCallEnds)) },
     ] : []),
   ].filter((c) => !c.id.startsWith('theme-') || !!prefs)
-  const suggestions = matchSearchPeople(typed, people, chosenPeople, searchOptions).suggestions.slice(0, 5)
+  const suggestions = (typed === q ? personQuery : matchSearchPeople(typed, people, chosenPeople, searchOptions)).suggestions.slice(0, 5)
   const defaultSelection = useRef<string | undefined>(undefined)
   const palette = searchPalette(allCommands, items, typed, q, suggestions, defaultSelection.current, filtered)
   const rows = palette.rows
   const count = rows.length
-  const activeIndex = active ?? palette.active
+  const activeIndex = active !== null && rows[active] ? active : palette.active
   const selected = rows[activeIndex]
   useEffect(() => {
-    defaultSelection.current = q.trim() && rows[palette.active] ? searchSelectionKey(rows[palette.active]) : undefined
+    if (!q.trim()) defaultSelection.current = undefined
+    else if (settled) defaultSelection.current = rows[palette.active] && searchSelectionKey(rows[palette.active])
   })
   const dateLabel = parsed.date && searchDateLabel(parsed.date)
   const clearDate = () => { if (parsed.dateSpan) setQ(removeSearchSpan(q, parsed.dateSpan)); setActive(null); input.current?.focus() }
@@ -172,11 +173,12 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
   }
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.nativeEvent.isComposing) return
+    if (e.key === 'Enter' && command(e)) { e.preventDefault(); if (q.trim()) void ask(q.trim()); return }
     if ((e.key === 'Enter' || e.key === ' ') && e.target instanceof HTMLButtonElement) return
     if (e.key === 'ArrowDown') { e.preventDefault(); scrollSelection.current = true; setActive(Math.min(Math.max(0, count - 1), activeIndex + 1)) }
     else if (e.key === 'ArrowUp') { e.preventDefault(); scrollSelection.current = true; setActive(Math.max(0, activeIndex - 1)) }
     else if (e.key === 'Backspace' && (parsed.date || selectedPeople.length) && e.target === input.current && input.current?.selectionStart === 0 && input.current.selectionEnd === 0) { e.preventDefault(); if (parsed.date) clearDate(); else clearPerson(selectedPeople[selectedPeople.length - 1]) }
-    else if (e.key === 'Enter') { e.preventDefault(); if (command(e)) { if (q.trim()) void ask(q.trim()) } else enter() }
+    else if (e.key === 'Enter') { e.preventDefault(); enter() }
     else if (e.key === 'Escape') { e.preventDefault(); setOpen(false) }
     else if (e.key === 'Tab') {
       e.preventDefault()
@@ -186,28 +188,33 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
       controls[(at + (e.shiftKey ? -1 : 1) + controls.length) % controls.length]?.focus()
     }
   }
-  /** what is shown answers what is typed: open the one picked; typed faster than the search: ask now and open its first */
+  const activate = (row: typeof rows[number] | undefined) => {
+    if (row?.kind === 'meeting') onOpen(row.meeting.meetingId)
+    else if (row?.kind === 'command') void runCommand(row.command)
+    else if (row?.kind === 'person') pickPerson(row)
+    else if (q.trim()) void ask(q.trim())
+  }
   const enter = () => {
-    if (selected?.kind === 'person') { pickPerson(selected); return }
-    if (selected?.kind === 'ask' && active !== null) { void ask(selected.query); return }
     if (queryFailed && q.trim()) { void ask(q.trim()); return }
-    if (settled) {
-      if (selected?.kind === 'ask') void ask(selected.query)
-      else if (selected?.kind === 'meeting') onOpen(selected.meeting.meetingId)
-      else if (selected?.kind === 'command') void runCommand(selected.command)
-      return
-    }
+    if (settled || selected?.kind === 'ask') { activate(selected); return }
+    // Enter before the debounce finishes must act on the new query.
     const mine = ++seq.current
-    void window.yogurt.search.query(q, scope?.id, selectedPeople).then((list) => {
+    void window.yogurt.search.query(q, scope?.id, selectedPeople).then(list => {
       if (mine !== seq.current) return
+      setQueryFailed(false); setResults({ q, scopeId: scope?.id, peopleKey, list }); setActive(null)
       const next = searchPalette(allCommands, list, q, q, personQuery.suggestions, defaultSelection.current, filtered)
-      const first = next.rows[next.active]
-      if (first?.kind === 'ask') void ask(first.query)
-      else if (first?.kind === 'meeting') onOpen(first.meeting.meetingId)
-      else if (first?.kind === 'command') void runCommand(first.command)
-      else { setQueryFailed(false); setResults({ q, scopeId: scope?.id, peopleKey, list }); setActive(null) }
+      activate(next.rows[next.active])
     }).catch(() => { if (mine === seq.current) setQueryFailed(true) })
   }
+
+  const question = rows[0]?.kind === 'ask'
+  const IntentIcon = question ? MessageCircle : dateLabel ? CalendarDays : selectedPeople.length ? UserRound
+    : rows[palette.active]?.kind === 'command' ? Keyboard : SearchIcon
+  const enterAsks = !!q.trim() && (queryFailed || !selected && settled)
+  const primaryHint = enterAsks || selected?.kind === 'ask' ? t('Ask')
+    : selected?.kind === 'meeting' ? t('Open note')
+    : selected?.kind === 'command' && selected.command.group === t('Go to') && selected.command.id !== 'sidebar' ? t('Go to')
+    : selected ? t('Select') : undefined
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
@@ -216,7 +223,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
       <MotionPopup ref={popupRef} initialFocus={input} finalFocus={false} data-testid="search" role="dialog" aria-modal="true" aria-label={t('Search and commands')} onKeyDown={onKeyDown}
         // a click anywhere in the panel keeps typing, arrows and Esc in the search box
         onMouseDown={(e) => { if (e.target !== input.current) { e.preventDefault(); input.current?.focus() } }}
-        className="search-panel flex max-h-[74vh] w-full max-w-[640px] flex-col overflow-hidden rounded-2xl border border-line bg-float">
+        className="search-panel flex max-h-[74vh] w-full flex-col overflow-hidden rounded-2xl border border-line bg-float">
         <div className="search-header">
           <div className="search-input-row">
             <div className="search-field">
@@ -226,10 +233,11 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
               </div>
               <input
                 data-testid="search-input" ref={input} autoFocus value={q} onChange={(e) => { scrollSelection.current = true; setQ(e.target.value); setActive(null); setError(false) }} onScroll={syncHighlight}
-                placeholder={t('Search meetings or run a command…')} aria-label={t('Search')} spellCheck={false}
+                placeholder={t('Ask, search, or open a meeting…')} aria-label={t('Search')} spellCheck={false}
                 role="combobox" aria-expanded="true" aria-controls="search-results" aria-activedescendant={selected?.kind === 'meeting' ? `search-${selected.meeting.meetingId}` : selected?.kind === 'command' ? `command-${selected.command.id}` : selected?.kind === 'person' ? `search-person-${encodeURIComponent(searchPersonKey(selected.person))}` : selected ? 'search-ask' : undefined}
               />
             </div>
+            {!!q.trim() && <IntentIcon data-testid="search-intent-icon" size={19} aria-hidden="true" className={question ? 'text-accent' : 'text-muted'} />}
           </div>
           {(scope || dateLabel || selectedPeople.length > 0) && <div className="search-filters">
             {scope && <span data-testid="search-scope" className="search-filter">
@@ -253,16 +261,17 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
           </div>
         </InlineError>}
         {queryFailed && results && <p className="px-5 text-xs text-muted">{t('Previous results')}{typed && ' · ' + typed}</p>}
-        <ul ref={list} id="search-results" role="listbox" aria-label={t('Results')} aria-busy={running || !settled && !queryFailed} className="min-h-0 flex-1 overflow-y-auto [overflow-anchor:none] px-2 pb-2 scroll-pb-2">
+        <ul ref={list} id="search-results" role="listbox" aria-label={t('Results')} aria-busy={running || !settled && !queryFailed} className="min-h-0 overflow-y-auto [overflow-anchor:none] px-2 pb-2 scroll-pb-2">
           {rows.map((row, i) => {
             const previous = rows[i - 1]
+            const returnKey = activeIndex === i && <kbd className="search-key search-return" aria-hidden="true">↵</kbd>
             if (row.kind === 'ask') return <Fragment key="ask">
               <li role="presentation" className="command-section">{t('Ask')}</li>
               <li id="search-ask" data-testid="search-ask" role="option" aria-selected={activeIndex === i} aria-disabled={running}
-                onMouseMove={(e) => hover(e, i)} onClick={() => void ask(row.query)} className="search-row command-row">
+                onMouseMove={(e) => hover(e, i)} onClick={() => void ask(row.query)} className="search-row command-row search-ask">
                 <MessageCircle size={16} aria-hidden="true" />
-                <span className="shrink-0">{t('Ask Yogurt')}</span><span className="command-label truncate text-muted">{row.query}</span>
-                <kbd className="search-key search-return" aria-hidden="true">↵</kbd>
+                <span className="shrink-0">{t('Ask Yogurt')}</span><span aria-hidden="true">·</span><span className="command-label">{row.query}</span>
+                {returnKey}
               </li>
             </Fragment>
             if (row.kind === 'person') return <Fragment key={searchPersonKey(row.person)}>
@@ -272,7 +281,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
                 <UserRound size={16} aria-hidden="true" />
                 <span className="command-label">{t('Meetings with {name}', { name: row.person.name || row.person.email || '' })}</span>
                 {row.person.email && <span className="search-metadata truncate">{row.person.email}</span>}
-                <kbd className="search-key search-return" aria-hidden="true">↵</kbd>
+                {returnKey}
               </li>
             </Fragment>
             if (row.kind === 'meeting') {
@@ -280,17 +289,19 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
               return <Fragment key={r.meetingId}>
                 {previous?.kind !== 'meeting' && <li role="presentation" className="command-section">{typed || filtered ? t('Meetings') : t('Recent meetings')}</li>}
                 <li
-                  id={`search-${r.meetingId}`} data-testid="search-result" role="option" aria-selected={i === activeIndex}
+                  id={`search-${r.meetingId}`} data-testid="search-result" role="option" aria-selected={i === activeIndex} aria-describedby={i === activeIndex && r.preview ? 'search-preview' : undefined}
                   onMouseMove={(e) => hover(e, i)} onClick={() => onOpen(r.meetingId)}
                   className="search-row search-meeting"
                 >
-                  <FileText size={16} aria-hidden="true" />
+                  <span className="search-meeting-dot" aria-hidden="true" data-folder-color={r.folder?.color} title={r.folder?.name} />
                   <span className="min-w-0 flex-1">
-                    <span data-testid="search-result-title" className="block truncate text-sm font-medium leading-5"><Marked parts={markWords(r.title, typed)} /></span>
-                    {typed && r.parts.length > 0 && <span className="mt-0.5 line-clamp-1 text-xs leading-5 text-muted"><Marked parts={r.parts} /></span>}
+                    <span data-testid="search-result-title" className="search-meeting-title"><Marked parts={markWords(r.title, typed)} /></span>
+                    {r.attendees.length > 0 && <span className="search-attendees">{r.attendees.map(p => p.name || p.email).filter(Boolean).join(', ')}</span>}
+                    {typed && !r.confident && r.parts.length > 0 && <span className="search-snippet"><Marked parts={r.parts} /></span>}
                   </span>
-                  <time className="search-metadata" dateTime={new Date(r.startedAt).toISOString()}>{dayLabel(r.startedAt)}<span>{timeOf(r.startedAt)}</span></time>
-                  <kbd className="search-key search-return" aria-hidden="true">↵</kbd>
+                  {r.folder && <span className="sr-only">{r.folder.name}</span>}
+                  <time className="search-metadata" dateTime={new Date(r.startedAt).toISOString()}>{dayLabel(r.startedAt)} · {timeOf(r.startedAt)}</time>
+                  {returnKey}
                 </li>
               </Fragment>
             }
@@ -301,26 +312,33 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
               <div id={`command-${c.id}`} data-testid={`command-${c.id}`} role="option" aria-selected={activeIndex === i} aria-current={current || undefined} aria-disabled={running}
                 onMouseMove={(e) => hover(e, i)} onClick={() => void runCommand(c)} className="search-row command-row">
                 {'folder' in c ? <FolderGlyph appearance={c.folder} /> : <c.Icon size={16} aria-hidden="true" />}
-                <span className="command-label">{c.label}{current && <span aria-hidden="true"> ✓</span>}</span>{'shortcut' in c && <kbd className="search-key search-shortcut">{c.shortcut}</kbd>}
-                <kbd className="search-key search-return" aria-hidden="true">↵</kbd>
+                <span className="command-label">{c.label}{current && <span aria-hidden="true"> ✓</span>}</span>
+                {activeIndex === i && ('shortcut' in c
+                  ? <kbd className="search-key search-shortcut">{c.shortcut}</kbd> : returnKey)}
               </div>
             </li>
           })}
         {settled && filtered && !items.length && <li role="presentation" data-testid="search-filter-empty" className="px-5 py-8 text-center text-sm text-muted">
           {searchFilterEmptyMessage(selectedPeople, dateLabel)}
         </li>}
-        {!queryFailed && results && !count && !filtered && (
+        {!queryFailed && settled && !count && !filtered && (
           <li role="presentation" data-testid="search-none" className="flex h-full items-center justify-center px-5 py-8 text-center text-sm text-muted">
-            {scope ? t('No meetings in this folder yet.') : t('No notes yet.')}
+            {typed ? t('No matches') : scope ? t('No meetings in this folder yet.') : t('No notes yet.')}
           </li>
         )}
         </ul>
+        {selected?.kind === 'meeting' && selected.meeting.preview && <div id="search-preview" data-testid="search-preview" className="search-preview">
+          <p>{selected.meeting.preview}</p>
+        </div>}
         {error && <p role="alert" className="px-5 pb-3 text-xs text-danger">{t("Yogurt couldn't make that change. Try again.")}</p>}
         <div className="search-footer">
-          <span><kbd className="search-key">↑↓</kbd>{t('Navigate')}</span>
-          <span data-testid="search-primary-hint"><kbd className="search-key">↵</kbd>{t('Select')}</span>
-          <span data-testid="search-secondary-hint"><kbd className="search-key">{keys('⌘↵')}</kbd>{t('Ask')}</span>
-          <span><kbd className="search-key">esc</kbd>{t('Close')}</span>
+          {enterAsks
+            ? <button className="search-ask-hint" data-testid="search-primary-hint" onClick={() => void ask(q.trim())}><kbd>↵</kbd>{t('Ask')}</button>
+            : primaryHint && <span data-testid="search-primary-hint"><kbd>{selected?.kind === 'person' ? '⇥' : '↵'}</kbd>{primaryHint}</span>}
+          {!!q.trim() && primaryHint !== t('Ask')
+            ? <button className="search-ask-hint" data-testid="search-secondary-hint" onClick={() => void ask(q.trim())}><kbd>{keys('⌘↵')}</kbd>{t('Ask')}</button>
+            : count > 1 && <span><kbd>↑↓</kbd>{t('Navigate')}</span>}
+          <span><kbd>esc</kbd>{t('Close')}</span>
           <button className="ghost-btn workspace-icon" data-testid="search-shortcuts" onClick={onShortcuts} aria-label={t('Keyboard shortcuts')} title={`${t('Keyboard shortcuts')} ${keys('⌘/')}`}><Keyboard size={15} aria-hidden="true" /></button>
         </div>
       </MotionPopup>
