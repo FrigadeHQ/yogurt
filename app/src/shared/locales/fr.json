@@ -23,6 +23,7 @@
   "Now": "En cours",
   "in {count} min": "dans {count} min",
   "No matching meetings with {name}.": "Aucune réunion correspondante avec {name}.",
+  "No meetings on {date}": "Aucune réunion le {date}",
   "No matching meetings on {date}.": "Aucune réunion correspondante le {date}.",
   "No matching meetings with {name} on {date}.": "Aucune réunion correspondante avec {name} le {date}.",
   "Couldn't load this content.": "Impossible de charger ce contenu.",

@@ -123,7 +123,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
   ].filter((c) => !c.id.startsWith('theme-') || !!prefs)
   const defaultSelection = useRef<string | undefined>(undefined)
   const rank = (search: typeof request, list: SearchResult[]) => {
-    const date = window.yogurt.capabilities.calendar && searchDateCommand(search.date, search.q)
+    const date = search.date && (search.date.start <= Date.now() || window.yogurt.capabilities.calendar) && searchDateCommand(search.date, search.q)
     const commands = date ? [{ ...date, Icon: CalendarDays, run: () => onNavigate('', date.at) }, ...allCommands] : allCommands
     return searchPalette(commands, list, search.q, search.q, search.suggestions, defaultSelection.current, !!search.date || search.people.length > 0)
   }

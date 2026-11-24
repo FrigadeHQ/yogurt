@@ -50,6 +50,7 @@
   },
   "Has notes": "Has notes",
   "No matching meetings with {name}.": "No matching meetings with {name}.",
+  "No meetings on {date}": "No meetings on {date}",
   "No matching meetings on {date}.": "No matching meetings on {date}.",
   "No matching meetings with {name} on {date}.": "No matching meetings with {name} on {date}.",
   "Couldn't load this content.": "Couldn't load this content.",

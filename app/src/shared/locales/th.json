@@ -23,6 +23,7 @@
   "Now": "ขณะนี้",
   "in {count} min": "ในอีก {count} นาที",
   "No matching meetings with {name}.": "ไม่มีการประชุมที่ตรงกันกับ {name}",
+  "No meetings on {date}": "ไม่มีการประชุมในวันที่ {date}",
   "No matching meetings on {date}.": "ไม่มีการประชุมที่ตรงกันในวันที่ {date}",
   "No matching meetings with {name} on {date}.": "ไม่มีการประชุมที่ตรงกันกับ {name} ในวันที่ {date}",
   "Couldn't load this content.": "โหลดเนื้อหานี้ไม่สำเร็จ",

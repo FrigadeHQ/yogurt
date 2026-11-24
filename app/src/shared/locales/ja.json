@@ -23,6 +23,7 @@
   "Now": "進行中",
   "in {count} min": "{count}分後",
   "No matching meetings with {name}.": "{name}との一致する会議はありません。",
+  "No meetings on {date}": "{date}の会議はありません",
   "No matching meetings on {date}.": "{date}に一致する会議はありません。",
   "No matching meetings with {name} on {date}.": "{date}の{name}との一致する会議はありません。",
   "Couldn't load this content.": "この内容を読み込めませんでした。",

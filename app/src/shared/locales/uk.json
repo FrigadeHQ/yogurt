@@ -23,6 +23,7 @@
   "Now": "Зараз",
   "in {count} min": "через {count} хв",
   "No matching meetings with {name}.": "Немає відповідних зустрічей з {name}.",
+  "No meetings on {date}": "На {date} зустрічей немає",
   "No matching meetings on {date}.": "Немає відповідних зустрічей на {date}.",
   "No matching meetings with {name} on {date}.": "Немає відповідних зустрічей з {name} на {date}.",
   "Couldn't load this content.": "Не вдалося завантажити цей вміст.",

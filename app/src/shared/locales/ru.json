@@ -23,6 +23,7 @@
   "Now": "Сейчас",
   "in {count} min": "через {count} мин",
   "No matching meetings with {name}.": "Нет подходящих встреч с {name}.",
+  "No meetings on {date}": "На {date} встреч нет",
   "No matching meetings on {date}.": "Нет подходящих встреч на {date}.",
   "No matching meetings with {name} on {date}.": "Нет подходящих встреч с {name} на {date}.",
   "Couldn't load this content.": "Не удалось загрузить содержимое.",

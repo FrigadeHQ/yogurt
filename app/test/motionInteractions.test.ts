@@ -516,26 +516,27 @@ it.each([false, true])('opens a pending command-search question as a draft when 
   expect(draft).toHaveBeenCalledExactlyOnceWith('draft-id', 'What did we decide?')
 })
 
-it.each([true, false])('offers and runs the date command only with an agenda (calendar: %s)', async calendar => {
+it.each([[true, 2028], [false, 2028], [false, 2025]] as const)('offers a date when the list or agenda can show it (calendar %s, year %s)', async (calendar, year) => {
   vi.useFakeTimers()
+  vi.setSystemTime(new Date(2026, 10, 14, 12))
   vi.stubGlobal('document', { activeElement: null })
   vi.stubGlobal('HTMLButtonElement', class {})
   vi.stubGlobal('window', { yogurt: { capabilities: { calendar }, search: { query: vi.fn().mockResolvedValue([]) } } })
   const onNavigate = vi.fn()
   const render = renderer(() => Search({ onOpen() {}, onNavigate, onSettingsChange() {}, onShortcuts() {}, onClose() {}, sidebarCollapsed: false, onToggleSidebar() {} }))
-  find(render(), 'search-input').props.onChange({ target: { value: 'November 11, 2028' } })
+  find(render(), 'search-input').props.onChange({ target: { value: `November 11, ${year}` } })
   render()
   vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.length === 6)![0]()
   await vi.runAllTimersAsync()
   const tree = render()
-  expect(find(tree, 'search-date').props.children[1].props.title).toContain('2028')
-  if (!calendar) { expect(() => find(tree, 'command-agenda-date')).toThrow('Missing'); return }
+  expect(find(tree, 'search-date').props.children[1].props.title).toContain(String(year))
+  if (!calendar && year === 2028) { expect(() => find(tree, 'command-agenda-date')).toThrow('Missing'); return }
   const row = find(tree, 'command-agenda-date')
   expect(row.props['aria-selected']).toBe(true)
   expect(row.props.children[0].type).toBe(CalendarDays)
-  expect(row.props.children[1].props.children[0]).toBe('Go to Nov 11, 2028')
+  expect(row.props.children[1].props.children[0]).toBe(`Go to Nov 11, ${year}`)
   find(tree, 'search').props.onKeyDown({ key: 'Enter', nativeEvent: {}, preventDefault() {} })
-  expect(onNavigate).toHaveBeenCalledExactlyOnceWith('', new Date(2028, 10, 11).getTime())
+  expect(onNavigate).toHaveBeenCalledExactlyOnceWith('', new Date(year, 10, 11).getTime())
 })
 
 it('jumps a mounted agenda to the day and week, closes details, and keeps arrows and repeated jumps working', async () => {

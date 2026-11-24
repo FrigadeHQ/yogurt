@@ -23,6 +23,7 @@
   "Now": "Acum",
   "in {count} min": "în {count} min",
   "No matching meetings with {name}.": "Nicio întâlnire corespunzătoare cu {name}.",
+  "No meetings on {date}": "Nicio întâlnire pe {date}",
   "No matching meetings on {date}.": "Nicio întâlnire corespunzătoare pe {date}.",
   "No matching meetings with {name} on {date}.": "Nicio întâlnire corespunzătoare cu {name} pe {date}.",
   "Couldn't load this content.": "Acest conținut nu a putut fi încărcat.",

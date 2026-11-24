@@ -23,6 +23,7 @@
   "Now": "Đang diễn ra",
   "in {count} min": "sau {count} phút",
   "No matching meetings with {name}.": "Không có cuộc họp phù hợp với {name}.",
+  "No meetings on {date}": "Không có cuộc họp nào vào {date}",
   "No matching meetings on {date}.": "Không có cuộc họp phù hợp vào {date}.",
   "No matching meetings with {name} on {date}.": "Không có cuộc họp phù hợp với {name} vào {date}.",
   "Couldn't load this content.": "Không thể tải nội dung này.",

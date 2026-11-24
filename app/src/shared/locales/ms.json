@@ -23,6 +23,7 @@
   "Now": "Sekarang",
   "in {count} min": "dalam {count} min",
   "No matching meetings with {name}.": "Tiada mesyuarat yang sepadan dengan {name}.",
+  "No meetings on {date}": "Tiada mesyuarat pada {date}",
   "No matching meetings on {date}.": "Tiada mesyuarat yang sepadan pada {date}.",
   "No matching meetings with {name} on {date}.": "Tiada mesyuarat yang sepadan dengan {name} pada {date}.",
   "Couldn't load this content.": "Kandungan ini tidak dapat dimuatkan.",

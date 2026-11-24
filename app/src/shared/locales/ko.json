@@ -23,6 +23,7 @@
   "Now": "진행 중",
   "in {count} min": "{count}분 후",
   "No matching meetings with {name}.": "{name}님과의 일치하는 회의가 없습니다.",
+  "No meetings on {date}": "{date}에 회의가 없습니다",
   "No matching meetings on {date}.": "{date}에 일치하는 회의가 없습니다.",
   "No matching meetings with {name} on {date}.": "{date}에 {name}님과의 일치하는 회의가 없습니다.",
   "Couldn't load this content.": "이 내용을 불러올 수 없습니다.",

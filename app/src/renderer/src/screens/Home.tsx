@@ -9,6 +9,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, u
 import type { MeetingCard } from '../../../shared/types'
 import { useScrollMemory } from '../useScrollMemory'
 import { loadUpTo } from '../paging'
+import { useMeetingDateJump } from '../meetingDateJump'
 import { t } from '../../../shared/i18n'
 import { dayLabel, timeOf, useDay } from '../dates'
 import { useLanguage } from '../i18n'
@@ -27,7 +28,7 @@ const PAGE = 40
 const loadedCounts = new Map<string, number>()
 
 /** The workspace, backed by the existing meeting and calendar bridge. */
-export function Home({ open, openSearch, openFolder, agendaJump }: { open: (id: string) => void; openSearch: () => void; openFolder?: (id: string) => void; agendaJump?: { at: number } }) {
+export function Home({ open, openSearch, openFolder, agendaJump, searching }: { open: (id: string) => void; openSearch: () => void; openFolder?: (id: string) => void; agendaJump?: { at: number }; searching?: boolean }) {
   const past = usePastNotes()
   const day = useDay()
   const recording = past.cards?.find((c) => c.state === 'recording')
@@ -42,6 +43,8 @@ export function Home({ open, openSearch, openFolder, agendaJump }: { open: (id: 
   const [emptyActions, setEmptyActions] = useState<HTMLDivElement | null>(null)
   const calendar = window.yogurt.capabilities.calendar
   const [agendaOpen, setAgendaOpen] = useState(readAgendaOpen)
+  const [listReady, setListReady] = useState(false)
+  const notice = useMeetingDateJump(agendaJump, past, listReady && !searching)
   const [agendaMotion, setAgendaMotion] = useState(false)
   const [toolbar, setToolbar] = useState<HTMLElement | null>(null)
   const toggle = useRef<HTMLButtonElement>(null)
@@ -78,7 +81,16 @@ export function Home({ open, openSearch, openFolder, agendaJump }: { open: (id: 
         </button>
       </div>
       {past.failed && !!past.cards?.length && <InlineError testId="meetings-read-error" retry={past.retry} />}
-      <LoadingContent pending={!past.cards && !past.failed} testId="meetings-loading" skeleton={<MeetingListLoading />} className="library-load">{!past.cards?.length ? <LibraryEmpty testId="past-empty" icon={<FileText size={28} aria-hidden="true" />} title={t('Your notes will show up here')} description={t('Your summary appears after you stop recording.')} retry={past.failed ? past.retry : undefined}><div ref={setEmptyActions} /></LibraryEmpty> : <PastNotes cards={past.cards ?? []} day={day} more={past.more} sentinel={past.setSentinel} onOpen={open} openFolder={openFolder} />}</LoadingContent>
+      <LoadingContent pending={!past.cards && !past.failed} onReady={() => setListReady(true)}
+        testId="meetings-loading" skeleton={<MeetingListLoading />} className="library-load">
+        {past.cards?.length ? <PastNotes cards={past.cards} day={day} more={past.more} sentinel={past.setSentinel}
+          onOpen={open} openFolder={openFolder} notice={notice} /> :
+          <LibraryEmpty testId="past-empty" icon={<FileText size={28} aria-hidden="true" />} title={t('Your notes will show up here')}
+            description={t('Your summary appears after you stop recording.')} retry={past.failed ? past.retry : undefined}>
+            <div ref={setEmptyActions} />
+          </LibraryEmpty>}
+      </LoadingContent>
+      {notice && !notice.key && <h2 data-empty-date="" className="meeting-date-note">{notice.text}</h2>}
     </div>
     {calendar && <div ref={panel} id="home-agenda" className="home-agenda-panel" inert={!agendaOpen}>
       {(agendaOpen || agendaMotion) && <Agenda revision={calendarRevision} recording={recording} onStart={start} onOpen={open} jumpTo={agendaJump} />}
@@ -121,13 +133,15 @@ export function usePastNotes(folder?: string) {
 
   const reload = useCallback(() => {
     const mine = ++seq.current
+    loading.current = true
     // however far down the person scrolled, in steps (one call to main is capped)
     void readMeetingRows(() => loadUpTo((o) => window.yogurt.meetings.cards({ ...o, ...(folder ? { folder } : {}) }), shown.current, PAGE)).then(({ cards: list, more }) => {
       if (mine !== seq.current) return
+      loading.current = false
       setFailed(undefined)
       animateRows(list)
       shown.current = list.length; loadedCounts.set(memoryKey, list.length); setCards(list); setMore(more)
-    }).catch(() => { if (mine === seq.current) setFailed('list') })
+    }).catch(() => { if (mine === seq.current) { loading.current = false; setFailed('list') } })
   }, [folder, animateRows])
   useEffect(() => {
     reload()
@@ -146,6 +160,7 @@ export function usePastNotes(folder?: string) {
     const mine = seq.current
     void window.yogurt.meetings.cards({ limit: PAGE, before: { at: last.startedAt, id: last.id }, ...(folder ? { folder } : {}) }).then((page) => {
       if (mine !== seq.current) return
+      loading.current = false
       setFailed(undefined)
       setCards((cur) => {
         const have = new Set(cur?.map((c) => c.id))
@@ -154,7 +169,7 @@ export function usePastNotes(folder?: string) {
         return all
       })
       setMore(page.length === PAGE)
-    }).catch(() => { if (mine === seq.current) setFailed('page') }).finally(() => { loading.current = false })
+    }).catch(() => { if (mine === seq.current) { loading.current = false; setFailed('page') } })
   }, [cards, folder])
 
   useEffect(() => {
@@ -164,11 +179,11 @@ export function usePastNotes(folder?: string) {
     return () => io.disconnect()
   }, [sentinel, root, more, next])
 
-  return { cards, more, failed, retry: failed === 'page' ? next : reload, setRoot: attachRoot, setSentinel }
+  return { cards, root, more, next, failed, retry: failed === 'page' ? next : reload, setRoot: attachRoot, setSentinel }
 }
 
 /** Delete on a row moves the meeting to the Trash at once (Undo in the note at the bottom) */
-export function PastNotes({ cards, day, more, sentinel, onOpen, openFolder, showFolders = true, loading = false }: { loading?: boolean; cards: MeetingCard[]; day: string; more: boolean; sentinel: (el: HTMLDivElement | null) => void; onOpen: (id: string) => void; openFolder?: (id: string) => void; showFolders?: boolean }) {
+export function PastNotes({ cards, day, more, sentinel, onOpen, openFolder, showFolders = true, loading = false, notice }: { loading?: boolean; cards: MeetingCard[]; day: string; more: boolean; sentinel: (el: HTMLDivElement | null) => void; onOpen: (id: string) => void; openFolder?: (id: string) => void; showFolders?: boolean; notice?: { key?: string; text: string } }) {
   const lang = useLanguage()
   const me = useMyName()
   const [selection, select] = useReducer(meetingSelection, emptySelection)
@@ -216,7 +231,9 @@ export function PastNotes({ cards, day, more, sentinel, onOpen, openFolder, show
     else if (e.key === 'Escape') { e.preventDefault(); select({ type: 'clear' }) }
   }}>
     {days.map((group) => <div className="native-meeting-day" key={group.key}>
-      <h2 data-row-heading={loading ? undefined : group.key} data-testid={loading ? undefined : "past-day"}>{loading ? <span className="loading-bar" style={{ width: 48 }} /> : group.label}</h2>
+      <h2 data-row-heading={loading ? undefined : group.key} data-testid={loading ? undefined : "past-day"}>{loading ? <span className="loading-bar" style={{ width: 48 }} /> : group.label}
+        {notice?.key === group.key && <span className="meeting-date-note"> {notice.text}</span>}
+      </h2>
       <ul>{group.cards.map((meeting) => loading ? <li className="native-meeting-row" key={meeting.id}><PastCard c={meeting} onOpen={onOpen} me="" showFolders={showFolders} loading /></li> : <MeetingRow key={meeting.id} id={meeting.id} recording={meeting.state === 'recording'} selected={selected.includes(meeting.id)} targets={meetingTargets(selected, meeting.id)} memberships={memberships} busy={busy}
         onSelect={() => select({ type: 'select', id: meeting.id, visible })} onTrash={ids => void trash(ids)}
         onClick={e => {

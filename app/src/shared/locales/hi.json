@@ -23,6 +23,7 @@
   "Now": "अभी",
   "in {count} min": "{count} मिनट में",
   "No matching meetings with {name}.": "{name} के साथ कोई मेल खाती मीटिंग नहीं मिली।",
+  "No meetings on {date}": "{date} को कोई मीटिंग नहीं है",
   "No matching meetings on {date}.": "{date} को कोई मेल खाती मीटिंग नहीं मिली।",
   "No matching meetings with {name} on {date}.": "{date} को {name} के साथ कोई मेल खाती मीटिंग नहीं मिली।",
   "Couldn't load this content.": "यह सामग्री लोड नहीं हो सकी।",
