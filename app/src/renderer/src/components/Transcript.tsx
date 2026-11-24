@@ -190,9 +190,10 @@ const Row = memo(function Row({ line: l, openMenu, selected, choose, revision, c
       {editable && selected !== undefined && <Checkbox checked={selected} tabIndex={focusable ? 0 : -1} aria-label={t('Select line at {time} by {speaker}',{time,speaker:name})}
         onChange={e=>choose(l.id!,!!(e.nativeEvent as MouseEvent).shiftKey)} />}
       {playable ? <button type="button" data-testid="transcript-time" className="transcript-line-time" tabIndex={focusable ? 0 : -1} aria-label={t('Play from {time}', { time })} onClick={() => onPlay(l)}>{time}</button>
-        : <time data-testid="transcript-time" className={editable ? 'transcript-line-time' : 'sr-only'}>{time}</time>}
+        : editable && <time data-testid="transcript-time" className="transcript-line-time">{time}</time>}
       {editable && selected === undefined ? <TranscriptWording id={l.id!} text={l.text} revision={revision} commit={commit} onEditing={onEditing} />
         : <span data-testid="transcript-text">{l.text}</span>}
+      {!playable && !editable && <time data-testid="transcript-time" className="sr-only">{time}</time>}
       {editable && selected === undefined && <button tabIndex={focusable ? 0 : -1} className="ghost-btn transcript-actions-trigger" aria-haspopup="menu"
         aria-label={t('Transcript actions at {time}',{time})} onClick={e=>openMenu(l,e.currentTarget)}><Ellipsis size={14} /></button>}
     </span>
