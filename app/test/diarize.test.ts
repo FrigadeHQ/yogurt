@@ -43,7 +43,7 @@ function setup(over: Partial<Deps> = {}) {
     audioHelper: () => 'helper', nemoPath: () => 'nemo', modelPath: () => 'm.gguf',
     ensureSpeakerModel: vi.fn(async () => 'speaker.onnx'), embed: undefined,
     dirOf: () => runDir, exts: () => ['wav'], allowed: () => false, fake: false,
-    changed: vi.fn(), notesRefresh: vi.fn(), run, ...over,
+    changed: vi.fn(), notesRefresh: vi.fn(), voicesChanged: vi.fn(), run, ...over,
   }
   return { store, deps, runDir }
 }
@@ -262,5 +262,80 @@ describe('diarizer', () => {
       expect(deps.ensureSpeakerModel).not.toHaveBeenCalled()
       expect(store.meeting(id)).toMatchObject({ diarizeError: null })
     }
+  })
+})
+
+describe('remembering a voice named by hand', () => {
+  it('enrolls the renamed voice from the meeting and links it', async () => {
+    const { store, deps } = setup({ allowed: () => true })
+    const id = seed(store, [null, null], true)
+    const d = createDiarizer({ ...deps, embedVectors: async (_w, ranges) => ranges.map(() => new Float32Array([0, 1, 0])) })
+    d.schedule(id)
+    await d.finished(id)
+    expect(store.voiceProfiles()).toEqual([])
+    store.renameSpeaker(id, 'v1', 'Bob')
+    await d.enroll(id, 'v1')
+    expect(store.voiceProfiles().map(p => [p.name, p.meetings])).toEqual([['Bob', 1]])
+    expect(store.meetingSpeakers(id).find(s => s.key === 'v1')?.profileId).toBe(store.voiceProfiles()[0].id)
+    expect(deps.voicesChanged).toHaveBeenCalled()
+  })
+
+  it('counts the meeting once when the same voice is renamed again', async () => {
+    const { store, deps } = setup({ allowed: () => true })
+    const id = seed(store, [null, null], true)
+    const d = createDiarizer({ ...deps, embedVectors: async (_w, ranges) => ranges.map(() => new Float32Array([0, 1, 0])) })
+    d.schedule(id)
+    await d.finished(id)
+    store.renameSpeaker(id, 'v1', 'Bob')
+    await d.enroll(id, 'v1')
+    await d.enroll(id, 'v1')
+    expect(store.voiceProfiles().map(p => [p.name, p.meetings])).toEqual([['Bob', 1]])
+  })
+
+  it('never remembers a voice still called Speaker N', async () => {
+    const { store, deps } = setup({ allowed: () => true })
+    const id = seed(store, [null, null], true)
+    const d = createDiarizer({ ...deps, embedVectors: async (_w, ranges) => ranges.map(() => new Float32Array([0, 1, 0])) })
+    d.schedule(id)
+    await d.finished(id)
+    await d.enroll(id, 'v1')
+    expect(store.voiceProfiles()).toEqual([])
+  })
+
+  it('meeting recorded with voice recognition off: the delivery of a name does not learn the voice', async () => {
+    const { store, deps } = setup({ allowed: () => true })
+    const id = seed(store, [null, null], false)
+    const d = createDiarizer({ ...deps, embedVectors: async (_w, ranges) => ranges.map(() => new Float32Array([0, 1, 0])) })
+    d.schedule(id)
+    await d.finished(id)
+    store.renameSpeaker(id, 'v1', 'Bob')
+    await d.enroll(id, 'v1')
+    expect(store.voiceProfiles()).toEqual([])
+  })
+
+  it('a merge learns both voices under the name that survives', async () => {
+    const { store, deps } = setup({ allowed: () => true })
+    const id = seed(store, [null, null], true)
+    const seen: number[] = []
+    const d = createDiarizer({ ...deps, embedVectors: async (_w, ranges) => { seen.push(ranges.length); return ranges.map(() => new Float32Array([0, 1, 0])) } })
+    d.schedule(id)
+    await d.finished(id)
+    store.renameSpeaker(id, 'v2', 'Ann')
+    store.mergeSpeakers(id, 'v1', 'v2')
+    await d.enroll(id, 'v2')
+    expect(store.voiceProfiles().map(p => p.name)).toEqual(['Ann'])
+    expect(seen.at(-1)).toBe(2)
+  })
+
+  it('fake mode learns without starting the worker', async () => {
+    const { store, deps } = setup({ allowed: () => true, fake: true })
+    const id = seed(store, [null, null], true)
+    const d = createDiarizer(deps)
+    d.schedule(id)
+    await d.finished(id)
+    store.renameSpeaker(id, 'v1', 'Bob')
+    await d.enroll(id, 'v1')
+    expect(store.voiceProfiles().map(p => [p.name, p.meetings])).toEqual([['Bob', 1]])
+    expect(deps.ensureSpeakerModel).not.toHaveBeenCalled()
   })
 })

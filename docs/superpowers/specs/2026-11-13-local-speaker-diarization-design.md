@@ -341,7 +341,8 @@ Enrollment:
 - Name already taken by a different profile → skip auto-enrollment; the user resolves it in
   Settings.
 - `Speaker N` voices are never enrolled.
-- Manual transcript rename/merge does not retroactively enroll or relabel profiles in v1.
+- Manual transcript rename/merge enrolls the named voice from that meeting's own recording, under the
+  same rules; it never relabels other meetings and never renames an existing profile.
 
 ### Step 6: persist and notify
 
@@ -559,6 +560,5 @@ reintroduced.
 - Per-line speaker reassignment.
 - Auto-merging clusters that match the same profile.
 - “Possible match: Alice” suggestions for ambiguous scores.
-- Retroactive enrollment from manual renames.
 - Encrypting voiceprints at rest.
 - Backfilling old meetings.

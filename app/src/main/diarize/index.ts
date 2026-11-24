@@ -11,11 +11,13 @@ import { nextSpeakerNumber, resolveNames, reuseKeys } from './naming'
 import { bestMatch, blend, normalize, type ProfileVec } from './match'
 import { probeBackend, runDecode, runDiarize } from './run'
 import { fakeDecode, fakeTurns, fakeVectorFor } from './fake'
+import { enrollNamed, enrollRanges, SPEAKER_N } from './enroll'
 import type { EmbedClient } from './embed-client'
 
 export type Deps = {
   store: Pick<Store, 'meeting' | 'segments' | 'applyDiarization' | 'meetingSpeakers' | 'markDiarized' | 'speakerOrder'
-    | 'voiceCentroids' | 'voiceProfiles' | 'createVoiceProfile' | 'updateVoiceCentroid' | 'bumpVoiceProfile' | 'setMeetingSpeakerProfile'>
+    | 'voiceCentroids' | 'voiceProfiles' | 'createVoiceProfile' | 'updateVoiceCentroid' | 'bumpVoiceProfile' | 'setMeetingSpeakerProfile'
+    | 'linkMeetingSpeakerProfile'>
   queue: Pick<Queue, 'enqueue'>
   /** the recorder helper (decode) */
   audioHelper: () => string
@@ -30,6 +32,8 @@ export type Deps = {
   fake: boolean
   changed: (id: string) => void
   notesRefresh: (id: string) => void
+  /** a voiceprint was created or updated outside a diarization run (Settings lists them) */
+  voicesChanged?: () => void
   timeoutMs?: (audioMs: number) => number   // tests
   run?: { decode: typeof runDecode; diarize: typeof runDiarize }   // tests inject fakes
   embedVectors?: (wav: string, ranges: Array<{ startMs: number; endMs: number }>) => Promise<Array<Float32Array | undefined>>  // tests
@@ -37,7 +41,6 @@ export type Deps = {
 
 const CLEAN_RANGE_MS = 800
 const MIN_SPEECH_MS = 2000
-const SPEAKER_N = /^Speaker \d+$/
 
 /** the profile-match outcome for one cluster, applied once its meeting_speakers row exists */
 type Patch = { profileId?: string | null; score?: number | null }
@@ -263,6 +266,54 @@ export function createDiarizer(p: Deps) {
     patches.set(key, patch)
   }
 
+  /** one vector for a voice, from however many ranges the worker embedded */
+  const mean = (vectors: Array<Float32Array | undefined>): Float32Array | undefined => {
+    const got = vectors.filter((v): v is Float32Array => !!v && v.length > 0)
+    if (!got.length) return undefined
+    const out = new Float32Array(got[0].length)
+    for (const v of got) for (let i = 0; i < out.length; i++) out[i] += v[i] ?? 0
+    return normalize(out)
+  }
+
+  /**
+   * Remember a voice the person just named by hand: embed that voice's speech from the meeting's own recording
+   * and enroll it, so the next meeting can name it. Runs after the rename has been applied and never blocks it;
+   * any failure is only a warning, because the name itself is already saved.
+   */
+  const enrollOnce = async (id: string, key: string) => {
+    const m = p.store.meeting(id)
+    if (!m || !m.voicesAllowed || !p.allowed()) return
+    const name = nameOfKey(id, key)
+    if (!name || SPEAKER_N.test(name)) return
+    const ranges = enrollRanges(p.store.segments(id, { hidden: true })
+      .filter(s => s.track === 'them' && s.speakerKey === key && !s.hidden))
+    if (!ranges.length) return
+    let vec: Float32Array | undefined
+    if (p.fake) vec = fakeVectorFor(key)
+    else {
+      const embed = p.embedVectors ?? (p.embed ? (w: string, r: typeof ranges) => p.embed!.embed(w, r) : undefined)
+      if (!embed) return
+      const file = trackFile(p.dirOf(id), 'them', p.exts())
+      if (!file) return // the recording is gone (or was never kept): nothing to learn from
+      const dir = mkdtempSync(join(tmpdir(), 'yogurt-voice-'))
+      try {
+        const wav = join(dir, 'them.wav')
+        await run.decode(p.audioHelper(), file, wav)
+        await p.ensureSpeakerModel()
+        vec = mean(await embed(wav, ranges))
+      } finally {
+        try { rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }) } catch { /* left behind */ }
+      }
+    }
+    if (!vec) return
+    const linked = p.store.meetingSpeakers(id).find(s => s.key === key)?.profileId ?? null
+    const out = enrollNamed(p.store, { meetingId: id, key, name, vec, linkedProfileId: linked })
+    if (p.store.meetingSpeakers(id).some(s => s.key === key)) p.store.linkMeetingSpeakerProfile(id, key, out.profileId, out.score)
+    if (out.profileId) p.voicesChanged?.()
+  }
+
+  let enrollTail: Promise<void> = Promise.resolve()
+
   return {
     schedule(id: string) {
       // failures were already recorded on the meeting by the job itself; nothing broadcasts for them
@@ -273,5 +324,13 @@ export function createDiarizer(p: Deps) {
       finals.set(id, final)
     },
     finished: (id: string): Promise<void> => finals.get(id) ?? Promise.resolve(),
+    /** a speaker was renamed or merged: learn the voice, one enrollment at a time (the worker takes one request) */
+    enroll(id: string, key: string): Promise<void> {
+      const next = enrollTail.catch(() => {}).then(() => enrollOnce(id, key)).catch((e) => {
+        console.warn('VOICES enrollment skipped:', e instanceof Error ? e.message : e)
+      })
+      enrollTail = next
+      return next
+    },
   }
 }

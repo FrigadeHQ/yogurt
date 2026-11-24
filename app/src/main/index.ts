@@ -718,6 +718,7 @@ app.whenReady().then(() => {
     notes.refresh(id)
   })
   // a speaker's name by hand: rename one voice, or fold two voices of the same person into one
+  let rememberVoice: (id: string, key: string) => void = () => {}
   const speakersChanged = (id: string) => {
     win?.webContents.send('transcript:speakers', id)
     sendWidgetTranscript('transcript:speakers', id)
@@ -727,13 +728,13 @@ app.whenReady().then(() => {
   ipcMain.handle('transcript:rename-speaker', (_e, id: unknown, key: unknown, name: unknown) => {
     if (!isId(id) || typeof key !== 'string' || typeof name !== 'string') return false
     const ok = store.renameSpeaker(id, key, name)
-    if (ok) speakersChanged(id)
+    if (ok) { speakersChanged(id); rememberVoice(id, key) }
     return ok
   })
   ipcMain.handle('transcript:merge-speaker', (_e, id: unknown, fromKey: unknown, intoKey: unknown) => {
     if (!isId(id) || typeof fromKey !== 'string' || typeof intoKey !== 'string') return false
     const ok = store.mergeSpeakers(id, fromKey, intoKey)
-    if (ok) speakersChanged(id)
+    if (ok) { speakersChanged(id); rememberVoice(id, intoKey) }
     return ok
   })
   ipcMain.handle('transcript:assign-speaker', (_e, id: unknown, segment: unknown, key: unknown) => {
@@ -833,7 +834,10 @@ app.whenReady().then(() => {
     timeoutMs: diarizeTimeoutMs,
     changed: (id) => { win?.webContents.send('transcript:speakers', id); sendWidgetTranscript('transcript:speakers', id); win?.webContents.send('meetings:changed') },
     notesRefresh: (id) => notes.refresh(id),
+    voicesChanged: () => { win?.webContents.send('voices:changed') },
   })
+  // naming a voice by hand remembers it for later meetings, once its speech has been embedded
+  rememberVoice = (id, key) => { void diarizer.enroll(id, key) }
   // one diarization run per stop: the notes wait for it (see diarize/afterStop.ts), a resume starts a fresh one
   const diarizeSchedule = createDiarizeSchedule({
     recordingFinished, transcriptFinished, namesFinished: (id) => callNames.finished(id),

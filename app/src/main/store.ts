@@ -767,6 +767,10 @@ export class Store {
     this.db.prepare('UPDATE meeting_speakers SET profile_id = COALESCE(?, profile_id), score = COALESCE(?, score) WHERE meeting_id = ? AND key = ?')
       .run(patch.profileId ?? null, patch.score ?? null, meetingId, key)
   }
+  /** a manual enrollment decides the link outright, including clearing one a rename made wrong */
+  linkMeetingSpeakerProfile(meetingId: string, key: string, profileId: string | null, score: number | null) {
+    this.db.prepare('UPDATE meeting_speakers SET profile_id = ?, score = ? WHERE meeting_id = ? AND key = ?').run(profileId, score, meetingId, key)
+  }
 
   /** edited: the person changed the enhanced notes since they were written */
   notes(meetingId: string): Notes {
