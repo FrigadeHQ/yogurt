@@ -180,7 +180,8 @@ html.widget, .widget-pill[data-illustration] { --pill:#232326;--pill-ink:#F7F7FA
 .widget-mic:hover { background:#FFFFFF14; }
 .widget-mic:focus-visible { outline:2px solid var(--pill-accent); }
 .widget-mic[aria-pressed=true] { color:#FF797C;background:#FF5E661A; }
-.widget-mic-off { position:absolute;right:12px;top:13px;color:#FF797C; }
+.widget-mic-status { position:absolute;right:12px;top:8px;height:24px;display:flex;align-items:center;border-left:1px solid var(--widget-line);padding-left:12px; }
+.widget-mic-off { display:grid;place-items:center;width:24px;height:24px;border-radius:7px;color:#E5484D;background:rgba(229,72,77,.14); }
 .mic-feedback { margin:6px auto;font-size:13px;text-align:center; }
 .widget-time { white-space:nowrap;font-size:10px;font-weight:500;font-variant-numeric:tabular-nums;line-height:15px;opacity:.8; }
 .widget-preview { position:absolute;left:0;top:52px;display:flex;flex-direction:column;padding:0 4px 12px 12px;color:var(--pill-ink);font-size:14px;line-height:21px;transform-origin:50% 0;cursor:default; }

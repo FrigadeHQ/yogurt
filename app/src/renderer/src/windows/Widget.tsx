@@ -115,7 +115,9 @@ function Recording({ view }: { view: WidgetView }) {
     onMouseLeave={() => hover.pointer(-1, -1)}
     aria-label={[t('Open {title}', { title: view.title }), muted && t('Mic off in Yogurt')].filter(Boolean).join('. ')} title={view.note?.text ?? t('Recording {title}', { title: view.title })}>
     {hover.open ? <MicToggle pill id={view.meetingId} state={view.micState} />
-      : muted && <MicOff data-testid="widget-mic-off" size={14} aria-hidden="true" className="widget-mic-off" />}
+      : muted && <span className="widget-mic-status" aria-hidden="true">
+        <span className="widget-mic-off" data-testid="widget-mic-off"><MicOff size={14} /></span>
+      </span>}
     <Preview view={view} open={hover.open} />
   </RecordingPill>
 }

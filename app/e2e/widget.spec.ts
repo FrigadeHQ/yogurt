@@ -85,6 +85,20 @@ test('the header and expanded card share confirmed mute, across collapse, reload
     const capture = async (name: string) => {
       for (const colorScheme of ['light', 'dark'] as const) {
         await page.emulateMedia({ colorScheme }); await w.emulateMedia({ colorScheme })
+        const details = name.endsWith('card') ? ['logo', 'widget-wave', 'widget-time', 'widget-mic']
+          : name === 'off-collapsed' ? ['logo', 'widget-wave', 'widget-time', 'widget-mic-off'] : ['logo', 'widget-wave', 'widget-time']
+        await expect.poll(() => pill.evaluate((el, ids) => {
+          const boxes = ids.map(id => el.querySelector(`[data-testid="${id}"]`)?.getBoundingClientRect())
+          if (!boxes.every((box, i) => box && (i === 0 || box.left > boxes[i - 1]!.right))) return false
+          const divider = el.querySelector('.widget-mic-status')?.getBoundingClientRect()
+          if (!divider) return !ids.includes('widget-mic-off')
+          const [logo, , time, mic] = boxes
+          const pill = el.getBoundingClientRect()
+          return Math.round(divider.left - time!.right) === 12 && Math.round(mic!.left - divider.left) === 13
+            && Math.abs((pill.right - mic!.right) - (logo!.left - pill.left)) < 1
+            && divider.top - pill.top === 9 && pill.bottom - divider.bottom === 9
+            && mic!.width === 24 && mic!.height === 24
+        }, details)).toBe(true)
         await page.getByTestId('note-state').locator('..').screenshot({ path: testInfo.outputPath(`mic-${name}-header-${colorScheme}.png`) })
         await pill.screenshot({ path: testInfo.outputPath(`mic-${name}-pill-${colorScheme}.png`) })
       }
@@ -92,6 +106,7 @@ test('the header and expanded card share confirmed mute, across collapse, reload
     }
     await expect(card).toHaveCount(0)
     await expect(w.getByTestId('widget-mic-off')).toHaveCount(0)
+    await capture('on-collapsed')
     await pill.hover()
     await expect(card).toHaveAccessibleName('Mute my mic')
     await capture('on-card')
@@ -100,6 +115,7 @@ test('the header and expanded card share confirmed mute, across collapse, reload
     await expect(card).toBeDisabled()
     await expect(header).toHaveAccessibleName('Unmute my mic')
     await expect(card).toHaveAttribute('aria-pressed', 'true')
+    await expect(w.getByTestId('widget-mic-off')).toHaveCount(0)
     await capture('off-card')
     await w.mouse.move(0, 0)
     await expect(pill).toHaveAttribute('data-open', 'false')

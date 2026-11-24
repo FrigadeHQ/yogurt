@@ -80,7 +80,7 @@ export function useWidgetMorph(card: React.RefObject<HTMLDivElement | null>, war
   useLayoutEffect(() => {
     const timer = card.current?.querySelector<HTMLElement>('[data-testid="widget-time"]')
     if (!timer) return
-    collapsedWidth.current = 83 + timer.getBoundingClientRect().width + (muted ? 20 : 0)
+    collapsedWidth.current = 83 + timer.getBoundingClientRect().width + (muted ? 12 + 1 + 12 + 24 : 0)
     if (!intent.pressed) window.yogurt.widget.size(collapsedWidth.current, 42)
   }, [time, open, layout?.pill.width, muted])
   useEffect(() => {
