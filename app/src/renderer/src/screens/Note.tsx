@@ -450,8 +450,8 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
               </div>
             )}
 
-          <div ref={primaryTabs} className="note-primary-tabs" data-summary-arriving={finishRequested && hasEnhanced && !reducedMotion}>
-            <div role="tablist" aria-label={t('Meeting view')} className="contents">
+          <div className="note-primary-tabs" data-summary-arriving={finishRequested && hasEnhanced && !reducedMotion}>
+            <div ref={primaryTabs} role="tablist" aria-label={t('Meeting view')}>
             <button ref={transcriptButton} id="note-transcript-tab" data-testid="note-transcript-toggle" role="tab" aria-selected={primary === 'transcript'} aria-controls="note-transcript-panel"
               tabIndex={primary === 'transcript' ? 0 : -1} onKeyDown={primaryKey} onClick={(e) => pickTab('transcript', undefined, e.detail > 0)}>
               {t('Transcript')}
@@ -467,10 +467,10 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
               onClick={(e) => pickTab('notes', 'enhanced', e.detail > 0)}>
               {t('Summary')}{summaryPending && <span className="summary-writing-mark" aria-hidden="true" />}
             </button>}
+            <span data-testid="note-tab-indicator" className="note-tab-indicator" aria-hidden="true" />
             </div>
             {hasEnhanced && summaryPending && <span id="note-summary-phase" hidden>{notes.status === 'waiting' ? t('Preparing…') : t('Writing the summary')}</span>}
             {primary === 'transcript' && <div ref={setTranscriptToolbar} className="note-primary-tools" />}
-            <span data-testid="note-tab-indicator" className="note-tab-indicator" aria-hidden="true" />
           </div>
         </header>
         {readFailed && <InlineError testId="note-read-error" retry={retryRead} />}

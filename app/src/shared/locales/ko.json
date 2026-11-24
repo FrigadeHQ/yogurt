@@ -298,7 +298,6 @@
   "Pink": "분홍색",
   "Plane": "비행기",
   "Play": "재생",
-  "Play from {time}, {name}: {text}": "{time}부터 재생, {name}: {text}",
   "Playback speed {rate}": "재생 속도 {rate}",
   "Position": "위치",
   "Prepare note": "노트 준비",

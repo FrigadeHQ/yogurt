@@ -79,10 +79,11 @@ test('meeting tools expose all copy choices, an anchored search, and a multiline
       expect(tabBoxes.every(tab => openBox.y >= tab.bottom || openBox.x >= tab.right || openBox.x + openBox.width <= tab.left)).toBe(true)
       const available = (await page.locator('.note-primary-tools').boundingBox())!.width
       const minimum = Math.max(240, (await page.locator('.transcript-find-controls').boundingBox())!.width + 76)
+      const anchor = (await trigger.boundingBox())!
       if (available >= minimum) {
-        expect(openBox.y).toBeLessThan(tabBoxes[0].bottom)
+        expect(openBox.y).toBeCloseTo(anchor.y, 0)
         expect(openBox.width).toBeCloseTo(Math.min(376, available), 1)
-      } else expect(openBox.y).toBeGreaterThanOrEqual(tabBoxes[0].bottom)
+      } else expect(openBox.y).toBeGreaterThanOrEqual(anchor.y + anchor.height)
       const blocked = await page.locator('.note-meta-row button').evaluateAll(buttons => buttons.flatMap(button => {
         const r = button.getBoundingClientRect()
         if (!r.width || !r.height) return []

@@ -206,6 +206,34 @@ test('each line shows when it was said, from the start of the meeting; no player
   } finally { await app.close() }
 })
 
+test('a read-only transcript plays only from its time buttons', async () => {
+  const { app, page, userData } = await launch()
+  try {
+    const id = await fake<string>(app, 'bigMeeting', 20)
+    const db = new DatabaseSync(join(userData, 'yogurt.db'), { timeout: 5000 })
+    try {
+      db.prepare("UPDATE meetings SET transcription_pending=1, transcription_state='stopped' WHERE id=?").run(id)
+    } finally { db.close() }
+    await page.evaluate(id => window.yogurt.nav.go(`/note/${id}`), id)
+    await page.getByTestId('note-transcript-toggle').click()
+    const row = page.getByTestId('transcript-line').nth(12)
+    const time = row.getByRole('button', { name: 'Play from 0:06', exact: true })
+    const words = row.getByTestId('transcript-text')
+    await expect(time).toBeVisible()
+    await expect(row.getByRole('button')).toHaveCount(1)
+    await words.click()
+    await expect(words).not.toHaveAttribute('contenteditable', 'plaintext-only')
+    await expect(page.getByTestId('player-toggle')).toHaveAccessibleName('Play')
+    await row.focus()
+    await page.keyboard.press('Enter')
+    await page.keyboard.press('Space')
+    await expect(page.getByTestId('player-toggle')).toHaveAccessibleName('Play')
+    await time.click()
+    await expect(page.getByTestId('player-toggle')).toHaveAccessibleName('Pause')
+    await expect.poll(async () => (await audioState(page)).some(a => !a.paused && a.time >= 5)).toBe(true)
+  } finally { await app.close() }
+})
+
 test('the transcript follows new lines, unless the person scrolled up to read', async () => {
   const { app, page } = await launch()
   try {
@@ -728,6 +756,10 @@ for (const theme of ['light','dark'] as const) test(`edit, remove and review a f
       const box=r.getBoundingClientRect()
       return { x:box.x+box.width/2,y:box.y+box.height/2 }
     })
+    await page.mouse.click(point.x,point.y)
+    await expect(words).toHaveAttribute('contenteditable','plaintext-only')
+    await expect(page.getByTestId('player-toggle')).toHaveAccessibleName('Play')
+    await page.keyboard.press('Escape')
     await page.mouse.dblclick(point.x,point.y)
     expect((await page.evaluate(()=>window.getSelection()?.toString()))?.trim()).toBe('Line')
     await page.keyboard.insertText('Part')
@@ -767,7 +799,7 @@ for (const theme of ['light','dark'] as const) test(`edit, remove and review a f
     await capture('summary-review')
     await page.getByTestId('summary-review').getByRole('button',{name:'Regenerate summary'}).click()
     await expect(page.getByTestId('note-confirm')).toContainText('Your edits to the summary will be replaced.')
-    await page.getByRole('button',{name:'Close',exact:true}).click()
+    await page.getByTestId('note-regenerate').getByRole('button',{name:'Close',exact:true}).click()
     await page.getByRole('button',{name:'Mark as reviewed'}).click()
     await expect(page.getByTestId('summary-review')).toHaveCount(0)
     expect(await page.evaluate(id=>window.yogurt.notes.get(id),id)).toMatchObject({ mine:'Keep my agenda.', enhanced:'The earlier summary stays readable.' })

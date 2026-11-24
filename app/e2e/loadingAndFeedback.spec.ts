@@ -19,7 +19,7 @@ test('first reads have skeletons; a loaded transcript stays mounted across tabs'
     const startX = (await page.getByTestId('workspace-heading').boundingBox())!.x
     const id = await app.evaluate(() => (globalThis as any).__fake__.bigMeeting(40))
     await app.evaluate(({ ipcMain }) => {
-      for (const channel of ['meetings:cards', 'meetings:trashed', 'meetings:get', 'notes:get', 'transcript:get', 'settings:get', 'permissions:status', 'conversations:list', 'conversations:get']) {
+      for (const channel of ['meetings:cards', 'meetings:trashed', 'meetings:get', 'notes:get', 'transcript:get', 'transcript:snapshot', 'settings:get', 'permissions:status', 'conversations:list', 'conversations:get']) {
         const old = (ipcMain as any)._invokeHandlers.get(channel)
         ipcMain.removeHandler(channel)
         ipcMain.handle(channel, async (...args) => { await new Promise(resolve => setTimeout(resolve, 650)); return old(...args) })

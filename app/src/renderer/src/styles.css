@@ -386,14 +386,11 @@ html.widget, .widget-pill[data-illustration] { --pill:#232326;--pill-ink:#F7F7FA
   .live-word { animation:motion-fade var(--dur-micro) var(--ease-out); } .line-settle { animation:none; }
   .live-dots i { animation: none; opacity: 0.6; }
 }
-.line-playable { transition: background-color var(--dur-micro) ease; }
-.line-playable:hover { background: color-mix(in srgb, var(--line) 55%, transparent); }
-.line-playable:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.line[role=group]:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 /* the line being played: the accent's soft tint with a bar at its start (like a live meeting in the agenda), its time
    shown in the accent, and the name of its turn too */
 [data-playing] { position: relative; background: var(--playback-bg);color:var(--playback-ink);box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 55%,transparent); }
 [data-playing]::before { content: ""; position: absolute; inset-inline-start: 2px; top: 7px; bottom: 7px; width: 2px; border-radius: 2px; background: var(--accent); }
-.line-playable[data-playing]:hover { background: var(--playback-bg); }
 [data-playing] .line-time { opacity: 1; color: var(--accent); }
 .transcript-turn:has([data-playing]) .line-who:not([data-color]) { color: var(--accent); }
 /* names arrive once the meeting is over: they slide in above the lines, which stay where they are */
@@ -558,7 +555,8 @@ input::selection, textarea::selection, .note-prose ::selection { background: var
   .note-recorder-controls .recording-wave { transition:color var(--dur-micro) ease; }
 }
 .note-elapsed { font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap; }
-.note-primary-tabs { position:relative;display:flex;gap:24px;margin-top:22px;border-bottom:1px solid var(--line); }
+.note-primary-tabs { position:relative;display:flex;flex-wrap:wrap;gap:0 24px;margin-top:22px;border-bottom:1px solid var(--line); }
+.note-primary-tabs [role=tablist] { position:relative;display:flex;column-gap:inherit;max-width:100%; }
 .note-primary-tabs [role=tab] { display:flex;align-items:center;gap:4px;height:36px;padding-inline:4px;border-bottom:2px solid transparent;color:var(--muted);font-size:13px;font-weight:500; }
 .note-primary-tabs [role=tab][aria-selected=true] { color:var(--ink); }
 .summary-writing-mark { flex:none;width:9px;height:9px;margin-inline-start:2px;border:1.5px solid var(--muted);border-inline-end-color:transparent;border-radius:50%; }
@@ -676,13 +674,14 @@ input::selection, textarea::selection, .note-prose ::selection { background: var
 .note-record-action.primary:active:not(:disabled) { box-shadow:none; }
 @media(prefers-reduced-motion:reduce) { .note-record-action { transition:none; } }
 [data-testid="transcript-panel"] { border-radius: 12px; }
-.note-primary-tools { display:flex;align-items:center;align-self:flex-start;height:34px;margin-inline-start:auto;min-width:32px;flex:1;container-type:inline-size; }
-.note-primary-tools .transcript-toolbar { padding:0;border:0;flex-wrap:nowrap;width:100%;justify-content:flex-end; }
-.note-primary-tools .transcript-find-clip { width:clamp(240px,100cqw,376px); }
+.note-primary-tools { display:flex;align-items:center;align-self:flex-start;min-height:34px;margin-inline-start:auto;min-width:32px;max-width:100%;flex:1 0 auto; }
+.note-primary-tools .transcript-toolbar { padding:0;border:0;width:100%;justify-content:flex-end; }
+.note-primary-tools .transcript-find-clip { width:clamp(240px,var(--find-width, 240px),376px); }
 .note-primary-tools .transcript-actions { order:-1;margin-inline-start:0; }
 .transcript-toolbar { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 16px;padding:10px 12px;border-bottom:1px solid var(--line); }
 .note-primary-tabs { z-index:2; }
-.transcript-find { position:relative;width:32px;height:32px;z-index:2;clip-path:inset(-4px -4px -4px -600px); }
+.transcript-toolbar:has(.transcript-find[data-open=true]) > .transcript-tool { visibility:hidden; }
+.transcript-find { flex:none;position:relative;width:32px;height:32px;z-index:2;clip-path:inset(-4px -4px -4px -600px); }
 .ghost-btn.transcript-find-trigger { width:32px;height:32px;justify-content:center;padding:0;opacity:1;transition:opacity var(--dur-micro) var(--ease-out) var(--dur-micro); }
 .transcript-find[data-open=true] .transcript-find-trigger { opacity:0;pointer-events:none;transition-delay:0s; }
 .transcript-find-clip { position:absolute;inset-inline-end:0;top:0;width:min(376px,calc(100vw - 48px));height:32px;overflow:hidden;border-radius:6px;opacity:0;pointer-events:none;transform:translateX(calc(100% - 32px));transition:transform var(--dur-micro) var(--ease-out),opacity var(--dur-micro) var(--ease-out); }
@@ -723,8 +722,7 @@ input::selection, textarea::selection, .note-prose ::selection { background: var
   .note-header .note-title-type { font-size:23px; }
   .note-meta-row { gap:8px;margin-top:10px; }
   .note-header-actions { gap:8px; }
-  .note-primary-tabs { margin-top:12px;gap:16px;flex-wrap:wrap; }
-  .note-primary-tools { max-width:100%; }
+  .note-primary-tabs { margin-top:12px;column-gap:16px; }
 }
 /* At large zoom, let the page scroll instead of compressing the transcript to a single line. */
 @media (max-height:420px) {

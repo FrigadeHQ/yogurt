@@ -307,7 +307,6 @@
   "Pink": "Rosa",
   "Plane": "Flugzeug",
   "Play": "Abspielen",
-  "Play from {time}, {name}: {text}": "Ab {time} abspielen, {name}: {text}",
   "Playback speed {rate}": "Wiedergabetempo {rate}",
   "Position": "Position",
   "Prepare note": "Notiz vorbereiten",

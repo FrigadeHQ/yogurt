@@ -696,8 +696,8 @@
   .corner-badge,.corner-row-dot { forced-color-adjust:none;background:Highlight; }
 }
 
-.line[data-edit-row] { display: flex; align-items: baseline; gap: .45rem; cursor: default; }
-.line[data-edit-row] + .line[data-edit-row] { margin-block-start: .15rem; }
+.line[role=group] { display: flex; align-items: baseline; gap: .45rem; cursor: default; }
+.line[role=group] + .line[role=group] { margin-block-start: .15rem; }
 .transcript-line-time { flex: none; color: var(--muted); font-size: .72rem; font-variant-numeric: tabular-nums; user-select: none; }
 button.transcript-line-time:hover { color: var(--ink); text-decoration: underline; }
 .line [data-editable] { flex: 1; min-width: 1ch; cursor: text; overflow-wrap: anywhere; white-space: pre-wrap; user-select: text; }

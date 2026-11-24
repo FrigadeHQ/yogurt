@@ -54,7 +54,9 @@ export function TranscriptFind({ extra, lines, list, active, playbackInset, befo
     const fit = () => {
       // Leave 32px for typing after the fixed controls and 44px of field chrome.
       const minimum = Math.max(240, controls.getBoundingClientRect().width + 76)
-      control.dataset.findBelow = String(toolbar.getBoundingClientRect().width < minimum)
+      const width = toolbar.getBoundingClientRect().width
+      control.style.setProperty('--find-width', `${width}px`)
+      control.dataset.findBelow = String(width < minimum)
     }
     fit()
     const observer = new ResizeObserver(fit)
@@ -119,7 +121,7 @@ export function TranscriptFind({ extra, lines, list, active, playbackInset, befo
     return () => window.removeEventListener('keydown', onKey, true)
   })
 
-  const control = <div ref={controlRef} className="transcript-toolbar">{!open && extra}<div className="transcript-find" data-open={open} onBlur={event => {
+  const control = <div ref={controlRef} className="transcript-toolbar">{extra}<div className="transcript-find" data-open={open} onBlur={event => {
     if (open && !event.currentTarget.contains(event.relatedTarget) && !searching) { setOpen(false); onFinding(false) }
   }}>
     <button ref={trigger} type="button" data-testid="transcript-find-open" className="ghost-btn transcript-find-trigger" aria-label={t('Search the transcript')} title={`${t('Search the transcript')} (${keys('⌘F')})`} aria-expanded={open} aria-hidden={open} aria-controls={fieldId} tabIndex={open ? -1 : 0} onClick={show}><Search size={14} aria-hidden="true" /></button>

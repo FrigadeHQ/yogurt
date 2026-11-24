@@ -13,7 +13,7 @@ import { SPEAKER_COLORS } from '../../../shared/speakerColors'
 import { ScrollFade } from './ScrollFade'
 import { Loading } from './Loading'
 import { useLoadingState } from '../useLoadingState'
-import { Fragment, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
+import { Fragment, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { AudioLines, ArrowDown } from './Icons'
 import type { Segment, TranscriptPartial } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
@@ -169,7 +169,7 @@ type RowProps = {
   playing: boolean; playable: boolean; focusable: boolean
   /** arrived while watching: fades in, or settles in place where live words stood for it */
   arrived: 'fade' | 'settle' | null
-  onPlay: (l: Line, e: MouseEvent) => void; onFocusLine: (k: string) => void
+  onPlay: (l: Line) => void; onFocusLine: (k: string) => void
 }
 /**
  * One line of the transcript, a stretch of text in its bubble (who said it heads the turn). Drawn again only when what
@@ -183,20 +183,18 @@ const Row = memo(function Row({ line: l, openMenu, selected, choose, revision, c
   const editable = revision !== undefined && l.id !== undefined && l.id > 0
   return (
     <span data-key={k} data-testid="transcript-line" data-track={l.track} data-start={l.startMs} data-playing={playing || undefined}
-      role={editable ? 'group' : playable ? 'button' : undefined} aria-label={editable ? name : playable ? t('Play from {time}, {name}: {text}', { time, name, text: l.text }) : undefined}
-      tabIndex={playable || editable ? (focusable ? 0 : -1) : undefined} onFocus={(e) => { onFocusLine(k) }}
-      onClick={editable ? undefined : (e) => onPlay(l, e)} data-edit-row={editable || undefined} data-corrected={l.corrected || undefined}
-      data-previous={l.previous||undefined} data-hidden={l.hidden || undefined} data-focused={focused || undefined}
-      className={`line ${arrived === 'fade' ? 'line-in' : arrived === 'settle' ? 'line-settle' : ''} ${playable ? 'line-playable cursor-pointer' : ''}`}>
-      {editable ? <>
-        {selected !== undefined && <Checkbox checked={selected} tabIndex={focusable ? 0 : -1} aria-label={t('Select line at {time} by {speaker}',{time,speaker:name})}
-          onChange={e=>choose(l.id!,!!(e.nativeEvent as globalThis.MouseEvent).shiftKey)} />}
-        {playable ? <button data-testid="transcript-time" className="transcript-line-time" tabIndex={focusable ? 0 : -1} aria-label={t('Play from {time}', { time })} onClick={e => onPlay(l,e)}>{time}</button>
-          : <time data-testid="transcript-time" className="transcript-line-time">{time}</time>}
-        {selected !== undefined ? <span data-testid="transcript-text">{l.text}</span> : <TranscriptWording id={l.id!} text={l.text} revision={revision!} commit={commit} onEditing={onEditing} />}
-        {selected === undefined && <button tabIndex={focusable ? 0 : -1} className="ghost-btn transcript-actions-trigger" aria-haspopup="menu"
-          aria-label={t('Transcript actions at {time}',{time})} onClick={e=>openMenu(l,e.currentTarget)}><Ellipsis size={14} /></button>}
-      </> : <><span data-testid="transcript-text">{l.text}</span><time data-testid="transcript-time" className="sr-only">{time}</time></>}
+      role={editable || playable ? 'group' : undefined} aria-label={editable || playable ? name : undefined}
+      tabIndex={playable || editable ? (focusable ? 0 : -1) : undefined} onFocus={() => onFocusLine(k)}
+      data-corrected={l.corrected || undefined} data-previous={l.previous || undefined} data-hidden={l.hidden || undefined} data-focused={focused || undefined}
+      className={`line ${arrived === 'fade' ? 'line-in' : arrived === 'settle' ? 'line-settle' : ''}`}>
+      {editable && selected !== undefined && <Checkbox checked={selected} tabIndex={focusable ? 0 : -1} aria-label={t('Select line at {time} by {speaker}',{time,speaker:name})}
+        onChange={e=>choose(l.id!,!!(e.nativeEvent as MouseEvent).shiftKey)} />}
+      {playable ? <button type="button" data-testid="transcript-time" className="transcript-line-time" tabIndex={focusable ? 0 : -1} aria-label={t('Play from {time}', { time })} onClick={() => onPlay(l)}>{time}</button>
+        : <time data-testid="transcript-time" className={editable ? 'transcript-line-time' : 'sr-only'}>{time}</time>}
+      {editable && selected === undefined ? <TranscriptWording id={l.id!} text={l.text} revision={revision} commit={commit} onEditing={onEditing} />
+        : <span data-testid="transcript-text">{l.text}</span>}
+      {editable && selected === undefined && <button tabIndex={focusable ? 0 : -1} className="ghost-btn transcript-actions-trigger" aria-haspopup="menu"
+        aria-label={t('Transcript actions at {time}',{time})} onClick={e=>openMenu(l,e.currentTarget)}><Ellipsis size={14} /></button>}
     </span>
   )
 })
@@ -409,11 +407,7 @@ export function Transcript({ id, settled = false, notice, processing=false, repl
   }
   useEffect(() => () => { ours.current?.stop(); ours.current = null }, [id, active])
 
-  const playableRef = useRef(playable)
-  playableRef.current = playable
-  const onPlay = useCallback((l: Line, e: MouseEvent) => {
-    // a button, or text being selected to copy, is not a request to play
-    if (!playableRef.current || (e.target as HTMLElement).closest('button:not(.transcript-line-time), input, form') || (!e.currentTarget.classList.contains('transcript-line-time') && window.getSelection()?.toString())) return
+  const onPlay = useCallback((l: Line) => {
     follow()
     player.current?.playFrom(l.startMs)
   }, [follow])
@@ -466,7 +460,6 @@ export function Transcript({ id, settled = false, notice, processing=false, repl
     else if (e.key === 'Home') { e.preventDefault(); go(0) }
     else if (e.key === 'End') { e.preventDefault(); go(lines.length - 1) }
     else if (editable && (e.key === 'Enter' || e.key === 'F2')) { e.preventDefault(); row.querySelector<HTMLElement>('[data-editable]')?.focus() }
-    else if (playable && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); follow(); player.current?.playFrom(lines[i].startMs) }
   }
 
   const grouped = useMemo(() => timeline.map((run, i) => ({ ...run, k: key(run.lines[0]), rowKey: transcriptRowKey(run.lines[0].track, timeline[i - 1]?.lines.at(-1)) })), [timeline])

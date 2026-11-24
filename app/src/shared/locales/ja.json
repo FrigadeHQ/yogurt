@@ -298,7 +298,6 @@
   "Pink": "ピンク",
   "Plane": "飛行機",
   "Play": "再生",
-  "Play from {time}, {name}: {text}": "{time}から再生、{name}: {text}",
   "Playback speed {rate}": "再生速度 {rate}",
   "Position": "再生位置",
   "Prepare note": "ノートを準備",
