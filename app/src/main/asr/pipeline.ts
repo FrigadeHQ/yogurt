@@ -61,6 +61,14 @@ export function createPipeline(p: {
   let timer: NodeJS.Timeout | undefined
   let echoDropped = 0
   let closed = false
+  /** live transcription stopped for the rest of the meeting (too slow, or whisper-server gone): the recording finishes it */
+  let paused = false
+  /**
+   * Per track, the start of the first chunk that got no lines (failed, dropped or skipped while paused). The transcript
+   * is not finished there: everything on the track from that point is read again from the saved recording (#156).
+   */
+  const gaps: Partial<Record<Track, number>> = {}
+  const gap = (track: Track, startMs: number) => { gaps[track] = Math.min(gaps[track] ?? Infinity, startMs) }
   /** wall clock minus meeting time, from the newest audio: how long after it was said a line shows */
   let wallOffset = Date.now()
   const delays: Array<{ track: Track; partial: boolean; ms: number }> = []
@@ -153,11 +161,12 @@ export function createPipeline(p: {
     p.transcribe(c)
       .then((lines) => onLines(t, lines, c.startMs, chunkEnd))
       // its quick reading goes too: nothing final will replace it
-      .catch((e) => { console.error(`transcribing a ${t} chunk failed`, e); warn('transcribe-failed'); settle(t, chunkEnd) })
+      .catch((e) => { console.error(`transcribing a ${t} chunk failed`, e); gap(t, c.startMs); warn('transcribe-failed'); settle(t, chunkEnd) })
       .finally(() => { running[t] = false; pump(t) })
   }
 
   const queue = (c: Chunk) => {
+    if (paused) { gap(c.track, c.startMs); settle(c.track, c.startMs + c.samples.length / 16); return }
     const q = waiting[c.track]
     q.push(c)
     let size = q.reduce((n, x) => n + x.samples.length, 0)
@@ -165,6 +174,7 @@ export function createPipeline(p: {
       const old = q.shift()!
       size -= old.samples.length
       dropped.push({ track: old.track, startMs: old.startMs, endMs: Math.round(old.startMs + old.samples.length / 16) })
+      gap(old.track, old.startMs)
       settle(old.track, old.startMs + old.samples.length / 16)
       warn('falling-behind')
     }
@@ -185,7 +195,7 @@ export function createPipeline(p: {
    */
   const partial = (c: Chunk) => {
     const t = c.track
-    if (!quickReads[t] || !p.emitPartial || closed || running.me || running.them || waiting.me.length || waiting.them.length || lastPartialMs > SLOW_PARTIAL_MS) { if (lastPartialMs > SLOW_PARTIAL_MS) lastPartialMs = 0; return }
+    if (!quickReads[t] || !p.emitPartial || closed || paused || running.me || running.them || waiting.me.length || waiting.them.length || lastPartialMs > SLOW_PARTIAL_MS) { if (lastPartialMs > SLOW_PARTIAL_MS) lastPartialMs = 0; return }
     const end = c.startMs + c.samples.length / 16
     if (end > lastPartialEnd[t] && end - lastPartialEnd[t] < PARTIAL_GAP_MS) return
     lastPartialEnd[t] = end
@@ -203,6 +213,25 @@ export function createPipeline(p: {
   let finishing: Promise<void> | undefined
 
   return {
+    /**
+     * Live transcription stops for the rest of the meeting: what waits and what comes is left to the saved recording.
+     * Requests already sent still give their lines.
+     */
+    pause() {
+      if (paused || closed) return
+      paused = true
+      for (const t of ['me', 'them'] as const) {
+        const first = waiting[t][0]
+        if (first) gap(t, first.startMs)
+        waiting[t] = []
+        clearLive(t)
+      }
+      if (!queued('me') && !queued('them')) { const w = idle; idle = []; w.forEach((f) => f()) }
+    },
+    /** live transcription was paused */
+    paused: () => paused,
+    /** per track, where the first audio without lines starts (none: every chunk was read) */
+    gaps: (): Partial<Record<Track, number>> => ({ ...gaps }),
     /** Reopening a transcript uses the same current words as its live updates. */
     partials: () => (['me', 'them'] as const).map(partOf),
     push(track: Track, ms: number, samples: Float32Array) {

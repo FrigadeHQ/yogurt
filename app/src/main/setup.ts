@@ -35,7 +35,7 @@ export type SetupDeps = {
 }
 
 /** Where the models ended up, for the parts of the app that use them; llm once the first notes model is in (after ready) */
-export type Installed = { asr: string; llm?: string; recommendedLlm?: string; /** meaning search across meetings; word search works without it */ embed?: string }
+export type Installed = { asr: string; /** smaller speech models already on disk, best first: one takes over when the processor is too slow for asr (#156) */ smallerAsr?: string[]; llm?: string; recommendedLlm?: string; /** meaning search across meetings; word search works without it */ embed?: string }
 
 /** the first notes model keeps being tried after ready: a minute, five, then every ten (a download picks up where it stopped) */
 const NOTES_RETRY_MS = [60_000, 5 * 60_000, 10 * 60_000]
@@ -265,7 +265,10 @@ export class SetupController {
           asr = pickAsr(hw, catalog, { exclude: tried })
         }
       }
-      this.paths = { asr: asrPath }
+      // never downloaded for this: only what is already there (a model the speed check or an earlier pick left)
+      const picked = catalog.asr.findIndex((a) => join(dirs.asr, fileNameFor(a.url)) === asrPath)
+      const smallerAsr = picked < 0 ? [] : catalog.asr.slice(picked + 1).map(asrItem).filter((i) => isVerified(i.dir, i.fileName, this.sha(i))).map((i) => join(i.dir, i.fileName))
+      this.paths = { asr: asrPath, ...(smallerAsr.length ? { smallerAsr } : {}) }
       if (hasUpgrade) {
         this.paths.recommendedLlm = join(bigger!.dir, bigger!.fileName)
         if (isVerified(starterItem.dir, starterItem.fileName, this.sha(starterItem))) this.paths.llm = join(starterItem.dir, starterItem.fileName)

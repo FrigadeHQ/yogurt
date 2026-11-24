@@ -235,6 +235,30 @@ describe('transcribe', () => {
     const tr = createTranscriber({ url: async () => 'http://127.0.0.1:1', recover: async () => false })
     await expect(tr(chunk('me', 0))).rejects.toThrow()
   })
+
+  // #76: a card that hangs twice moves to the processor on the second recovery; the chunk should still be read there
+  it('recovers twice at most for one chunk, then gives the error', async () => {
+    const s = await stub([say('Third time')])
+    let calls = 0, recovers = 0
+    const tr = createTranscriber({ url: async () => (calls++ < 2 ? 'http://127.0.0.1:1' : s.url), recover: async () => { recovers++; return true } })
+    expect((await tr(chunk('me', 0))).map((x) => x.text)).toEqual(['Third time'])
+    expect(recovers).toBe(2)
+    let n = 0
+    const never = createTranscriber({ url: async () => 'http://127.0.0.1:1', recover: async () => { n++; return true } })
+    await expect(never(chunk('me', 0))).rejects.toThrow()
+    expect(n).toBe(2)
+  })
+
+  // #156: on the processor the timeout follows its measured speed
+  it('asks how long a request may take for its length, and says how long finished readings took (not quick ones)', async () => {
+    const s = await stub([say('One'), say('Two')])
+    const asked: number[] = [], timed: number[] = []
+    const tr = createTranscriber({ url: async () => s.url, timeoutMs: (n) => { asked.push(n); return 5000 }, onTimed: (n, ms) => { timed.push(n); expect(ms).toBeGreaterThanOrEqual(0) } })
+    await tr(chunk('them', 0, 2))
+    await tr(chunk('them', 2000, 1), { partial: true })
+    expect(asked).toEqual([32000, 16000])
+    expect(timed).toEqual([32000])
+  })
 })
 
 describe('isGarbled', () => {

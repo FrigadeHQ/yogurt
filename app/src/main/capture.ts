@@ -23,7 +23,7 @@ export type Track = 'me' | 'them'
  */
 export type WarnCode = 'no-system-audio' | 'device-changed' | 'no-mic' | 'mic-gone'
 /** Transcription trouble, shown like the recorder's hints: some audio could not be transcribed / no speech model yet / the queue overflowed */
-export type TranscribeWarn = 'transcribe-failed' | 'no-speech-model' | 'falling-behind'
+export type TranscribeWarn = 'transcribe-failed' | 'no-speech-model' | 'falling-behind' | 'live-paused'
 const WARN_CODES: readonly string[] = ['no-system-audio', 'device-changed', 'no-mic', 'mic-gone'] satisfies WarnCode[]
 /** The mic recording now, after each start or switch: uid null is Auto (the Mac's default input), name the device's */
 export type MicInUse = { uid: string | null; name: string | null }

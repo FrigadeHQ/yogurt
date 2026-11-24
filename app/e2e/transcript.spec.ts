@@ -162,7 +162,7 @@ test('transcription trouble shows in the widget in plain words', async () => {
     const w = await windowOf(app, '#widget')
     await expect(w.getByTestId('widget-note')).toHaveText('Yogurt is falling behind. Some lines may be missing.')
     await fake(app, 'warn', 'transcribe-failed')
-    await expect(w.getByTestId('widget-note')).toHaveText("Some of this meeting couldn't be transcribed.")
+    await expect(w.getByTestId('widget-note')).toHaveText('Some lines are missing for now. Yogurt will fill them in from the recording after the meeting.')
   } finally { await app.close() }
 })
 

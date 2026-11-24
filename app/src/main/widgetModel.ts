@@ -39,7 +39,9 @@ export class WidgetModel {
   retitle(title: string): boolean { if (!this.m || this.m.title === title) return false; this.m = { ...this.m, title }; return true }
   warn(code: WarnCode | TranscribeWarn) {
     if (code === 'no-system-audio' || code === 'no-mic') this.missingAudio.add(code === 'no-mic' ? 'mic' : 'systemAudio')
-    else if (code === 'transcribe-failed' || code === 'no-speech-model' || code === 'falling-behind') this.textHint = code
+    // a pause says the most: nothing more comes live, so a later hint never replaces it
+    else if (code === 'live-paused') this.textHint = code
+    else if ((code === 'transcribe-failed' || code === 'no-speech-model' || code === 'falling-behind') && this.textHint !== 'live-paused') this.textHint = code
   }
   /** the helper was restarted: it records again */
   hiccup(now: number) { this.hiccupUntil = now + HICCUP_MS }
@@ -71,7 +73,8 @@ export class WidgetModel {
       else if (!muted && this.missingAudio.size === 2) note = { tone: 'hint', code: 'no-mic', missingAudio: ['mic', 'systemAudio'], text: this.mac ? t("Yogurt can't hear your microphone or the call. Turn on microphone and call audio in System Settings.") : this.noMic() }
       else if (!muted && this.missingAudio.has('mic')) note = { tone: 'hint', code: 'no-mic', text: this.mac ? t("Yogurt can't hear your mic. Allow it in System Settings.") : this.noMic() }
       else if (this.missingAudio.has('systemAudio')) note = { tone: 'hint', code: 'no-system-audio', text: this.mac ? t("Yogurt can't hear the call audio. Allow it in System Settings.") : t("Yogurt can't hear the call audio on this computer.") }
-      else if (this.textHint === 'transcribe-failed') note = { tone: 'hint', text: t("Some of this meeting couldn't be transcribed.") }
+      else if (this.textHint === 'live-paused') note = { tone: 'hint', text: t('Live transcription paused. Yogurt will finish the transcript from the recording after the meeting.') }
+      else if (this.textHint === 'transcribe-failed') note = { tone: 'hint', text: t('Some lines are missing for now. Yogurt will fill them in from the recording after the meeting.') }
       else if (this.textHint === 'no-speech-model') note = { tone: 'hint', text: t("The speech model isn't ready yet, so only audio is being saved.") }
       else if (this.textHint === 'falling-behind') note = { tone: 'hint', text: t('Yogurt is falling behind. Some lines may be missing.') }
     }

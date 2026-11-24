@@ -10,6 +10,7 @@ import { loadAec3 } from './aec3'
 import { echoConfidence } from './echo'
 import { appleSpeechAvailable, installSpeechLocale, readSpeechLocales, speechDisagrees, speechFits, wantedSpeechLocale, type SpeechHost, type SpeechLocales } from './appleSpeech'
 import { whisperLanguage, type Spoken } from '../../shared/spoken'
+import { basename } from 'node:path'
 import { createWhisperServer, recoverer, vadModelPath, whisperServerPath, type WhisperServer } from './server'
 import { clipStart, hearsClip } from './speedCheck'
 import { createTranscriber, type Line, type Transcribe } from './transcribe'
@@ -100,7 +101,7 @@ export function spokenChanged() {
   for (const s of sessions.values()) if (s.speech && !speechFits(spoken, s.speech)) speechOff(s, 'English only was picked')
 }
 /** segments and hideSegments: the echo sweep after the meeting (tests may leave them out) */
-type SessionStore = Pick<Store, 'updateMeeting'> & Partial<Pick<Store, 'segments' | 'hideSegments' | 'meeting'>>
+type SessionStore = Pick<Store, 'updateMeeting'> & Partial<Pick<Store, 'segments' | 'hideSegments' | 'meeting' | 'deleteSegments'>>
 
 let server: WhisperServer | undefined
 let serverKey: string | undefined
@@ -147,12 +148,12 @@ let gpuOffListener: (() => void) | undefined
 export function onWhisperGpuOff(cb: () => void) { gpuOffListener = cb }
 
 /** One whisper-server while meetings need it: started (warmed up) when one starts, let go a while after the last */
-function serverFor(model: string, pidFile: string | undefined, make?: (model: string, pidFile?: string) => WhisperServer): WhisperServer {
+function serverFor(model: string, pidFile: string | undefined, make?: (model: string, pidFile?: string) => WhisperServer, o: { cpuOnly?: boolean } = {}): WhisperServer {
   clearTimeout(idleTimer)
   const key = `${model}|${pidFile}`
   if (!server || serverKey !== key) {
     void server?.stop()
-    server = make ? make(model, pidFile) : createWhisperServer({ binary: whisperServerPath(), model, pidFile, vadModel: vadModelPath(), gpuFallback: process.platform !== 'darwin', onGpuOff: () => gpuOffListener?.(), checkGpu: async (url) => { const clip = clipStart(); return !clip || hearsClip(url, clip) } })
+    server = make ? make(model, pidFile) : createWhisperServer({ binary: whisperServerPath(), model, pidFile, vadModel: vadModelPath(), gpuFallback: process.platform !== 'darwin', cpuOnly: o.cpuOnly, onGpuOff: () => gpuOffListener?.(), checkGpu: async (url) => { const clip = clipStart(); return !clip || hearsClip(url, clip) } })
     serverKey = key
   }
   return server
@@ -174,9 +175,11 @@ function armServerIdle() {
 const NO_MODEL_NOTE_DELAY_MS = 400
 
 export function hookTranscription(p: {
-  store: Pick<Store, 'addSegments' | 'updateMeeting'> & Partial<Pick<Store, 'segments' | 'hideSegments' | 'meeting'>>
+  store: Pick<Store, 'addSegments' | 'updateMeeting'> & Partial<Pick<Store, 'segments' | 'hideSegments' | 'meeting' | 'deleteSegments'>>
   /** the speech model, once setup has it */
   modelPath: () => string | undefined
+  /** smaller speech models already on disk, best first: one takes over when the processor is too slow for the model (#156) */
+  smallerModels?: () => string[]
   send: (seg: Omit<Segment, 'id'>) => void
   /** saved echoes changed during recording or the final sweep: the window reads them again */
   refresh?: (meetingId: string) => void
@@ -241,11 +244,48 @@ export function hookTranscription(p: {
     else {
       const model = p.modelPath()
       if (model) {
-        const srv = serverFor(model, p.pidFile, p.server)
+        let srv = serverFor(model, p.pidFile, p.server)
         srv.resetBudget()
+        // no other meeting on it: a graphics card set aside earlier gets another chance (#156: it stayed off until a restart)
+        if (!sessions.size) srv.gpuAgain(later ? 'a saved recording' : 'a new meeting')
         // the model takes a few seconds to load: start now, so the first chunk does not wait for it
         srv.url().catch((e) => console.error('whisper-server did not start', e))
-        transcribe = createTranscriber({ url: () => srv.url(), recover: recoverer(srv), onLanguage: (_t, lang, chars, locked) => hear(lang, chars, locked), prompt: promptOf,
+        const pauseLive = (why: string) => {
+          if (s.pipeline?.paused()) return
+          console.warn(`ASR ${why}: live transcription pauses, and the saved recording finishes the transcript after the meeting`)
+          s.pipeline?.pause()
+          warnOnce('live-paused')
+        }
+        const tried = new Set([model])
+        let reading = model
+        let judged: WhisperServer | undefined
+        /**
+         * On the processor and slower than the audio (#156): a smaller model already on disk takes over, or live
+         * transcription pauses. A saved recording has no hurry: it just takes longer.
+         */
+        const tooSlow = () => {
+          if (later || judged === srv || !srv.tooSlow) return
+          judged = srv
+          const why = `whisper-server on the processor reads ${basename(reading)} at ${srv.cpuRtf ? `${srv.cpuRtf.toFixed(2)} x` : 'more than'} the audio's length`
+          const next = (p.smallerModels?.() ?? []).find((m) => !tried.has(m))
+          // only when no other meeting shares the server
+          if (next && [...sessions.values()].every((x) => x === s)) {
+            tried.add(next); reading = next
+            console.warn(`ASR ${why}: ${basename(next)} takes over for the rest of this meeting`)
+            srv = serverFor(next, p.pidFile, p.server, { cpuOnly: true })
+            srv.resetBudget()
+            srv.url().catch((e) => console.error('whisper-server did not start', e))
+            return
+          }
+          pauseLive(why)
+        }
+        // relaunches spent: nothing more goes to whisper this meeting
+        const gaveUp = () => { if (!later) pauseLive('whisper-server will not be started again this meeting') }
+        transcribe = createTranscriber({ url: () => srv.url(), recover: (reason, used) => recoverer(srv, { slow: tooSlow, gaveUp })(reason, used),
+          // a saved recording has no hurry: on the processor a request may take 10 times its audio
+          timeoutMs: (n) => (later && srv.cpuOnly ? Math.max(srv.timeoutMs(n), Math.round((n / 16) * 10)) : srv.timeoutMs(n)),
+          onTimed: (n, ms, used) => { srv.timed(n, ms, used); tooSlow() },
+          onLanguage: (_t, lang, chars, locked) => hear(lang, chars, locked), prompt: promptOf,
           language: () => options?.language ?? whisperLanguage(spokenNow()), signal: options?.signal })
       } else {
         console.warn('no speech model yet: this meeting is recorded but not transcribed')
@@ -278,7 +318,7 @@ export function hookTranscription(p: {
       }
     }
     const s: Session = {
-      complete: () => !!transcribe && !pendingBefore && !saveFailed && !warned.has('transcribe-failed') && !s.failed && !options?.signal?.aborted,
+      complete: () => !!transcribe && !pendingBefore && !saveFailed && !warned.has('transcribe-failed') && !s.failed && !options?.signal?.aborted && !s.pipeline?.paused() && !Object.keys(s.pipeline?.gaps() ?? {}).length,
       replacement: !!options?.save, liveEngine: !later && !!transcribe, store: p.store, refresh: p.refresh, speech: speechLocaleFor(id), priorLines: new Set(p.store.segments?.(id).map((s) => s.id) ?? []),
       pipeline: transcribe ? createPipeline({ meetingId: id, transcribe, save: (segs) => {
         try { if(options?.save) options.save(segs); else p.store.addSegments(segs) } catch (e) { saveFailed = true; throw e }
@@ -403,11 +443,30 @@ function sweepEcho(id: string, s: Session) {
   } catch (e) { console.error('hiding echoes failed', e) }
 }
 
+/**
+ * A track with audio that got no lines live (a failed or dropped chunk, or paused): its lines from there on go, and the
+ * saved recording reads the track again from that point (it starts where a track's lines end), so the transcript never
+ * has a hole in it (#156).
+ */
+function clearAfterGaps(id: string, s: Session) {
+  const gaps = s.pipeline?.gaps() ?? {}
+  const store = s.store
+  if (!store?.segments || !store.deleteSegments || !Object.keys(gaps).length) return
+  try {
+    const ids = store.segments(id, { hidden: true }).filter((l) => !s.priorLines.has(l.id) && l.startMs >= (gaps[l.track] ?? Infinity)).map((l) => l.id)
+    if (!ids.length) return
+    store.deleteSegments(ids)
+    console.warn(`ASR ${ids.length} line(s) after audio that got none are read again from the saved recording`)
+    s.refresh?.(id)
+  } catch (e) { console.error('clearing lines after a gap failed', e) }
+}
+
 /** After the recorder is done (no more audio coming), the pipeline finishes what it has, then echoes are swept */
 function finishSession(id: string, s: Session, audioDone: () => Promise<void> = () => Promise.resolve(), store?: SessionStore): Promise<void> {
   s.store ??= store
   let queued = false
   s.done ??= audioDone().then(() => s.pipeline?.finish()).then(() => {
+    if (!s.replacement) clearAfterGaps(id, s)
     if (!s.replacement) sweepEcho(id, s)
     if (!s.replacement && s.complete?.()) s.store?.updateMeeting(id, { transcriptionPending: false })
     // whisper-server went down partway (#127): the audio is all in the saved recording, so the rest is transcribed from

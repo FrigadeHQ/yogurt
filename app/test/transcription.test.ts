@@ -326,7 +326,7 @@ describe('whisper-server between meetings', () => {
     const make = () => {
       const rec = { urls: 0, stops: 0 }
       made.push(rec)
-      return { url: async () => { rec.urls++; return 'http://127.0.0.1:1' }, resetBudget: () => {}, wedged: async () => 'http://127.0.0.1:1', alive: async () => true, kill: () => {}, stop: async () => { rec.stops++ } } as unknown as import('../src/main/asr/server').WhisperServer
+      return { url: async () => { rec.urls++; return 'http://127.0.0.1:1' }, resetBudget: () => {}, gpuAgain: () => false, timeoutMs: () => 30_000, timed: () => {}, tooSlow: false, cpuRtf: null, wedged: async () => 'http://127.0.0.1:1', alive: async () => true, kill: () => {}, stop: async () => { rec.stops++ } } as unknown as import('../src/main/asr/server').WhisperServer
     }
     return { made, make }
   }
@@ -392,6 +392,116 @@ describe('whisper-server between meetings', () => {
     expect(s.made).toHaveLength(1)
     expect(s.made[0].stops).toBe(0)
     await h.end(b)
+  })
+})
+
+// #156: on a processor too slow for the model, live transcription gave up mid-meeting, and the audio it missed was never read
+describe('when whisper cannot keep up', () => {
+  /** a whisper-server stand-in that answers every request with one line */
+  async function inference() {
+    const { createServer } = await import('node:http')
+    const srv = createServer((q, r) => { q.resume(); q.on('end', () => r.end(JSON.stringify({ detected_language: 'english', detected_language_probability: 0.99, segments: [{ start: 0, end: 0.5, text: ' Fine words here today' }] }))) })
+    await new Promise<void>((res) => srv.listen(0, '127.0.0.1', () => res()))
+    disposers.push(() => srv.close())
+    return `http://127.0.0.1:${(srv.address() as { port: number }).port}`
+  }
+  /** stand-in servers on the processor that judge themselves too slow once they have read `slowAfter` chunks */
+  function servers(url: string, slowAfter = 1) {
+    const made: Array<{ model: string; timed: number; gpuAgain: string[] }> = []
+    const make = (model: string) => {
+      const rec = { model, timed: 0, gpuAgain: [] as string[] }
+      made.push(rec)
+      return { url: async () => url, resetBudget: () => {}, gpuAgain: (why: string) => { rec.gpuAgain.push(why); return false }, timeoutMs: () => 30_000,
+        timed: () => { rec.timed++ }, get tooSlow() { return rec.timed >= slowAfter }, cpuRtf: 1.8, cpuOnly: true, slow: () => {},
+        wedged: async () => url, alive: async () => true, kill: () => {}, stop: async () => {} } as unknown as import('../src/main/asr/server').WhisperServer
+    }
+    return { made, make }
+  }
+  function hooks(make: (model: string) => import('../src/main/asr/server').WhisperServer, smaller: string[] = [], capture = true) {
+    const starts: Array<(m: Meeting) => void> = [], stops: Array<(m: Meeting) => void> = []
+    const warns: string[] = [], queued: string[] = []
+    disposers.push(hookTranscription({
+      store, modelPath: () => '/turbo.bin', smallerModels: () => smaller, send: () => {}, warn: (c) => warns.push(c), server: make, serverIdleMs: 60_000, holdMs: 0,
+      queued: (id) => queued.push(id), onStart: (fn) => { starts.push(fn) }, onStop: (fn) => { stops.push(fn) },
+    }))
+    const procs: ReturnType<typeof fakeProc>[] = []
+    if (capture) hookCapture({
+      dirOf: (id) => `/m/${id}`, onStart: (fn) => { starts.push(fn); return () => {} }, onStop: (fn) => { stops.push(fn); return () => {} }, stopMeeting: () => {},
+      start: (_d, o) => { const f = fakeProc(); procs.push(f); return new Capture(f.proc, { startMs: o?.startMs }) }, join: async () => {},
+    })
+    return { warns, queued, procs, begin: (m: Meeting) => starts.forEach((f) => f(m)),
+      end: async (m: Meeting) => { stops.forEach((f) => f(m)); procs.at(-1)?.exit(0); await recordingFinished(m.id); await settleTranscription(5000) } }
+  }
+  const quietly = () => { const w = vi.spyOn(console, 'warn').mockImplementation(() => {}); return () => w.mockRestore() }
+
+  it('too slow on the processor with no smaller model: live transcription pauses, says so, and the saved recording finishes it', async () => {
+    const restore = quietly()
+    const s = servers(await inference())
+    const h = hooks(s.make)
+    const m = meeting()
+    h.begin(m)
+    h.procs[0].say('them', 500)
+    await vi.waitFor(() => expect(h.warns).toEqual(['live-paused']))
+    h.procs[0].say('them', 4000)
+    await tick()
+    await h.end(m)
+    expect(store.segments(m.id).map((x) => x.startMs)).toEqual([500])
+    expect(store.meeting(m.id)?.transcriptionState).toBe('queued')
+    expect(h.queued).toEqual([m.id])
+    restore()
+  })
+
+  it('too slow on the processor with a smaller model on disk: that one takes over and live transcription goes on', async () => {
+    const restore = quietly()
+    const s = servers(await inference())
+    const h = hooks(s.make, ['/small.bin'])
+    const m = meeting()
+    h.begin(m)
+    h.procs[0].say('them', 500)
+    await vi.waitFor(() => expect(s.made.map((x) => x.model)).toEqual(['/turbo.bin', '/small.bin']))
+    h.procs[0].say('them', 4000)
+    await vi.waitFor(() => expect(s.made[1].timed).toBe(1))
+    // the smaller one is too slow as well: nothing smaller is left, so it pauses
+    expect(h.warns).toEqual(['live-paused'])
+    await h.end(m)
+    expect(store.segments(m.id).map((x) => x.startMs)).toEqual([500, 4000])
+    restore()
+  })
+
+  it('a chunk that got no lines: the lines after it on that track go, and the saved recording reads the track again from there', async () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const restore = quietly()
+    const refreshed: string[] = []
+    const r = rig('transcription-first', { refresh: (id) => refreshed.push(id), holdMs: 0, transcriber: async (c) => { if (c.track === 'them' && c.startMs === 4000) throw new Error('boom'); return says(c) } })
+    const m = meeting()
+    r.begin(m)
+    r.procs[0].say('them', 500); r.procs[0].say('me', 500)
+    await tick()
+    r.procs[0].say('them', 4000)
+    await tick()
+    r.procs[0].say('them', 8000); r.procs[0].say('me', 8000)
+    await tick()
+    await r.stop(m)
+    expect(store.segments(m.id, { hidden: true }).map((x) => `${x.track}@${x.startMs}`).sort()).toEqual(['me@500', 'me@8000', 'them@500'])
+    expect(store.meeting(m.id)?.transcriptionState).toBe('queued')
+    expect(refreshed).toContain(m.id)
+    errors.mockRestore(); restore()
+  })
+
+  it('the graphics card gets another chance at each meeting and before a saved recording, never while another meeting uses the server', async () => {
+    const s = servers('http://127.0.0.1:1', Infinity)
+    const h = hooks(s.make, [], false)
+    const a = meeting()
+    h.begin(a)
+    const b = meeting()
+    h.begin(b)
+    expect(s.made[0].gpuAgain).toEqual(['a new meeting'])
+    await h.end(a); await h.end(b)
+    const c = meeting()
+    store.updateMeeting(c.id, { state: 'stopped', transcriptionPending: true })
+    async function* none(): AsyncGenerator<Float32Array> { yield new Float32Array(0) }
+    await transcribeRecorded(c.id, { them: none() })
+    expect(s.made[0].gpuAgain).toEqual(['a new meeting', 'a saved recording'])
   })
 })
 

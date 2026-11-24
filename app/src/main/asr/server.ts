@@ -5,6 +5,7 @@ import { createServer } from 'node:net'
 import { availableParallelism } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { helperFile } from '../../shared/platform'
+import { requestTimeoutMs } from './transcribe'
 
 /**
  * whisper-server (whisper.cpp, built by scripts/native.sh) on 127.0.0.1 with a random port.
@@ -93,12 +94,22 @@ type Opts = {
    * Radeon RX 9070 XT) load whisper and answer every request with nothing; then it runs on the processor instead.
    */
   checkGpu?: (url: string) => Promise<boolean>
+  /** start on the processor (a smaller model taking over in a meeting that already set the graphics card aside) */
+  cpuOnly?: boolean
 }
 
 /** a meeting relaunches a dead or hung server at most this often, waiting longer each time */
 export const RELAUNCH_BACKOFF_MS = [1000, 5000, 15_000]
 /** this long without trouble since the last relaunch, and the relaunches are all there again */
 export const HEALTHY_RESET_MS = 10 * 60_000
+/**
+ * On the processor, a model that takes longer than the audio it reads can't keep up with a meeting (#156: large-v3-turbo
+ * took 1.7 times a clip's length on an i5-10400F). The time counts waiting behind the other track's request, which is
+ * what keeping up means.
+ */
+export const LIVE_CPU_RTF = 1
+/** finished requests on the processor it takes to judge its speed */
+const CPU_SAMPLES = 2
 
 export function createWhisperServer(o: Opts) {
   let child: ChildProcess | null = null
@@ -115,8 +126,21 @@ export function createWhisperServer(o: Opts) {
   let lastRelaunch = 0
   /** the program went away without being asked to */
   let died = false
-  /** a launch died before it answered, with gpuFallback: the graphics stay off from now on */
-  let cpuOnly = false
+  /** with gpuFallback: the graphics card was set aside, until gpuAgain (the next meeting, or a saved recording) */
+  let cpuOnly = o.cpuOnly ?? false
+  /** why and when it was set aside, for the log when it is tried again */
+  let offReason = ''
+  /** time over audio length of the latest finished requests on the processor */
+  let cpuRtfs: number[] = []
+  /** requests on the processor that ran out of time while the server still answered */
+  let slowOnCpu = 0
+  const gpuOff = (why: string) => {
+    cpuOnly = true
+    offReason = `${why} (${new Date(now()).toISOString()})`
+    cpuRtfs = []; slowOnCpu = 0
+    console.error(`whisper-server ${why}; starting it again without the graphics card`)
+    o.onGpuOff?.()
+  }
   /** hangs on the graphics card (gpuFallback): the second one turns them off (#76) */
   let gpuHangs = 0
   /** a hang on the graphics card twice (#76: a GTX 1050 Ti under Vulkan never answered) turns them off for good */
@@ -169,7 +193,7 @@ export function createWhisperServer(o: Opts) {
     let up: string
     try { up = await Promise.race([healthy, gone]) } catch (e) {
       healthy.catch(() => {})
-      if (o.gpuFallback && !cpuOnly && !ended.has(p) && (p.exitCode !== null || p.signalCode !== null)) { cpuOnly = true; console.error('whisper-server stopped while loading; starting it again without the graphics card'); o.onGpuOff?.() }
+      if (o.gpuFallback && !cpuOnly && !ended.has(p) && (p.exitCode !== null || p.signalCode !== null)) gpuOff('stopped while loading')
       p.kill('SIGKILL')
       throw e
     }
@@ -177,9 +201,7 @@ export function createWhisperServer(o: Opts) {
       let hears = true
       try { hears = await o.checkGpu(up) } catch (e) { console.warn('whisper-server: checking the graphics card failed', e) }
       if (!hears) {
-        cpuOnly = true
-        console.error('whisper-server heard no words on the graphics card; starting it again without it')
-        o.onGpuOff?.()
+        gpuOff('heard no words on the graphics card')
         if (child === p) { child = null; died = false }
         p.kill('SIGKILL')
         return launch()
@@ -216,6 +238,37 @@ export function createWhisperServer(o: Opts) {
     /** a new meeting: all relaunches again */
     resetBudget() { used = 0 },
     /**
+     * The graphics card gets another chance (#156: once set aside it stayed off until Yogurt restarted, and the saved
+     * recording was read on a processor too slow for the model). Asked with no meeting using the server, at the next
+     * meeting and before a saved recording; within a meeting, a card that failed twice stays off. true: it will try.
+     */
+    gpuAgain(why: string): boolean {
+      if (!o.gpuFallback || !cpuOnly || starting) return false
+      console.info('ASR', `whisper-server tries the graphics card again for ${why}; it was set aside because it ${offReason || 'failed earlier'}`)
+      cpuOnly = false; gpuHangs = 0; cpuRtfs = []; slowOnCpu = 0
+      const p = child
+      if (p) { ended.add(p); child = null; address = null; p.kill('SIGKILL') }
+      died = false
+      return true
+    },
+    /** how long a request with this many samples may take: on the processor, as long as its measured speed needs */
+    timeoutMs(samples: number): number {
+      const base = requestTimeoutMs(samples)
+      if (!cpuOnly || !cpuRtfs.length) return base
+      return Math.max(base, Math.round((samples / 16) * Math.max(...cpuRtfs) * 4))
+    },
+    /** a careful (final) request finished in ms: on the processor, that is its speed (not if it went to an older launch) */
+    timed(samples: number, ms: number, at?: string) {
+      if (!cpuOnly || samples <= 0 || (at !== undefined && at !== launchUrl)) return
+      cpuRtfs = [...cpuRtfs, ms / (samples / 16)].slice(-5)
+    },
+    /** a request on the processor ran out of time while the server still answered: slow, not stuck */
+    slow() { if (cpuOnly) slowOnCpu++ },
+    /** the processor's speed with this model, time over audio length (null: not measured yet) */
+    get cpuRtf(): number | null { return cpuOnly && cpuRtfs.length ? cpuRtfs.reduce((a, b) => a + b, 0) / cpuRtfs.length : null },
+    /** on the processor and too slow to keep up with a meeting */
+    get tooSlow(): boolean { return cpuOnly && (slowOnCpu > 0 || (cpuRtfs.length >= CPU_SAMPLES && (self.cpuRtf ?? 0) > LIVE_CPU_RTF)) },
+    /**
      * It hangs or died: kill it and start another (the same relaunch as after a crash). `used` is the address the failed
      * request went to (`at`); if a newer launch exists or is starting, another request already did this, so just wait for that one.
      */
@@ -225,11 +278,9 @@ export function createWhisperServer(o: Opts) {
       if (p) { child = null; address = null; p.kill('SIGKILL') }
       died = true
       if (o.gpuFallback && !cpuOnly && ++gpuHangs >= GPU_HANGS) {
-        cpuOnly = true
         // a new way of running: the meeting's relaunches start over for it
         used = 0
-        console.error('whisper-server hung twice on the graphics card; starting it again without it')
-        o.onGpuOff?.()
+        gpuOff('hung twice on the graphics card')
       }
       return self.url()
     },
@@ -259,14 +310,26 @@ export function createWhisperServer(o: Opts) {
 }
 export type WhisperServer = ReturnType<typeof createWhisperServer>
 
-/** What the transcriber does when a request fails: a timeout means it hung, anything else is checked with a ping */
-export const recoverer = (srv: WhisperServer) => async (reason: 'gone' | 'timeout', used?: string): Promise<boolean> => {
+/**
+ * What the transcriber does when a request fails. Anything but a timeout is checked with a ping. A timeout on the
+ * graphics card means it hung (#76: the health check still answers then). On the processor, a server that still
+ * answers is slow, not stuck (#156): relaunching it would only start the same slow work again and spend the meeting's
+ * relaunches, so the request just fails (the saved recording fills it in) and `slow` is told.
+ */
+export const recoverer = (srv: WhisperServer, on: { slow?: () => void; gaveUp?: () => void } = {}) => async (reason: 'gone' | 'timeout', used?: string): Promise<boolean> => {
   try {
     if (reason === 'gone' && used && (await srv.alive(used))) return true
+    if (reason === 'timeout' && srv.cpuOnly && used && (await srv.alive(used))) {
+      console.warn(`whisper-server on the processor is slow, not stuck${srv.cpuRtf ? ` (${srv.cpuRtf.toFixed(2)} x the audio's length)` : ''}: not relaunched`)
+      srv.slow()
+      on.slow?.()
+      return false
+    }
     await srv.wedged(used)
     return true
   } catch (e) {
     console.error('whisper-server could not be brought back', e)
+    on.gaveUp?.()
     return false
   }
 }

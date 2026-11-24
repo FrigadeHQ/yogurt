@@ -180,6 +180,39 @@ describe('pipeline when whisper falls behind', () => {
     await s.p.finish()
     expect(s.warns).toEqual(['transcribe-failed'])
   })
+
+  // #156: chunks that got no lines live are never just lost: the saved recording reads the track again from there
+  it('says where on each track the first chunk without lines starts: failed or dropped', async () => {
+    const s = setup((c) => { if (c.track === 'them' && c.startMs === 3000) throw new Error('boom'); return [line(c, 'fine')] })
+    s.speak('them', 0); s.speak('them', 3000); s.speak('them', 6000); s.speak('me', 0)
+    await s.p.finish()
+    expect(s.p.gaps()).toEqual({ them: 3000 })
+    const g = stalled()
+    const d = setup(g.say, { maxQueuedMs: 2000 })
+    for (let i = 0; i < 5; i++) d.speak('them', i * 3000)
+    g.release()
+    await d.p.finish()
+    expect(d.p.gaps()).toEqual({ them: d.p.stats().dropped[0].startMs })
+    const ok = setup((c) => [line(c, 'fine')])
+    ok.speak('me', 0)
+    await ok.p.finish()
+    expect(ok.p.gaps()).toEqual({})
+  })
+
+  it('paused, nothing more goes to whisper: what waited and what comes is left to the saved recording', async () => {
+    const g = stalled()
+    const s = setup(g.say)
+    s.speak('them', 0); s.speak('them', 3000); s.speak('me', 6000)
+    s.p.pause()
+    expect(s.p.paused()).toBe(true)
+    s.speak('me', 9000); s.speak('them', 12000)
+    g.release()
+    await s.p.finish()
+    // the ones already with whisper keep their lines
+    expect(g.calls.map((c) => [c.track, c.startMs])).toEqual([['them', 0], ['me', 6000]])
+    expect(s.saved).toHaveLength(2)
+    expect(s.p.gaps()).toEqual({ them: 3000, me: 9000 })
+  })
 })
 
 describe('partials', () => {

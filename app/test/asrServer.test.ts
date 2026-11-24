@@ -7,7 +7,8 @@ import { createTranscriber } from '../src/main/asr/transcribe'
 
 /**
  * a stand-in for the whisper-server program: answers GET / on --host/--port once it has "loaded".
- * modes: what each launch does with a request to /inference (the last one repeats): ok, crash (exits), wedge (never answers).
+ * modes: what each launch does with a request to /inference (the last one repeats): ok, crash (exits), wedge (never answers),
+ * slow (answers after 800 ms).
  */
 function fakeBinary(loadMs = 0, modes: string[] = ['ok']) {
   const dir = mkdtempSync(join(tmpdir(), 'yogurt-ws-'))
@@ -27,7 +28,8 @@ function fakeBinary(loadMs = 0, modes: string[] = ['ok']) {
       q.resume()
       if (mode === 'crash') process.exit(1)
       if (mode === 'wedge') return
-      q.on('end', () => r.end(JSON.stringify({ detected_language: 'english', detected_language_probability: 0.99, segments: [{ start: 0, end: 1, text: ' Fine words here today' }] })))
+      const ans = () => r.end(JSON.stringify({ detected_language: 'english', detected_language_probability: 0.99, segments: [{ start: 0, end: 1, text: ' Fine words here today' }] }))
+      q.on('end', () => (mode === 'slow' ? setTimeout(ans, 800) : ans()))
     }).listen(port, host), ${loadMs})
   `)
   const bin = join(dir, 'whisper-server')
@@ -296,6 +298,103 @@ describe.skipIf(process.platform === 'win32')('restart budget', () => {
     for (let i = 0; i < 3 && !got.length; i++) got = await tr(chunk).catch(() => [])
     expect(got.length).toBe(1)
     expect(srv.launches).toBeGreaterThan(4)
+  })
+})
+
+// #156: large-v3-turbo on an i5-10400F took 1.7 times the audio; every timeout spent a relaunch until transcription stopped
+describe.skipIf(process.platform === 'win32')('slow on the processor', () => {
+  it('a request on the processor that runs out of time while the server answers is slow, not stuck: no relaunch', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const srv = make(fakeBinary(0, ['slow']), { gpuFallback: true, cpuOnly: true })
+    const slow = vi.fn()
+    const tr = createTranscriber({ url: () => srv.url(), recover: recoverer(srv, { slow }), timeoutMs: 300 })
+    for (let i = 0; i < 4; i++) await expect(tr(chunk)).rejects.toThrow()
+    expect(srv.launches).toBe(1)
+    expect(slow).toHaveBeenCalledTimes(4)
+    expect(srv.tooSlow).toBe(true)
+    // it still answers, and a request with time enough goes through
+    expect((await createTranscriber({ url: () => srv.url(), timeoutMs: 5000 })(chunk)).length).toBe(1)
+    warn.mockRestore()
+  })
+
+  it('on the graphics card a timeout is still a hang', async () => {
+    const srv = make(fakeBinary(0, ['slow', 'ok']), { gpuFallback: true })
+    const slow = vi.fn()
+    const tr = createTranscriber({ url: () => srv.url(), recover: recoverer(srv, { slow }), timeoutMs: 300 })
+    expect((await tr(chunk)).length).toBe(1)
+    expect(srv.launches).toBe(2)
+    expect(slow).not.toHaveBeenCalled()
+  })
+
+  it('the relaunches spent, the transcriber is told it gave up', async () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const srv = make(fakeBinary(0, ['crash']))
+    const gaveUp = vi.fn()
+    const tr = createTranscriber({ url: () => srv.url(), recover: recoverer(srv, { gaveUp }) })
+    for (let i = 0; i < 6; i++) await expect(tr(chunk)).rejects.toThrow()
+    expect(gaveUp).toHaveBeenCalled()
+    errors.mockRestore()
+  })
+})
+
+describe('speed on the processor', () => {
+  const srv = (cpuOnly: boolean) => createWhisperServer({ binary: '/none', model: '/m.bin', gpuFallback: true, cpuOnly })
+  it('the timeout follows the measured speed on the processor, and stays as it was on the graphics card', () => {
+    const s = srv(true)
+    expect(s.timeoutMs(16000 * 15)).toBe(60_000)
+    expect(s.cpuRtf).toBeNull()
+    s.timed(16000 * 15, 26_800)
+    expect(s.cpuRtf).toBeCloseTo(1.79, 2)
+    // 15 s at 1.79 x, 4 times over: room to wait behind the other track too
+    expect(s.timeoutMs(16000 * 15)).toBe(Math.round(15_000 * (26_800 / 15_000) * 4))
+    const g = srv(false)
+    g.timed(16000 * 15, 26_800)
+    expect(g.timeoutMs(16000 * 15)).toBe(60_000)
+    expect(g.cpuRtf).toBeNull()
+  })
+  it('too slow once two readings took longer than their audio', () => {
+    const s = srv(true)
+    s.timed(16000 * 10, 17_000)
+    expect(s.tooSlow).toBe(false)
+    s.timed(16000 * 10, 18_000)
+    expect(s.tooSlow).toBe(true)
+    const fast = srv(true)
+    fast.timed(16000 * 10, 4000); fast.timed(16000 * 10, 5000)
+    expect(fast.tooSlow).toBe(false)
+  })
+  it('a reading that went to an older launch (another model, before a relaunch) does not count', () => {
+    const s = srv(true)
+    s.timed(16000 * 10, 30_000, 'http://127.0.0.1:9')
+    expect(s.cpuRtf).toBeNull()
+  })
+})
+
+describe.skipIf(process.platform === 'win32')('the graphics card again', () => {
+  it('a server that set the graphics card aside tries it again when asked (a new meeting, a saved recording), and says why in the log', async () => {
+    const bin = fakeBinary(0, ['wedge', 'wedge', 'ok'])
+    const args = () => JSON.parse(readFileSync(join(bin, '../args'), 'utf8')) as string[]
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {})
+    const s = make(bin, { gpuFallback: true, backoffMs: [0, 0] })
+    await s.wedged(await s.wedged(await s.url()))
+    expect(s.cpuOnly).toBe(true)
+    const cpu = await s.url()
+    expect(args()).toContain('-ng')
+    expect(s.gpuAgain('a new meeting')).toBe(true)
+    expect(s.cpuOnly).toBe(false)
+    expect(info.mock.calls.map((a) => a.join(' ')).some((l) => /tries the graphics card again for a new meeting; it was set aside because it hung twice on the graphics card/.test(l))).toBe(true)
+    const gpu = await s.url()
+    expect(gpu).not.toBe(cpu)
+    expect(args()).not.toContain('-ng')
+    // starting again for the graphics card is not a relaunch after trouble: none of the meeting's are used
+    expect(s.launches).toBe(4)
+    // already on the graphics card: nothing to do
+    expect(s.gpuAgain('a new meeting')).toBe(false)
+    errors.mockRestore(); info.mockRestore()
+  })
+
+  it('a Mac never needs it', () => {
+    expect(createWhisperServer({ binary: '/none', model: '/m.bin' }).gpuAgain('a new meeting')).toBe(false)
   })
 })
 

@@ -45,9 +45,11 @@ type Opts = {
   url: () => Promise<string>
   /** a request failed: bring the server back (true) or give up (false). Asked on each failed call; the server decides how often it agrees. */
   recover?: (reason: 'gone' | 'timeout', used?: string) => Promise<boolean>
-  /** how long one request may take before the server is taken to be hung (default: requestTimeoutMs) */
   signal?: AbortSignal
-  timeoutMs?: number
+  /** how long one request may take before the server is taken to be hung (default: requestTimeoutMs), or how long for this many samples */
+  timeoutMs?: number | ((samples: number) => number)
+  /** a careful (not partial) request to the server at `used` finished, after ms: how fast it reads */
+  onTimed?: (samples: number, ms: number, used?: string) => void
   fetchFn?: typeof fetch
   /** the language a chunk was heard in, and how much was said in it (the notes are written in the main one) */
   /** locked: the track already had a language lock when this chunk was heard (one odd chunk before the lock should change nothing) */
@@ -99,16 +101,21 @@ export function createTranscriber(o: Opts): Transcribe {
       if (!guess) form.set('no_language_probabilities', 'true')
       if (prompt) form.set('prompt', prompt)
       used = await o.url()
-      return fetchFn(`${used}/inference`, { method: 'POST', body: form, signal: o.signal ? AbortSignal.any([o.signal, AbortSignal.timeout(o.timeoutMs ?? requestTimeoutMs(c.samples.length))]) : AbortSignal.timeout(o.timeoutMs ?? requestTimeoutMs(c.samples.length)) })
+      const ms = typeof o.timeoutMs === 'function' ? o.timeoutMs(c.samples.length) : o.timeoutMs ?? requestTimeoutMs(c.samples.length)
+      return fetchFn(`${used}/inference`, { method: 'POST', body: form, signal: o.signal ? AbortSignal.any([o.signal, AbortSignal.timeout(ms)]) : AbortSignal.timeout(ms) })
     }
-    let res: Response
-    try { res = await send() } catch (err) {
-      // the server crashed or hung: one chance to bring it back, then the chunk is tried again
-      o.signal?.throwIfAborted()
-      const reason = err instanceof Error && err.name === 'TimeoutError' ? 'timeout' : 'gone'
-      if (!(await o.recover?.(reason, used).catch(() => false))) throw err
-      res = await send()
+    let res: Response | undefined
+    let t0 = 0
+    // the server crashed or hung: it is brought back and the chunk tried again, twice at most (a graphics card that hangs
+    // twice moves to the processor on the second, #76, and the chunk still gets read)
+    for (let tries = 0; !res; tries++) {
+      try { t0 = Date.now(); res = await send() } catch (err) {
+        o.signal?.throwIfAborted()
+        const reason = err instanceof Error && err.name === 'TimeoutError' ? 'timeout' : 'gone'
+        if (tries >= 2 || !(await o.recover?.(reason, used).catch(() => false))) throw err
+      }
     }
+    if (res.ok && !partial) o.onTimed?.(c.samples.length, Date.now() - t0, used)
     if (!res.ok) throw new Error(`whisper-server answered ${res.status}`)
     const body = (await res.json()) as Verbose
     const lines: Line[] = []
