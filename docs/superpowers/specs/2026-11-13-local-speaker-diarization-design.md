@@ -427,7 +427,11 @@ speaker names matter in notes, a “names changed” hint can be added later.
   assigning re-check; a **Summarize now** button on the note releases the meeting for good
   (`meetings.labels_released`), and the wait also survives an app restart (the recovery re-arms it
   instead of summarizing silently). Meetings that never diarized, or whose diarization failed,
-  summarize at once.
+  summarize at once. While it is on, the tray icon shows a red exclamation mark on the Yogurt logo
+  for a stopped, diarized, unreleased meeting **with no summary written yet** that is less than a
+  day old — the same rule the banner follows, so the icon never nags about a meeting the app is
+  not actually waiting for. The recording dot stays on top while recording; the tooltip names the
+  wait and the menu lists it.
 - New setting `speakerProfiles?: boolean` in `settings.json`, **off by default**.
 - First enable shows a consent panel explaining that a voiceprint is biometric data, stays on this
   computer, and can be deleted at any time.

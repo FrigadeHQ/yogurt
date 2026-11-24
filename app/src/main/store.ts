@@ -755,10 +755,14 @@ export class Store {
   releaseLabels(id: string) { this.db.prepare('UPDATE meetings SET labels_released = 1 WHERE id = ?').run(id) }
   /** a meeting records again: its labels start over */
   resetLabels(id: string) { this.db.prepare('UPDATE meetings SET labels_released = 0 WHERE id = ?').run(id) }
-  /** any meeting the person still has to label (the tray's exclamation mark); a day after it started, a meeting
-   * stops asking for attention — older ones keep their banner but the tray stays quiet */
+  /** any meeting the person still has to label (the tray's exclamation mark): a stopped meeting whose summary has
+   * not been written yet and still has unlabeled voices or unclaimed lines. A day after it started, a meeting stops
+   * asking for attention — older ones keep their banner but the tray stays quiet. Already-summarized meetings with
+   * leftover lines never count: their banner is long gone. */
   anyLabelsPending(now = Date.now()): boolean {
-    const ids = this.db.prepare('SELECT id FROM meetings WHERE trashed_at IS NULL AND diarized_at IS NOT NULL AND diarize_error IS NULL AND labels_released = 0 AND started_at >= ?').all(now - 24 * 60 * 60 * 1000) as Row[]
+    const ids = this.db.prepare(`SELECT m.id FROM meetings m WHERE m.trashed_at IS NULL AND m.state = 'stopped' AND m.diarized_at IS NOT NULL
+      AND m.diarize_error IS NULL AND m.labels_released = 0 AND m.started_at >= ?
+      AND NOT EXISTS (SELECT 1 FROM notes n WHERE n.meeting_id = m.id AND n.enhanced IS NOT NULL)`).all(now - 24 * 60 * 60 * 1000) as Row[]
     return ids.some(r => this.labelsPending(String(r.id)))
   }
 

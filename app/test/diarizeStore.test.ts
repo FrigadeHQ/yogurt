@@ -133,8 +133,8 @@ describe('diarization store', () => {
 
   it('labelsPending: a diarized meeting with a Speaker N voice or an unclaimed line waits, until named or released', () => {
     const s = fresh()
-    // started now: the meeting is recent enough to ask for attention (the tray's exclamation mark)
-    const m = s.createMeeting({ ...base, startedAt: Date.now() })
+    // started now, and stopped: the meeting is recent enough to ask for attention (the tray's exclamation mark)
+    const m = s.createMeeting({ ...base, startedAt: Date.now(), state: 'stopped' })
     s.addSegments([
       { meetingId: m.id, track: 'them', startMs: 0, endMs: 900, text: 'a', speaker: 'Speaker 1', speakerKey: 'v1' },
       { meetingId: m.id, track: 'them', startMs: 1000, endMs: 1900, text: 'b', speaker: null, speakerKey: null },
@@ -170,6 +170,28 @@ describe('diarization store', () => {
     expect(s.anyLabelsPending(Date.now() + 25 * 60 * 60 * 1000)).toBe(false)
     expect(s.labelsPending(m.id)).toBe(true)
     expect(s.anyLabelsPending()).toBe(true)
+  })
+
+  it('anyLabelsPending: a meeting whose summary is already written never counts, whatever its leftovers', () => {
+    const s = fresh()
+    // the real case: a test meeting with one leftover line, summarized before the label-wait switch existed
+    const old = s.createMeeting({ ...base, startedAt: Date.now(), state: 'stopped' })
+    s.addSegments([
+      { meetingId: old.id, track: 'them', startMs: 0, endMs: 900, text: 'a', speaker: 'ben', speakerKey: 'v1' },
+      { meetingId: old.id, track: 'them', startMs: 1000, endMs: 1900, text: 'b', speaker: null, speakerKey: null },
+    ])
+    s.markDiarized(old.id)
+    s.setNotes(old.id, { enhanced: '## Done' })
+    expect(s.labelsPending(old.id)).toBe(true)
+    expect(s.anyLabelsPending()).toBe(false)
+    // a meeting that has no summary yet asks for attention
+    const waiting = s.createMeeting({ ...base, startedAt: Date.now(), state: 'stopped' })
+    s.addSegments([{ meetingId: waiting.id, track: 'them', startMs: 0, endMs: 900, text: 'a', speaker: 'Speaker 1', speakerKey: 'v9' }])
+    s.markDiarized(waiting.id)
+    expect(s.anyLabelsPending()).toBe(true)
+    // and writing its summary ends the ask, without the person labeling
+    s.setNotes(waiting.id, { enhanced: '## Done' })
+    expect(s.anyLabelsPending()).toBe(false)
   })
 
   it('createMeeting persists voicesAllowed and diarizeError, so re-reads agree with the object in hand', () => {
