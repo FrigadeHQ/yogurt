@@ -90,7 +90,7 @@ mac:
     NSBluetoothAlwaysUsageDescription: Yogurt doesn't use Bluetooth.
     NSBluetoothPeripheralUsageDescription: Yogurt doesn't use Bluetooth.
   # signs with the Developer ID certificate in the keychain (or CSC_LINK on CI); notarized by scripts/release-mac.sh or CI
-# Windows and Linux: unsigned, built by .github/workflows/preview.yml (by hand, or for a release from release.yml).
+# Windows and Linux (x86_64 and arm64): unsigned, built by .github/workflows/preview.yml (by hand, or for a release from release.yml).
 win:
   # a platform's files list replaces the one above, so it repeats it
   files:
@@ -129,9 +129,10 @@ linux:
   files:
     - out/**
     - package.json
-    # this Linux build only needs the x64 Linux engine binaries
-    - "!**/node_modules/@node-llama-cpp/{mac,win,linux-arm,linux-riscv}*/**"
-    - "!**/node_modules/node-llama-cpp/bins/{mac,win,linux-arm,linux-riscv}*/**"
+    # this Linux build needs only the engine binaries for the arch it's built on (x64, or arm64 on an arm runner);
+    # pnpm installs only that arch's package, so only the platforms Yogurt never ships go
+    - "!**/node_modules/@node-llama-cpp/{mac,win,linux-armv7l,linux-riscv}*/**"
+    - "!**/node_modules/node-llama-cpp/bins/{mac,win,linux-armv7l,linux-riscv}*/**"
   # the default comes from the package name, which isn't a good file name
   executableName: yogurt
   # added to the extra resources above (unlike files, these merge): the word list for lowercase respelling (scripts/native.mjs; a Mac has its own)
@@ -142,6 +143,8 @@ linux:
     # the tray's colour icons (tray.ts; @2x next to them), a Mac uses its template tray.png
     - { from: resources, to: ., filter: ["tray-color*.png", "tray-recording*.png"] }
   artifactName: Yogurt-linux-${arch}.${ext}
+  # one arch per build: the helpers in resources/bin are built natively for the runner's arch (preview.yml passes --arm64
+  # on the arm runner), so never both from one machine
   target:
     - target: AppImage
       arch: [x64]

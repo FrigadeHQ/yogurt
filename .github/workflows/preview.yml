@@ -2,7 +2,8 @@
 # for testers. Nothing is published, and the Mac release (release.yml) is not touched.
 # The installers carry the recorder, the system and AI apps helpers (Rust) and whisper-server with its backends, built
 # here by scripts/native.mjs. Each one is installed on the runner and its helpers are run from the install folder.
-# Linux builds on Ubuntu 22.04, so the AppImage's helpers run on glibc 2.35 and later.
+# Linux builds on Ubuntu 22.04 (x86_64, and arm64 on GitHub's arm runner), so the AppImage's helpers run on glibc 2.35
+# and later.
 # release.yml calls this same workflow for a release's Windows and Linux files (installer, latest*.yml, blockmap, and
 # the website's copy of the installer).
 name: Preview builds
@@ -39,9 +40,18 @@ jobs:
             unpacked: win-unpacked
             files: app/dist/Yogurt-windows-*.exe
           - os: ubuntu-22.04
-            platform: --linux
+            platform: --linux --x64
+            arch: x86_64
             unpacked: linux-unpacked
             files: app/dist/Yogurt-linux-*.AppImage
+          # Linux on ARM (Asahi, Snapdragon laptops, ARM VMs): built natively, so its helpers are arm64 too. whisper-server
+          # is CPU-only here: LunarG ships no Vulkan SDK for arm64 Linux
+          - os: ubuntu-22.04-arm
+            platform: --linux --arm64
+            arch: arm64
+            unpacked: linux-arm64-unpacked
+            files: app/dist/Yogurt-linux-*.AppImage
+            whisper: --cpu-only
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
     # Azure trusts sign-in tokens from this repository's signing environment only (managed identity yogurt-github-signing)
@@ -81,11 +91,13 @@ jobs:
           # per image: a build from one Ubuntu restored on another broke the 0.3.8 release ("can't find crate for zbus")
           key: helpers-build-${{ matrix.os }}-${{ hashFiles('app/native/*/Cargo.lock', 'app/native/*/rust-toolchain.toml') }}
       - name: Vulkan SDK (cached)
+        if: matrix.whisper != '--cpu-only'
         uses: actions/cache@v4
         with:
           path: ${{ runner.temp }}/vulkansdk-dl
           key: vulkansdk-${{ runner.os }}-${{ env.VULKAN_SDK_VERSION }}
       - name: Vulkan SDK
+        if: matrix.whisper != '--cpu-only'
         run: |
           mkdir -p "$RUNNER_TEMP/vulkansdk-dl" && cd "$RUNNER_TEMP/vulkansdk-dl"
           v=$VULKAN_SDK_VERSION
@@ -107,7 +119,11 @@ jobs:
         run: pnpm -r typecheck
       # unit tests run in ci.yml; a slower runner here only trips their timing checks
       - name: Build (helpers, whisper-server, app)
-        run: pnpm -C app build
+        run: |
+          # arm64 Linux: helpers and a CPU-only whisper-server first (native.mjs hands its arguments to whisper-build.mjs);
+          # the build below finds them built and keeps them
+          if [ -n "${{ matrix.whisper }}" ]; then node app/scripts/native.mjs ${{ matrix.whisper }}; fi
+          pnpm -C app build
       # a release signs in to Azure with GitHub's token for this run, so no password or key is stored anywhere
       - name: Sign in to Azure (Windows release)
         if: runner.os == 'Windows' && inputs.release && vars.AZURE_CLIENT_ID != ''
@@ -162,7 +178,7 @@ jobs:
         if: inputs.release
         run: |
           if [ "$RUNNER_OS" = Windows ]; then from=Yogurt-windows-x64.exe; to=Yogurt-windows-x64-setup.exe
-          else from=Yogurt-linux-x86_64.AppImage; to=Yogurt-linux-x86_64-setup.AppImage; fi
+          else from=Yogurt-linux-${{ matrix.arch }}.AppImage; to=Yogurt-linux-${{ matrix.arch }}-setup.AppImage; fi
           cp "app/dist/$from" "app/dist/$to"
           cmp "app/dist/$from" "app/dist/$to"
           if grep -q -- "$to" app/dist/latest*.yml; then echo "::error::latest*.yml must name $from, not $to"; exit 1; fi
@@ -170,8 +186,9 @@ jobs:
       # kept before the checks below, so testers get the installer even when one of them fails
       - uses: actions/upload-artifact@v4
         with:
-          name: yogurt-preview-${{ runner.os }}
-          # what installed copies update from goes too: latest.yml / latest-linux.yml and the installer's blockmap
+          # x86_64 keeps the plain name: engine-real.yml downloads yogurt-preview-Linux
+          name: yogurt-preview-${{ runner.os }}${{ matrix.arch == 'arm64' && '-arm64' || '' }}
+          # what installed copies update from goes too: latest.yml / latest-linux.yml (latest-linux-arm64.yml) and the blockmap
           path: |
             ${{ matrix.files }}
             app/dist/*.blockmap
@@ -200,7 +217,7 @@ jobs:
             for i in $(seq 1 60); do [ -f "$dir/bin/yogurt-audio.exe" ] && break; sleep 2; done
           else
             mkdir -p "$RUNNER_TEMP/appimage" && cd "$RUNNER_TEMP/appimage"
-            "$GITHUB_WORKSPACE"/app/dist/Yogurt-linux-x86_64.AppImage --appimage-extract >/dev/null
+            "$GITHUB_WORKSPACE"/app/dist/Yogurt-linux-${{ matrix.arch }}.AppImage --appimage-extract >/dev/null
             dir="$RUNNER_TEMP/appimage/squashfs-root/resources"
           fi
           ls -la "$dir/bin"
