@@ -371,6 +371,14 @@ describe('new Teams in English on Windows (#83)', () => {
     const r = readCall('teams', [enMeeting([enTile('Alex Morgan (You)'), enVideo('Dana Smith', 'Unmuted'), enTile('Dana Smith')])])
     expect(r).toEqual({ speaking: [], participants: ['Alex Morgan', 'Dana Smith'], me: 'Alex Morgan' })
   })
+  it('reads a tile whose label inside is not the name: "(You)" there is my own tile, anything else is just the name before it (#83, 18:30)', () => {
+    const mine = node('menu item', { t: `Alex Morgan, video is on, ${EN_TITLE}, Context menu is available` }, node('label', { t: '(You)' }))
+    const dana = node('menu item', { t: `Dana Smith, video is off, ${EN_TITLE}, Context menu is available` }, node('label', { t: 'DS' }))
+    expect(readCall('teams', [enMeeting([mine, dana])])).toEqual({ speaking: [], participants: ['Alex Morgan', 'Dana Smith'], me: 'Alex Morgan' })
+    // a label that starts the tile's words but runs on into something else is still no name
+    const odd = node('menu item', { t: `Dana Smith Contoso, video is on, ${EN_TITLE}, Context menu is available` }, node('label', { t: 'Dana Smith' }))
+    expect(readCall('teams', [enMeeting([odd])]).participants).toEqual([])
+  })
   it('one other tile alone in a meeting names nobody: a bigger meeting with the chat open shows one tile too (#83, 15:30)', () => {
     expect(readCall('teams', [enMeeting([enVideo('Dana Smith', 'Unmuted'), enTile('Dana Smith')])]).speaking).toEqual([])
   })

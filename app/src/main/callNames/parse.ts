@@ -245,6 +245,8 @@ const TEAMS_ROLE = /^(?:organizer|presenter|guest|external|co-?organizer|attende
 const TEAMS_SAYS = /^(?:speaking|talking|active speaker|now speaking|spricht(?: gerade)?)$/i
 /** "(You)" after the person's own name: Sie and Du in German */
 const SELF_TAG = 'you|me|sie|du|ich'
+/** my own tile's label when it holds only that: "(You)" */
+const SELF_LABEL = new RegExp(`^\\((?:${SELF_TAG})\\)$`, 'i')
 const TEAMS_ME = new RegExp(`^(.{2,60}?)\\s*\\((?:${SELF_TAG})\\)`, 'i')
 const cleanTeams = (s: string) => s.replace(new RegExp(`\\s*\\((?:organizer|presenter|guest|external|organisator(?:in)?|referent(?:in)?|gast|extern|${SELF_TAG})\\)`, 'gi'), '').replace(/[,.:;]+$/, '').trim()
 
@@ -324,13 +326,15 @@ function teamsTile(n: AxNode, alone: boolean): { name: string; speaking: boolean
     const fields = rest.split(/\s*,\s*/).filter(Boolean)
     return { name, speaking: fields.some((f) => TEAMS_SAYS.test(f)), me: head !== raw || TEAMS_ME.test(head), muted: fields.length ? fields.some((f) => TEAMS_MUTED.test(f)) : null }
   }
-  // no label inside: the name is the first of the tile's words when they end with Teams' context-menu hint
+  // no label with the name inside (none, or "(You)" on my own tile, #83 18:30): the name is the first of the tile's words
+  // when they end with Teams' context-menu hint. A label that starts the words but runs on is no name.
   const fields = label.split(/\s*,\s*/)
-  if (heads.length || fields.length < 3 || !TEAMS_HINT.test(fields.at(-1)!)) return null
+  if (heads.some((h) => h && label.startsWith(h)) || fields.length < 3 || !TEAMS_HINT.test(fields.at(-1)!)) return null
   const name = cleanTeams(fields[0])
   if (name.length < 2 || name.length > 60 || !/\p{L}/u.test(name) || /[+\d]/.test(name)) return null
   const rest = fields.slice(1)
-  return { name, speaking: rest.some((f) => TEAMS_SAYS.test(f)), me: TEAMS_ME.test(fields[0]), muted: rest.some((f) => TEAMS_MUTED.test(f)) }
+  const mine = TEAMS_ME.test(fields[0]) || heads.some((h) => SELF_LABEL.test(h))
+  return { name, speaking: rest.some((f) => TEAMS_SAYS.test(f)), me: mine, muted: rest.some((f) => TEAMS_MUTED.test(f)) }
 }
 
 /** what a tile's video image says about mute, by the names among its words: "..., Unmuted, video is on, ..., Dana Smith" */

@@ -316,6 +316,19 @@ describe('hookCallNames', () => {
     expect(s.logs.filter((l) => l === 'call names: teams talking 0 of 0')).toHaveLength(2)
   })
 
+  it('a Teams meeting of two showing my tile ("(You)" inside) and the other one names their lines, with my own name not set (#83)', async () => {
+    const s = setup({ app: 'Teams', myNames: [] })
+    s.start()
+    s.audio(0, 1_000_100)
+    s.store.addSegments([{ meetingId: s.m.id, track: 'them', startMs: 1000, endMs: 3000, text: 'Hi.', speaker: null }])
+    const tile = (name: string, label: string): AxNode => ({ r: 'menu item', t: `${name}, video is on, Weekly, Context menu is available`, k: [{ r: 'label', t: label }] })
+    const tree: AxNode = { r: 'frame', k: [{ r: 'push button', i: 'hangup-button', t: 'Leave' }, tile('Alex Morgan', '(You)'), tile('Dana Smith', 'DS')] }
+    for (let t = 1_000_000; t < 1_005_000; t += 500) s.emit({ t, app: 'ms-teams.exe', windows: [{ title: 'Weekly | Microsoft Teams', tree }] })
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id).map((x) => x.speaker)).toEqual(['Dana Smith'])
+  })
+
   it('reads Webex roster names during a call', () => {
     const s = setup({ app: 'Webex' })
     s.start()
