@@ -87,6 +87,7 @@ import { hookFolders } from './foldersIpc'
 import { hookMcp } from './mcp'
 import { createQuietStart } from './quietStart'
 import { startArgs, startReason, type StartReason } from './startReason'
+import { quitCalledOff, quitting, started as startedAfterQuit } from './quitByUser'
 import { deleteRecording } from './deleteRecording'
 import { AUDIO_SCHEME, audioExts, createAudioHandler, trackFile, type AudioExt } from './audio'
 import { helperDecode, wavDecode } from './asr/backfill'
@@ -566,6 +567,9 @@ app.whenReady().then(() => {
   // #147: which start this was (login, an AI app, an update, the person), so a log says what opened Yogurt
   const started = startReason({ argv: process.argv, env: process.env, parent: parentName(), openedAtLogin: openedAtLogin() })
   console.info('APP', `started by=${started} args=${startArgs(process.argv)}`)
+  // #147: the person quit Yogurt, so an AI app (an older yogurt-mcp) doesn't start it until they open it themselves
+  if (startedAfterQuit(userDataDir(), started)) { console.info('APP the person quit Yogurt: not starting for an AI app'); app.quit(); return }
+  app.on('will-quit', () => quitting(userDataDir()))
   quietStart = createQuietStart({ reason: started, quit: () => app.quit(), busy: () => busyNow() })
   // Local Electron launches need the same Dock icon as the packaged application.
   if (!app.isPackaged && process.platform === 'darwin') app.dock?.setIcon(join(__dirname, '../../build/icon.png'))
@@ -1022,6 +1026,8 @@ app.whenReady().then(() => {
   // Flush the last keystroke and retained drafts before the existing recording/transcription shutdown.
   const resumeEditing = () => {
     finishing = false; allowQuit = false; discardUnsaved = false
+    // a quit called off: the next one is the person's only if they ask again (#147)
+    quitCalledOff()
     uploads.resume(); savedTranscriptions.resume()
     win?.webContents.send('notes:flush-request', null)
   }

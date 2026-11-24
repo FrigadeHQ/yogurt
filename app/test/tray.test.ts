@@ -21,6 +21,8 @@ vi.mock('electron', () => ({
 }))
 vi.mock('../src/main/meeting', () => ({ activeMeeting: () => state.meeting, onMeetingChange: (fn: () => void) => { state.change = fn } }))
 vi.mock('../src/main/capture', () => ({ recordingPaused: () => state.paused, onRecordingEvent: (fn: typeof state.recording) => { state.recording = fn } }))
+const quitByUser = vi.hoisted(() => vi.fn())
+vi.mock('../src/main/quitByUser', () => ({ quitByUser }))
 vi.mock('../src/shared/i18n', async original => ({ ...await original<typeof import('../src/shared/i18n')>(), onLanguage: (fn: () => void) => { state.language = fn } }))
 import { app, nativeTheme, powerMonitor, systemPreferences } from 'electron'
 const basename = (p: string) => p.split(/[\\/]/).at(-1)
@@ -44,6 +46,13 @@ it('creates by default, destroys immediately, and recreates with the current rec
   expect(state.trays).toHaveLength(2)
   expect(state.trays[1].setTitle).toHaveBeenLastCalledWith('12:03', { fontType: 'monospacedDigit' })
   expect(state.trays[1].setContextMenu).toHaveBeenCalled()
+})
+
+it('Quit Yogurt is the person quitting, so an AI app won\'t start Yogurt again (#147)', () => {
+  const tray = createTray({ show: true, ...actions() })
+  tray.click('quit')
+  expect(quitByUser).toHaveBeenCalledOnce()
+  expect(app.quit).not.toHaveBeenCalled()
 })
 
 it('starts hidden and keeps menu hooks working during recording and pause', () => {

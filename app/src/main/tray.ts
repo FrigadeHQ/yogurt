@@ -8,6 +8,7 @@ import { daysAgo } from '../shared/dates'
 import { onLanguage } from '../shared/i18n'
 import { onRecordingEvent, recordingPaused } from './capture'
 import { matchesEvent, type CalEvent } from './calendar'
+import { quitByUser } from './quitByUser'
 
 function systemTrayTime(start: number, dated: boolean): string {
   let hour12: boolean | undefined
@@ -74,7 +75,7 @@ export function createTray(d: { show: boolean; visible?: boolean; showNextMeetin
     }
     else if (id === 'pause' && m) d.pause(m.id, !recordingPaused(m.id))
     else if (id === 'stop' && m) d.stop(m.id)
-    else if (id === 'quit') app.quit()
+    else if (id === 'quit') quitByUser()
   }
   const look = (m: ReturnType<typeof activeMeeting>, next?: CalEvent, at = now()) =>
     trayLook(os, m ? { paused: recordingPaused(m.id) } : null, m ? d.elapsed() : 0, next, at, systemTrayTime)

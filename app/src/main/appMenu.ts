@@ -1,9 +1,11 @@
 import { app, ipcMain, Menu, type BrowserWindow, type MenuItemConstructorOptions } from 'electron'
 import { onLanguage, t } from '../shared/i18n'
+import { quitByUser } from './quitByUser'
 
 /**
  * The Mac's menu bar for Yogurt: Electron's own menu, with every label in the interface language
- * (Electron's are English only). The roles keep what each item does and its shortcut.
+ * (Electron's are English only). The roles keep what each item does and its shortcut. Quit is the person's own,
+ * so an AI app won't start Yogurt again until they open it (#147).
  */
 export function appMenuTemplate(name = app.name, sidebar?: { open: boolean | null; toggle(): void }, reopen?: () => void, os = 'darwin'): MenuItemConstructorOptions[] {
   if (os !== 'darwin') return pcMenuTemplate(sidebar)
@@ -17,7 +19,7 @@ export function appMenuTemplate(name = app.name, sidebar?: { open: boolean | nul
       { role: 'hideOthers', label: t('Hide Others') },
       { role: 'unhide', label: t('Show All') },
       { type: 'separator' },
-      { role: 'quit', label: t('Quit {app}', { app: name }) },
+      { id: 'quit', label: t('Quit {app}', { app: name }), accelerator: 'Command+Q', click: () => quitByUser() },
     ] },
     { label: t('File'), submenu: [
       // With no visible renderer, these app-local shortcuts only bring the retained window back.
@@ -65,7 +67,7 @@ function pcMenuTemplate(sidebar?: { open: boolean | null; toggle(): void }): Men
   return [
     { label: t('File'), submenu: [
       { role: 'close', label: t('Close Window'), accelerator: 'Ctrl+W' },
-      { role: 'quit', label: t('Quit {app}', { app: 'Yogurt' }), accelerator: 'Ctrl+Q' },
+      { id: 'quit', label: t('Quit {app}', { app: 'Yogurt' }), accelerator: 'Ctrl+Q', click: () => quitByUser() },
     ] },
     { label: t('Edit'), submenu: [
       { role: 'undo', label: t('Undo') },

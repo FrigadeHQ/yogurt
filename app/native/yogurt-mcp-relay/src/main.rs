@@ -2,7 +2,7 @@
 //! The same as native/yogurt-mcp (Swift, Mac): it only passes messages, the AI app's stdin to Yogurt and Yogurt's
 //! answers to stdout. Linux: the Unix socket in the profile folder. Windows: the named pipe whose name Yogurt
 //! writes to mcp.pipe in the profile folder. The MCP server itself is in the app (src/main/mcp).
-//! Yogurt not open: it is started in the background first.
+//! Yogurt not open: it is started in the background first, unless the person quit it themselves (#147).
 
 use std::env;
 use std::ffi::OsString;
@@ -14,6 +14,9 @@ use std::thread;
 use std::time::Duration;
 
 const NOT_RUNNING: &str = "Yogurt isn't running, and it couldn't be opened. Open Yogurt, then try again.";
+const CLOSED: &str = "Yogurt is closed. Open Yogurt to use your meetings.";
+/// Yogurt leaves this in the profile when the person quits it, and removes it when they open it again
+const QUIT_MARKER: &str = "quit-by-user";
 #[cfg_attr(windows, allow(dead_code))]
 const TOO_LONG: &str = "Yogurt's folder path is too long for its connection.";
 #[cfg_attr(unix, allow(dead_code))]
@@ -250,6 +253,18 @@ use pipe::{connect, start};
 /// --started-by=ai-app also keeps it from watching for calls until the person opens it (#147)
 const START_ARGS: [&str; 2] = ["--hidden", "--started-by=ai-app"];
 
+/// Whether to start Yogurt: never when told not to (YOGURT_MCP_NO_LAUNCH), and not after the person quit it
+/// themselves, so an AI app can't bring back a Yogurt they closed (#147)
+fn may_start(profile: &Path, no_launch: bool) -> Result<bool, &'static str> {
+    if no_launch {
+        return Ok(false);
+    }
+    if profile.join(QUIT_MARKER).exists() {
+        return Err(CLOSED);
+    }
+    Ok(true)
+}
+
 fn command(target: &Path) -> Command {
     let mut c = Command::new(target);
     c.args(START_ARGS).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
@@ -260,7 +275,7 @@ fn main() {
     let windows = cfg!(windows);
     let profile = profile(windows, |k| env::var_os(k)).unwrap_or_else(|| fail(NOT_RUNNING));
     let mut conn = connect(&profile);
-    if conn.is_none() && env::var_os("YOGURT_MCP_NO_LAUNCH").is_none() {
+    if conn.is_none() && may_start(&profile, env::var_os("YOGURT_MCP_NO_LAUNCH").is_some()).unwrap_or_else(|s| fail(s)) {
         let recorded = std::fs::read_to_string(profile.join("mcp-launch")).ok();
         if let Some(target) = launch_target(windows, recorded, env::current_exe().ok()) {
             if start(&target) {
@@ -377,6 +392,21 @@ mod tests {
         let c = command(Path::new("Yogurt"));
         let args: Vec<_> = c.get_args().collect();
         assert_eq!(args, ["--hidden", "--started-by=ai-app"]);
+    }
+
+    #[test]
+    fn yogurt_is_not_started_after_the_person_quit_it() {
+        let dir = env::temp_dir().join(format!("ym-quit-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let _ = std::fs::remove_file(dir.join(QUIT_MARKER));
+        assert_eq!(may_start(&dir, false), Ok(true));
+        // told not to start it: not running, as before
+        assert_eq!(may_start(&dir, true), Ok(false));
+        std::fs::write(dir.join(QUIT_MARKER), "").unwrap();
+        assert_eq!(may_start(&dir, false), Err(CLOSED));
+        assert_eq!(CLOSED, "Yogurt is closed. Open Yogurt to use your meetings.");
+        assert_eq!(may_start(&dir, true), Ok(false));
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]

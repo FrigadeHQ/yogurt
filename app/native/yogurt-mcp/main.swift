@@ -1,6 +1,7 @@
 // yogurt-mcp: what an AI app on this Mac (Claude, Cursor, …) starts to read Yogurt's meetings over MCP.
 // It only passes messages: the AI app's stdin to Yogurt's socket in the profile folder, and Yogurt's answers to stdout.
-// The MCP server itself is in the app (src/main/mcp). Yogurt not open: it is opened in the background first.
+// The MCP server itself is in the app (src/main/mcp). Yogurt not open: it is opened in the background first, unless
+// the person quit it themselves (#147).
 import Foundation
 
 setvbuf(stdout, nil, _IONBF, 0)
@@ -9,6 +10,8 @@ func fail(_ s: String) -> Never { FileHandle.standardError.write((s + "\n").data
 let env = ProcessInfo.processInfo.environment
 let profile = env["YOGURT_USER_DATA"] ?? (NSHomeDirectory() + "/Library/Application Support/Yogurt")
 let path = profile + "/mcp.sock"
+/// Yogurt leaves this in the profile when the person quits it, and removes it when they open it again (#147)
+let quitMarker = profile + "/" + "quit-by-user"
 
 func connectOnce() -> Int32? {
   let fd = socket(AF_UNIX, SOCK_STREAM, 0)
@@ -25,6 +28,8 @@ func connectOnce() -> Int32? {
 
 var fd = connectOnce()
 if fd == nil && env["YOGURT_MCP_NO_LAUNCH"] == nil {
+  // the person quit Yogurt: an AI app doesn't bring it back until they open it themselves (#147)
+  if FileManager.default.fileExists(atPath: quitMarker) { fail("Yogurt is closed. Open Yogurt to use your meetings.") }
   // -g: in the background, so starting a chat never pulls Yogurt in front; --hidden: and Yogurt opens no window (#54)
   // --started-by=ai-app: and it watches for no calls until the person opens it (#147)
   let open = Process()

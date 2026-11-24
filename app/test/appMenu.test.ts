@@ -13,6 +13,8 @@ vi.mock('electron', () => ({
   },
   ipcMain: { on: (channel: string, handler: (...args: any[]) => void) => state.handlers.set(channel, handler) },
 }))
+const quitByUser = vi.hoisted(() => vi.fn())
+vi.mock('../src/main/quitByUser', () => ({ quitByUser }))
 vi.mock('../src/shared/i18n', () => ({ t: (text: string) => text, onLanguage: vi.fn() }))
 import { appMenuTemplate, installAppMenu } from '../src/main/appMenu'
 
@@ -70,6 +72,17 @@ it('offers reopen shortcuts only while the main window is hidden, without changi
   expect(shortcuts()).toEqual([]) // The renderer keeps its existing shortcuts while visible.
 })
 
+it('Quit (the menu, Cmd+Q, Ctrl+Q) is the person quitting, so an AI app won\'t start Yogurt again (#147)', () => {
+  for (const [os, accelerator] of [['darwin', 'Command+Q'], ['win32', 'Ctrl+Q'], ['linux', 'Ctrl+Q']] as const) {
+    const item = appMenuTemplate('Yogurt', undefined, undefined, os).flatMap(i => Array.isArray(i.submenu) ? i.submenu : []).find(i => i.id === 'quit')!
+    expect(item).toMatchObject({ accelerator })
+    expect(item.role).toBeUndefined()
+    quitByUser.mockClear()
+    ;(item.click as () => void)()
+    expect(quitByUser).toHaveBeenCalledOnce()
+  }
+})
+
 describe('Windows and Linux', () => {
   const all = (template: MenuItemConstructorOptions[]) => template.flatMap(item => Array.isArray(item.submenu) ? item.submenu : [])
   it("have no app menu or the Mac's own items, and use Ctrl", () => {
@@ -78,9 +91,9 @@ describe('Windows and Linux', () => {
       expect(template.map(item => item.label)).toEqual(['File', 'Edit', 'View', 'Window'])
       const roles = all(template).map(item => item.role).filter(Boolean)
       for (const mac of ['about', 'services', 'hide', 'hideOthers', 'unhide', 'front', 'zoom']) expect(roles).not.toContain(mac)
-      expect(roles).toEqual(expect.arrayContaining(['close', 'quit', 'undo', 'copy', 'paste', 'reload', 'toggleDevTools', 'zoomIn', 'togglefullscreen', 'minimize']))
+      expect(roles).toEqual(expect.arrayContaining(['close', 'undo', 'copy', 'paste', 'reload', 'toggleDevTools', 'zoomIn', 'togglefullscreen', 'minimize']))
       expect(sidebarItem(template)).toMatchObject({ accelerator: 'Ctrl+Shift+S' })
-      expect(all(template).find(item => item.role === 'quit')).toMatchObject({ accelerator: 'Ctrl+Q' })
+      expect(all(template).find(item => item.id === 'quit')).toMatchObject({ accelerator: 'Ctrl+Q' })
       // no window can be focused while it's hidden there, so no hidden reopen shortcuts
       expect(all(template).filter(item => item.id?.startsWith('reopen-'))).toEqual([])
       expect(JSON.stringify(template)).not.toContain('Command')
