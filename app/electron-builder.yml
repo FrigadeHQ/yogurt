@@ -32,7 +32,8 @@ extraResources:
   - from: resources/vad
     to: vad
   # the Mac's menu bar icon (tray.ts reads it from Resources; @2x is picked up next to it)
-  - { from: resources, to: ., filter: ["tray.png", "tray@2x.png", "tray-titled.png", "tray-titled@2x.png"] }
+  # tray-labels is the same logo with the red exclamation: as a template it shows only its shape
+  - { from: resources, to: ., filter: ["tray.png", "tray@2x.png", "tray-titled.png", "tray-titled@2x.png", "tray-labels.png", "tray-labels@2x.png"] }
   # licenses of things bundled or downloaded: fonts, whisper.cpp, Silero VAD, libopus, the native recorders' crates,
   # whisper-server's headers, animate-ui, the CUDA runtime and the echo canceller (webrtcaec3.js)
   - from: resources/licenses
@@ -114,7 +115,7 @@ win:
     # the speed check's clip (src/main/asr/speedCheck.ts): a Mac never times its speech model
     - { from: resources/speed, to: speed }
     # the tray's colour icons (tray.ts; @2x next to them), a Mac uses its template tray.png
-    - { from: resources, to: ., filter: ["tray-color*.png", "tray-recording*.png"] }
+    - { from: resources, to: ., filter: ["tray-color*.png", "tray-recording*.png", "tray-labels*.png"] }
   artifactName: Yogurt-windows-${arch}.${ext}
   # a release signs the DLLs and native modules too, not just the programs: with Windows Code Integrity on, an unsigned
   # whisper.dll or ggml.dll is blocked from loading and speech setup fails (#99)
@@ -149,7 +150,7 @@ linux:
     # the speed check's clip (src/main/asr/speedCheck.ts): a Mac never times its speech model
     - { from: resources/speed, to: speed }
     # the tray's colour icons (tray.ts; @2x next to them), a Mac uses its template tray.png
-    - { from: resources, to: ., filter: ["tray-color*.png", "tray-recording*.png"] }
+    - { from: resources, to: ., filter: ["tray-color*.png", "tray-recording*.png", "tray-labels*.png"] }
   artifactName: Yogurt-linux-${arch}.${ext}
   target:
     - target: AppImage

@@ -18,20 +18,21 @@ it('Windows and Linux builds have fixed file names, like the Mac one', () => {
 
 it('ships the compact and titled Mac tray templates at both display scales', () => {
   for (const scale of [1, 2]) {
-    for (const [name, width] of [['tray', 22], ['tray-titled', 23]] as const) {
+    // tray-labels: the same logo with the red exclamation, drawn at the colour icon's size
+    for (const [name, width, height] of [['tray', 22, 22], ['tray-titled', 23, 22], ['tray-labels', 16, 16]] as const) {
       const file = name + (scale === 2 ? '@2x' : '') + '.png'
       expect(config).toContain('"' + file + '"')
       const png = readFileSync(join(__dirname, '../resources', file))
-      expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([width * scale, 22 * scale])
+      expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([width * scale, height * scale])
     }
   }
 })
 
 it("only Windows and Linux carry the colour tray icons (the Mac's package keeps its own files)", () => {
   const block = (name: string) => config.match(new RegExp(`^${name}:\\n((?:  .*\\n|\\n)*)`, 'm'))?.[1] ?? ''
-  for (const os of ['win', 'linux']) expect(block(os)).toContain('filter: ["tray-color*.png", "tray-recording*.png"]')
+  for (const os of ['win', 'linux']) expect(block(os)).toContain('filter: ["tray-color*.png", "tray-recording*.png", "tray-labels*.png"]')
   expect(config.split(/^win:$/m)[0]).not.toContain('tray-color')
-  for (const state of ['color', 'recording']) for (const theme of ['', '-dark']) for (const [scale, size] of [['', 16], ['@2x', 32]] as const) {
+  for (const state of ['color', 'recording', 'labels']) for (const theme of ['', '-dark']) for (const [scale, size] of [['', 16], ['@2x', 32]] as const) {
     const png = readFileSync(join(__dirname, '../resources', `tray-${state}${theme}${scale}.png`))
     expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([size, size])
   }
