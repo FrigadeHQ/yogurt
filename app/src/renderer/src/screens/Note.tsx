@@ -10,7 +10,8 @@ import { LoadingContent } from '../components/LoadingContent'
 import { motion, useReducedMotion } from '../motion'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useScrollMemory } from '../useScrollMemory'
-import { Lock, RotateCcw, Trash2, Mic, Pause, Play } from '../components/Icons'
+import { Lock, RotateCcw, Trash2, Mic, Pause, Play, X } from '../components/Icons'
+import { attendeeMembership } from '../../../shared/people'
 import type { MeetingView, NoteSaveResult, NoteSide, NoteView, SetupState, WidgetView } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
 import { osWords } from '../keys'
@@ -485,9 +486,16 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
               </InlineError>
             )}
           {primary === 'notes' && shown === 'enhanced' && notes.status === 'done' && notes.peopleChanged && !rewriteOpen && (
-            <div data-testid="note-people-changed" className="pointer-events-auto mx-auto mt-3 flex w-fit max-w-[calc(100%-32px)] flex-wrap items-center gap-3 rounded-xl border border-line bg-float px-4 py-2 text-[13px] shadow-[var(--shadow)]">
-              <span>{t('The attendee list has changed.')}</span>
-              <button data-testid="note-people-write-again" onClick={requestRewrite} className="workspace-button primary">{t('Regenerate summary')}</button>
+            <div data-testid="note-people-changed" className="pointer-events-auto mx-auto mt-3 flex w-fit max-w-[calc(100%-32px)] items-center gap-3 rounded-xl border border-line bg-float ps-4 pe-2.5 py-2 text-[13px] shadow-[var(--shadow)]">
+              <div className="flex min-w-0 flex-wrap items-center gap-3">
+                <span>{t('The attendee list has changed.')}</span>
+                <button data-testid="note-people-write-again" onClick={requestRewrite} className="workspace-button primary">{t('Regenerate summary')}</button>
+              </div>
+              <button type="button" className="ghost-btn workspace-icon shrink-0" aria-label={t('Close')} title={t('Close')} onClick={() => {
+                void window.yogurt.notes.dismissPeopleChange(id, attendeeMembership(m.attendees)).catch(() => {
+                  toasts.add({ title: t("Yogurt couldn't make that change. Try again.") })
+                })
+              }}><X size={14} aria-hidden="true" /></button>
             </div>
           )}
           {saveStatus === 'failed' && (

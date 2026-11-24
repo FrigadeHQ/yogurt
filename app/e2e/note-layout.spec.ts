@@ -3,7 +3,7 @@ import { _electron as electron, expect, test, type ElectronApplication, type Pag
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { NoteView } from '../src/shared/types'
+import type { NoteView, Person } from '../src/shared/types'
 
 const main = join(import.meta.dirname, '../out/main/index.js')
 const zoom = { bundleId: 'us.zoom.xos', name: 'zoom.us' }
@@ -43,17 +43,19 @@ const putClipboardBack = (app: ElectronApplication) => app.evaluate(async ({ cli
 const notesOf = (page: Page, id: string) => page.evaluate((id) => window.yogurt.notes.get(id), id) as Promise<NoteView>
 
 /** a meeting recorded, heard and written up: the note is open with enhanced notes done; its id */
-async function finished(app: ElectronApplication, page: Page): Promise<string> {
+async function finished(app: ElectronApplication, page: Page, attendees?: Person[]): Promise<string> {
   await fake(app, 'signals', { micApps: [], events: [] })
   await fake(app, 'signals', { micApps: [zoom], events: [] })
   await (await windowOf(app, '#prompt')).getByTestId('prompt-take-notes').click()
   await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
   await page.getByTestId('note-transcript-toggle').click()
   await expect(page.getByTestId('transcript-line').filter({ hasText: 'The site goes live on Tuesday' })).toBeVisible({ timeout: 30_000 })
+  const id = (await page.evaluate(() => window.yogurt.nav.current())).slice('/note/'.length)
+  if (attendees) await page.evaluate(({ id, attendees }) => window.yogurt.meetings.setAttendees(id, attendees), { id, attendees })
   await page.getByTestId('note-stop').click()
   await page.getByTestId('note-summary-tab').click()
   await expect(page.getByTestId('note-enhanced')).toHaveAttribute('data-status', 'done', { timeout: 60_000 })
-  return (await page.evaluate(() => window.yogurt.nav.current())).slice('/note/'.length)
+  return id
 }
 
 test('the workspace keeps Meetings and Back navigation, including a return from Settings', async () => {
@@ -166,21 +168,50 @@ test('people added and removed by hand are saved, and the notes are written agai
   } finally { await app.close() }
 })
 
-test('people changed on edited notes: they are kept, and Yogurt offers to write them again', async () => {
-  const { app, page } = await launch()
+test('edited summaries can dismiss an attendee change until membership changes again', async ({}, testInfo) => {
+  const { app, page } = await launch({ YOGURT_FAKE_AX: 'denied', YOGURT_FAKE_LLM_MS: '2' })
   try {
-    const id = await finished(app, page)
+    const ann = { name: 'Ann Lee', email: null }
+    const id = await finished(app, page, [ann, ann])
+    await page.evaluate(id => window.yogurt.meetings.rename(id, 'Launch follow-up'), id)
     const editor = page.getByTestId('note-enhanced-editor')
-    await editor.locator('h2').first().click()
-    await page.keyboard.press('End')
-    await page.keyboard.type(' (mine)')
-    await expect.poll(async () => (await notesOf(page, id)).edited, { timeout: 5000 }).toBe(true)
+    await editor.fill('My edited launch plan')
+    await expect.poll(async () => (await notesOf(page, id)).edited).toBe(true)
+    const banner = page.getByTestId('note-people-changed')
     await page.getByTestId('note-attendees').click()
+    const removeAnn = page.getByRole('button', { name: 'Remove Ann Lee', exact: true })
+    await expect(removeAnn).toHaveCount(2)
+    await removeAnn.last().click()
+    await expect(removeAnn).toHaveCount(1)
+    expect((await notesOf(page, id)).peopleChanged).toBe(false)
+    await expect(banner).toHaveCount(0)
     await page.getByTestId('people-add-open').click()
     await page.getByTestId('people-add').fill('Maya Chen')
     await page.keyboard.press('Enter')
-    await expect(page.getByTestId('note-people-changed')).toHaveText(/The attendee list has changed\./, { timeout: 10_000 })
-    await expect(editor.locator('h2').first()).toHaveText('Launch plan (mine)')
+    await expect(banner).toContainText('The attendee list has changed.')
+    await page.keyboard.press('Escape')
+    await expect(page.getByTestId('people-card')).toHaveCount(0)
+    const close = banner.getByRole('button', { name: 'Close', exact: true })
+    await expect(close).toHaveAttribute('title', 'Close')
+    for (const theme of ['light', 'dark'] as const) {
+      await page.evaluate(theme => window.yogurt.settings.setTheme(theme), theme)
+      await expect.poll(() => page.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)).toBe(theme === 'dark')
+      await expect(close).toBeVisible()
+      await page.screenshot({ path: testInfo.outputPath(`attendee-notice-${theme}.png`) })
+    }
+    await close.press('Enter')
+    await expect(banner).toHaveCount(0)
+    await page.getByTestId('nav-home').click()
+    await page.getByTestId('past-note').filter({ hasText: 'Launch follow-up' }).click()
+    await expect(editor).toHaveText('My edited launch plan')
+    await expect(banner).toHaveCount(0)
+    await page.getByTestId('note-attendees').click()
+    await removeAnn.click()
+    await expect(banner).toBeVisible()
+    await banner.getByRole('button', { name: 'Regenerate summary' }).click()
+    await page.getByTestId('note-write-again-confirm').click()
+    await expect(editor).toContainText('With Maya Chen.', { timeout: 30_000 })
+    await expect(banner).toHaveCount(0)
   } finally { await app.close() }
 })
 

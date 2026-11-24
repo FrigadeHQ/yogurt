@@ -148,6 +148,7 @@ export type YogurtApi = {
     onFlushRequest(cb: (closing: boolean) => Promise<boolean>): () => void
     /** the open note kept its unsaved edits over notes written again for new people */
     keptEdits(meetingId: string): void
+    dismissPeopleChange(meetingId: string, membership: string): Promise<void>
     /** writes the enhanced notes again */
     writeAgain(meetingId: string, note?: string): Promise<void>
     stop(meetingId: string): Promise<void>
@@ -410,7 +411,7 @@ export type NoteView = {
   part?: { part: number; of: number }
   /** Windows and Linux: waiting while the notes model loads (it can take a while there) */
   step?: 'loading'
-  /** the people at the meeting changed after these edited notes were written, so they may be out of date */
+  /** Show the notice for a changed attendee list until this membership is dismissed. */
   peopleChanged: boolean
   /** the notes were just written again (for new people): what they replaced, so an open editor with no edits since takes them */
   rewrittenFrom?: string

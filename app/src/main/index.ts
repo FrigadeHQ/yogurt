@@ -959,6 +959,9 @@ app.whenReady().then(() => {
   ipcMain.handle('notes:set-enhanced', (_e, id: unknown, md: unknown, revision: unknown) => saveEdit(id, 'enhanced', md, revision))
   ipcMain.on('notes:flush-sync', (e, id: unknown, side: unknown, md: unknown, revision: unknown) => { e.returnValue = saveEdit(id, side, md, revision) })
   ipcMain.on('notes:kept-edits', (_e, id: unknown) => { if (known(id)) notes.keptEdits(id) })
+  ipcMain.handle('notes:dismiss-people-change', (_e, id: unknown, membership: unknown) => {
+    if (known(id) && typeof membership === 'string') notes.dismissPeopleChange(id, membership)
+  })
   ipcMain.handle('notes:stop', (_e, id: unknown) => { if (known(id)) return notes.stop(id) })
   // "Write again", from the note or an AI app; false when it can't start now
   const writeAgain = (id: unknown, note: unknown): boolean => {
