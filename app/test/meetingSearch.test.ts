@@ -77,6 +77,27 @@ describe('meeting search', () => {
     ])
   })
 
+  it('shows corrected words and current notes in command palette results', () => {
+    const meeting = make('Planning', 10, ['Ana López'])
+    make('More recent meeting', 11)
+    transcript(meeting.id, 'Ship to Boston')
+    store.setNotes(meeting.id, { enhanced: 'Ship to Boston', mine: 'Confirm the address' })
+    const [line] = store.segments(meeting.id)
+    expect(store.changeTranscript(meeting.id, 0, {
+      kind: 'wording', id: line.id, expected: line.text, text: 'Ship to Denver',
+    }).status).toBe('saved')
+
+    const hits = search('Denver with Ana nov 10')
+    expect(hits.map(h => h.meetingId)).toEqual([meeting.id])
+    expect(hits[0].parts.filter(p => p.hit).map(p => p.text)).toEqual(['Denver'])
+    expect(store.meetingCards({ ids: hits.map(h => h.meetingId), limit: hits.length })).toMatchObject([
+      { id: meeting.id, attendees: [{ name: 'Ana López' }], preview: 'Confirm the address' },
+    ])
+    expect(ids('Boston')).toEqual([])
+    expect(store.changeTranscript(meeting.id, 1, { kind: 'remove', ids: [line.id] }).status).toBe('saved')
+    expect(ids('Denver')).toEqual([])
+  })
+
   it('filters yesterday even without other words and returns nothing for a miss', () => {
     const yesterday = make('Planning', 11)
     make('Planning', 12)
