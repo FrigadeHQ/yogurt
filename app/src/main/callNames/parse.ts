@@ -302,13 +302,17 @@ const titleName = (title: string | undefined): string | null => {
 const TEAMS_MUTED = /^(?:muted|stummgeschaltet|mic(?:rophone)? (?:is )?off|mikrofon (?:ist )?aus)$/i
 const TEAMS_UNMUTED = /^(?:unmuted|stummschaltung aufgehoben|nicht stummgeschaltet|mic(?:rophone)? (?:is )?on|mikrofon (?:ist )?(?:an|ein))$/i
 /** the last words of every tile: a tile with no label inside (English Teams on Windows, 0.3.69) is "Name, ..., <this>" */
-const TEAMS_HINT = /^(?:context menu is available|kontextmenü ist verfügbar)$/i
+const TEAMS_HINT = /^(?:context menu is available|has context menu|kontextmenü ist verfügbar)$/i
+/** my own tile on a Mac starts with these words: "Myself video, Name, ..., Unmuted, Has context menu" (#138) */
+const TEAMS_MYSELF = /^myself video,\s*/i
 /** my own tile's label adds a short word after the name: "Christa, Ich" */
 const OWN_LABEL = /^(.+?),\s*(\p{L}{1,5})$/u
 
 /** a video tile's person, or null when the menu item isn't one. muted: null when the tile says nothing either way */
 function teamsTile(n: AxNode, alone: boolean): { name: string; speaking: boolean; me: boolean; muted: boolean | null } | null {
-  const label = (n.t ?? n.d ?? '').normalize('NFKC').trim()
+  const full = (n.t ?? n.d ?? '').normalize('NFKC').trim()
+  const myself = TEAMS_MYSELF.test(full)
+  const label = full.replace(TEAMS_MYSELF, '')
   const inner: string[] = [], heads: string[] = []
   walk(n, (x) => {
     if (x === n) return
@@ -329,7 +333,7 @@ function teamsTile(n: AxNode, alone: boolean): { name: string; speaking: boolean
     const name = cleanTeams(head)
     if (name.length < 2 || name.length > 60 || !/\p{L}/u.test(name) || /[+\d]/.test(name)) continue
     const fields = rest.split(/\s*,\s*/).filter(Boolean)
-    return { name, speaking: fields.some((f) => TEAMS_SAYS.test(f)), me: head !== raw || TEAMS_ME.test(head), muted: fields.length ? fields.some((f) => TEAMS_MUTED.test(f)) : null }
+    return { name, speaking: fields.some((f) => TEAMS_SAYS.test(f)), me: myself || head !== raw || TEAMS_ME.test(head), muted: fields.length ? fields.some((f) => TEAMS_MUTED.test(f)) : null }
   }
   // no label with the name inside (none, or "(You)" on my own tile, #83 18:30): the name is the first of the tile's words
   // when they end with Teams' context-menu hint. A label that starts the words but runs on is no name.
@@ -338,7 +342,7 @@ function teamsTile(n: AxNode, alone: boolean): { name: string; speaking: boolean
   const name = cleanTeams(fields[0])
   if (name.length < 2 || name.length > 60 || !/\p{L}/u.test(name) || /[+\d]/.test(name)) return null
   const rest = fields.slice(1)
-  const mine = TEAMS_ME.test(fields[0]) || heads.some((h) => SELF_LABEL.test(h))
+  const mine = myself || TEAMS_ME.test(fields[0]) || heads.some((h) => SELF_LABEL.test(h))
   return { name, speaking: rest.some((f) => TEAMS_SAYS.test(f)), me: mine, muted: rest.some((f) => TEAMS_MUTED.test(f)) }
 }
 

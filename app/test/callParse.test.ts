@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readCall, summarize, zoomLinuxTile, zoomTile, type AxNode, type AxWindow } from '../src/main/callNames/parse'
+import { nameFor } from '../src/main/callNames/attribute'
 
 const node = (r: string, o: Partial<AxNode> = {}, ...k: AxNode[]): AxNode => ({ r, ...o, ...(k.length ? { k } : {}) })
 const win = (tree: AxNode, title?: string): AxWindow => ({ title, tree })
@@ -424,6 +425,47 @@ describe("Teams' talking mark: the tile's last child has vdi-frame-occlusion (#8
   it('the class only counts on the last child of a tile, not anywhere else in the window', () => {
     const elsewhere = node('panel', { c: ['fui-Flex', 'vdi-frame-occlusion'] }, node('label', { t: 'Weekly review' }))
     expect(readCall('teams', [stage([elsewhere, talkingTile('Ann Lee', false), talkingTile('Bo Park', false)])]).speaking).toEqual([])
+  })
+})
+
+// ---- Teams' talking mark on a Mac (#138, from a reporter's 3-person call in new Teams on macOS): the same tiles as on
+// Windows, as AXMenuItems described "Name, ..., Context menu is available", the classes from AXDOMClassList, and while
+// someone talks an empty AXGroup with vdi-frame-occlusion as the tile's last child. My own tile reads "Myself video,
+// Name, ..., Unmuted, Has context menu". A small "Window" dialog (window sharing) comes first. Names made up.
+const macTile = (name: string, talking: boolean): AxNode => node('AXMenuItem', { d: `${name}, ${PRODUCTION}, Context menu is available`, c: ['fui-Flex', '___s8lnzv0'] },
+  node('AXGroup', { c: ['fui-Primitive', 'bkg_ZmZkYTdk'] }), node('AXGroup', { c: ['fui-Primitive', '___19sw0rl'] }), node('AXGroup', { c: ['fui-Primitive', '___jl63on0'] }),
+  node('AXGroup', { c: ['fui-Flex', 'vdi-occlusion', '___1d0k7eo'] }), node('AXGroup', { c: ['fui-Flex', '___ylrf500'] }),
+  node('AXStaticText', { v: name }),
+  ...(talking ? [node('AXGroup', { c: ['fui-Flex', 'vdi-frame-occlusion', '___1vvhwjq'] })] : []))
+const macOwnTile = (name: string, talking = false): AxNode => node('AXMenuItem', { d: `Myself video, ${name}, ${PRODUCTION}, Unmuted, Has context menu` },
+  node('AXGroup', { c: ['fui-Primitive', '___19sw0rl'] }), node('AXStaticText', { v: name }),
+  ...(talking ? [node('AXGroup', { c: ['fui-Flex', 'vdi-frame-occlusion', '___1vvhwjq'] })] : []))
+const macSharing = win(node('AXWindow', { s: 'AXDialog', t: 'Window' }, node('AXButton', { i: 'WindowSharingSessionButton' })), 'Window')
+const macStage = (tiles: AxNode[]) => win(node('AXWindow', { t: 'Weekly review | Microsoft Teams' },
+  node('AXGroup', { c: ['BrowserRootView'] }, node('AXWebArea', { t: 'Weekly review | Microsoft Teams' },
+    node('AXToolbar', {}, node('AXButton', { i: 'roster-button', d: 'People' }), node('AXButton', { i: 'hangup-button', d: 'Leave' })),
+    node('AXGroup', {}, ...tiles)))), 'Weekly review | Microsoft Teams')
+
+describe("Teams' talking mark on a Mac (#138)", () => {
+  it('reads the empty frame group from AXDOMClassList as talking, and knows my own "Myself video" tile', () => {
+    const r = readCall('teams', [macSharing, macStage([macOwnTile('Alex Morgan'), macTile('Dana Smith', true), macTile('Ann Lee', false)])])
+    expect(r).toEqual({ speaking: ['Dana Smith'], participants: ['Alex Morgan', 'Dana Smith', 'Ann Lee'], me: 'Alex Morgan' })
+  })
+  it('the window-sharing dialog listed first gives nobody and never hides the call window', () => {
+    expect(readCall('teams', [macSharing])).toEqual({ speaking: [], participants: [], me: null })
+    expect(readCall('teams', [macSharing, macStage([macTile('Ann Lee', true)])]).speaking).toEqual(['Ann Lee'])
+  })
+  it('with several tiles marked at once (background noise), the line goes to nobody', () => {
+    const samples = [0, 500, 1000, 1500].map((ms) => ({ ms, ...readCall('teams', [macStage([macOwnTile('Alex Morgan'), macTile('Dana Smith', true), macTile('Ann Lee', true)])]) }))
+    expect(nameFor({ startMs: 0, endMs: 2000 }, samples)).toBeNull()
+  })
+  it('my own tile lit while I talk names nobody on the other side', () => {
+    const samples = [0, 500, 1000, 1500].map((ms) => ({ ms, ...readCall('teams', [macStage([macOwnTile('Alex Morgan', true), macTile('Dana Smith', false), macTile('Ann Lee', false)])]) }))
+    expect(nameFor({ startMs: 0, endMs: 2000 }, samples)).toBeNull()
+  })
+  it('one other person lit names their line', () => {
+    const samples = [0, 500, 1000, 1500].map((ms) => ({ ms, ...readCall('teams', [macStage([macOwnTile('Alex Morgan'), macTile('Dana Smith', ms < 1500), macTile('Ann Lee', false)])]) }))
+    expect(nameFor({ startMs: 0, endMs: 2000 }, samples)).toBe('Dana Smith')
   })
 })
 

@@ -3,7 +3,7 @@ import type { Track } from '../capture'
 import type { Chunk } from './chunker'
 import { languageName } from './appleSpeech'
 import { tokens } from './echo'
-import { isPromptEcho, isSilenceGuess, withoutPromptLabel } from './hallucination'
+import { isPromptEcho, isSilenceGuess, isSubtitleCredit, withoutPromptLabel } from './hallucination'
 
 /** What a chunk turns into: lines on meeting time. The meeting and the speaker are added where they are saved. */
 export type Line = Omit<Segment, 'id' | 'meetingId' | 'speaker'> & {
@@ -119,7 +119,8 @@ export function createTranscriber(o: Opts): Transcribe {
       if (!text || NOISE.test(text)) continue
       if ((s.no_speech_prob ?? 0) > 0.6 && (s.avg_logprob ?? 0) < -1) continue
       // read back from the prompt, or a stock line over a faint sound: whisper had nothing to read
-      if (isPromptEcho(text, prompt) || (faint && isSilenceGuess(text))) continue
+      // a subtitle credit is never said in a meeting, faint or not
+      if (isPromptEcho(text, prompt) || isSubtitleCredit(text) || (faint && isSilenceGuess(text))) continue
       // the label's words (through the one carrying its colon) go with it
       const kept = text === said ? s.words : s.words?.slice((s.words.findIndex((w) => w.word.includes(':')) + 1) || 0)
       const words = kept?.map((w) => ({ text: w.word, startMs: Math.round(c.startMs + w.start * 1000), endMs: Math.round(c.startMs + w.end * 1000) }))

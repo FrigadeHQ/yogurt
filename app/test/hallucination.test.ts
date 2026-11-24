@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isPromptEcho, isSilenceGuess, withoutPromptLabel } from '../src/main/asr/hallucination'
+import { isPromptEcho, isSilenceGuess, isSubtitleCredit, withoutPromptLabel } from '../src/main/asr/hallucination'
 
 describe('prompt echo', () => {
   const prompt = 'Northwind sync. With Sam Lee of Northwind and Joe Park of Acme.'
@@ -62,5 +62,26 @@ describe('the prompt read back as a speaker label', () => {
     expect(withoutPromptLabel('Eric and Christian Mathiesen joined late', prompt)).toBe('Eric and Christian Mathiesen joined late')
     expect(withoutPromptLabel('Eric and Christian Mathiesen:', prompt)).toBe('Eric and Christian Mathiesen:')
     expect(withoutPromptLabel('Eric: hi', '')).toBe('Eric: hi')
+  })
+})
+
+describe("whisper's subtitle credits (#138: Russian ones on a quiet track)", () => {
+  it('are credit lines in any of the usual languages, whoever they name', () => {
+    for (const t of [
+      'Редактор субтитров А.Семкин Корректор А.Егорова', 'Редактор субтитров М.Лосева Корректор А.Егорова', 'Корректор А.Кулакова',
+      'Субтитры сделал DimaTorzok', 'Субтитры создавал DimaTorzok', 'Субтитры подготовил И.Петров',
+      'Untertitel im Auftrag des ZDF für funk, 2017', 'Untertitelung des ZDF, 2020', 'Untertitel von Stephanie Geiges',
+      "Sous-titrage ST' 501", 'Sous-titres réalisés par Jean Dupont', 'Subtitles by Jane Doe', 'Captions by Rev.com',
+      'Sottotitoli creati dalla comunità Amara.org', 'Subtítulos realizados por la comunidad de Amara.org', 'Legendas pela comunidade Amara.org',
+      'Napisy wykonane przez Jana Kowalskiego', 'Ondertiteling door Jan de Vries', '字幕由Amara.org社区提供',
+    ]) expect(isSubtitleCredit(t), t).toBe(true)
+  })
+  it('are not real sentences that mention subtitles or an editor', () => {
+    for (const t of [
+      'Нам нужен корректор для этого текста к пятнице.', 'Редактор сказал, что всё готово.', 'Субтитры к видео будут завтра?',
+      'Who made the subtitles for the launch video?', 'The subtitles by default are off, can you turn them on?',
+      'Die Untertitel fehlen noch im Export.', 'Les sous-titres sont en retard, on les livre lundi.',
+      'Subtitles by Jane Doe were great, but the client wants a second pass on the Spanish version before Friday please',
+    ]) expect(isSubtitleCredit(t), t).toBe(false)
   })
 })

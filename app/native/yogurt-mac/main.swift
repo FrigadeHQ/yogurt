@@ -220,7 +220,7 @@ func browserTitle(_ id: String) -> String? {
  * one first. Yogurt reads the tree (src/main/callNames/parse.ts). Chromium and Electron build a page's tree only when
  * an assistive app asks, so they are asked the way screen readers do (AXManualAccessibility): see askTree.
  */
-let axKeys = [kAXRoleAttribute, kAXSubroleAttribute, kAXDescriptionAttribute, kAXTitleAttribute, kAXValueAttribute, kAXIdentifierAttribute, "AXDOMClassList", kAXChildrenAttribute, kAXSizeAttribute] as [String]
+let axKeys = [kAXRoleAttribute, kAXSubroleAttribute, kAXDescriptionAttribute, kAXTitleAttribute, kAXValueAttribute, kAXIdentifierAttribute, "AXDOMClassList", kAXChildrenAttribute, kAXSizeAttribute, "AXDOMIdentifier"] as [String]
 let chromium: Set<String> = ["com.google.Chrome", "company.thebrowser.Browser", "com.ardia.browser", "company.thebrowser.dia", "com.brave.Browser", "com.microsoft.edgemac", "com.microsoft.teams", "com.microsoft.teams2"]
 var askedTree = Set<pid_t>()
 
@@ -280,7 +280,8 @@ func axCopy(_ e: AXUIElement, depth: Int, maxDepth: Int, budget: inout Int, zoom
   if let x = axText(at(3)) { n["t"] = x }
   // what someone types is never copied
   if role != "AXTextField" && role != "AXTextArea", let x = axText(at(4)) { n["v"] = x }
-  if let x = axText(at(5)) { n["i"] = x }
+  // a page element's id ("hangup-button") is its DOM id; Chromium may not give it as AXIdentifier (#138)
+  if let x = axText(at(5)) ?? axText(at(9)) { n["i"] = x }
   if let c = at(6) as? [String], !c.isEmpty { n["c"] = Array(c.prefix(20)) }
   if role == "AXTabGroup", let size = at(8), CFGetTypeID(size) == AXValueGetTypeID() {
     var sz = CGSize.zero

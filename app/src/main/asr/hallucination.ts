@@ -39,6 +39,25 @@ const GUESSES = new Set([
 export const isSilenceGuess = (text: string): boolean => GUESSES.has(tokens(text).join(' '))
 
 /**
+ * The credit line at the end of a subtitled video, which whisper writes over quiet audio with a different name each time
+ * ("Редактор субтитров А.Семкин Корректор А.Егорова", #138). Never something said in a meeting, so it goes whatever the
+ * audio was: the line must start with the credit and stay short, so a sentence about subtitles stays.
+ */
+const CREDITS = [
+  /^редактор субтитров(?!\p{L})/iu, /^субтитры (?:сделал|создавал|подготовил|делал|выполнил|создал)\p{L}*/iu, /^[Кк]орректор\s+\p{Lu}\.\s?\p{Lu}/u,
+  /^(?:subtitles|subtitled|captions|captioned|captioning) by(?!\p{L})/iu, /^untertitel(?:ung)?\s+(?:im auftrag|des|der|von)(?!\p{L})/iu,
+  /^sous[- ]titr(?:age|es?)(?!\p{L})(?!\s+(?:sont|est|en|du|de la|pour)(?!\p{L}))/iu, /^sottotitoli (?:creati|a cura|di|e revisione)(?!\p{L})/iu,
+  /^subtítulos (?:realizados|por|hechos|creados)(?!\p{L})/iu, /^legendas (?:pela|por|feitas)(?!\p{L})/iu, /^napisy (?:wykonane|stworzone|przygotowa)/iu,
+  /^ondertiteling (?:door|van)(?!\p{L})/iu, /^字幕(?:由|提供|制作|製作)/u,
+]
+/** short: a credit is a name or two after its words (in characters, since Chinese has no spaces) */
+const CREDIT_MAX_CHARS = 80
+export const isSubtitleCredit = (text: string): boolean => {
+  const t = text.normalize('NFKC').trim()
+  return t.length <= CREDIT_MAX_CHARS && CREDITS.some((re) => re.test(t))
+}
+
+/**
  * Whisper sometimes reads names from its prompt back as a speaker label before real speech ("Eric and Sam Lee: so let
  * me just get"). The label goes when it is the prompt word for word; a colon after words of its own stays.
  */

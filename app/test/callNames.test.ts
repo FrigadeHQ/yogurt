@@ -395,6 +395,22 @@ describe('hookCallNames', () => {
     expect(s.logs.some((l) => l.startsWith('call names: no call window in com.microsoft.teams2 (the Mac shows 3 of its windows), its windows in short:'))).toBe(true)
   })
 
+  it("pictures the window again once the call shows people, since Teams opens the mic on its join screen (#138)", () => {
+    const s = setup({ app: 'Teams' })
+    s.start()
+    const join = { r: 'AXWindow', k: [{ r: 'AXButton', i: 'hangup-button', d: 'Leave' }, { r: 'AXHeading', t: 'Meeting join' }] }
+    const call = { r: 'AXWindow', k: [{ r: 'AXButton', i: 'hangup-button', d: 'Leave' },
+      { r: 'AXMenuItem', d: 'Dana Smith, Has control of production tools, Context menu is available', k: [{ r: 'AXStaticText', v: 'Dana Smith' }, { r: 'AXGroup', c: ['vdi-frame-occlusion'] }] }] }
+    s.emit({ t: 1_000_000, app: 'com.microsoft.teams2', windows: [{ title: 'Meeting join | Microsoft Teams', tree: join }] })
+    s.emit({ t: 1_000_500, app: 'com.microsoft.teams2', windows: [{ title: 'Meeting join | Microsoft Teams', tree: join }] })
+    s.emit({ t: 1_001_000, app: 'com.microsoft.teams2', windows: [{ title: 'Weekly | Microsoft Teams', tree: call }] })
+    s.emit({ t: 1_001_500, app: 'com.microsoft.teams2', windows: [{ title: 'Weekly | Microsoft Teams', tree: call }] })
+    const pictures = s.logs.filter((l) => l.startsWith('call names: reading com.microsoft.teams2 (teams), its window in short'))
+    expect(pictures).toHaveLength(2)
+    expect(pictures[1]).toContain('AXMenuItem')
+    expect(s.logs.join('\n')).not.toContain('Dana Smith')
+  })
+
   it('a meeting in an app it can\'t read starts no watch', async () => {
     const s = setup({ app: 'FaceTime' })
     s.start()

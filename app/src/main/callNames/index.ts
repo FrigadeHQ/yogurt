@@ -65,7 +65,7 @@ const MAX_RESTARTS = 20
 const LOGGED_CHANGES = 30
 
 type Sample = Omit<CallSample, 'ms'> & { t: number }
-type Session = { app: string | null; ids: string[]; pids?: number[]; heardAt: number; quietMs: number; restarts: number; samples: Sample[]; priorLines: Set<number>; watch?: { stop(): void }; everyApp: boolean; offset?: number; startedAt: number; pictured: boolean; missPictured?: boolean; errors: Set<string>; last: string; logged: number; /** a call window with people was read (Zoom, Teams) */ windowSeen?: CallKind; /** since when the readings say that window is gone, and the last one that said so */ goneSince?: number; goneAt?: number }
+type Session = { app: string | null; ids: string[]; pids?: number[]; heardAt: number; quietMs: number; restarts: number; samples: Sample[]; priorLines: Set<number>; watch?: { stop(): void }; everyApp: boolean; offset?: number; startedAt: number; pictured: boolean; missPictured?: boolean; picturedPeople?: boolean; errors: Set<string>; last: string; logged: number; /** a call window with people was read (Zoom, Teams) */ windowSeen?: CallKind; /** since when the readings say that window is gone, and the last one that said so */ goneSince?: number; goneAt?: number }
 
 export function hookCallNames(p: {
   store: Pick<Store, 'meeting' | 'segments' | 'setSegmentSpeakers' | 'updateMeeting'>
@@ -134,9 +134,14 @@ export function hookCallNames(p: {
       if (!s.errors.has(why)) { s.errors.add(why); log(`call names: ${why}`) }
       return
     }
-    // the first reading of each meeting goes to the log in short, so a real call shows what its app gives
-    if (!s.pictured) { s.pictured = true; log(`call names: reading ${l.app} (${kind}), its window in short:\n${summarize(l.windows)}`) }
     const { byMute, ...r } = readCall(kind, l.windows)
+    // The first reading of each meeting goes to the log in short, so a real call shows what its app gives. Teams opens
+    // the mic on its join screen, minutes before the call (#138), so the first reading with people in it goes there too.
+    const people = r.participants.length > 0
+    if (!s.pictured || (people && !s.picturedPeople)) {
+      s.pictured = true; s.picturedPeople = people
+      log(`call names: reading ${l.app} (${kind}), its window in short:\n${summarize(l.windows)}`)
+    }
     // A stage can show fewer people than are in the call (a screen share, another layout: #83 went "0 of 13", "0 of 2").
     // The most seen in the last minute stands for the call, so me and one other is no call of two, and who is muted
     // names nobody while someone may be hidden.
@@ -186,7 +191,7 @@ export function hookCallNames(p: {
     log(`call names: the call is in ${m.app}, reading only it`)
     if (!ids.length) return
     // the log says again what the call's own app shows, even when it reads as what the last app did (#83)
-    s.pictured = false; s.last = ''
+    s.pictured = false; s.picturedPeople = false; s.last = ''
     begin(m.id, s)
   })
 
@@ -232,7 +237,7 @@ export function hookCallNames(p: {
       if (s.watch && s.app && !s.pids && p.micPids?.(s.app).length) {
         log(`call names: ${s.app} is on the mic now, reading only its process`)
         s.watch.stop(); s.watch = undefined
-        s.samples = []; s.heardAt = now(); s.pictured = false
+        s.samples = []; s.heardAt = now(); s.pictured = false; s.picturedPeople = false
         s.windowSeen = undefined; s.goneSince = undefined; s.goneAt = undefined
         begin(id, s)
         continue

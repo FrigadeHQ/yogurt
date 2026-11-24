@@ -74,4 +74,10 @@ describe('call-watch on the Teams desktop app (#111)', () => {
     const look = swift.slice(swift.indexOf('func hasCallControl'), swift.indexOf('func isMeetTitle'))
     expect(look).toContain('page shows only a popup')
   })
+  it("copies a page element's DOM id when it has no AXIdentifier, so Teams' hangup-button reaches the reader on a Mac (#138)", () => {
+    expect(swift).toMatch(/let axKeys = \[[^\]]*"AXDOMIdentifier"/)
+    const copy = swift.slice(swift.indexOf('func axCopy'), swift.indexOf('let callControls'))
+    expect(copy).toMatch(/n\["i"\] = x/)
+    expect(copy).toContain('at(9)')
+  })
 })
