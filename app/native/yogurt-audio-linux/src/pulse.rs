@@ -19,7 +19,8 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Source { pub name: String, pub description: String, pub monitor: bool }
+/// index: the server's number for it, new each time the device is built again (a Bluetooth profile switch)
+pub struct Source { pub name: String, pub description: String, pub monitor: bool, pub index: u32 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Snapshot {
@@ -36,6 +37,8 @@ impl Snapshot {
     pub fn mics(&self) -> impl Iterator<Item = &Source> { self.sources.iter().filter(|s| !s.monitor) }
     /// The default input, when it is a real mic (with no mic, PulseAudio makes a monitor the default)
     pub fn default_mic(&self) -> Option<&Source> { self.default_source.as_deref().and_then(|n| self.mic(n)) }
+    /// The server's index for the source (mic or monitor) with this name
+    pub fn index_of(&self, name: &str) -> Option<u32> { self.sources.iter().find(|s| s.name == name).map(|s| s.index) }
     /// What to record the computer's sound from: the default output's monitor
     pub fn monitor(&self) -> String {
         match &self.default_sink { Some(s) => format!("{s}.monitor"), None => "@DEFAULT_MONITOR@".into() }
@@ -84,7 +87,7 @@ fn refresh(ml: &mut Mainloop, ctx: &Context) -> Option<Snapshot> {
         ListResult::Item(s) => {
             if let Some(name) = s.name.as_ref() {
                 let description = s.description.as_ref().map(|d| d.to_string()).unwrap_or_else(|| name.to_string());
-                l2.borrow_mut().push(Source { name: name.to_string(), description, monitor: s.monitor_of_sink.is_some() });
+                l2.borrow_mut().push(Source { name: name.to_string(), description, monitor: s.monitor_of_sink.is_some(), index: s.index });
             }
         }
         ListResult::Error => f2.set(true),
@@ -187,7 +190,7 @@ pub fn capture(device: Option<String>, stream_name: &'static str, on_audio: impl
 mod tests {
     use super::*;
 
-    fn src(name: &str, monitor: bool) -> Source { Source { name: name.into(), description: format!("{name} desc"), monitor } }
+    fn src(name: &str, monitor: bool) -> Source { Source { name: name.into(), description: format!("{name} desc"), monitor, index: 0 } }
 
     #[test]
     fn mics_leave_out_monitors() {

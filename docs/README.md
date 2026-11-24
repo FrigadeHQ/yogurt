@@ -24,6 +24,20 @@ The other permissions are optional:
 
 If a permission is off, use its button in Yogurt's Settings to open the right system pane. After changing it, return to Yogurt. Recording always waits for your click.
 
+## Linux: Bluetooth headsets
+
+With PipeWire, a Bluetooth headset switches from music mode to hands-free mode when an app records from its microphone. The headset's sound output is rebuilt during the switch, so the call app can lose its devices for a moment, and both sides sound lower quality while hands-free is on. Yogurt keeps recording through the switch.
+
+If your call keeps dropping its devices, turn the automatic switch off and use your computer's built-in microphone. Create `~/.config/wireplumber/wireplumber.conf.d/51-no-bt-autoswitch.conf` with:
+
+```
+wireplumber.settings = {
+  bluetooth.autoswitch-to-headset-profile = false
+}
+```
+
+Then run `systemctl --user restart wireplumber` and reconnect the headset. This is for WirePlumber 0.5 and newer (`wireplumber --version`). On 0.4, set `["media-role.use-headset-profile"] = false` in `bluetooth_policy.policy` in a copy of `policy.lua.d/10-default-policy.lua` under `~/.config/wireplumber/`.
+
 ## Privacy
 
 Audio, transcripts, notes, and questions are processed locally. Yogurt does not upload your meetings, and there is no telemetry.

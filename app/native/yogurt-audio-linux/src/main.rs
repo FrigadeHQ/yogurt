@@ -16,10 +16,12 @@ mod json;
 mod ogg_opus;
 mod pulse;
 mod resample;
+mod settle;
 mod track;
 
 use json::{n, obj, opt, s, J};
 use pulse::{Capture, Change, Snapshot};
+use settle::{On, Settle};
 use std::io::{BufRead, Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{channel, Receiver, Sender};
@@ -92,8 +94,15 @@ struct Recorder {
     tx: Sender<Msg>,
     out: Sender<Vec<u8>>,
     clock: Arc<Clock>,
-    mic_rebuild: Option<Instant>,
-    sys_rebuild: Option<Instant>,
+    /// the devices the open streams record from, to tell a real change from one that came back (#152)
+    mic_on: Option<On>,
+    sys_on: Option<On>,
+    /// device changes come in bursts: look once they stop
+    settle: Settle,
+}
+
+fn on_text(on: Option<&On>) -> String {
+    match on { Some(o) => format!("{} #{}", o.name, o.index.map(|i| i.to_string()).unwrap_or_else(|| "?".into())), None => "not recording".into() }
 }
 
 fn line(j: J) -> Vec<u8> { let mut d = j.text().into_bytes(); d.push(b'\n'); d }
@@ -120,13 +129,20 @@ impl Recorder {
         // Auto with no real mic: PulseAudio makes a monitor the default input, which would record the speakers as "me"
         if self.mic_uid.is_none() && snap.ready && snap.default_mic().is_none() { eprintln!("no microphone"); return false }
         self.mic = self.start_capture(Tr::Me, self.mic_uid.clone());
+        self.mic_on = self.mic.as_ref().and_then(|_| self.mic_wanted(&snap)).map(|n| On::of(&n, &snap));
         self.mic.is_some()
     }
     fn start_system(&mut self) -> bool {
         if let Some(c) = self.sys.take() { c.stop() }
-        let monitor = self.snapshot().monitor();
-        self.sys = self.start_capture(Tr::Them, Some(monitor));
+        let snap = self.snapshot();
+        let monitor = snap.monitor();
+        self.sys = self.start_capture(Tr::Them, Some(monitor.clone()));
+        self.sys_on = self.sys.as_ref().map(|_| On::of(&monitor, &snap));
         self.sys.is_some()
+    }
+    /// the mic to record from: the chosen one, or the default input when it is a real mic
+    fn mic_wanted(&self, snap: &Snapshot) -> Option<String> {
+        match &self.mic_uid { Some(u) => Some(u.clone()), None => snap.default_mic().map(|m| m.name.clone()) }
     }
 
     fn start(&mut self, speech: bool) {
@@ -152,22 +168,37 @@ impl Recorder {
         self.send(obj([("t", s("mic")), ("uid", opt(self.mic_uid.as_deref())), ("name", opt(dev.map(|d| d.description.as_str())))]));
     }
 
-    // device changes come in bursts; rebuild once they settle, without stopping the recording
-    fn schedule_mic(&mut self, after_ms: u64) { self.mic_rebuild = Some(Instant::now() + Duration::from_millis(after_ms)) }
-    fn schedule_sys(&mut self) { self.sys_rebuild = Some(Instant::now() + Duration::from_millis(300)) }
+    /// The changes stopped: reopen only the streams whose device is really different now, without stopping the
+    /// recording. A headset that switched mode and came back as it was changes nothing (#152).
+    fn settled(&mut self) {
+        if self.finishing { return }
+        if let Some(uid) = self.mic_uid.clone() {
+            if !self.mic_here(&uid) { eprintln!("the chosen microphone went away: using the default"); self.mic_uid = None; self.warn("mic-gone") }
+        }
+        let snap = self.snapshot();
+        let monitor = snap.monitor();
+        if settle::reopen(self.sys.as_ref().and(self.sys_on.as_ref()), Some(&monitor), &snap) {
+            eprintln!("devices settled: computer sound from {monitor} (was {}): opening it again", on_text(self.sys.as_ref().and(self.sys_on.as_ref())));
+            self.rebuild_system();
+        } else if self.sys.is_some() { eprintln!("devices settled: computer sound still from {monitor}: kept") }
+        let want = self.mic_wanted(&snap);
+        if settle::reopen(self.mic.as_ref().and(self.mic_on.as_ref()), want.as_deref(), &snap) {
+            eprintln!("devices settled: microphone {} (was {}): opening it again", want.as_deref().unwrap_or("none"), on_text(self.mic.as_ref().and(self.mic_on.as_ref())));
+            self.rebuild_mic();
+        } else {
+            if self.mic.is_some() { eprintln!("devices settled: microphone still {}: kept", want.as_deref().unwrap_or("the default")) }
+            else if want.is_none() { eprintln!("devices settled: no microphone to record from") }
+            self.report_mic();
+        }
+    }
 
     fn rebuild_system(&mut self) {
-        if self.finishing { return }
         self.them.resync();
         if !self.start_system() { self.warn("no-system-audio") }
         self.warn("device-changed");
     }
     /// A new stream on the chosen mic (or the default). The time in between is silence in me.ogg.
     fn rebuild_mic(&mut self) {
-        if self.finishing { return }
-        if let Some(uid) = self.mic_uid.clone() {
-            if !self.mic_here(&uid) { eprintln!("the chosen microphone went away: using the default"); self.mic_uid = None; self.warn("mic-gone") }
-        }
         self.me.resync();
         if !self.start_mic() {
             // the chosen mic can't be recorded from: Auto, and the picker is told
@@ -186,7 +217,7 @@ impl Recorder {
         self.me.resync();
         if self.start_mic() { self.warn("device-changed"); self.report_mic(); return }
         eprintln!("moving the microphone failed: building it again");
-        self.schedule_mic(0);
+        self.settle.now(Instant::now());
     }
 
     fn command(&mut self, c: &str) {
@@ -210,18 +241,17 @@ impl Recorder {
                     _ => {}
                 }
             }
-            Msg::Lost { track: Tr::Me, gen } if gen == self.mic_gen => { self.mic = None; self.schedule_mic(300) }
-            Msg::Lost { track: Tr::Them, gen } if gen == self.sys_gen => { self.sys = None; self.schedule_sys() }
+            Msg::Lost { track: Tr::Me, gen } if gen == self.mic_gen => { self.mic = None; self.settle.poke(Instant::now()) }
+            Msg::Lost { track: Tr::Them, gen } if gen == self.sys_gen => { self.sys = None; self.settle.poke(Instant::now()) }
             Msg::Lost { .. } => {}
             Msg::Cmd(c) => self.command(&c),
             Msg::End => self.finish(),
-            Msg::Server(Change::Sink) => self.schedule_sys(),
-            // Auto follows the default input; a chosen mic stays put
-            Msg::Server(Change::Source) => if self.mic_uid.is_none() { self.schedule_mic(300) },
-            // a chosen mic unplugged: back to Auto
-            Msg::Server(Change::Sources) => {
-                if let Some(u) = self.mic_uid.clone() { if self.snapshot().mic(&u).is_none() { self.schedule_mic(300) } }
-                else if self.mic.is_none() && self.snapshot().default_mic().is_some() { self.schedule_mic(300) }
+            // every change goes in the log, and waits for the burst to end (settled decides what, if anything, to reopen)
+            Msg::Server(c) => {
+                let snap = self.snapshot();
+                eprintln!("device change ({c:?}): default output {}, default input {}, {} sources",
+                    snap.default_sink.as_deref().unwrap_or("none"), snap.default_source.as_deref().unwrap_or("none"), snap.sources.len());
+                self.settle.poke(Instant::now());
             }
         }
     }
@@ -245,7 +275,7 @@ impl Recorder {
         let mut next_level = Instant::now() + Duration::from_millis(100);
         while !self.finishing {
             let mut wake = next_level;
-            for d in [self.mic_rebuild, self.sys_rebuild].into_iter().flatten() { wake = wake.min(d) }
+            if let Some(d) = self.settle.deadline() { wake = wake.min(d) }
             let wait = wake.saturating_duration_since(Instant::now());
             match rx.recv_timeout(wait) {
                 Ok(m) => self.handle(m),
@@ -254,8 +284,7 @@ impl Recorder {
             }
             if self.finishing { break }
             let now = Instant::now();
-            if self.sys_rebuild.is_some_and(|d| d <= now) { self.sys_rebuild = None; self.rebuild_system() }
-            if self.mic_rebuild.is_some_and(|d| d <= now) { self.mic_rebuild = None; self.rebuild_mic() }
+            if self.settle.take(now) { self.settled() }
             if now >= next_level {
                 next_level += Duration::from_millis(100);
                 if next_level < now { next_level = now + Duration::from_millis(100) }
@@ -336,7 +365,7 @@ fn record(args: &[String], dir: &Path) {
         them: Track::new("them", dir, part, start_ms, Box::new(move |d| { let _ = o2.send(d); })),
         mic: None, sys: None, mic_gen: 0, sys_gen: 0, paused: false, finishing: false,
         mic_uid: arg_value(args, "--mic"), snap, tx: tx.clone(), out, clock,
-        mic_rebuild: None, sys_rebuild: None,
+        mic_on: None, sys_on: None, settle: Settle::default(),
     };
     rec.start(arg_value(args, "--speech").is_some());
 

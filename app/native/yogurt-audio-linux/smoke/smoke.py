@@ -173,6 +173,24 @@ time.sleep(1)
 pactl("set-default-sink", "speakers")
 time.sleep(1.5)
 
+# a burst that comes back where it started (a Bluetooth headset switching mode and back, #152): nothing reopened
+n0 = len(r.lines)
+for sink in ["speakers2", "speakers", "speakers2", "speakers"]:
+    pactl("set-default-sink", sink)
+    time.sleep(0.2)
+time.sleep(2)
+check(not any(m["t"] == "warn" and m["code"] == "device-changed" for m in r.lines[n0:]), "a burst of changes back to the same output reopens nothing")
+check(any("computer sound still from speakers.monitor: kept" in e for e in r.err), "the log says the computer sound was kept")
+# a burst that ends somewhere new: reopened once
+n0 = len(r.lines)
+for sink in ["speakers2", "speakers", "speakers2"]:
+    pactl("set-default-sink", sink)
+    time.sleep(0.2)
+time.sleep(2)
+check(sum(1 for m in r.lines[n0:] if m["t"] == "warn" and m["code"] == "device-changed") == 1, "a burst of changes ending on a new output reopens once")
+pactl("set-default-sink", "speakers")
+time.sleep(2)
+
 # a second mic, chosen, then unplugged: back to Auto with mic-gone
 mod = pactl("load-module", "module-remap-source", "master=micfeed.monitor", "source_name=virtmic2", "source_properties=device.description=SecondMic")
 time.sleep(0.5)
