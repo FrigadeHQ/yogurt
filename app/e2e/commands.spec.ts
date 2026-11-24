@@ -30,15 +30,24 @@ for (const theme of ['light', 'dark'] as const) {
       }, { meetingIds, theme })
       await page.reload()
       await expect(page.getByTestId('past-note').first()).toBeVisible()
-      await page.emulateMedia({ reducedMotion: 'reduce' })
-      await expect.poll(() => page.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)).toBe(theme === 'dark')
+      await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' })
       await page.keyboard.press('ControlOrMeta+k')
       const palette = page.getByTestId('search'), input = palette.getByRole('combobox')
+      await input.fill('appearance')
+      await expect(palette.getByTestId(`command-theme-${theme}`)).toHaveAttribute('aria-current', 'true')
+      await expect(input).toHaveCSS('color', theme === 'dark' ? 'rgb(231, 230, 235)' : 'rgb(41, 41, 44)')
+      await input.fill('')
       const results = palette.getByRole('listbox'), options = results.getByRole('option')
       const capture = async (state: string) => {
         await expect(results).toHaveAttribute('aria-busy', 'false')
         await expect(options.locator('kbd')).toHaveCount(1)
-        await palette.screenshot({ path: testInfo.outputPath(`palette-${state}-${theme}.png`) })
+        const clip = await palette.evaluate(el => {
+          const { x, y, width, height } = el.getBoundingClientRect()
+          const margin = 16
+          return { x: Math.round(x) - margin, y: Math.round(y) - margin,
+            width: Math.round(width) + 2 * margin, height: Math.round(height) + 2 * margin }
+        })
+        await page.screenshot({ clip, animations: 'disabled', path: testInfo.outputPath(`palette-${state}-${theme}.png`) })
       }
       await expect(input).toHaveAttribute('placeholder', 'Ask, search, or open a meeting…')
       await expect(options).toHaveCount(3)
