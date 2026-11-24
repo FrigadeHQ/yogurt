@@ -2,7 +2,7 @@ import { transcriptRowKey, transcriptSpeaker } from '../../../shared/transcript'
 import { SPEAKER_COLORS } from '../../../shared/speakerColors'
 import { widgetDragDelta, isWidgetClick, type WidgetPress } from '../../../shared/widgetGesture'
 import { Loading } from '../components/Loading'
-import { bubbles, turns, withLive } from '../../../shared/transcript'
+import { bubbles, mergeSaved, turns, withLive } from '../../../shared/transcript'
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ArrowDown, TriangleAlert } from '../components/Icons'
 import type { Segment, TranscriptPartial, WidgetView } from '../../../shared/types'
@@ -138,11 +138,7 @@ function Preview({ view, open }: { view: WidgetView; open: boolean }) {
     // A hover shows recent context, read as a tail; the full transcript stays in the meeting.
     const refresh = () => { void window.yogurt.transcript.get(view.meetingId, { hidden: true, last: RECENT_LINES }).then((recent) => {
       if (!alive) return
-      setLines(current => {
-        const merged = new Map(current.map(s => [`${s.track}:${s.startMs}`, s]))
-        for (const s of recent) merged.set(`${s.track}:${s.startMs}`, s)
-        return recentOnly([...merged.values()].filter(s => !s.hidden).sort((a, b) => a.startMs - b.startMs))
-      })
+      setLines(current => recentOnly(mergeSaved(current, recent).filter(s => !s.hidden)))
       setLoaded(true); setFailed(false)
     }, () => { if (alive) { setLoaded(true); setFailed(true) } }) }
     const offSegment = window.yogurt.transcript.onSegment((s) => {
