@@ -8,6 +8,8 @@ struct MeetingRow: View {
     /// in place of who was there: "Recorded on this iPhone · waiting for your computer"
     var detail: String? = nil
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             MeetingTile(attendees: meeting.attendees)
@@ -15,29 +17,36 @@ struct MeetingRow: View {
                 Text(meeting.title.isEmpty ? S.personalNotes : meeting.title)
                     .font(.body.weight(.medium))
                     .foregroundStyle(Theme.ink)
-                    .lineLimit(1)
+                    .lineLimit(typeSize.isAccessibilitySize ? nil : 2)
                 Text(detail ?? Format.people(meeting.attendees))
                     .font(.subheadline)
                     .foregroundStyle(Theme.muted)
-                    .lineLimit(1)
+                    .lineLimit(typeSize.isAccessibilitySize ? nil : 2)
                 if !folders.isEmpty {
-                    HStack(spacing: 6) { ForEach(folders) { FolderPill(name: $0.name) } }
+                    HStack(spacing: 6) { ForEach(folders) { MeetingFolderLabel(name: $0.name) } }
                         .padding(.top, 4)
                 }
+                if typeSize.isAccessibilitySize { time }
             }
-            Spacer(minLength: 8)
-            VStack(alignment: .trailing, spacing: 4) {
-                Text(Format.time(meeting.startedAt))
-                    .font(.footnote.monospacedDigit())
-                if let d = Format.duration(meeting) {
-                    Text(d).font(.caption2.monospacedDigit())
-                }
+            if !typeSize.isAccessibilitySize {
+                Spacer(minLength: 4)
+                time
             }
-            .foregroundStyle(Theme.muted)
         }
-        .padding(.vertical, 10)
+        .padding(.vertical, 12)
         .padding(.horizontal, 8)
         .accessibilityElement(children: .combine)
+    }
+
+    private var time: some View {
+        VStack(alignment: typeSize.isAccessibilitySize ? .leading : .trailing, spacing: 4) {
+            Text(Format.time(meeting.startedAt))
+                .font(.footnote.monospacedDigit())
+            if let d = Format.duration(meeting) {
+                Text(d).font(.caption.monospacedDigit())
+            }
+        }
+        .foregroundStyle(Theme.muted)
     }
 }
 
@@ -54,12 +63,13 @@ struct MeetingTile: View {
         }
         .foregroundStyle(Theme.written)
         .frame(width: 38, height: 38)
-        .background(Theme.control, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+        .background(Theme.card, in: Circle())
+        .accessibilityHidden(true)
     }
 }
 
-/// desktop's `.meeting-folder-pill`
-struct FolderPill: View {
+/// A folder name under a meeting title.
+struct MeetingFolderLabel: View {
     let name: String
     var body: some View {
         HStack(spacing: 5) {
@@ -68,9 +78,6 @@ struct FolderPill: View {
         }
         .font(.caption)
         .foregroundStyle(Theme.written)
-        .padding(.horizontal, 8)
-        .frame(height: 22)
-        .overlay(Capsule().strokeBorder(Theme.line, lineWidth: 1))
     }
 }
 

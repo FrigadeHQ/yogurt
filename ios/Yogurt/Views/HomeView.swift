@@ -18,8 +18,6 @@ struct HomeView: View {
     @State private var showSettings = false
     @State private var showConnect = false
     @State private var showRecord = false
-    /// the next recording's own language, nil for Settings'; it goes back to Settings' after that recording
-    @State private var recordLanguage: String?
     @Environment(\.scenePhase) private var phase
 
     var body: some View {
@@ -38,10 +36,9 @@ struct HomeView: View {
         .sheet(isPresented: $showSettings) { SettingsView() }
         .sheet(isPresented: $showConnect) { ConnectSheet() }
         .fullScreenCover(isPresented: $showRecord) {
-            RecordView(language: Spoken.locale(override: recordLanguage), saved: { path.append(.meeting($0)) },
+            RecordView(saved: { path.append(.meeting($0)) },
                        preview: UserDefaults.standard.bool(forKey: "previewRecording"))
         }
-        .onChange(of: showRecord) { _, open in if !open { recordLanguage = nil } }
         .onAppear(perform: applyLaunch)
         // recordings a crash left behind, and notes not written yet
         .task(id: phase) { if phase == .active { await PhoneDrafts.shared.resume(model: model) } }
@@ -57,15 +54,11 @@ struct HomeView: View {
         let recordings = Dictionary(model.store.localRecordings().map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         return ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Text(S.yourMeetings)
-                    .font(Theme.brand(32, relativeTo: .largeTitle))
-                    .foregroundStyle(Theme.heading)
-                    .padding(.top, 6)
                 if !folders.isEmpty {
                     FolderFilter(folders: folders, selected: shownFolder) { picked in
                         withAnimation(.easeOut(duration: 0.18)) { folder = picked }
                     }
-                    .padding(.top, 14)
+                    .padding(.top, 8)
                 }
                 if meetings.isEmpty {
                     EmptyMeetings(inFolder: shownFolder != nil, alone: alone).padding(.top, 72)
@@ -73,9 +66,11 @@ struct HomeView: View {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(days(meetings), id: \.label) { day in
                             Text(day.label)
-                                .font(.footnote.weight(.medium))
+                                .font(.caption.weight(.semibold))
+                                .textCase(.uppercase)
+                                .tracking(0.6)
                                 .foregroundStyle(Theme.muted)
-                                .padding(.top, 24).padding(.bottom, 4)
+                                .padding(.top, 22).padding(.bottom, 2)
                                 .accessibilityAddTraits(.isHeader)
                             ForEach(day.meetings) { m in
                                 NavigationLink(value: Route.meeting(m.id)) {
@@ -89,44 +84,77 @@ struct HomeView: View {
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, 110)
         }
         .scrollIndicators(.hidden)
         .background(Theme.bg)
         .refreshable { await model.engine.syncNow() }
         .safeAreaBar(edge: .top) { header }
-        .overlay(alignment: .bottom) { recordButton }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            recordButton
+                .padding(.top, 16)
+                .frame(maxWidth: .infinity)
+                .background {
+                    LinearGradient(stops: [.init(color: Theme.bg.opacity(0), location: 0),
+                                           .init(color: Theme.bg, location: 0.4)],
+                                   startPoint: .top, endPoint: .bottom)
+                        .ignoresSafeArea(edges: .bottom)
+                        .allowsHitTesting(false)
+                }
+        }
     }
 
     private var header: some View {
-        HStack(spacing: 0) {
-            // only once paired: on its own the phone doesn't talk about a computer here (Settings has Connect)
+        VStack(alignment: .leading, spacing: 0) {
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    title.fixedSize()
+                    Spacer(minLength: 8)
+                    tools.fixedSize()
+                }
+                VStack(alignment: .leading, spacing: 0) { title; tools }
+            }
             if model.engine.status.showsPill {
                 StatusPill(status: model.engine.status) { showSettings = true }
-                    .layoutPriority(1)
             }
-            Spacer(minLength: 4)
-            IconButton(symbol: "bubble.left.and.text.bubble.right", label: S.ask) { path.append(.ask(nil)) }
-                .accessibilityIdentifier("ask")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 20)
+        .padding(.top, 4)
+        .background(Theme.bg)
+    }
+
+    private var title: some View {
+        Text(S.meetings)
+            .font(.largeTitle.weight(.semibold))
+            .foregroundStyle(Theme.heading)
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    private var tools: some View {
+        HStack(spacing: 0) {
+            Button { path.append(.ask(nil)) } label: {
+                Text(S.ask)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Theme.ink)
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                    .background(Theme.card, in: Capsule())
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("ask")
             IconButton(symbol: "magnifyingglass", label: S.search) { path.append(.search) }
             IconButton(symbol: "gearshape", label: S.settings) { showSettings = true }
         }
-        .padding(.leading, 16).padding(.trailing, 8)
-        .padding(.vertical, 6)
     }
 
-    /// Record, one tap and it records, with the language it listens in beside it for anyone who wants another
     private var recordButton: some View {
-        HStack(spacing: 10) {
-            Button { showRecord = true } label: {
-                Label(S.record, systemImage: "mic.fill").padding(.horizontal, 6)
-            }
-            .buttonStyle(PrimaryButtonStyle())
-            .shadow(color: Theme.primary.opacity(0.28), radius: 14, y: 6)
-            .accessibilityIdentifier("record")
-            SpokenLanguageChip(override: $recordLanguage)
-                .shadow(color: .black.opacity(0.06), radius: 10, y: 4)
+        Button { showRecord = true } label: {
+            Label(S.record, systemImage: "mic.fill")
         }
+        .buttonStyle(PrimaryButtonStyle())
+        .padding(.horizontal, 20)
+        .accessibilityIdentifier("record")
         .padding(.bottom, 12)
     }
 
@@ -199,16 +227,14 @@ struct FolderFilter: View {
     private func chip(_ name: String, id: String?) -> some View {
         let on = selected == id
         return Button { pick(id) } label: {
-            HStack(spacing: 6) {
-                if id != nil { Circle().fill(Theme.accent).frame(width: 6, height: 6) }
-                Text(name)
-            }
+            Text(name)
             .font(.subheadline.weight(.medium))
-            .foregroundStyle(on ? Theme.ink : Theme.written)
+            .foregroundStyle(on ? Theme.accent : Theme.written)
             .padding(.horizontal, 13)
-            .frame(height: 34)
-            .background(on ? Theme.selected : .clear, in: Capsule())
-            .overlay(Capsule().strokeBorder(on ? .clear : Theme.line, lineWidth: 1))
+            .frame(minHeight: 32)
+            .background(on ? Theme.accentSoft : Theme.card, in: Capsule())
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(on ? .isSelected : [])
@@ -226,10 +252,8 @@ struct EmptyMeetings: View {
                 .font(.title.weight(.light))
                 .foregroundStyle(Theme.written)
                 .frame(width: tile, height: tile)
-                .background(Theme.float, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Theme.line))
-                .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(Theme.line.opacity(0.45)).padding(5))
-                .shadow(color: .black.opacity(0.06), radius: 12, y: 8)
+                .background(Theme.card, in: Circle())
+                .accessibilityHidden(true)
                 .padding(.bottom, 16)
             Text(inFolder ? S.emptyFolder : S.emptyTitle)
                 .font(.headline)
