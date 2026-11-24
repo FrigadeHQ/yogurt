@@ -2,7 +2,6 @@ import SwiftUI
 import YogurtKit
 
 /// A compact player at the foot of the Note: play or pause, the time, a scrubber and the speed (1×, 1.5×, 2×).
-/// With no audio to play it is one quiet line instead.
 struct PlayerBar: View {
     let player: NotePlayer
     let retry: () -> Void
@@ -10,9 +9,8 @@ struct PlayerBar: View {
     var body: some View {
         Group {
             switch player.state {
-            case .loading: EmptyView()
+            case .loading, .noAudio: EmptyView()
             case .nearby: quiet(S.audioNearby)
-            case .noAudio: quiet(S.audioNone)
             case .downloading(let p): downloading(p)
             case .failed(let message): failed(message)
             case .ready: controls
@@ -33,7 +31,7 @@ struct PlayerBar: View {
 
     private func downloading(_ p: Double) -> some View {
         HStack(spacing: 12) {
-            ProgressView(value: p).tint(Theme.primary)
+            ProgressView(value: p).tint(Theme.accent)
             Text(S.audioDownloading).font(.footnote).foregroundStyle(Theme.muted).fixedSize()
         }
         .padding(14)
@@ -56,38 +54,39 @@ struct PlayerBar: View {
             Button { player.toggle() } label: {
                 Image(systemName: player.playing ? "pause.fill" : "play.fill")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 36, height: 36)
-                    .background(Theme.primary, in: Circle())
+                    .foregroundStyle(Theme.onAccent)
+                    .frame(width: 44, height: 44)
+                    .background(Theme.accent, in: Circle())
             }
             .disabled(player.blocked)
             .opacity(player.blocked ? 0.4 : 1)
             .accessibilityLabel(player.playing ? S.pause : S.play)
             .accessibilityIdentifier("player-toggle")
 
-            Text(PlayerLogic.clock(ms: player.positionMs))
-                .font(.caption.monospacedDigit()).foregroundStyle(Theme.muted)
-                .frame(minWidth: 34, alignment: .trailing)
-
-            Slider(
-                value: Binding(get: { PlayerLogic.fraction(ms: player.positionMs, duration: player.durationMs) },
-                               set: { player.seek(to: PlayerLogic.ms(atFraction: $0, duration: player.durationMs)) }),
-                in: 0...1, onEditingChanged: { player.scrubbing = $0 }
-            )
-            .tint(Theme.primary)
-            .accessibilityLabel(S.position)
-            .accessibilityValue(PlayerLogic.clock(ms: player.positionMs))
-
-            Text(PlayerLogic.clock(ms: player.durationMs))
-                .font(.caption.monospacedDigit()).foregroundStyle(Theme.muted)
-                .frame(minWidth: 34, alignment: .leading)
+            VStack(spacing: 0) {
+                Slider(
+                    value: Binding(get: { PlayerLogic.fraction(ms: player.positionMs, duration: player.durationMs) },
+                                   set: { player.seek(to: PlayerLogic.ms(atFraction: $0, duration: player.durationMs)) }),
+                    in: 0...1, onEditingChanged: { player.scrubbing = $0 }
+                )
+                .tint(Theme.accent)
+                .accessibilityLabel(S.position)
+                .accessibilityValue(PlayerLogic.clock(ms: player.positionMs))
+                HStack {
+                    Text(PlayerLogic.clock(ms: player.positionMs))
+                    Spacer()
+                    Text(PlayerLogic.clock(ms: player.durationMs))
+                }
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(Theme.muted)
+            }
 
             Button { player.cycleRate() } label: {
                 Text(PlayerLogic.rateLabel(player.rate))
                     .font(.caption.weight(.semibold).monospacedDigit())
                     .foregroundStyle(Theme.ink)
-                    .frame(minWidth: 38, minHeight: 28)
-                    .background(Theme.control, in: Capsule())
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
             }
             .accessibilityLabel(S.playbackSpeed)
             .accessibilityValue(PlayerLogic.rateLabel(player.rate))
@@ -100,8 +99,6 @@ struct PlayerBar: View {
 
 private extension View {
     func card() -> some View {
-        background(Theme.float, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.line))
-            .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
+        background(Theme.chrome, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 }

@@ -1,10 +1,10 @@
 import SwiftUI
 import YogurtKit
 
-/// One meeting: Summary, My notes and Transcript, as on desktop. My notes can be edited here; it saves as you type and
+/// One meeting: Transcript, My notes and Summary, as on desktop. My notes can be edited here; it saves as you type and
 /// goes to the computer with the next sync.
 struct NoteView: View {
-    enum Tab: String, CaseIterable { case summary, mine, transcript }
+    enum Tab: String, CaseIterable { case transcript, mine, summary }
 
     let meetingId: String
     /// opened from an Ask source: the transcript, at this moment (ms)
@@ -76,7 +76,7 @@ struct NoteView: View {
                                                      atMs: tab == nil ? atMs : nil, proxy: proxy, player: player)
                     }
                 }
-                .padding(.top, 20)
+                .padding(.top, 24)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 40)
@@ -87,11 +87,8 @@ struct NoteView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink(value: Route.ask(meetingId)) {
-                    Image(systemName: "bubble.left.and.text.bubble.right")
-                }
-                .accessibilityLabel(S.ask)
-                .accessibilityIdentifier("note-ask")
+                NavigationLink(S.ask, value: Route.ask(meetingId))
+                    .accessibilityIdentifier("note-ask")
             }
             ToolbarItem(placement: .topBarTrailing) { menu(meeting, folders: folders, inFolders: inFolders) }
         }
@@ -113,25 +110,23 @@ struct NoteView: View {
     private func header(_ m: Meeting, folders: [Folder]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(m.title.isEmpty ? S.personalNotes : m.title)
-                .font(.title2.weight(.semibold))
-                .tracking(-0.4)
+                .font(.largeTitle.weight(.semibold))
+                .accessibilityAddTraits(.isHeader)
                 .foregroundStyle(Theme.heading)
                 .onTapGesture { newTitle = m.title; renaming = true }
                 .accessibilityAddTraits(.isButton)
                 .accessibilityHint(S.rename)
-            HStack(spacing: 6) {
-                Text([Format.day(m.startedAt), Format.time(m.startedAt), Format.duration(m)].compactMap { $0 }.joined(separator: " · "))
-                if !m.attendees.isEmpty {
-                    Text("·")
-                    Image(systemName: "person.2").font(.caption)
-                    Text(Format.people(m.attendees))
-                }
+            Text([Format.day(m.startedAt), Format.time(m.startedAt), Format.duration(m)]
+                .compactMap { $0 }.joined(separator: " · "))
+                .font(.subheadline)
+                .foregroundStyle(Theme.muted)
+            if !m.attendees.isEmpty {
+                Label(Format.people(m.attendees), systemImage: "person.2")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.muted)
             }
-            .font(.subheadline)
-            .foregroundStyle(Theme.muted)
-            .lineLimit(1)
             if !folders.isEmpty {
-                HStack(spacing: 6) { ForEach(folders) { FolderPill(name: $0.name) } }.padding(.top, 2)
+                HStack(spacing: 6) { ForEach(folders) { MeetingFolderLabel(name: $0.name) } }.padding(.top, 2)
             }
         }
         .padding(.top, 4)
@@ -150,36 +145,21 @@ struct NoteView: View {
         .padding(.top, 16)
     }
 
-    /// desktop's tab row: plain labels over a hairline, the chosen one underlined in purple
     private func tabs(_ shown: Tab) -> some View {
-        HStack(spacing: 22) {
+        HStack(spacing: 2) {
             ForEach(Tab.allCases, id: \.self) { t in
-                Button {
+                Button(label(t)) {
                     withAnimation(.easeOut(duration: 0.18)) { tab = t }
-                } label: {
-                    Text(label(t))
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(shown == t ? Theme.ink : Theme.muted)
-                        .padding(.horizontal, 2)
-                        .frame(height: 40)
-                        .overlay(alignment: .bottom) {
-                            if shown == t {
-                                Rectangle().fill(Theme.primary).frame(height: 2)
-                                    .matchedGeometryEffect(id: "underline", in: underline)
-                            }
-                        }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(MeetingTabStyle(selected: shown == t))
                 .accessibilityAddTraits(shown == t ? .isSelected : [])
                 .accessibilityIdentifier("tab-\(t.rawValue)")
             }
-            Spacer()
         }
-        .overlay(alignment: .bottom) { Rectangle().fill(Theme.line).frame(height: 1) }
+        .padding(3)
+        .background(Theme.card, in: RoundedRectangle(cornerRadius: 14))
         .padding(.top, 20)
     }
-
-    @Namespace private var underline
 
     private func label(_ t: Tab) -> String {
         switch t {
@@ -326,7 +306,7 @@ struct NoteView: View {
         if let audioShare {
             HStack(spacing: 10) {
                 if audioShare == .waiting, case .downloading(let p) = player.state {
-                    ProgressView(value: p).tint(Theme.primary).frame(width: 80)
+                    ProgressView(value: p).tint(Theme.accent).frame(width: 80)
                     Text(S.audioDownloading)
                 } else {
                     ProgressView().controlSize(.small)
@@ -371,6 +351,7 @@ struct SummaryPane: View {
                         .foregroundStyle(Theme.muted)
                 }
                 MarkdownView(markdown: summary, color: Theme.written)
+                    .lineSpacing(3)
             }
         } else if let notes, notes.summarySource == .phoneDraft {
             PhoneDraftNotice(meetingId: notes.meetingId)
@@ -408,25 +389,17 @@ struct MyNotesPane: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            ZStack(alignment: .topLeading) {
-                if text.isEmpty {
-                    Text(S.myNotesPlaceholder)
-                        .foregroundStyle(Theme.muted)
-                        .padding(.top, 8).padding(.leading, 5)
-                        .allowsHitTesting(false)
-                }
-                TextEditor(text: $text)
-                    .focused($focused)
-                    .scrollDisabled(true)
-                    .scrollContentBackground(.hidden)
-                    .foregroundStyle(Theme.ink)
-                    .lineSpacing(4)
-                    .frame(minHeight: 280, alignment: .topLeading)
-                    .accessibilityLabel(S.myNotes)
-                    .accessibilityIdentifier("my-notes")
-            }
-            .font(.body)
-            .padding(.horizontal, -5)
+            TextField(S.myNotesPlaceholder, text: $text, axis: .vertical)
+                .textFieldStyle(.plain)
+                .focused($focused)
+                .font(.body)
+                .foregroundStyle(Theme.ink)
+                .lineSpacing(4)
+                .padding(14)
+                .frame(maxWidth: .infinity, minHeight: 52, alignment: .topLeading)
+                .background(Theme.card, in: RoundedRectangle(cornerRadius: 14))
+                .accessibilityLabel(S.myNotes)
+                .accessibilityIdentifier("my-notes")
             Text(stateLabel)
                 .font(.caption)
                 .foregroundStyle(state == .failed ? Theme.danger : Theme.muted)
@@ -522,12 +495,13 @@ struct TranscriptPane: View {
             LazyVStack(alignment: .leading, spacing: 18) {
                 ForEach(all, id: \.first.index) { turn in
                     let marked = markedIndex == turn.first.index
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 8) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
                             if !oneMic {
                                 Text(speaker(turn.first.speaker))
                                     .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(turn.first.speaker == "me" ? Theme.accent : Theme.ink)
+                                    .foregroundStyle(Theme.ink)
+                                Spacer(minLength: 8)
                             }
                             Text(Format.offset(turn.first.startMs))
                                 .font(.caption.monospacedDigit())
@@ -598,7 +572,7 @@ struct MarkdownView: View {
     @ViewBuilder private func view(_ block: MarkdownBlock) -> some View {
         switch block {
         case .heading(let level, let text):
-            inline(text, font: level == 1 ? .title3.weight(.semibold) : level == 2 ? .headline : .body.weight(.semibold), color: Theme.heading)
+            inline(text, font: level == 1 ? .title2.weight(.semibold) : level == 2 ? .title3.weight(.semibold) : .body.weight(.semibold), color: Theme.heading)
                 .accessibilityAddTraits(.isHeader)
         case .bullet(let level, let text):
             item(level == 0 ? "•" : "–", level: level, text: text)
@@ -640,7 +614,7 @@ struct MarkdownView: View {
 
     private func topSpace(_ block: MarkdownBlock, first: Bool) -> CGFloat {
         guard !first, case .heading(let level, _) = block else { return 0 }
-        return level == 1 ? 14 : 12
+        return level == 1 ? 18 : 16
     }
 }
 
