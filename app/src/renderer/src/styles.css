@@ -403,6 +403,9 @@ html.widget, .widget-pill[data-illustration] { --pill:#232326;--pill-ink:#F7F7FA
 .line-playable[data-playing]:hover { background: var(--playback-bg); }
 [data-playing] .line-time { opacity: 1; color: var(--accent); }
 .transcript-turn:has([data-playing]) .line-who:not([data-color]) { color: var(--accent); }
+/* a line of a named voice: the per-line assign chevron shows while its bubble is hovered, focused, or open */
+.line-assign > .speaker-menu-btn { opacity: 0; transition: opacity var(--dur-micro) ease; }
+.bubble:hover .line-assign > .speaker-menu-btn, .line-assign > .speaker-menu-btn:focus-visible, .line-assign > .speaker-menu-btn[aria-expanded=true] { opacity: 1; }
 /* names arrive once the meeting is over: they slide in above the lines, which stay where they are */
 .name-in { animation: motion-fade var(--dur-base) var(--ease-out) backwards; }
 .player-btn { transition: transform var(--dur-micro) var(--ease-out), opacity var(--dur-micro) var(--ease-out); }

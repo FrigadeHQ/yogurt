@@ -264,6 +264,32 @@ export function WhoName({ meetingId, line, voices }: { meetingId: string; line: 
 }
 
 /**
+ * One line of a named voice: hovering shows a small menu that moves just this line to another voice — the rest of
+ * the voice keeps its name. Renaming or merging on the turn's name is a whole-voice operation; this is the per-sentence one.
+ */
+export function LineAssign({ meetingId, line, voices }: { meetingId: string; line: Line; voices: Array<{ name: string; key: string }> }) {
+  const [menu, setMenu] = useState(false)
+  const others = voices.filter((v) => v.key !== line.speakerKey)
+  if (line.id === undefined || !line.speakerKey || !others.length) return null
+  return (
+    <span className="line-assign" data-testid="line-assign">
+      <button type="button" data-testid="line-assign-menu" aria-label={t('Assign to speaker')} aria-haspopup="menu" aria-expanded={menu}
+        onClick={(e) => { e.stopPropagation(); setMenu((m) => !m) }} className="speaker-menu-btn"><ChevronDown size={12} aria-hidden="true" /></button>
+      {menu && (
+        <div role="menu" data-testid="line-assign-list" onKeyDown={(e) => { if (e.key === 'Escape') setMenu(false) }}>
+          {others.map((v) => (
+            <button type="button" role="menuitem" data-testid="line-assign-item" key={v.key}
+              onClick={(e) => { e.stopPropagation(); setMenu(false); void window.yogurt.transcript.assignSpeaker(meetingId, line.id!, v.key) }}>
+              {t('Assign to {name}', { name: v.name })}
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
+  )
+}
+
+/**
  * The meeting's transcript: each turn carries who said it, following new lines
  * while it records; after the meeting a line plays from that moment, and the player sits at the bottom. The header searches it.
  */
@@ -532,7 +558,7 @@ export function Transcript({ id, notice, processing=false, replacing=false, reco
                       return (
                         <Fragment key={k}>{i > 0 && ' '}
                           <Row line={x} focused={k === focusedKey} name={who(x)}
-                            playing={k === shownKey} playable={playable} focusable={k === tabKey} arrived={!x.previous&&live.current.has(k) ? (previewed(x) ? 'settle' : 'fade') : null} onPlay={onPlay} onFocusLine={setFocusKey} />
+                          {!me && x.id !== undefined && x.speakerKey && <LineAssign meetingId={id} line={x} voices={themVoices} />}
                         </Fragment>
                       )
                     })}
