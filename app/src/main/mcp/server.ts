@@ -208,7 +208,7 @@ export function createMcp(d: McpDeps): Mcp {
     async get_meeting(a) {
       const m = meetingOf(a.id)
       const n = d.store.notes(m.id)
-      return JSON.stringify({ ...summary(m), calendar_event: calendarEvent(m), suggested_folder: suggestedFolder(m), myNotes: n.mine, summary: n.enhanced }, null, 2)
+      return JSON.stringify({ ...summary(m), calendar_event: calendarEvent(m), suggested_folder: suggestedFolder(m), myNotes: n.mine, summary: n.needsReview ? null : n.enhanced, ...(n.needsReview && {summary_needs_review: true}) }, null, 2)
     },
     async get_transcript(a) {
       const m = meetingOf(a.id)
@@ -260,7 +260,7 @@ export function createMcp(d: McpDeps): Mcp {
       const m = meetingOf(a.id)
       const n = d.store.notes(m.id)
       const side = oneOf(a, 'side', ['summary', 'my_notes'] as const) ?? 'summary'
-      return toMarkdownFile(m, side === 'summary' && n.enhanced != null ? n.enhanced : n.mine, d.store.segments(m.id))
+      return (side === 'summary' && n.needsReview ? 'The unreviewed summary was left out.\n\n' : '') + toMarkdownFile(m, side === 'summary' && !n.needsReview && n.enhanced != null ? n.enhanced : n.mine, d.store.segments(m.id))
     },
     async get_audio(a) {
       const m = meetingOf(a.id)

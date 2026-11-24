@@ -9,8 +9,8 @@ import { projectWebsite } from '../shared/project'
 
 /** the notes on the side shown, falling back to the person's own when the enhanced ones are not there */
 function notesOf(store: Pick<Store, 'notes'>, id: string, side: unknown) {
-  const { mine, enhanced } = store.notes(id)
-  return side === 'enhanced' && enhanced != null ? { md: enhanced, summary: true } : { md: mine, summary: false }
+  const { mine, enhanced, needsReview } = store.notes(id)
+  return side === 'enhanced' && !needsReview && enhanced != null ? { md: enhanced, summary: true } : { md: mine, summary: false }
 }
 
 /**
@@ -31,8 +31,9 @@ export function hookShare(d: { store: Pick<Store, 'meeting' | 'notes' | 'segment
     })
     return true
   })
-  ipcMain.handle('share:copy', async (_e, id: unknown, what: unknown, side: unknown): Promise<'copied' | 'nothing' | 'failed'> => {
+  ipcMain.handle('share:copy', async (_e, id: unknown, what: unknown, side: unknown): Promise<'copied' | 'nothing' | 'failed' | 'review'> => {
     if (typeof id !== 'string' || (what !== 'notes' && what !== 'transcript')) return 'nothing'
+    if (what === 'notes' && side === 'enhanced' && d.store.notes(id).needsReview) return 'review'
     const notes = what === 'notes' ? notesOf(d.store, id, side) : null
     const data = notes
       ? toClipboard(notes.md, notes.summary && d.includeRecordingCredit())
@@ -46,7 +47,7 @@ export function hookShare(d: { store: Pick<Store, 'meeting' | 'notes' | 'segment
       return 'failed'
     }
   })
-  ipcMain.handle('share:save', async (_e, id: unknown, side: unknown): Promise<'saved' | 'cancelled' | 'failed'> => {
+  ipcMain.handle('share:save', async (_e, id: unknown, side: unknown): Promise<'saved' | 'cancelled' | 'failed' | 'omitted'> => {
     const m = typeof id === 'string' ? d.store.meeting(id) : undefined
     if (!m) return 'failed'
     // tests name the file themselves; people get the Mac's save panel
@@ -63,9 +64,10 @@ export function hookShare(d: { store: Pick<Store, 'meeting' | 'notes' | 'segment
       // Stage on the destination's filesystem: a failed write must not truncate an earlier export.
       staging = await mkdtemp(join(dirname(path), '.yogurt-export-'))
       const file = join(staging, 'notes.md')
-      await writeFile(file, toMarkdownFile(m, notesOf(d.store, m.id, side).md, d.store.segments(m.id), d.includeRecordingCredit()), 'utf8')
+      const omitted = side === 'enhanced' && d.store.notes(m.id).needsReview
+      await writeFile(file, toMarkdownFile(d.store.meeting(m.id)!, notesOf(d.store, m.id, side).md, d.store.segments(m.id), d.includeRecordingCredit()), 'utf8')
       await rename(file, path)
-      return 'saved'
+      return omitted ? 'omitted' : 'saved'
     } catch (err) {
       console.error('export failed', err)
       return 'failed'

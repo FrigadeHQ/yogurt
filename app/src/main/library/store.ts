@@ -30,6 +30,9 @@ export function libraryTables(db: DatabaseSync) {
   `)
   if (!(db.prepare('PRAGMA table_info(conversation_turns)').all() as Row[]).some(r => r.name === 'waiting_model')) db.exec('ALTER TABLE conversation_turns ADD COLUMN waiting_model INTEGER NOT NULL DEFAULT 0')
   if (!(db.prepare('PRAGMA table_info(conversation_turns)').all() as Row[]).some(r => r.name === 'scope')) db.exec('ALTER TABLE conversation_turns ADD COLUMN scope TEXT')
+  const turnCols = db.prepare('PRAGMA table_info(conversation_turns)').all().map(r=>r.name)
+  if (!turnCols.includes('inputs')) db.exec('ALTER TABLE conversation_turns ADD COLUMN inputs TEXT')
+  if (!turnCols.includes('historical')) db.exec('ALTER TABLE conversation_turns ADD COLUMN historical INTEGER NOT NULL DEFAULT 0')
   const cols = (db.prepare('PRAGMA table_info(conversations)').all() as Row[]).map(r => r.name)
   for (const [name, definition] of Object.entries({ chips: "TEXT NOT NULL DEFAULT '[]'", draft: "TEXT NOT NULL DEFAULT ''", draft_chips: "TEXT NOT NULL DEFAULT '[]'", current_key: 'TEXT', legacy_meeting_id: 'TEXT', first_chips: 'TEXT' })) {
     if (!cols.includes(name)) db.exec(`ALTER TABLE conversations ADD COLUMN ${name} ${definition}`)
@@ -67,7 +70,7 @@ export function migrateMeetingChats(db: DatabaseSync) {
 
 export type LibraryChunk = { id: number; meetingId: string; startMs: number; endMs: number; text: string; speakers: string[] }
 export type ConversationRow = { id: string; title: string; createdAt: number; updatedAt: number; chips: ContextChip[]; draft: string; draftChips: ContextChip[]; firstChips: ContextChip[] | null }
-export type TurnRow = { id: number; question: string; answer: string; stopped: boolean; waitingModel: boolean; sources: LibrarySource[]; scope?: ContextTarget[] }
+export type TurnRow = { historical?: boolean; id: number; question: string; answer: string; stopped: boolean; waitingModel: boolean; sources: LibrarySource[]; scope?: ContextTarget[] }
 
 const toChunk = (r: Row): LibraryChunk => ({ id: Number(r.id), meetingId: String(r.meeting_id), startMs: Number(r.start_ms), endMs: Number(r.end_ms), text: String(r.text), speakers: JSON.parse(String(r.speakers)) })
 const toConversation = (r: Row): ConversationRow => ({ id: String(r.id), title: String(r.title), createdAt: Number(r.created_at), updatedAt: Number(r.updated_at), chips: JSON.parse(String(r.chips)), draft: String(r.draft), draftChips: JSON.parse(String(r.draft_chips)), firstChips: r.first_chips == null ? null : JSON.parse(String(r.first_chips)) })
@@ -244,7 +247,7 @@ export class Library {
 
   turns(conversationId: string): TurnRow[] {
     return (this.db.prepare('SELECT * FROM conversation_turns WHERE conversation_id = ? ORDER BY id').all(conversationId) as Row[])
-      .map((r) => ({ id: Number(r.id), question: String(r.question), answer: String(r.answer), stopped: Number(r.stopped) === 1, waitingModel: Number(r.waiting_model) === 1, scope: r.scope == null ? undefined : JSON.parse(String(r.scope)), sources: JSON.parse(String(r.sources)) }))
+      .map((r) => ({ id: Number(r.id), question: String(r.question), answer: String(r.answer), stopped: Number(r.stopped) === 1, waitingModel: Number(r.waiting_model) === 1, ...(r.historical ? { historical:true } : {}), scope: r.scope == null ? undefined : JSON.parse(String(r.scope)), sources: JSON.parse(String(r.sources)) }))
   }
   /** a question asked: the conversation comes to the top of the list */
   addTurn(conversationId: string, question: string, now = Date.now(), waitingModel = false): number {
@@ -265,6 +268,17 @@ export class Library {
   waitingTurns(): Array<{ conversationId: string; id: number; question: string }> {
     return (this.db.prepare('SELECT conversation_id, id, question FROM conversation_turns WHERE waiting_model = 1 ORDER BY id').all() as Row[])
       .map(r => ({ conversationId: String(r.conversation_id), id: Number(r.id), question: String(r.question) }))
+  }
+  inputs(id: number): string[] | undefined {
+    const value = this.db.prepare('SELECT inputs FROM conversation_turns WHERE id=?').get(id)?.inputs
+    return value == null ? undefined : JSON.parse(String(value))
+  }
+  setInputs(id: number, meetings: string[]) {
+    this.db.prepare('UPDATE conversation_turns SET inputs=? WHERE id=?').run(JSON.stringify(meetings),id)
+  }
+  savedSource(turn: number, number: number): LibrarySource | undefined {
+    const row = this.db.prepare('SELECT sources FROM conversation_turns WHERE id=?').get(turn)
+    return row && (JSON.parse(String(row.sources)) as LibrarySource[]).find(s=>s.n===number)
   }
   startTurn(id: number) { this.db.prepare('UPDATE conversation_turns SET waiting_model = 0 WHERE id = ?').run(id) }
   deleteTurn(id: number) { this.db.prepare('DELETE FROM conversation_turns WHERE id = ?').run(id) }

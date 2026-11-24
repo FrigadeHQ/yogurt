@@ -3,7 +3,7 @@ import type { Meeting, Notes, Segment, Store } from './store'
 import type { NotesModel } from './notes/model'
 import type { Queue } from './notes/queue'
 import { transcriptHead, transcriptText } from './notes/enhance'
-import { meetingWords, respell, spellingLine } from './vocab'
+import { meetingWords, segmentWords, spellingLine } from './vocab'
 import { aboutAsk } from './askAbout'
 import type { AskStep, ChatTurn, ChatView } from '../shared/types'
 
@@ -157,6 +157,7 @@ async function prepare(d: Pick<Deps, 'store'>, llm: Model, m: Meeting, question:
   const total = llm.contextSize - ANSWER_TOKENS - MARGIN_TOKENS
   // the notes take at most a quarter of the room: long ones are cut at a line
   let notes = d.store.notes(m.id)
+  if (notes.needsReview) notes = { ...notes, enhanced: null }
   const words = meetingWords(m)
   const spelling = spellingLine(words)
   let [tailTokens] = await llm.count([contextTail(m, notes, spelling)])
@@ -172,7 +173,7 @@ async function prepare(d: Pick<Deps, 'store'>, llm: Model, m: Meeting, question:
   while (recent.length && overhead + tailTokens > total / 2) { recent = recent.slice(1); overhead = await overheadOf() }
   // the turns, heads and tail counted by the model's own tokenizer, so a transcript that fits is read whole
   // lines saved before the meeting had these people get their spellings too
-  const segments = d.store.segments(m.id).map((x) => ({ ...x, text: respell(x.text, words) }))
+  const segments = d.store.segments(m.id).map((x) => ({ ...x, text: segmentWords(x, words) }))
   const tail = contextTail(m, notes, spelling)
   const texts = [...new Set([transcriptHead, excerptHead, tail, ...transcriptText(segments).split('\n')])]
   const counted = await llm.count(texts)
@@ -194,7 +195,7 @@ export function warm(d: Deps, meetingId: string): Promise<void> {
     const llm = await d.model.llm(signal)
     if (!llm.readAhead || signal.aborted) return
     const { context } = await prepare(d, llm, m, '', [], m.state === 'recording')
-    if (signal.aborted || !context.startsWith(transcriptHead)) return
+    if (signal.aborted || d.store.meeting(meetingId)?.transcriptRevision !== m.transcriptRevision || !context.startsWith(transcriptHead)) return
     await llm.readAhead(chatPrefix(context), signal)
   }, 'readahead', meetingId)
 }

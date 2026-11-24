@@ -2,7 +2,7 @@ import { AUDIO_SPEAKER } from '../../shared/audioUpload'
 import { REWRITE_NOTE_MAX } from '../../shared/rewriteNote'
 import type { Person, Segment } from '../store'
 import { LOCALES } from '../../shared/i18n'
-import { respell, spellingLine, type MeetingWords } from '../vocab'
+import { segmentWords, spellingLine, type MeetingWords } from '../vocab'
 
 /**
  * Enhanced notes: the person's own notes plus the transcript, written up by the notes model as Markdown.
@@ -384,7 +384,7 @@ export async function enhance(input: EnhanceInput, llm: Llm, onToken: (text: str
   for (const s of input.segments) { first = Math.min(first, s.startMs); last = Math.max(last, s.endMs) }
   const minutes = input.segments.length ? (last - first) / 60_000 : undefined
   const base = { note: input.note, title: input.meeting.title, attendees: input.meeting.attendees, mine: input.mine, language, summaryLanguage, minutes, me: input.me, spelling: input.words && spellingLine(input.words), oneMic: oneMic(input.segments) }
-  const segments = input.words ? input.segments.map((x) => ({ ...x, text: respell(x.text, input.words!) })) : input.segments
+  const segments = input.words ? input.segments.map((x) => ({ ...x, text: segmentWords(x, input.words!) })) : input.segments
   let transcript = transcriptText(segments)
   let parts = false
 

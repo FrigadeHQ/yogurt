@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { Popover } from '@base-ui/react/popover'
 import { ArrowUpRight } from './Icons'
 import type { LibrarySource } from '../../../shared/types'
@@ -16,7 +16,17 @@ export function SourceCitationCard({ source, sentence, triggerId, open, animate,
   const reduced = useReducedMotion()
   const anchor = triggerId ? document.getElementById(triggerId) : null
   const boundary = anchor?.closest('[data-citation-boundary], .ask-thread, .note-reading-frame') ?? anchor?.closest('.chat-panel')
-  const sources = [source, ...additionalSources]
+  const supplied = [source,...additionalSources]
+  const signature = JSON.stringify([sentence,...supplied.map(s=>[s.verifyTurn,s.n,s.revision])])
+  const [resolved,setResolved] = useState<{signature:string; sources:LibrarySource[]}>()
+  useEffect(() => {
+    if (!open || !supplied.some(s=>s.verifyTurn)) return
+    let active = true
+    Promise.all(supplied.map(async s => s.verifyTurn ? await window.yogurt.conversations.citation(s.verifyTurn,s.n,sentence).catch(()=>undefined) ?? {...s,changed:'unknown' as const} : s))
+      .then(sources=>{if(active)setResolved({signature,sources})})
+    return ()=>{active=false}
+  },[open,signature])
+  const sources = resolved?.signature === signature ? resolved.sources : supplied.map(s=>s.verifyTurn ? {...s,changed:'unknown' as const} : s)
   const [selected, setSelected] = useState(0), tabsId = useId()
   // Keep every cited source reachable without growing the strip past three tabs.
   const groups = sources.length > 3 ? [[sources[0]], [sources[1]], sources.slice(2)] : sources.map(item => [item])
@@ -50,8 +60,12 @@ export function SourceCitationCard({ source, sentence, triggerId, open, animate,
       <div className="citation-heading">{showTitle && <><h3 className="citation-title" title={title}>{title}</h3><span aria-hidden="true">·</span></>}<time className="citation-date" dateTime={date.toISOString()} title={date.toLocaleDateString(language(), { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}>{date.toLocaleDateString(language(), { month: 'short', day: 'numeric' })}</time>
         {item.atMs !== null && <><span aria-hidden="true">·</span><time className="citation-moment">{clock(preview.match.atMs ?? item.atMs)}</time></>}
       </div>
-      {preview.match.text && <blockquote className="citation-quote" data-testid="citation-excerpt" dir="auto"><q>{preview.before.text && <span className="citation-context">{preview.before.text} </span>}<span className="citation-match">{preview.match.text}</span>{preview.after.text && <span className="citation-context"> {preview.after.text}</span>}</q></blockquote>}
-      <div className="citation-footer"><button className="ghost-btn" data-testid="citation-open" aria-label={t('Open {source}', { source: title })} onClick={() => onOpen(preview.match.text, item, preview.match.atMs)}>{item.atMs !== null ? t('Open in transcript') : t('Open note')}<ArrowUpRight size={12} aria-hidden="true" /></button></div>
+      {item.changed && <p className="citation-quote">{item.changed === 'removed' ? t('This passage was removed.') : item.changed === 'wording' ? t('This wording has changed.') : t('This source has changed.')}</p>}
+      {item.changed === 'wording' && item.currentText && <p dir="auto">{item.currentText}</p>}
+      {item.context?.before && <p className="citation-context" dir="auto">{item.context.before}</p>}
+      {!item.changed && preview.match.text && <blockquote className="citation-quote" data-testid="citation-excerpt" dir="auto"><q>{preview.before.text && <span className="citation-context">{preview.before.text} </span>}<span className="citation-match">{preview.match.text}</span>{preview.after.text && <span className="citation-context"> {preview.after.text}</span>}</q></blockquote>}
+      {item.context?.after && <p className="citation-context" dir="auto">{item.context.after}</p>}
+      {(!item.changed || item.changed === 'wording' && item.currentText) && <div className="citation-footer"><button className="ghost-btn" data-testid="citation-open" aria-label={item.changed === 'wording' ? t('View current line') : t('Open {source}', { source: title })} onClick={() => onOpen(item.currentText ?? preview.match.text, item, preview.match.atMs)}>{item.changed === 'wording' ? t('View current line') : item.atMs !== null ? t('Open in transcript') : t('Open note')}<ArrowUpRight size={12} aria-hidden="true" /></button></div>}
     </section>
   }
   return <Popover.Portal container={anchor?.closest('dialog') ?? undefined}>
@@ -63,7 +77,7 @@ export function SourceCitationCard({ source, sentence, triggerId, open, animate,
         <div className="citation-liquid" style={{ '--citation-filter': `url(#${filterId})` } as CSSProperties} aria-hidden="true"><div className="citation-mass" /></div>
         <div className="citation-edge" aria-hidden="true" />
         <div className="citation-content" data-tabbed={sources.length > 1}>
-          {sources.length === 1 ? renderSource(source, 0) : <>
+          {sources.length === 1 ? renderSource(sources[0], 0) : <>
             <div className="citation-tabs" role="tablist" aria-label={title}>
               {groups.map((group, index) => {
                 const item = group[0], fullName = group.map(s => s.title || t('Untitled')).join(', ')

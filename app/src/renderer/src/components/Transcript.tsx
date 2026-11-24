@@ -18,7 +18,7 @@ import { AudioLines, ArrowDown } from './Icons'
 import type { Segment, TranscriptPartial } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
 import { useLanguage } from '../i18n'
-import { transcriptRowKey, transcriptSpeaker, bubbles, clock, echoRuns, lineAt, recentRuns, stableKeys, turns, withLive, type LiveSaid } from '../../../shared/transcript'
+import { transcriptRowKey, transcriptSpeaker, bubbles, clock, echoRuns, lineAt, playbackLookup, recentRuns, stableKeys, turns, withLive, type LiveSaid } from '../../../shared/transcript'
 import { TranscriptFind } from './TranscriptFind'
 import { Player, type PlayerHandle } from './Player'
 import { attachPlayerVisibility } from '../playerVisibility'
@@ -66,7 +66,8 @@ function useLines(id: string,replacing:boolean, settled: boolean) {
     setSnapshot(undefined); setFailed(false); setLoaded(false); setLines([]); live.current = new Set()
     const add = (more: Line[], arriving: boolean) => setLines((cur) => {
       const seen = new Set(cur.map(key))
-      const fresh = more.filter((l) => l.meetingId === id && !seen.has(key(l)))
+      const savedMoments = new Set(cur.filter(l => l.id !== undefined).map(moment))
+      const fresh = more.filter(l => l.meetingId === id && !seen.has(key(l)) && (l.id !== undefined || !savedMoments.has(moment(l))))
       if (arriving) for (const l of fresh) live.current.add(key(l))
       return fresh.length ? [...cur, ...fresh].sort((a, b) => a.startMs - b.startMs) : cur
     })
@@ -161,7 +162,7 @@ type RowProps = {
   line: Line
   openMenu: (line: Line, button: HTMLElement) => void; selected?: boolean
   choose: (id: number, extend: boolean) => void
-  revision?: number; commit: CommitTranscript; onEditing: (id?: number) => void
+  revision?: number; commit: CommitTranscript; onEditing: (id: number, active: boolean) => void
   /** the line an answer across meetings pointed to */
   focused?: boolean
   name: string
@@ -207,17 +208,30 @@ const Row = memo(function Row({ line: l, openMenu, selected, choose, revision, c
 export function Transcript({ id, settled = false, notice, processing=false, replacing=false, recording, inline = false, active = true, onClose, focus, toolbar }: {
   id: string; settled?: boolean; notice?: TranscriptNotice; processing?:boolean; replacing?:boolean; recording: boolean; inline?: boolean; active?: boolean; toolbar?: HTMLElement | null; onClose?: () => void
   /** a line to show and mark (an answer's source): ms into the meeting; seq: each time it is asked for */
-  focus?: { ms: number; match?: string; seq: number }
+  focus?: { ms: number; match?: string; verifiedRow?: number; revision?: number; seq: number }
 }) {
   const { lines:latest, draft, live, loaded, failed, retry, snapshot } = useLines(id,replacing,settled)
-  const [editing, setEditing] = useState<number>()
+  const [editing, setEditing] = useState(false)
+  const drafts = useRef(new Set<number>())
+  const onEditing = useCallback((id: number, active: boolean) => {
+    if (active) drafts.current.add(id)
+    else drafts.current.delete(id)
+    setEditing(drafts.current.size > 0)
+  },[])
+  useEffect(()=>{drafts.current.clear(); setEditing(false)},[id,settled])
   const held = useRef(latest)
   if (!editing || !settled) held.current = latest
   const savedLines = held.current
   const editable = settled && snapshot?.editable
+  const [removalFocus,setRemovalFocus] = useState<{ids:Set<number>; next?:number}>()
   const commit = useCallback<CommitTranscript>(async (revision, change) => {
+    const ids = change.kind === 'remove' ? new Set(change.ids) : undefined
+    const before = linesRef.current
+    const index = ids ? before.findIndex(l=>ids.has(l.id!)) : -1
+    const next = ids && (before.slice(index).find(l=>!ids.has(l.id!)) ?? before.slice(0,index).at(-1))
     const result = await window.yogurt.transcript.change(id, revision, change)
     if (result.status === 'saved' && change.kind !== 'undo') {
+      if (ids) setRemovalFocus({ids,next:next?.id})
       const title = change.kind === 'remove' ? t('{count} lines removed', {count:result.count}) : change.kind === 'restore' ? t('{count} lines restored',{count:result.count}) : change.kind === 'original' ? t('Wording restored') : t('Wording saved')
       const toast = toasts.add({ id: 'transcript-edit', title, timeout: 8000, actionProps: { children: t('Undo'), onClick: async () => {
         try {
@@ -283,19 +297,21 @@ export function Transcript({ id, settled = false, notice, processing=false, repl
   const [shownKey, setShownKey] = useState<string>()
   const [seek, setSeek] = useState(0)
   const followedSeek = useRef(0)
-  const removedRef = useRef(snapshot?.removed)
-  removedRef.current = snapshot?.removed
+  const lookup = useMemo(() => playbackLookup(lines,snapshot?.removed ?? []),[lines,snapshot?.removed])
+  const lookupRef = useRef(lookup)
+  lookupRef.current = lookup
   const linesRef = useRef(lines)
   linesRef.current = lines
+  const playhead = useRef<number|null>(null)
   const onTime = useCallback((ms: number | null, seeking = false) => {
-    let i = ms == null ? -1 : lineAt(linesRef.current, ms)
-    if (ms != null && i >= 0 && linesRef.current[i].endMs <= ms && removedRef.current?.some(r => r.startMs <= ms && ms < r.endMs)) {
-      while (i >= 0 && linesRef.current[i].endMs <= ms) i--
-    }
+    playhead.current = ms
+    const i = ms == null ? -1 : lookupRef.current(ms)
     const k = i < 0 ? undefined : key(linesRef.current[i])
     setShownKey((cur) => (cur === k ? cur : k))
     if (seeking) setSeek((n) => n + 1)
   }, [])
+
+  useEffect(() => { if (playhead.current !== null) onTime(playhead.current) },[lookup,onTime])
 
   // follow the newest line while recording, unless they scrolled up to read
   const scrollKey = `transcript/${id}`
@@ -397,7 +413,7 @@ export function Transcript({ id, settled = false, notice, processing=false, repl
   playableRef.current = playable
   const onPlay = useCallback((l: Line, e: MouseEvent) => {
     // a button, or text being selected to copy, is not a request to play
-    if (!playableRef.current || (e.target as HTMLElement).closest('button:not(.transcript-line-time), input, form') || window.getSelection()?.toString()) return
+    if (!playableRef.current || (e.target as HTMLElement).closest('button:not(.transcript-line-time), input, form') || (!e.currentTarget.classList.contains('transcript-line-time') && window.getSelection()?.toString())) return
     follow()
     player.current?.playFrom(l.startMs)
   }, [follow])
@@ -409,14 +425,15 @@ export function Transcript({ id, settled = false, notice, processing=false, repl
     if (!active || !focus || focusDone.current === focus.seq || !lines.length) return
     const visible = lines.filter(line => !line.hidden)
     const match = focus.match ? visible[citationTargetIndex(visible.map(line => line.text), focus.match, Math.max(0, lineAt(visible, focus.ms)))] : undefined
-    const l = match ?? lines[Math.max(0, lineAt(lines, focus.ms))]
+    const l = focus.verifiedRow === undefined ? match ?? lines[Math.max(0, lineAt(lines, focus.ms))]
+      : snapshot && (focus.revision ?? 0) === snapshot.revision ? visible.find(l=>l.id === focus.verifiedRow) : undefined
     if (!l) return
     focusDone.current = focus.seq
     stick.current = false
     setShowAll(true)
     setFocusedKey(focus.match&&!match?undefined:key(l)); setFocusKey(key(l))
     requestAnimationFrame(() => { visibility.current?.programmatic(); rowOf(key(l))?.scrollIntoView({ block: 'center' }) })
-  }, [focus?.seq, lines, active])
+  }, [focus?.seq, lines, active, snapshot?.revision])
   useEffect(() => {
     if (!focusedKey) return
     const timer = window.setTimeout(() => setFocusedKey(undefined), 2400)
@@ -424,7 +441,13 @@ export function Transcript({ id, settled = false, notice, processing=false, repl
   }, [focusedKey, focus?.seq])
   // one tab stop for the whole list (the line last focused, or playing, or the first); arrows move between lines
   const [focusKey, setFocusKey] = useState<string>()
-  const tabKey = focusKey ?? shownKey ?? (lines[0] && key(lines[0]))
+  useLayoutEffect(() => {
+    if (!removalFocus || lines.some(l=>removalFocus.ids.has(l.id!))) return
+    const next = removalFocus.next === undefined ? actions.recoveryButton.current : rowOf(String(removalFocus.next))
+    next?.focus({preventScroll:true})
+    setRemovalFocus(undefined)
+  }, [removalFocus,lines])
+  const tabKey = focusKey && lines.some(l=>key(l)===focusKey) ? focusKey : shownKey ?? (lines[0] && key(lines[0]))
   const onKeyDown = (e: KeyboardEvent<HTMLOListElement>) => {
     const row = (e.target as HTMLElement).closest<HTMLElement>('[data-testid="transcript-line"]')
     if (actions.range && e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); actions.closeRange(); return }
@@ -496,7 +519,7 @@ export function Transcript({ id, settled = false, notice, processing=false, repl
                       const k = key(x)
                       return (
                         <Fragment key={k}>{i > 0 && ' '}
-                          <Row line={x} openMenu={openMenu} choose={choose} selected={actions.range ? actions.range.ids.has(x.id!) : undefined} revision={editable ? snapshot.revision : undefined} commit={commit} onEditing={setEditing} focused={k === focusedKey} name={who(x)}
+                          <Row line={x} openMenu={openMenu} choose={choose} selected={actions.range ? actions.range.ids.has(x.id!) : undefined} revision={editable ? snapshot.revision : undefined} commit={commit} onEditing={onEditing} focused={k === focusedKey} name={who(x)}
                             playing={k === shownKey} playable={playable} focusable={k === tabKey} arrived={!x.previous&&live.current.has(k) ? (previewed(x) ? 'settle' : 'fade') : null} onPlay={onPlay} onFocusLine={setFocusKey} />
                         </Fragment>
                       )

@@ -109,3 +109,24 @@ it('clears a waiting label left on a meeting whose transcript is already done (#
  expect(store.meeting(id)?.transcriptionState).toBeUndefined();expect(changed).toHaveBeenCalledWith(id)
  expect(store.meeting(upload)?.transcriptionState).toBe('preparing')
 })
+
+it('requires revision-specific approval for corrected words and rejects a removed batch first', async () => {
+  const id=note().id
+  store.addSegments([line(id)])
+  const row=store.segments(id)[0]
+  store.changeTranscript(id,0,{kind:'wording',id:row.id,expected:row.text,text:'The corrected words.'})
+  expect(await jobs.start(id)).toBe(false)
+  expect(await jobs.start(id,true)).toBe(false)
+  store.changeTranscript(id,1,{kind:'remove',ids:[row.id]})
+  expect(await jobs.start(id,true,2)).toBe(false)
+  store.changeTranscript(id,2,{kind:'restore',batch:null})
+  expect(await jobs.start(id,true,1)).toBe(false)
+  model=false
+  expect(await jobs.start(id,true,3)).toBe(true)
+  // A resumed replacement with an obsolete approval must keep all the saved wording.
+  store.db.prepare('UPDATE meetings SET replacement_revision=1 WHERE id=?').run(id)
+  model=true
+  await jobs.pump()
+  expect(store.segments(id)).toMatchObject([{text:'The corrected words.',corrected:true}])
+  expect(transcribe).not.toHaveBeenCalled()
+})

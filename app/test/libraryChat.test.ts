@@ -399,3 +399,25 @@ describe('one question from another app (askOnce)', () => {
     expect(got).toMatchObject({ answer: 'Twenty', stopped: true })
   })
 })
+
+it('uses equal-length corrections for new and follow-up answers and preserves the earlier answer', async () => {
+  const t = await rig(), id = t.meeting.id
+  t.store.db.prepare('UPDATE segments SET text=? WHERE meeting_id=?').run('Tarun quoted our price.',id)
+  const first = t.chats.ask(null, 'Who set the original price?')
+  await first.done
+  const old = t.store.segments(id)[0], corrected = old.text.replace('Tarun', 'Tarin')
+  t.store.setNotes(id, { mine: 'Owner reminder', enhanced: 'Earlier price summary' })
+  expect(t.store.changeTranscript(id, 0, { kind: 'wording', id: old.id, expected: old.text, text: corrected }).status).toBe('saved')
+  t.chats.transcriptChanged(id)
+  expect(t.chats.view(first.id)!.turns[0]).toMatchObject({ historical: true, answer: expect.stringContaining('twenty dollars') })
+  await t.chats.ask(first.id, 'What is the price now?').done
+  const scoped = t.library.current([{ kind: 'meeting', id }])
+  await t.chats.ask(scoped, 'What is the new price?').done
+  for (const prompt of t.prompts.slice(1)) {
+    expect(prompt).toContain(corrected)
+    expect(prompt).not.toContain(old.text)
+    expect(prompt).not.toContain('Earlier price summary')
+    expect(prompt).not.toContain('Who set the original price?')
+  }
+  expect(t.prompts).toHaveLength(3)
+})

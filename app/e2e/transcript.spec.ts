@@ -1,4 +1,5 @@
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
+import { DatabaseSync } from 'node:sqlite'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -11,7 +12,7 @@ async function launch(env: Record<string, string> = {}) {
   const app = await electron.launch({ args: [main], env: { ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: userData, ...env } })
   const page = await app.firstWindow()
   await expect(page.getByTestId('home')).toBeVisible()
-  return { app, page }
+  return { app, page, userData }
 }
 const fake = <T>(app: ElectronApplication, fn: string, arg?: unknown): Promise<T> =>
   app.evaluate((_e, [fn, arg]) => (globalThis as unknown as Record<string, Record<string, (a?: unknown) => unknown>>).__fake__[fn as string](arg), [fn, arg] as const) as Promise<T>
@@ -236,7 +237,7 @@ test('the transcript follows new lines, unless the person scrolled up to read', 
   } finally { await app.close() }
 })
 
-test('after the meeting, clicking a line plays both sides from a second before it, with pause and speed', async () => {
+test('after the meeting, clicking a line time plays both sides from a second before it, with pause and speed', async () => {
   const { app, page } = await launch()
   try {
     await startMeeting(app, page)
@@ -248,7 +249,7 @@ test('after the meeting, clicking a line plays both sides from a second before i
     await expect(page.getByTestId('player')).toBeVisible({ timeout: 15_000 })
     await expect(audioOf(page)).toHaveCount(2)
     // the line at 13.3 s plays from 12.3 s, on both tracks
-    await lines.filter({ hasText: 'She will send a draft' }).getByText('She will send a draft').click()
+    await lines.filter({ hasText: 'She will send a draft' }).getByRole('button', { name: /^Play from/ }).click()
     await expect.poll(async () => (await audioState(page)).every((a) => !a.paused && a.time >= 12.2 && a.time < 14.5)).toBe(true)
     await expect(page.getByTestId('player-toggle')).toHaveAttribute('aria-label', 'Pause')
     // faster, on both
@@ -272,7 +273,7 @@ test('after the meeting, clicking a line plays both sides from a second before i
     await page.getByTestId('player-scrubber').fill('6')
     await expect(playingLine).toHaveAttribute('data-track', 'them')
     // a line near the start never seeks before 0
-    await lines.filter({ hasText: 'Can we go over the launch plan' }).getByText('Can we go over').click()
+    await lines.filter({ hasText: 'Can we go over the launch plan' }).getByRole('button', { name: /^Play from/ }).click()
     await expect.poll(async () => (await audioState(page)).every((a) => !a.paused && a.time < 1.5)).toBe(true)
     const tracks = await audioOf(page).elementHandles()
     await page.getByRole('tab', { name: 'My notes', exact: true }).click()
@@ -344,7 +345,7 @@ test('a side that ends early, is missing, or cannot be read: the other still pla
     await setTrack(app, id, 'them', 5)
     await reopen(page)
     await expect.poll(async () => (await audioState(page)).length).toBe(2)
-    await lines.filter({ hasText: 'She will send a draft' }).getByText('She will send a draft').click()
+    await lines.filter({ hasText: 'She will send a draft' }).getByRole('button', { name: /^Play from/ }).click()
     await expect.poll(async () => (await audioState(page)).find((a) => a.track === 'me')).toMatchObject({ paused: false })
     await expect(page.getByTestId('player-toggle')).toHaveAttribute('aria-label', 'Pause')
     // back to 2 s while playing: their side plays again too
@@ -354,14 +355,14 @@ test('a side that ends early, is missing, or cannot be read: the other still pla
     await setTrack(app, id, 'them', 'gone')
     await reopen(page)
     await expect(audioOf(page)).toHaveCount(1)
-    await lines.filter({ hasText: 'She will send a draft' }).getByText('She will send a draft').click()
+    await lines.filter({ hasText: 'She will send a draft' }).getByRole('button', { name: /^Play from/ }).click()
     await expect.poll(async () => (await audioState(page)).every((a) => !a.paused && a.time >= 12.2)).toBe(true)
     // their side unreadable: it is dropped, they are told, and your side plays
     await setTrack(app, id, 'them', 'garbage')
     await reopen(page)
     await expect(page.getByTestId('player-note')).toHaveText("Part of this recording can't be played.")
     await expect(audioOf(page)).toHaveCount(1)
-    await lines.filter({ hasText: 'She will send a draft' }).getByText('She will send a draft').click()
+    await lines.filter({ hasText: 'She will send a draft' }).getByRole('button', { name: /^Play from/ }).click()
     await expect.poll(async () => (await audioState(page)).every((a) => !a.paused && a.time >= 12.2)).toBe(true)
     // nothing readable: no controls, just the note
     await setTrack(app, id, 'me', 'garbage')
@@ -379,20 +380,22 @@ test('the play button follows the audio, and lines are one tab stop moved with t
   try {
     await stopped(app, page)
     const lines = page.getByTestId('transcript-line')
-    await lines.filter({ hasText: 'The site goes live' }).getByText('The site goes live').click()
+    await lines.filter({ hasText: 'The site goes live' }).getByRole('button', { name: /^Play from/ }).click()
     await expect(page.getByTestId('player-toggle')).toHaveAttribute('aria-label', 'Pause')
     // stopped by anything but the button (the system, an error): the button says Play
     await audioOf(page).evaluateAll((els) => (els as HTMLAudioElement[]).forEach((a) => a.pause()))
     await expect(page.getByTestId('player-toggle')).toHaveAttribute('aria-label', 'Play')
     await expect(page.getByTestId('player-speed')).toHaveAttribute('aria-label', 'Playback speed 1×')
-    // one line in the tab order; arrows move between lines, Enter plays
+    // one line in the tab order; arrows move between lines, Tab reaches the time
     expect(await lines.evaluateAll((els) => els.filter((e) => (e as HTMLElement).tabIndex === 0).length)).toBe(1)
-    await expect(lines.first()).toHaveAttribute('role', 'button')
+    await expect(lines.first()).toHaveAttribute('role', 'group')
     await lines.first().focus()
     await page.keyboard.press('ArrowDown')
     await expect(lines.nth(1)).toBeFocused()
     await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown')
     await expect(lines.nth(3)).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(lines.nth(3).getByRole('button', { name: /^Play from/ })).toBeFocused()
     await page.keyboard.press('Enter')
     await expect.poll(async () => (await audioState(page)).every((a) => !a.paused && a.time >= 12.2 && a.time < 14.5)).toBe(true)
   } finally { await app.close() }
@@ -415,7 +418,7 @@ test('a long meeting opens fast, and playing redraws only the line that changes'
     await expect(page.locator('.line-in')).toHaveCount(0)
     await expect(page.getByTestId('player')).toBeVisible()
     await page.evaluate(() => { (window as unknown as { __rowRenders: number }).__rowRenders = 0 })
-    await page.getByTestId('transcript-line').nth(10).click()
+    await page.getByTestId('transcript-line').nth(10).getByRole('button', { name: /^Play from/ }).click()
     await page.waitForTimeout(2500)
     const renders = await page.evaluate(() => (window as unknown as { __rowRenders: number }).__rowRenders)
     console.log('row renders while playing 2.5 s:', renders)
@@ -503,7 +506,7 @@ test('playing follows along: the line being played moves down the list and stays
   try {
     const { playingNo, where, comfy, scrollTop, scrollUp } = await playingLong(app, page)
     // the mark moves line to line, from a second before the one clicked
-    await page.getByTestId('transcript-line').nth(4).click()
+    await page.getByTestId('transcript-line').nth(4).getByRole('button', { name: /^Play from/ }).click()
     await expect.poll(playingNo).toBeGreaterThanOrEqual(4)
     const first = await playingNo()
     await expect.poll(playingNo).toBeGreaterThan(first + 2)
@@ -543,7 +546,7 @@ test('paused, the mark stays and nothing scrolls; clicking a line follows again;
   try {
     const { playingLine, playingNo, comfy, scrollTop, scrollUp } = await playingLong(app, page)
     // the scrubber moves the mark at once, and the list with it
-    await page.getByTestId('transcript-line').nth(2).click()
+    await page.getByTestId('transcript-line').nth(2).getByRole('button', { name: /^Play from/ }).click()
     await page.getByTestId('player-scrubber').fill('30')
     await expect.poll(playingNo).toBeGreaterThanOrEqual(61)
     await expect.poll(comfy).toBe(true)
@@ -562,7 +565,7 @@ test('paused, the mark stays and nothing scrolls; clicking a line follows again;
     await scrollUp()
     await page.getByTestId('player-toggle').click()
     await expect(page.getByTestId('transcript-follow')).toBeVisible()
-    await page.getByTestId('transcript-line').nth(2).click()
+    await page.getByTestId('transcript-line').nth(2).getByRole('button', { name: /^Play from/ }).click()
     await expect(page.getByTestId('transcript-follow')).toHaveCount(0)
     await expect.poll(playingNo, { timeout: 15_000 }).toBeGreaterThan(20)
     await expect.poll(comfy).toBe(true)
@@ -703,4 +706,134 @@ test('find navigates a long transcript without filtering or redrawing its rows',
     await expect(input).toHaveCount(0)
     await expect(page.getByTestId('note-notes-tab')).toBeFocused()
   } finally { await app.close() }
+})
+
+for (const theme of ['light','dark'] as const) test(`edit, remove and review a finished transcript (${theme})`, async ({}, testInfo) => {
+  const { app,page } = await launch()
+  try {
+    await page.emulateMedia({ colorScheme:theme, reducedMotion:'reduce' })
+    const id = await fake<string>(app,'bigMeeting',12)
+    await page.evaluate(async id=>{
+      await window.yogurt.notes.setMine(id,'Keep my agenda.',1)
+      await window.yogurt.notes.setEnhanced(id,'The earlier summary stays readable.',1)
+      window.yogurt.nav.go(`/note/${id}`)
+    },id)
+    await page.getByTestId('note-transcript-toggle').click()
+    const lines = page.getByTestId('transcript-line'), words = lines.first().getByTestId('transcript-text')
+    const capture = (state:string) => page.screenshot({path:testInfo.outputPath(`edit-${state}-${theme}.png`)})
+    await expect(words).toHaveAttribute('data-editable','true')
+    const point = await words.evaluate(el=>{
+      const r = document.createRange()
+      r.setStart(el.firstChild!,0); r.setEnd(el.firstChild!,4)
+      const box=r.getBoundingClientRect()
+      return { x:box.x+box.width/2,y:box.y+box.height/2 }
+    })
+    await page.mouse.dblclick(point.x,point.y)
+    expect((await page.evaluate(()=>window.getSelection()?.toString()))?.trim()).toBe('Line')
+    await page.keyboard.insertText('Part')
+    await capture('editing')
+    await page.keyboard.press('Enter')
+    await expect(lines.first()).toHaveAttribute('data-corrected','true')
+    await expect(lines.first()).toBeFocused()
+    await expect(page.getByTestId('player-toggle')).toHaveAttribute('aria-label','Play')
+    await capture('edited')
+    await page.keyboard.press('F2')
+    await page.keyboard.press('ControlOrMeta+a'); await page.keyboard.insertText('Discard this draft')
+    await page.keyboard.press('Escape')
+    await expect(words).toContainText('Part')
+    await lines.first().getByRole('button',{name:/Transcript actions/}).click()
+    await expect(page.getByRole('menuitem',{name:'Restore original wording'})).toBeVisible()
+    await capture('menu')
+    await page.getByRole('menuitem',{name:'Remove block'}).click()
+    await expect(lines).toHaveCount(9)
+    await page.getByRole('button',{name:'Undo',exact:true}).click()
+    await expect(lines).toHaveCount(12)
+    const anchor = lines.nth(4)
+    await anchor.getByRole('button',{name:/Transcript actions/}).click()
+    await page.getByRole('menuitem',{name:'Remove earlier lines…'}).click()
+    await expect(page.getByRole('checkbox',{checked:true})).toHaveCount(4)
+    await expect(anchor.getByRole('checkbox')).not.toBeChecked()
+    await capture('range-preview')
+    await page.getByRole('button',{name:'Remove from transcript',exact:true}).click()
+    await expect(lines).toHaveCount(8)
+    await page.getByRole('button',{name:'Show removed lines'}).click()
+    const recovery = page.getByRole('region',{name:'Show removed lines'})
+    await expect(recovery).toContainText('Part')
+    await capture('removed-lines')
+    await recovery.getByRole('button',{name:'Restore lines',exact:true}).click()
+    await expect(lines).toHaveCount(12)
+    await page.getByTestId('note-summary-tab').click()
+    await expect(page.getByTestId('summary-review')).toBeVisible()
+    await capture('summary-review')
+    await page.getByTestId('summary-review').getByRole('button',{name:'Regenerate summary'}).click()
+    await expect(page.getByTestId('note-confirm')).toContainText('Your edits to the summary will be replaced.')
+    await page.getByRole('button',{name:'Close',exact:true}).click()
+    await page.getByRole('button',{name:'Mark as reviewed'}).click()
+    await expect(page.getByTestId('summary-review')).toHaveCount(0)
+    expect(await page.evaluate(id=>window.yogurt.notes.get(id),id)).toMatchObject({ mine:'Keep my agenda.', enhanced:'The earlier summary stays readable.' })
+  } finally { await app.close() }
+})
+
+test('keeps selections and drafts through conflicts and failures, and restores focus after removing every line', async () => {
+  const { app,page,userData } = await launch()
+  const db = new DatabaseSync(join(userData,'yogurt.db'),{timeout:5000})
+  try {
+    const id = await fake<string>(app,'bigMeeting',3)
+    await page.evaluate(id=>window.yogurt.nav.go(`/note/${id}`),id)
+    await page.getByTestId('note-transcript-toggle').click()
+    const rows = page.getByTestId('transcript-line'), words = rows.first().getByTestId('transcript-text')
+    await expect(words).toHaveAttribute('data-editable','true')
+    const point = (index:number,offset:number) => rows.nth(index).getByTestId('transcript-text').evaluate((el,offset)=>{
+      const r = document.createRange(); r.setStart(el.firstChild!,offset); r.collapse(true)
+      const box = r.getBoundingClientRect()
+      return {x:box.left,y:box.top+box.height/2}
+    },offset)
+    const drag = async (endRow:number,endOffset:number) => {
+      const a=await point(0,0), b=await point(endRow,endOffset)
+      await page.mouse.move(a.x,a.y); await page.mouse.down()
+      await page.mouse.move(b.x,b.y,{steps:10}); await page.mouse.up()
+    }
+    await drag(1,4)
+    expect(await page.evaluate(()=>window.getSelection()?.toString())).toContain('of the long meeting.')
+    await expect(page.locator('[contenteditable="plaintext-only"]')).toHaveCount(0)
+    await drag(0,6)
+    expect(await page.evaluate(()=>window.getSelection()?.toString())).toBe('Line 1')
+    await page.keyboard.insertText('Part one')
+    await page.keyboard.press('Tab')
+    await expect(words).toHaveText('Part one of the long meeting.')
+    await expect(rows.first()).toHaveAttribute('data-corrected','true')
+    await rows.first().focus(); await page.keyboard.press('F2')
+    await page.keyboard.press('ControlOrMeta+a'); await page.keyboard.insertText('My wording')
+    await page.evaluate(async id=>{
+      const state=await window.yogurt.transcript.snapshot(id), line=state.lines[0]
+      await window.yogurt.transcript.change(id,state.revision,{kind:'wording',id:line.id,expected:line.text,text:'Another saved correction'})
+    },id)
+    await page.keyboard.press('Enter')
+    await expect(rows.first().getByRole('alert')).toContainText('Another saved correction')
+    await expect(words).toHaveText('My wording')
+    db.exec("CREATE TRIGGER fail_wording BEFORE UPDATE OF text ON segments BEGIN SELECT RAISE(FAIL,'Test save failure'); END")
+    await page.getByRole('button',{name:'Use my wording'}).click()
+    await expect(page.getByRole('button',{name:'Try again'})).toBeVisible()
+    await expect(words).toHaveText('My wording')
+    db.exec('DROP TRIGGER fail_wording')
+    await page.getByRole('button',{name:'Try again'}).click()
+    await expect(rows.first()).toBeFocused()
+    await page.keyboard.press('F2'); await page.keyboard.press('ControlOrMeta+a')
+    await page.keyboard.press('Backspace'); await page.keyboard.press('Enter')
+    await expect(rows.first().getByRole('alert')).toContainText('Remove this line?')
+    await rows.first().getByRole('button',{name:'Cancel'}).click()
+    await expect(words).toHaveText('My wording')
+    await page.getByRole('button',{name:'Select lines'}).click()
+    await rows.first().focus(); await page.keyboard.press('Space')
+    await page.keyboard.press('Shift+ArrowDown'); await page.keyboard.press('Shift+ArrowDown')
+    await expect(page.getByRole('checkbox',{checked:true})).toHaveCount(3)
+    await page.getByRole('button',{name:'Remove from transcript'}).click()
+    await expect(page.getByRole('button',{name:'Show removed lines'})).toBeFocused()
+    await expect(page.getByTestId('transcript-empty')).toHaveText('All transcript lines have been removed.')
+    await expect(page.getByTestId('player-toggle')).toBeVisible()
+    await page.getByRole('button',{name:'Show removed lines'}).click()
+    await page.getByRole('button',{name:'Restore all lines'}).click()
+    await expect(rows).toHaveCount(3)
+    await expect(words).toHaveText('My wording')
+  } finally { db.close(); await app.close() }
 })

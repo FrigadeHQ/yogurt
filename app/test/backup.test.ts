@@ -423,3 +423,22 @@ it('still exports saved text if recording deletion races with copying its files'
   expect(into.notes(m.id)).toEqual(from.notes(m.id))
   expect(into.segments(m.id).map(s => s.text)).toEqual(from.segments(m.id).map(s => s.text))
 })
+
+it('restores a corrected batch, its first words and its summary fingerprint under new row IDs', () => {
+  const from = fresh(), into = fresh()
+  fill(into, 'Existing', 'base')
+  const { id } = fill(from, 'Archived', 'original')
+  const row = from.segments(id)[0]
+  from.changeTranscript(id, 0, { kind: 'wording', id: row.id, expected: row.text, text: 'My corrected spelling' })
+  from.changeTranscript(id, 1, { kind: 'remove', ids: [row.id] })
+  mergeBackup(into.db, from.db)
+  expect(into.notes(id).needsReview).toBe(true)
+  expect(into.segments(id)).toEqual([])
+  const [hidden] = into.removedLines(id)
+  expect(hidden.id).not.toBe(row.id)
+  expect(into.changeTranscript(id, 2, { kind: 'restore', batch: hidden.batch }).status).toBe('saved')
+  expect(into.segments(id)).toMatchObject([{ text: 'My corrected spelling', corrected: true, startMs: row.startMs, endMs: row.endMs }])
+  expect(into.changeTranscript(id, 3, { kind: 'original', id: hidden.id, expected: hidden.text }).status).toBe('saved')
+  expect(into.segments(id)[0].text).toBe(row.text)
+  expect(into.notes(id).needsReview).toBeFalsy()
+})

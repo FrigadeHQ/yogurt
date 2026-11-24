@@ -8,7 +8,7 @@ import type { CommitTranscript } from './TranscriptWording'
 import { toasts } from './TrashToast'
 
 type Line = Omit<Segment,'id'> & { id?: number }
-type Range = { revision: number; ids: Set<number>; anchor?: number; opener: HTMLElement }
+type Range = { revision: number; ids: Set<number>; anchor?: number; opener: HTMLElement; openerRow?: number }
 type MenuAt = { line: Line; button: HTMLElement; block: number[]; revision: number }
 
 /** Selection holds the revision shown in the preview, even when another window refreshes the rows. */
@@ -28,28 +28,39 @@ export function useTranscriptActions(id: string, revision: number, lines: Line[]
     return () => { active = false }
   },[id,recover,revision,reload])
   useEffect(() => { if(range) cancel.current?.focus() },[!!range])
-  const closeRange = () => { setRange(undefined); range?.opener.focus({preventScroll:true}) }
+  const closeRange = () => {
+    setRange(undefined)
+    if (!range) return
+    requestAnimationFrame(() => (range.opener.isConnected ? range.opener : document.querySelector<HTMLElement>(`[data-key="${range.openerRow}"] .transcript-actions-trigger`))?.focus({preventScroll:true}))
+  }
+  useEffect(() => {
+    if (!range) return
+    const escape = (e: KeyboardEvent) => { if (e.key === 'Escape' && !e.defaultPrevented) { e.preventDefault(); closeRange() } }
+    window.addEventListener('keydown',escape)
+    return () => window.removeEventListener('keydown',escape)
+  },[range])
   const apply = async (at: number, change: TranscriptChange) => {
     if (busy.current) return
     busy.current = true
     try {
       const result = await commit(at,change)
-      if (result.status === 'stale') {
+      if (result.status === 'stale' || result.status === 'conflict') {
         toasts.add({ title:t('The transcript changed. Select the lines again.') }); closeRange(); return
       }
       if (result.status !== 'saved' && result.status !== 'unchanged') throw new Error('Transcript unavailable')
-      if (change.kind === 'remove') {
-        const ids = new Set(change.ids), index = lines.findIndex(l => ids.has(l.id!))
-        const next = lines.slice(index).find(l => !ids.has(l.id!)) ?? lines.slice(0,index).at(-1)
-        setRange(undefined)
-        requestAnimationFrame(() => (next ? document.querySelector<HTMLElement>(`[data-key="${next.id}"]`) : recoveryButton.current)?.focus())
-      }
+      if (change.kind === 'remove') setRange(undefined)
     } catch {
       toasts.add({ id:'transcript-change-error',title:t('Couldn’t save the transcript change.'),timeout:0,
         actionProps:{ children:t('Try again'), onClick:() => { toasts.close('transcript-change-error'); void apply(at,change) } } })
     } finally { busy.current = false }
   }
+  useEffect(()=>{
+    if (!menu) return
+    const bubble = menu.button.closest('[data-testid="transcript-bubble"]')
+    return ()=>bubble?.removeAttribute('data-remove-focus')
+  },[menu])
   const openMenu = (line: Line, button: HTMLElement) => {
+    if (!button.isConnected) return
     const block = [...button.closest('[data-testid="transcript-bubble"]')!.querySelectorAll<HTMLElement>('[data-key]')].map(row => Number(row.dataset.key))
     setMenu({line,button,block,revision})
   }
@@ -97,7 +108,7 @@ export function useTranscriptActions(id: string, revision: number, lines: Line[]
           <Menu.Item onFocus={()=>menu.button.closest('[data-testid="transcript-bubble"]')?.setAttribute('data-remove-focus','true')}
             onBlur={()=>menu.button.closest('[data-testid="transcript-bubble"]')?.removeAttribute('data-remove-focus')}
             onClick={()=>void apply(menu.revision,{kind:'remove',ids:menu.block})}>{t('Remove block')}</Menu.Item>
-          <Menu.Item onClick={()=>setRange({ids:new Set(lines.slice(0,lines.findIndex(l=>l.id===menu.line.id)).map(l=>l.id!)),revision:menu.revision,opener:menu.button})}>{t('Remove earlier lines…')}</Menu.Item>
+          <Menu.Item onClick={()=>setRange({ids:new Set(lines.slice(0,lines.findIndex(l=>l.id===menu.line.id)).map(l=>l.id!)),revision:menu.revision,opener:menu.button,openerRow:menu.line.id})}>{t('Remove earlier lines…')}</Menu.Item>
           {menu.line.corrected && <Menu.Item onClick={()=>void apply(menu.revision,{kind:'original',id:menu.line.id!,expected:menu.line.text})}>{t('Restore original wording')}</Menu.Item>}
         </Menu.Popup>
       </Menu.Positioner></Menu.Portal>

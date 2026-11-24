@@ -301,7 +301,9 @@ export class Store {
     if (!meetingCols.includes('transcript_hash')) this.db.exec('ALTER TABLE meetings ADD COLUMN transcript_hash TEXT')
     if (!meetingCols.includes('replacement_revision')) this.db.exec('ALTER TABLE meetings ADD COLUMN replacement_revision INTEGER')
     if (!this.db.prepare("SELECT 1 FROM pragma_table_info('notes') WHERE name='reviewed_hash'").get())
-      this.db.exec('ALTER TABLE notes ADD COLUMN reviewed_hash TEXT; ALTER TABLE notes ADD COLUMN needs_review INTEGER NOT NULL DEFAULT 0')
+      this.db.exec('ALTER TABLE notes ADD COLUMN reviewed_hash TEXT')
+    if (!this.db.prepare("SELECT 1 FROM pragma_table_info('notes') WHERE name='needs_review'").get())
+      this.db.exec('ALTER TABLE notes ADD COLUMN needs_review INTEGER NOT NULL DEFAULT 0')
     if (!segmentCols.includes('hidden')) this.db.exec('ALTER TABLE segments ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0')
     if (!segmentCols.includes('echo_confident')) {
       this.db.exec('BEGIN')
@@ -457,7 +459,7 @@ export class Store {
   restoreMeeting(id: string) { this.db.prepare('UPDATE meetings SET trashed_at = NULL WHERE id = ?').run(id) }
   /** what is in the Trash, the last moved there first */
   trashed(): MeetingCard[] {
-    const rows = this.db.prepare(`SELECT m.*, substr(n.mine, 1, 600) AS n_mine, substr(n.enhanced, 1, 600) AS n_enhanced FROM meetings m LEFT JOIN notes n ON n.meeting_id = m.id
+    const rows = this.db.prepare(`SELECT m.*, substr(n.mine, 1, 600) AS n_mine, CASE WHEN n.needs_review=0 THEN substr(n.enhanced, 1, 600) END AS n_enhanced FROM meetings m LEFT JOIN notes n ON n.meeting_id = m.id
       WHERE m.trashed_at IS NOT NULL ORDER BY m.trashed_at DESC, m.id`).all() as Row[]
     return rows.map((r) => ({ ...this.readMeeting(r), preview: previewOf(r.n_enhanced == null ? null : String(r.n_enhanced), r.n_mine == null ? '' : String(r.n_mine)) }))
   }
@@ -496,14 +498,21 @@ export class Store {
     this.db.prepare("UPDATE meetings SET transcription_state='error',transcription_pending=0 WHERE source='audio-file' AND transcription_state='preparing'").run()
   }
   replacementAllowed(id: string, approved?: number) {
-    return !this.removedSpans(id).length && (!this.db.prepare('SELECT 1 FROM segments WHERE meeting_id=? AND original_text IS NOT NULL').get(id)
-      || (approved !== undefined && approved === this.meeting(id)?.transcriptRevision))
+    const revision = this.meeting(id)?.transcriptRevision ?? 0
+    if (approved !== undefined && revision !== approved) return false
+    if (this.db.prepare('SELECT 1 FROM segments WHERE meeting_id=? AND removed_batch IS NOT NULL LIMIT 1').get(id)) return false
+    return approved !== undefined || !this.db.prepare('SELECT 1 FROM segments WHERE meeting_id=? AND original_text IS NOT NULL LIMIT 1').get(id)
   }
   beginTranscriptionReplacement(id:string, approved?: number) {
-    if (!this.replacementAllowed(id, approved)) return false
-    this.clearTranscriptionDraft(id)
-    this.db.prepare('UPDATE meetings SET transcription_was_pending=CASE WHEN transcription_again=1 THEN transcription_was_pending ELSE transcription_pending END, transcription_again=1, replacement_revision=? WHERE id=?').run(approved ?? null, id)
-    return true
+    this.db.exec('BEGIN IMMEDIATE')
+    try {
+      if (!this.replacementAllowed(id, approved)) { this.db.exec('ROLLBACK'); return false }
+      this.clearTranscriptionDraft(id)
+      this.db.prepare(`UPDATE meetings SET transcription_was_pending=CASE WHEN transcription_again=1 THEN transcription_was_pending ELSE transcription_pending END,
+        transcription_again=1, replacement_revision=transcript_revision WHERE id=?`).run(id)
+      this.db.exec('COMMIT')
+      return true
+    } catch (error) { this.db.exec('ROLLBACK'); throw error }
   }
   cancelTranscriptionReplacement(id:string) {
     this.db.exec('BEGIN')
@@ -521,11 +530,11 @@ export class Store {
   }
   clearTranscriptionDraft(id: string) { this.db.prepare('DELETE FROM transcription_drafts WHERE meeting_id = ?').run(id) }
   commitTranscriptionDraft(id: string) {
-    const approved = this.db.prepare('SELECT replacement_revision FROM meetings WHERE id=?').get(id)?.replacement_revision
-    if (!this.replacementAllowed(id, typeof approved === 'number' ? approved : undefined)) throw new Error('Transcript changed before replacement')
-    const segments = this.transcriptionDraft(id)
-    this.db.exec('BEGIN')
+    this.db.exec('BEGIN IMMEDIATE')
     try {
+      const approved = this.db.prepare('SELECT replacement_revision FROM meetings WHERE id=?').get(id)?.replacement_revision
+      if (!this.replacementAllowed(id, typeof approved === 'number' ? approved : undefined)) throw new Error('Transcript changed before replacement')
+      const segments = this.transcriptionDraft(id)
       this.beforeTranscriptChange(id)
       this.db.prepare('DELETE FROM segments WHERE meeting_id = ?').run(id)
       const insert = this.db.prepare('INSERT INTO segments (meeting_id,track,start_ms,end_ms,text,speaker,hidden,echo_confident) VALUES (?,?,?,?,?,?,?,?)')
@@ -578,7 +587,7 @@ export class Store {
   }
 
   removedSpans(id: string): RemovedSpan[] {
-    return this.db.prepare('SELECT id, start_ms AS startMs, end_ms AS endMs FROM segments WHERE meeting_id=? AND removed_batch IS NOT NULL ORDER BY start_ms,id').all(id) as RemovedSpan[]
+    return this.db.prepare('SELECT id, track, start_ms AS startMs, end_ms AS endMs FROM segments WHERE meeting_id=? AND removed_batch IS NOT NULL ORDER BY start_ms,id').all(id) as RemovedSpan[]
   }
 
   removedLines(id: string) {
@@ -599,6 +608,11 @@ export class Store {
   }
 
   private transcriptChanged(id: string) {
+    // Legacy mixed scopes did not record every prompt input. Their follow-ups start with fresh context.
+    this.db.prepare(`UPDATE conversation_turns SET historical=1,waiting_model=0 WHERE
+      (inputs IS NOT NULL AND EXISTS (SELECT 1 FROM json_each(inputs) WHERE value=?)) OR
+      (inputs IS NULL AND (scope IS NULL OR json_array_length(scope) != 1 OR json_extract(scope,'$[0].kind') != 'meeting'
+        OR json_extract(scope,'$[0].id')=?))`).run(id,id)
     const hash = this.fingerprint(id)
     this.db.prepare('UPDATE meetings SET transcript_revision=transcript_revision+1, transcript_hash=? WHERE id=?').run(hash, id)
     this.db.prepare('UPDATE notes SET needs_review=(enhanced IS NOT NULL AND reviewed_hash IS NOT ?) WHERE meeting_id=?').run(hash, id)
@@ -627,33 +641,37 @@ export class Store {
   private undoChange?: { meeting: string; revision: number; apply: () => void }
 
   changeTranscript(id: string, revision: number, change: TranscriptChange): EditResult {
-    const m = this.meeting(id)
-    if (!validChange(change) || !m || m.trashedAt != null || !['done','stopped'].includes(m.state) || m.transcriptionPending || transcriptionBusy(m.transcriptionState)) return { status: 'unavailable' }
-    const current = m.transcriptRevision ?? 0
-    const wording = change.kind === 'wording' || change.kind === 'original'
-    const row = wording ? this.db.prepare('SELECT text,original_text FROM segments WHERE meeting_id=? AND id=? AND hidden=0').get(id,change.id) : undefined
-    if (wording && row && row.text !== change.expected) return { status: 'conflict', text: String(row.text), revision: current }
-    if (revision !== current || (wording && !row)) return { status: 'stale' }
-    let undo: (() => void) | undefined, count = 1
+    if (!validChange(change)) return { status: 'unavailable' }
     this.db.exec('BEGIN IMMEDIATE')
+    const reject = (result: EditResult) => { this.db.exec('ROLLBACK'); return result }
     try {
+      const m = this.meeting(id)
+      if (!m || m.trashedAt != null || !['done','stopped'].includes(m.state) || m.transcriptionPending || transcriptionBusy(m.transcriptionState))
+        return reject({ status: 'unavailable' })
+      const current = m.transcriptRevision ?? 0
+      const wording = change.kind === 'wording' || change.kind === 'original'
+      const row = wording ? this.db.prepare('SELECT text,original_text FROM segments WHERE meeting_id=? AND id=? AND hidden=0').get(id,change.id) : undefined
+      if (wording && row && (row.text !== change.expected || revision !== current))
+        return reject({ status: 'conflict', text: String(row.text), revision: current })
+      if (revision !== current || (wording && !row)) return reject({ status: 'stale' })
+      let undo: (() => void) | undefined, count = 1
       this.beforeTranscriptChange(id)
       if (wording && row) {
         const text = change.kind === 'wording' ? change.text : String(row.original_text ?? row.text)
-        if (text === row.text) { this.db.exec('ROLLBACK'); return { status: 'unchanged' } }
+        if (text === row.text) return reject({ status: 'unchanged' })
         const set = this.db.prepare('UPDATE segments SET text=?,original_text=? WHERE meeting_id=? AND id=?')
         const original = row.original_text ?? row.text
         set.run(text, text === original ? null : original, id, change.id)
         undo = () => { set.run(row.text, row.original_text, id, change.id) }
       } else if (change.kind === 'undo') {
-        if (this.undoChange?.meeting !== id || this.undoChange.revision !== revision) { this.db.exec('ROLLBACK'); return { status: 'stale' } }
+        if (this.undoChange?.meeting !== id || this.undoChange.revision !== revision) return reject({ status: 'stale' })
         this.undoChange.apply()
       } else if (change.kind === 'remove' || change.kind === 'restore') {
         const batch = change.kind === 'remove' ? randomUUID() : null
         const rows = change.kind === 'remove'
           ? this.db.prepare('SELECT id,text,removed_batch FROM segments WHERE meeting_id=? AND hidden=0 AND id IN (SELECT value FROM json_each(?))').all(id,JSON.stringify(change.ids))
           : this.db.prepare('SELECT id,text,removed_batch FROM segments WHERE meeting_id=? AND removed_batch IS NOT NULL AND (? IS NULL OR removed_batch=?)').all(id,change.batch,change.batch)
-        if (!rows.length || (change.kind === 'remove' && rows.length !== new Set(change.ids).size)) { this.db.exec('ROLLBACK'); return { status: 'stale' } }
+        if (!rows.length || (change.kind === 'remove' && rows.length !== new Set(change.ids).size)) return reject({ status: 'stale' })
         const set = this.db.prepare('UPDATE segments SET hidden=?,removed_batch=? WHERE meeting_id=? AND id=?')
         const hide = this.db.prepare("INSERT INTO segments_fts(segments_fts,rowid,text) VALUES ('delete',?,?)")
         const show = this.db.prepare('INSERT INTO segments_fts(rowid,text) VALUES (?,?)')
@@ -783,7 +801,7 @@ export class Store {
 
   /** Past meetings for the home screen, newest first, a page at a time: before is the last card of the page before */
   meetingCards({ before, limit, folder, ids }: { ids?: string[]; before?: { at: number; id: string }; limit: number; /** only the meetings in this folder */ folder?: string }): MeetingCard[] {
-    const cols = `m.*, substr(n.mine, 1, 600) AS n_mine, substr(n.enhanced, 1, 600) AS n_enhanced,
+    const cols = `m.*, substr(n.mine, 1, 600) AS n_mine, CASE WHEN n.needs_review=0 THEN substr(n.enhanced, 1, 600) END AS n_enhanced,
       (SELECT json_group_array(json_object('id', id, 'name', name, 'icon', icon, 'color', color)) FROM
         (SELECT f.id, f.name, f.icon, f.color FROM folders f JOIN folder_meetings fm ON fm.folder_id = f.id
           WHERE fm.meeting_id = m.id ORDER BY f.name COLLATE NOCASE, f.created_at)) AS card_folders`
@@ -803,7 +821,7 @@ export class Store {
   /** The first words of a meeting's notes as plain text (enhanced when written, else the person's own) */
   preview(meetingId: string): string {
     const n = this.notes(meetingId)
-    return previewOf(n.enhanced, n.mine)
+    return previewOf(n.needsReview ? null : n.enhanced, n.mine)
   }
 
   searchPeople(): Person[] {
@@ -849,11 +867,14 @@ export class Store {
       // Use the existing text indexes per word, then intersect at meeting level rather than within one field or line.
       const hits = this.db.prepare(`SELECT meeting_id, snippet, score, MIN(rank) FROM (
         SELECT n.meeting_id, snippet(notes_fts, -1, '${OPEN}', '${CLOSE}', '…', 24) AS snippet, 20 AS score, notes_fts.rank AS rank
-          FROM notes_fts JOIN notes n ON n.id = notes_fts.rowid WHERE notes_fts MATCH ?${inScope('n.meeting_id')}
+          FROM notes_fts JOIN notes n ON n.id = notes_fts.rowid WHERE n.needs_review=0 AND notes_fts MATCH ?${inScope('n.meeting_id')}
+        UNION ALL
+        SELECT n.meeting_id, snippet(notes_fts, 0, '${OPEN}', '${CLOSE}', '…', 24), 20, notes_fts.rank
+          FROM notes_fts JOIN notes n ON n.id=notes_fts.rowid WHERE n.needs_review=1 AND notes_fts MATCH ?${inScope('n.meeting_id')}
         UNION ALL
         SELECT s.meeting_id, snippet(segments_fts, 0, '${OPEN}', '${CLOSE}', '…', 24), 10, segments_fts.rank
           FROM segments_fts JOIN segments s ON s.id = segments_fts.rowid WHERE segments_fts MATCH ? AND s.hidden = 0${inScope('s.meeting_id')}
-      ) GROUP BY meeting_id, score`).all(fts, ...args, fts, ...args) as Row[]
+      ) GROUP BY meeting_id, score`).all(fts, ...args, 'mine : ' + fts, ...args, fts, ...args) as Row[]
       const add = (id: string, parts: SnippetPart[], score: number) => {
         const hit = found.get(id)
         if (!hit) return
@@ -865,18 +886,20 @@ export class Store {
       if (CJK.test(word)) {
         const pairs = pairsOf([word])
         const where = (col: string) => pairs.map(() => `instr(${col}, ?) > 0`).join(' AND ')
-        for (const r of this.db.prepare(`SELECT meeting_id, coalesce(enhanced, '') || char(10) || mine AS text FROM notes
-          WHERE ${where("coalesce(enhanced, '') || char(10) || mine")}${inScope('meeting_id')}`).all(...pairs, ...args) as Row[]) add(String(r.meeting_id), around(String(r.text), pairs), 20)
+        for (const r of this.db.prepare(`SELECT meeting_id, coalesce(CASE WHEN needs_review=0 THEN enhanced END, '') || char(10) || mine AS text FROM notes
+          WHERE ${where("coalesce(CASE WHEN needs_review=0 THEN enhanced END, '') || char(10) || mine")}${inScope('meeting_id')}`).all(...pairs, ...args) as Row[]) add(String(r.meeting_id), around(String(r.text), pairs), 20)
         for (const r of this.db.prepare(`SELECT meeting_id, text FROM segments WHERE hidden = 0 AND ${where('text')}${inScope('meeting_id')}`).all(...pairs, ...args) as Row[]) add(String(r.meeting_id), around(String(r.text), pairs), 10)
       }
     })
     if (words.length > 1) {
       const exact = `"${phrase}"`
       const phrases = this.db.prepare(`
-        SELECT n.meeting_id FROM notes_fts JOIN notes n ON n.id = notes_fts.rowid WHERE notes_fts MATCH ?${inScope('n.meeting_id')}
+        SELECT n.meeting_id FROM notes_fts JOIN notes n ON n.id = notes_fts.rowid WHERE n.needs_review=0 AND notes_fts MATCH ?${inScope('n.meeting_id')}
+        UNION
+        SELECT n.meeting_id FROM notes_fts JOIN notes n ON n.id=notes_fts.rowid WHERE n.needs_review=1 AND notes_fts MATCH ?${inScope('n.meeting_id')}
         UNION
         SELECT s.meeting_id FROM segments_fts JOIN segments s ON s.id = segments_fts.rowid WHERE segments_fts MATCH ? AND s.hidden = 0${inScope('s.meeting_id')}
-      `).all(exact, ...args, exact, ...args) as Row[]
+      `).all(exact, ...args, 'mine : ' + exact, ...args, exact, ...args) as Row[]
       for (const r of phrases) { const hit = found.get(String(r.meeting_id)); if (hit) hit.bonus = 5 }
     }
     return scopedRows.map(r => {

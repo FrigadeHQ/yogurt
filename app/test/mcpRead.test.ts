@@ -75,3 +75,29 @@ describe('reading more through MCP', () => {
     expect((await json(mcp, 'get_meeting', { id: older.id })).suggested_folder).toBeNull()
   })
 })
+
+it('publishes current words and times to both MCP transcript formats, clipboard and Markdown', async () => {
+  const { mcp, store, older } = setup()
+  const { transcriptClipboard } = await import('../src/shared/exportNotes')
+  const id = older.id, [first, second] = store.segments(id)
+  store.setNotes(id, { mine: 'My typed reminder', enhanced: 'Old private summary 機密事項' })
+  expect(store.changeTranscript(id, 0, { kind: 'wording', id: second.id, expected: second.text, text: 'Corrected 東京駅' }).status).toBe('saved')
+  expect(store.changeTranscript(id, 1, { kind: 'remove', ids: [first.id] }).status).toBe('saved')
+  expect(await json(mcp, 'get_meeting', { id })).toMatchObject({ summary: null, summary_needs_review: true })
+  const lines = await json(mcp, 'get_transcript', { id, format: 'lines' })
+  expect(lines).toHaveLength(2)
+  expect(lines[0]).toMatchObject({ start_ms: second.startMs, end_ms: second.endMs, text: 'Corrected 東京駅' })
+  const { text, html } = transcriptClipboard(store.segments(id))
+  const markdown = (await call(mcp, 'export_meeting', { id, side: 'summary' })).text
+  for (const output of [text, html, markdown, (await call(mcp, 'get_transcript', { id })).text]) {
+    expect(output).toContain('Corrected 東京駅')
+    expect(output).not.toContain(first.text)
+    expect(output).not.toContain(second.text)
+    expect(output).not.toContain('機密事項')
+  }
+  expect(markdown).toContain('My typed reminder')
+  expect(markdown).toContain('The unreviewed summary was left out.')
+  expect(store.search('東京駅', 10).map(h => h.meetingId)).toContain(id)
+  expect(store.search('機密事項', 10)).toEqual([])
+  expect(store.search('Old private summary', 10)).toEqual([])
+})

@@ -36,6 +36,7 @@ export function ShareMenu({ id, shown, status, hasEnhanced, beforeUse }: { id: s
     if (what === 'notes' && writing) { say(t('Still generating your summary')); return }
     if (what === 'notes' && !await beforeUse()) { say(t("Couldn't save your latest changes. Try again before copying."), 'error'); return }
     const r = await window.yogurt.share.copy(id, what, side)
+    if (r === 'review') { say(t('Review the summary before copying it.')); return }
     say(r === 'failed' ? t("Couldn't copy. Try again.") : r === 'nothing' ? t('Nothing to copy yet') : what === 'notes' && fellBack ? t('Copied your notes') : t('Copied'),
       r === 'failed' ? 'error' : r === 'nothing' ? 'notice' : 'copied')
   }, [id, shown, status, hasEnhanced, beforeUse, say])
@@ -58,7 +59,8 @@ export function ShareMenu({ id, shown, status, hasEnhanced, beforeUse }: { id: s
         }
       }
       const r = await window.yogurt.share.save(id, side)
-      if (r === 'saved') say(fellBack ? t('Saved your notes') : t('Saved'), 'saved')
+      if (r === 'omitted') say(t('The unreviewed summary was left out.'))
+      else if (r === 'saved') say(fellBack ? t('Saved your notes') : t('Saved'), 'saved')
       else if (r === 'failed') failed(t("Couldn't save the file"))
     } catch { failed(t("Couldn't save the file")) }
     finally { exporting.current = false }

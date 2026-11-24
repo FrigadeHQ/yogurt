@@ -111,7 +111,7 @@ test('a transcript click queued before metadata still plays the healthy track if
     await expect(page.getByTestId('player')).toBeVisible()
     // Model the ordering explicitly: one metadata event succeeds; the other stays unreadable, then errors.
     await page.getByTestId('player-audio-them').evaluate(el => Object.defineProperty(el, 'readyState', { configurable: true, get: () => 0 }))
-    await page.getByTestId('transcript-line').first().click()
+    await page.getByTestId('transcript-line').first().getByRole('button', { name: /^Play from/ }).click()
     await app.evaluate(() => (globalThis as unknown as { __fake__: { audioMetadataRelease(): void } }).__fake__.audioMetadataRelease())
     const healthy = page.getByTestId('player-audio-me')
     await expect.poll(() => healthy.evaluate(el => (el as HTMLAudioElement).readyState)).toBeGreaterThan(0)

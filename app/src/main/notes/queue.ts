@@ -150,7 +150,7 @@ export function createQueue(o: {
       return done
     },
     /** Resume replaces only old analysis, without the permanent tombstone used for deletion. */
-    cancelAnalysis(meetingId: string, kind?: 'enhance'): Promise<void> {
+    cancelAnalysis(meetingId: string, kind?: 'enhance' | 'readahead'): Promise<void> {
       const matches = (e: Entry) => e.meetingId === meetingId && (kind ? e.kind === kind : e.kind === 'enhance' || e.kind === 'readahead' || e.kind === 'folder')
       for (const e of waiting.filter(matches)) { waiting.splice(waiting.indexOf(e), 1); e.cancelled = true; e.resolve() }
       if (!running || !matches(running.entry)) return Promise.resolve()

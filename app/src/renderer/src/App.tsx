@@ -183,9 +183,9 @@ export function App() {
   }, [ready, holding])
   const open = (id: string) => { setSearching(false); go(`/note/${id}`) }
   /** A citation opens its matching notes paragraph or transcript segment. */
-  const [jump, setJump] = useState<{ id: string; ms: number | null; match?: string; seq: number }>()
+  const [jump, setJump] = useState<{ id: string; ms: number | null; match?: string; verifiedRow?: number; revision?: number; seq: number }>()
   const openSource = (s: LibrarySource, match?: string) => {
-    setJump((cur) => ({ id: s.meetingId, ms: s.atMs, match, seq: (cur?.seq ?? 0) + 1 }))
+    setJump((cur) => ({ id: s.meetingId, ms: s.atMs, match, verifiedRow:s.verifiedRow, revision:s.revision, seq: (cur?.seq ?? 0) + 1 }))
     open(s.meetingId)
   }
 

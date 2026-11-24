@@ -42,7 +42,7 @@ export function createSavedTranscriptions(d: {
         try {
           const tracks=await d.tracks(id)
           if(!Object.keys(tracks).length)throw new Error('No saved audio')
-          const segments=meeting.transcriptionAgain?d.store.transcriptionDraft(id):d.store.segments(id,{hidden:true})
+          const segments=meeting.transcriptionAgain?d.store.transcriptionDraft(id):[...d.store.segments(id,{hidden:true}), ...d.store.removedSpans(id)]
           const fromMs:Partial<Record<Track,number>>={}
           for(const segment of segments)fromMs[segment.track]=Math.max(fromMs[segment.track]??0,segment.endMs)
           // a phone recording is heard in the language the phone said; everything else follows the spoken setting
@@ -71,6 +71,7 @@ export function createSavedTranscriptions(d: {
     async start(id:string,again=false,approved?:number) {
       const meeting=d.store.meeting(id)
       if(!meeting||meeting.trashedAt!=null||meeting.state==='recording'||running?.id===id)return false
+      if (!again && !meeting.transcriptionPending && d.store.hasSavedTranscript(id)) return false
       if(again && !d.store.beginTranscriptionReplacement(id,approved))return false
       d.store.updateMeeting(id,{transcriptionPending:true,transcriptionState:'queued'});d.changed(id);void pump();return true
     },

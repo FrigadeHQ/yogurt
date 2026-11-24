@@ -10,7 +10,7 @@ export type EditResult =
   | { status: 'conflict'; text: string; revision: number }
   | { status: 'stale' | 'unchanged' | 'unavailable' }
 
-export type RemovedSpan = { id: number; startMs: number; endMs: number }
+export type RemovedSpan = { id: number; track: 'me' | 'them'; startMs: number; endMs: number }
 export function validChange(x: unknown): x is TranscriptChange {
   if (!x || typeof x !== 'object' || !('kind' in x)) return false
   const row = (id: unknown) => typeof id === 'number' && Number.isSafeInteger(id) && id > 0

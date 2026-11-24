@@ -130,6 +130,9 @@ const MIN_RESPELL = 5
  * a word one letter off a company or name of the meeting takes its spelling. Capitalised words only, except for a
  * company that is no everyday word, so ordinary phrases are not changed into names.
  */
+export function segmentWords(line: {text: string; corrected?: boolean}, words: MeetingWords) {
+  return line.corrected ? line.text : respell(line.text, words)
+}
 export function respell(text: string, w: MeetingWords): string {
   const jargon = w.jargon ?? []
   // a term of one word is like a company; the words of a longer one like a person's names

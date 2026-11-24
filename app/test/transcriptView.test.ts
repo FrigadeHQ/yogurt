@@ -113,3 +113,10 @@ describe('a long recording draws only its latest lines (all of them stay saved)'
     expect(r.runs.map((x: { lines: unknown[] }) => x.lines.length)).toEqual([150, 150, 1])
   })
 })
+
+it('highlights surviving overlapping speech and leaves a removed-only interval unhighlighted', async () => {
+  const { playbackLookup } = await import('../src/shared/transcript')
+  const row = (startMs:number,endMs:number) => ({ track:'them' as const, speaker:null, startMs,endMs })
+  const at = playbackLookup([row(0,8000),row(1000,3000),row(12000,15000)],[row(2500,10000)])
+  expect([2000,4000,8500,12000].map(at)).toEqual([1,0,-1,2])
+})

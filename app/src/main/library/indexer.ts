@@ -3,6 +3,7 @@ import type { Queue } from '../notes/queue'
 import type { Library } from './store'
 import type { Embedder } from './embedder'
 import { chunkTranscript } from './chunks'
+import { meetingWords, segmentWords } from '../vocab'
 import { VectorIndex } from './vectors'
 
 /** chunks embedded per request: a stop waits for one batch at most (well under a second) */
@@ -24,7 +25,8 @@ export function createIndexer(o: { store: Pick<Store, 'meeting' | 'segments'>; l
   const chunk = (meetingId: string, signature: string) => {
     const m = o.store.meeting(meetingId)
     if (!m) return
-    const chunks = chunkTranscript(o.store.segments(meetingId))
+    const words = meetingWords(m)
+    const chunks = chunkTranscript(o.store.segments(meetingId).map(s=>({...s,text:segmentWords(s,words)})))
     const spoke = chunks.flatMap((c) => c.speakers).filter((s) => s !== 'You' && s !== 'Them')
     const people = [...new Set([...m.attendees.map((a) => a.name.trim()).filter(Boolean), ...spoke])]
     o.library.setChunks(meetingId, signature, people, chunks)

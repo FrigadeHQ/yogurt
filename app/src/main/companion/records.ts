@@ -53,7 +53,7 @@ function record(store: Store, entity: Entity, id: string): object | undefined {
     case 'notes': {
       if (!store.meeting(id)) return undefined
       const n = store.notes(id)
-      return { meetingId: id, mine: n.mine, summary: n.enhanced, mineHash: notesHash(n.mine) }
+      return { meetingId: id, mine: n.mine, summary: n.needsReview ? null : n.enhanced, mineHash: notesHash(n.mine) }
     }
     case 'segments': {
       const m = store.meeting(id)

@@ -63,7 +63,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   onSource: (s: LibrarySource, match?: string) => void
   id: string; onTitleChange: (meeting: Pick<MeetingView, 'id' | 'title'>) => void
   /** A citation target: null ms selects notes; seq identifies each Open action. */
-  at?: { ms: number | null; match?: string; seq: number }
+  at?: { ms: number | null; match?: string; verifiedRow?: number; revision?: number; seq: number }
   folderSuggestion?: FolderSuggestion
   onResumeRequested?: () => void
 }) {

@@ -54,6 +54,20 @@ export function lineAt(lines: Array<{ startMs: number }>, ms: number): number {
   return found
 }
 
+/** Build once per snapshot. Earlier overlapping speech may outlast the most recently started row. */
+export function playbackLookup(lines: Said[], removed: Array<Pick<Said,'startMs' | 'endMs'>>) {
+  const ends = (rows: Array<{endMs:number}>) => {
+    let end = -Infinity
+    return rows.map(row => end = Math.max(end,row.endMs))
+  }
+  const visibleEnd = ends(lines), removedEnd = ends(removed)
+  return (ms: number) => {
+    const last = lineAt(lines,ms)
+    for (let i = last; i >= 0 && visibleEnd[i] > ms; i--) if (lines[i].endMs > ms) return i
+    return removedEnd[lineAt(removed,ms)] > ms ? -1 : last
+  }
+}
+
 /** a pause this long between lines of one voice starts a new bubble, like a new thought */
 export const BUBBLE_GAP_MS = 1500
 

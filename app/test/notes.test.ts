@@ -662,3 +662,21 @@ describe('notes replaced from another app (MCP)', () => {
     expect(s.notes.replace('nope', 'mine', 'x')).toBe('failed')
   })
 })
+
+it('keeps the owner’s summary if the transcript changes during generation', async () => {
+  const s = setup({ during: () => {
+    const row = s.store.segments(s.m.id)[0]
+    s.store.changeTranscript(s.m.id,1,{kind:'wording',id:row.id,expected:row.text,text:'We ship Friday.'})
+  } })
+  const id = s.m.id, row = s.store.segments(id)[0]
+  s.store.setNotes(id,{enhanced:'My earlier summary',edited:true})
+  s.store.changeTranscript(id,0,{kind:'wording',id:row.id,expected:row.text,text:'We ship Monday.'})
+  s.transcribed()
+  await s.notes.writeAgain(id)
+  expect(s.prompts.length).toBeGreaterThan(0)
+  expect(s.store.notes(id)).toMatchObject({mine:'- ship tuesday',enhanced:'My earlier summary',edited:true,needsReview:true})
+  expect(s.store.reviewSummary(id,1,'My earlier summary')).toBe(false)
+  expect(s.store.reviewSummary(id,2,'My earlier summary')).toBe(true)
+  s.store.changeTranscript(id,2,{kind:'undo'})
+  expect(s.store.notes(id).needsReview).toBe(true)
+})

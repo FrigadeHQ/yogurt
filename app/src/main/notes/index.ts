@@ -152,6 +152,7 @@ export function hookNotes(p: {
       }, (part, of) => { if (!signal.aborted && !quiet) set(id, 'writing', '', { part, of }) }, p.earlier?.(id))
       if (timer) clearTimeout(timer)
       if (p.store.meeting(id)?.transcriptRevision !== m.transcriptRevision || currentNotes(id).enhanced !== was.enhanced || edits.get(id)?.enhanced?.revision !== editorRevision) {
+        if (quiet && !signal.aborted && !live.has(id) && p.store.meeting(id)?.transcriptRevision === m.transcriptRevision) queueTitle(id)
         if (!quiet && !signal.aborted) { live.delete(id); retryDrafts(id); p.send(view(id)) }
         return
       }

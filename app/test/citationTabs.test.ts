@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { SourceCitationCard } from '../src/renderer/src/components/SourceCitation'
 import type { LibrarySource } from '../src/shared/types'
 
-vi.mock('react', async original => ({ ...await original<typeof import('react')>(), useId: () => 'card', useState: (value: unknown) => [value, vi.fn()], useRef: () => ({ current: null }), useLayoutEffect: vi.fn() }))
+vi.mock('react', async original => ({ ...await original<typeof import('react')>(), useId: () => 'card', useState: (value: unknown) => [value, vi.fn()], useRef: () => ({ current: null }), useEffect: vi.fn(), useLayoutEffect: vi.fn() }))
 vi.mock('../src/renderer/src/motion', async original => ({ ...await original<typeof import('../src/renderer/src/motion')>(), useReducedMotion: () => true }))
 function elements(node: ReactNode): ReactElement<Record<string, unknown>>[] {
   return Children.toArray(node).flatMap(child => isValidElement(child) ? [child as ReactElement<Record<string, unknown>>, ...elements((child.props as { children?: ReactNode }).children)] : [])

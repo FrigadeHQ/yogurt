@@ -78,6 +78,7 @@ import { hookNotes } from './notes'
 import { hookReadAhead, readAheadAllowed } from './notes/readAhead'
 import { createQueue, isSmallMac, notesMemory } from './notes/queue'
 import type { ContextChip } from '../shared/askContext'
+import { currentCitation } from './library/citation'
 import { Library } from './library/store'
 import { createEmbedder } from './library/embedder'
 import { createIndexer } from './library/indexer'
@@ -826,6 +827,8 @@ app.whenReady().then(() => {
   })
   function transcriptEdited(id: string) {
     indexer.forget(id)
+    conversations.transcriptChanged(id)
+    void queue.cancelAnalysis(id,'readahead')
     void indexer.schedule()
     win?.webContents.send('transcript:replaced', id)
     win?.webContents.send('meetings:changed')
@@ -899,6 +902,11 @@ app.whenReady().then(() => {
   })
   const validChips = (value: unknown): value is ContextChip[] => Array.isArray(value) && value.length <= 40 && value.every(c =>
     c && (c.kind === 'meeting' || c.kind === 'folder') && isId(c.id)) && new Set(value.map(c => `${c.kind}:${c.id}`)).size === value.length
+  ipcMain.handle('conversations:citation', (e,turn:unknown,n:unknown,sentence:unknown) => {
+    if (!editSender(e) || typeof turn !== 'number' || !Number.isSafeInteger(turn) || typeof n !== 'number' || typeof sentence !== 'string') return
+    const source = library.savedSource(turn,n)
+    return source && currentCitation(store,source,sentence)
+  })
   ipcMain.handle('conversations:current', (_e, chips: unknown, fresh: unknown) => {
     if (!validChips(chips)) throw new Error('Invalid context')
     const id = library.current(chips.map(({ kind, id }) => ({ kind, id })), fresh === true)

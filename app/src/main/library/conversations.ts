@@ -2,7 +2,7 @@ import type { Store } from '../store'
 import type { NotesModel } from '../notes/model'
 import type { Queue } from '../notes/queue'
 import { ask as askMeeting, warm as warmMeeting, HISTORY_TURNS, ANSWER_TOKENS } from '../chat'
-import { meetingWords, respell, spellingLine } from '../vocab'
+import { meetingWords, segmentWords, spellingLine } from '../vocab'
 import type { ConversationSummary, ConversationTurn, ConversationView, LibrarySource } from '../../shared/types'
 import type { Library } from './store'
 import type { Indexer } from './indexer'
@@ -55,14 +55,19 @@ export function hookConversations(p: Deps) {
     if (!list) {
       // Only a question that was waiting for the download resumes after a restart.
       list = p.library.turns(id)
-        .map((t) => ({ id: t.id, question: t.question, answer: t.answer, scope: t.scope, status: t.waitingModel ? 'waiting' as const : t.stopped || !t.answer ? 'stopped' as const : 'done' as const, sources: t.sources }))
+        .map((t) => ({ id: t.id, question: t.question, answer: t.answer, scope: t.scope, historical:t.historical, status: t.waitingModel ? 'waiting' as const : t.stopped || !t.answer ? 'stopped' as const : 'done' as const, sources: t.sources }))
       open.set(id, list)
     }
     return list
   }
   const view = (id: string): ConversationView | undefined => {
     const c = p.library.conversation(id)
-    return c && { id, title: c.title, chips: p.library.describe(c.chips), draftChips: p.library.describe(c.firstChips === null ? c.chips : c.draftChips), firstChips: c.firstChips === null ? null : p.library.describe(c.firstChips), draft: c.draft, turns: turns(id).map((t) => ({ ...t, sources: [...t.sources] })), waitsForMeeting: p.waitsForMeeting(), waitsForModel: p.waitsForModel() }
+    return c && { id, title: c.title, chips: p.library.describe(c.chips), draftChips: p.library.describe(c.firstChips === null ? c.chips : c.draftChips), firstChips: c.firstChips === null ? null : p.library.describe(c.firstChips), draft: c.draft, turns: turns(id).map((t) => ({ ...t, sources: t.sources.map(source => {
+      const m = p.store.meeting(source.meetingId)
+      if (!t.historical && m && m.trashedAt == null && (m.transcriptRevision ?? 0) === (source.revision ?? 0)) return source
+      return { n:source.n, meetingId:source.meetingId, startedAt:source.startedAt, title:m?.title ?? '', atMs:source.atMs,
+        verifyTurn:t.id, revision:m?.transcriptRevision }
+    }) })), waitsForMeeting: p.waitsForMeeting(), waitsForModel: p.waitsForModel() }
   }
   const list = (): ConversationSummary[] => p.library.conversations().map((c) => ({ id: c.id, title: c.title, updatedAt: c.updatedAt, chips: p.library.describe(c.chips), draft: c.draft }))
   const push = (id: string) => { const v = view(id); if (v) p.send(v) }
@@ -117,11 +122,19 @@ export function hookConversations(p: Deps) {
     // asking again after a failure replaces the failed turn
     while (all.at(-1)?.status === 'failed') all.pop()
     // only full answers follow on: a stopped one may be cut mid-sentence
-    const done = all.filter((t) => t.status === 'done' && t.answer)
+    const lastHistorical = all.map(t=>!!t.historical).lastIndexOf(true)
+    const done = all.slice(lastHistorical+1).filter((t) => t.status === 'done' && t.answer)
     const history = done.map((t) => ({ question: t.question, answer: t.answer }))
     const turn: ConversationTurn = resume === undefined
       ? { id: p.library.addTurn(cid, question, now(), p.waitsForModel()), question, answer: '', status: 'waiting', sources: [], scope: p.library.describe(chips) }
       : all.find(t => t.id === resume)!
+    // Include retrieval scope and every earlier turn used as context, even if the model cited only one result.
+    const historyInputs = new Set<string>()
+    for (const earlier of done.slice(-HISTORY_TURNS)) {
+      const prevInputs = p.library.inputs(earlier.id)
+      for (const mid of prevInputs ?? p.library.finished().map(m=>m.id)) historyInputs.add(mid)
+    }
+    p.library.setInputs(turn.id,[...new Set([...(scope ?? p.library.finished().map(m=>m.id)), ...historyInputs])])
     if (resume === undefined) all.push(turn)
     const ac = new AbortController()
     running.set(cid, ac)
@@ -161,13 +174,16 @@ export function hookConversations(p: Deps) {
         const spelling = spellingLine({ title: '', names: words.flatMap((w) => w.names), companies: words.flatMap((w) => w.companies), ...(jargon ? { jargon } : {}) })
         const fitted = await fit(llm, got.items, question, history, spelling)
         const items = byMeeting(fitted.items), recent = fitted.history
+        if (signal.aborted) return
+        // Spelling hints also come from retrieved meetings whose chunks did not fit.
+        p.library.setInputs(turn.id,[...new Set([...(scope ?? []), ...got.items.map(i=>i.meetingId), ...historyInputs])])
         turn.sources = items.map((i, k): LibrarySource => {
-          const source: LibrarySource = { n: k + 1, meetingId: i.meetingId, title: i.title, startedAt: i.startedAt, atMs: i.atMs, excerpt: i.text }
+          const source: LibrarySource = { n: k + 1, meetingId: i.meetingId, title: i.title, startedAt: i.startedAt, atMs: i.atMs, excerpt: i.text, ...(p.store.meeting(i.meetingId)?.transcriptRevision && {revision:p.store.meeting(i.meetingId)!.transcriptRevision}) }
           const range = i.transcriptRange, meeting = p.store.meeting(i.meetingId)
           if (range && meeting) source.transcript = {
             speakers: p.store.speakerOrder(i.meetingId),
             lines: p.store.segments(i.meetingId).filter(s => s.startMs >= range.startMs && s.startMs < range.endMs)
-              .map(({ text, track, speaker, startMs }) => ({ text: respell(text, meetingWords(meeting)), track, speaker, startMs })),
+              .map(l => ({ text: segmentWords(l,meetingWords(meeting)), track:l.track, speaker:l.speaker, startMs:l.startMs })),
           }
           return source
         })
@@ -240,6 +256,15 @@ export function hookConversations(p: Deps) {
       if (!single || now() - (warmed.get(single) ?? -Infinity) < WARM_AGAIN_MS) return
       warmed.set(single, now())
       void warmMeeting(p, single).catch((e) => console.error('reading a meeting in ahead failed', e))
+    },
+    transcriptChanged(id: string) {
+      warmed.delete(id)
+      for (const [cid, list] of open) {
+        const affected = new Set(p.library.turns(cid).filter(t=>t.historical).map(t=>t.id))
+        for (const turn of list) if (affected.has(turn.id)) turn.historical = true
+        if (affected.has(list.at(-1)?.id ?? -1)) running.get(cid)?.abort()
+        push(cid)
+      }
     },
     forgetMeeting(id: string) {
       for (const [cid, ac] of running) if (p.library.scope(p.library.conversation(cid)?.chips ?? [])?.includes(id)) ac.abort()

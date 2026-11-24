@@ -164,9 +164,9 @@ export type YogurtApi = {
     /** opens the Mac share menu for the public Yogurt website, anchored in renderer CSS pixels */
     appLink(x: number, y: number): Promise<boolean>
     /** puts the notes or the transcript on the clipboard as text and HTML; nothing: there was nothing to copy */
-    copy(meetingId: string, what: 'notes' | 'transcript', side: 'mine' | 'enhanced'): Promise<'copied' | 'nothing' | 'failed'>
+    copy(meetingId: string, what: 'notes' | 'transcript', side: 'mine' | 'enhanced'): Promise<'copied' | 'nothing' | 'failed' | 'review'>
     /** asks where to save a Markdown file, then writes it */
-    save(meetingId: string, side: 'mine' | 'enhanced'): Promise<'saved' | 'cancelled' | 'failed'>
+    save(meetingId: string, side: 'mine' | 'enhanced'): Promise<'saved' | 'cancelled' | 'failed' | 'omitted'>
   }
   /** every meeting in one file and back (Settings): import adds the ones that are not here, never changes one that is */
   /** AI apps on this Mac reading meetings through MCP (Settings) */
@@ -239,6 +239,7 @@ export type YogurtApi = {
   }
   /** questions across every meeting, in saved conversations (the Chat page) */
   conversations: {
+    citation(turn: number, n: number, sentence: string): Promise<LibrarySource | undefined>
     waitsForMeeting(): Promise<boolean>
     onRecordingWait(cb: (waiting: boolean) => void): () => void
     /** newest first */
@@ -482,6 +483,8 @@ export type ChatView = {
 
 /** [n] in the answer. atMs is the transcript position (null: notes); older saved sources have no excerpt. */
 export type LibrarySource = {
+  verifiedRow?: number; context?: {before?:string; after?:string}
+  revision?: number; verifyTurn?: number; changed?: 'removed' | 'wording' | 'unknown'; currentText?: string
   n: number; meetingId: string; title: string; startedAt: number; atMs: number | null; excerpt?: string
   /** Actual chunk segments and the note's stable speaker order; absent on older saved answers. */
   transcript?: { lines: Array<{ text: string; track: 'me' | 'them'; speaker: string | null; startMs: number }>; speakers: string[] }
@@ -490,7 +493,7 @@ export type LibrarySource = {
 /** One question across meetings and its answer as it is written; sources: what [1], [2]… in the answer point to */
 /** what an answer is doing before its first words: the model loading, searching meetings, or reading what it found */
 export type AskStep = { kind: 'loading' | 'searching' | 'reading'; title?: string; meetings?: number }
-export type ConversationTurn = { id: number; question: string; answer: string; scope?: ContextTarget[]; status: ChatTurn['status']; sources: LibrarySource[]; step?: AskStep }
+export type ConversationTurn = { historical?: boolean; id: number; question: string; answer: string; scope?: ContextTarget[]; status: ChatTurn['status']; sources: LibrarySource[]; step?: AskStep }
 export type ConversationView = {
   id: string; title: string; chips: ContextTarget[]; draft: string; draftChips: ContextTarget[]; firstChips: ContextTarget[] | null; turns: ConversationTurn[]
   /** a Mac with little memory is recording: answers wait for the meeting to end */

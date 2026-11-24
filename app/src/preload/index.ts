@@ -176,6 +176,7 @@ const api: YogurtApi = {
     },
   },
   conversations: {
+    citation: (turn,n,sentence) => ipcRenderer.invoke('conversations:citation',turn,n,sentence),
     waitsForMeeting: () => ipcRenderer.invoke('conversations:waits-for-meeting'),
     onRecordingWait: cb => {
       const on = (_e: unknown, waiting: boolean) => cb(waiting)
