@@ -2,7 +2,7 @@ import { InlineError, ReadError } from '../components/InlineError'
 import { transcriptionLabel } from '../../../shared/transcription'
 import { LoadingContent } from '../components/LoadingContent'
 import { StartRecording } from '../components/StartRecording'
-import { Mic, SidebarToggle, Check, Circle, FileText, Users } from '../components/Icons'
+import { Mic, Search, SidebarToggle, Check, Circle, FileText, Users } from '../components/Icons'
 import { createPortal } from 'react-dom'
 import { readAgendaOpen, saveAgendaOpen } from '../agenda'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react'
@@ -27,7 +27,7 @@ const PAGE = 40
 const loadedCounts = new Map<string, number>()
 
 /** The workspace, backed by the existing meeting and calendar bridge. */
-export function Home({ open, openFolder, agendaJump }: { open: (id: string) => void; openFolder?: (id: string) => void; agendaJump?: { at: number } }) {
+export function Home({ open, openSearch, openFolder, agendaJump }: { open: (id: string) => void; openSearch: () => void; openFolder?: (id: string) => void; agendaJump?: { at: number } }) {
   const past = usePastNotes()
   const day = useDay()
   const recording = past.cards?.find((c) => c.state === 'recording')
@@ -71,7 +71,12 @@ export function Home({ open, openFolder, agendaJump }: { open: (id: string) => v
     </button>, toolbar)}
     <StartRecording testId="new-note" compact={calendar && !agendaOpen} emptyActions={emptyActions} onGone={() => setCalendarRevision(revision => revision + 1)} />
     <div className="native-library" ref={past.setRoot} tabIndex={-1}>
-      <h1>{t('Your meetings')}</h1>
+      <div className="library-page-heading justify-between">
+        <h1>{t('Your meetings')}</h1>
+        <button className="ghost-btn home-search" onClick={openSearch} aria-haspopup="dialog" title={`${t('Search meetings')} (${keys('⌘K')})`}>
+          <Search size={16} aria-hidden="true" />{t('Search meetings')}
+        </button>
+      </div>
       {past.failed && !!past.cards?.length && <InlineError testId="meetings-read-error" retry={past.retry} />}
       <LoadingContent pending={!past.cards && !past.failed} testId="meetings-loading" skeleton={<MeetingListLoading />} className="library-load">{!past.cards?.length ? <LibraryEmpty testId="past-empty" icon={<FileText size={28} aria-hidden="true" />} title={t('Your notes will show up here')} description={t('Your summary appears after you stop recording.')} retry={past.failed ? past.retry : undefined}><div ref={setEmptyActions} /></LibraryEmpty> : <PastNotes cards={past.cards ?? []} day={day} more={past.more} sentinel={past.setSentinel} onOpen={open} openFolder={openFolder} />}</LoadingContent>
     </div>

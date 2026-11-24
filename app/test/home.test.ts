@@ -59,7 +59,7 @@ describe('Home Agenda', () => {
       yogurt: { capabilities }, matchMedia: () => ({ matches: true }),
       localStorage: { getItem: (k: string) => stored.get(k) ?? null, setItem: (k: string, v: string) => stored.set(k, v) },
     })
-    const render = () => renderToStaticMarkup(createElement(Home, { open() {} }))
+    const render = () => renderToStaticMarkup(createElement(Home, { open() {}, openSearch() {} }))
     expect(readAgendaOpen()).toBe(true)
     expect(render()).toContain('class="native-agenda"')
     saveAgendaOpen(false)

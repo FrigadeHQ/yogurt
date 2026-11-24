@@ -41,7 +41,7 @@ export function Folder({ folder, open, onUploaded }: { folder: FolderRow; open: 
   return <div data-testid="folder-page" className="native-folder">
     <StartRecording folderId={folder.id} onUploaded={onUploaded} emptyActions={emptyActions} />
     <div className="native-library" ref={past.setRoot} tabIndex={-1}>
-      <div className="folder-page-heading flex-wrap">
+      <div className="library-page-heading flex-wrap">
         <div className="flex min-w-0 flex-[1_1_12rem] items-center gap-3"><button className="folder-heading-icon" data-testid="folder-heading-icon" aria-label={t('Change icon')} title={t('Change icon')} onClick={() => setAppearance(true)} data-folder-color={folder.color}><FolderGlyph appearance={folder} size={24} /></button><FolderTitle folder={folder} /></div>
         <div className="flex flex-wrap items-center gap-2">
           <button id="folder-new-note" disabled={creating} aria-keyshortcuts={onMac() ? 'Meta+N' : 'Control+N'} title={`${t('New note')} (${keys('⌘N')})`} className="workspace-button" onClick={() => void newNote()}>{t('New note')}</button>

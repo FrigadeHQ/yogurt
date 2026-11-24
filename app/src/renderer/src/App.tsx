@@ -127,6 +127,7 @@ export function App() {
   const [shortcuts, setShortcuts] = useState(false)
   const openShortcuts = () => { setSearching(false); setShortcuts(true) }
   const [searching, setSearching] = useState(false)
+  const openSearch = () => setSearching(true)
   const [settingsRevision, setSettingsRevision] = useState(0)
   const { folders, failed: foldersFailed, retry: retryFolders } = useFolderRead()
   const [suggestedFolders, setSuggestedFolders] = useState<Record<string, string>>({})
@@ -196,12 +197,12 @@ export function App() {
   const folder = folderId ? folders?.find((s) => s.id === folderId) : undefined
   const suggestedFolder = noteId ? folders?.find((s) => s.id === suggestedFolders[noteId]) : undefined
   // a folder's page waits for the list; a folder that is gone shows Meetings
-  const folderScreen = folderId && (folder ? <Folder key={folder.id} folder={folder} open={open} onUploaded={(id) => setSuggestedFolders((current) => ({ ...current, [id]: folder.id }))} /> : foldersFailed ? <div className="native-library"><ReadError className="library-empty" testId="folder-list-error" retry={retryFolders} /></div> : !folders ? <div className="native-folder"><StartRecording folderId={folderId} /><div className="native-library"><LoadingContent pending testId="meetings-loading" skeleton={<><div className="folder-page-heading"><h1><span className="loading-bar" style={{ width: 140 }} /></h1></div><MeetingListLoading showFolders={false} /></>} /></div></div> : null)
+  const folderScreen = folderId && (folder ? <Folder key={folder.id} folder={folder} open={open} onUploaded={(id) => setSuggestedFolders((current) => ({ ...current, [id]: folder.id }))} /> : foldersFailed ? <div className="native-library"><ReadError className="library-empty" testId="folder-list-error" retry={retryFolders} /></div> : !folders ? <div className="native-folder"><StartRecording folderId={folderId} /><div className="native-library"><LoadingContent pending testId="meetings-loading" skeleton={<><div className="library-page-heading"><h1><span className="loading-bar" style={{ width: 140 }} /></h1></div><MeetingListLoading showFolders={false} /></>} /></div></div> : null)
   const screen = settings ? <Settings revision={settingsRevision} focus={route.startsWith('/settings/') ? route.slice('/settings/'.length) : undefined} /> : noteId ? <Note key={noteId} id={noteId} onSource={openSource} onTitleChange={setMeeting} at={jump?.id === noteId ? jump : undefined}
     onResumeRequested={resumeRequested ? () => { setResumeRequested(false); rememberRoute(route) } : undefined}
     folderSuggestion={suggestedFolder ? { folder: suggestedFolder, dismiss: () => dismissFolderSuggestion(noteId) } : undefined} />
     : chatId !== undefined ? <ChatPage id={chatId} go={go} openSource={openSource} />
-    : trash ? <Trash open={open} /> : folderScreen || <Home open={open} openFolder={(id) => go(`/folder/${id}`)} agendaJump={agendaJump} />
+    : trash ? <Trash open={open} /> : folderScreen || <Home open={open} openSearch={openSearch} openFolder={(id) => go(`/folder/${id}`)} agendaJump={agendaJump} />
   const mac = window.yogurt.platform === 'darwin'
   const startupError = !setup && setupFailed
   const launching = mac && !startupError && (!booted || holding)
@@ -210,7 +211,7 @@ export function App() {
   const inWorkspace = !starting && ready
   const page = starting
     ? <><TitleBar />{startupError ? <ReadError testId="setup-read-error" retry={() => setSetupAttempt(n => n + 1)} /> : boot}</>
-    : ready ? <Workspace route={route} meeting={meeting} folders={folders} go={go} back={history.current.length ? back : undefined} forward={future.current.length ? forward : undefined} search={() => setSearching(true)} shortcuts={openShortcuts} collapsed={sidebarCollapsed} sidebarMotion={sidebarMotion} toggleSidebar={toggleSidebar}>{screen}</Workspace>
+    : ready ? <Workspace route={route} meeting={meeting} folders={folders} go={go} back={history.current.length ? back : undefined} forward={future.current.length ? forward : undefined} search={openSearch} shortcuts={openShortcuts} collapsed={sidebarCollapsed} sidebarMotion={sidebarMotion} toggleSidebar={toggleSidebar}>{screen}</Workspace>
     : <><TitleBar />{setup.phase === 'checking' && firstRunDone ? boot : <Onboarding state={setup} plan={plan} onDone={() => setPlan({ intro: false, steps: [] })} />}</>
   return <AskRecordingWait value={recordingWait}>
     {mac && <MacLaunch active={launching} />}

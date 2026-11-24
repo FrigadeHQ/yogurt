@@ -160,12 +160,10 @@
 .workspace:dir(rtl) .workspace-toolbar[data-note=true]:has(.notes-download-status) { padding-inline-end:185px; }
 .native-library { position:relative;padding:29px 26px 30px;min-width:0;overflow:auto; }
 /* Keep the scroll area full width. The hover background extends 8px past the content on each side. */
-@media (width > 1728px) {
-  :is(.native-home,.native-folder)>.native-library>* { --meeting-list-max-width:1520px;inline-size:min(100%,calc(var(--meeting-list-max-width) - 16px));margin-inline:auto; }
-}
+:is(.native-home,.native-folder)>.native-library>* { --meeting-list-max-width:1080px;inline-size:min(100%,calc(var(--meeting-list-max-width) - 16px));margin-inline:auto; }
 .native-library>h1 { font-size:20px;line-height:26px;font-weight:600;letter-spacing:-.55px;margin-bottom:9px; }
 .native-meeting-day { margin-top:25px; }
-.native-meeting-day>h2,.meeting-day-exit { font-size:10px;line-height:14px;font-weight:500;color:var(--muted);margin-bottom:9px; }
+.native-meeting-day>h2,.meeting-day-exit { font-size:11px;line-height:14px;font-weight:550;color:var(--written);margin-bottom:9px; }
 .native-meeting-row { position:relative;display:grid;grid-template-columns:minmax(0,1fr) max-content;align-items:center;column-gap:12px;margin-inline:-8px;padding-inline-end:8px;border-radius:7px;overflow:hidden; }
 .native-meeting-row:hover:not([data-focus-ring]):not(:has([data-focus-ring])) { background:var(--row-hover); }
 .native-meeting-card { grid-area:1 / 1 / 2 / 3;display:grid;grid-template-columns:subgrid;align-items:center;min-width:0;border-radius:inherit; }
@@ -178,9 +176,9 @@
 .meeting-identity.recording { color:var(--primary-ink);background:var(--primary);border-color:transparent; }
 .meeting-description { min-width:0;flex:1; }
 .meeting-description strong { display:block;font-weight:500;font-size:13px;line-height:19px;letter-spacing:-.1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
-.meeting-description>span { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;line-height:16px;margin-top:2px;color:var(--muted); }
-.meeting-meta { display:flex;flex-direction:column;gap:4px;flex:none;min-width:49px;text-align:end;color:var(--muted);font-size:10px;font-variant-numeric:tabular-nums; }
-.meeting-meta small { font-size:9px;line-height:12px;color:var(--muted); }
+.meeting-description>span { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;line-height:16px;margin-top:2px;color:var(--written); }
+.meeting-meta { display:flex;flex-direction:column;gap:4px;flex:none;min-width:49px;text-align:end;color:var(--written);font-size:10px;font-variant-numeric:tabular-nums; }
+.meeting-meta small { font-size:9px;line-height:12px; }
 .meeting-drag-preview { position:fixed;inset-block-start:0;inset-inline-start:0;display:flex;align-items:center;gap:9px;width:max-content;max-width:280px;padding:8px 11px;border:1px solid var(--line);border-radius:10px;background:var(--float);color:var(--ink);box-shadow:var(--shadow);pointer-events:none; }
 .meeting-drag-preview strong { min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;line-height:19px;font-weight:500; }
 .meeting-live { display:flex;align-items:center;gap:4px;color:var(--accent); }
@@ -393,9 +391,10 @@
 [data-folder-color]:not([data-folder-color=default]) { --folder-tint:color-mix(in srgb,var(--folder-ink) 12%,var(--bg)); }
 .folder-glyph { display:inline-flex;align-items:center;justify-content:center;flex:none;color:var(--folder-ink); }
 .folder-preview-tile,.folder-heading-icon { background:var(--folder-tint);color:var(--folder-ink); }
-.folder-page-heading { display:flex;align-items:center;gap:12px;margin-bottom:9px; }
-.folder-page-heading h1 { min-width:0;font-size:20px;line-height:26px;font-weight:600;letter-spacing:-.55px; }
-.folder-page-heading h1 input { font:inherit;letter-spacing:inherit; }
+.library-page-heading { display:flex;align-items:center;gap:12px;margin-bottom:9px; }
+.workspace:not(.sidebar-collapsed) .home-search,.workspace[data-peeking=true] .home-search { display:none; }
+.library-page-heading h1 { min-width:0;font-size:20px;line-height:26px;font-weight:600;letter-spacing:-.55px; }
+.library-page-heading h1 input { font:inherit;letter-spacing:inherit; }
 .folder-heading-icon { display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:10px;border:1px solid color-mix(in srgb,var(--folder-ink) 15%,transparent); }
 .folder-heading-icon:hover { filter:brightness(.96); }
 .folder-appearance-preview { display:flex;align-items:center;gap:12px;margin:0 20px 22px;min-width:0; }

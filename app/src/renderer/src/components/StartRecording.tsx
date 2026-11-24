@@ -74,10 +74,12 @@ export function StartRecording({ folderId, onUploaded, onGone, emptyActions, com
   if (recording !== false || !actions) return null
   const live = choices.filter(event => eventPhase(event, now) === 'live')
   const title = live[0]?.title || t('Meeting')
+  const uploaded = live.length === 1 && live[0].note?.source === 'audio-file'
   const resuming = live.length === 1 && resumesNote(live[0].note)
-  const label = live.length === 1 ? live[0].note?.source === 'audio-file' ? t('Open {title}', { title }) : resuming ? t('Resume notes · {title}', { title }) : t('Take notes · {title}', { title })
+  const label = live.length === 1 ? uploaded ? t('Open {title}', { title }) : resuming ? t('Resume notes · {title}', { title }) : t('Take notes · {title}', { title })
     : live.length > 1 ? t('Take notes · {count} now', { count: live.length }) : t('Start recording')
-  const content = <><Mic className="flex-none" size={14} aria-hidden="true" /><span className={compact ? 'sr-only' : 'recording-label'}>{label}</span></>
+  const shortLabel = uploaded ? t('Open note') : resuming ? t('Resume recording') : t('Record')
+  const content = <><Mic className="flex-none" size={14} aria-hidden="true" /><span className="recording-label">{compact ? shortLabel : label}</span></>
   const button = { 'data-testid': testId, disabled: starting, title: label, className: 'workspace-button primary recording-main no-drag' }
   return createPortal(<Menu.Root modal={false} open={open} onOpenChange={setOpen}>
     {emptyActions && createPortal(<button type="button" disabled={starting} data-testid="empty-start-recording" className="workspace-button" onClick={() => void start(null)}>

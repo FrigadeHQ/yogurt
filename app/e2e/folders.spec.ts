@@ -137,7 +137,7 @@ for (const theme of ['light', 'dark'] as const) test(`add existing meetings from
     }, longTitle)
     await page.getByTestId('sidebar-expand').press('ArrowDown')
     await newFolder(page, 'Reviews')
-    const header = page.locator('.folder-page-heading').getByRole('button', { name: 'Add meetings' })
+    const header = page.locator('.library-page-heading').getByRole('button', { name: 'Add meetings' })
     const empty = page.getByTestId('folder-empty').getByRole('button', { name: 'Add meetings' })
     const dialog = page.getByRole('dialog', { name: 'Add meetings to Reviews', exact: true })
     const search = dialog.getByRole('textbox', { name: 'Search' })

@@ -36,9 +36,9 @@ let meetingsChanged: () => void
 let widgetChanged: (view: WidgetView | null) => void
 let cleanups: (() => void)[]
 const flush = async () => { await Promise.resolve(); await Promise.resolve() }
-const render = (emptyActions?: HTMLElement, folderId?: string) => {
+const render = (emptyActions?: HTMLElement, folderId?: string, compact = false) => {
   hooks.state = 0; hooks.ref = 0; hooks.effects = []; hooks.layout = []
-  return StartRecording({ folderId, onUploaded: uploaded, onGone: gone, emptyActions }) as ReactElement<Record<string, unknown>> | null
+  return StartRecording({ folderId, onUploaded: uploaded, onGone: gone, emptyActions, compact }) as ReactElement<Record<string, unknown>> | null
 }
 const run = (effect: () => (() => void) | void) => { const cleanup = effect(); if (cleanup) cleanups.push(cleanup) }
 type Element = ReactElement<Record<string, unknown>>
@@ -86,6 +86,20 @@ it('starts an unattached recording from the empty library even during a calendar
   expect(renderToStaticMarkup(cta.props.children as ReactNode)).toContain('Start recording')
   await click(cta)
   expect(start).toHaveBeenCalledExactlyOnceWith(null, undefined)
+})
+
+it('shows a short action with Agenda hidden and keeps the full calendar action in the tooltip', async () => {
+  for (const [events, short, full] of [
+    [[], 'Record', 'Start recording'],
+    [[event('live')], 'Record', 'Take notes · Planning live'],
+    [[{ ...event('live'), note: { id: 'note', state: 'stopped' } }], 'Resume recording', 'Resume notes · Planning live'],
+    [[{ ...event('live'), note: { id: 'note', state: 'done', source: 'audio-file' } }], 'Open note', 'Open Planning live'],
+  ] satisfies [AgendaEvent[], string, string][]) {
+    await calendar(events)
+    const tree = render(undefined, undefined, true)
+    expect(label(tree)).toContain(`<span class="recording-label">${short}</span>`)
+    expect(find(tree, 'start-recording').props.title).toBe(full)
+  }
 })
 
 it('carries the folder through the toolbar, calendar, unattached and empty-state record actions', async () => {

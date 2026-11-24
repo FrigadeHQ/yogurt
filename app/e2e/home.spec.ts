@@ -228,7 +228,8 @@ test('Home remembers a hidden Agenda after relaunch and keeps the recording menu
     await expect(toggle).toHaveAccessibleName('Show Agenda')
     await expect(toggle).toHaveAttribute('aria-expanded', 'false')
     const record = page.locator('#workspace-actions').getByTestId('new-note')
-    await expect(record).toHaveAccessibleName('Start recording')
+    await expect(record).toHaveAccessibleName('Record')
+    await expect(record.locator('.recording-label')).toHaveText('Record')
     await expect(record).toHaveAttribute('title', 'Start recording')
     await page.getByTestId('recording-choices').click()
     await expect(page.getByTestId('recording-unattached')).toBeVisible()
@@ -275,7 +276,7 @@ test('meeting rows fill a laptop pane and stay centred in their own column throu
     const gap = page.locator('.workspace-sidebar-gap')
     for (const direction of ['ltr', 'rtl']) {
       await page.evaluate(dir => { document.documentElement.dir = dir }, direction)
-      for (const [width, sidebar] of [[720, 208], [868, 208], [1728, 208], [1728, 0], [1920, 208], [2560, 208]]) {
+      for (const [width, sidebar] of [[720, 208], [868, 208], [1440, 208], [1440, 0], [1728, 208], [1728, 0], [1920, 208], [2560, 208]]) {
         await page.setViewportSize({ width, height: 760 })
         // Let the automatic sidebar collapse on crossing 900px finish before choosing a state.
         await page.evaluate(() => new Promise<void>(done => requestAnimationFrame(() => requestAnimationFrame(() => done()))))
@@ -287,17 +288,17 @@ test('meeting rows fill a laptop pane and stay centred in their own column throu
           const list = card.closest<HTMLElement>('.native-library')!
           const hover = card.closest('.native-meeting-row')!
           const toggle = document.getElementById('home-agenda-toggle')!
-          const title = list.querySelector('h1')!, day = list.querySelector('[data-testid="past-day"]')!
+          const heading = list.querySelector('.library-page-heading')!, day = list.querySelector('[data-testid="past-day"]')!
           let error = 0
           function measure() {
             const css = getComputedStyle(list)
             const left = list.getBoundingClientRect().left + list.clientLeft + parseFloat(css.paddingLeft)
             const available = list.clientWidth - parseFloat(css.paddingLeft) - parseFloat(css.paddingRight)
-            const width = Math.min(available + 16, innerWidth <= 1728 ? Infinity : 1520)
+            const width = Math.min(available + 16, 1080)
             const centre = left + available / 2
             const row = hover.getBoundingClientRect()
             error = Math.max(error, Math.abs(row.left - (centre - width / 2)), Math.abs(row.width - width))
-            for (const el of [title, day]) {
+            for (const el of [heading, day]) {
               const box = el.getBoundingClientRect()
               error = Math.max(error, Math.abs(box.left - row.left - 8), Math.abs(row.right - box.right - 8))
             }
@@ -326,6 +327,53 @@ test('meeting rows fill a laptop pane and stay centred in their own column throu
   } finally { await app.close() }
 })
 
+test('wide Home with both sidebars hidden in light and dark', async ({}, testInfo) => {
+  const { app, page } = await launch()
+  try {
+    await fake(app, 'manyMeetings', { n: 12, clean: true })
+    await page.evaluate(async () => {
+      const folder = await window.yogurt.folders.create('Acme')
+      const meetings = await window.yogurt.meetings.cards({ limit: 12 })
+      await window.yogurt.folders.add(folder!.id, meetings.find(m => m.title === 'Customer call with Acme')!.id)
+    })
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' })
+    await page.reload()
+    await expect(page.getByTestId('past-note-folder').first()).toHaveText('Acme')
+    await expect(page.locator('.library-load')).toHaveAttribute('data-loading-phase', 'ready')
+    const sidebar = page.getByRole('complementary', { name: 'Main navigation' })
+    const agenda = page.getByRole('complementary', { name: 'Agenda' })
+    const search = page.getByRole('button', { name: 'Search meetings', exact: true })
+    await expect(sidebar).toBeVisible()
+    await expect(agenda.getByTestId('event').first()).toBeVisible()
+    await expect(search).toBeHidden()
+    await page.screenshot({ path: testInfo.outputPath('home-wide-1440-light-sidebars-open.png') })
+    await page.getByTestId('sidebar-collapse').click()
+    await page.mouse.move(720, 40)
+    await expect(sidebar).toBeHidden()
+    await search.click()
+    await expect(page.getByTestId('search-input')).toBeFocused()
+    await expect(page.getByTestId('search-scope')).toHaveCount(0)
+    await page.getByTestId('search-input').fill('Budget review')
+    await expect(page.getByTestId('search-result').first()).toContainText('Budget review')
+    await page.keyboard.press('Escape')
+    await expect(search).toBeFocused()
+    await page.getByRole('button', { name: 'Hide Agenda' }).click()
+    await page.mouse.move(720, 40)
+    await expect(agenda).toBeHidden()
+    await expect(search).toBeVisible()
+    await expect(page.getByTestId('new-note')).toHaveText('Record')
+    for (const width of [1440, 1920]) {
+      await page.setViewportSize({ width, height: 900 })
+      await expect(page.locator('.native-meeting-row').first()).toHaveCSS('width', '1080px')
+      for (const theme of ['light', 'dark'] as const) {
+        await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' })
+        await page.screenshot({ path: testInfo.outputPath(`home-wide-${width}-${theme}.png`) })
+      }
+    }
+  } finally { await app.close() }
+})
+
 test('wide folder and Trash pages centre their headings and empty states on the same measure', async () => {
   const { app, page } = await launch()
   try {
@@ -345,7 +393,7 @@ test('wide folder and Trash pages centre their headings and empty states on the 
         })
       })
       for (const box of boxes) {
-        expect(box.width).toBe(1520 - 16)
+        expect(box.width).toBe(1080 - 16)
         expect(Math.abs(box.offset)).toBeLessThan(1)
       }
     }
