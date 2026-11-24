@@ -829,7 +829,7 @@ app.whenReady().then(() => {
     void indexer.schedule()
     win?.webContents.send('transcript:replaced', id)
     win?.webContents.send('meetings:changed')
-    notes.refresh(id)
+    notes.transcriptChanged(id)
   }
   ipcMain.handle('transcript:run', (e,id:unknown,again:unknown,approved:unknown) => {
     if(e.sender!==win?.webContents||!isId(id)||typeof again!=='boolean')return false
@@ -1018,7 +1018,15 @@ app.whenReady().then(() => {
     void notes.writeAgain(id, instruction, true)
     return true
   }
-  ipcMain.handle('notes:write-again', (_e, id: unknown, note: unknown) => { writeAgain(id, note) })
+  ipcMain.handle('notes:review', (e,id:unknown,revision:unknown,expected:unknown,editorRevision:unknown) =>
+    editSender(e) && isId(id) && canEditTranscript(id) && typeof revision === 'number' && typeof expected === 'string' && typeof editorRevision === 'number' &&
+    notes.review(id,revision,expected,editorRevision))
+  ipcMain.handle('notes:write-again', (e, id: unknown, note: unknown, guard) => {
+    if (!editSender(e) || !isId(id)) return
+    const view = notes.view(id)
+    if (guard && (guard.revision !== view.transcriptRevision || guard.summary !== view.enhanced || guard.editorRevision !== (view.saves?.enhanced?.revision ?? 0))) throw new Error('Summary changed')
+    writeAgain(id, note)
+  })
   app.on('will-quit', () => engine.dispose())
   // an earlier quit or crash may have left parts unjoined: try again now
   const rejoined = rejoinInterrupted(join(userDataDir(), 'meetings'), async dir => {

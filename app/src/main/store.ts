@@ -607,6 +607,17 @@ export class Store {
     this.db.prepare('DELETE FROM library_chunks WHERE meeting_id=?').run(id)
   }
 
+  saveGeneratedSummary(id: string, md: string, people: string) {
+    this.db.exec('SAVEPOINT generated_summary')
+    try {
+      const hash = this.fingerprint(id)
+      this.setNotes(id, { enhanced: md, edited: false })
+      this.db.prepare('UPDATE meetings SET transcript_hash=? WHERE id=?').run(hash,id)
+      this.db.prepare('UPDATE notes SET reviewed_hash=?,needs_review=0,written_with=? WHERE meeting_id=?').run(hash,people,id)
+      this.db.exec('RELEASE generated_summary')
+    } catch (error) { this.db.exec('ROLLBACK TO generated_summary; RELEASE generated_summary'); throw error }
+  }
+
   reviewSummary(id: string, revision: number, enhanced: string) {
     return !!this.db.prepare(`UPDATE notes SET reviewed_hash=(SELECT transcript_hash FROM meetings WHERE id=?), needs_review=0
       WHERE meeting_id=? AND enhanced=? AND EXISTS (SELECT 1 FROM meetings WHERE id=? AND transcript_revision=? AND trashed_at IS NULL)`)

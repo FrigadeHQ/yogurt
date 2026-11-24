@@ -350,7 +350,10 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   const writeAgain = async (note?: string) => {
     if (!await saveAll()) return
     setEditedHere(false)
-    void window.yogurt.notes.writeAgain(id, note)
+    const saved = current.current
+    try {
+      await window.yogurt.notes.writeAgain(id, note, { revision: notes.transcriptRevision ?? 0, summary: saved?.enhanced ?? null, editorRevision: saved?.saves?.enhanced?.revision ?? 0 })
+    } catch { toasts.add({ title:t('Couldn’t save the transcript change.') }) }
   }
   const hasSummary = !!notes.enhanced?.trim()
   const transcribing=transcriptionBusy(m.transcriptionState)
@@ -503,7 +506,18 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                 }}>{retryingStop ? t('Saving…') : t('Try again')}</button>
               </InlineError>
             )}
-          {primary === 'notes' && shown === 'enhanced' && notes.status === 'done' && notes.peopleChanged && !rewriteOpen && (
+          {primary === 'notes' && shown === 'enhanced' && notes.needsReview && !summaryPending && !trashed && !rewriteOpen && <div role="status" data-testid="summary-review" className="transcript-preview pointer-events-auto mx-auto w-fit">
+            <span>{t('The transcript changed. Review this summary before sharing it.')}</span>
+            <button className="workspace-button" disabled={!!generation?.reason} onClick={requestRewrite}>{t('Regenerate summary')}</button>
+            <button className="ghost-btn" onClick={async () => {
+              if (!await saveAll()) return
+              const saved = current.current
+              if (!saved?.enhanced || !await window.yogurt.notes.review(id,notes.transcriptRevision ?? 0,saved.enhanced,saved.saves?.enhanced?.revision ?? 0).catch(()=>false))
+                toasts.add({title:t('Couldn’t save the transcript change.')})
+            }}>{t('Mark as reviewed')}</button>
+          </div>}
+          {primary === 'notes' && !hasSummary && !!m.transcriptRevision && !hasTranscript && !notes.mine.trim() && <p className="text-center text-sm text-muted">{t('Restore a line or add notes to generate a summary.')}</p>}
+          {primary === 'notes' && shown === 'enhanced' && !notes.needsReview && notes.status === 'done' && notes.peopleChanged && !rewriteOpen && (
             <div data-testid="note-people-changed" className="pointer-events-auto mx-auto mt-3 flex w-fit max-w-[calc(100%-32px)] flex-wrap items-center gap-3 rounded-xl border border-line bg-float px-4 py-2 text-[13px] shadow-[var(--shadow)]">
               <span>{t('The attendee list has changed.')}</span>
               <button data-testid="note-people-write-again" onClick={requestRewrite} className="workspace-button primary">{t('Regenerate summary')}</button>

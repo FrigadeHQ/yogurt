@@ -154,7 +154,8 @@ export type YogurtApi = {
     /** the open note kept its unsaved edits over notes written again for new people */
     keptEdits(meetingId: string): void
     /** writes the enhanced notes again */
-    writeAgain(meetingId: string, note?: string): Promise<void>
+    review(id: string, revision: number, expected: string, editorRevision: number): Promise<boolean>
+    writeAgain(meetingId: string, note?: string, guard?: { revision: number; summary: string | null; editorRevision: number }): Promise<void>
     stop(meetingId: string): Promise<void>
     /** status, the draft as it is written, and the saved notes; returns the way to stop listening */
     onChange(cb: (v: NoteView) => void): () => void
@@ -419,6 +420,8 @@ export type NoteView = {
   /** Windows and Linux: waiting while the notes model loads (it can take a while there) */
   step?: 'loading'
   /** the people at the meeting changed after these edited notes were written, so they may be out of date */
+  needsReview?: boolean
+  transcriptRevision?: number
   peopleChanged: boolean
   /** the notes were just written again (for new people): what they replaced, so an open editor with no edits since takes them */
   rewrittenFrom?: string

@@ -133,7 +133,8 @@ const api: YogurtApi = {
       return () => { ipcRenderer.removeListener('notes:flush-request', run) }
     },
     keptEdits: (id) => { ipcRenderer.send('notes:kept-edits', id) },
-    writeAgain: (id, note) => ipcRenderer.invoke('notes:write-again', id, note),
+    review: (id, revision, expected, editorRevision) => ipcRenderer.invoke('notes:review',id,revision,expected,editorRevision),
+    writeAgain: (id, note, guard) => ipcRenderer.invoke('notes:write-again', id, note, guard),
     stop: (id) => ipcRenderer.invoke('notes:stop', id),
     onChange: (cb) => {
       const on = (_e: unknown, v: NoteView) => cb(v)

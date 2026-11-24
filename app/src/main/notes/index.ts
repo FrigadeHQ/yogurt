@@ -20,7 +20,7 @@ const DRAFT_EVERY_MS = 50
  * the one model queue, streamed to the window as they are written, then saved. "Write again" goes the same way.
  */
 export function hookNotes(p: {
-  store: Pick<Store, 'meeting' | 'notes' | 'setNotes' | 'writtenWith' | 'setWrittenWith' | 'segments' | 'updateMeeting' | 'unenhancedMeetings'>
+  store: Pick<Store, 'meeting' | 'notes' | 'setNotes' | 'writtenWith' | 'setWrittenWith' | 'segments' | 'updateMeeting' | 'unenhancedMeetings' | 'saveGeneratedSummary' | 'reviewSummary'>
   queue: Queue
   model: Pick<NotesModel, 'llm'> & Partial<Pick<NotesModel, 'needsLoad'>>
   /** Windows and Linux: say when the notes wait for the model to load (a Mac shows what it always did) */
@@ -76,7 +76,7 @@ export function hookNotes(p: {
     const l = live.get(id)
     const saved = edits.get(id)
     const saves = saved && Object.fromEntries(Object.entries(saved).map(([side, edit]) => [side, { revision: edit.revision, status: edit.status, ...(edit.reason ? { reason: edit.reason } : {}) }]))
-    return { meetingId: id, mine: n.mine, enhanced: n.enhanced, edited: n.edited, status: l?.status ?? (n.enhanced != null ? 'done' : 'idle'), draft: l?.draft ?? '', peopleChanged: peopleChanged(id, n.enhanced != null) && !rewriteTimers.has(id) && !rewriting.has(id), ...(l?.part ? { part: l.part } : {}), ...(l?.step ? { step: l.step } : {}), ...(saves ? { saves } : {}) }
+    return { meetingId: id, mine: n.mine, enhanced: n.enhanced, edited: n.edited, ...(n.needsReview && { needsReview: true }), transcriptRevision: p.store.meeting(id)?.transcriptRevision ?? 0, status: l?.status ?? (n.enhanced != null ? 'done' : 'idle'), draft: l?.draft ?? '', peopleChanged: peopleChanged(id, n.enhanced != null) && !rewriteTimers.has(id) && !rewriting.has(id), ...(l?.part ? { part: l.part } : {}), ...(l?.step ? { step: l.step } : {}), ...(saves ? { saves } : {}) }
   }
   const set = (id: string, status: NoteStatus, draft = '', part?: { part: number; of: number }, step?: 'loading') => { live.set(id, { status, draft, part, step }); p.send(view(id)) }
 
@@ -121,6 +121,7 @@ export function hookNotes(p: {
     const m = p.store.meeting(id)
     if (!m || m.state === 'recording' || resuming.has(id)) return
     const was = currentNotes(id)
+    const editorRevision = edits.get(id)?.enhanced?.revision
     const mine = was.mine
     const segments = p.store.segments(id)
     // nothing said and nothing typed: there is nothing to write up
@@ -150,14 +151,17 @@ export function hookNotes(p: {
         if (wait <= 0) flush(); else timer = setTimeout(flush, wait)
       }, (part, of) => { if (!signal.aborted && !quiet) set(id, 'writing', '', { part, of }) }, p.earlier?.(id))
       if (timer) clearTimeout(timer)
+      if (p.store.meeting(id)?.transcriptRevision !== m.transcriptRevision || currentNotes(id).enhanced !== was.enhanced || edits.get(id)?.enhanced?.revision !== editorRevision) {
+        if (!quiet && !signal.aborted) { live.delete(id); retryDrafts(id); p.send(view(id)) }
+        return
+      }
       if (quiet) {
         // stopped for a recording: the queue runs it again. Edited (or written again by hand) meanwhile: theirs stands
         const now = currentNotes(id)
         if (signal.aborted || live.has(id)) return
         if (now.edited || now.enhanced !== was.enhanced) { queueTitle(id); return }
         stampBefore.set(id, p.store.writtenWith(id))
-        p.store.setNotes(id, { enhanced: md, edited: false })
-        p.store.setWrittenWith(id, used.stamp)
+        p.store.saveGeneratedSummary(id, md, used.stamp)
         p.send({ ...view(id), rewrittenFrom: was.enhanced ?? '' })
         queueTitle(id, askTitle, m.attendees)
         p.summarized?.(id)
@@ -165,8 +169,7 @@ export function hookNotes(p: {
       }
       signal.throwIfAborted()
       // the person's own notes stay as they typed them, even if they typed on while this was written
-      p.store.setNotes(id, { enhanced: md, edited: false })
-      p.store.setWrittenWith(id, used.stamp)
+      p.store.saveGeneratedSummary(id, md, used.stamp)
       finish(m, 'done')
       queueTitle(id, askTitle, m.attendees)
       p.summarized?.(id)
@@ -185,10 +188,11 @@ export function hookNotes(p: {
    * A title from the notes just saved, for a meeting whose title is generic (or was made from earlier notes): a job of
    * its own, so one stopped for a recording asks again later and never writes the notes again.
    */
-  const queueTitle = (id: string, ask?: (llm: Llm) => Promise<string>, people = p.store.meeting(id)?.attendees) => {
+  const queueTitle = (id: string, ask?: (llm: Llm) => Promise<string>, people = p.store.meeting(id)?.attendees, reviewed = false) => {
+    const revision = p.store.meeting(id)?.transcriptRevision, enhanced = currentNotes(id).enhanced
     const current = () => {
       const m = p.store.meeting(id)
-      return m && !resuming.has(id) && m.state !== 'recording' && (m.titleSource === 'auto' || (ask && m.titleSource === 'generic'))
+      return m && m.transcriptRevision === revision && !currentNotes(id).needsReview && currentNotes(id).enhanced === enhanced && !resuming.has(id) && m.state !== 'recording' && (m.titleSource === 'auto' || ((ask || reviewed) && m.titleSource === 'generic'))
         && JSON.stringify(m.attendees) === JSON.stringify(people) ? m : undefined
     }
     void p.queue.enqueue(async (signal) => {
@@ -228,7 +232,13 @@ export function hookNotes(p: {
     console.info('NOTES', `queued the notes of ${id}`)
     stopped.delete(id)
     set(id, 'waiting')
-    return p.queue.enqueue((signal) => write(id, signal, false, note), 'enhance', id).catch(() => {})
+    const revision = meeting?.transcriptRevision, expected = currentNotes(id).enhanced, editorRevision = edits.get(id)?.enhanced?.revision
+    return p.queue.enqueue((signal) => {
+      if (p.store.meeting(id)?.transcriptRevision !== revision || currentNotes(id).enhanced !== expected || edits.get(id)?.enhanced?.revision !== editorRevision) {
+        live.delete(id); p.send(view(id)); return Promise.resolve()
+      }
+      return write(id, signal, false, note)
+    }, 'enhance', id).catch(() => {})
   }
 
   /** each meeting's notes after it stopped, until they are written */
@@ -280,6 +290,14 @@ export function hookNotes(p: {
       } }
     },
     /** the lines changed (echo lines shown again): the window hears the notes again */
+    transcriptChanged(id: string) {
+      if (!currentNotes(id).needsReview && currentNotes(id).enhanced && p.store.meeting(id)?.titleSource === 'generic') queueTitle(id,undefined,undefined,true)
+      p.send(view(id))
+    },
+    review(id: string, revision: number, expected: string, editorRevision: number) {
+      if ((edits.get(id)?.enhanced?.revision ?? 0) !== editorRevision || edits.get(id)?.enhanced?.text !== undefined || !p.store.reviewSummary(id,revision,expected)) return false
+      notes.transcriptChanged(id); p.changed(id); return true
+    },
     refresh(id: string) { p.send(view(id)) },
     /** resolves when the notes after the meeting are written (or failed); undefined when none are on the way */
     renamed(id: string, before: Meeting['attendees'], after: Meeting['attendees']) {
@@ -295,8 +313,8 @@ export function hookNotes(p: {
     applyPeople(id: string, retitle = true) {
       const refreshTitle = retitle || rewriteTimers.has(id)
       clearTimeout(rewriteTimers.get(id)); rewriteTimers.delete(id)
-      const due = () => { const n = currentNotes(id); return !resuming.has(id) && p.store.meeting(id)?.state !== 'recording' && n.enhanced != null && !n.edited && !live.has(id) && !rewriting.has(id) && peopleChanged(id, true) }
-      const titleDue = () => refreshTitle && !resuming.has(id) && p.store.meeting(id)?.state !== 'recording' && p.store.meeting(id)?.titleSource === 'auto'
+      const due = () => { const n = currentNotes(id); return !n.needsReview && !resuming.has(id) && p.store.meeting(id)?.state !== 'recording' && n.enhanced != null && !n.edited && !live.has(id) && !rewriting.has(id) && peopleChanged(id, true) }
+      const titleDue = () => refreshTitle && !currentNotes(id).needsReview && !resuming.has(id) && p.store.meeting(id)?.state !== 'recording' && p.store.meeting(id)?.titleSource === 'auto'
       if (!due() && !titleDue()) { p.send(view(id)); return }
       rewriteTimers.set(id, setTimeout(() => {
         rewriteTimers.delete(id)
