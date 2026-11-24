@@ -366,6 +366,8 @@ export function hookNotes(p: {
     /** at launch: meetings a quit or crash left without notes get them now, one at a time */
     recover() {
       for (const m of p.store.unenhancedMeetings()) if (!live.has(m.id) && !resuming.has(m.id)) {
+        // an import that has not transcribed yet is held by the queue, not by the labels: it is not shown as waiting
+        if (m.transcriptionPending && (m.transcriptionState || m.source === 'audio-file')) continue
         // held or not, the meeting shows as getting ready; a label wait keeps it there with the banner up
         set(m.id, 'waiting')
         void (async () => {
