@@ -79,6 +79,15 @@ private func no(_ b: Bool, _ loc: SourceLocation = #_sourceLocation) { #expect(!
 }
 
 @Suite struct LiveTranscriptTests {
+    @Test func changingLanguagesKeepsTheLastWordsAndContinuesOnTheAudioTimeline() {
+        var t = LiveTranscript()
+        t.update("one moment", startMs: 300, endMs: 900, isFinal: false)
+        t.restart(at: 1000)
+        t.update("bonjour", startMs: 100, endMs: 900, isFinal: true)
+        #expect(t.settled == [.init(startMs: 300, endMs: 900, text: "one moment"),
+                              .init(startMs: 1100, endMs: 1900, text: "bonjour")])
+    }
+
     @Test func volatileTextIsReplacedThenSettles() {
         var t = LiveTranscript()
         t.update("we ship", startMs: 0, endMs: 900, isFinal: false)

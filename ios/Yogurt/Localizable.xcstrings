@@ -12278,198 +12278,198 @@
         }
       }
     },
-    "Discard this recording? Its audio, transcript and notes are deleted." : {
+    "Discard this recording? It can't be recovered." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Discard this recording? Its audio, transcript and notes are deleted."
+            "value" : "Discard this recording? It can't be recovered."
           }
         },
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "هل تريد تجاهل هذا التسجيل؟ سيتم حذف الصوت والنص والملاحظات."
+            "value" : "هل تريد حذف هذا التسجيل؟ لا يمكن استعادته."
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "এই রেকর্ডিং বাতিল করবেন? এর অডিও, ট্রান্সক্রিপ্ট ও নোট মুছে যাবে।"
+            "value" : "এই রেকর্ডিংটি মুছে ফেলবেন? এটি আর ফেরত পাওয়া যাবে না।"
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zahodit tuto nahrávku? Zvuk, přepis i poznámky se smažou."
+            "value" : "Zahodit tuto nahrávku? Nebude ji možné obnovit."
           }
         },
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kassér denne optagelse? Lyden, transskriptionen og noterne slettes."
+            "value" : "Kassér denne optagelse? Den kan ikke gendannes."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diese Aufnahme verwerfen? Ton, Transkript und Notizen werden gelöscht."
+            "value" : "Diese Aufnahme verwerfen? Sie kann nicht wiederhergestellt werden."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Απόρριψη αυτής της ηχογράφησης; Ο ήχος, η απομαγνητοφώνηση και οι σημειώσεις θα διαγραφούν."
+            "value" : "Απόρριψη αυτής της εγγραφής; Δεν θα είναι δυνατή η ανάκτησή της."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "¿Descartar esta grabación? Se borrarán su audio, su transcripción y sus notas."
+            "value" : "¿Descartar esta grabación? No se podrá recuperar."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hylätäänkö tämä tallenne? Sen ääni, litterointi ja muistiinpanot poistetaan."
+            "value" : "Hylätäänkö tämä tallenne? Sitä ei voi palauttaa."
           }
         },
         "fil" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Itapon ang recording na ito? Mabubura ang audio, transcript at notes nito."
+            "value" : "Itapon ang recording na ito? Hindi na ito maibabalik."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Supprimer cet enregistrement ? Son audio, sa transcription et ses notes seront effacés."
+            "value" : "Supprimer cet enregistrement ? Il ne pourra pas être récupéré."
           }
         },
         "he" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "למחוק את ההקלטה הזו? השמע, התמלול וההערות יימחקו."
+            "value" : "למחוק את ההקלטה הזו? אי אפשר יהיה לשחזר אותה."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "यह रिकॉर्डिंग हटाएँ? इसका ऑडियो, ट्रांसक्रिप्ट और नोट्स मिट जाएँगे।"
+            "value" : "यह रिकॉर्डिंग हटा दें? इसे वापस नहीं लाया जा सकेगा।"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Elveted ezt a felvételt? A hangja, átirata és jegyzetei törlődnek."
+            "value" : "Eldobod ezt a felvételt? Nem lehet majd visszaállítani."
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Buang rekaman ini? Audio, transkrip, dan catatannya akan dihapus."
+            "value" : "Buang rekaman ini? Rekaman tidak dapat dipulihkan."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eliminare questa registrazione? Audio, trascrizione e note verranno cancellati."
+            "value" : "Eliminare questa registrazione? Non sarà possibile recuperarla."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "この録音を破棄しますか？音声、文字起こし、ノートが削除されます。"
+            "value" : "この録音を破棄しますか？復元することはできません。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "이 녹음을 삭제할까요? 오디오, 녹취록, 노트가 지워져요."
+            "value" : "이 녹음을 삭제할까요? 삭제하면 복구할 수 없습니다."
           }
         },
         "ms" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Buang rakaman ini? Audio, transkrip dan notanya akan dipadam."
+            "value" : "Buang rakaman ini? Rakaman ini tidak dapat dipulihkan."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Forkaste dette opptaket? Lyden, transkripsjonen og notatene slettes."
+            "value" : "Forkast dette opptaket? Det kan ikke gjenopprettes."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deze opname verwijderen? Het geluid, het transcript en de notities worden gewist."
+            "value" : "Deze opname verwijderen? Je kunt deze niet herstellen."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Odrzucić to nagranie? Dźwięk, transkrypcja i notatki zostaną usunięte."
+            "value" : "Odrzucić to nagranie? Nie będzie można go odzyskać."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Descartar esta gravação? O áudio, a transcrição e as notas serão apagados."
+            "value" : "Descartar esta gravação? Não será possível recuperá-la."
           }
         },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Renunțați la această înregistrare? Sunetul, transcrierea și notițele vor fi șterse."
+            "value" : "Renunți la această înregistrare? Nu va mai putea fi recuperată."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Удалить эту запись? Её звук, расшифровка и заметки будут стёрты."
+            "value" : "Удалить эту запись? Восстановить её будет невозможно."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Släng den här inspelningen? Ljudet, transkriptionen och anteckningarna raderas."
+            "value" : "Kasta inspelningen? Den går inte att återställa."
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ทิ้งการอัดเสียงนี้ไหม เสียง คำถอดความ และโน้ตจะถูกลบ"
+            "value" : "ทิ้งรายการบันทึกนี้หรือไม่ คุณจะกู้คืนไม่ได้"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bu kayıttan vazgeçilsin mi? Sesi, transkripti ve notları silinir."
+            "value" : "Bu kayıt silinsin mi? Silinen kayıt geri getirilemez."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Видалити цей запис? Його звук, розшифровку і нотатки буде стерто."
+            "value" : "Видалити цей запис? Його неможливо буде відновити."
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bỏ bản ghi này? Âm thanh, bản chép lời và ghi chú sẽ bị xóa."
+            "value" : "Bỏ bản ghi này? Bạn sẽ không thể khôi phục bản ghi."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "要放弃这段录音吗？它的音频、文字记录和笔记都会被删除。"
+            "value" : "丢弃这段录音？丢弃后将无法恢复。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "要捨棄這段錄音嗎？它的音訊、逐字稿和筆記都會被刪除。"
+            "value" : "捨棄這段錄音？捨棄後將無法復原。"
           }
         }
       }
@@ -13258,198 +13258,198 @@
         }
       }
     },
-    "For your next recording only. Settings keeps your usual language." : {
+    "For this recording only. Settings keeps your usual language." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "For your next recording only. Settings keeps your usual language."
+            "value" : "For this recording only. Settings keeps your usual language."
           }
         },
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "لتسجيلك التالي فقط. تبقى لغتك المعتادة في الإعدادات."
+            "value" : "لهذا التسجيل فقط. تظل لغتك المعتادة محفوظة في الإعدادات."
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "শুধু আপনার পরের রেকর্ডিংয়ের জন্য। আপনার সাধারণ ভাষা সেটিংসে থেকে যায়।"
+            "value" : "শুধু এই রেকর্ডিংয়ের জন্য। সেটিংসে আপনার সাধারণ ভাষাই থাকবে।"
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Jen pro příští nahrávku. Obvyklý jazyk zůstává v Nastavení."
+            "value" : "Jen pro tuto nahrávku. V nastavení zůstane váš obvyklý jazyk."
           }
         },
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kun til din næste optagelse. Dit sædvanlige sprog bliver i Indstillinger."
+            "value" : "Kun for denne optagelse. Dit sædvanlige sprog bevares i Indstillinger."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nur für deine nächste Aufnahme. Deine übliche Sprache bleibt in den Einstellungen."
+            "value" : "Nur für diese Aufnahme. Deine übliche Sprache bleibt in den Einstellungen erhalten."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Μόνο για την επόμενη ηχογράφησή σας. Η συνηθισμένη γλώσσα σας μένει στις Ρυθμίσεις."
+            "value" : "Μόνο για αυτή την εγγραφή. Η συνήθης γλώσσα σας παραμένει στις Ρυθμίσεις."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Solo para tu próxima grabación. Tu idioma habitual sigue en Ajustes."
+            "value" : "Solo para esta grabación. Tu idioma habitual se conserva en Ajustes."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vain seuraavaan tallennukseesi. Tavallinen kielesi pysyy asetuksissa."
+            "value" : "Vain tälle tallenteelle. Tavallinen kielesi säilyy asetuksissa."
           }
         },
         "fil" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Para sa susunod mong recording lang. Nananatili sa Settings ang karaniwan mong wika."
+            "value" : "Para lang sa recording na ito. Mananatili sa Settings ang karaniwan mong wika."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pour votre prochain enregistrement seulement. Votre langue habituelle reste dans Réglages."
+            "value" : "Pour cet enregistrement uniquement. Votre langue habituelle reste définie dans les réglages."
           }
         },
         "he" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "רק להקלטה הבאה שלך. השפה הרגילה שלך נשארת בהגדרות."
+            "value" : "להקלטה הזו בלבד. השפה הרגילה שלך תישאר בהגדרות."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "सिर्फ़ आपकी अगली रिकॉर्डिंग के लिए। आपकी सामान्य भाषा सेटिंग्स में बनी रहती है।"
+            "value" : "सिर्फ़ इस रिकॉर्डिंग के लिए। सेटिंग्स में आपकी सामान्य भाषा बनी रहेगी।"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Csak a következő felvételhez. A szokásos nyelved a Beállításokban marad."
+            "value" : "Csak ehhez a felvételhez. A szokásos nyelved megmarad a beállításokban."
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hanya untuk rekaman berikutnya. Bahasa biasamu tetap di Pengaturan."
+            "value" : "Hanya untuk rekaman ini. Bahasa yang biasa Anda gunakan tetap tersimpan di Pengaturan."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Solo per la tua prossima registrazione. La tua lingua abituale resta in Impostazioni."
+            "value" : "Solo per questa registrazione. La lingua abituale resta invariata nelle impostazioni."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "次の録音だけに使います。いつもの言語は設定に残ります。"
+            "value" : "この録音にのみ適用されます。設定の言語は変わりません。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "다음 녹음에만 적용돼요. 평소 언어는 설정에 그대로 있어요."
+            "value" : "이 녹음에만 적용됩니다. 설정의 기본 언어는 그대로 유지됩니다."
           }
         },
         "ms" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Untuk rakaman seterusnya sahaja. Bahasa biasa anda kekal dalam Tetapan."
+            "value" : "Untuk rakaman ini sahaja. Bahasa biasa anda kekal dalam Tetapan."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bare for neste opptak. Det vanlige språket ditt blir værende i Innstillinger."
+            "value" : "Kun for dette opptaket. Det vanlige språket ditt beholdes i Innstillinger."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alleen voor je volgende opname. Je gewone taal blijft in Instellingen."
+            "value" : "Alleen voor deze opname. Je gebruikelijke taal blijft bewaard in Instellingen."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tylko dla następnego nagrania. Twój zwykły język zostaje w Ustawieniach."
+            "value" : "Tylko dla tego nagrania. Twój zwykły język pozostanie w ustawieniach."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Só para a sua próxima gravação. Seu idioma de sempre continua nos Ajustes."
+            "value" : "Só para esta gravação. Seu idioma habitual permanece nos Ajustes."
           }
         },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Doar pentru următoarea înregistrare. Limba ta obișnuită rămâne în Setări."
+            "value" : "Doar pentru această înregistrare. Limba ta obișnuită rămâne în configurări."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Только для следующей записи. Обычный язык остаётся в Настройках."
+            "value" : "Только для этой записи. В настройках сохранится ваш обычный язык."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bara för din nästa inspelning. Ditt vanliga språk ligger kvar i Inställningar."
+            "value" : "Bara för den här inspelningen. Ditt vanliga språk finns kvar i Inställningar."
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "สำหรับการบันทึกครั้งถัดไปเท่านั้น ภาษาที่ใช้ประจำยังอยู่ในการตั้งค่า"
+            "value" : "ใช้เฉพาะกับการบันทึกนี้ ภาษาที่คุณใช้ประจำในการตั้งค่าจะยังคงเดิม"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Yalnızca bir sonraki kaydın için. Her zamanki dilin Ayarlar'da kalır."
+            "value" : "Yalnızca bu kayıt için geçerlidir. Ayarlar'daki her zamanki diliniz korunur."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Лише для наступного запису. Звична мова лишається в Параметрах."
+            "value" : "Лише для цього запису. У налаштуваннях залишиться ваша звична мова."
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chỉ cho bản ghi tiếp theo. Ngôn ngữ thường dùng của bạn vẫn nằm trong Cài đặt."
+            "value" : "Chỉ áp dụng cho bản ghi này. Ngôn ngữ thường dùng của bạn vẫn được giữ trong Cài đặt."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "仅用于下一次录音。常用语言仍保留在设置中。"
+            "value" : "仅用于本次录音。设置中的常用语言保持不变。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "僅用於下一次錄音。常用語言仍保留在設定中。"
+            "value" : "僅適用於這次錄音。設定中的慣用語言維持不變。"
           }
         }
       }
@@ -17960,6 +17960,202 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 的會議"
+          }
+        }
+      }
+    },
+    "Meetings" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meetings"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الاجتماعات"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "মিটিং"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schůzky"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Møder"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meetings"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Συναντήσεις"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reuniones"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kokoukset"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mga meeting"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réunions"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "פגישות"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "मीटिंग"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Megbeszélések"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rapat"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riunioni"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会議"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "회의"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mesyuarat"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Møter"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vergaderingen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spotkania"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reuniões"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Întâlniri"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Встречи"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Möten"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "การประชุม"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toplantılar"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зустрічі"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuộc họp"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会议"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "會議"
           }
         }
       }
@@ -48967,202 +49163,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你的 iPhone 會詢問是否能尋找網路上的裝置。請點一下「允許」，Yogurt 才能連到你的電腦。"
-          }
-        }
-      }
-    },
-    "Your meetings" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your meetings"
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "اجتماعاتك"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "আপনার মিটিং"
-          }
-        },
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vaše schůzky"
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dine møder"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deine Meetings"
-          }
-        },
-        "el" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Οι συσκέψεις σας"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tus reuniones"
-          }
-        },
-        "fi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kokouksesi"
-          }
-        },
-        "fil" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mga meeting mo"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vos réunions"
-          }
-        },
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "הפגישות שלך"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "आपकी मीटिंग्स"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A megbeszéléseid"
-          }
-        },
-        "id" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rapat Anda"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le tue riunioni"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "あなたのミーティング"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "내 회의"
-          }
-        },
-        "ms" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mesyuarat anda"
-          }
-        },
-        "nb" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Møtene dine"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Je meetings"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Twoje spotkania"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Suas reuniões"
-          }
-        },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Întâlnirile dvs."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ваши встречи"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dina möten"
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "การประชุมของคุณ"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Toplantılarınız"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ваші зустрічі"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cuộc họp của bạn"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "你的会议"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "你的會議"
           }
         }
       }

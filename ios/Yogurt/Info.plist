@@ -71,10 +71,6 @@
 	<string>Yogurt records your meetings so it can write the transcript and notes.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Yogurt turns your recordings into a transcript on this iPhone.</string>
-	<key>UIAppFonts</key>
-	<array>
-		<string>BricolageGrotesque-SemiBold.ttf</string>
-	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>

@@ -30,7 +30,6 @@
 		9D4B6BE150682C3D970BE1E5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9E204A100FBF0B8A731ABA52 /* Assets.xcassets */; };
 		A00CE07E430D53B4DFDF8AB3 /* ShareFiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5820F001F3E9F4C6135E62D /* ShareFiles.swift */; };
 		AC928D450D3446D4F111050D /* Spoken.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8216BDA0E6DA0EC4F0884E6 /* Spoken.swift */; };
-		ADFBF6175190FCD9B73581A6 /* BricolageGrotesque-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 93345889F64AE9C1DA8C6A0E /* BricolageGrotesque-SemiBold.ttf */; };
 		AFB502B812B635030A6F0B8B /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BBC2A90EA8B16AB6EDB926E /* OnboardingView.swift */; };
 		B3655D77AA8D567A3E87DC9F /* OnboardingArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29351F36D09342F2FB6A2C99 /* OnboardingArt.swift */; };
 		B408211750C2C5073379FF76 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 665E6C46EA0815F0E4A5821C /* Theme.swift */; };
@@ -71,7 +70,6 @@
 		8267D7C896FBD13433688E40 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8A7C2B8779B19B1D9E01D9CA /* PlayerBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerBar.swift; sourceTree = "<group>"; };
 		926FDCB2952E51696433D3A7 /* RecordStrings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordStrings.swift; sourceTree = "<group>"; };
-		93345889F64AE9C1DA8C6A0E /* BricolageGrotesque-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "BricolageGrotesque-SemiBold.ttf"; sourceTree = "<group>"; };
 		9C12DEE3D0C6EF5500BF7470 /* StatusPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusPill.swift; sourceTree = "<group>"; };
 		9E204A100FBF0B8A731ABA52 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A5319E04B56F702918937F69 /* AskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AskView.swift; sourceTree = "<group>"; };
@@ -106,14 +104,6 @@
 				6C85D6355EBAF9525141ADFE /* Yogurt.app */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		343F09DD599A844ECD56ECA4 /* Fonts */ = {
-			isa = PBXGroup;
-			children = (
-				93345889F64AE9C1DA8C6A0E /* BricolageGrotesque-SemiBold.ttf */,
-			);
-			path = Fonts;
 			sourceTree = "<group>";
 		};
 		34E23A29DDFF9B69889BA76B /* Recording */ = {
@@ -157,7 +147,6 @@
 				665E6C46EA0815F0E4A5821C /* Theme.swift */,
 				23DB405B9B69CF24999A7B52 /* YogurtApp.swift */,
 				4400410427130BB08D1334EE /* Ask */,
-				343F09DD599A844ECD56ECA4 /* Fonts */,
 				5EE9A36E778736DB3B2A6DF0 /* Player */,
 				34E23A29DDFF9B69889BA76B /* Recording */,
 				957A4CDAE05DC9BD3F6CE53D /* Views */,
@@ -306,7 +295,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				9D4B6BE150682C3D970BE1E5 /* Assets.xcassets in Resources */,
-				ADFBF6175190FCD9B73581A6 /* BricolageGrotesque-SemiBold.ttf in Resources */,
 				68970BB3D06AA3C2DC83C1D2 /* InfoPlist.xcstrings in Resources */,
 				1A39663EF6044D375E543334 /* Localizable.xcstrings in Resources */,
 				1AA3D71F116C7347E47495B5 /* PrivacyInfo.xcprivacy in Resources */,

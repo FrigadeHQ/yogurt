@@ -22,8 +22,6 @@ targets:
     platform: iOS
     sources:
       - path: Yogurt
-        excludes:
-          - "Fonts/*.txt"
     dependencies:
       - package: YogurtKit
     settings:
@@ -82,8 +80,6 @@ targets:
           UIColorName: ""
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-        UIAppFonts:
-          - BricolageGrotesque-SemiBold.ttf
         NSLocalNetworkUsageDescription: Yogurt finds your computer on this Wi-Fi to keep your meetings in sync. Nothing goes through the internet.
         NSBonjourServices:
           - _yogurt._tcp

@@ -41,9 +41,20 @@ struct AskView: View {
             }
         }
         .background(Theme.bg)
-        .navigationTitle(S.ask)
+        .navigationTitle(turns.isEmpty ? "" : S.ask)
         .navigationBarTitleDisplayMode(.inline)
-        .safeAreaInset(edge: .bottom) { if answerer != .nowhere { askBar } }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if answerer == .nowhere {
+                NavigationLink(value: Route.search) { Label(S.searchMeetings, systemImage: "magnifyingglass") }
+                    .buttonStyle(PrimaryButtonStyle())
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .background(Theme.bg)
+                    .accessibilityIdentifier("ask-search")
+            } else {
+                askBar
+            }
+        }
         .onAppear(perform: launch)
     }
 
@@ -51,25 +62,36 @@ struct AskView: View {
 
     @ViewBuilder private func intro(_ answerer: AskSession.Where) -> some View {
         Text(S.askTitle)
-            .font(Theme.brand(28, relativeTo: .largeTitle))
+            .font(.largeTitle.weight(.semibold))
+            .accessibilityAddTraits(.isHeader)
             .foregroundStyle(Theme.heading)
             .padding(.top, 12)
         if answerer == .nowhere {
             unavailable.padding(.top, 20)
         } else {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 0) {
                 ForEach(starters, id: \.self) { q in
                     Button { send(q) } label: {
-                        Text(q).font(.subheadline.weight(.medium)).foregroundStyle(Theme.ink)
-                            .multilineTextAlignment(.leading)
-                            .padding(.horizontal, 14).padding(.vertical, 11)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Theme.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        HStack(alignment: .firstTextBaseline, spacing: 12) {
+                            Text(q)
+                                .font(.body)
+                                .foregroundStyle(Theme.ink)
+                                .multilineTextAlignment(.leading)
+                            Spacer(minLength: 0)
+                            Image(systemName: "arrow.up.right")
+                                .font(.footnote)
+                                .foregroundStyle(Theme.muted)
+                                .accessibilityHidden(true)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .frame(minHeight: 54)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(RowButtonStyle())
                 }
             }
-            .padding(.top, 20)
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: 18))
+            .padding(.top, 24)
         }
     }
 
@@ -81,16 +103,8 @@ struct AskView: View {
                 .font(.subheadline.weight(.medium)).foregroundStyle(Theme.ink)
                 .fixedSize(horizontal: false, vertical: true)
             Text(S.askSearchInstead).font(.subheadline).foregroundStyle(Theme.muted)
-            NavigationLink(value: Route.search) {
-                Label(S.searchMeetings, systemImage: "magnifyingglass").padding(.horizontal, 4)
-            }
-            .buttonStyle(PrimaryButtonStyle())
-            .padding(.top, 4)
-            .accessibilityIdentifier("ask-search")
         }
-        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.card, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     private var starters: [String] {
@@ -113,7 +127,7 @@ struct AskView: View {
     private var askBar: some View {
         let busy = session.busy
         let q = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        return VStack(spacing: 10) {
+        return VStack(spacing: 2) {
             chips
             HStack(alignment: .bottom, spacing: 8) {
                 TextField(chosen == .meeting(meetingId ?? "") ? S.askAnything : S.askPrompt, text: $text, axis: .vertical)
@@ -121,25 +135,27 @@ struct AskView: View {
                     .focused($focused)
                     .submitLabel(.send)
                     .onSubmit { send(q) }
-                    .padding(.horizontal, 14).padding(.vertical, 11)
-                    .background(Theme.card, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .padding(.leading, 14).padding(.vertical, 12)
                     .accessibilityIdentifier("ask-field")
                 Button { send(q) } label: {
                     Image(systemName: "arrow.up")
-                        .font(.body.weight(.semibold)).foregroundStyle(.white)
-                        .frame(width: 40, height: 40)
-                        .background(Theme.primary.opacity(q.isEmpty || busy ? 0.4 : 1), in: Circle())
+                        .font(.body.weight(.semibold)).foregroundStyle(q.isEmpty || busy ? Theme.accent : Theme.onAccent)
+                        .frame(width: 38, height: 38)
+                        .background(q.isEmpty || busy ? Theme.accentSoft : Theme.accent, in: Circle())
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .disabled(q.isEmpty || busy)
                 .accessibilityLabel(S.askSend)
                 .accessibilityIdentifier("ask-send")
             }
-            .padding(.horizontal, 16)
+            .padding(4)
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: 24))
+            .padding(.horizontal, 20)
         }
-        .padding(.top, 10).padding(.bottom, 8)
+        .padding(.top, 6).padding(.bottom, 8)
         .background(Theme.bg)
-        .overlay(alignment: .top) { Rectangle().fill(Theme.line).frame(height: 1) }
     }
 
     /// This meeting (from a note), each folder, All meetings
@@ -147,28 +163,24 @@ struct AskView: View {
         let folders = model.store.folders()
         return ScrollView(.horizontal) {
             HStack(spacing: 8) {
-                if let meetingId { chip(S.askThisMeeting, .meeting(meetingId), dot: false) }
-                chip(S.allMeetings, .all, dot: false)
-                ForEach(folders) { chip($0.name, .folder($0.id), dot: true) }
+                if let meetingId { chip(S.askThisMeeting, .meeting(meetingId)) }
+                chip(S.allMeetings, .all)
+                ForEach(folders) { chip($0.name, .folder($0.id)) }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 20)
         }
         .scrollIndicators(.hidden)
     }
 
-    private func chip(_ name: String, _ choice: Choice, dot: Bool) -> some View {
+    private func chip(_ name: String, _ choice: Choice) -> some View {
         let on = chosen == choice
         return Button { withAnimation(.easeOut(duration: 0.15)) { scope = choice } } label: {
-            HStack(spacing: 6) {
-                if dot { Circle().fill(Theme.accent).frame(width: 6, height: 6) }
-                Text(name).lineLimit(1)
-            }
+            Text(name).lineLimit(1)
             .font(.footnote.weight(.medium))
-            .foregroundStyle(on ? Theme.ink : Theme.written)
+            .foregroundStyle(on ? Theme.accent : Theme.muted)
             .padding(.horizontal, 11)
-            .frame(height: 30)
-            .background(on ? Theme.selected : .clear, in: Capsule())
-            .overlay(Capsule().strokeBorder(on ? .clear : Theme.line, lineWidth: 1))
+            .frame(minHeight: 30)
+            .background(on ? Theme.accentSoft : .clear, in: Capsule())
             .frame(minHeight: 44)
             .contentShape(Rectangle())
         }

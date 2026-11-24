@@ -312,7 +312,7 @@ struct LockView: View {
         VStack(spacing: 20) {
             Image(systemName: "lock").font(.system(size: icon, weight: .light)).foregroundStyle(Theme.muted)
                 .accessibilityHidden(true)
-            Text(S.locked).font(Theme.brand(26)).foregroundStyle(Theme.heading)
+            Text(S.locked).font(.title.weight(.semibold)).foregroundStyle(Theme.heading)
             Button(S.unlock, action: unlock).buttonStyle(PrimaryButtonStyle())
             if let failure {
                 Text(failure).font(.subheadline).foregroundStyle(Theme.danger).multilineTextAlignment(.center)

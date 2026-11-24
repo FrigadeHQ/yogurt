@@ -282,23 +282,21 @@ private struct ReadyArt: View {
     var body: some View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(S.yourMeetings).font(Theme.brand(17)).foregroundStyle(Theme.heading).padding(.bottom, 8)
+                Text(S.meetings).font(.headline).foregroundStyle(Theme.heading).padding(.bottom, 8)
                 meeting(S.artMeeting, S.artWhen, initials: "MA")
                 meeting(S.artMeeting2, S.artWhen2, initials: nil)
             }
-            .padding(16)
-            .padding(.bottom, 14)
-            .frame(width: 270, alignment: .leading)
-            .artCard()
+            .frame(maxWidth: .infinity, alignment: .leading)
             Label(S.record, systemImage: "mic.fill")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 18).frame(height: 40)
-                // the app's own Record button: brand purple in both themes, so white reads on it
-                .background(Theme.primary, in: Capsule())
-                .shadow(color: Theme.primary.opacity(0.3), radius: 12, y: 6)
-                .offset(y: -20)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.onAccent)
+                .frame(maxWidth: .infinity, minHeight: 32)
+                .background(Theme.accent, in: Capsule())
+                .padding(.top, 14)
         }
+        .padding(16)
+        .frame(width: 270)
+        .artCard()
     }
 
     private func meeting(_ title: String, _ when: String, initials: String?) -> some View {

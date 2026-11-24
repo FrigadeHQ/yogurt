@@ -2,90 +2,53 @@ import SwiftUI
 import YogurtKit
 
 extension Spoken {
-    /// "Same as iPhone (…)" first, then every language this iPhone transcribes: Settings' list and the one beside Record.
+    static func selectionName(_ id: String) -> String {
+        if id.isEmpty { return S.sameAsIPhone(SpokenLanguage.name(of: .current, in: .current)) }
+        return Locale.current.localizedString(forIdentifier: id) ?? id
+    }
+
+    /// "Same as iPhone (…)" first, then every language this iPhone transcribes: used in Settings and while recording.
     @ViewBuilder static func choices(selection: String, languages: [SpokenLanguage.Option]) -> some View {
-        Text(S.sameAsIPhone(SpokenLanguage.name(of: .current, in: .current))).tag("")
+        Text(selectionName("")).tag("")
         // a pick this iPhone no longer lists still shows, so the row never reads blank
         if !selection.isEmpty, !languages.contains(where: { $0.id == selection }) {
-            Text(Locale.current.localizedString(forIdentifier: selection) ?? selection).tag(selection)
+            Text(selectionName(selection)).tag(selection)
         }
         ForEach(languages) { Text($0.name).tag($0.id) }
     }
-
-    /// The language to listen in for one recording: its own pick (nil: none, so Settings'), else the iPhone's.
-    static func locale(override: String?) -> Locale { SpokenLanguage.locale(picked: override ?? picked, phone: .current) }
 }
 
-/// Beside Record on Home: the language the next recording listens in, changed for that one only (Settings keeps the
-/// usual one). Quiet like desktop's language menu in a note's footer; tapping Record still records straight away.
-struct SpokenLanguageChip: View {
-    /// nil: Settings' language
-    @Binding var override: String?
-    @AppStorage(SpokenLanguage.defaultsKey) private var spoken = ""
-    @State private var picking = false
-
-    var body: some View {
-        let name = SpokenLanguage.name(of: Spoken.locale(override: override), in: .current)
-        Button { picking = true } label: {
-            HStack(spacing: 5) {
-                Image(systemName: "globe").font(.caption)
-                Text(name).lineLimit(1)
-                Image(systemName: "chevron.down").font(.caption2.weight(.semibold))
-            }
-            .font(.footnote.weight(.medium))
-            .foregroundStyle(Theme.written)
-            .padding(.horizontal, 12)
-            .frame(minHeight: 34)
-            .background(Theme.card, in: Capsule())
-            .overlay(Capsule().strokeBorder(Theme.line, lineWidth: 0.5))
-            .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
-        .contentTransition(.opacity)
-        .animation(.easeOut(duration: 0.18), value: name)
-        .accessibilityLabel(S.spokenLanguage)
-        .accessibilityValue(name)
-        .accessibilityHint(S.forNextRecording)
-        .accessibilityIdentifier("record-language")
-        .sheet(isPresented: $picking) {
-            SpokenLanguageSheet(selection: Binding(get: { override ?? spoken }, set: { override = $0 }))
-        }
-        .onAppear {
-            #if DEBUG
-            if UserDefaults.standard.bool(forKey: "openRecordLanguage") { picking = true }
-            #endif
-        }
-    }
-}
-
-/// The languages to pick from for the next recording; picking one closes it.
-struct SpokenLanguageSheet: View {
+/// A selection returns to the screen that opened the list.
+struct SpokenLanguageList: View {
     @Binding var selection: String
+    var hint: String? = nil
     @Environment(\.dismiss) private var dismiss
     @State private var languages: [SpokenLanguage.Option] = []
 
     var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    Picker(selection: Binding(get: { selection }, set: { selection = $0; dismiss() })) {
-                        Spoken.choices(selection: selection, languages: languages)
-                    } label: { EmptyView() }
-                    .pickerStyle(.inline)
-                    .labelsHidden()
-                } footer: { Text(S.forNextRecording) }
-                .listRowBackground(Theme.card)
+        List {
+            Section {
+                Picker(selection: Binding(get: { selection }, set: { selection = $0; dismiss() })) {
+                    Spoken.choices(selection: selection, languages: languages)
+                } label: { Text(S.spokenLanguage) }
+                .pickerStyle(.inline)
+                .labelsHidden()
+            } header: {
+                if let hint {
+                    Text(hint)
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.muted)
+                        .textCase(nil)
+                        .padding(.bottom, 8)
+                }
             }
-            .scrollContentBackground(.hidden)
-            .background(Theme.bg)
-            .tint(Theme.accent)
-            .navigationTitle(S.spokenLanguage)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button(S.done) { dismiss() } }
-            }
+            .listRowBackground(Theme.card)
+            .listRowSeparator(.hidden)
         }
-        .presentationDetents([.medium, .large])
+        .environment(\.defaultMinListRowHeight, 50)
+        .scrollContentBackground(.hidden)
+        .background(Theme.bg)
+        .tint(Theme.accent)
         .task { languages = SpokenLanguage.options(await Spoken.supported(), in: .current) }
     }
 }

@@ -18,32 +18,47 @@ struct OnboardingView: View {
 
     var body: some View {
         let step = flow.current ?? .ready
-        // scrolls when the words are large, with the buttons always in reach at the bottom
-        ScrollView {
-            VStack(spacing: 0) {
-                // at accessibility sizes the words need the room more than the picture does
-                if !typeSize.isAccessibilitySize {
-                    stage(step)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 8)
+        GeometryReader { viewport in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    copy(step)
+                    if !typeSize.isAccessibilitySize {
+                        OnboardingArt(kind: art(step))
+                            .id(step)
+                            .frame(maxWidth: .infinity, minHeight: 230, maxHeight: .infinity)
+                    }
+                    note(step)
+                        .padding(.top, 12)
+                        .font(.footnote)
+                        .foregroundStyle(Theme.muted)
                 }
-                copy(step)
-                    .padding(.horizontal, 28)
-                    .padding(.top, 28)
-                    .padding(.bottom, 16)
+                .frame(minHeight: viewport.size.height, alignment: .topLeading)
+                .padding(.horizontal, 24)
             }
+            .scrollBounceBehavior(.basedOnSize)
         }
-        .scrollBounceBehavior(.basedOnSize)
         .safeAreaInset(edge: .top, spacing: 0) {
-            // the bar is decoration and progress: it stops growing so the words keep the room
-            topBar(step).dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                .frame(minHeight: 44).padding(.horizontal, 24).background(Theme.bg)
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Wordmark(size: 18)
+                    Spacer()
+                    if let p = permission(step), p.access != .restricted {
+                        later(step)
+                    } else if step == .computer, pairedName == nil {
+                        later(step)
+                    }
+                }
+                .frame(minHeight: 44)
+                if flow.count > 0 { Steps(n: flow.index, total: flow.count) }
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 20)
+            .background(Theme.bg)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             actions(step)
                 .padding(.horizontal, 24)
-                .padding(.top, 12)
-                .padding(.bottom, 12)
+                .padding(.vertical, 12)
                 .background(Theme.bg)
         }
         .background(Theme.bg)
@@ -97,26 +112,6 @@ struct OnboardingView: View {
 
     // MARK: - Parts
 
-    /// The wordmark (except on the welcome, where it sits over the title) and a quiet bar of steps.
-    private func topBar(_ step: Step) -> some View {
-        HStack {
-            if step != .welcome { Wordmark(size: 18) }
-            Spacer()
-            if step != .ready { Steps(n: flow.index, total: flow.count - 1) }
-        }
-    }
-
-    private func stage(_ step: Step) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 28, style: .continuous).fill(Theme.card)
-            OnboardingArt(kind: art(step))
-                .id(step)
-                .transition(.opacity.combined(with: .scale(scale: 0.97)))
-        }
-        .frame(maxWidth: .infinity)
-        .frame(minHeight: 220, maxHeight: 320)
-    }
-
     private func art(_ s: Step) -> OnboardingArtKind {
         switch s {
         case .welcome: .welcome
@@ -130,9 +125,8 @@ struct OnboardingView: View {
     private func copy(_ step: Step) -> some View {
         let (title, text) = words(step)
         return VStack(alignment: .leading, spacing: 10) {
-            if step == .welcome { Wordmark(size: 22).padding(.bottom, 8) }
             Text(title)
-                .font(Theme.brand(32, relativeTo: .largeTitle))
+                .font(.largeTitle.weight(.semibold))
                 .foregroundStyle(Theme.heading)
                 .accessibilityAddTraits(.isHeader)
                 .fixedSize(horizontal: false, vertical: true)
@@ -140,7 +134,6 @@ struct OnboardingView: View {
                 .font(.body)
                 .foregroundStyle(Theme.written)
                 .fixedSize(horizontal: false, vertical: true)
-            note(step).padding(.top, 6)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .id(step)
@@ -160,49 +153,45 @@ struct OnboardingView: View {
 
     @ViewBuilder private func note(_ step: Step) -> some View {
         if let p = permission(step), p.access == .restricted {
-            Text(S.restricted).font(.footnote).foregroundStyle(Theme.muted)
+            Text(S.restricted)
         } else if let p = permission(step), p.access == .off {
-            Text(S.turnedOffBefore).font(.footnote).foregroundStyle(Theme.muted)
+            Text(S.turnedOffBefore)
         } else if step == .computer, pairedName == nil {
             // iOS asks for the local network once Yogurt starts looking; this says why before it does
-            Label(S.localNetworkNote, systemImage: "wifi").font(.footnote).foregroundStyle(Theme.muted)
+            Label(S.localNetworkNote, systemImage: "wifi")
         }
     }
 
     @ViewBuilder private func actions(_ step: Step) -> some View {
-        VStack(spacing: 4) {
-            switch step {
-            case .welcome:
-                wide(S.getStarted, id: "intro-next") { started(); next(from: step) }
-            case .microphone, .speech:
-                let p = permission(step)!
-                if p.access == .restricted {
-                    // set by someone else (Screen Time, a school or work profile): nothing to press here
-                    wide(S.continueOn, id: "step-allow") { next(from: step) }
-                } else if p.access == .off {
-                    wide(S.openSettings, id: "step-allow") { Permission.openSettings() }
-                } else {
-                    wide(S.allow, id: "step-allow", busy: asking) {
-                        asking = true
-                        Task {
-                            // yes or no, the next screen comes; a no can be changed in Settings
-                            _ = await p.request()
-                            asking = false
-                            next(from: step)
-                        }
+        switch step {
+        case .welcome:
+            wide(S.getStarted, id: "intro-next") { started(); next(from: step) }
+        case .microphone, .speech:
+            let p = permission(step)!
+            if p.access == .restricted {
+                // set by someone else (Screen Time, a school or work profile): nothing to press here
+                wide(S.continueOn, id: "step-allow") { next(from: step) }
+            } else if p.access == .off {
+                wide(S.openSettings, id: "step-allow") { Permission.openSettings() }
+            } else {
+                wide(S.allow, id: "step-allow", busy: asking) {
+                    asking = true
+                    Task {
+                        // yes or no, the next screen comes; a no can be changed in Settings
+                        _ = await p.request()
+                        asking = false
+                        next(from: step)
                     }
                 }
-                if p.access != .restricted { later(step) }
-            case .computer:
-                if pairedName != nil {
-                    wide(S.continueOn, id: "step-allow") { next(from: step) }
-                } else {
-                    wide(S.connect, id: "step-allow") { connecting = true }
-                    later(step)
-                }
-            case .ready:
-                wide(S.startUsing, id: "onboarding-done") { done() }
             }
+        case .computer:
+            if pairedName != nil {
+                wide(S.continueOn, id: "step-allow") { next(from: step) }
+            } else {
+                wide(S.connect, id: "step-allow") { connecting = true }
+            }
+        case .ready:
+            wide(S.startUsing, id: "onboarding-done") { done() }
         }
     }
 
@@ -210,21 +199,23 @@ struct OnboardingView: View {
     private func started() { UserDefaults.standard.set(true, forKey: "onboarded") }
 
     private func later(_ step: Step) -> some View {
-        Button(S.notNow) { next(from: step) }
-            .font(.body.weight(.medium))
-            .foregroundStyle(Theme.muted)
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .disabled(asking)
-            .accessibilityIdentifier("step-later")
+        Button { next(from: step) } label: {
+            Text(S.notNow)
+                .font(.subheadline)
+                .foregroundStyle(Theme.muted)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .disabled(asking)
+        .accessibilityIdentifier("step-later")
     }
 
     private func wide(_ title: String, id: String, busy: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 8) {
-                if busy { ProgressView().tint(.white).controlSize(.small) }
+                if busy { ProgressView().tint(Theme.accent).controlSize(.small) }
                 Text(title)
             }
-            .frame(maxWidth: .infinity)
         }
         .buttonStyle(PrimaryButtonStyle())
         .disabled(busy)
@@ -238,8 +229,8 @@ private struct Steps: View {
     let total: Int
     var body: some View {
         HStack(spacing: 5) {
-            ForEach(0..<max(total, 1), id: \.self) { k in
-                Capsule().fill(k <= n ? Theme.art : Theme.line).frame(width: 18, height: 4)
+            ForEach(0..<total, id: \.self) { k in
+                Capsule().fill(k <= n ? Theme.accent : Theme.line).frame(width: 18, height: 3)
             }
         }
         .animation(.easeOut(duration: 0.25), value: n)
@@ -255,7 +246,7 @@ struct Wordmark: View {
         HStack(spacing: size * 0.4) {
             Image("Mark").resizable().frame(width: size * 1.4, height: size * 1.4)
                 .clipShape(RoundedRectangle(cornerRadius: size * 0.34, style: .continuous))
-            Text("Yogurt").font(Theme.brand(size * 1.1, relativeTo: .headline)).foregroundStyle(Theme.heading)
+            Text("Yogurt").font(.title3.weight(.semibold)).foregroundStyle(Theme.heading)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Yogurt")

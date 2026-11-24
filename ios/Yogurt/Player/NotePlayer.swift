@@ -54,11 +54,13 @@ final class NotePlayer {
 
     private func run(_ id: String, _ model: AppModel) async {
         let sync = model.sync
-        let connected: Bool = { if case .connected = model.engine.status { true } else { false } }()
-        let paired = model.engine.status.isPaired
+        // Sample meetings have a pretend computer and no tracks in the real computer's cache.
+        let hasComputer = model.engine === sync
+        let connected: Bool = { if case .connected = sync.status { true } else { false } }()
         let phone = Self.phoneFile(id, model)
-        let cached = [sync.cachedAudio(meetingId: id, track: "them"), sync.cachedAudio(meetingId: id, track: "me")].compactMap { $0 }
-        switch PlayerLogic.source(phoneFile: phone != nil, cached: !cached.isEmpty, connected: connected, paired: paired) {
+        let cached = hasComputer ? ["them", "me"].compactMap { sync.cachedAudio(meetingId: id, track: $0) } : []
+        switch PlayerLogic.source(phoneFile: phone != nil, cached: !cached.isEmpty,
+                                  connected: hasComputer && connected, paired: hasComputer && sync.status.isPaired) {
         case .phone: await prepare([phone!])
         case .cached: await prepare(cached)
         case .computerAway: state = .nearby
@@ -72,7 +74,12 @@ final class NotePlayer {
                     files.append(try await sync.audioURL(meetingId: id, track: "them", progress: { [weak self] p in self?.fetching(p * 0.85) }))
                 } catch SyncError.remote("gone") {}
                 self.fetching(0.85)
-                if let me = try? await sync.audioURL(meetingId: id, track: "me") { files.append(me) }
+                do {
+                    files.append(try await sync.audioURL(meetingId: id, track: "me"))
+                } catch SyncError.remote("gone") {
+                } catch where !files.isEmpty {
+                    // The call is still playable if its optional microphone track fails.
+                }
                 if files.isEmpty { state = .noAudio; return }
                 await prepare(files)
             } catch SyncError.unplayableAudio {

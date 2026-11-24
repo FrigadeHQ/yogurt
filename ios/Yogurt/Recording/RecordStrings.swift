@@ -33,7 +33,7 @@ extension S {
     static let recordingPausedBody = String(localized: "Another app is using the microphone. Tap to keep recording.")
     static let notificationsOff = String(localized: "Notifications are off, so if a call pauses the recording, you'll see it only when you open Yogurt.")
     static let discard = String(localized: "Discard")
-    static let discardQuestion = String(localized: "Discard this recording? Its audio, transcript and notes are deleted.")
+    static let discardQuestion = String(localized: "Discard this recording? It can't be recovered.")
     static let keepRecording = String(localized: "Keep recording")
     static func transcriptDownloading(_ language: String) -> String {
         String(localized: "Getting \(language) ready for transcripts on this iPhone. This happens once; the recording has already started.")
