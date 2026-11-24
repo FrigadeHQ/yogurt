@@ -186,8 +186,7 @@ describe('backup manifest', () => {
   })
 })
 
-// real files and zips: a busy Windows runner can take over the default 5 s
-// a full zip of recordings took 23 s on CI's Windows runner, past the old 20 s
+// real files and zips: a full zip of recordings took 23 s on CI's Windows runner
 describe('backup file', { timeout: 60_000 }, () => {
   it('reports an import preparation failure as a failure result, without adding meetings', async () => {
     const s = fresh()
