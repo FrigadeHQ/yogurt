@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react'
-import { MARK } from '../../../shared/logo'
+import { MARK, MARK_FIT } from '../../../shared/logo'
 import { BOOT } from '../../../shared/onboarding'
 
 /**
@@ -13,7 +13,7 @@ export function BootScreen() {
     <div data-testid="boot-screen" className="boot-screen" style={{ animationDelay: `${delay}ms` }} role="status" aria-label="Yogurt">
       <svg width={52} height={52} viewBox="0 0 100 100" aria-hidden="true" className="boot-mark">
         <defs>
-          <clipPath id={`${id}-mark`}><path d={MARK} /></clipPath>
+          <clipPath id={`${id}-mark`}><path d={MARK} transform={MARK_FIT} clipRule="evenodd" /></clipPath>
           <linearGradient id={`${id}-band`} x1="0" x2="1" y1="0" y2="0">
             <stop offset="0" stopColor="#fff" stopOpacity="0" />
             <stop offset=".5" stopColor="#fff" stopOpacity=".55" />
@@ -40,7 +40,7 @@ export function MacLaunch({ active }: { active: boolean }) {
   return <div className="mac-launch" data-active={active || undefined} aria-hidden={!active || undefined}
     data-testid={active ? 'boot-screen' : undefined} role="status" aria-label="Yogurt">
     {showMark && <svg width={52} height={52} viewBox="0 0 100 100" aria-hidden="true" className="mac-launch-mark text-neutral-400 dark:text-white">
-      <path d={MARK} fill="currentColor" />
+      <path d={MARK} fill="currentColor" transform={MARK_FIT} fillRule="evenodd" />
     </svg>}
   </div>
 }

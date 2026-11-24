@@ -2,6 +2,8 @@ import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { MARK_FIT } from '../src/shared/logo'
+
 const before = process.env.YOGURT_UI_REVIEW === 'before'
 const main = join(import.meta.dirname, '../out/main/index.js')
 
@@ -21,6 +23,8 @@ test('download progress keeps its geometry as percentages and phases change', as
       if (!before) {
         const accent = colorScheme === 'dark' ? 'rgb(183, 128, 255)' : 'rgb(111, 0, 255)'
         await expect(page.getByTestId('wordmark').locator('path').first()).toHaveCSS('fill', accent)
+        await expect(page.getByTestId('wordmark').locator('path').last()).toHaveCSS('fill', colorScheme === 'dark' ? 'rgb(242, 242, 243)' : 'rgb(28, 28, 30)')
+        await expect(page.locator('.crisp-mark path')).toHaveAttribute('transform', MARK_FIT)
         await expect(page.getByTestId('download-blob').locator('.icon-art stop[offset=".45"]').first()).toHaveCSS('stop-color', accent)
       }
       let initial: { x: number; y: number; width: number; height: number } | undefined
@@ -59,7 +63,12 @@ test('first-run notification stands alone and help stays in a bounded disclosure
     }
     for (const colorScheme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme })
-      if (!before) await expect.poll(() => page.locator('.ob-prompt-icon img').evaluate(el => (el as HTMLImageElement).currentSrc.endsWith('/favicon-dark.png'))).toBe(colorScheme === 'dark')
+      if (!before) {
+        const tile = page.locator('.ob-prompt-icon img')
+        await expect(tile).toBeVisible()
+        await expect.poll(() => tile.evaluate(el => (el as HTMLImageElement).naturalWidth)).toBe(128)
+        await expect.poll(() => tile.evaluate(el => (el as HTMLImageElement).currentSrc.endsWith('/prompt-icon-dark.png'))).toBe(colorScheme === 'dark')
+      }
       await page.screenshot({ path: info.outputPath(`notification-art-${before ? 'before' : 'after'}-${colorScheme}.png`) })
       expect(await page.locator('.setup-screen').evaluate(el => getComputedStyle(el).backgroundColor)).toMatch(/^rgb\(/)
     }

@@ -128,7 +128,12 @@ test('the header and expanded card share confirmed mute, across collapse, reload
     await page.getByTestId('note-pause').click()
     await expect(header).toBeDisabled()
     await expect(page.getByText('Mic will stay off on resume')).toBeVisible()
+    await expect.poll(async () => (await snap(app)).visible).toBe(false)
     await page.screenshot({ path: testInfo.outputPath('mic-paused-note.png') })
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme })
+      await page.screenshot({ path: testInfo.outputPath(`mic-paused-note-${colorScheme}.png`) })
+    }
     await page.getByTestId('note-pause').click()
     await header.press('Space')
     await expect(page.getByText('Unmuting mic…')).toBeVisible()
