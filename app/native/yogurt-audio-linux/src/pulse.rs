@@ -16,7 +16,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::sync_channel;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Source { pub name: String, pub description: String, pub monitor: bool }
@@ -149,7 +149,7 @@ pub const CHUNK: usize = 4800;
 
 /// Opens a record stream on device (None: the default input, which the server moves along when the default
 /// changes). on_audio gets each buffer; on_lost once if the stream breaks. None when it can't be opened.
-pub fn capture(device: Option<String>, stream_name: &'static str, on_audio: impl Fn(Vec<f32>) + Send + 'static, on_lost: impl FnOnce() + Send + 'static) -> Option<Capture> {
+pub fn capture(device: Option<String>, stream_name: &'static str, on_audio: impl Fn(Vec<f32>, Option<Instant>) + Send + 'static, on_lost: impl FnOnce() + Send + 'static) -> Option<Capture> {
     let stop = Arc::new(AtomicBool::new(false));
     let stop2 = stop.clone();
     let (tx, rx) = sync_channel::<Result<(), String>>(1);
@@ -173,7 +173,12 @@ pub fn capture(device: Option<String>, stream_name: &'static str, on_audio: impl
                 return;
             }
             if stop2.load(Ordering::SeqCst) { break }
-            on_audio(raw.chunks_exact(4).map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]])).collect());
+            let read = Instant::now();
+            // A wakeup can deliver old microphone audio buffered by the sound server.
+            let heard = if stream_name == "microphone" {
+                s.get_latency().ok().and_then(|latency| read.checked_sub(Duration::from_micros(latency.0 + 100_000)))
+            } else { None };
+            on_audio(raw.chunks_exact(4).map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]])).collect(), heard);
         }
     });
     match rx.recv_timeout(Duration::from_secs(5)) {

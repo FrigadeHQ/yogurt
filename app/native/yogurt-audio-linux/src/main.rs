@@ -67,7 +67,7 @@ fn arg_value(args: &[String], name: &str) -> Option<String> {
 enum Tr { Me, Them }
 
 enum Msg {
-    Audio { track: Tr, gen: u64, samples: Vec<f32>, arrived: f64 },
+    Audio { track: Tr, gen: u64, samples: Vec<f32>, arrived: f64, heard: Option<f64> },
     Lost { track: Tr, gen: u64 },
     Cmd(String),
     /// stdin closed (Yogurt quit or crashed) or stdout broke (Yogurt gone): keep what we have
@@ -86,6 +86,7 @@ struct Recorder {
     mic_gen: u64,
     sys_gen: u64,
     mic_muted: bool,
+    mic_from: Option<f64>,
     start_ms: f64,
     paused: bool,
     finishing: bool,
@@ -113,12 +114,14 @@ impl Recorder {
         let (tx, tx2, clock) = (self.tx.clone(), self.tx.clone(), self.clock.clone());
         let name = match track { Tr::Me => "microphone", Tr::Them => "computer sound" };
         pulse::capture(device, name,
-            move |samples| { let _ = tx.send(Msg::Audio { track, gen, samples, arrived: clock.ms() }); },
+            move |samples, at| {
+                let heard = at.and_then(|t| t.checked_duration_since(clock.0)).map(|d| d.as_secs_f64() * 1000.0);
+                let _ = tx.send(Msg::Audio { track, gen, samples, arrived: clock.ms(), heard });
+            },
             move || { let _ = tx2.send(Msg::Lost { track, gen }); })
     }
 
     fn start_mic(&mut self) -> bool {
-        if self.mic_muted { return true }
         if let Some(c) = self.mic.take() { c.stop() }
         let snap = self.snapshot();
         // Auto with no real mic: PulseAudio makes a monitor the default input, which would record the speakers as "me"
@@ -201,21 +204,17 @@ impl Recorder {
                 let Some((action, id)) = c.split_once(' ') else { return };
                 let Ok(id) = id.parse::<u32>() else { return };
                 let off = action == "mute";
-                let boundary = self.clock.ms().max(self.me.pts as f64 / 48.0);
-                if off != self.mic_muted {
+                let boundary = (self.start_ms + self.clock.ms().max(self.me.pts as f64 / 48.0)).ceil() - self.start_ms;
+                let changing = off != self.mic_muted;
+                if changing {
                     self.me.resync();
-                    self.me.pad_to((boundary * 48.0).ceil() as u64);
                     self.me.level();
-                    self.mic_muted = off;
-                    if off {
-                        self.mic_gen += 1;
-                        if let Some(c) = self.mic.take() { c.stop() }
-                    } else {
-                        self.mic_muted = !self.start_mic();
-                        self.report_mic();
-                    }
+                    self.mic_muted = off || self.mic.is_none();
+                    if !self.mic_muted { self.mic_from = Some(boundary); }
+                    if !off && self.mic.is_none() { self.schedule_mic(0); }
                 }
                 self.send(obj([("t", s("mic-muted")), ("id", n(id as f64)), ("muted", J::Bool(self.mic_muted)), ("ms", n((self.start_ms + boundary).ceil()))]));
+                if changing { self.me.pad_to((boundary * 48.0).ceil() as u64); }
             }
             "stop" => self.finish(),
             _ if c.starts_with("mic ") => { let a = c[4..].trim().to_string(); self.choose_mic(&a) }
@@ -225,10 +224,18 @@ impl Recorder {
 
     fn handle(&mut self, m: Msg) {
         match m {
-            Msg::Audio { track, gen, samples, arrived } => {
+            Msg::Audio { track, gen, samples, arrived, heard } => {
                 if self.paused || self.finishing { return }
                 match track {
-                    Tr::Me if !self.mic_muted && gen == self.mic_gen && self.mic.is_some() => self.me.append(&samples, None, arrived),
+                    Tr::Me if !self.mic_muted && gen == self.mic_gen && self.mic.is_some() => {
+                        let skip = if let Some(from) = self.mic_from {
+                            let Some(at) = heard else { return };
+                            ((from - at) * 48.0).ceil() as usize
+                        } else { 0 };
+                        if skip < samples.len() {
+                            self.me.append(&samples[skip..], None, arrived);
+                        }
+                    }
                     // the speakers' stream says when it heard each buffer: the time it arrived, less its length
                     Tr::Them if gen == self.sys_gen && self.sys.is_some() => self.them.append(&samples, Some(arrived - samples.len() as f64 / 48.0), arrived),
                     _ => {}
@@ -361,7 +368,7 @@ fn record(args: &[String], dir: &Path) {
         me: Track::new("me", dir, part, start_ms, Box::new(move |d| { let _ = o1.send(d); })),
         them: Track::new("them", dir, part, start_ms, Box::new(move |d| { let _ = o2.send(d); })),
         mic: None, sys: None, mic_gen: 0, sys_gen: 0, paused: false, finishing: false,
-        mic_muted: args.iter().any(|a| a == "--mic-muted"), start_ms,
+        mic_muted: args.iter().any(|a| a == "--mic-muted"), mic_from: None, start_ms,
         mic_uid: arg_value(args, "--mic"), snap, tx: tx.clone(), out, clock,
         mic_rebuild: None, sys_rebuild: None,
     };

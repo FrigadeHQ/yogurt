@@ -447,10 +447,11 @@ final class Mic {
   private var generation = 0
   /// the microphone to record from; nil: the Mac's default input
   var device: AudioObjectID?
-  let onBuffer: (AVAudioPCMBuffer) -> Void
-  init(onBuffer: @escaping (AVAudioPCMBuffer) -> Void) { self.onBuffer = onBuffer }
+  let onBuffer: (AVAudioPCMBuffer, Double?) -> Void
+  init(onBuffer: @escaping (AVAudioPCMBuffer, Double?) -> Void) { self.onBuffer = onBuffer }
 
   func start() -> Bool {
+    guard AVCaptureDevice.authorizationStatus(for: .audio) == .authorized else { return false }
     let e = AVAudioEngine()
     let input = e.inputNode
     // No voice processing: with it on, the call app on the same mic (Zoom) got near silence until Yogurt stopped.
@@ -499,9 +500,10 @@ final class Mic {
     generation += 1
     let current = generation
     let onBuffer = self.onBuffer
-    input.installTap(onBus: 0, bufferSize: AVAudioFrameCount(fmt.sampleRate / 10), format: nil) { b, _ in
+    input.installTap(onBus: 0, bufferSize: AVAudioFrameCount(fmt.sampleRate / 10), format: nil) { b, at in
+      let heard = at.isHostTimeValid ? hostMs(at.hostTime) : nil
       guard let m = mono(b, firstOnly: true) else { return }
-      work.async { if self.generation == current { onBuffer(m) } }
+      work.async { if self.generation == current { onBuffer(m, heard) } }
     }
     return true
   }
@@ -678,6 +680,7 @@ final class Recorder {
   let me: Track, them: Track
   var mic: Mic!, sys: SystemAudio!
   var micMuted = args.contains("--mic-muted")
+  var micFrom: Double?
   var paused = false, finishing = false, sysAllowed = true
   var timer: DispatchSourceTimer?
   var micRebuild: DispatchWorkItem?, sysRebuild: DispatchWorkItem?
@@ -691,8 +694,19 @@ final class Recorder {
 
   init(dir: URL) {
     me = Track("me", dir: dir); them = Track("them", dir: dir)
-    mic = Mic { [unowned self] b in
+    mic = Mic { [unowned self] b, heard in
       guard !self.paused, !self.finishing, !self.micMuted else { return }
+      // A late or straddling tap can still contain samples captured before unmute.
+      if let from = self.micFrom {
+        guard let heard, let data = b.floatChannelData?[0] else { return }
+        let skip = max(0, Int(ceil((from - heard) * b.format.sampleRate / 1000)))
+        let keep = Int(b.frameLength) - skip
+        guard keep > 0 else { return }
+        if skip > 0 {
+          memmove(data, data + skip, keep * MemoryLayout<Float>.size)
+          b.frameLength = AVAudioFrameCount(keep)
+        }
+      }
       self.me.append(b)
     }
     sys = SystemAudio { [unowned self] b, heard in if !self.paused && !self.finishing { self.them.append(b, heardMs: heard) } }
@@ -736,7 +750,7 @@ final class Recorder {
     // a remembered mic that isn't here today: Auto, quietly (nothing was lost mid-meeting)
     if let uid = micUID, micDevice(uid: uid) == nil { log("the chosen microphone isn't here: using the Mac's"); micUID = nil }
     mic.device = micUID.flatMap(micDevice)
-    if !micMuted && !mic.start() { log("recording without the microphone for now: trying again"); retryMic() }
+    if !mic.start() { log("recording without the microphone for now: trying again"); retryMic() }
     if mic.device == nil { micUID = nil }
     reportMic()
     startSystem()
@@ -795,7 +809,7 @@ final class Recorder {
   }
   /// The output changed and took the mic's engine with it: started again at once, rebuilt only if that fails
   func restartMic() {
-    guard !finishing, !micMuted else { return }
+    guard !finishing else { return }
     me.resync()
     // the chosen mic was unplugged: never start the old engine on it again
     if let uid = micUID, micDevice(uid: uid) == nil { rebuildMic(); return }
@@ -813,7 +827,6 @@ final class Recorder {
         self.micUID = nil
         send(["t": "warn", "code": "mic-gone"])
       }
-      if self.micMuted { self.reportMic(); return }
       self.mic.stop(); self.me.resync()
       self.mic.device = self.micUID.flatMap(micDevice)
       guard self.mic.start() else {
@@ -850,7 +863,6 @@ final class Recorder {
     if let uid, micDevice(uid: uid) == nil { log("no microphone \(uid) here"); reportMic(); return }
     if uid == micUID && mic.engine != nil { reportMic(); return }
     micUID = uid
-    if micMuted { mic.device = uid.flatMap(micDevice); reportMic(); return }
     me.resync()
     if let dev = uid.flatMap(micDevice) ?? defaultInput(), mic.move(to: dev) {
       if uid == nil { mic.device = nil }
@@ -860,6 +872,32 @@ final class Recorder {
     rebuildMic(after: 0)
   }
 
+  func setMicMuted(_ off: Bool, id: Int, inputReady: @autoclosure () -> Bool) {
+    let boundary = ceil(startOffsetMs + max(nowMs(), Double(me.pts) / 48)) - startOffsetMs
+    let changing = off != micMuted
+    if changing {
+      me.resync()
+      me.srcRate = 0
+      _ = me.level()
+      if off {
+        micMuted = true
+        micSpeechGeneration += 1
+        me.onPcm16 = nil
+        #if compiler(>=6.2)
+        if #available(macOS 26, *), let live = speech.removeValue(forKey: "me") as? LiveSpeech {
+          Task { await live.finish() }
+        }
+        #endif
+      } else {
+        micMuted = !inputReady()
+        if !micMuted { micFrom = boundary }
+        if !micMuted, let wanted = argValue("--speech") { startSpeech(wanted, micOnly: true) }
+      }
+    }
+    send(["t": "mic-muted", "id": id, "muted": micMuted, "ms": startOffsetMs + boundary])
+    if changing { me.padTo(Int64(ceil(boundary * 48))) }
+  }
+
   func command(_ c: String) {
     switch c {
     case "pause": paused = true; me.flushPending(); them.flushPending()
@@ -867,32 +905,8 @@ final class Recorder {
     case _ where c.hasPrefix("mute ") || c.hasPrefix("unmute "):
       let fields = c.split(separator: " ")
       guard fields.count == 2, let id = Int(fields[1]) else { return }
-      let off = fields[0] == "mute"
-      let boundary = max(nowMs(), Double(me.pts) / 48)
-      if off != micMuted {
-        me.resync()
-        me.padTo(Int64(ceil(boundary * 48)))
-        me.srcRate = 0
-        _ = me.level()
-        if off {
-          micMuted = true
-          micRebuild?.cancel()
-          mic.stop()
-          micSpeechGeneration += 1
-          me.onPcm16 = nil
-          #if compiler(>=6.2)
-          if #available(macOS 26, *), let live = speech.removeValue(forKey: "me") as? LiveSpeech {
-            Task { await live.finish() }
-          }
-          #endif
-        } else {
-          mic.device = micUID.flatMap(micDevice)
-          micMuted = AVCaptureDevice.authorizationStatus(for: .audio) != .authorized || !mic.start()
-          if !micMuted, let wanted = argValue("--speech") { startSpeech(wanted, micOnly: true) }
-          reportMic()
-        }
-      }
-      send(["t": "mic-muted", "id": id, "muted": micMuted, "ms": ceil(startOffsetMs + boundary)])
+      setMicMuted(fields[0] == "mute", id: id,
+                  inputReady: mic.engine?.isRunning == true && AVCaptureDevice.authorizationStatus(for: .audio) == .authorized)
     case "stop": finish()
     case _ where c.hasPrefix("mic "): chooseMic(String(c.dropFirst(4)).trimmingCharacters(in: .whitespaces))
     // local measurements only (YOGURT_AUDIO_TEST=1): the engine stopped as a configuration change stops it, then

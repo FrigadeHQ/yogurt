@@ -22,7 +22,7 @@ use crate::out::log;
 
 /// What the capture threads and Windows tell the recorder
 pub enum Ev {
-    Mic(Vec<f32>, u64),
+    Mic(Vec<f32>, u64, Option<f64>),
     MicLost(u64),
     /// the computer's sound and the meeting time it was heard at
     Sys(Vec<f32>, f64),
@@ -317,7 +317,7 @@ fn spawn(
 }
 
 /// The microphone: the one with this ID, or Windows' default input
-pub fn start_mic(uid: Option<String>, tx: Sender<Ev>, generation: u64) -> Result<Stream, StartError> {
+pub fn start_mic(uid: Option<String>, tx: Sender<Ev>, generation: u64, clock: Clock) -> Result<Stream, StartError> {
     let lost_tx = tx.clone();
     spawn(
         move || {
@@ -331,8 +331,9 @@ pub fn start_mic(uid: Option<String>, tx: Sender<Ev>, generation: u64) -> Result
             Ok((client, ch, false))
         },
         move |p| {
-            if let Some((s, _)) = p {
-                let _ = tx.send(Ev::Mic(s, generation));
+            if let Some((s, qpc)) = p {
+                let heard = (qpc != 0).then(|| clock.qpc_ms(qpc));
+                let _ = tx.send(Ev::Mic(s, generation, heard));
             }
         },
         move || {
