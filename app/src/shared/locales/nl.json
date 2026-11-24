@@ -794,5 +794,7 @@
   "System notification": "Systeemmelding",
   "Sound": "Geluid",
   "Closing the window keeps Yogurt running.": "Yogurt blijft actief als je het venster sluit.",
-  "Notes": "Notities"
+  "Notes": "Notities",
+  "Detect meetings automatically": "Vergaderingen automatisch detecteren",
+  "Automatic meeting detection is off.": "Automatische vergaderdetectie staat uit."
 }

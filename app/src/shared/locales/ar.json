@@ -850,5 +850,7 @@
   "System notification": "إشعار النظام",
   "Sound": "الصوت",
   "Closing the window keeps Yogurt running.": "يستمر Yogurt في العمل عند إغلاق النافذة.",
-  "Notes": "ملاحظات"
+  "Notes": "ملاحظات",
+  "Detect meetings automatically": "اكتشاف الاجتماعات تلقائيًا",
+  "Automatic meeting detection is off.": "اكتشاف الاجتماعات تلقائيًا متوقف."
 }

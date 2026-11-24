@@ -1,6 +1,6 @@
 import { isNotificationEvent } from '../shared/notificationDelivery'
 import { BrowserWindow, ipcMain, nativeTheme } from 'electron'
-import { includesRecordingCredit, loadSettings, localeOf, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings, visibilityOf, summaryLanguageSetting } from './settings'
+import { detectsMeetings, includesRecordingCredit, loadSettings, localeOf, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings, visibilityOf, summaryLanguageSetting } from './settings'
 import { systemLocale } from './locale'
 import { PERMISSION_KINDS, type PermissionKind, type Permissions } from './permissions'
 import { firstRunPlan, missing, nudge } from '../shared/onboarding'
@@ -24,6 +24,7 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
   relaunch(): boolean
   /** fake mode: a slow start, so tests see the launch screen */
   slowStartMs?: number
+  detectionChanged?(on: boolean): void
   recordingPillChanged?(on: boolean): void
   /** the spoken language changed: the meeting being recorded follows it where it can */
   onSpoken?: (v: Spoken) => void
@@ -61,9 +62,14 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
     // what the Mac says, so a change in System Settings shows here
     // locale: every window (main, card, widget) shows the interface language
     // language: the one picked ('' is the Mac's); locale: the one in use; systemLocale: the Mac's, for the picker
-    return { notificationDelivery: s.notificationDelivery, theme: s.theme ?? 'system', openAtLogin: d.loginOn(s.openAtLogin), showInMenuBar: visible.showInMenuBar, showNextMeeting: s.showNextMeeting !== false, showRecordingPill: visible.showRecordingPill, appVisibility: !visible.showInMenuBar ? 'dock' : visible.showInDock ? 'both' : 'menu-bar', language: isLocale(s.language) ? s.language : '', locale: localeOf(s, systemLocale()), systemLocale: systemLocale(), myName: s.myName?.trim() || d.macName(), macName: d.macName(), stopWhenCallEnds: stopsWhenCallEnds(s), recordingReminder: recordingReminderOn(s), includeRecordingCredit: includesRecordingCredit(s), keepRecordings: s.keepRecordings !== false, jargon: cleanJargon(s.jargon), spoken: spokenSetting(s), summaryLanguage: summaryLanguageSetting(s) }
+    return { detectMeetingsAutomatically: detectsMeetings(s), notificationDelivery: s.notificationDelivery, theme: s.theme ?? 'system', openAtLogin: d.loginOn(s.openAtLogin), showInMenuBar: visible.showInMenuBar, showNextMeeting: s.showNextMeeting !== false, showRecordingPill: visible.showRecordingPill, appVisibility: !visible.showInMenuBar ? 'dock' : visible.showInDock ? 'both' : 'menu-bar', language: isLocale(s.language) ? s.language : '', locale: localeOf(s, systemLocale()), systemLocale: systemLocale(), myName: s.myName?.trim() || d.macName(), macName: d.macName(), stopWhenCallEnds: stopsWhenCallEnds(s), recordingReminder: recordingReminderOn(s), includeRecordingCredit: includesRecordingCredit(s), keepRecordings: s.keepRecordings !== false, jargon: cleanJargon(s.jargon), spoken: spokenSetting(s), summaryLanguage: summaryLanguageSetting(s) }
   }
   ipcMain.handle('settings:get', read)
+  ipcMain.handle('settings:detect-meetings', (_e, on: unknown) => {
+    if (typeof on !== 'boolean' || on === detectsMeetings(loadSettings(d.file))) return
+    updateSettings(d.file, { detectMeetingsAutomatically: on ? undefined : false })
+    d.detectionChanged?.(on)
+  })
   ipcMain.handle('settings:notification', (_e, event: unknown, channel: unknown, on: unknown) => {
     if (!isNotificationEvent(event) || (channel !== 'system' && channel !== 'sound') || typeof on !== 'boolean') return
     const choices = loadSettings(d.file).notificationDelivery

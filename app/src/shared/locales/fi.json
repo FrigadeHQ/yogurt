@@ -800,5 +800,7 @@
   "System notification": "Järjestelmäilmoitus",
   "Sound": "Ääni",
   "Closing the window keeps Yogurt running.": "Yogurt jää käyntiin, kun suljet ikkunan.",
-  "Notes": "Muistiinpanot"
+  "Notes": "Muistiinpanot",
+  "Detect meetings automatically": "Tunnista kokoukset automaattisesti",
+  "Automatic meeting detection is off.": "Automaattinen kokousten tunnistus on pois käytöstä."
 }

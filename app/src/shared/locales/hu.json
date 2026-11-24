@@ -782,5 +782,7 @@
   "System notification": "Rendszerértesítés",
   "Sound": "Hang",
   "Closing the window keeps Yogurt running.": "Az ablak bezárása után a Yogurt tovább fut.",
-  "Notes": "Jegyzetek"
+  "Notes": "Jegyzetek",
+  "Detect meetings automatically": "Értekezletek automatikus észlelése",
+  "Automatic meeting detection is off.": "Az értekezletek automatikus észlelése ki van kapcsolva."
 }

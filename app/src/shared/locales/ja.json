@@ -752,5 +752,7 @@
   "System notification": "システム通知",
   "Sound": "サウンド",
   "Closing the window keeps Yogurt running.": "ウインドウを閉じても Yogurt は動作し続けます。",
-  "Notes": "ノート"
+  "Notes": "ノート",
+  "Detect meetings automatically": "会議を自動検出",
+  "Automatic meeting detection is off.": "会議の自動検出はオフです。"
 }

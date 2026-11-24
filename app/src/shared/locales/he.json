@@ -804,5 +804,7 @@
   "System notification": "התראת מערכת",
   "Sound": "צליל",
   "Closing the window keeps Yogurt running.": "Yogurt ממשיך לפעול לאחר סגירת החלון.",
-  "Notes": "הערות"
+  "Notes": "הערות",
+  "Detect meetings automatically": "זיהוי פגישות אוטומטי",
+  "Automatic meeting detection is off.": "זיהוי פגישות אוטומטי כבוי."
 }

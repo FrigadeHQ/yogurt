@@ -797,5 +797,7 @@
   "System notification": "Ειδοποίηση συστήματος",
   "Sound": "Ήχος",
   "Closing the window keeps Yogurt running.": "Το Yogurt συνεχίζει να λειτουργεί όταν κλείσετε το παράθυρο.",
-  "Notes": "Σημειώσεις"
+  "Notes": "Σημειώσεις",
+  "Detect meetings automatically": "Αυτόματος εντοπισμός συναντήσεων",
+  "Automatic meeting detection is off.": "Ο αυτόματος εντοπισμός συναντήσεων είναι απενεργοποιημένος."
 }

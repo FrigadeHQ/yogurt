@@ -567,3 +567,51 @@ describe('the call window going away ends the call', () => {
     expect(log).toEqual(['auto:m1'])
   })
 })
+
+describe('automatic meeting detection', () => {
+  it('withdraws the offer immediately and only offers again after detection is enabled', async () => {
+    reading = { micApps: [zoom], events: [] }
+    await w.tick()
+    expect(log).toEqual(['offer:app:us.zoom.xos'])
+    w.setDetectionEnabled(false)
+    expect(w.onCall()).toBe(false)
+    await w.tick()
+    expect(log).toEqual(['offer:app:us.zoom.xos', 'hide'])
+    w.setDetectionEnabled(true)
+    await w.tick()
+    expect(log.at(-1)).toBe('offer:app:us.zoom.xos')
+  })
+
+  it.each([false, true])('leaves a manual or ongoing recording under user control when auto-stop is %s', async enabled => {
+    w = autoWatcher()
+    auto = enabled
+    active = meeting()
+    reading = { micApps: [zoom], events: [] }
+    await w.tick()
+    w.setDetectionEnabled(false)
+    reading = { micApps: [], events: [] }
+    clock += 10 * MIN
+    silent = 10 * MIN
+    await w.tick()
+    active = meeting({ id: 'manual', app: null })
+    await w.tick()
+    expect(w.onCall()).toBe(true)
+    expect(active.app).toBeNull()
+    expect(log).toEqual(['hide'])
+  })
+
+  it('skips signal reads while off and discards a read started before an off/on cycle', async () => {
+    let finish!: (reading: Reading) => void
+    const read = vi.fn(() => new Promise<Reading>(resolve => { finish = resolve }))
+    w = new Watcher({ read, now: () => clock, active: () => active, bindApp: vi.fn(), offer: vi.fn(p => log.push(p.key)), askStop: vi.fn(), hide: vi.fn() })
+    const old = w.tick()
+    w.setDetectionEnabled(false)
+    w.setDetectionEnabled(true)
+    finish({ micApps: [zoom], events: [] })
+    await old
+    expect(log).toEqual([])
+    w.setDetectionEnabled(false)
+    await w.tick()
+    expect(read).toHaveBeenCalledTimes(1)
+  })
+})

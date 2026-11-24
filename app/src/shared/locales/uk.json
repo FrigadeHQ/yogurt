@@ -822,5 +822,7 @@
   "System notification": "Системне сповіщення",
   "Sound": "Звук",
   "Closing the window keeps Yogurt running.": "Після закриття вікна Yogurt продовжує працювати.",
-  "Notes": "Нотатки"
+  "Notes": "Нотатки",
+  "Detect meetings automatically": "Автоматично виявляти зустрічі",
+  "Automatic meeting detection is off.": "Автоматичне виявлення зустрічей вимкнено."
 }

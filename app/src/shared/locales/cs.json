@@ -825,5 +825,7 @@
   "System notification": "Systémové oznámení",
   "Sound": "Zvuk",
   "Closing the window keeps Yogurt running.": "Po zavření okna zůstane Yogurt spuštěný.",
-  "Notes": "Poznámky"
+  "Notes": "Poznámky",
+  "Detect meetings automatically": "Automaticky rozpoznávat schůzky",
+  "Automatic meeting detection is off.": "Automatické rozpoznávání schůzek je vypnuté."
 }

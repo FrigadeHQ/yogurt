@@ -752,5 +752,7 @@
   "System notification": "系统通知",
   "Sound": "声音",
   "Closing the window keeps Yogurt running.": "关闭窗口后，Yogurt 会继续运行。",
-  "Notes": "笔记"
+  "Notes": "笔记",
+  "Detect meetings automatically": "自动检测会议",
+  "Automatic meeting detection is off.": "自动会议检测已关闭。"
 }

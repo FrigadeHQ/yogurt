@@ -782,5 +782,7 @@
   "System notification": "सिस्टम सूचना",
   "Sound": "ध्वनि",
   "Closing the window keeps Yogurt running.": "विंडो बंद करने पर भी Yogurt चलता रहता है।",
-  "Notes": "नोट्स"
+  "Notes": "नोट्स",
+  "Detect meetings automatically": "मीटिंग का अपने आप पता लगाएँ",
+  "Automatic meeting detection is off.": "मीटिंग का अपने आप पता लगाना बंद है।"
 }

@@ -794,5 +794,7 @@
   "System notification": "Systemnotis",
   "Sound": "Ljud",
   "Closing the window keeps Yogurt running.": "Yogurt fortsätter att köras när du stänger fönstret.",
-  "Notes": "Anteckningar"
+  "Notes": "Anteckningar",
+  "Detect meetings automatically": "Upptäck möten automatiskt",
+  "Automatic meeting detection is off.": "Automatisk mötesidentifiering är avstängd."
 }

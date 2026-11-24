@@ -752,5 +752,7 @@
   "System notification": "Notifikasi sistem",
   "Sound": "Suara",
   "Closing the window keeps Yogurt running.": "Yogurt tetap berjalan saat jendela ditutup.",
-  "Notes": "Catatan"
+  "Notes": "Catatan",
+  "Detect meetings automatically": "Deteksi rapat secara otomatis",
+  "Automatic meeting detection is off.": "Deteksi rapat otomatis dinonaktifkan."
 }

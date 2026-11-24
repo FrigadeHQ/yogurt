@@ -33,9 +33,25 @@ for (const theme of ['light', 'dark'] as const) {
       for (const event of notificationEvents) {
         await page.getByTestId('settings-nav-notifications').click()
         await page.getByTestId('notification-' + event).click()
-        await expect(page.getByRole('switch')).toHaveCount(2)
+        await expect(page.getByTestId('settings-page-' + event).getByRole('switch')).toHaveCount(2)
         await capture(event)
       }
+      await page.getByTestId('settings-nav-meetings').click()
+      await page.getByTestId('detect-meetings').click()
+      await expect(page.getByTestId('autostop-toggle')).toBeDisabled()
+      await page.getByTestId('settings-nav-notifications').click()
+      for (const id of ['meeting-detected', 'call-ended']) {
+        const row = page.getByTestId('notification-' + id)
+        await expect(row).toBeDisabled()
+        await expect(row).toContainText('Automatic meeting detection is off.')
+      }
+      await page.screenshot({ path: testInfo.outputPath(`settings-notifications-detection-off-${theme}.png`), animations: 'disabled' })
+      await page.getByTestId('notification-notes-ready').click()
+      await expect(page.getByRole('switch', { name: 'Sound', exact: true })).toBeDisabled()
+      await page.getByRole('switch', { name: 'System notification', exact: true }).click()
+      await page.getByRole('switch', { name: 'Sound', exact: true }).click()
+      await page.reload()
+      await expect(page.getByRole('switch', { name: 'Sound', exact: true })).toBeChecked()
     } finally { await app.close() }
   })
 }

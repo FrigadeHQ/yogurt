@@ -811,5 +811,7 @@
   "System notification": "Notificare de sistem",
   "Sound": "Sunet",
   "Closing the window keeps Yogurt running.": "Yogurt continuă să ruleze când închizi fereastra.",
-  "Notes": "Notițe"
+  "Notes": "Notițe",
+  "Detect meetings automatically": "Detectează automat întâlnirile",
+  "Automatic meeting detection is off.": "Detectarea automată a întâlnirilor este dezactivată."
 }

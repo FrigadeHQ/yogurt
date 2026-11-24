@@ -794,5 +794,7 @@
   "System notification": "Systemnotifikation",
   "Sound": "Lyd",
   "Closing the window keeps Yogurt running.": "Yogurt kører videre, når du lukker vinduet.",
-  "Notes": "Noter"
+  "Notes": "Noter",
+  "Detect meetings automatically": "Registrer møder automatisk",
+  "Automatic meeting detection is off.": "Automatisk registrering af møder er slået fra."
 }

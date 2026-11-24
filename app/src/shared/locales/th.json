@@ -752,5 +752,7 @@
   "System notification": "การแจ้งเตือนของระบบ",
   "Sound": "เสียง",
   "Closing the window keeps Yogurt running.": "Yogurt ยังทำงานต่อเมื่อคุณปิดหน้าต่าง",
-  "Notes": "บันทึก"
+  "Notes": "บันทึก",
+  "Detect meetings automatically": "ตรวจหาการประชุมโดยอัตโนมัติ",
+  "Automatic meeting detection is off.": "ปิดการตรวจหาการประชุมโดยอัตโนมัติอยู่"
 }

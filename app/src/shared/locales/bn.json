@@ -782,5 +782,7 @@
   "System notification": "সিস্টেম বিজ্ঞপ্তি",
   "Sound": "শব্দ",
   "Closing the window keeps Yogurt running.": "উইন্ডো বন্ধ করলেও Yogurt চলতে থাকে।",
-  "Notes": "নোট"
+  "Notes": "নোট",
+  "Detect meetings automatically": "স্বয়ংক্রিয়ভাবে মিটিং শনাক্ত করুন",
+  "Automatic meeting detection is off.": "স্বয়ংক্রিয় মিটিং শনাক্তকরণ বন্ধ আছে।"
 }

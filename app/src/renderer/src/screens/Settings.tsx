@@ -164,6 +164,9 @@ export function Settings({ revision = 0, focus, go = route => window.yogurt.nav.
       </ul></LoadingContent>
     </>
   }
+  const detectionOff = prefs?.detectMeetingsAutomatically === false
+  const needsDetection = (id: NotificationEvent) => detectionOff && (id === 'meeting-detected' || id === 'call-ended')
+  const detectionOffText = t('Automatic meeting detection is off.')
   const delivery = event && deliveryFor(prefs?.notificationDelivery, event)
   const heading = useRef<HTMLHeadingElement>(null)
   const previousPage = useRef(focus)
@@ -247,10 +250,22 @@ export function Settings({ revision = 0, focus, go = route => window.yogurt.nav.
               <div className="settings-group"><LoadingContent pending={!prefs} testId="settings-loading">
                 <div className="settings-row">
                   <div className="settings-row-copy">
-                    <p className="settings-label">{t('Stop recording when the call ends')}</p>
-                    <p className="settings-description">{t('Automatically end the recording a few seconds after you hang up.')}</p>
+                    <label htmlFor="detect-meetings" className="settings-label">{t('Detect meetings automatically')}</label>
+                    <p id="detect-meetings-description" className="settings-description">{t('Asks you to record when a call starts.')}</p>
                   </div>
-                  <button data-testid="autostop-toggle" disabled={!prefs || general.busy} role="switch" aria-checked={!!prefs?.stopWhenCallEnds} aria-label={t('Stop recording when the call ends')} onClick={autoStop}
+                  <button id="detect-meetings" data-testid="detect-meetings" role="switch" className="settings-toggle"
+                    aria-checked={!detectionOff} aria-describedby="detect-meetings-description" disabled={!prefs || general.busy}
+                    onClick={() => void general.save(async () => {
+                      await window.yogurt.settings.setDetectMeetingsAutomatically(detectionOff)
+                      setPrefs(await window.yogurt.settings.get())
+                    }, 'detect-meetings-retry')}><span className="settings-toggle-knob" /></button>
+                </div>
+                <div className="settings-row">
+                  <div className="settings-row-copy">
+                    <p className="settings-label">{t('Stop recording when the call ends')}</p>
+                    <p id="auto-stop-description" className="settings-description">{detectionOff ? detectionOffText : t('Automatically end the recording a few seconds after you hang up.')}</p>
+                  </div>
+                  <button data-testid="autostop-toggle" aria-describedby="auto-stop-description" disabled={!prefs || general.busy || detectionOff} role="switch" aria-checked={!!prefs?.stopWhenCallEnds} aria-label={t('Stop recording when the call ends')} onClick={autoStop}
                     className="settings-toggle">
                     <span className="settings-toggle-knob" />
                   </button>
@@ -309,11 +324,20 @@ export function Settings({ revision = 0, focus, go = route => window.yogurt.nav.
             </>}
             {section === 'notifications' && !event && <>
               <div className="settings-group">
-                {notificationEvents.map(id => <button key={id} className="settings-row settings-link" data-testid={`notification-${id}`} onClick={() => go('/settings/notifications/' + id)}>
-                  <span className="settings-label settings-row-copy">{eventLabels[id]()}</span>
-                  <span className="settings-description">{deliveryFor(prefs?.notificationDelivery, id).system ? t('On') : t('Off')}</span>
-                  <ChevronRight size={15} aria-hidden="true" />
-                </button>)}
+                {notificationEvents.map(id => {
+                  const unavailable = needsDetection(id)
+                  return <button key={id} className="settings-row settings-link" data-testid={'notification-' + id}
+                    disabled={!prefs || unavailable} onClick={() => go('/settings/notifications/' + id)}>
+                    <span className="settings-row-copy">
+                      <span className="settings-label">{eventLabels[id]()}</span>
+                      {unavailable && <span className="block settings-description">{detectionOffText}</span>}
+                    </span>
+                    {!unavailable && <>
+                      <span className="settings-description">{deliveryFor(prefs?.notificationDelivery, id).system ? t('On') : t('Off')}</span>
+                      <ChevronRight size={15} aria-hidden="true" />
+                    </>}
+                  </button>
+                })}
               </div>
               <h2 className="settings-section-heading">{t('Recording')}</h2>
               <div className="settings-group">
@@ -330,9 +354,10 @@ export function Settings({ revision = 0, focus, go = route => window.yogurt.nav.
               {permissions(['notifications'])}
             </>}
             {event && delivery && <div className="settings-group">
+              {needsDetection(event) && <p className="settings-row settings-description">{detectionOffText}</p>}
               {(['system', 'sound'] as const).map(channel => {
                 const label = channel === 'system' ? t('System notification') : t('Sound')
-                const unavailable = channel === 'sound' && !delivery.system
+                const unavailable = needsDetection(event) || (channel === 'sound' && !delivery.system)
                 return <div key={channel} className="settings-row">
                   <label className="settings-label settings-row-copy" htmlFor={'notify-' + channel}>{label}</label>
                   <button id={'notify-' + channel} role="switch" className="settings-toggle" aria-checked={delivery[channel]}

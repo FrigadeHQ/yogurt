@@ -205,3 +205,15 @@ it('changes delivery per event while keeping the two recording cards available',
   expect(state.windows).toHaveLength(2)
   expect(state.notices.at(-1).options).toMatchObject({ silent: false, title: 'Stop recording?' })
 })
+
+it('a withdrawn call-ended notification can no longer open its note', async () => {
+  const r = await recording()
+  try {
+    prompts.stopped(r.m)
+    const notice = state.notices.at(-1)
+    prompts.hide()
+    notice.listeners.get('click')!()
+    expect(notice.close).toHaveBeenCalledOnce()
+    expect(r.open).not.toHaveBeenCalled()
+  } finally { r.store.close() }
+})

@@ -794,5 +794,7 @@
   "System notification": "Abiso ng system",
   "Sound": "Tunog",
   "Closing the window keeps Yogurt running.": "Patuloy na gagana ang Yogurt kapag isinara mo ang window.",
-  "Notes": "Mga tala"
+  "Notes": "Mga tala",
+  "Detect meetings automatically": "Awtomatikong tukuyin ang mga meeting",
+  "Automatic meeting detection is off.": "Naka-off ang awtomatikong pagtukoy ng mga meeting."
 }

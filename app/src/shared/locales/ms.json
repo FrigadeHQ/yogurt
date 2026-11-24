@@ -752,5 +752,7 @@
   "System notification": "Pemberitahuan sistem",
   "Sound": "Bunyi",
   "Closing the window keeps Yogurt running.": "Yogurt terus berjalan apabila tetingkap ditutup.",
-  "Notes": "Nota"
+  "Notes": "Nota",
+  "Detect meetings automatically": "Kesan mesyuarat secara automatik",
+  "Automatic meeting detection is off.": "Pengesanan mesyuarat automatik dimatikan."
 }

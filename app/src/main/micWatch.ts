@@ -79,12 +79,14 @@ export function createMicWatch(d: { start: () => MicWatchProc; poll: () => Promi
   run()
   return {
     async read(): Promise<unknown> {
+      if (stopped) return []
       tell()
       if (value) return value
       if (proc && !polling) {
         let timer: NodeJS.Timeout | undefined
         await new Promise<void>((r) => { heard.push(r); timer = setTimeout(r, FIRST_LINE_MS) })
         clearTimeout(timer)
+        if (stopped) return []
         if (value) return value
       }
       return slowPoll()
@@ -94,6 +96,8 @@ export function createMicWatch(d: { start: () => MicWatchProc; poll: () => Promi
       stopped = true
       clearTimeout(restart)
       proc?.stop()
+      proc = undefined
+      for (const resume of heard.splice(0)) resume()
     },
   }
 }

@@ -301,5 +301,7 @@
   "System notification": "System notification",
   "Sound": "Sound",
   "Closing the window keeps Yogurt running.": "Closing the window keeps Yogurt running.",
-  "Notes": "Notes"
+  "Notes": "Notes",
+  "Detect meetings automatically": "Detect meetings automatically",
+  "Automatic meeting detection is off.": "Automatic meeting detection is off."
 }

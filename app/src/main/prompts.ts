@@ -122,7 +122,11 @@ export function createPrompts(d: {
       const delivery = d.delivery('call-ended')
       if (d.windowVisible() || !delivery.system) return
       const title = t('Recording stopped when the call ended.'), body = m.title
-      const click = () => { notice?.n?.close(); notice = null; d.open(m.id) }
+      const click = () => {
+        if (notice?.click !== click) return
+        close()
+        d.open(m.id)
+      }
       notice = { title, body, click }
       if (!BACKGROUND && Notification.isSupported()) {
         const n = new Notification({ title, body, silent: !delivery.sound })

@@ -830,5 +830,7 @@
   "System notification": "Powiadomienie systemowe",
   "Sound": "Dźwięk",
   "Closing the window keeps Yogurt running.": "Yogurt działa dalej po zamknięciu okna.",
-  "Notes": "Notatki"
+  "Notes": "Notatki",
+  "Detect meetings automatically": "Automatycznie wykrywaj spotkania",
+  "Automatic meeting detection is off.": "Automatyczne wykrywanie spotkań jest wyłączone."
 }

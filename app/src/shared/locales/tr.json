@@ -782,5 +782,7 @@
   "System notification": "Sistem bildirimi",
   "Sound": "Ses",
   "Closing the window keeps Yogurt running.": "Pencereyi kapattığınızda Yogurt çalışmaya devam eder.",
-  "Notes": "Notlar"
+  "Notes": "Notlar",
+  "Detect meetings automatically": "Toplantıları otomatik algıla",
+  "Automatic meeting detection is off.": "Toplantıların otomatik algılanması kapalı."
 }

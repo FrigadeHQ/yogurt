@@ -752,5 +752,7 @@
   "System notification": "Thông báo hệ thống",
   "Sound": "Âm thanh",
   "Closing the window keeps Yogurt running.": "Yogurt vẫn chạy khi bạn đóng cửa sổ.",
-  "Notes": "Ghi chú"
+  "Notes": "Ghi chú",
+  "Detect meetings automatically": "Tự động phát hiện cuộc họp",
+  "Automatic meeting detection is off.": "Tính năng tự động phát hiện cuộc họp đang tắt."
 }
