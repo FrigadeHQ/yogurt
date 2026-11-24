@@ -97,6 +97,8 @@ export function Settings({ revision = 0, focus, go = route => window.yogurt.nav.
   const event = section === 'notifications' && isNotificationEvent(detail) ? detail : undefined
   const [perms, setPerms] = useState<PermissionStatus>()
   const [prefs, setPrefs] = useState<Awaited<ReturnType<typeof window.yogurt.settings.get>>>()
+  // The deep link takes focus after the loading mask lifts and scroll restoration finishes.
+  const [storageReady, setStorageReady] = useState(false)
   const [name, setName] = useState('')
   const scroll = useScrollMemory<HTMLDivElement>('settings/' + (focus ?? 'general'), !!prefs && !!perms)
   useEffect(() => { void window.yogurt.settings.get().then(setPrefs) }, [revision])
@@ -376,8 +378,8 @@ export function Settings({ revision = 0, focus, go = route => window.yogurt.nav.
               <PhoneSettings />
             </>}
             {section === 'storage' && <>
-              <div className="settings-group"><LoadingContent pending={!prefs} testId="settings-loading">
-                <RecordingSetting reveal={focus === 'recordings'} on={prefs?.keepRecordings ?? true} disabled={!prefs} onChange={async on => {
+              <div className="settings-group"><LoadingContent pending={!prefs} testId="settings-loading" onReady={() => setStorageReady(true)}>
+                <RecordingSetting reveal={focus === 'recordings' && storageReady && !!perms} on={prefs?.keepRecordings ?? true} disabled={!prefs} onChange={async on => {
                   await window.yogurt.settings.setKeepRecordings(on)
                   setPrefs(p => p && { ...p, keepRecordings: on })
                 }} />

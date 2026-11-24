@@ -73,10 +73,10 @@ for (const theme of ['light', 'dark'] as const) test(`standard recording reminde
     await expect(toast).toHaveCount(0)
     await page.getByTestId('note-stop').click()
     await openFromCorner(page, 'settings-open', 'notifications')
-    const toggle = page.getByTestId('recording-reminder-toggle')
+    const notifications = page.getByTestId('settings-page-notifications')
+    const toggle = notifications.getByRole('switch', { name: 'Recording reminder', exact: true })
     await expect(toggle).toHaveAttribute('aria-checked', 'true')
-    // the loaded settings, not the fading placeholder copy that holds the same words for a moment
-    await expect(page.locator('.loading-result').getByText('Show a brief reminder when recording starts.')).toBeVisible()
+    await expect(notifications.getByText('Show a brief reminder when recording starts.', { exact: true })).toBeVisible()
     await toggle.click()
     await page.reload()
     await expect(toggle).toHaveAttribute('aria-checked', 'false')

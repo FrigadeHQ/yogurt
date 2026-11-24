@@ -155,14 +155,20 @@ it('Stop on an already-ended meeting closes the stale card and leaves its summar
   } finally { r.store.close() }
 })
 
-it.each(['stop', 'keep-going'] as const)('the live %s action still works and closes both surfaces', async action => {
+it.each(['stop', 'keep-going', 'notification'] as const)('the live %s action still works and closes both surfaces', async action => {
   const r = await recording()
   try {
-    state.handlers.get('prompt:act')!({}, action)
+    if (action === 'notification') r.notice.listeners.get('click')!()
+    else state.handlers.get('prompt:act')!({}, action)
     expect(r.card.isDestroyed()).toBe(true)
     expect(r.notice.close).toHaveBeenCalledOnce()
-    if (action === 'stop') expect(r.stop).toHaveBeenCalledWith(r.m.id)
-    else { expect(r.keepGoing).toHaveBeenCalledOnce(); expect(r.activeMeeting()?.id).toBe(r.m.id) }
+    if (action === 'keep-going') {
+      expect(r.keepGoing).toHaveBeenCalledOnce()
+      expect(r.activeMeeting()?.id).toBe(r.m.id)
+    } else {
+      expect(r.stop).toHaveBeenCalledWith(r.m.id)
+      expect(r.store.meeting(r.m.id)?.state).toBe('stopped')
+    }
   } finally { r.store.close() }
 })
 

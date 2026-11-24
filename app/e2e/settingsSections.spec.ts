@@ -15,6 +15,7 @@ for (const theme of ['light', 'dark'] as const) {
     } })
     try {
       const page = await app.firstWindow()
+      await page.emulateMedia({ colorScheme: null })
       await expect(page.getByTestId('home')).toBeVisible()
       await openFromCorner(page, 'settings-open')
       await expect.poll(() => page.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)).toBe(theme === 'dark')
