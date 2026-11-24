@@ -534,6 +534,17 @@ function startDetection() {
       go: (r) => goTo(r),
       warn: (code) => tell({ t: 'warn', code: code as WarnCode }),
       // a long finished meeting: n lines half a second apart, voices taking turns, with quiet low-rate audio to play
+      /** a meeting joined without computer audio: the other side's lines came from Zoom's captions */
+      captionMeeting: () => {
+        const store = storeRef!
+        const startedAt = Date.now() - 60_000
+        const m = store.createMeeting({ title: 'Captions only', startedAt, endedAt: startedAt + 60_000, eventId: null, app: 'Zoom', attendees: [], state: 'done' })
+        store.addSegments([
+          { meetingId: m.id, track: 'me', startMs: 1000, endMs: 3000, text: 'Can everyone hear me?', speaker: 'me' },
+          { meetingId: m.id, track: 'them', startMs: 4000, endMs: 9000, text: 'Yes, the next step is the storage move.', speaker: 'Dana Smith', source: 'captions' },
+        ])
+        return m.id
+      },
       bigMeeting: (n) => {
         const store = storeRef!
         const startedAt = Date.now() - n * 500

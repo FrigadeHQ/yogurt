@@ -816,5 +816,6 @@
   "Unmute my mic in Yogurt": "Réactiver mon micro dans Yogurt",
   "Mic will stay off on resume": "Le micro restera coupé à la reprise",
   "Mic mute couldn’t be confirmed.": "Impossible de confirmer la coupure du micro.",
-  "Mic off. Yogurt can’t hear call audio.": "Micro coupé. Yogurt ne reçoit pas le son de l’appel."
+  "Mic off. Yogurt can’t hear call audio.": "Micro coupé. Yogurt ne reçoit pas le son de l’appel.",
+  "From Zoom's captions": "D’après les sous-titres de Zoom"
 }

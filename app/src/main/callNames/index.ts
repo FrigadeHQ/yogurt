@@ -1,6 +1,7 @@
 import type { RecordingStart } from '../meeting'
 import type { Meeting, Store } from '../store'
 import { markedOther, nameFor, norm, othersIn, type CallSample } from './attribute'
+import { finishCaptions, foldCaptions, type CaptionLine } from './captions'
 import { readCall, summarize, type AxWindow, type CallKind } from './parse'
 
 /**
@@ -52,6 +53,8 @@ export function kindFor(appId: string, windows: Array<{ title?: string }>, callA
 export const WATCH_EVERY_MS = 400
 /** the apps mark the person talking about this late (Zoom: about 0.75 to 1.2 s after they start) */
 const APP_LAG_MS = 750
+/** a sample louder than this on the call's track is sound, not a silent stream (Zoom joined without computer audio) */
+const HEARD = 0.01
 /** no reading for this long while recording: the reader is stuck (seen once, 11 minutes of Them), so it starts again.
  * A slow window gets longer: three times the reader's own pace, and twice as long after each start, since the reader
  * waits as long as a reading took and a fresh one killed at 5 s never sends one (#83: a Teams reading took 10 s). */
@@ -67,10 +70,10 @@ const LOGGED_CHANGES = 30
 const CAPTION_LIVE_MS = 1500
 
 type Sample = Omit<CallSample, 'ms'> & { t: number }
-type Session = { app: string | null; ids: string[]; pids?: number[]; heardAt: number; quietMs: number; restarts: number; samples: Sample[]; priorLines: Set<number>; watch?: { stop(): void }; everyApp: boolean; offset?: number; startedAt: number; pictured: boolean; missPictured?: boolean; picturedPeople?: boolean; picturedTalking?: boolean; errors: Set<string>; last: string; logged: number; /** a call window with people was read (Zoom, Teams) */ windowSeen?: CallKind; /** since when the readings say that window is gone, and the last one that said so */ goneSince?: number; goneAt?: number; /** the newest caption's mark at the last reading, and when it last moved, so a frozen caption is not read as speech */ caption?: string; captionAt?: number }
+type Session = { app: string | null; ids: string[]; pids?: number[]; heardAt: number; quietMs: number; restarts: number; samples: Sample[]; priorLines: Set<number>; watch?: { stop(): void }; everyApp: boolean; offset?: number; startedAt: number; pictured: boolean; missPictured?: boolean; picturedPeople?: boolean; picturedTalking?: boolean; errors: Set<string>; last: string; logged: number; /** a call window with people was read (Zoom, Teams) */ windowSeen?: CallKind; /** since when the readings say that window is gone, and the last one that said so */ goneSince?: number; goneAt?: number; /** the newest caption's mark at the last reading, and when it last moved, so a frozen caption is not read as speech */ caption?: string; captionAt?: number; /** the captions assembled so far (captions.ts), for a call whose audio carried nothing */ captionLines?: CaptionLine[]; /** the call's own audio carried sound at some point */ themHeard?: boolean }
 
 export function hookCallNames(p: {
-  store: Pick<Store, 'meeting' | 'segments' | 'setSegmentSpeakers' | 'updateMeeting'>
+  store: Pick<Store, 'meeting' | 'segments' | 'setSegmentSpeakers' | 'updateMeeting' | 'addSegments'>
   watch: Watch
   /** the person's own names (Settings, the Mac's full name): never given to the other side */
   myNames: () => string[]
@@ -136,7 +139,8 @@ export function hookCallNames(p: {
       if (!s.errors.has(why)) { s.errors.add(why); log(`call names: ${why}`) }
       return
     }
-    const { byMute, caption, ...r } = readCall(kind, l.windows)
+    const { byMute, caption, captionRows, ...r } = readCall(kind, l.windows)
+    if (captionRows) foldCaptions(s.captionLines ??= [], captionRows, l.t)
     // The first reading of each meeting goes to the log in short, so a real call shows what its app gives. Teams opens
     // the mic on its join screen, minutes before the call (#138), so the first reading with people in it goes there too.
     // Meet's lobby shows people too (#112), so the first reading with someone marked talking goes there as well, long
@@ -206,6 +210,7 @@ export function hookCallNames(p: {
     const ids = watchIds(m.app)
     s.ids = ids; s.heardAt = now()
     // a window read before may have been another app's
+    s.captionLines = undefined
     s.windowSeen = undefined; s.goneSince = undefined; s.goneAt = undefined
     log(`call names: the call is in ${m.app}, reading only it`)
     if (!ids.length) return
@@ -216,9 +221,11 @@ export function hookCallNames(p: {
 
   // meeting time 0 on the wall clock: the earliest any audio could have been heard (each frame arrives a little after it was said)
   p.onCapture((c, id) => {
-    c.on('pcm', (_track, ms, samples) => {
+    c.on('pcm', (track, ms, samples) => {
       const s = sessions.get(id)
       if (!s) return
+      // the call's audio carried something: its own transcript, not the captions, is the record of the other side
+      if (track === 'them' && !s.themHeard) for (let i = 0; i < samples.length; i++) if (Math.abs(samples[i]) > HEARD) { s.themHeard = true; break }
       const zero = now() - (ms + samples.length / 16)
       s.offset = Math.min(s.offset ?? Infinity, zero)
     })
@@ -253,7 +260,23 @@ export function hookCallNames(p: {
         ? `; nobody named: ${read.length} of ${s.samples.length} readings read the app, at most ${most} in the call, ${markedOther(read, o)} marked the other side talking`
         : ''
       log(`call names: ${s.samples.length} readings, ${names.filter((x) => x.speaker).length} of ${lines.length} lines of the other side named, ${added.length} people added${why}`)
-      if (moved.length || added.length) p.changed(m.id)
+      // A meeting the call's audio never reached (joined without computer audio, or the computer's sound not
+      // recorded): Zoom's live captions are the only record of the other side, so they are written as its lines,
+      // marked as Zoom's words rather than what Yogurt heard. Never beside the audio's own: only with nothing heard on
+      // the call's track and no line of it. The person's own captions are left out: the mic has their words.
+      const mine = new Set([...o.myNames, ...s.samples.map((x) => x.me)].filter((x): x is string => !!x).map(norm))
+      const zero = (s.offset ?? s.startedAt) + APP_LAG_MS
+      const captioned = !lines.length && !s.themHeard && s.captionLines?.length
+        ? finishCaptions(s.captionLines).filter((c) => !mine.has(norm(c.who))).map((c) => ({
+          meetingId: m.id, track: 'them' as const, startMs: Math.max(0, c.firstAt - zero), endMs: Math.max(0, c.firstAt - zero + 500, c.lastAt - zero),
+          text: c.text, speaker: c.who, source: 'captions' as const,
+        }))
+        : []
+      if (captioned.length) {
+        p.store.addSegments(captioned)
+        log(`call names: the call's audio carried nothing, ${captioned.length} lines written from Zoom's captions`)
+      }
+      if (moved.length || added.length || captioned.length) p.changed(m.id)
     })().catch((e) => console.error('call names after the meeting failed', e)).finally(() => { sessions.delete(m.id); finals.delete(m.id) })
     finals.set(m.id, final)
   })
@@ -266,7 +289,7 @@ export function hookCallNames(p: {
       if (s.watch && s.app && !s.pids && p.micPids?.(s.app).length) {
         log(`call names: ${s.app} is on the mic now, reading only its process`)
         s.watch.stop(); s.watch = undefined
-        s.samples = []; s.heardAt = now(); s.pictured = false; s.picturedPeople = false; s.picturedTalking = false
+        s.samples = []; s.captionLines = undefined; s.heardAt = now(); s.pictured = false; s.picturedPeople = false; s.picturedTalking = false
         s.windowSeen = undefined; s.goneSince = undefined; s.goneAt = undefined
         begin(id, s)
         continue

@@ -83,6 +83,8 @@ function setup(o: { app?: string | null; attendees?: Meeting['attendees']; micPi
     start() { starts.forEach((f) => f(m)); captures.forEach((f) => f(capture, m.id)) },
     /** audio heard: meeting time `ms`, arriving at wall clock `at` */
     audio(ms: number, at: number) { clock = at; capture.emit('pcm', 'them', ms, new Float32Array(1600)) },
+    /** the same, with sound on the call's track */
+    loud(ms: number, at: number) { clock = at; capture.emit('pcm', 'them', ms, new Float32Array(1600).fill(0.2)) },
     emit: (l: WatchLine) => emit(l),
     /** the wall clock moves to `at` */
     at(t: number) { clock = t },
@@ -795,5 +797,54 @@ describe('callWindow: the call window seen, then gone', () => {
     s.at(1_000_000); s.emit({ t: 1_000_000, app: 'com.google.Chrome', windows: [{ title: 'Meet - abc-defg-hij', tree: { r: 'AXWindow', k: [] } }] })
     for (let t = 1_000_500; t <= 1_060_000; t += 500) { s.at(t); s.emit({ t, app: 'com.google.Chrome', error: 'no-call-window' }) }
     expect(s.hook.callWindow(s.m.id)).toBeNull()
+  })
+})
+
+describe('a meeting the call\'s audio never reached: the captions are its transcript', () => {
+  const people = ['Alex Morgan', 'Dana Smith', 'Ann Lee']
+  // Dana talks, Ann answers, and Alex (the person using Yogurt) says something the mic has anyway
+  const readings = (s: ReturnType<typeof setup>) => {
+    let dana = 'so the next step'
+    for (let t = 1_001_000; t < 1_004_000; t += 400) { dana += ' and more'; s.emit(zoomCaptionLine(t, people, [['Dana Smith', dana]], 'Alex Morgan')) }
+    for (let t = 1_004_000; t < 1_006_000; t += 400) s.emit(zoomCaptionLine(t, people, [['Dana Smith', dana], ['Ann Lee', 'sounds good'], ['Alex Morgan', 'I will send it']], 'Alex Morgan'))
+  }
+
+  it('writes the other side\'s captions as their lines, marked as Zoom\'s, and leaves the person\'s own out', async () => {
+    const s = setup()
+    s.start()
+    s.audio(0, 1_000_100)
+    readings(s)
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    const lines = s.store.segments(s.m.id)
+    expect(lines.map((x) => [x.speaker, x.track, x.source])).toEqual([['Dana Smith', 'them', 'captions'], ['Ann Lee', 'them', 'captions']])
+    expect(lines[0].text.startsWith('so the next step and more')).toBe(true)
+    // in meeting time, in order
+    expect(lines[0].startMs).toBeLessThan(lines[1].startMs)
+    expect(lines[0].endMs).toBeGreaterThan(lines[0].startMs)
+    // the words are in the transcript, never in the log
+    expect(s.logs.join('\n')).not.toContain('sounds good')
+    expect(s.logs.some((l) => l.includes("2 lines written from Zoom's captions"))).toBe(true)
+  })
+
+  it('a call whose audio carried sound keeps its own transcript, with no caption lines', async () => {
+    const s = setup()
+    s.start()
+    s.loud(0, 1_000_100)
+    readings(s)
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id)).toEqual([])
+  })
+
+  it('a call with lines of its own gets no caption lines beside them', async () => {
+    const s = setup()
+    s.start()
+    s.audio(0, 1_000_100)
+    s.store.addSegments([{ meetingId: s.m.id, track: 'them', startMs: 1000, endMs: 3000, text: 'heard', speaker: null }])
+    readings(s)
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id).map((x) => x.text)).toEqual(['heard'])
   })
 })

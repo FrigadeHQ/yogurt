@@ -758,5 +758,6 @@
   "Unmute my mic in Yogurt": "Yogurt で自分のマイクのミュートを解除",
   "Mic will stay off on resume": "録音を再開してもマイクはオフのままです",
   "Mic mute couldn’t be confirmed.": "マイクがミュートされたか確認できませんでした。",
-  "Mic off. Yogurt can’t hear call audio.": "マイクはオフです。Yogurt に通話音声が届いていません。"
+  "Mic off. Yogurt can’t hear call audio.": "マイクはオフです。Yogurt に通話音声が届いていません。",
+  "From Zoom's captions": "Zoom の字幕から"
 }

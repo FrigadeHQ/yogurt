@@ -26,6 +26,12 @@ export type CallReading = {
    * lag the screen while the list scrolls — but a reading carries no positions, only each node's words.
    */
   caption?: { who: string; mark: string }
+  /**
+   * Every caption row on screen, oldest first: who and what. Only for a meeting the call's audio never reached (joined
+   * without computer audio), where the captions are the only transcript there is; never logged, never in a reading's
+   * sample (index.ts assembles them as they grow).
+   */
+  captionRows?: Array<{ who: string; text: string }>
 }
 
 // A role has two names: macOS Accessibility says AXTabGroup, AXStaticText, AXRow, AXOutline; AT-SPI (Linux) says
@@ -144,6 +150,7 @@ function readZoom(windows: AxWindow[]): CallReading {
   const linuxTiles: Array<{ name: string; talking: boolean }> = []
   let me: string | null = null
   let captioned: { who: string; mark: string } | null = null
+  const captionRows: Array<{ who: string; text: string }> = [], seenRows = new Set<AxNode>()
   for (const w of windows) {
     walk(w.tree, (n, up) => {
       // the words are the description on a Mac and Linux, the name under UI Automation (Windows)
@@ -190,7 +197,10 @@ function readZoom(windows: AxWindow[]): CallReading {
           // a row is only a caption with both a name and words: Zoom's own words sit in the same area alone
           if (texts.length < 2 || texts.some((t) => CAPTION_CHROME.has(low(t)))) return
           const name = cleanZoom(texts[0])
-          if (name) captioned = { who: name, mark: `${name}|${texts[1].length}` }
+          if (!name) return
+          captioned = { who: name, mark: `${name}|${texts[1].length}` }
+          // an area inside an area walks the same rows again
+          if (!seenRows.has(row)) { seenRows.add(row); captionRows.push({ who: name, text: texts.slice(1).join(' ') }) }
         })
       }
     })
@@ -200,7 +210,7 @@ function readZoom(windows: AxWindow[]): CallReading {
   if (uniq(linuxTiles.map((t) => t.name)).length >= 3) for (const t of linuxTiles) if (t.talking) speaking.push(t.name)
   // The caption is handed up untouched, not merged into `speaking`: on its own it names who spoke last, which after
   // a pause is the wrong person. The session turns it into a speaker only while its mark keeps moving.
-  return { speaking: uniq(speaking), participants: uniq(participants), me, ...(captioned ? { caption: captioned } : {}) }
+  return { speaking: uniq(speaking), participants: uniq(participants), me, ...(captioned ? { caption: captioned } : {}), ...(captionRows.length ? { captionRows } : {}) }
 }
 
 // ---- Google Meet (in Chrome, Arc, Brave, Edge; Safari and Firefox too where they show the same tree) ----

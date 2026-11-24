@@ -856,5 +856,6 @@
   "Unmute my mic in Yogurt": "إلغاء كتم الميكروفون الخاص بي في Yogurt",
   "Mic will stay off on resume": "سيظل الميكروفون مكتومًا عند الاستئناف",
   "Mic mute couldn’t be confirmed.": "تعذّر التأكد من كتم الميكروفون.",
-  "Mic off. Yogurt can’t hear call audio.": "الميكروفون مكتوم. لا يستطيع Yogurt سماع صوت المكالمة."
+  "Mic off. Yogurt can’t hear call audio.": "الميكروفون مكتوم. لا يستطيع Yogurt سماع صوت المكالمة.",
+  "From Zoom's captions": "من الترجمة النصية في Zoom"
 }

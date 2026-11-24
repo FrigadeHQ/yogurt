@@ -800,5 +800,6 @@
   "Unmute my mic in Yogurt": "Slå på min mikrofon i Yogurt",
   "Mic will stay off on resume": "Mikrofonen förblir avstängd när inspelningen återupptas",
   "Mic mute couldn’t be confirmed.": "Det gick inte att bekräfta att mikrofonen stängts av.",
-  "Mic off. Yogurt can’t hear call audio.": "Mikrofonen är av. Yogurt kan inte höra samtalsljudet."
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofonen är av. Yogurt kan inte höra samtalsljudet.",
+  "From Zoom's captions": "Från Zooms undertexter"
 }

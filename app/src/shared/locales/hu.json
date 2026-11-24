@@ -788,5 +788,6 @@
   "Unmute my mic in Yogurt": "Mikrofonom bekapcsolása a Yogurtban",
   "Mic will stay off on resume": "Folytatáskor a mikrofon néma marad",
   "Mic mute couldn’t be confirmed.": "Nem sikerült megerősíteni a mikrofon némítását.",
-  "Mic off. Yogurt can’t hear call audio.": "A mikrofon néma. A Yogurt nem érzékeli a hívás hangját."
+  "Mic off. Yogurt can’t hear call audio.": "A mikrofon néma. A Yogurt nem érzékeli a hívás hangját.",
+  "From Zoom's captions": "A Zoom feliratából"
 }

@@ -803,5 +803,6 @@
   "Unmute my mic in Yogurt": "Ενεργοποίηση του μικροφώνου μου στο Yogurt",
   "Mic will stay off on resume": "Το μικρόφωνο θα παραμείνει σε σίγαση κατά τη συνέχιση",
   "Mic mute couldn’t be confirmed.": "Δεν ήταν δυνατή η επιβεβαίωση της σίγασης του μικροφώνου.",
-  "Mic off. Yogurt can’t hear call audio.": "Μικρόφωνο σε σίγαση. Το Yogurt δεν λαμβάνει τον ήχο της κλήσης."
+  "Mic off. Yogurt can’t hear call audio.": "Μικρόφωνο σε σίγαση. Το Yogurt δεν λαμβάνει τον ήχο της κλήσης.",
+  "From Zoom's captions": "Από τους υπότιτλους του Zoom"
 }

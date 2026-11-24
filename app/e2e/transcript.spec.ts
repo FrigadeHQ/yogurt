@@ -704,3 +704,16 @@ test('find navigates a long transcript without filtering or redrawing its rows',
     await expect(page.getByTestId('note-notes-tab')).toBeFocused()
   } finally { await app.close() }
 })
+
+test("lines written from Zoom's captions say so in their turn, and the mic's do not", async () => {
+  const { app, page } = await launch()
+  try {
+    const id = await fake<string>(app, 'captionMeeting')
+    await fake(app, 'go', `/note/${id}`)
+    await page.getByRole('tab', { name: 'Transcript', exact: true }).click()
+    const theirs = page.getByTestId('transcript-turn').filter({ hasText: 'the storage move' })
+    await expect(theirs.getByTestId('transcript-source')).toHaveText("From Zoom's captions")
+    await expect(whoOf(page, 'the storage move')).toHaveText('Dana Smith')
+    await expect(page.getByTestId('transcript-turn').filter({ hasText: 'Can everyone hear me' }).getByTestId('transcript-source')).toHaveCount(0)
+  } finally { await app.close() }
+})

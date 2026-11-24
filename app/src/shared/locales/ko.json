@@ -758,5 +758,6 @@
   "Unmute my mic in Yogurt": "Yogurt에서 내 마이크 음소거 해제",
   "Mic will stay off on resume": "녹음을 재개해도 마이크는 꺼진 상태로 유지됩니다",
   "Mic mute couldn’t be confirmed.": "마이크가 음소거되었는지 확인할 수 없습니다.",
-  "Mic off. Yogurt can’t hear call audio.": "마이크가 꺼져 있습니다. Yogurt에서 통화 소리를 들을 수 없습니다."
+  "Mic off. Yogurt can’t hear call audio.": "마이크가 꺼져 있습니다. Yogurt에서 통화 소리를 들을 수 없습니다.",
+  "From Zoom's captions": "Zoom 자막에서"
 }
