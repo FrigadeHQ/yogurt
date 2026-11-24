@@ -540,6 +540,7 @@ test('a backup carries folders and which meetings are in them', async () => {
     await openFromCorner(b.page, 'settings-open', 'storage')
     await b.page.getByTestId('backup-import').click()
     await expect(b.page.getByTestId('backup-said')).toHaveText('Added 4 meetings.')
+    await b.page.getByTestId('settings-back').click()
     await expect(b.page.getByTestId('sidebar-folder-open')).toHaveText([/Zulu/, /Partners/])
     // the sidebar heard about it without a reload
     await expect(folder(b.page, 'Partners').getByTestId('sidebar-folder-count')).toHaveText('1')
