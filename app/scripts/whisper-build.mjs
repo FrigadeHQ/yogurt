@@ -17,6 +17,7 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameS
 import { cpus } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { isWhisperLib } from './whisperLibs.mjs'
 
 const WHISPER_COMMIT = 'd1be6fde11ac6e0407606b4e42fe72d34add8037' // v1.9.5, as in native.sh
 const VAD_URL = 'https://huggingface.co/ggml-org/whisper-vad/resolve/9ffd54a1e1ee413ddf265af9913beaf518d1639b/ggml-silero-v6.2.0.bin'
@@ -71,7 +72,7 @@ if (!existsSync(out) || newer(script, out) || newer(patch, out) || newer(vadPatc
   const built = win ? join(build, 'bin', 'Release') : join(build, 'bin')
   mkdirSync(bin, { recursive: true })
   const libs = readdirSync(built).filter((f) => win ? f.endsWith('.dll') : /^lib.*\.so$/.test(f))
-  for (const f of readdirSync(bin)) if (win ? f.endsWith('.dll') : /^lib.*\.so$/.test(f)) rmSync(join(bin, f))
+  for (const f of readdirSync(bin)) if (isWhisperLib(f, win)) rmSync(join(bin, f))
   for (const f of libs) copyFileSync(join(built, f), join(bin, f))
   copyFileSync(join(built, win ? 'whisper-server.exe' : 'whisper-server'), out)
   if (win) utf8Manifest(out)
