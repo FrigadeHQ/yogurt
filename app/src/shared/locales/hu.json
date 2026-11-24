@@ -792,8 +792,6 @@
   "Use my wording": "Saját szöveg használata",
   "Keep saved wording": "Mentett szöveg megtartása",
   "Couldn’t save the transcript change.": "Nem sikerült menteni az átirat módosítását.",
-  "Remove this line?": "Eltávolítja ezt a sort?",
-  "Remove line": "Sor eltávolítása",
   "Play from {time}": "Lejátszás innen: {time}",
   "All transcript lines have been removed.": "Az átirat összes sora el lett távolítva.",
   "The transcript changed. Select the lines again.": "Az átirat megváltozott. Jelölje ki újra a sorokat.",

@@ -3,8 +3,9 @@ import { clock } from '../../../shared/transcript'
 import { transcriptDiff } from '../../../shared/transcriptDiff'
 import type { TranscriptDifference } from '../../../shared/transcriptEdit'
 
-export function TranscriptChanges({changes,restore}:{changes:TranscriptDifference[];restore:(id:number,removed:boolean)=>void}) {
+export function TranscriptChanges({changes,restore,revertAll}:{revertAll:()=>void;changes:TranscriptDifference[];restore:(id:number,removed:boolean)=>void}) {
   return <section className="transcript-changes" aria-label={t('Changes')}>
+    <header><button className="ghost-btn transcript-tool" onClick={revertAll}>{t('Revert all')}</button></header>
     {changes.map(change=>{
       const {before,after}=transcriptDiff(change.original,change.current ?? '')
       return <article key={change.id}>

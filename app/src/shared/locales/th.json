@@ -762,8 +762,6 @@
   "Use my wording": "ใช้ข้อความของฉัน",
   "Keep saved wording": "เก็บข้อความที่บันทึกไว้",
   "Couldn’t save the transcript change.": "บันทึกการแก้ไขบทถอดเสียงไม่ได้",
-  "Remove this line?": "นำบรรทัดนี้ออกไหม",
-  "Remove line": "นำบรรทัดออก",
   "Play from {time}": "เล่นจาก {time}",
   "All transcript lines have been removed.": "นำทุกบรรทัดออกจากบทถอดเสียงแล้ว",
   "The transcript changed. Select the lines again.": "บทถอดเสียงมีการเปลี่ยนแปลง โปรดเลือกบรรทัดอีกครั้ง",

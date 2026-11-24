@@ -1,4 +1,4 @@
-import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
+import { _electron as electron, expect, test, type ElectronApplication, type Locator, type Page } from '@playwright/test'
 import { DatabaseSync } from 'node:sqlite'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -23,6 +23,11 @@ const windowOf = async (app: ElectronApplication, hash: string): Promise<Page> =
     await new Promise((r) => setTimeout(r, 50))
   }
   throw new Error(`no ${hash} window`)
+}
+
+async function playLine(row: Locator) {
+  await row.focus()
+  await row.getByRole('button', { name: /^Play from/ }).click()
 }
 
 /** who heads the turn a line is in */
@@ -219,6 +224,11 @@ test('a read-only transcript plays only from its time buttons', async () => {
     const row = page.getByTestId('transcript-line').nth(12)
     const time = row.getByRole('button', { name: 'Play from 0:06', exact: true })
     const words = row.getByTestId('transcript-text')
+    await expect(time).toBeHidden()
+    await page.locator('.turn-head button.transcript-turn-time').first().click()
+    await expect(page.getByTestId('player-toggle')).toHaveAccessibleName('Pause')
+    await page.getByTestId('player-toggle').click()
+    await row.focus()
     await expect(time).toBeVisible()
     await expect(row.getByRole('button')).toHaveCount(1)
     await words.click()
@@ -277,7 +287,7 @@ test('after the meeting, clicking a line time plays both sides from a second bef
     await expect(page.getByTestId('player')).toBeVisible({ timeout: 15_000 })
     await expect(audioOf(page)).toHaveCount(2)
     // the line at 13.3 s plays from 12.3 s, on both tracks
-    await lines.filter({ hasText: 'She will send a draft' }).getByRole('button', { name: /^Play from/ }).click()
+    await playLine(lines.filter({ hasText: 'She will send a draft' }))
     await expect.poll(async () => (await audioState(page)).every((a) => !a.paused && a.time >= 12.2 && a.time < 14.5)).toBe(true)
     await expect(page.getByTestId('player-toggle')).toHaveAttribute('aria-label', 'Pause')
     // faster, on both
@@ -301,7 +311,7 @@ test('after the meeting, clicking a line time plays both sides from a second bef
     await page.getByTestId('player-scrubber').fill('6')
     await expect(playingLine).toHaveAttribute('data-track', 'them')
     // a line near the start never seeks before 0
-    await lines.filter({ hasText: 'Can we go over the launch plan' }).getByRole('button', { name: /^Play from/ }).click()
+    await playLine(lines.filter({ hasText: 'Can we go over the launch plan' }))
     await expect.poll(async () => (await audioState(page)).every((a) => !a.paused && a.time < 1.5)).toBe(true)
     const tracks = await audioOf(page).elementHandles()
     await page.getByRole('tab', { name: 'My notes', exact: true }).click()
@@ -373,7 +383,7 @@ test('a side that ends early, is missing, or cannot be read: the other still pla
     await setTrack(app, id, 'them', 5)
     await reopen(page)
     await expect.poll(async () => (await audioState(page)).length).toBe(2)
-    await lines.filter({ hasText: 'She will send a draft' }).getByRole('button', { name: /^Play from/ }).click()
+    await playLine(lines.filter({ hasText: 'She will send a draft' }))
     await expect.poll(async () => (await audioState(page)).find((a) => a.track === 'me')).toMatchObject({ paused: false })
     await expect(page.getByTestId('player-toggle')).toHaveAttribute('aria-label', 'Pause')
     // back to 2 s while playing: their side plays again too
@@ -383,14 +393,14 @@ test('a side that ends early, is missing, or cannot be read: the other still pla
     await setTrack(app, id, 'them', 'gone')
     await reopen(page)
     await expect(audioOf(page)).toHaveCount(1)
-    await lines.filter({ hasText: 'She will send a draft' }).getByRole('button', { name: /^Play from/ }).click()
+    await playLine(lines.filter({ hasText: 'She will send a draft' }))
     await expect.poll(async () => (await audioState(page)).every((a) => !a.paused && a.time >= 12.2)).toBe(true)
     // their side unreadable: it is dropped, they are told, and your side plays
     await setTrack(app, id, 'them', 'garbage')
     await reopen(page)
     await expect(page.getByTestId('player-note')).toHaveText("Part of this recording can't be played.")
     await expect(audioOf(page)).toHaveCount(1)
-    await lines.filter({ hasText: 'She will send a draft' }).getByRole('button', { name: /^Play from/ }).click()
+    await playLine(lines.filter({ hasText: 'She will send a draft' }))
     await expect.poll(async () => (await audioState(page)).every((a) => !a.paused && a.time >= 12.2)).toBe(true)
     // nothing readable: no controls, just the note
     await setTrack(app, id, 'me', 'garbage')
@@ -408,7 +418,7 @@ test('the play button follows the audio, and lines are one tab stop moved with t
   try {
     await stopped(app, page)
     const lines = page.getByTestId('transcript-line')
-    await lines.filter({ hasText: 'The site goes live' }).getByRole('button', { name: /^Play from/ }).click()
+    await playLine(lines.filter({ hasText: 'The site goes live' }))
     await expect(page.getByTestId('player-toggle')).toHaveAttribute('aria-label', 'Pause')
     // stopped by anything but the button (the system, an error): the button says Play
     await audioOf(page).evaluateAll((els) => (els as HTMLAudioElement[]).forEach((a) => a.pause()))
@@ -446,7 +456,7 @@ test('a long meeting opens fast, and playing redraws only the line that changes'
     await expect(page.locator('.line-in')).toHaveCount(0)
     await expect(page.getByTestId('player')).toBeVisible()
     await page.evaluate(() => { (window as unknown as { __rowRenders: number }).__rowRenders = 0 })
-    await page.getByTestId('transcript-line').nth(10).getByRole('button', { name: /^Play from/ }).click()
+    await playLine(page.getByTestId('transcript-line').nth(10))
     await page.waitForTimeout(2500)
     const renders = await page.evaluate(() => (window as unknown as { __rowRenders: number }).__rowRenders)
     console.log('row renders while playing 2.5 s:', renders)
@@ -534,7 +544,7 @@ test('playing follows along: the line being played moves down the list and stays
   try {
     const { playingNo, where, comfy, scrollTop, scrollUp } = await playingLong(app, page)
     // the mark moves line to line, from a second before the one clicked
-    await page.getByTestId('transcript-line').nth(4).getByRole('button', { name: /^Play from/ }).click()
+    await playLine(page.getByTestId('transcript-line').nth(4))
     await expect.poll(playingNo).toBeGreaterThanOrEqual(4)
     const first = await playingNo()
     await expect.poll(playingNo).toBeGreaterThan(first + 2)
@@ -574,7 +584,7 @@ test('paused, the mark stays and nothing scrolls; clicking a line follows again;
   try {
     const { playingLine, playingNo, comfy, scrollTop, scrollUp } = await playingLong(app, page)
     // the scrubber moves the mark at once, and the list with it
-    await page.getByTestId('transcript-line').nth(2).getByRole('button', { name: /^Play from/ }).click()
+    await playLine(page.getByTestId('transcript-line').nth(2))
     await page.getByTestId('player-scrubber').fill('30')
     await expect.poll(playingNo).toBeGreaterThanOrEqual(61)
     await expect.poll(comfy).toBe(true)
@@ -593,7 +603,7 @@ test('paused, the mark stays and nothing scrolls; clicking a line follows again;
     await scrollUp()
     await page.getByTestId('player-toggle').click()
     await expect(page.getByTestId('transcript-follow')).toBeVisible()
-    await page.getByTestId('transcript-line').nth(2).getByRole('button', { name: /^Play from/ }).click()
+    await playLine(page.getByTestId('transcript-line').nth(2))
     await expect(page.getByTestId('transcript-follow')).toHaveCount(0)
     await expect.poll(playingNo, { timeout: 15_000 }).toBeGreaterThan(20)
     await expect.poll(comfy).toBe(true)
@@ -777,13 +787,26 @@ for (const theme of ['light','dark'] as const) test(`edit, remove and review a f
     const edit=page.getByTestId('transcript-edit'), done=page.getByTestId('transcript-done')
     const undo=page.getByRole('button',{name:'Undo',exact:true}), redo=page.getByRole('button',{name:'Redo',exact:true})
     await expect(edit).toBeVisible()
+    await capture('read')
+    const bubbles=page.getByTestId('transcript-bubble')
+    const positions=()=>bubbles.evaluateAll(els=>els.map(el=>{
+      const {x,y,width,height}=el.getBoundingClientRect()
+      return [x,y,width,height]
+    }))
+    const reading=await positions()
+    await expect(page.locator('.turn-head .transcript-turn-time').first()).toBeVisible()
+    await expect(page.locator('.transcript-turn[data-track=me] p').first()).toHaveClass(/sr-only/)
+    expect(await page.locator('.transcript-read-time:visible').count()).toBe(0)
     await words.click()
     await expect(words).not.toHaveAttribute('data-editable','true')
     await expect(page.getByTestId('player-toggle')).toHaveAccessibleName('Play')
-    await capture('read')
     await edit.click()
     await expect(done).toBeVisible()
     await expect(undo).toBeDisabled()
+    const editing=await positions()
+    expect(editing.length).toBe(reading.length)
+    for (const [i,box] of editing.entries())
+      for (const [j,value] of box.entries()) expect(Math.abs(value-reading[i][j])).toBeLessThan(2)
     await capture('idle')
     const point = (row:number, offset:number|'end') => lines.nth(row).getByTestId('transcript-text').evaluate((el,offset)=>{
       const text=el.firstChild!, r=document.createRange()
@@ -806,13 +829,11 @@ for (const theme of ['light','dark'] as const) test(`edit, remove and review a f
     await page.keyboard.press('Backspace')
     await expect(lines).toHaveCount(10)
     await expect(undo).toBeEnabled()
-    // The document spans the bubble column. The scroller's border box also includes its scrollbar.
-    const column=await page.getByTestId('transcript-document').boundingBox()
-    const toolbar=await page.getByRole('group',{name:'Edit transcript'}).boundingBox()
-    expect(column).not.toBeNull()
-    expect(toolbar).not.toBeNull()
-    expect(Math.abs((toolbar!.x+toolbar!.width/2)-(column!.x+column!.width/2))).toBeLessThan(2)
-    expect(toolbar!.width).toBeLessThan(column!.width)
+    const tools=page.getByRole('group',{name:'Edit transcript'})
+    await expect(page.locator('.note-primary-tools').getByRole('group',{name:'Edit transcript'})).toBeVisible()
+    await expect(page.getByTestId('transcript').getByRole('group',{name:'Edit transcript'})).toHaveCount(0)
+    const bar=(await tools.boundingBox())!, find=(await page.getByTestId('transcript-find-open').boundingBox())!
+    expect(Math.abs((bar.y+bar.height/2)-(find.y+find.height/2))).toBeLessThan(2)
     await expect(page.getByRole('button',{name:'Undo',exact:true})).toHaveCount(1)
     await capture('removed')
     await page.keyboard.press('ControlOrMeta+z')
@@ -831,6 +852,7 @@ for (const theme of ['light','dark'] as const) test(`edit, remove and review a f
     await expect(words).toContainText('Line')
     await undo.click()
     await expect(words).toContainText('Part')
+    await page.getByRole('button',{name:'Changes',exact:true}).click()
     await page.getByRole('button',{name:'Revert all'}).click()
     await expect(words).toContainText('Line')
     await undo.click()
@@ -921,6 +943,7 @@ test('keeps selections and drafts through conflicts and failures, and restores f
     await expect(rows).toHaveCount(0)
     await expect(page.getByTestId('transcript-empty')).toContainText('All transcript lines have been removed.')
     await expect(page.getByTestId('player-toggle')).toBeVisible()
+    await page.getByRole('button',{name:'Changes',exact:true}).click()
     await page.getByRole('button',{name:'Revert all'}).click()
     await expect(rows).toHaveCount(3)
     await expect(words).toHaveText('Line 1 of the long meeting.')
@@ -929,4 +952,58 @@ test('keeps selections and drafts through conflicts and failures, and restores f
     await expect(page.getByTestId('transcript-edit')).toBeFocused()
     await expect(words).toContainText('Saved')
   } finally { db.close(); await app.close() }
+})
+
+for (const writing of [false, true]) test(`clearing the last line leaves Changes, Done and Undo usable (summary writing=${writing})`, async ({}, testInfo) => {
+  const {app, page} = await launch(writing ? {YOGURT_FAKE_LLM_MS:'200'} : {})
+  try {
+    const theme = writing ? 'dark' : 'light'
+    await page.emulateMedia({colorScheme:theme, reducedMotion:'reduce'})
+    // The last line starts a new mic turn, after enough turns to scroll.
+    const count = 71
+    const id = await fake<string>(app, 'bigMeeting', count)
+    await page.evaluate(async id=>{
+      await window.yogurt.notes.setEnhanced(id,'Draft summary.',1)
+      window.yogurt.nav.go(`/note/${id}`)
+    },id)
+    await page.getByTestId('note-transcript-toggle').click()
+    const edit=page.getByTestId('transcript-edit'), rows=page.getByTestId('transcript-line')
+    const scroller=page.getByTestId('transcript'), bubbles=page.getByTestId('transcript-bubble')
+    const changes=page.getByRole('button',{name:'Changes',exact:true})
+    await expect(rows).toHaveCount(count)
+    await scroller.evaluate(el=>{el.scrollTop=el.scrollHeight})
+    const before=(await rows.last().boundingBox())!, bubbleCount=await bubbles.count()
+    const last=rows.last().getByTestId('transcript-text')
+    const original=await last.innerText()
+    await edit.click()
+    await expect(page.getByTestId('transcript-document')).toBeFocused()
+    const after=(await rows.last().boundingBox())!
+    expect(Math.abs(after.y-before.y)).toBeLessThan(2)
+    await last.click()
+    await last.evaluate(el=>window.getSelection()!.collapse(el.firstChild,el.textContent!.length))
+    for (let i=1; i<original.length; i++) await page.keyboard.press('Backspace')
+    if (writing) {
+      await page.evaluate(id=>window.yogurt.notes.writeAgain(id),id)
+      await expect(page.getByTestId('note-summary-tab')).toHaveAccessibleDescription('Writing the summary',{timeout:15_000})
+    }
+    await page.keyboard.press('Backspace')
+    await expect(rows).toHaveCount(count-1)
+    await expect(bubbles).toHaveCount(bubbleCount-1)
+    await expect(page.getByRole('button',{name:'Undo',exact:true})).toBeEnabled()
+    await page.screenshot({path:testInfo.outputPath(`edit-empty-line-${theme}.png`)})
+    await changes.click()
+    await expect(page.getByRole('region',{name:'Changes'}).locator('del')).toHaveText(original)
+    if (writing) {
+      await expect.poll(()=>page.evaluate(async id=>(await window.yogurt.notes.get(id)).status,id),{timeout:30_000}).toBe('done')
+      await expect(page.getByRole('region',{name:'Changes'}).locator('del')).toHaveText(original)
+    }
+    await page.getByTestId('transcript-done').click()
+    await expect(edit).toBeFocused()
+    await expect(rows).toHaveCount(count-1)
+    await edit.click()
+    await page.getByRole('button',{name:'Undo',exact:true}).click()
+    await expect(last).toHaveText(original)
+    await expect(bubbles).toHaveCount(bubbleCount)
+    await expect.poll(()=>page.evaluate(async id=>(await window.yogurt.transcript.snapshot(id)).lines.length,id)).toBe(count)
+  } finally { await app.close() }
 })

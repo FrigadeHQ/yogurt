@@ -810,8 +810,6 @@
   "Use my wording": "Käytä omaa sanamuotoani",
   "Keep saved wording": "Pidä tallennettu sanamuoto",
   "Couldn’t save the transcript change.": "Litteroinnin muutosta ei voitu tallentaa.",
-  "Remove this line?": "Poistetaanko tämä rivi?",
-  "Remove line": "Poista rivi",
   "Play from {time}": "Toista kohdasta {time}",
   "All transcript lines have been removed.": "Kaikki litteroinnin rivit on poistettu.",
   "The transcript changed. Select the lines again.": "Litterointi on muuttunut. Valitse rivit uudelleen.",

@@ -1,5 +1,5 @@
 import { Schema, type Node as DocNode } from '@tiptap/pm/model'
-import { TextSelection, type Selection } from '@tiptap/pm/state'
+import { TextSelection, type Selection, type Transaction } from '@tiptap/pm/state'
 import type { Segment } from '../../shared/types'
 import { bubbles, clock, transcriptSpeaker, turns } from '../../shared/transcript'
 import { SPEAKER_COLORS } from '../../shared/speakerColors'
@@ -11,7 +11,7 @@ const schema = new Schema({ nodes: {
   turn: { content: 'bubble*', attrs: { track: {}, name: {}, color: { default: null }, time: {} }, toDOM: ({ attrs: a }) =>
     ['div', { class: 'transcript-turn flex flex-col gap-[5px] ' + (a.track === 'me' ? 'items-end' : 'items-start'), 'data-testid': 'transcript-turn', 'data-track': a.track },
       ['p', { class: a.track === 'me' ? 'sr-only' : 'turn-head flex items-baseline gap-2 px-1 text-xs', contenteditable: 'false' },
-        ['span', { class: 'line-who font-medium text-muted', 'data-folder-color': a.color }, a.name], ['time', {class:'turn-time'}, a.time]],
+        ['span', { class: 'line-who font-medium text-muted', 'data-folder-color': a.color }, a.name], ['time', {class:'transcript-turn-time tabular-nums text-muted'}, a.time]],
       ['div', {class:'transcript-edit-bubbles'}, 0]] },
   bubble: { content: 'line*', attrs: { track: {} }, toDOM: n => ['div', { class: 'bubble bubble-' + n.attrs.track, dir:'auto', 'data-testid':'transcript-bubble', 'data-track':n.attrs.track }, 0] },
   line: { content: 'text*', marks: '', attrs: { id: {}, time: {}, corrected: {default:false} }, toDOM: ({attrs:a}) =>
@@ -39,6 +39,16 @@ export function documentLines(doc: DocNode) {
     return false
   })
   return rows
+}
+
+/** Drop the timed row and any bubble or turn that would contain nothing else. */
+export function removeBlankLine(tr:Transaction, pos:number) {
+  const at = tr.doc.resolve(pos)
+  if (at.parent.type !== schema.nodes.line || at.parent.textContent.trim()) return false
+  let depth = at.depth
+  while (depth > 1 && at.node(depth-1).childCount === 1) depth--
+  tr.delete(at.before(depth),at.after(depth))
+  return true
 }
 
 export function documentChanges(base: Segment[], doc: DocNode): TranscriptRowChange[] {

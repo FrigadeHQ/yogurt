@@ -181,10 +181,10 @@ const Row = memo(function Row({ line: l, focused, name, playing, playable, settl
       tabIndex={playable ? (focusable ? 0 : -1) : undefined} onFocus={() => onFocusLine(k)}
       data-corrected={l.corrected || undefined} data-previous={l.previous || undefined} data-hidden={l.hidden || undefined} data-focused={focused || undefined}
       className={`line ${arrived === 'fade' ? 'line-in' : arrived === 'settle' ? 'line-settle' : ''}`}>
-      {playable && <button type="button" data-testid="transcript-time" className="transcript-line-time" tabIndex={focusable ? 0 : -1} aria-label={t('Play from {time}', { time })} onClick={() => onPlay(l)}>{time}</button>}
-      {settled && !playable && <time data-testid="transcript-time" className="transcript-line-time">{time}</time>}
       <span data-testid="transcript-text">{l.text}</span>
-      {!settled && !playable && <time data-testid="transcript-time" className="sr-only">{time}</time>}
+      {playable ? <button type="button" data-testid="transcript-time" className="transcript-read-time" tabIndex={focusable ? 0 : -1}
+        aria-label={t('Play from {time}', {time})} onClick={()=>onPlay(l)}>{time}</button> :
+        <time data-testid="transcript-time" className="sr-only">{time}</time>}
     </span>
   )
 })
@@ -211,10 +211,6 @@ export function Transcript({ id, settled = false, notice, processing=false, repl
     if (active) button.focus({preventScroll:true})
   },[active])
   useEffect(()=>{setEditing(false)},[id,canEdit])
-  const leave = () => {
-    returnFocus.current = true
-    setEditing(false)
-  }
   const commit = useCallback<CommitTranscript>((revision,change)=>window.yogurt.transcript.change(id,revision,change),[id])
   const allLines=useMemo(()=>replacing?transcriptReplacement(latest,draft):latest,[latest,draft,replacing])
   const loadingPhase = useLoadingState(!loaded && !failed)
@@ -378,7 +374,7 @@ export function Transcript({ id, settled = false, notice, processing=false, repl
   }
   useEffect(() => () => { ours.current?.stop(); ours.current = null }, [id, active])
 
-  const onPlay = useCallback((l: Line) => {
+  const onPlay = useCallback((l: {startMs:number}) => {
     follow()
     player.current?.playFrom(l.startMs)
   }, [follow])
@@ -431,7 +427,35 @@ export function Transcript({ id, settled = false, notice, processing=false, repl
   const [showChanges,setShowChanges] = useState(false)
   useEffect(()=>{ if (!editMode) { setShowChanges(false); setChanged(false) } },[editMode])
   const reviewing = editMode && showChanges && !!snapshot?.edits.length
-  useEffect(()=>{ if (!snapshot?.edits.length && !changed) setShowChanges(false) },[snapshot?.edits.length,changed])
+  useEffect(()=>{ if (!snapshot?.edits.length) setShowChanges(false) },[snapshot?.edits.length])
+  const place = useRef<{key:string; offset:number; atTop:boolean} | null>(null)
+  const rememberPlace = () => {
+    const el=list.current
+    if (!el || reviewing) return
+    const rows=el.querySelectorAll<HTMLElement>('[data-testid="transcript-line"]')
+    const top=el.getBoundingClientRect().top, atTop=el.scrollTop===0
+    let lo=0, hi=atTop ? 0 : rows.length
+    while (lo<hi) {
+      const mid=(lo+hi)>>>1
+      if (rows[mid].getBoundingClientRect().bottom<=top) lo=mid+1
+      else hi=mid
+    }
+    const row=rows[Math.min(lo,rows.length-1)]
+    place.current=row ? {key:row.dataset.key!,offset:row.getBoundingClientRect().top-top,atTop} : null
+  }
+  const enter = () => { rememberPlace(); setEditing(true) }
+  const leave = () => { rememberPlace(); returnFocus.current=true; setEditing(false) }
+  useLayoutEffect(()=>{
+    const el=list.current, saved=place.current
+    if (!el) return
+    if (reviewing) { el.scrollTop=0; return }
+    if (saved) {
+      const row=el.querySelector<HTMLElement>(`[data-key="${CSS.escape(saved.key)}"]`)
+      if (saved.atTop) el.scrollTop=0
+      else if (row) el.scrollTop+=row.getBoundingClientRect().top-el.getBoundingClientRect().top-saved.offset
+      place.current=null
+    }
+  },[editMode,reviewing])
   const finish = async () => { if (await editor.current?.finish()) leave() }
   const shortcut = keys('⌘⌥E')
   useEffect(()=>{
@@ -441,11 +465,28 @@ export function Transcript({ id, settled = false, notice, processing=false, repl
         document.querySelector('dialog:modal,[aria-modal="true"]')) return
       e.preventDefault()
       if (editMode) void finish()
-      else setEditing(true)
+      else enter()
     }
     window.addEventListener('keydown',toggle)
     return ()=>window.removeEventListener('keydown',toggle)
-  },[active,canEdit,editMode,lines.length,snapshot?.edits.length])
+  },[active,canEdit,editMode,reviewing,lines.length,snapshot?.edits.length])
+  const edit = <button ref={editButton} className="ghost-btn transcript-tool" data-testid="transcript-edit" disabled={!!editUnavailable}
+    title={editUnavailable ?? t('Edit')+' ('+shortcut+')'} aria-description={editUnavailable} aria-keyshortcuts="Meta+Alt+E Control+Alt+E"
+    onClick={enter}>{t('Edit')}</button>
+  const toggleChanges = async () => {
+    if (!await editor.current?.finish()) return
+    if (!reviewing) rememberPlace()
+    setShowChanges(!reviewing)
+  }
+  const tools = editUnavailable ? edit : canEdit && (lines.length>0 || snapshot?.edits.length) ? <div className="transcript-mode-tools">
+    {!editMode && edit}
+    <div className="transcript-edit-tools" role="group" aria-label={t('Edit transcript')} inert={!editMode} aria-hidden={!editMode}>
+      <button className="ghost-btn workspace-icon" disabled={!changed && !snapshot.history.canUndo} aria-label={t('Undo')} title={t('Undo')} onClick={()=>void editor.current?.step('undo')}><ArrowTurnBackward size={15}/></button>
+      <button className="ghost-btn workspace-icon" disabled={changed || !snapshot.history.canRedo} aria-label={t('Redo')} title={t('Redo')} onClick={()=>void editor.current?.step('redo')}><ArrowTurnForward size={15}/></button>
+      <button className="ghost-btn" aria-expanded={reviewing} disabled={!changed && !snapshot.edits.length} onClick={()=>void toggleChanges()}>{t('Changes')}</button>
+      <button className="ghost-btn transcript-done" title={t('Done')+' ('+shortcut+')'} data-testid="transcript-done" onClick={()=>void finish()}>{t('Done')}</button>
+    </div>
+  </div> : undefined
   const Surface = inline ? 'section' : 'aside'
 
   return (
@@ -456,27 +497,13 @@ export function Transcript({ id, settled = false, notice, processing=false, repl
         else if (!inline && e.key==='Escape') { e.stopPropagation(); onClose?.() }
       }}
       className={inline ? 'transcript-inline' : 'chat-in pointer-events-auto absolute inset-x-0 bottom-1 z-20 mx-auto flex h-[min(44vh,480px)] w-[min(720px,calc(100%-48px))] flex-col rounded-xl border border-line bg-float shadow-[var(--shadow)]'}>
-      <TranscriptFind extra={!editMode && (editUnavailable || (canEdit && (lines.length>0 || snapshot?.edits.length))) ?
-        <button ref={editButton} className="ghost-btn transcript-tool" data-testid="transcript-edit" disabled={!!editUnavailable}
-          title={editUnavailable ?? t('Edit')+' ('+shortcut+')'} aria-description={editUnavailable} aria-keyshortcuts="Meta+Alt+E Control+Alt+E"
-          onClick={()=>setEditing(true)}>{t('Edit')}</button> : undefined} key={id} lines={lines} list={list} active={active} playbackInset={playbackInset} beforeScroll={() => visibility.current?.programmatic()} onFinding={find} toolbar={toolbar} onClose={!inline ? onClose : undefined} />
+      <TranscriptFind extra={tools} key={id} lines={lines} list={list} active={active} playbackInset={playbackInset} beforeScroll={() => visibility.current?.programmatic()} onFinding={find} toolbar={toolbar} onClose={!inline ? onClose : undefined} />
       <div className="transcript-scroll-wrap relative flex min-h-0 flex-1 flex-col">
         <ScrollFade enabled={active && loaded}><ol id="transcript-lines" data-loaded={loaded} data-loading-phase={loadingPhase} data-testid="transcript" data-replacing={replacing&&processing} ref={list} onScroll={onScroll} onWheel={theirs} onTouchStart={theirs} onPointerDown={theirs} onKeyDownCapture={theirs} onKeyDown={onKeyDown} className="loading-content transcript-loading-content flex flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4 pt-2 text-sm leading-[1.55]">
-          {editMode && <li className="transcript-tools-slot">
-            <div className="transcript-edit-tools" role="group" aria-label={t('Edit transcript')}>
-              <button className="ghost-btn workspace-icon" disabled={!changed && !snapshot!.history.canUndo} aria-label={t('Undo')} title={t('Undo')} onClick={()=>void editor.current?.step('undo')}><ArrowTurnBackward size={15}/></button>
-              <button className="ghost-btn workspace-icon" disabled={changed || !snapshot!.history.canRedo} aria-label={t('Redo')} title={t('Redo')} onClick={()=>void editor.current?.step('redo')}><ArrowTurnForward size={15}/></button>
-              <button className="ghost-btn transcript-done" title={t('Done')+' ('+shortcut+')'} data-testid="transcript-done" onClick={()=>void finish()}>{t('Done')}</button>
-              {(changed || snapshot!.edits.length>0) && <>
-                <button className="ghost-btn" onClick={()=>void editor.current?.revert(null)}>{t('Revert all')}</button>
-                <button className="ghost-btn" aria-expanded={reviewing} onClick={async()=>{if(await editor.current?.finish()) setShowChanges(!showChanges)}}>{t('Changes')}</button>
-              </>}
-            </div>
-          </li>}
           {editMode && <li>
-            <TranscriptDocument key={id} id={id} reviewing={reviewing} saved={{revision:snapshot!.revision,lines:editLines}}
+            <TranscriptDocument key={id} id={id} initialLine={place.current ? Number(place.current.key) : undefined} reviewing={reviewing} saved={{revision:snapshot!.revision,lines:editLines}}
               commit={commit} controls={editor} leave={leave} onDirty={setChanged} />
-            {reviewing && <TranscriptChanges changes={snapshot!.edits} restore={(id,removed)=>void editor.current?.revert(id,removed)}/>}
+            {reviewing && <TranscriptChanges changes={snapshot!.edits} revertAll={()=>void editor.current?.revert(null)} restore={(id,removed)=>void editor.current?.revert(id,removed)}/>}
           </li>}
           {!empty && noticeContent && <li className="transcription-notice-slot">{noticeContent}</li>}
           {processing&&!notice&&!replacing&&timeline.length===0&&<li className="transcription-placeholder" aria-hidden="true"><p className="turn-head"><span className="loading-bar" style={{width:42}}/></p><p className="bubble bubble-them"><span className="loading-bar" style={{width:180}}/></p></li>}
@@ -501,7 +528,9 @@ export function Transcript({ id, settled = false, notice, processing=false, repl
                 {/* the other side's name heads their turn; the mic's side needs none, its bubbles sit at the end */}
                 <p className={me ? 'sr-only' : 'turn-head flex items-baseline gap-2 px-1 text-xs'}>
                   <span data-testid="transcript-who" data-color={color} data-folder-color={color === undefined ? undefined : SPEAKER_COLORS[color]} className={`line-who font-medium ${me ? '' : 'text-muted'} ${named ? 'name-in' : 'invisible'}`}>{who(first)}</span>
-                  <time className="turn-time tabular-nums text-muted">{clock(first.startMs)}</time>
+                  {!me && playable ? <button type="button" className="transcript-turn-time tabular-nums text-muted" title={t('Play from {time}',{time:clock(first.startMs)})}
+                    aria-label={t('Play from {time}',{time:clock(first.startMs)})} onClick={()=>onPlay(first)}>{clock(first.startMs)}</button> :
+                    <time className={settled ? 'transcript-turn-time tabular-nums text-muted' : 'turn-time tabular-nums text-muted'}>{clock(first.startMs)}</time>}
                 </p>
                 {bubbles(turn).map((b, i, groups) => (
                   <p key={transcriptRowKey(first.track, groups[i - 1]?.at(-1))} data-testid="transcript-bubble" data-track={first.track} dir="auto" className={`bubble ${me ? 'bubble-me' : 'bubble-them'}`}>

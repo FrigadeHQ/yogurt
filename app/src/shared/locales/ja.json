@@ -762,8 +762,6 @@
   "Use my wording": "自分の文言を使用",
   "Keep saved wording": "保存済みの文言を保持",
   "Couldn’t save the transcript change.": "文字起こしの変更を保存できませんでした。",
-  "Remove this line?": "この行を削除しますか？",
-  "Remove line": "行を削除",
   "Play from {time}": "{time}から再生",
   "All transcript lines have been removed.": "文字起こしの行はすべて削除されました。",
   "The transcript changed. Select the lines again.": "文字起こしが変更されました。行を選択し直してください。",

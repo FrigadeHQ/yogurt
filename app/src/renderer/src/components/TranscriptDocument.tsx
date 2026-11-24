@@ -5,14 +5,14 @@ import type { Segment } from '../../../shared/types'
 import type { CommitTranscript, TranscriptChange } from '../../../shared/transcriptEdit'
 import { command } from '../keys'
 import { t } from '../../../shared/i18n'
-import { documentChanges, documentLines, replacePassage, transcriptDocument } from '../transcriptDocument'
+import { documentChanges, documentLines, removeBlankLine, replacePassage, transcriptDocument } from '../transcriptDocument'
 
 type Saved = { revision:number; lines:Segment[] }
-type Issue = { kind:'failed' | 'reload' | 'stale' | 'conflict' | 'empty'; text?:string }
+type Issue = { kind:'failed' | 'reload' | 'stale' | 'conflict'; text?:string }
 export type DocumentControls = { finish:() => Promise<boolean>; step:(direction:'undo' | 'redo') => Promise<void>; revert:(row:number | null,removed?:boolean)=>Promise<void> }
 
-export function TranscriptDocument({id, reviewing, saved, commit, controls, leave, onDirty}:{
-  id:string; reviewing:boolean; saved:Saved; commit:CommitTranscript; controls:RefObject<DocumentControls | null>; leave:() => void; onDirty:(dirty:boolean)=>void
+export function TranscriptDocument({id, initialLine, reviewing, saved, commit, controls, leave, onDirty}:{
+  id:string; initialLine?:number; reviewing:boolean; saved:Saved; commit:CommitTranscript; controls:RefObject<DocumentControls | null>; leave:() => void; onDirty:(dirty:boolean)=>void
 }) {
   const host = useRef<HTMLDivElement>(null)
   const props = useRef({saved,commit,leave,onDirty})
@@ -20,6 +20,8 @@ export function TranscriptDocument({id, reviewing, saved, commit, controls, leav
   const sync = useRef<(saved:Saved) => void>(undefined)
   const resolveIssue = useRef<(useDraft:boolean) => void>(undefined)
   const [issue,setIssue] = useState<Issue>()
+  const issueAlert = useRef<HTMLDivElement>(null)
+  useLayoutEffect(()=>{ if (issue) issueAlert.current?.scrollIntoView({block:'nearest'}) },[issue])
   useLayoutEffect(() => {
     let base = props.current.saved, dirty = false, disposed = false
     const mark = (value:boolean) => {
@@ -54,8 +56,15 @@ export function TranscriptDocument({id, reviewing, saved, commit, controls, leav
       if (problem) return false
       if (!dirty) return true
       const rows = documentChanges(base.lines,view.state.doc)
+      const cleared = new Set(rows.filter(r=>r.text!==null && !r.text.trim()).map(r=>r.id))
+      if (cleared.size) {
+        // An IME can leave a blank draft when focus moves before its final transaction.
+        const tr = view.state.tr
+        for (const row of documentLines(tr.doc).reverse()) if (cleared.has(row.id)) removeBlankLine(tr,row.start)
+        view.updateState(view.state.apply(tr))
+        for (const row of rows) if (cleared.has(row.id)) row.text=null
+      }
       if (!rows.length) { mark(false); return true }
-      if (rows.some(r => r.text !== null && !r.text.trim())) { report({kind:'empty'}); return false }
       const removed = rows.filter(r=>r.text===null)
       const change:TranscriptChange = removed.length===rows.length ? {kind:'remove',ids:removed.map(r=>r.id)} :
         rows.length===1 && rows[0].text!==null ? {kind:'wording',id:rows[0].id,expected:rows[0].expected,text:rows[0].text} : {kind:'selection',rows}
@@ -126,22 +135,25 @@ export function TranscriptDocument({id, reviewing, saved, commit, controls, leav
       const {$from,$to,empty} = view.state.selection
       return !empty && (!$from.sameParent($to) || (deleting && $from.parentOffset===0 && $to.parentOffset===$to.parent.content.size))
     }
+    const doc=transcriptDocument(base.lines)
+    const initialPos=initialLine===undefined ? 0 : documentLines(doc).find(row=>row.id===initialLine)?.start
     const view:EditorView = new EditorView(host.current!, {
-      state:state(transcriptDocument(base.lines)),
+      state:state(doc,initialPos),
       attributes:{class:'transcript-document',role:'textbox','aria-multiline':'true','aria-label':t('Transcript'),'data-testid':'transcript-document',spellcheck:'true'},
       dispatchTransaction(tr) {
         // Native joins, splits and rich-text drops must never create or transfer an audio timestamp.
+        let removed = false
         if (tr.docChanged) {
           const start = tr.before.content.findDiffStart(tr.doc.content)
           const end = tr.before.content.findDiffEnd(tr.doc.content)
           if (start != null && end && (!tr.before.resolve(start).sameParent(tr.before.resolve(end.a)) ||
             !tr.doc.resolve(start).sameParent(tr.doc.resolve(end.b)))) return
           mark(true)
-          if (problem?.kind === 'empty') report()
+          if (start!=null && !view.composing) removed = removeBlankLine(tr,start)
         }
         const was = view.state.selection.$head.parent.attrs.id
         view.updateState(view.state.apply(tr))
-        if (was !== view.state.selection.$head.parent.attrs.id && view.state.selection.empty && !view.composing) void save()
+        if (removed || (was !== view.state.selection.$head.parent.attrs.id && view.state.selection.empty && !view.composing)) void save()
       },
       handleKeyDown(_,e) {
         if (e.isComposing || view.composing) return false
@@ -194,20 +206,19 @@ export function TranscriptDocument({id, reviewing, saved, commit, controls, leav
           event.clipboardData?.setData('text/plain',view.state.doc.textBetween(from,to,'\n'))
           replace(''); return true
         },
+        compositionend:() => {
+          requestAnimationFrame(()=>{
+            if (!disposed && dirty && !view.composing && !view.state.selection.$head.parent.textContent.trim()) void save()
+          })
+          return false
+        },
         drop:(_,e) => { e.preventDefault(); return true },
         blur:() => { if (!view.composing) void save(); return false },
-
       },
     })
     sync.current = refresh
     controls.current = {finish,step:kind=>run({kind}),revert:(id,removed)=>run(removed && id!==null ? {kind:'restoreLine',id} : {kind:'revert',id})}
     resolveIssue.current = async useDraft => {
-      if (problem?.kind === 'empty' && useDraft) {
-        const texts = new Map(documentLines(view.state.doc).map(r=>[r.id,r.text]))
-        const kept = base.lines.flatMap(l => texts.get(l.id)?.trim() ? [{...l,text:texts.get(l.id)!}] : [])
-        view.updateState(state(transcriptDocument(kept),view.state.selection.head))
-        mark(true); report(); await save(); return
-      }
       if ((problem?.kind === 'failed' || problem?.kind === 'reload') && useDraft) {
         const action = retryCommand
         retryCommand = undefined; report()
@@ -239,9 +250,9 @@ export function TranscriptDocument({id, reviewing, saved, commit, controls, leav
   },[id,controls])
   useLayoutEffect(()=>{ sync.current?.(saved) },[saved.revision,saved.lines])
   return <>
-    {issue && <div role="alert" className="transcript-edit-issue">
-      <span>{issue.kind==='conflict' ? issue.text : issue.kind==='stale' ? t('The transcript changed. Select the lines again.') : issue.kind==='empty' ? t('Remove this line?') : issue.kind==='reload' ? t("Couldn't load this content.") : t('Couldn’t save the transcript change.')}</span>
-      {(issue.kind!=='stale') && <button className="workspace-button" onClick={()=>resolveIssue.current?.(true)}>{issue.kind==='empty' ? t('Remove line') : issue.kind==='conflict' ? t('Use my wording') : t('Try again')}</button>}
+    {issue && <div ref={issueAlert} role="alert" className="transcript-edit-issue">
+      <span>{issue.kind==='conflict' ? issue.text : issue.kind==='stale' ? t('The transcript changed. Select the lines again.') : issue.kind==='reload' ? t("Couldn't load this content.") : t('Couldn’t save the transcript change.')}</span>
+      {(issue.kind!=='stale') && <button className="workspace-button" onClick={()=>resolveIssue.current?.(true)}>{issue.kind==='conflict' ? t('Use my wording') : t('Try again')}</button>}
       <button className="ghost-btn" onClick={()=>resolveIssue.current?.(false)}>{t('Keep saved wording')}</button>
     </div>}
     <div ref={host} hidden={reviewing} />

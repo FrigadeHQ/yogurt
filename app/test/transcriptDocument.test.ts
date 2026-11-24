@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { AllSelection, TextSelection } from '@tiptap/pm/state'
-import { documentChanges, documentLines, replacePassage, transcriptDocument } from '../src/renderer/src/transcriptDocument'
+import { AllSelection, EditorState, TextSelection } from '@tiptap/pm/state'
+import { documentChanges, documentLines, removeBlankLine, replacePassage, transcriptDocument } from '../src/renderer/src/transcriptDocument'
 import { transcriptDiff } from '../src/shared/transcriptDiff'
 
 const rows = ['Keep this', 'Middle', 'That stays'].map((text,i)=>({
@@ -21,6 +21,16 @@ describe('editing across audio timestamps', () => {
     const next=replacePassage(doc,new AllSelection(doc),'',rows)!
     expect(documentLines(next.doc)).toEqual([])
     expect(documentChanges(rows,next.doc).map(r=>r.text)).toEqual([null,null,null])
+  })
+  it.each([1,2,3])('clearing a timed row prunes only its empty containers (%i rows)',count=>{
+    const base=rows.slice(0,count).map((r,i)=>({...r,track:i<2 ? 'me' as const : 'them' as const}))
+    const doc=transcriptDocument(base), row=documentLines(doc).at(-1)!
+    const tr=EditorState.create({doc}).tr
+    expect(removeBlankLine(tr,row.start)).toBe(false)
+    tr.insertText('  ',row.start,row.start+row.text.length)
+    expect(removeBlankLine(tr,row.start)).toBe(true)
+    expect(tr.doc.eq(transcriptDocument(base.slice(0,-1)))).toBe(true)
+    expect(documentChanges(base,tr.doc)).toEqual([{id:row.id,expected:row.text,text:null}])
   })
   it('leaves a touched but unselected endpoint alone',()=>{
     const next=replacePassage(doc,TextSelection.create(doc,a.start,b.start),'',rows)!
