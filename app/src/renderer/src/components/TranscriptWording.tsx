@@ -11,6 +11,7 @@ export function TranscriptWording({ id, text, revision, commit, onEditing }: {
   const surface = useRef<HTMLSpanElement>(null), draft = useRef<Draft | null>(null)
   const busy = useRef(false), owner = useRef(false)
   const [issue, setIssue] = useState<'empty' | 'failed' | 'conflict'>()
+  const pointer = useRef(false)
   const current = useRef(text)
   current.current = text
   useLayoutEffect(() => { if (!draft.current && surface.current) surface.current.textContent = text }, [text])
@@ -50,7 +51,7 @@ export function TranscriptWording({ id, text, revision, commit, onEditing }: {
     finally { busy.current = false }
   }
   return <><span ref={surface} data-testid="transcript-text" data-editable="true" tabIndex={-1} suppressContentEditableWarning
-    onPointerUp={() => enter(true)} onFocus={() => { if (!draft.current) enter(false) }}
+    onPointerDown={() => { pointer.current = true }} onPointerUp={() => { pointer.current = false; enter(true) }} onFocus={() => { if (!pointer.current && !draft.current) enter(false) }}
     onBlur={() => { if (!issue && !owner.current) void save(false) }}
     onBeforeInput={e => { if (busy.current) e.preventDefault() }}
     onPaste={e => {

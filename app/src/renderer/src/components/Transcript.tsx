@@ -1,5 +1,8 @@
 import { transcriptKey as key } from '../../../shared/transcriptFind'
 import type { RemovedSpan } from '../../../shared/transcriptEdit'
+import { useTranscriptActions } from './TranscriptActions'
+import { Checkbox } from './Checkbox'
+import { Ellipsis } from './Icons'
 import { TranscriptWording, type CommitTranscript } from './TranscriptWording'
 import { toasts } from './TrashToast'
 import { InlineError, ReadError } from './InlineError'
@@ -156,6 +159,8 @@ export function LiveWords({ said }: { said: LiveSaid }) {
 
 type RowProps = {
   line: Line
+  openMenu: (line: Line, button: HTMLElement) => void; selected?: boolean
+  choose: (id: number, extend: boolean) => void
   revision?: number; commit: CommitTranscript; onEditing: (id?: number) => void
   /** the line an answer across meetings pointed to */
   focused?: boolean
@@ -169,7 +174,7 @@ type RowProps = {
  * One line of the transcript, a stretch of text in its bubble (who said it heads the turn). Drawn again only when what
  * it shows changes (a long meeting has thousands).
  */
-const Row = memo(function Row({ line: l, revision, commit, onEditing, focused, name, playing, playable, focusable, arrived, onPlay, onFocusLine }: RowProps) {
+const Row = memo(function Row({ line: l, openMenu, selected, choose, revision, commit, onEditing, focused, name, playing, playable, focusable, arrived, onPlay, onFocusLine }: RowProps) {
   // memo skips it otherwise when the language changes
   useLanguage()
   if (window.yogurt.fake) (window as unknown as { __rowRenders?: number }).__rowRenders = ((window as unknown as { __rowRenders?: number }).__rowRenders ?? 0) + 1
@@ -183,9 +188,13 @@ const Row = memo(function Row({ line: l, revision, commit, onEditing, focused, n
       data-previous={l.previous||undefined} data-hidden={l.hidden || undefined} data-focused={focused || undefined}
       className={`line ${arrived === 'fade' ? 'line-in' : arrived === 'settle' ? 'line-settle' : ''} ${playable ? 'line-playable cursor-pointer' : ''}`}>
       {editable ? <>
+        {selected !== undefined && <Checkbox checked={selected} tabIndex={focusable ? 0 : -1} aria-label={t('Select line at {time} by {speaker}',{time,speaker:name})}
+          onChange={e=>choose(l.id!,!!(e.nativeEvent as globalThis.MouseEvent).shiftKey)} />}
         {playable ? <button data-testid="transcript-time" className="transcript-line-time" tabIndex={focusable ? 0 : -1} aria-label={t('Play from {time}', { time })} onClick={e => onPlay(l,e)}>{time}</button>
           : <time data-testid="transcript-time" className="transcript-line-time">{time}</time>}
-        <TranscriptWording id={l.id!} text={l.text} revision={revision!} commit={commit} onEditing={onEditing} />
+        {selected !== undefined ? <span data-testid="transcript-text">{l.text}</span> : <TranscriptWording id={l.id!} text={l.text} revision={revision!} commit={commit} onEditing={onEditing} />}
+        {selected === undefined && <button tabIndex={focusable ? 0 : -1} className="ghost-btn transcript-actions-trigger" aria-haspopup="menu"
+          aria-label={t('Transcript actions at {time}',{time})} onClick={e=>openMenu(l,e.currentTarget)}><Ellipsis size={14} /></button>}
       </> : <><span data-testid="transcript-text">{l.text}</span><time data-testid="transcript-time" className="sr-only">{time}</time></>}
     </span>
   )
@@ -251,6 +260,11 @@ export function Transcript({ id, settled = false, notice, processing=false, repl
   }, [id, recording, processing])
   const player = useRef<PlayerHandle>(null)
   const playable = !processing && tracks.length > 0
+  const actions = useTranscriptActions(id, snapshot?.revision ?? 0, lines, !!snapshot?.removed.length, playable, commit)
+  const actionsRef = useRef(actions)
+  actionsRef.current = actions
+  const openMenu = useCallback((line: Line, button: HTMLElement) => actionsRef.current.openMenu(line,button), [])
+  const choose = useCallback((id: number, extend: boolean) => actionsRef.current.choose(id,extend), [])
   const playbackDock = useRef<HTMLDivElement>(null)
   const [playbackInset, setPlaybackInset] = useState(0)
   const visibility = useRef<ReturnType<typeof attachPlayerVisibility> | null>(null)
@@ -413,11 +427,18 @@ export function Transcript({ id, settled = false, notice, processing=false, repl
   const tabKey = focusKey ?? shownKey ?? (lines[0] && key(lines[0]))
   const onKeyDown = (e: KeyboardEvent<HTMLOListElement>) => {
     const row = (e.target as HTMLElement).closest<HTMLElement>('[data-testid="transcript-line"]')
-    if ((!playable && !editable) || !row || row !== e.target) return
+    if (actions.range && e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); actions.closeRange(); return }
+    if ((!playable && !editable) || !row || (row !== e.target && !(e.target instanceof HTMLInputElement))) return
     const i = lines.findIndex((l) => key(l) === row.dataset.key)
     if (i < 0) return
     const go = (j: number) => { const next = rowOf(key(lines[Math.max(0, Math.min(lines.length - 1, j))])); visibility.current?.programmatic(); next?.focus({ preventScroll: true }); next?.scrollIntoView({ block: 'nearest' }) }
-    if (e.key === 'ArrowDown') { e.preventDefault(); go(i + 1) }
+    if (actions.range && e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      e.preventDefault()
+      const j = Math.max(0, Math.min(lines.length-1,i+(e.key === 'ArrowDown' ? 1 : -1)))
+      if (!actions.range.anchor) choose(lines[i].id!,false)
+      choose(lines[j].id!,true); go(j)
+    } else if (actions.range && row === e.target && e.key === ' ') { e.preventDefault(); choose(lines[i].id!,false) }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); go(i + 1) }
     else if (e.key === 'ArrowUp') { e.preventDefault(); go(i - 1) }
     else if (e.key === 'Home') { e.preventDefault(); go(0) }
     else if (e.key === 'End') { e.preventDefault(); go(lines.length - 1) }
@@ -438,7 +459,9 @@ export function Transcript({ id, settled = false, notice, processing=false, repl
   return (
     <Surface style={{ '--playback-inset': `${playbackInset}px` } as CSSProperties} data-testid="transcript-panel" aria-label={t('Transcript')} onKeyDown={(e) => { if (!inline && e.key === 'Escape') { e.stopPropagation(); onClose?.() } }}
       className={inline ? 'transcript-inline' : 'chat-in pointer-events-auto absolute inset-x-0 bottom-1 z-20 mx-auto flex h-[min(44vh,480px)] w-[min(720px,calc(100%-48px))] flex-col rounded-xl border border-line bg-float shadow-[var(--shadow)]'}>
-      <TranscriptFind key={id} lines={lines} list={list} active={active} playbackInset={playbackInset} beforeScroll={() => visibility.current?.programmatic()} onFinding={find} toolbar={toolbar} onClose={!inline ? onClose : undefined} />
+      <TranscriptFind extra={editable ? actions.toolbar : undefined} key={id} lines={lines} list={list} active={active} playbackInset={playbackInset} beforeScroll={() => visibility.current?.programmatic()} onFinding={find} toolbar={toolbar} onClose={!inline ? onClose : undefined} />
+      {recording || processing || notice?.kind === 'transcribe' ? <span className="text-xs text-muted px-4">{recording ? t('Available after recording') : t('Finish transcription to edit lines.')}</span> : null}
+      {editable && actions.panel}
       <div className="transcript-scroll-wrap relative flex min-h-0 flex-1 flex-col">
         <ScrollFade enabled={active && loaded}><ol id="transcript-lines" data-loaded={loaded} data-loading-phase={loadingPhase} data-testid="transcript" data-replacing={replacing&&processing} ref={list} onScroll={onScroll} onWheel={theirs} onTouchStart={theirs} onPointerDown={theirs} onKeyDownCapture={theirs} onKeyDown={onKeyDown} className="loading-content transcript-loading-content flex flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4 pt-2 text-sm leading-[1.55]">
           {!empty && noticeContent && <li className="transcription-notice-slot">{noticeContent}</li>}
@@ -449,7 +472,7 @@ export function Transcript({ id, settled = false, notice, processing=false, repl
           {empty && <li data-testid="transcript-empty" className="note-empty empty-state">
             <div className="empty-state-content">
               <div className="empty-tile"><AudioLines size={28} aria-hidden="true" /></div>
-              {noticeContent ?? t('Nothing heard yet.')}
+              {snapshot?.removed.length ? t('All transcript lines have been removed.') : noticeContent ?? t('Nothing heard yet.')}
             </div>
           </li>}
           {drawn.earlier > 0 && <li className="flex justify-center"><button data-testid="transcript-earlier" onClick={() => { visibility.current?.programmatic(); stick.current = false; setShowAll(true) }} className="ghost-btn">{t('Show earlier lines')}</button></li>}
@@ -473,7 +496,7 @@ export function Transcript({ id, settled = false, notice, processing=false, repl
                       const k = key(x)
                       return (
                         <Fragment key={k}>{i > 0 && ' '}
-                          <Row line={x} revision={editable ? snapshot.revision : undefined} commit={commit} onEditing={setEditing} focused={k === focusedKey} name={who(x)}
+                          <Row line={x} openMenu={openMenu} choose={choose} selected={actions.range ? actions.range.ids.has(x.id!) : undefined} revision={editable ? snapshot.revision : undefined} commit={commit} onEditing={setEditing} focused={k === focusedKey} name={who(x)}
                             playing={k === shownKey} playable={playable} focusable={k === tabKey} arrived={!x.previous&&live.current.has(k) ? (previewed(x) ? 'settle' : 'fade') : null} onPlay={onPlay} onFocusLine={setFocusKey} />
                         </Fragment>
                       )

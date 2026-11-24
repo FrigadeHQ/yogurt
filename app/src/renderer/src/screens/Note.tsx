@@ -78,6 +78,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   const [starting, setStarting] = useState(false)
   const [stopRequested, setFinishing] = useState(false)
   const [startFailed, setStartFailed] = useState(false)
+  const [replaceRevision, setReplaceRevision] = useState<number>()
   const [resumeConfirm, setResumeConfirm] = useState(false)
   const [resumeFailed, setResumeFailed] = useState(false)
   const [pausing, setPausing] = useState(false)
@@ -197,7 +198,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
 
   useEffect(() => {
     requestFinish(false)
-    setTabPointer(false); setNotes(undefined); current.current = undefined; setView(readingViews.get(id)?.view ?? 'mine'); picked.current = readingViews.has(id); typing.current = false; setEditedHere(false); setRewriteOpen(false); setRenaming(false); setDeleting(false); setResumeConfirm(false); setResumeFailed(false)
+    setTabPointer(false); setNotes(undefined); current.current = undefined; setView(readingViews.get(id)?.view ?? 'mine'); picked.current = readingViews.has(id); typing.current = false; setEditedHere(false); setRewriteOpen(false); setRenaming(false); setDeleting(false); setResumeConfirm(false); setReplaceRevision(undefined); setResumeFailed(false)
     const show = (v: NoteView) => {
       const first = !current.current
       // what they typed here is newer than any copy from the app; notes written again for new people replace it unless edited (noteMerge.ts)
@@ -353,7 +354,19 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   }
   const hasSummary = !!notes.enhanced?.trim()
   const transcribing=transcriptionBusy(m.transcriptionState)
-  const runTranscript=async(again=false)=>{if(!await saveAll())return;try{const started=await window.yogurt.transcript.run(id,again);if(started)setPrimary('transcript')}catch{toasts.add({title:t("Yogurt couldn't transcribe this file.")})}}
+  const runTranscript = async (again = false, approved?: number) => {
+    if (!await saveAll()) return
+    try {
+      if (again && approved === undefined) {
+        const state = await window.yogurt.transcript.snapshot(id)
+        if (state.removed.length) { toasts.add({title:t('Restore removed lines before transcribing again.')}); return }
+        if (state.lines.some(l => l.corrected)) { setReplaceRevision(state.revision); return }
+      }
+      setReplaceRevision(undefined)
+      if (await window.yogurt.transcript.run(id,again,approved)) setPrimary('transcript')
+      else toasts.add({title:t('The transcript changed. Select the lines again.')})
+    } catch { toasts.add({title:t("Yogurt couldn't transcribe this file.")}) }
+  }
   const transcriptReason=recording||m.stopSavePending?t('Available after recording'):transcribing?t('Transcribing…'):summarizing?t('Summarizing…'):!hasAudio?t('Audio is unavailable.'):undefined
   const generation = summaryAction({ hasSummary, hasContent: hasTranscript || !!notes.mine.trim(), recording, busy: summarizing, downloading: !!(setup?.notesDownloading || setup?.notesError), trashed })
   if(generation&&transcribing)generation.reason=t('Transcribing…')
@@ -369,6 +382,9 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
       setChatAnchor(readingArea.current)
       document.dispatchEvent(new CustomEvent('audio-upload-note-ready', { detail: id }))
     }} pending={false} skeleton={<Loading layout="note" />} className="loading-note-frame"><div data-testid="note" className="document-main relative flex h-full bg-bg">
+      {replaceRevision !== undefined && <Modal role="alertdialog" title={t('Transcribe again')} description={t('Transcribing again will replace your wording changes.')} onCancel={()=>setReplaceRevision(undefined)}>
+        <div className="modal-actions"><button className="modal-button primary" onClick={()=>void runTranscript(true,replaceRevision)}>{t('Replace corrected wording')}</button><ModalClose data-dialog-cancel className="workspace-button">{t('Cancel')}</ModalClose></div>
+      </Modal>}
       {resumeConfirm && <Modal testId="resume-confirm" role="alertdialog" title={t('Record more in this note?')}
         description={t('Your notes, transcript, and previous audio are kept. Your edited summary will be replaced when you stop recording.')}
         onCancel={() => setResumeConfirm(false)}>
@@ -466,7 +482,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
           </NoteReadingPane>
           {(primary === 'transcript' || transcriptVisited) && <section hidden={primary !== 'transcript'} id="note-transcript-panel" role="tabpanel" aria-labelledby="note-transcript-tab" className="note-content note-transcript-pane">
             <Transcript notice={
-              hasAudio && (m.transcriptionPending || !hasTranscript) || m.transcriptionState === 'waiting-model' || m.transcriptionState === 'waiting-recording'
+              hasAudio && (m.transcriptionPending || (!hasTranscript && !m.transcriptRevision)) || m.transcriptionState === 'waiting-model' || m.transcriptionState === 'waiting-recording'
                 ? transcriptionNotice(m.transcriptionState, () => void runTranscript(), recording || !!m.stopSavePending)
                 : !hasAudio && m.transcriptionState === 'error'
                   ? { kind: 'upload', run: () => void openAudioUpload() }

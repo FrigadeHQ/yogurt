@@ -703,3 +703,16 @@ button.transcript-line-time:hover { color: var(--ink); text-decoration: underlin
 .line [data-editable] { flex: 1; min-width: 1ch; cursor: text; overflow-wrap: anywhere; white-space: pre-wrap; user-select: text; }
 .line [contenteditable="plaintext-only"] { outline: 1px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
 .transcript-edit-message { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .35rem; }
+.transcript-actions-trigger { opacity: 0; align-self: baseline; padding: 1px 3px; }
+.line:hover .transcript-actions-trigger, .line:focus-within .transcript-actions-trigger { opacity: 1; }
+.bubble[data-remove-focus] { outline: 1px solid var(--danger); }
+.transcript-menu-time { display: none; }
+.transcript-preview, .transcript-recovery { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 13px; margin: 4px 0; }
+.transcript-preview { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.transcript-recovery { overflow: auto; max-height: 35%; }
+.transcript-batch + .transcript-batch { margin-block-start: 10px; border-block-start: 1px solid var(--line); }
+.transcript-batch time, .transcript-tool { color: var(--muted); font-size: 12px; }
+@media (hover: none) {
+  .transcript-actions-trigger { opacity: 1; }
+  .transcript-menu-time { display: block; padding: .35rem .6rem; color: var(--muted); font-size: .75rem; }
+}

@@ -15,13 +15,14 @@ type Props = {
   playbackInset: number
   /** called before find scrolls the list itself, so the player can tell it from the person's own scroll */
   beforeScroll?: () => void
+  extra?: React.ReactNode
   onFinding: (finding: boolean) => void
   toolbar?: HTMLElement | null
   onClose?: () => void
 }
 
 /** Search owns its state and paints native text ranges; keystrokes never redraw the transcript. */
-export function TranscriptFind({ lines, list, active, playbackInset, beforeScroll, onFinding, toolbar, onClose }: Props) {
+export function TranscriptFind({ extra, lines, list, active, playbackInset, beforeScroll, onFinding, toolbar, onClose }: Props) {
   useLanguage()
   const countId = useId(), fieldId = useId()
   const [open, setOpen] = useState(false), [query, setQuery] = useState('')
@@ -118,7 +119,7 @@ export function TranscriptFind({ lines, list, active, playbackInset, beforeScrol
     return () => window.removeEventListener('keydown', onKey, true)
   })
 
-  const control = <div ref={controlRef} className="transcript-toolbar"><div className="transcript-find" data-open={open} onBlur={event => {
+  const control = <div ref={controlRef} className="transcript-toolbar">{!open && extra}<div className="transcript-find" data-open={open} onBlur={event => {
     if (open && !event.currentTarget.contains(event.relatedTarget) && !searching) { setOpen(false); onFinding(false) }
   }}>
     <button ref={trigger} type="button" data-testid="transcript-find-open" className="ghost-btn transcript-find-trigger" aria-label={t('Search the transcript')} title={`${t('Search the transcript')} (${keys('⌘F')})`} aria-expanded={open} aria-hidden={open} aria-controls={fieldId} tabIndex={open ? -1 : 0} onClick={show}><Search size={14} aria-hidden="true" /></button>
