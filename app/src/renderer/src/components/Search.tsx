@@ -13,7 +13,7 @@ import { markWords } from '../../../shared/highlight'
 import { dayLabel, timeOf } from '../dates'
 import { parseSearchQuery } from '../../../shared/searchQuery'
 import { completeSearchPerson, matchSearchPeople, removeSearchSpan, searchPersonKey, uniqueSearchPeople, type SearchPersonMatch } from '../../../shared/searchPeople'
-import { searchPalette, searchSelectionKey } from '../searchRanking'
+import { isSearchQuestion, searchPalette, searchSelectionKey } from '../searchRanking'
 import { searchDateCommand, searchDateLabel, searchFilterEmptyMessage, searchFilterHighlights } from '../searchFilters'
 
 /** typing settles this long before the search runs */
@@ -48,8 +48,8 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
   const selectedPeople = uniqueSearchPeople(personQuery.matches.map(m => m.person))
   const peopleKey = selectedPeople.map(searchPersonKey).join('|')
   const parsed = parseSearchQuery(personQuery.text, searchOptions)
-  const filtered = !!parsed.date || selectedPeople.length > 0
-  const [results, setResults] = useState<{ q: string; scopeId?: string; peopleKey: string; list: SearchResult[] }>()
+  const request = { q, scope, peopleKey, people: selectedPeople, date: parsed.date, suggestions: personQuery.suggestions.slice(0, 5) }
+  const [results, setResults] = useState<typeof request & { list: SearchResult[] }>()
   const [active, setActive] = useState<number | null>(null)
   const [prefs, setPrefs] = useState<Awaited<ReturnType<typeof window.yogurt.settings.get>>>()
   const [error, setError] = useState(false)
@@ -77,13 +77,13 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
   useEffect(() => {
     const scheduled = ++seq.current
     setQueryFailed(false)
-    const run = (request: number) => {
+    const run = (sequence: number) => {
       // Enter or Retry can supersede this read before the debounce fires.
-      if (request !== seq.current) return
+      if (sequence !== seq.current) return
       void window.yogurt.search.query(q, scope?.id, selectedPeople).then(list => {
-        if (request !== seq.current) return
-        setQueryFailed(false); setResults({ q, scopeId: scope?.id, peopleKey, list }); setActive(null)
-      }, () => { if (request === seq.current) setQueryFailed(true) })
+        if (sequence !== seq.current) return
+        setQueryFailed(false); setResults({ ...request, list }); setActive(null)
+      }, () => { if (sequence === seq.current) setQueryFailed(true) })
     }
     retry.current = () => run(++seq.current)
     if (!q.trim()) { run(scheduled); return }
@@ -99,14 +99,13 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
   useEffect(syncHighlight, [q])
 
   // Keep one coherent result set on screen until the next search is ready.
-  const typed = q.trim() ? (results?.q ?? '').trim() : ''
-  const settled = results?.q === q && results?.scopeId === scope?.id && results?.peopleKey === peopleKey
-  const items = q.trim() || !results?.q.trim() ? results?.list ?? [] : []
+  const typed = results?.q.trim() ?? ''
+  const settled = results?.q === q && results?.scope?.id === scope?.id && results?.peopleKey === peopleKey
+  const shown = results ?? request
+  const filtered = !!shown.date || shown.people.length > 0
   const navigate = (route: string) => { onNavigate(route) }
   const settingsAction = async (run: () => Promise<void>) => { await run(); onSettingsChange() }
-  const dateCommand = window.yogurt.capabilities.calendar ? searchDateCommand(parsed.date, q) : undefined
   const allCommands = [
-    ...(dateCommand ? [{ ...dateCommand, Icon: CalendarDays, run: () => onNavigate('', dateCommand.at) }] : []),
     { id: 'meetings', label: t('Meetings'), group: t('Go to'), Icon: FileText, run: () => navigate(''), shortcut: keys('⌘1') },
     { id: 'chat', synonyms: ['chat'], label: t('Ask'), group: t('Go to'), Icon: MessageCircle, run: () => navigate('/chat'), shortcut: keys('⌘2') },
     { id: 'trash', label: t('Trash'), group: t('Go to'), Icon: Trash2, run: () => navigate('/trash'), shortcut: keys('⌘3') },
@@ -122,37 +121,40 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
       { id: 'auto-stop', label: prefs.stopWhenCallEnds ? t('Keep recording when the call ends') : t('Stop recording when the call ends'), group: t('Settings'), Icon: AudioLines, run: () => settingsAction(() => window.yogurt.settings.setStopWhenCallEnds(!prefs.stopWhenCallEnds)) },
     ] : []),
   ].filter((c) => !c.id.startsWith('theme-') || !!prefs)
-  const suggestions = (typed === q ? personQuery : matchSearchPeople(typed, people, chosenPeople, searchOptions)).suggestions.slice(0, 5)
   const defaultSelection = useRef<string | undefined>(undefined)
-  const palette = searchPalette(allCommands, items, typed, q, suggestions, defaultSelection.current, filtered)
+  const rank = (search: typeof request, list: SearchResult[]) => {
+    const date = window.yogurt.capabilities.calendar && searchDateCommand(search.date, search.q)
+    const commands = date ? [{ ...date, Icon: CalendarDays, run: () => onNavigate('', date.at) }, ...allCommands] : allCommands
+    return searchPalette(commands, list, search.q, search.q, search.suggestions, defaultSelection.current, !!search.date || search.people.length > 0)
+  }
+  const palette = results ? rank(results, results.list) : { rows: [], active: 0 }
   const rows = palette.rows
   const count = rows.length
   const activeIndex = active !== null && rows[active] ? active : palette.active
   const selected = rows[activeIndex]
   useEffect(() => {
-    if (!q.trim()) defaultSelection.current = undefined
-    else if (settled) defaultSelection.current = rows[palette.active] && searchSelectionKey(rows[palette.active])
+    if (settled) defaultSelection.current = typed && rows[palette.active] ? searchSelectionKey(rows[palette.active]) : undefined
   })
-  const dateLabel = parsed.date && searchDateLabel(parsed.date)
-  const clearDate = () => { if (parsed.dateSpan) setQ(removeSearchSpan(q, parsed.dateSpan)); setActive(null); input.current?.focus() }
+  const dateLabel = shown.date && searchDateLabel(shown.date)
+  const clearDate = () => { if (parsed.dateSpan) setQ(removeSearchSpan(q, parsed.dateSpan)); input.current?.focus() }
   const clearPerson = (person: Person) => {
     const key = searchPersonKey(person)
     setChosenPeople(current => current.filter(p => searchPersonKey(p) !== key))
     const match = personQuery.matches.find(m => searchPersonKey(m.person) === key)
     if (match) setQ(removeSearchSpan(q, match))
-    setActive(null); input.current?.focus()
+    input.current?.focus()
   }
   const pickPerson = (choice: SearchPersonMatch) => {
     const match = personQuery.suggestions.find(m => searchPersonKey(m.person) === searchPersonKey(choice.person))
     if (!match) return
     setChosenPeople(current => uniqueSearchPeople([...current.filter(p => p.name !== match.person.name), match.person]))
-    setQ(completeSearchPerson(q, match)); setActive(null); input.current?.focus()
+    setQ(completeSearchPerson(q, match)); input.current?.focus()
   }
   useEffect(() => {
     if (!scrollSelection.current) return
     list.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' })
   }, [activeIndex, results])
-  const runCommand = async (command: typeof allCommands[number]) => {
+  const runCommand = async (command: Pick<typeof allCommands[number], 'id' | 'run'>) => {
     if (running) return
     setRunning(true); setError(false)
     try {
@@ -196,21 +198,22 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
   }
   const enter = () => {
     if (queryFailed && q.trim()) { void ask(q.trim()); return }
-    if (settled || selected?.kind === 'ask') { activate(selected); return }
+    if (settled) { activate(selected); return }
     // Enter before the debounce finishes must act on the new query.
+    if (isSearchQuestion(q)) { void ask(q.trim()); return }
     const mine = ++seq.current
     void window.yogurt.search.query(q, scope?.id, selectedPeople).then(list => {
       if (mine !== seq.current) return
-      setQueryFailed(false); setResults({ q, scopeId: scope?.id, peopleKey, list }); setActive(null)
-      const next = searchPalette(allCommands, list, q, q, personQuery.suggestions, defaultSelection.current, filtered)
+      setQueryFailed(false); setResults({ ...request, list }); setActive(null)
+      const next = rank(request, list)
       activate(next.rows[next.active])
     }).catch(() => { if (mine === seq.current) setQueryFailed(true) })
   }
 
   const question = rows[0]?.kind === 'ask'
-  const IntentIcon = question ? MessageCircle : dateLabel ? CalendarDays : selectedPeople.length ? UserRound
+  const IntentIcon = question ? MessageCircle : dateLabel ? CalendarDays : shown.people.length ? UserRound
     : rows[palette.active]?.kind === 'command' ? Keyboard : SearchIcon
-  const enterAsks = !!q.trim() && (queryFailed || !selected && settled)
+  const enterAsks = queryFailed ? !!q.trim() : !!typed && !selected
   const primaryHint = enterAsks || selected?.kind === 'ask' ? t('Ask')
     : selected?.kind === 'meeting' ? t('Open note')
     : selected?.kind === 'command' && selected.command.group === t('Go to') && selected.command.id !== 'sidebar' ? t('Go to')
@@ -232,19 +235,19 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
                   ? <mark key={i} data-testid={`search-${part.kind}-highlight`}>{part.text}</mark> : <Fragment key={i}>{part.text}</Fragment>)}</span>
               </div>
               <input
-                data-testid="search-input" ref={input} autoFocus value={q} onChange={(e) => { scrollSelection.current = true; setQ(e.target.value); setActive(null); setError(false) }} onScroll={syncHighlight}
+                data-testid="search-input" ref={input} autoFocus value={q} onChange={(e) => { scrollSelection.current = true; setQ(e.target.value); setError(false) }} onScroll={syncHighlight}
                 placeholder={t('Ask, search, or open a meeting…')} aria-label={t('Search')} spellCheck={false}
                 role="combobox" aria-expanded="true" aria-controls="search-results" aria-activedescendant={selected?.kind === 'meeting' ? `search-${selected.meeting.meetingId}` : selected?.kind === 'command' ? `command-${selected.command.id}` : selected?.kind === 'person' ? `search-person-${encodeURIComponent(searchPersonKey(selected.person))}` : selected ? 'search-ask' : undefined}
               />
             </div>
             {!!q.trim() && <IntentIcon data-testid="search-intent-icon" size={19} aria-hidden="true" className={question ? 'text-accent' : 'text-muted'} />}
           </div>
-          {(scope || dateLabel || selectedPeople.length > 0) && <div className="search-filters">
-            {scope && <span data-testid="search-scope" className="search-filter">
-              <FolderGlyph appearance={scope} size={14} /><span className="truncate">{scope.name}</span>
+          {(shown.scope || filtered) && <div className="search-filters">
+            {shown.scope && <span data-testid="search-scope" className="search-filter">
+              <FolderGlyph appearance={shown.scope} size={14} /><span className="truncate">{shown.scope.name}</span>
               <button data-testid="search-scope-clear" onClick={() => { setScope(undefined); input.current?.focus() }} aria-label={t('Search all meetings')} title={t('Search all meetings')}><X size={13} aria-hidden="true" /></button>
             </span>}
-            {selectedPeople.map(person => <span key={searchPersonKey(person)} data-testid="search-person-filter" className="search-filter">
+            {shown.people.map(person => <span key={searchPersonKey(person)} data-testid="search-person-filter" className="search-filter">
               <UserRound size={14} aria-hidden="true" /><span className="truncate" title={person.email || person.name}>{person.name || person.email}</span>
               <button onClick={() => clearPerson(person)} aria-label={t('Remove {name}', { name: person.name || person.email || '' })}><X size={13} aria-hidden="true" /></button>
             </span>)}
@@ -318,12 +321,12 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
               </div>
             </li>
           })}
-        {settled && filtered && !items.length && <li role="presentation" data-testid="search-filter-empty" className="px-5 py-8 text-center text-sm text-muted">
-          {searchFilterEmptyMessage(selectedPeople, dateLabel)}
+        {results && filtered && !results.list.length && <li role="presentation" data-testid="search-filter-empty" className="px-5 py-8 text-center text-sm text-muted">
+          {searchFilterEmptyMessage(shown.people, dateLabel)}
         </li>}
-        {!queryFailed && settled && !count && !filtered && (
+        {!queryFailed && results && !count && !filtered && (
           <li role="presentation" data-testid="search-none" className="flex h-full items-center justify-center px-5 py-8 text-center text-sm text-muted">
-            {typed ? t('No matches') : scope ? t('No meetings in this folder yet.') : t('No notes yet.')}
+            {typed ? t('No matches') : shown.scope ? t('No meetings in this folder yet.') : t('No notes yet.')}
           </li>
         )}
         </ul>
@@ -335,7 +338,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
           {enterAsks
             ? <button className="search-ask-hint" data-testid="search-primary-hint" onClick={() => void ask(q.trim())}><kbd>↵</kbd>{t('Ask')}</button>
             : primaryHint && <span data-testid="search-primary-hint"><kbd>{selected?.kind === 'person' ? '⇥' : '↵'}</kbd>{primaryHint}</span>}
-          {!!q.trim() && primaryHint !== t('Ask')
+          {!!typed && primaryHint !== t('Ask')
             ? <button className="search-ask-hint" data-testid="search-secondary-hint" onClick={() => void ask(q.trim())}><kbd>{keys('⌘↵')}</kbd>{t('Ask')}</button>
             : count > 1 && <span><kbd>↑↓</kbd>{t('Navigate')}</span>}
           <span><kbd>esc</kbd>{t('Close')}</span>

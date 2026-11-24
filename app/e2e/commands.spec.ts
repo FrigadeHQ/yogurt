@@ -625,6 +625,49 @@ test('typing keeps the input anchored and replaces meeting and command results t
   } finally { await app.close() }
 })
 
+test('typing keeps the settled rows, hints and panel height between keystrokes', async () => {
+  const { app, page } = await launch()
+  try {
+    await app.evaluate(() => (globalThis as unknown as { __fake__: { manyMeetings(n: number): void } }).__fake__.manyMeetings(1))
+    await page.reload()
+    await expect(page.getByTestId('past-note')).toBeVisible()
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.keyboard.press('Meta+k')
+    const panel = page.getByTestId('search'), input = panel.getByRole('combobox'), list = panel.getByRole('listbox')
+    for (const [prefix, suffix, marker, label, hint] of [
+      ['uncr', 'ates', 'search-none', 'No matches', '↵Ask'],
+      ['bud', 'get', 'search-result', 'Budget review', '↵Open note'],
+    ]) {
+      await input.fill(prefix)
+      await expect(list).toHaveAttribute('aria-busy', 'false')
+      await expect(panel.getByTestId(marker)).toContainText(label)
+      await expect(panel.getByTestId('search-primary-hint')).toHaveText(hint)
+      const observation = await panel.evaluateHandle((el, marker) => {
+        const row = el.querySelector(`[data-testid="${marker}"]`)!
+        const footer = el.querySelector('.search-footer')!
+        const height = el.getBoundingClientRect().height, hints = footer.textContent
+        const changes = new Set<string>()
+        let searches = 0
+        const observer = new MutationObserver(records => {
+          searches += records.filter(r => r.attributeName === 'aria-busy' && r.oldValue === 'false').length
+          if (!row.isConnected) changes.add('result detached')
+          if (el.getBoundingClientRect().height !== height) changes.add('panel height changed')
+          if (footer.textContent !== hints) changes.add('footer hints changed')
+        })
+        observer.observe(el, { subtree: true, childList: true, characterData: true, attributeFilter: ['aria-busy'], attributeOldValue: true })
+        return () => { observer.disconnect(); return { searches, changes: [...changes] } }
+      }, marker)
+      for (const key of suffix) {
+        await input.press(key)
+        await expect(list).toHaveAttribute('aria-busy', 'false')
+      }
+      expect(await observation.evaluate(finish => finish())).toEqual({ searches: suffix.length, changes: [] })
+      await expect(input).toHaveValue(prefix + suffix)
+      await observation.dispose()
+    }
+  } finally { await app.close() }
+})
+
 test('shortcut help opens from the palette and its footer, is searchable, and closes with Escape', async () => {
   const { app, page } = await launch()
   try {

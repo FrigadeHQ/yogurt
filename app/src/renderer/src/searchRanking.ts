@@ -29,13 +29,18 @@ export function scoreCommand(command: Command, query: string): number {
   }))
 }
 
+export function isSearchQuestion(query: string): boolean {
+  const text = query.trim()
+  return /[?？؟]$/.test(text) || /^(who|what|when|where|why|how|did|do|does|is|are|can|could|would|should|was|were|will|have|has)\b/i.test(text)
+}
+
 export function searchPalette<C extends Command, M extends Meeting>(commands: C[], meetings: M[], query: string, askQuery = query, people: SearchPersonMatch[] = [], previous?: string, filtered = false) {
   const groups = [...new Set(commands.map(c => c.group))]
   const ranked = query.trim() ? commands.filter(c => !filtered || c.query !== undefined)
     .map(command => ({ kind: 'command' as const, command, score: scoreCommand(command, query) }))
     .filter(c => c.score > 0)
     .sort((a, b) => groups.indexOf(a.command.group) - groups.indexOf(b.command.group) || b.score - a.score) : []
-  const question = /[?？؟]$/.test(askQuery.trim()) || /^(who|what|when|where|why|how|did|do|does|is|are|can|could|would|should|was|were|will|have|has)\b/i.test(askQuery.trim())
+  const question = isSearchQuestion(askQuery)
   const rows = [
     ...(question ? [{ kind: 'ask' as const, query: askQuery.trim() }] : []),
     ...(query.trim() ? meetings : meetings.slice(0, 3)).map(meeting => ({ kind: 'meeting' as const, meeting })),

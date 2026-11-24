@@ -503,7 +503,7 @@ it('offers letting AI apps make changes only once they can read, off until turne
   expect(toggle()['aria-checked']).toBe(true)
 })
 
-it('opens a command-search question as a draft when recording prevents an answer', async () => {
+it.each([false, true])('opens a pending command-search question as a draft when recording prevents an answer (Meta: %s)', async metaKey => {
   vi.stubGlobal('document', { activeElement: null })
   vi.stubGlobal('HTMLButtonElement', class {})
   const draft = vi.fn().mockResolvedValue(undefined), onNavigate = vi.fn()
@@ -511,7 +511,7 @@ it('opens a command-search question as a draft when recording prevents an answer
   vi.stubGlobal('window', { yogurt: { capabilities: { calendar: false }, conversations } })
   const render = renderer(() => Search({ onOpen() {}, onNavigate, onSettingsChange() {}, onShortcuts() {}, onClose() {}, sidebarCollapsed: false, onToggleSidebar() {} }))
   find(render(), 'search-input').props.onChange({ target: { value: 'What did we decide?' } })
-  find(render(), 'search').props.onKeyDown({ key: 'Enter', metaKey: true, nativeEvent: {}, preventDefault() {} })
+  find(render(), 'search').props.onKeyDown({ key: 'Enter', metaKey, nativeEvent: {}, preventDefault() {} })
   await vi.waitFor(() => expect(onNavigate).toHaveBeenCalledExactlyOnceWith('/chat/draft-id'))
   expect(draft).toHaveBeenCalledExactlyOnceWith('draft-id', 'What did we decide?')
 })
@@ -597,8 +597,14 @@ it.each(['dark', 'mode'])('executes the ranked result when Enter beats a slow se
   render()
   vi.mocked(useEffect).mock.calls[1][0]()
   await Promise.resolve()
+  const question = 'What happened?'
+  find(render(), 'search-input').props.onChange({ target: { value: question } })
+  render()
+  vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.[0] === question && deps.length > 1)![0]()
+  await vi.runAllTimersAsync()
   find(render(), 'search-input').props.onChange({ target: { value: term } })
   const tree = render()
+  expect(find(tree, 'search-ask').props['aria-selected']).toBe(true)
   vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.[0] === term && deps.length > 1)![0]()
   find(tree, 'search').props.onKeyDown({ key: 'Enter', nativeEvent: {}, preventDefault() {} })
   await vi.runAllTimersAsync()
