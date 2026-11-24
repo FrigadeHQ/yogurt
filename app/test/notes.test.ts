@@ -7,6 +7,7 @@ import { hookNotes, NOTES_MAX } from '../src/main/notes'
 import { createQueue } from '../src/main/notes/queue'
 import type { Llm } from '../src/main/notes/enhance'
 import type { NoteView } from '../src/shared/types'
+import { attendeeMembership } from '../src/shared/people'
 
 const dirs: string[] = []
 const stores: Store[] = []
@@ -398,6 +399,33 @@ describe('hookNotes', () => {
     expect(s.prompts).toHaveLength(1)
     expect(s.notes.view(s.m.id).peopleChanged).toBe(true)
   })
+  it('dismisses only the attendee change that was shown and remembers it after reopening', () => {
+    const s = setup(), id = s.m.id, ann = { name: 'Ann Lee', email: null }
+    const baseline = attendeeMembership([]), membership = attendeeMembership([ann])
+    s.store.setNotes(id, { enhanced: 'My summary', edited: true })
+    s.store.setWrittenWith(id, baseline)
+    s.store.updateMeeting(id, { attendees: [ann] })
+    expect(s.notes.view(id).peopleChanged).toBe(true)
+    s.notes.dismissPeopleChange(id, membership)
+    expect(s.sent.at(-1)).toMatchObject({ peopleChanged: false, enhanced: 'My summary', edited: true })
+    expect(s.store.writtenWith(id)).toBe(baseline)
+
+    const reopened = openStore(s.store.db.location()!)
+    stores.push(reopened)
+    const notes = hookNotes({ store: reopened, queue: s.queue, model: { llm: async () => s.llm },
+      transcribed: async () => {}, language: () => null, onStop: () => {}, send: () => {}, changed: () => {} })
+    expect(notes.view(id).peopleChanged).toBe(false)
+    reopened.renameAttendee(id, 0, 'Annie Lee')
+    expect(notes.view(id).peopleChanged).toBe(false)
+    reopened.renameAttendee(id, 0, ann.name)
+    reopened.updateMeeting(id, { attendees: [ann, { name: ' ANN   lee ', email: null }] })
+    expect(notes.view(id).peopleChanged).toBe(false)
+    reopened.updateMeeting(id, { attendees: [ann, { name: 'Bo', email: null }] })
+    notes.dismissPeopleChange(id, membership)
+    expect(notes.view(id).peopleChanged).toBe(true)
+    reopened.updateMeeting(id, { attendees: [ann] })
+    expect(notes.view(id).peopleChanged).toBe(true)
+  })
   it('notes written before Yogurt kept who was there are not marked out of date for their attendees', async () => {
     const s = setup()
     s.store.updateMeeting(s.m.id, { attendees: [{ name: 'Ann Lee', email: null }] })
@@ -410,6 +438,21 @@ describe('hookNotes', () => {
     s.notes.applyPeople(s.m.id)
     await wait(80)
     expect(s.prompts).toHaveLength(1)
+  })
+  it('removing a duplicate from an older note neither shows a hint nor queues a rewrite', async () => {
+    const s = setup(), ann = { name: 'Ann Lee', email: null }
+    s.store.setNotes(s.m.id, { enhanced: 'Original summary' })
+    s.store.setWrittenWith(s.m.id, 'members:["name:Ann  Lee","name:Ann Lee"]')
+    s.store.updateMeeting(s.m.id, { attendees: [ann] })
+    expect(s.notes.view(s.m.id).peopleChanged).toBe(false)
+    s.notes.applyPeople(s.m.id)
+    await wait(80)
+    expect(s.prompts).toHaveLength(0)
+    s.store.setNotes(s.m.id, { edited: true })
+    s.store.updateMeeting(s.m.id, { attendees: [] })
+    expect(s.notes.view(s.m.id).peopleChanged).toBe(true)
+    s.store.updateMeeting(s.m.id, { attendees: [ann, ann] })
+    expect(s.notes.view(s.m.id).peopleChanged).toBe(false)
   })
   it('written() resolves once the notes after the meeting are done', async () => {
     const s = setup()

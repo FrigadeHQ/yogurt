@@ -7,6 +7,13 @@ const stores: ReturnType<typeof openStore>[] = []
 afterEach(() => stores.splice(0).forEach(s => s.close()))
 const fresh = () => { const s = openStore(':memory:'); stores.push(s); return s }
 const create = (s: ReturnType<typeof fresh>, email: string | null = 'Jamie@Northwind.example') => s.createMeeting({ title: 'Call', startedAt: 1, endedAt: 2, eventId: null, app: null, attendees: [{ name: 'jamie', email }], state: 'done' })
+it('counts each email or normalized name once, including when the same person is re-added', () => {
+  const jamie = { name: 'Jamie', email: ' Jamie@example.com ' }, ann = { name: 'Ann  Lee', email: null }
+  const membership = attendeeMembership([jamie, ann])
+  expect(attendeeMembership([ann, jamie, { name: ' ANN\tLee ', email: null }, { name: 'J', email: 'jamie@example.com' }])).toBe(membership)
+  expect(attendeeMembership([ann])).not.toBe(membership)
+  expect(attendeeMembership([ann, jamie, { name: 'Jamie', email: 'other@example.com' }])).not.toBe(membership)
+})
 it('resolves an override, best observed name, then a capitalized local part', () => {
   expect(resolvedPersonName('jamie@northwind.example', 'Jamie Quill', ['Jamie Jones'])).toBe('Jamie Quill')
   expect(resolvedPersonName('jamie@northwind.example', null, ['jamie', 'Jamie Quill', 'Jamie'])).toBe('Jamie Quill')
@@ -35,7 +42,7 @@ it('backfills idempotently and propagates a rename across meetings and exports w
 it('renames a name-only attendee on just that meeting, preserving the Summary membership baseline', () => {
   const s = fresh(), a = create(s, null), b = create(s, null)
   s.setNotes(a.id, { enhanced: 'Summary' })
-  s.setWrittenWith(a.id, attendeeMembership(a.attendees))
+  s.setWrittenWith(a.id, 'members:["name:Jamie","name:jamie"]')
   s.renameAttendee(a.id, 0, 'Jamie Quill')
   expect(s.meeting(a.id)!.attendees[0].name).toBe('Jamie Quill')
   expect(s.meeting(b.id)!.attendees[0].name).toBe('jamie')
