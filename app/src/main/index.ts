@@ -1285,12 +1285,18 @@ app.whenReady().then(() => {
     const sp = isId(folder) ? folder : undefined
     // fake mode: short questions answer late, so a test can see an older answer never replace a newer one
     if (isFake() && process.env.YOGURT_FAKE_SEARCH_SLOW === '1' && query.trim().length <= 4) await new Promise((r) => setTimeout(r, 1000))
-    const hits = query.trim() || personSearch ? store.search(query, personSearch ? Infinity : 30, sp, { locale: app.getLocale(), language: uiLanguage(), people }) : store.meetingCards({ limit: 3, folder: sp }).map((c) => ({ meetingId: c.id, snippet: '', parts: [] }))
-    return hits.flatMap((h) => {
-      const m = store.meeting(h.meetingId)
-      if (!m) return []
-      const parts = h.parts.length ? h.parts : [{ text: store.preview(m.id), hit: false }]
-      return [{ meetingId: m.id, title: m.title, startedAt: m.startedAt, confident: 'confident' in h ? h.confident : false, parts: parts.filter((p) => p.text) }]
+    const hits = query.trim() || personSearch
+      ? store.search(query, personSearch ? Infinity : 30, sp, { locale: app.getLocale(), language: uiLanguage(), people })
+      : undefined
+    if (hits && !hits.length) return []
+    const cards = store.meetingCards({ limit: hits?.length ?? 3, folder: sp, ids: hits?.map(h => h.meetingId) })
+    const byId = new Map(cards.map(c => [c.id, c]))
+    return (hits ?? cards.map(c => ({ meetingId: c.id, parts: [], confident: false }))).flatMap(hit => {
+      const card = byId.get(hit.meetingId)
+      if (!card) return []
+      const folder = card.folders?.find(f => f.id === sp) ?? card.folders?.[0]
+      return [{ meetingId: card.id, title: card.title, startedAt: card.startedAt, attendees: card.attendees,
+        folder, preview: card.preview, parts: hit.parts, confident: hit.confident }]
     })
   })
   // the window's own moves (home, a note from the list): remembered here so a reload stays where it was

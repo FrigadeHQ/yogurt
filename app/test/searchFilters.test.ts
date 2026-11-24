@@ -17,7 +17,7 @@ describe('agenda date command', () => {
     expect(command).toMatchObject({ id: 'agenda-date', group: 'Go to', at: parsed.date!.start })
     const meeting = { meetingId: 'example', confident: true }
     const palette = searchPalette([...commands, command], [meeting], query, query, [], undefined, true)
-    expect(palette.rows.map(row => row.kind)).toEqual(['ask', 'command', 'meeting'])
+    expect(palette.rows.map(row => row.kind)).toEqual(['meeting', 'command'])
     expect(palette.rows[palette.active]).toEqual({ kind: 'command', command })
   })
   it.each(['', 'planning', 'November', 'in November', 'last week', 'past 7 days', 'November 11 to November 13, 2028', '02/30/2028'])('omits the jump for %s', query => {
@@ -36,7 +36,7 @@ describe('agenda date command', () => {
     expect(command.label).toBe('Zum 11. Nov. 2028 springen')
     const palette = searchPalette([command], [], query, query, [], undefined, true)
     expect(palette.rows[palette.active]).toEqual({ kind: 'command', command })
-    expect(searchPalette([command], [], 'last week', 'last week', [], undefined, true).rows.map(r => r.kind)).toEqual(['ask'])
+    expect(searchPalette([command], [], 'last week', 'last week', [], undefined, true).rows.map(r => r.kind)).toEqual([])
   })
   it('recognizes single days on both daylight-saving transitions', () => {
     const saved = process.env.TZ
@@ -73,11 +73,11 @@ describe('search filters', () => {
     const date = parseSearchQuery(people.text)
     const parts = searchFilterHighlights(query, people.matches, date.dateSpan)
     expect(parts).toEqual([
-      { text: 'notes with ' }, { text: person.name, kind: 'person' },
+      { text: 'notes ' }, { text: 'with ' + person.name, kind: 'person' },
       { text: ' ' }, { text: 'today', kind: 'date' },
     ])
     expect(parts.map(p => p.text).join('')).toBe(query)
-    expect(removeSearchSpan(query, people.matches[0])).toBe('notes with today')
+    expect(removeSearchSpan(query, people.matches[0])).toBe('notes today')
     expect(removeSearchSpan(query, date.dateSpan!)).toBe('notes with Riley Example')
   })
 
@@ -86,23 +86,23 @@ describe('search filters', () => {
     const date = parseSearchQuery(people.text)
     const filtered = !!date.date || people.matches.length > 0
     const palette = searchPalette(commands, [{ confident: true }], query, query, [], undefined, filtered)
-    expect(palette.rows.map(r => r.kind)).toEqual(['ask', 'meeting'])
+    expect(palette.rows.map(r => r.kind)).toEqual(['meeting'])
     expect(palette.rows[palette.active].kind).toBe('meeting')
   })
 
-  it('names the filters with no matches while keeping Ask available and selected', () => {
+  it('names the filters when no meetings match', () => {
     expect(searchFilterEmptyMessage([person])).toBe('No matching meetings with Riley Example.')
     expect(searchFilterEmptyMessage([], 'Monday')).toBe('No matching meetings on Monday.')
     expect(searchFilterEmptyMessage([person], 'Monday')).toBe('No matching meetings with Riley Example on Monday.')
     expect(searchFilterEmptyMessage([])).toBeUndefined()
     const palette = searchPalette(commands, [], person.name, person.name, [], undefined, true)
-    expect(palette.rows).toEqual([{ kind: 'ask', query: person.name }])
+    expect(palette.rows).toEqual([])
     expect(palette.active).toBe(0)
   })
 
-  it('restores ordinary commands after filter text is deleted', () => {
+  it('returns to recents after filter text is deleted', () => {
     const query = removeSearchSpan(person.name, matchSearchPeople(person.name, [person]).matches[0])
     expect(searchFilterHighlights(query, [])).toEqual([])
-    expect(searchPalette(commands, [], query).rows.map(r => r.kind)).toEqual(['command'])
+    expect(searchPalette(commands, [], query).rows.map(r => r.kind)).toEqual([])
   })
 })

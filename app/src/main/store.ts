@@ -642,13 +642,14 @@ export class Store {
   }
 
   /** Past meetings for the home screen, newest first, a page at a time: before is the last card of the page before */
-  meetingCards({ before, limit, folder }: { before?: { at: number; id: string }; limit: number; /** only the meetings in this folder */ folder?: string }): MeetingCard[] {
+  meetingCards({ before, limit, folder, ids }: { ids?: string[]; before?: { at: number; id: string }; limit: number; /** only the meetings in this folder */ folder?: string }): MeetingCard[] {
     const cols = `m.*, substr(n.mine, 1, 600) AS n_mine, substr(n.enhanced, 1, 600) AS n_enhanced,
       (SELECT json_group_array(json_object('id', id, 'name', name, 'icon', icon, 'color', color)) FROM
         (SELECT f.id, f.name, f.icon, f.color FROM folders f JOIN folder_meetings fm ON fm.folder_id = f.id
           WHERE fm.meeting_id = m.id ORDER BY f.name COLLATE NOCASE, f.created_at)) AS card_folders`
-    const from = `FROM meetings m LEFT JOIN notes n ON n.meeting_id = m.id${folder == null ? '' : ' JOIN folder_meetings sm ON sm.meeting_id = m.id AND sm.folder_id = ?'} WHERE m.trashed_at IS NULL`
-    const sp = folder == null ? [] : [folder]
+    const from = `FROM meetings m LEFT JOIN notes n ON n.meeting_id = m.id${folder == null ? '' : ' JOIN folder_meetings sm ON sm.meeting_id = m.id AND sm.folder_id = ?'} WHERE m.trashed_at IS NULL
+      ${ids ? 'AND m.id IN (SELECT value FROM json_each(?))' : ''}`
+    const sp = [...(folder == null ? [] : [folder]), ...(ids ? [JSON.stringify(ids)] : [])]
     const rows = before == null
       ? this.db.prepare(`SELECT ${cols} ${from} ORDER BY m.started_at DESC, m.id DESC LIMIT ?`).all(...sp, limit)
       : this.db.prepare(`SELECT ${cols} ${from} AND (m.started_at < ? OR (m.started_at = ? AND m.id < ?)) ORDER BY m.started_at DESC, m.id DESC LIMIT ?`)

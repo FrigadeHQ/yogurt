@@ -429,7 +429,7 @@ test('search: from any screen, as you type, arrows and Enter, Esc closes; a slow
     await expect(search).toBeVisible()
     await page.keyboard.type('zzqx')
     await expect(search.getByTestId('search-result')).toHaveCount(0)
-    await expect(search.getByTestId('search-ask')).toHaveAttribute('aria-selected', 'true')
+    await expect(search.getByTestId('search-primary-hint')).toHaveText('↵Ask')
     await page.keyboard.press('Escape')
     await expect(search).toHaveCount(0)
   } finally { await app.close() }

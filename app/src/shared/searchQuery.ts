@@ -72,7 +72,9 @@ export function parseSearchQuery(query: string, { now = new Date(), locale = new
         span.start = inMonth.index
       } else if (weekdayOnly) {
         // A bare weekday within other words may be a title; standalone weekdays and explicit modifiers are dates.
-        if (/^\p{L}+\.?$/u.test(result.text.trim()) && query.trim() !== result.text.trim()) continue
+        const on = /\bon\s+$/i.exec(before)
+        if (on) span.start = on.index
+        else if (/^\p{L}+\.?$/u.test(result.text.trim()) && query.trim() !== result.text.trim()) continue
         if (start > day() && !/\b(next|this)\b/i.test(result.text)) {
           start.setDate(start.getDate() - 7); last.setDate(last.getDate() - 7)
         }

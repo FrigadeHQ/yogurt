@@ -64,6 +64,19 @@ describe('meeting search', () => {
     expect(ids('standup')).toEqual([m.id, newerTypo.id, other.id])
   })
 
+  it('reads only matching cards with their people, folder color and plain notes preview', () => {
+    const kept = make('Planning', 10, ['Ana López'])
+    const deleted = make('Other')
+    const f = store.createFolder('Design', { color: 'teal', icon: 'folder' })
+    store.addToFolder(f.id, kept.id)
+    store.setNotes(kept.id, { enhanced: '## Decisions\n- **Ship** on Friday.' })
+    store.trashMeeting(deleted.id)
+    expect(ids('with Ana nov 10')).toEqual([kept.id])
+    expect(store.meetingCards({ ids: [kept.id, deleted.id], limit: 2 })).toMatchObject([
+      { id: kept.id, attendees: [{ name: 'Ana López' }], folders: [{ name: 'Design', color: 'teal' }], preview: 'Ship on Friday.' },
+    ])
+  })
+
   it('filters yesterday even without other words and returns nothing for a miss', () => {
     const yesterday = make('Planning', 11)
     make('Planning', 12)

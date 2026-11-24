@@ -29,37 +29,43 @@ export function scoreCommand(command: Command, query: string): number {
   }))
 }
 
-export function orderSearchResults<C extends Command, M>(commands: C[], meetings: M[], query: string) {
-  const ranked = commands.map((command) => ({ command, score: scoreCommand(command, query) }))
-    .filter(({ score }) => !query.trim() || score > 0)
-    .sort((a, b) => b.score - a.score)
-  const commandRows = ranked.map(({ command }) => ({ kind: 'command' as const, command }))
-  const meetingRows = meetings.map((meeting) => ({ kind: 'meeting' as const, meeting }))
-  const leading = ranked[0]?.score >= 3 ? 4 : 0
-  return [...commandRows.slice(0, leading), ...meetingRows, ...commandRows.slice(leading)]
+export function isSearchQuestion(query: string): boolean {
+  const text = query.trim()
+  return /[?？؟]$/.test(text) || /^(who|what|when|where|why|how|did|do|does|is|are|can|could|would|should|was|were|will|have|has)\b/i.test(text)
 }
 
 export function searchPalette<C extends Command, M extends Meeting>(commands: C[], meetings: M[], query: string, askQuery = query, people: SearchPersonMatch[] = [], previous?: string, filtered = false) {
-  const matches = orderSearchResults(filtered ? commands.filter(c => c.query !== undefined) : commands, meetings, query)
-  const choices = [...people.map(person => ({ kind: 'person' as const, ...person })), ...matches]
-  const rows = askQuery.trim() ? [{ kind: 'ask' as const, query: askQuery.trim() }, ...choices] : choices
-  // Ask stays pinned, but Enter chooses a strong command or a meeting whose terms all match metadata.
-  // Keep the completed query’s strong selection while new results settle; questions still select Ask.
-  const question = /\?\s*$/.test(askQuery) || /^(who|what|when|where|why|how|did|does|is|are|can|should)\b/i.test(askQuery.trim())
-  const best = askQuery.trim() && query.trim() && !question ? rows.findIndex(row => row.kind === 'command'
-    ? scoreCommand(row.command, query) >= 3 : row.kind === 'meeting' && row.meeting.confident) : -1
-  let active = best < 0 ? 0 : best
-  if (askQuery.trim() && query.trim() && !question && previous) {
-    const prior = rows.findIndex(row => searchSelectionKey(row) === previous)
-    const strength = (row: SelectionRow) => {
-      if (row.kind === 'ask') return 2
-      if (row.kind === 'meeting') return row.meeting.confident ? 4 : 0
-      if (row.kind !== 'command') return 0
-      const score = scoreCommand(row.command, query)
-      return score >= 2 ? score + 1 : 0
+  const groups = [...new Set(commands.map(c => c.group))]
+  const ranked = query.trim() ? commands.filter(c => !filtered || c.query !== undefined)
+    .map(command => ({ kind: 'command' as const, command, score: scoreCommand(command, query) }))
+    .filter(c => c.score > 0)
+    .sort((a, b) => groups.indexOf(a.command.group) - groups.indexOf(b.command.group) || b.score - a.score) : []
+  const question = isSearchQuestion(askQuery)
+  const rows = [
+    ...(question ? [{ kind: 'ask' as const, query: askQuery.trim() }] : []),
+    ...(query.trim() ? meetings : meetings.slice(0, 3)).map(meeting => ({ kind: 'meeting' as const, meeting })),
+    ...people.map(person => ({ kind: 'person' as const, ...person })),
+    ...ranked.map(({ command }) => ({ kind: 'command' as const, command })),
+  ]
+  let active = 0
+  if (!question && query.trim() && askQuery.trim()) {
+    const meeting = rows.findIndex(row => row.kind === 'meeting' && row.meeting.confident)
+    let best = ranked[0]
+    for (const candidate of ranked) if (candidate.score > best.score) best = candidate
+    if (best && (best.score >= 3 || meeting < 0 && best.score >= 2)) active = rows.findIndex(row => row.kind === 'command' && row.command === best.command)
+    else if (meeting >= 0) active = meeting
+
+    // Keep a strong default across near-tied queries without rearranging the groups.
+    const prior = previous ? rows.findIndex(row => searchSelectionKey(row) === previous) : -1
+    if (prior >= 0) {
+      const strength = (row: SelectionRow) => {
+        if (row.kind === 'meeting') return row.meeting.confident ? 4 : 0
+        if (row.kind !== 'command') return 0
+        const score = scoreCommand(row.command, query)
+        return score >= 2 ? score + 1 : 0
+      }
+      if (strength(rows[prior]) && strength(rows[active]) < strength(rows[prior]) + 2) active = prior
     }
-    // Keep a still-relevant choice across near-ties; a two-point gain, question, or vanished match replaces it.
-    if (prior >= 0 && strength(rows[prior]) > 0 && strength(rows[active]) < strength(rows[prior]) + 2) active = prior
   }
   return { rows, active }
 }

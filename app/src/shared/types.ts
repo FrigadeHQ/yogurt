@@ -395,7 +395,10 @@ export type AgendaEvent = CalEvent & { note?: { id: string; state: Meeting['stat
 /** Start notes: the meeting's id, or why it didn't start (gone: the event left the calendar) */
 export type StartResult = { id: string; alreadyRecording?: true; resumeRequested?: true } | { error: 'gone' | 'failed' }
 /** one meeting found: parts is a piece of its notes or transcript, hit on the words matched */
-export type SearchResult = { meetingId: string; title: string; startedAt: number; parts: SnippetPart[]; confident?: boolean }
+export type SearchResult = {
+  meetingId: string; title: string; startedAt: number; attendees: Person[]; folder?: Pick<Folder, 'id' | 'name' | 'color'>
+  preview: string; parts: SnippetPart[]; confident?: boolean
+}
 
 /**
  * Where a meeting's enhanced notes are: idle (none yet, the meeting may still be on), waiting (for the transcript or

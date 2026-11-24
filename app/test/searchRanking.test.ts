@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { orderSearchResults, scoreCommand, searchPalette, searchSelectionKey } from '../src/renderer/src/searchRanking'
+import { scoreCommand, searchPalette, searchSelectionKey } from '../src/renderer/src/searchRanking'
 
 const commands = [
   { label: 'Settings', group: 'Go to', synonyms: ['preferences', 'prefs'] },
@@ -9,10 +9,10 @@ const commands = [
   { label: 'Light theme', group: 'Appearance', synonyms: ['theme', 'appearance', 'mode', 'light'] },
   { label: 'Match my system', group: 'Appearance', synonyms: ['theme', 'appearance', 'mode', 'system'] },
   { label: 'Open at login', group: 'Settings' },
-  { label: 'Dark planning', group: 'Folders' },
+  { label: 'Dark planning', group: 'Go to', synonyms: ['Folders'] },
 ]
-const labels = (query: string, source = commands) => orderSearchResults(source, ['meeting'], query)
-  .map((row) => row.kind === 'command' ? row.command.label : row.meeting)
+const labels = (query: string, source = commands) => searchPalette(source, [{ meetingId: 'meeting' }], query).rows
+  .map(row => row.kind === 'command' ? row.command.label : row.kind === 'meeting' && row.meeting.meetingId)
 
 describe('command scoring', () => {
   it('ranks exact labels, prefixes, word starts, aliases, then substrings', () => {
@@ -44,49 +44,49 @@ describe('command scoring', () => {
 
 describe('search ordering', () => {
   it.each([
-    ['dark', ['Dark theme', 'Dark planning', 'meeting']],
-    ['light', ['Light theme', 'meeting']],
-    ['set', ['Settings', 'Open at login', 'meeting']],
-    ['trash', ['Trash', 'meeting']],
-    ['short', ['Keyboard shortcuts', 'meeting']],
+    ['dark', ['meeting', 'Dark planning', 'Dark theme']],
+    ['light', ['meeting', 'Light theme']],
+    ['set', ['meeting', 'Settings', 'Open at login']],
+    ['trash', ['meeting', 'Trash']],
+    ['short', ['meeting', 'Keyboard shortcuts']],
     ['budget review', ['meeting']],
-    ['theme', ['Dark theme', 'Light theme', 'Match my system', 'meeting']],
+    ['theme', ['meeting', 'Dark theme', 'Light theme', 'Match my system']],
     ['mode', ['meeting', 'Dark theme', 'Light theme', 'Match my system']],
     ['appearance', ['meeting', 'Dark theme', 'Light theme', 'Match my system']],
     ['prefs', ['meeting', 'Settings']],
-    ['ark', ['meeting', 'Dark theme', 'Dark planning']],
+    ['ark', ['meeting', 'Dark planning', 'Dark theme']],
   ])('orders commands and meetings for %s', (query, expected) => {
     expect(labels(query)).toEqual(expected)
   })
 
   it('keeps the empty-query order, including whitespace-only queries', () => {
-    for (const query of ['', '   ']) expect(labels(query)).toEqual(['meeting', ...commands.map((c) => c.label)])
+    for (const query of ['', '   ']) expect(searchPalette(commands, ['1', '2', '3', '4'].map(meetingId => ({ meetingId })), query).rows.map(r => r.kind === 'meeting' && r.meeting.meetingId)).toEqual(['1', '2', '3'])
   })
 
-  it('caps promoted commands at four, keeps ties stable and leaves overflow accessible', () => {
+  it('keeps all matching folders together in stable order', () => {
     const folders = Array.from({ length: 6 }, (_, i) => ({ label: `Plan ${i}`, group: 'Folders' }))
-    expect(labels('plan', folders)).toEqual(['Plan 0', 'Plan 1', 'Plan 2', 'Plan 3', 'meeting', 'Plan 4', 'Plan 5'])
+    expect(labels('plan', folders)).toEqual(['meeting', 'Plan 0', 'Plan 1', 'Plan 2', 'Plan 3', 'Plan 4', 'Plan 5'])
     expect(folders.map((f) => f.label)).toEqual(['Plan 0', 'Plan 1', 'Plan 2', 'Plan 3', 'Plan 4', 'Plan 5'])
   })
 
   it('preserves meeting order and shows commands when there are no meetings', () => {
-    expect(orderSearchResults(commands, ['recent', 'older'], 'ark').slice(0, 2))
-      .toEqual([{ kind: 'meeting', meeting: 'recent' }, { kind: 'meeting', meeting: 'older' }])
-    expect(orderSearchResults(commands, [], 'prefs')).toEqual([{ kind: 'command', command: commands[0] }])
-    expect(orderSearchResults(commands, [], 'unknown')).toEqual([])
+    const meetings = [{ meetingId: 'recent' }, { meetingId: 'older' }]
+    expect(searchPalette(commands, meetings, 'ark').rows.slice(0, 2)).toEqual(meetings.map(meeting => ({ kind: 'meeting', meeting })))
+    expect(searchPalette(commands, [], 'prefs').rows).toEqual([{ kind: 'command', command: commands[0] }])
+    expect(searchPalette(commands, [], 'unknown').rows).toEqual([])
   })
 })
 
 
 describe('Ask in the command palette', () => {
   const meeting = { title: 'Budget review', confident: true }
-  it('pins Ask above results but selects a strong command or confident meeting', () => {
+  it('groups meeting and command matches and selects the strongest intent', () => {
     const command = searchPalette(commands, [meeting], 'dark')
-    expect(command.rows[0]).toEqual({ kind: 'ask', query: 'dark' })
-    expect(command.rows[command.active]).toEqual({ kind: 'command', command: commands[3] })
+    expect(command.rows.map(r => r.kind)).toEqual(['meeting', 'command', 'command'])
+    expect(command.rows[command.active]).toEqual({ kind: 'command', command: commands[7] })
     expect(searchPalette(commands, [meeting], 'dark', ' dark ').active).toBe(command.active)
     const found = searchPalette(commands, [meeting], 'budget')
-    expect(found.rows[0].kind).toBe('ask')
+    expect(found.rows[0].kind).toBe('meeting')
     expect(found.rows[found.active]).toEqual({ kind: 'meeting', meeting })
   })
   it.each(['Budget review?', 'who', 'what', 'when', 'where', 'why', 'how', 'did', 'does', 'is', 'are', 'can', 'should'])('selects Ask for a question starting with %s', query => {
@@ -98,15 +98,15 @@ describe('Ask in the command palette', () => {
     const palette = searchPalette(commands, [meeting], 'island')
     expect(palette.rows[palette.active].kind).toBe('meeting')
   })
-  it('selects the only Ask row for no matches, and prefers Ask over weak matches', () => {
-    expect(searchPalette(commands, [], 'unfindable')).toEqual({ rows: [{ kind: 'ask', query: 'unfindable' }], active: 0 })
+  it('leaves unmatched searches empty and keeps weak matches selectable', () => {
+    expect(searchPalette(commands, [], 'unfindable')).toEqual({ rows: [], active: 0 })
     expect(searchPalette(commands, [{ confident: false }], 'budget').active).toBe(0)
     expect(searchPalette(commands, [], 'prefs').active).toBe(0)
   })
   it('keeps empty-query behavior and shows the latest question while results settle', () => {
     expect(searchPalette(commands, [meeting], '   ').rows[0]).toEqual({ kind: 'meeting', meeting })
-    const pending = searchPalette(commands, [meeting], '', 'new question')
-    expect(pending.rows[0]).toEqual({ kind: 'ask', query: 'new question' })
+    const pending = searchPalette(commands, [meeting], '', 'new question?')
+    expect(pending.rows[0]).toEqual({ kind: 'ask', query: 'new question?' })
     expect(pending.active).toBe(0)
   })
 })
@@ -123,11 +123,11 @@ it('keeps a strong selection through pending keystrokes, while questions stay on
   expect(searchPalette(commands, [meeting], 'what is', 'what is next').active).toBe(0)
 })
 
-it('puts explicit people choices below Ask without treating them as automatic filters', () => {
+it('offers people as choices without turning partial names into filters', () => {
   const choice = { person: { name: 'Riley Example', email: 'riley@example.test' }, start: 0, end: 3 }
   const result = searchPalette(commands, [], 'Ril', 'Ril', [choice])
-  expect(result.rows.map(r => r.kind)).toEqual(['ask', 'person'])
-  expect(result.rows[1]).toEqual({ kind: 'person', ...choice })
+  expect(result.rows.map(r => r.kind)).toEqual(['person'])
+  expect(result.rows[0]).toEqual({ kind: 'person', ...choice })
   expect(result.active).toBe(0)
 })
 
@@ -135,7 +135,7 @@ describe('default selection settling', () => {
   const meeting = { meetingId: 'planning', confident: true }
   const choose = (query: string, previous?: string, meetings = [meeting]) => {
     const palette = searchPalette(commands, meetings, query, query, [], previous)
-    return searchSelectionKey(palette.rows[palette.active])
+    return palette.rows[palette.active] && searchSelectionKey(palette.rows[palette.active])
   }
 
   it('keeps folder ties in command order and settles successive queries like the palette', () => {
@@ -148,7 +148,8 @@ describe('default selection settling', () => {
       ['dark', 'command:Dark planning'],
     ]) {
       const pending = searchPalette(source, [meeting], completed, query, [], previous)
-      previous = query ? searchSelectionKey(pending.rows[pending.active]) : undefined
+      if (!query) previous = undefined
+      else if (completed) expect(pending.rows.length).toBeGreaterThan(0)
       const settled = searchPalette(source, [meeting], query, query, [], previous)
       expect(searchSelectionKey(settled.rows[settled.active])).toBe(expected)
       previous = query ? searchSelectionKey(settled.rows[settled.active]) : undefined
@@ -183,9 +184,9 @@ describe('default selection settling', () => {
     }
   })
 
-  it('selects Ask for questions, vanished matches, or a meeting that is no longer confident', () => {
+  it('selects Ask for questions and discards vanished previous selections', () => {
     expect(choose('what is dark theme?', 'command:Dark theme')).toBe('ask')
-    expect(choose('unfindable', 'command:Dark theme', [])).toBe('ask')
-    expect(choose('budget', 'meeting:planning', [{ ...meeting, confident: false }])).toBe('ask')
+    expect(choose('unfindable', 'command:Dark theme', [])).toBeUndefined()
+    expect(choose('budget', 'meeting:planning', [{ ...meeting, confident: false }])).toBe('meeting:planning')
   })
 })
