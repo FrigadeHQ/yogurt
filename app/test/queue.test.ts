@@ -354,4 +354,15 @@ describe('notes queue', () => {
     await done
     expect(ran).toHaveBeenCalledTimes(2)
   })
+  it('a waiting diarization goes before an already-waiting notes job', async () => {
+    const q = createQueue({ recording: () => false, smallMac: false })
+    const log: string[] = []
+    let release!: () => void
+    const blocker = q.enqueue(() => new Promise<void>((r) => { release = r }), 'enhance')
+    const notes = q.enqueue(async () => { log.push('notes') }, 'enhance')
+    const voices = q.enqueue(async () => { log.push('diarize') }, 'diarize')
+    release()
+    await Promise.all([blocker, notes, voices])
+    expect(log).toEqual(['diarize', 'notes'])
+  })
 })

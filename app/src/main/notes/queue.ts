@@ -102,8 +102,10 @@ export function createQueue(o: {
   const pump = () => {
     watching()
     if (running) return
-    // a question first (someone is waiting on it), reading ahead only once nothing else can run
+    // a question first (someone is waiting on it), then a meeting's voices before the notes that describe them,
+    // reading ahead only once nothing else can run
     let i = waiting.findIndex((e) => e.kind === 'chat' && allowed(e.kind))
+    if (i === -1) i = waiting.findIndex((e) => e.kind === 'diarize' && allowed(e.kind))
     if (i === -1) i = waiting.findIndex((e) => e.kind !== 'readahead' && e.kind !== 'index' && e.kind !== 'folder' && allowed(e.kind))
     if (i === -1) i = waiting.findIndex((e) => e.kind === 'readahead' && allowed(e.kind))
     if (i === -1) i = waiting.findIndex((e) => (e.kind === 'index' || e.kind === 'folder') && allowed(e.kind))
