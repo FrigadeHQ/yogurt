@@ -3,7 +3,7 @@ import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Capture, encodeFrame, hookCapture, setRecordingPaused, recordingFinished, type CaptureProc } from '../src/main/capture'
-import { liveSilentMs, hookTranscription, transcribeRecorded, settleTranscription, speechLocaleFor, spokenChanged, stopTranscriptionServer, transcribing, releaseIdleSpeech } from '../src/main/asr'
+import { liveSilentMs, hookTranscription, transcribeRecorded, settleTranscription, speechLocaleFor, spokenChanged, stopTranscriptionServer, transcribing, releaseIdleSpeech, liveTranscriptFinishing } from '../src/main/asr'
 import type { Spoken } from '../src/shared/spoken'
 import type { TranscriptPartial } from '../src/shared/types'
 import { openStore, type Meeting, type Store } from '../src/main/store'
@@ -48,7 +48,7 @@ const disposers: Array<() => void> = []
 afterEach(async () => { disposers.splice(0).forEach((d) => d()); await settleTranscription(2000); stopTranscriptionServer() })
 
 /** both hooks over one shared start/stop fan-out, registered in the order asked for */
-function rig(order: 'capture-first' | 'transcription-first', t: { transcriber?: (c: Chunk, heard?: (language: string, chars: number) => void) => Promise<Line[]> | Line[]; modelPath?: () => string | undefined; refresh?: (id: string) => void; holdMs?: number; queued?: (id: string) => void } = {}) {
+function rig(order: 'capture-first' | 'transcription-first', t: { transcriber?: (c: Chunk, heard?: (language: string, chars: number) => void) => Promise<Line[]> | Line[]; modelPath?: () => string | undefined; refresh?: (id: string) => void; finishingChanged?: () => void; holdMs?: number; queued?: (id: string) => void } = {}) {
   const starts: Array<(m: Meeting) => void> = [], stops: Array<(m: Meeting) => void> = []
   const onStart = (fn: (m: Meeting) => void) => { starts.push(fn); return () => {} }
   const onStop = (fn: (m: Meeting) => void) => { stops.push(fn); return () => {} }
@@ -56,7 +56,7 @@ function rig(order: 'capture-first' | 'transcription-first', t: { transcriber?: 
   const sent: string[] = [], warns: string[] = []
   const hookT = () => disposers.push(hookTranscription({
     store, modelPath: t.modelPath ?? (() => '/model.bin'), send: (s) => sent.push(`${s.track}:${s.text}`), warn: (c) => warns.push(c),
-    refresh: t.refresh, holdMs: t.holdMs, queued: t.queued, transcriber: 'transcriber' in t ? t.transcriber : async (c) => says(c), onStart, onStop, pidFile: undefined,
+    refresh: t.refresh, finishingChanged: t.finishingChanged, holdMs: t.holdMs, queued: t.queued, transcriber: 'transcriber' in t ? t.transcriber : async (c) => says(c), onStart, onStop, pidFile: undefined,
   }))
   const hookC = () => hookCapture({
     dirOf: (id) => `/m/${id}`, onStart, onStop, stopMeeting: (id) => stops.forEach((f) => f({ id } as Meeting)),
@@ -74,11 +74,18 @@ function rig(order: 'capture-first' | 'transcription-first', t: { transcriber?: 
 
 describe('live transcription of a meeting', () => {
   it('only clears pending audio after transcription saves, and retains older unfinished sessions', async () => {
-    const r = rig('transcription-first'), m = meeting()
+    const m = meeting()
+    const finishingStates: boolean[] = []
+    const r = rig('transcription-first', { finishingChanged: () => finishingStates.push(liveTranscriptFinishing(m.id)) })
     r.begin(m)
     expect(store.meeting(m.id)?.transcriptionPending).toBe(true)
     r.procs[0].say('them', 500)
-    await r.stop(m)
+    expect(liveTranscriptFinishing(m.id)).toBe(false)
+    const stopped = r.stop(m)
+    expect(liveTranscriptFinishing(m.id)).toBe(true)
+    await stopped
+    expect(liveTranscriptFinishing(m.id)).toBe(false)
+    expect(finishingStates).toEqual([true, false])
     expect(store.segments(m.id).length).toBeGreaterThan(0)
     expect(store.meeting(m.id)?.transcriptionPending).not.toBe(true)
     store.updateMeeting(m.id, { transcriptionPending: true })

@@ -350,7 +350,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
     void window.yogurt.notes.writeAgain(id, note)
   }
   const hasSummary = !!notes.enhanced?.trim()
-  const transcribing=transcriptionBusy(m.transcriptionState)
+  const transcribing=transcriptionBusy(m.transcriptionState)||!!m.liveTranscriptFinishing
   const runTranscript=async(again=false)=>{if(!await saveAll())return;try{const started=await window.yogurt.transcript.run(id,again);if(started)setPrimary('transcript')}catch{toasts.add({title:t("Yogurt couldn't transcribe this file.")})}}
   const transcriptReason=recording||m.stopSavePending?t('Available after recording'):transcribing?t('Transcribing…'):summarizing?t('Summarizing…'):!hasAudio?t('Audio is unavailable.'):undefined
   const generation = summaryAction({ hasSummary, hasContent: hasTranscript || !!notes.mine.trim(), recording, busy: summarizing, downloading: !!(setup?.notesDownloading || setup?.notesError), trashed })
@@ -405,7 +405,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                       <span className="note-stop-label">{t('Stop')}</span>
                     </RecordingAction>
                   </>}
-                  {finishing && <span data-testid="note-finishing" role="status" className="note-finishing">{t('Stopping…')}</span>}
+                  {(finishing || m.liveTranscriptFinishing) && <span data-testid="note-finishing" role="status" className="note-finishing">{m.liveTranscriptFinishing ? t('Transcribing…') : t('Stopping…')}</span>}
                   {!finishing && (summaryPending || (!transcribing && m.source !== 'audio-file')) && (m.state === 'stopped' || m.state === 'done') && !m.stopSavePending && !trashed && <button data-testid="note-resume" disabled={starting && !summaryPending} onClick={() => { if (summaryPending) void window.yogurt.notes.stop(id).catch(console.error); else void resumeRecording() }}
                     aria-label={resumeLabel} className="workspace-button note-resume-action" title={summaryPending ? resumeLabel : t('Resume recording in this note')}>
                     {!summaryPending && <Mic className="flex-none" size={14} aria-hidden="true" />}
@@ -416,7 +416,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                   </button>}
                 </div>
               </div>
-              {transcribing&&<TranscriptionControl state={m.transcriptionState!} onStop={()=>void window.yogurt.transcript.stop(id).catch(()=>toasts.add({title:t("Yogurt couldn't transcribe this file.")}))}/>}
+              {!m.liveTranscriptFinishing&&transcribing&&<TranscriptionControl state={m.transcriptionState!} onStop={()=>void window.yogurt.transcript.stop(id).catch(()=>toasts.add({title:t("Yogurt couldn't transcribe this file.")}))}/>}
               <ShareMenu id={id} shown={shown} status={notes.status} hasEnhanced={notes.enhanced != null} beforeUse={saveAll} />
             </div>
           </div>

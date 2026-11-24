@@ -168,6 +168,7 @@ export function hookTranscription(p: {
   send: (seg: Omit<Segment, 'id'>) => void
   /** saved echoes changed during recording or the final sweep: the window reads them again */
   refresh?: (meetingId: string) => void
+  finishingChanged?: () => void
   /** a quick reading of what is being said right now; none: no partials */
   sendPartial?: (part: TranscriptPartial) => void
   /** for tests: how long a me line waits for the echo check, and the extra wait while their line is on its way */
@@ -323,7 +324,11 @@ export function hookTranscription(p: {
   })
   const offStop = (p.onStop ?? onMeetingStop)((m) => {
     const s = sessions.get(m.id)
-    if (s) finishSession(m.id, s, () => recordingFinished(m.id), p.store)
+    if (s?.pipeline && !s.done) {
+      const done = finishSession(m.id, s, () => recordingFinished(m.id), p.store)
+      p.finishingChanged?.()
+      void done.finally(() => p.finishingChanged?.())
+    } else if (s) finishSession(m.id, s, () => recordingFinished(m.id), p.store)
   })
   return () => {
     for (const off of [offStart, offCapture, offStop]) if (typeof off === 'function') off()
@@ -378,6 +383,10 @@ export const transcriptOpen = (id: string): boolean => sessions.has(id)
 
 /** Resolves when the meeting's transcript is all saved (after it stops); at once when there is nothing left to do */
 export const transcriptFinished = (id: string): Promise<void> => sessions.get(id)?.done ?? Promise.resolve()
+export const liveTranscriptFinishing = (id: string): boolean => {
+  const session = sessions.get(id)
+  return !!session?.pipeline && !!session.done && !session.replacement
+}
 
 export const transcriptPartials = (): TranscriptPartial[] => [...sessions.values()].flatMap((s) => s.pipeline?.partials() ?? [])
 

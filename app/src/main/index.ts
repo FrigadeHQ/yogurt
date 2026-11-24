@@ -62,7 +62,7 @@ import { isId, text, rewriteNote } from './ipcArgs'
 import { hookMics } from './mics'
 import { activeCapture, audioHelperPath, hookCapture, joinParts, onCaptureStart, onRecordingEvent, prepareAppend, recordingFinished, recordingPaused, recordingSettled, rejoinInterrupted, setRecordingPaused, settleRecording, tell, type WarnCode } from './capture'
 import { createWidget } from './widget'
-import { liveSilentMs, hookTranscription, transcribeRecorded, onWhisperGpuOff, meetingLanguage, settleTranscription, speechLocaleFor, spokenChanged, transcriptionBacklogMs, stopTranscriptionServer, releaseIdleSpeech, transcriptFinished, transcriptOpen, transcriptPartials } from './asr'
+import { liveSilentMs, hookTranscription, transcribeRecorded, onWhisperGpuOff, meetingLanguage, settleTranscription, speechLocaleFor, spokenChanged, transcriptionBacklogMs, stopTranscriptionServer, releaseIdleSpeech, transcriptFinished, transcriptOpen, transcriptPartials, liveTranscriptFinishing } from './asr'
 import { hookCallNames, type Watch } from './callNames'
 import { helperWatch, killAllWatches } from './callNames/watch'
 import { macFullName } from './user'
@@ -658,6 +658,7 @@ app.whenReady().then(() => {
     win?.webContents.send('transcript:segment', colored); sendWidgetTranscript('transcript:segment', colored)
   },
     nameOf: (id, a, b) => callNames.nameFor(id, a, b),
+    finishingChanged: () => win?.webContents.send('meetings:changed'),
     refresh: (id) => { win?.webContents.send('transcript:speakers', id); sendWidgetTranscript('transcript:speakers', id) },
     sendPartial: (part) => { win?.webContents.send('transcript:partial', part); sendWidgetTranscript('transcript:partial', part) },
     warn: (code) => tell({ t: 'warn', code }), pidFile: join(userDataDir(), 'whisper-server.pid'),
@@ -1066,7 +1067,7 @@ app.whenReady().then(() => {
   ipcMain.handle('meetings:get', (_e, id: unknown) => {
     const m = isId(id) ? getMeeting(id) : undefined
     if (m) store.noteOpened(m.id)
-    return m && { ...m, ...(recordingPaused(m.id) ? { paused: true } : {}) }
+    return m && { ...m, ...(recordingPaused(m.id) ? { paused: true } : {}), ...(liveTranscriptFinishing(m.id) ? { liveTranscriptFinishing: true } : {}) }
   })
   // the person's own title for a note
   ipcMain.handle('meetings:rename', (_e, id: unknown, title: unknown) => { if (isId(id) && typeof title === 'string') renameMeeting(id, title) })
