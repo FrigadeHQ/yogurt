@@ -180,8 +180,8 @@ test('FaceTime audio/video and handed-off calls offer a card for the shared mic 
 })
 
 
-test('speech keeps recording after the app leaves the mic; only confirmed silence lets it stop', async () => {
-  const { app, page } = await launch()
+test('without window evidence, losing the mic requires a quiet minute to stop', async () => {
+  const { app, page, userData } = await launch()
   try {
     await callAndRecord(app, page)
     await fake(app, 'silence', 0)
@@ -193,5 +193,6 @@ test('speech keeps recording after the app leaves the mic; only confirmed silenc
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
     await fake(app, 'silence', 60_000)
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', /^(stopped|done)$/)
+    await expect.poll(() => readFileSync(join(userData, 'logs/main.log'), 'utf8')).toMatch(/CALL gone [^\n]*via=mic window_ms=0/)
   } finally { await app.close() }
 })

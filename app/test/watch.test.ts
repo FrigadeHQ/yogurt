@@ -517,19 +517,17 @@ describe('the call window going away ends the call', () => {
   it('a note started by hand stops by itself once Zoom\'s meeting window is gone, though Zoom keeps the mic', async () => {
     const info = vi.spyOn(console, 'info')
     await callStartedByHand()
-    // people leave, the meeting window closes; Zoom still holds the mic
-    for (let ms = 1_500; ms <= 30_000 && !log.length; ms += 1_500) { clock += 1_500; win = { goneMs: ms }; silent = ms; await w.tick() }
+    clock += 8_000; win = { goneMs: 8_000 }; await w.tick()
     expect(log).toEqual(['auto:m1'])
-    const lines = info.mock.calls.map(([l]) => String(l))
-    expect(lines.find((l) => l.startsWith('CALL gone'))).toMatch(/^CALL gone meeting=m1 app=Zoom idle_ms=0 silent_ms=15000 via=window window_ms=15000 mic=us\.zoom\.xos$/)
+    expect(info).toHaveBeenCalledWith('CALL gone meeting=m1 app=Zoom idle_ms=0 silent_ms=0 via=window window_ms=8000 mic=us.zoom.xos')
     info.mockRestore()
   })
-  it('logs what the mic said for the call app every 10 s after its window went away', async () => {
+  it('keeps logging the mic every 10 s while the stop card is up', async () => {
     const info = vi.spyOn(console, 'info')
+    auto = false
     await callStartedByHand()
-    // someone is still talking in the room: no end, but the log says what the mic did
     for (let ms = 1_500; ms <= 30_000; ms += 1_500) { clock += 1_500; win = { goneMs: ms }; await w.tick() }
-    expect(log).toEqual([])
+    expect(log).toEqual(['stop'])
     const lines = info.mock.calls.map(([l]) => String(l)).filter((l) => l.startsWith('CALL window-gone'))
     expect(lines).toEqual([
       'CALL window-gone meeting=m1 app=Zoom window_ms=1500 on_mic=true mic=us.zoom.xos silent_ms=0',
@@ -538,16 +536,24 @@ describe('the call window going away ends the call', () => {
     ])
     info.mockRestore()
   })
-  it('with "Stop recording when the call ends" off, it asks instead', async () => {
+  it('asks at eight seconds if automatic stopping is off, even with sound in the room', async () => {
+    const info = vi.spyOn(console, 'info')
     auto = false
     await callStartedByHand()
-    for (let ms = 1_500; ms <= 30_000; ms += 1_500) { clock += 1_500; win = { goneMs: ms }; silent = ms; await w.tick() }
+    clock += 8_000; win = { goneMs: 8_000 }; await w.tick()
     expect(log).toEqual(['stop'])
+    expect(info).toHaveBeenCalledWith('CALL stop-card meeting=m1 app=Zoom reason=window-gone window_ms=8000 idle_ms=0 silent_ms=0')
+    info.mockRestore()
   })
-  it('never while people are still heard', async () => {
-    await callStartedByHand()
-    for (let ms = 1_500; ms <= 5 * MIN; ms += 1_500) { clock += 1_500; win = { goneMs: ms }; silent = 0; await w.tick() }
-    expect(log).toEqual([])
+  it.each([0, 60_000])('stops by the window after Zoom releases the mic, with %i ms of silence', async silentMs => {
+    const info = vi.spyOn(console, 'info')
+    active = meeting(); reading.micApps = [zoom]; await w.tick()
+    reading.micApps = []; silent = silentMs
+    clock += 8_000; win = { goneMs: 8_000 }; await w.tick()
+    await w.tick()
+    expect(log).toEqual(['auto:m1'])
+    expect(info).toHaveBeenCalledWith(`CALL gone meeting=m1 app=Zoom idle_ms=8000 silent_ms=${silentMs} via=window window_ms=8000 mic=none`)
+    info.mockRestore()
   })
   it('never while the window is only hidden, minimised or on another desktop (the reader says it is not gone)', async () => {
     await callStartedByHand()
