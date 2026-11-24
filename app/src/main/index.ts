@@ -73,10 +73,11 @@ import { installAppMenu } from './appMenu'
 import { backendOrder, engineShim, SHIM, UtilityEngine } from './engine'
 import { createNotesModel } from './notes/model'
 import { FakeEngine } from './notes/fake'
-import { hookNotes } from './notes'
+import { hookNotes, NAMES_WAIT_MS } from './notes'
 import { hookReadAhead, readAheadAllowed } from './notes/readAhead'
 import { createQueue, isSmallMac, notesMemory } from './notes/queue'
 import { createDiarizer } from './diarize'
+import { createDiarizeSchedule } from './diarize/afterStop'
 import { createEmbedClient } from './diarize/embed-client'
 import { nemoSpeechPath } from './diarize/paths'
 import { diarizeTimeoutMs } from './diarize/run'
@@ -833,21 +834,22 @@ app.whenReady().then(() => {
     changed: (id) => { win?.webContents.send('transcript:speakers', id); sendWidgetTranscript('transcript:speakers', id); win?.webContents.send('meetings:changed') },
     notesRefresh: (id) => notes.refresh(id),
   })
-  // voice recognition opt-in is snapshotted per meeting: enabling it mid-call never captures the call in progress
-  onMeetingStart((m) => { try { store.setVoicesAllowed(m.id, speakerProfiles()) } catch (e) { console.warn('voices_allowed snapshot failed', e) } })
-  // diarize once the recording, transcript and call names have settled; its queue entry lands ahead of the notes job
-  onMeetingStopSaved((m) => {
-    void (async () => {
-      await recordingFinished(m.id); await transcriptFinished(m.id); await callNames.finished(m.id)
-      diarizer.schedule(m.id)
-    })().catch((e) => console.warn('diarize scheduling failed', e))
+  // one diarization run per stop: the notes wait for it (see diarize/afterStop.ts), a resume starts a fresh one
+  const diarizeSchedule = createDiarizeSchedule({
+    recordingFinished, transcriptFinished, namesFinished: (id) => callNames.finished(id),
+    schedule: (id) => diarizer.schedule(id), finished: (id) => diarizer.finished(id),
+    namesWaitMs: NAMES_WAIT_MS, warn: (message, error) => console.warn(message, error),
   })
+  // voice recognition opt-in is snapshotted per meeting: enabling it mid-call never captures the call in progress
+  onMeetingStart((m) => { try { store.setVoicesAllowed(m.id, speakerProfiles()) } catch (e) { console.warn('voices_allowed snapshot failed', e) }; diarizeSchedule.forget(m.id) })
+  // diarize once the recording, transcript and call names have settled; the notes of the meeting wait for the chain
+  onMeetingStopSaved((m) => { void diarizeSchedule.start(m.id) })
   const notes = hookNotes({
     summarized: id => { folderSuggestions.schedule(id); void removeRecording(id, true) },
     // Windows and Linux: a note waiting while the model loads says so (a Mac shows what it always did)
     showLoading: platform !== 'darwin',
     summaryLanguage: () => summaryLanguageSetting(loadSettings(settingsFile)),
-    store, queue, model, language: meetingLanguage, onStop: onMeetingStopSaved, named: async (id) => { await Promise.all([callNames.finished(id), diarizer.finished(id)]) }, earlier: (id) => readAhead.parts(id), me,
+    store, queue, model, language: meetingLanguage, onStop: onMeetingStopSaved, named: (id) => callNames.finished(id), diarized: (id) => diarizeSchedule.wait(id), earlier: (id) => readAhead.parts(id), me,
     transcribed: async (id) => { await recordingFinished(id); await transcriptFinished(id) },
     send: (v) => win?.webContents.send('notes:changed', v),
     // the notes are written: the meeting goes into the library for chat across meetings
