@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { callAppId, micPids, tabTitleApp, CALL_GONE_MS, callGone, watchEveryMs, decide, ended, isOwnMicApp, useCallApps, type Signals } from '../src/main/detect'
+import { callAppId, micPids, tabTitleApp, CALL_GONE_MS, callGone, watchEveryMs, windowGone, decide, ended, isOwnMicApp, useCallApps, type Signals } from '../src/main/detect'
 import type { CalEvent } from '../src/main/calendar'
 
 const NOW = Date.parse('2026-10-29T15:00:00Z')
@@ -106,6 +106,11 @@ describe('browser tab titles', () => {
   it('chrome on the mic, YouTube tab: null', () => {
     expect(decide(sig({ micApps: [{ ...chrome, title: 'YouTube' }] }), NOW, none)).toBeNull()
   })
+})
+
+it('requires eight seconds of continuous absence to count the call window as gone', () => {
+  expect(windowGone(7_999)).toBe(false)
+  expect(windowGone(8_000)).toBe(true)
 })
 
 describe('callGone', () => {
