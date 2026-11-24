@@ -14,7 +14,26 @@ describe('people in search', () => {
     expect(completed).toBe('notes with Riley Example today')
     const recognized = matchSearchPeople(completed, people)
     expect(recognized.matches[0].person).toEqual(person)
-    expect(removeSearchSpan(completed, recognized.matches[0])).toBe('notes with today')
+    expect(removeSearchSpan(completed, recognized.matches[0])).toBe('notes today')
+  })
+
+  it('recognizes a unique first name after with and leaves the date in place', () => {
+    const ana = { name: 'Ana López', email: 'ana@example.test' }
+    const q = 'planning with Ana last week'
+    const { matches, text } = matchSearchPeople(q, [ana])
+    expect(matches.map(m => m.person)).toEqual([ana])
+    expect(q.slice(matches[0].start, matches[0].end)).toBe('with Ana')
+    expect(removeSearchSpan(q, matches[0])).toBe('planning last week')
+    const date = parseSearchQuery(text).dateSpan!
+    expect(q.slice(date.start, date.end)).toBe('last week')
+    const weekday = 'planning with Ana on Tuesday'
+    const parsed = parseSearchQuery(matchSearchPeople(weekday, [ana]).text)
+    expect(parsed.words).toEqual(['planning'])
+    expect(weekday.slice(parsed.dateSpan!.start, parsed.dateSpan!.end)).toBe('on Tuesday')
+    expect(matchSearchPeople('with Anabel', [ana]).matches).toEqual([])
+    const ambiguous = matchSearchPeople('with Ana', [ana, { name: 'Ana Gray', email: null }])
+    expect(ambiguous.matches).toEqual([])
+    expect(ambiguous.suggestions).toHaveLength(2)
   })
 
   it('keeps chosen single-word names in the text, and stops filtering when edited away', () => {

@@ -73,11 +73,11 @@ describe('search filters', () => {
     const date = parseSearchQuery(people.text)
     const parts = searchFilterHighlights(query, people.matches, date.dateSpan)
     expect(parts).toEqual([
-      { text: 'notes with ' }, { text: person.name, kind: 'person' },
+      { text: 'notes ' }, { text: 'with ' + person.name, kind: 'person' },
       { text: ' ' }, { text: 'today', kind: 'date' },
     ])
     expect(parts.map(p => p.text).join('')).toBe(query)
-    expect(removeSearchSpan(query, people.matches[0])).toBe('notes with today')
+    expect(removeSearchSpan(query, people.matches[0])).toBe('notes today')
     expect(removeSearchSpan(query, date.dateSpan!)).toBe('notes with Riley Example')
   })
 

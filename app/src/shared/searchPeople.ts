@@ -14,12 +14,19 @@ export function matchSearchPeople(query: string, people: Person[], chosen: Perso
   const candidates = uniqueSearchPeople(people)
   const chosenKeys = new Set(chosen.map(searchPersonKey))
   const exact: SearchPersonMatch[] = []
+  const withPerson = /\bwith\s+/i.test(query)
   for (const person of candidates) {
     const selected = chosenKeys.has(searchPersonKey(person))
+    const firstName = person.name.trim().split(/\s+/)[0]
     const labels = [person.email?.trim(), ...(selected || person.name.trim().split(/\s+/).length > 1 ? [person.name.trim()] : [])].filter((s): s is string => !!s)
     for (const label of labels) {
       const match = new RegExp(`(?<![\\p{L}\\p{N}@._+-])${escape(label).replace(/\s+/g, '\\s+')}(?![\\p{L}\\p{N}@._+-])`, 'iu').exec(query)
       if (match) { exact.push({ person, start: match.index, end: match.index + match[0].length }); break }
+    }
+    // A first name after "with" is explicit. Shared first names still go through disambiguation below.
+    if (withPerson && firstName && !exact.some(m => m.person === person)) {
+      const match = new RegExp(`\\bwith\\s+(${escape(firstName)})(?![\\p{L}\\p{N}@._+-])`, 'iu').exec(query)
+      if (match) exact.push({ person, start: match.index + match[0].length - match[1].length, end: match.index + match[0].length })
     }
   }
   const preferred = exact.filter(m => !exact.some(other => other !== m && other.start === m.start && other.end === m.end
@@ -27,6 +34,7 @@ export function matchSearchPeople(query: string, people: Person[], chosen: Perso
   const longest = preferred.filter(m => !preferred.some(other => other.start <= m.start && other.end >= m.end && other.end - other.start > m.end - m.start))
   // A shared full name is not enough to choose between different email identities.
   const matches = longest.filter(m => !longest.some(other => other !== m && other.start < m.end && other.end > m.start))
+    .map(m => ({ ...m, start: /\bwith\s+$/i.exec(query.slice(0, m.start))?.index ?? m.start }))
   let text = query
   for (const match of matches) text = text.slice(0, match.start) + ' '.repeat(match.end - match.start) + text.slice(match.end)
   const date = parseSearchQuery(text, options).dateSpan
