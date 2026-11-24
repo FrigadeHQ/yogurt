@@ -411,6 +411,26 @@ describe('hookCallNames', () => {
     expect(s.logs.join('\n')).not.toContain('Dana Smith')
   })
 
+  it('pictures a Meet window again the first time someone is marked talking, deep enough to show the tiles: the lobby shows people too (#112)', () => {
+    const s = setup({ app: 'Chrome' })
+    s.start()
+    const tile = (name: string, talking: boolean): AxNode => {
+      let n: AxNode = { r: 'AXStaticText', v: name }
+      for (let i = 0; i < 6; i++) n = { r: 'AXGroup', k: [n] }
+      return { r: 'AXGroup', c: talking ? ['v5h6Xc'] : [], k: [n] }
+    }
+    const page = (tiles: AxNode[]): WatchLine['windows'] => [{ title: 'Meet - abc-defg-hij', tree: { r: 'AXWindow', k: [{ r: 'AXWebArea', k: [{ r: 'AXGroup', k: [
+      ...Array.from({ length: 70 }, (_, i): AxNode => ({ r: 'AXButton', d: `Button ${i}` })), ...tiles] }] }] } }]
+    s.emit({ t: 1_000_000, app: 'com.google.Chrome', windows: page([tile('Dana Smith', false), tile('Ann Lee', false)]) })
+    s.emit({ t: 1_000_500, app: 'com.google.Chrome', windows: page([tile('Dana Smith', true), tile('Ann Lee', false)]) })
+    s.emit({ t: 1_001_000, app: 'com.google.Chrome', windows: page([tile('Dana Smith', false), tile('Ann Lee', true)]) })
+    const pictures = s.logs.filter((l) => l.startsWith('call names: reading com.google.Chrome (meet), its window in short'))
+    expect(pictures).toHaveLength(2)
+    expect(pictures[1]).toContain('.v5h6Xc')
+    expect(pictures[1]).toContain('AXStaticText "‹10›"')
+    expect(s.logs.join('\n')).not.toContain('Dana Smith')
+  })
+
   it('a meeting in an app it can\'t read starts no watch', async () => {
     const s = setup({ app: 'FaceTime' })
     s.start()

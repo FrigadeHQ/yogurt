@@ -150,6 +150,11 @@ describe('Google Meet', () => {
       .toEqual(['Dana Smith', 'Ana María de la Cruz', 'Mary-Jane O\'Neil', 'J. R. Smith', 'Ludwig van Beethoven', '李雷', 'jiwon', 'Ann Lee'])
   })
 
+  it('"(You)" after a name marks my own tile, so it never counts as the other side (#112)', () => {
+    const r = readCall('meet', [meetWindow([meetTile('Theo Lane (You)', ['v5h6Xc']), meetTile('Dana Smith', ['v5h6Xc'])])])
+    expect(r).toEqual({ speaking: ['Theo Lane', 'Dana Smith'], participants: ['Theo Lane', 'Dana Smith'], me: 'Theo Lane' })
+  })
+
   it('only windows showing a Meet call are read', () => {
     expect(readCall('meet', [meetWindow([meetTile('Dana Smith', ['v5h6Xc'])], 'Inbox - Gmail')]).participants).toEqual([])
   })
@@ -485,6 +490,13 @@ describe('summarize: a short picture of the tree for the log', () => {
     expect(s.split('\n')).toHaveLength(3)
     expect(s).toContain('window "Meet - ‹12›"')
     expect(s).not.toContain('abc-defg-hij')
+  })
+  it('shows how deep a line is past the indent cap, so a Meet tile can be told from the page around it (#112)', () => {
+    let n: AxNode = node('AXStaticText', { v: 'Dana Smith' })
+    for (let i = 0; i < 20; i++) n = node('AXGroup', i === 5 ? { c: ['v5h6Xc'] } : {}, n)
+    const s = summarize([win(node('AXWindow', {}, n), 'Meet - abc-defg-hij')])
+    expect(s).toContain('@21 AXStaticText "‹10›"')
+    expect(s).toContain('@15 AXGroup .v5h6Xc')
   })
   it('says which windows are minimised, so a call hidden in one shows in the log (#138)', () => {
     const s = summarize([{ ...win(node('AXWindow', {}), 'Microsoft Teams'), minimized: true }, win(node('AXWindow', {}), 'Microsoft Teams')])

@@ -195,6 +195,8 @@ const isLive = (n: AxNode) => LIVE.has(n.r) || (!!n.s && LIVE.has(n.s))
 function readMeet(windows: AxWindow[], o: { talkingClasses?: string[] }): CallReading {
   const marks = new Set(o.talkingClasses ?? MEET_TALKING_CLASSES)
   const groups = new Map<AxNode, string[]>()
+  /** names Meet wrote with "(You)" after them: the person's own tile or People row (#112) */
+  const mine = new Set<string>()
   for (const w of windows) {
     if (w.title && !/\bMeet\b/.test(w.title)) continue
     const skip = new Set((w.title ?? '').split(/\s+[-–—]\s+/).map(low))
@@ -204,6 +206,7 @@ function readMeet(windows: AxWindow[], o: { talkingClasses?: string[] }): CallRe
       if (!text) return
       const name = meetName(text)
       if (!name || skip.has(low(name))) return
+      if (/\(you\)\s*$/i.test(text)) mine.add(low(name))
       const root = up[up.length - TILE_UP]
       groups.set(root, [...(groups.get(root) ?? []), name])
     })
@@ -214,8 +217,8 @@ function readMeet(windows: AxWindow[], o: { talkingClasses?: string[] }): CallRe
     const one = uniq(names)
     if (one.length !== 1) continue
     participants.push(one[0])
-    // Meet labels the person's own tile "You"
-    if (low(one[0]) === 'you') me = one[0]
+    // Meet labels the person's own tile "You", or their name with "(You)" after it
+    if (low(one[0]) === 'you' || mine.has(low(one[0]))) me = one[0]
     let talking = false
     walk(root, (x) => { if (x.c?.some((c) => marks.has(c))) talking = true })
     if (talking) speaking.push(one[0])
@@ -471,6 +474,7 @@ export function redact(text: string): string {
  * A short picture of the call window for main.log: role counts, then each element's role, id, classes and words.
  * main.log is pasted into public issues, so names, captions and titles never go in: only the app's own words do.
  */
+const MARKS = new Set([...MEET_TALKING_CLASSES, TEAMS_TALKING_CLASS])
 export function summarize(windows: AxWindow[], max = 60): string {
   const roles = new Map<string, number>()
   const lines: string[] = []
@@ -479,7 +483,11 @@ export function summarize(windows: AxWindow[], max = 60): string {
     walk(w.tree, (n, up) => {
       roles.set(n.r, (roles.get(n.r) ?? 0) + 1)
       const said = texts(n).map(redact)
-      if ((said.length || n.i) && lines.length < max) lines.push(`${'  '.repeat(Math.min(up.length, 12))}${n.r}${n.i ? `#${n.i}` : ''} ${said.map((x) => JSON.stringify(x)).join(' ')}${n.c?.length ? ` .${n.c.slice(0, 6).join('.')}` : ''}`)
+      // an element carrying a talking mark shows too, words or not, so the log says where the marks sit (#112)
+      const mark = n.c?.some((c) => MARKS.has(c))
+      // past the indent cap the depth is written out, since a Meet tile is told from the page by how deep its name is
+      const indent = `${'  '.repeat(Math.min(up.length, 12))}${up.length > 12 ? `@${up.length} ` : ''}`
+      if ((said.length || n.i || mark) && lines.length < max) lines.push(`${indent}${n.r}${n.i ? `#${n.i}` : ''}${said.map((x) => ` ${JSON.stringify(x)}`).join('')}${n.c?.length ? ` .${n.c.slice(0, 6).join('.')}` : ''}`)
     })
   }
   return [`roles: ${[...roles].sort((a, b) => b[1] - a[1]).map(([r, n]) => `${r}=${n}`).join(' ')}`, ...lines].join('\n')

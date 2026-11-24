@@ -82,6 +82,44 @@ describe('nameFor: who the other side was, from what the call app showed', () =>
   })
 })
 
+// ---- #112: an 8-person Meet in Chrome read "talking 2 of 8" or "3 of 8" for the whole call, never 1, and named none
+// of 370 lines. Two tiles kept Meet's talking mark all along (my own tile, a pinned or presenting one); the third mark
+// came and went with whoever spoke. Me was never known. Made-up names, the log's shape. ----
+describe('nameFor: a mark that never leaves a tile is not talking (#112)', () => {
+  const room = ['Theo Lane', 'Pia Stone', 'Dana Smith', 'Ann Lee', 'Bo Park', 'Cy Diaz', 'Eve Ruiz', 'Gus Hart']
+  const steady = ['Theo Lane', 'Pia Stone']
+  /** five minutes of the call: the two steady marks always on, Dana speaking 60-90 s and Ann 200-230 s */
+  const call = [...run(0, 60_000, { participants: room, speaking: steady }), ...run(60_000, 90_000, { participants: room, speaking: [...steady, 'Dana Smith'] }),
+    ...run(90_000, 200_000, { participants: room, speaking: steady }), ...run(200_000, 230_000, { participants: room, speaking: ['Ann Lee', ...steady] }),
+    ...run(230_000, 300_000, { participants: room, speaking: steady })]
+
+  it('names the one person marked besides the marks that stay all call', () => {
+    expect(nameFor({ startMs: 62_000, endMs: 70_000 }, call)).toBe('Dana Smith')
+    expect(nameFor({ startMs: 205_000, endMs: 215_000 }, call)).toBe('Ann Lee')
+  })
+
+  it('with only the steady marks on, the line is Them, even when one of them drops for a moment', () => {
+    expect(nameFor({ startMs: 120_000, endMs: 130_000 }, call)).toBeNull()
+    const blip = call.map((x) => (x.ms >= 140_000 && x.ms < 146_000 ? { ...x, speaking: ['Pia Stone'] } : x))
+    expect(nameFor({ startMs: 140_000, endMs: 146_000 }, blip)).toBeNull()
+  })
+
+  it('two people marked at once besides the steady ones is still Them', () => {
+    const both = call.map((x) => (x.ms >= 60_000 && x.ms < 90_000 ? { ...x, speaking: [...steady, 'Dana Smith', 'Bo Park'] } : x))
+    expect(nameFor({ startMs: 62_000, endMs: 70_000 }, both)).toBeNull()
+  })
+
+  it('one person talking at length with nobody else marked is still named (a talk, not a stuck mark)', () => {
+    const talk = run(0, 300_000, { participants: room, speaking: ['Dana Smith'] })
+    expect(nameFor({ startMs: 100_000, endMs: 110_000 }, talk)).toBe('Dana Smith')
+  })
+
+  it('a few seconds of two marks together are not enough to call either steady', () => {
+    const tl = [...run(0, 4000, { ...meetingOf3, speaking: ['Ann Lee', 'Dana Smith'] }), ...run(4000, 8000, { ...meetingOf3, speaking: ['Dana Smith'] })]
+    expect(nameFor({ startMs: 4000, endMs: 8000 }, tl)).toBe('Dana Smith')
+  })
+})
+
 describe('othersIn: everyone seen in the call but the person using Yogurt', () => {
   it('lists each other name once, in the order first seen', () => {
     const tl = [...run(0, 1000, meetingOf3), ...run(1000, 2000, { participants: ['Alex Morgan', 'Bo Park', 'Dana Smith'], me: 'Alex Morgan', speaking: ['Bo Park'] })]

@@ -33,8 +33,36 @@ const isMe = (name: string, s: CallSample, o: Opts) => {
   return (s.me != null && norm(s.me) === n) || (o.myNames ?? []).some((m) => m && norm(m) === n)
 }
 
+// A talking mark that stays on a tile while others come and go is not talking (#112: an 8-person Meet read "2 of 8"
+// or "3 of 8" for the whole call and named none of 370 lines). Meet left its mark on two tiles all along (my own, a
+// pinned or presenting one) and the third came and went with whoever spoke. Over the readings around a line, a name
+// marked in nearly all of them, in a stretch where two or more are marked most of the time, is dropped. One person
+// marked alone for minutes is someone giving a talk, and stays.
+/** the readings around a line that tell a steady mark: two and a half minutes each side */
+const STEADY_SPAN_MS = 150_000
+/** fewer readings than this (about 20 s) can't tell a mark that stays from one that hasn't moved yet */
+const STEADY_MIN = 40
+/** marked in this share of the readings, or more */
+const STEADY_SHARE = 0.8
+/** and two or more marked at once in this share of them */
+const CROWDED_SHARE = 0.5
+
+function steadyMarks(sorted: CallSample[], atMs: number, o: Opts): Set<string> {
+  const seen = sorted.filter((s) => s.ok !== false && s.participants.length && Math.abs(s.ms - atMs) <= STEADY_SPAN_MS)
+  if (seen.length < STEADY_MIN) return new Set()
+  const marked = new Map<string, number>()
+  let crowded = 0
+  for (const s of seen) {
+    const others = new Set(s.speaking.filter((p) => !isMe(p, s, o)).map(norm))
+    if (others.size >= 2) crowded++
+    for (const p of others) marked.set(p, (marked.get(p) ?? 0) + 1)
+  }
+  if (crowded < CROWDED_SHARE * seen.length) return new Set()
+  return new Set([...marked].filter(([, n]) => n >= STEADY_SHARE * seen.length).map(([p]) => p))
+}
+
 /** who the other side was at one reading, or null when it can't be told */
-function whoAt(s: CallSample, o: Opts): string | null {
+function whoAt(s: CallSample, o: Opts, steady: Set<string> = new Set()): string | null {
   if (s.ok === false) return null
   const people = [...new Map(s.participants.map((p) => [norm(p), p])).values()]
   const roster = new Set(people.map(norm))
@@ -46,7 +74,7 @@ function whoAt(s: CallSample, o: Opts): string | null {
     const mine = people.filter((p) => isMe(p, s, o))
     if (mine.length === 1) return people.find((p) => !isMe(p, s, o))!
   }
-  const others = [...new Set(s.speaking.filter((p) => !isMe(p, s, o)))]
+  const others = [...new Set(s.speaking.filter((p) => !isMe(p, s, o) && !steady.has(norm(p))))]
   return others.length === 1 ? others[0] : null
 }
 
@@ -55,9 +83,10 @@ export function nameFor(span: { startMs: number; endMs: number }, samples: CallS
   if (!samples.length) return null
   const sorted = [...samples].sort((a, b) => a.ms - b.ms)
   const at = (i: number) => [sorted[i].ms, Math.min(sorted[i + 1]?.ms ?? Infinity, sorted[i].ms + HOLD_MS)] as const
+  const steady = steadyMarks(sorted, (span.startMs + span.endMs) / 2, o)
   // a line too short to measure: whoever it was the moment it started
   if (span.endMs <= span.startMs) {
-    for (let i = sorted.length - 1; i >= 0; i--) { const [a, b] = at(i); if (a <= span.startMs) return span.startMs < b ? whoAt(sorted[i], o) : null }
+    for (let i = sorted.length - 1; i >= 0; i--) { const [a, b] = at(i); if (a <= span.startMs) return span.startMs < b ? whoAt(sorted[i], o, steady) : null }
     return null
   }
   const time = new Map<string, number>()
@@ -65,7 +94,7 @@ export function nameFor(span: { startMs: number; endMs: number }, samples: CallS
     const [a, b] = at(i)
     const overlap = Math.min(b, span.endMs) - Math.max(a, span.startMs)
     if (overlap <= 0) continue
-    const who = whoAt(sorted[i], o)
+    const who = whoAt(sorted[i], o, steady)
     if (who) time.set(who, (time.get(who) ?? 0) + overlap)
   }
   const [best] = [...time].sort((x, y) => y[1] - x[1])
