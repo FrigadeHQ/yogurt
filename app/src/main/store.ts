@@ -4,7 +4,7 @@ import { matchSearchPeople, searchPersonKey, uniqueSearchPeople } from '../share
 import { oneEdit, parseSearchQuery, type SearchOptions } from '../shared/searchQuery'
 import { echoConfidence } from './asr/echo'
 import { backfillPeople, rememberPeople, resolvePeople } from './people'
-import { attendeeMembership, matchingOwnEmail, ownAddress, personEmail } from '../shared/people'
+import { attendeeMembership, matchingOwnEmail, ownAddress, personEmail, sameAttendeeMembership } from '../shared/people'
 import type { FolderSuggestionRecord } from '../shared/folderSuggestion'
 import { unusedPreparedNote } from '../shared/agendaNote'
 import { speakerOrder } from '../shared/speakerColors'
@@ -257,6 +257,7 @@ export class Store {
     const cols = (this.db.prepare('PRAGMA table_info(notes)').all() as Row[]).map((r) => String(r.name))
     if (!cols.includes('edited')) this.db.exec('ALTER TABLE notes ADD COLUMN edited INTEGER NOT NULL DEFAULT 0')
     const meetingCols = (this.db.prepare('PRAGMA table_info(meetings)').all() as Row[]).map((r) => String(r.name))
+    if (!meetingCols.includes('dismissed_attendees')) this.db.exec('ALTER TABLE meetings ADD COLUMN dismissed_attendees TEXT')
     for (const [name, type] of [['suggested_folder_id', 'TEXT'], ['suggestion_state', 'TEXT'], ['suggestion_confidence', 'REAL'], ['suggestion_attempt', 'TEXT']]) {
       if (!meetingCols.includes(name)) this.db.exec(`ALTER TABLE meetings ADD COLUMN ${name} ${type}`)
     }
@@ -347,8 +348,10 @@ export class Store {
       } else {
         const previous = attendeeMembership(people)
         person.name = name
-        this.db.prepare('UPDATE meetings SET attendees = ? WHERE id = ?').run(JSON.stringify(people), id)
-        this.db.prepare('UPDATE notes SET written_with = ? WHERE meeting_id = ? AND written_with = ?').run(attendeeMembership(people), id, previous)
+        const renamed = attendeeMembership(people)
+        this.db.prepare('UPDATE meetings SET attendees = ?, dismissed_attendees = CASE WHEN dismissed_attendees = ? THEN ? END WHERE id = ?')
+          .run(JSON.stringify(people), previous, renamed, id)
+        if (sameAttendeeMembership(this.writtenWith(id), previous)) this.setWrittenWith(id, renamed)
       }
       this.db.prepare('UPDATE meetings SET keep_attendees = 1 WHERE id = ?').run(id)
       this.db.exec('RELEASE rename_person')
@@ -400,7 +403,13 @@ export class Store {
       if (k === 'attendees') return JSON.stringify(value)
       return typeof value === 'boolean' ? Number(value) : value as string | number | null
     })
-    this.db.prepare(`UPDATE meetings SET ${keys.map((k) => `${col[k]} = ?`).join(', ')} WHERE id = ?`).run(...vals, id)
+    const assignments = keys.map(k => `${col[k]} = ?`)
+    if (patch.attendees) {
+      // Expire the dismissal on the first different set, even if the old set returns later.
+      assignments.push('dismissed_attendees = CASE WHEN dismissed_attendees = ? THEN dismissed_attendees END')
+      vals.push(attendeeMembership(patch.attendees))
+    }
+    this.db.prepare(`UPDATE meetings SET ${assignments.join(', ')} WHERE id = ?`).run(...vals, id)
   }
   /** Refresh every note still linked to this occurrence, including alternate calendar IDs. */
   rememberEvent(event: CalEvent): Meeting[] {
@@ -627,6 +636,12 @@ export class Store {
   }
   setWrittenWith(meetingId: string, people: string) {
     this.db.prepare('UPDATE notes SET written_with = ? WHERE meeting_id = ?').run(people, meetingId)
+  }
+  attendeeNoticeDismissed(meetingId: string, people: string): boolean {
+    return !!this.db.prepare('SELECT 1 FROM meetings WHERE id = ? AND dismissed_attendees = ?').get(meetingId, people)
+  }
+  setDismissedAttendees(meetingId: string, people: string) {
+    this.db.prepare('UPDATE meetings SET dismissed_attendees = ? WHERE id = ?').run(people, meetingId)
   }
 
   /** Resume managed jobs; legacy partial recordings wait for an explicit Continue. */

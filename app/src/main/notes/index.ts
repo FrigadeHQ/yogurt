@@ -1,4 +1,4 @@
-import { attendeeMembership as stamp } from '../../shared/people'
+import { attendeeMembership as stamp, sameAttendeeMembership } from '../../shared/people'
 import type { Meeting, Store } from '../store'
 import type { NotesModel } from './model'
 import type { NoteSaveResult, NoteSide, NoteStatus, NoteView } from '../../shared/types'
@@ -20,7 +20,7 @@ const DRAFT_EVERY_MS = 50
  * the one model queue, streamed to the window as they are written, then saved. "Write again" goes the same way.
  */
 export function hookNotes(p: {
-  store: Pick<Store, 'meeting' | 'notes' | 'setNotes' | 'writtenWith' | 'setWrittenWith' | 'segments' | 'updateMeeting' | 'unenhancedMeetings'>
+  store: Pick<Store, 'meeting' | 'notes' | 'setNotes' | 'writtenWith' | 'setWrittenWith' | 'attendeeNoticeDismissed' | 'setDismissedAttendees' | 'segments' | 'updateMeeting' | 'unenhancedMeetings'>
   queue: Queue
   model: Pick<NotesModel, 'llm'> & Partial<Pick<NotesModel, 'needsLoad'>>
   /** Windows and Linux: say when the notes wait for the model to load (a Mac shows what it always did) */
@@ -65,9 +65,11 @@ export function hookNotes(p: {
   }
 
   /** the notes were written with other people than the meeting has now (not known for notes older than this) */
-  const peopleChanged = (id: string, written: boolean) => {
+  const changedMembership = (id: string) => {
     const was = p.store.writtenWith(id)
-    return written && was != null && was !== stamp(p.store.meeting(id)?.attendees ?? [])
+    if (was == null) return null
+    const current = stamp(p.store.meeting(id)?.attendees ?? [])
+    return sameAttendeeMembership(was, current) ? null : current
   }
 
   /** out of date, unless they are being written again on their own right now (then no hint) */
@@ -76,7 +78,8 @@ export function hookNotes(p: {
     const l = live.get(id)
     const saved = edits.get(id)
     const saves = saved && Object.fromEntries(Object.entries(saved).map(([side, edit]) => [side, { revision: edit.revision, status: edit.status, ...(edit.reason ? { reason: edit.reason } : {}) }]))
-    return { meetingId: id, mine: n.mine, enhanced: n.enhanced, edited: n.edited, status: l?.status ?? (n.enhanced != null ? 'done' : 'idle'), draft: l?.draft ?? '', peopleChanged: peopleChanged(id, n.enhanced != null) && !rewriteTimers.has(id) && !rewriting.has(id), ...(l?.part ? { part: l.part } : {}), ...(l?.step ? { step: l.step } : {}), ...(saves ? { saves } : {}) }
+    const membership = n.enhanced != null && !rewriteTimers.has(id) && !rewriting.has(id) ? changedMembership(id) : null
+    return { meetingId: id, mine: n.mine, enhanced: n.enhanced, edited: n.edited, status: l?.status ?? (n.enhanced != null ? 'done' : 'idle'), draft: l?.draft ?? '', peopleChanged: membership != null && !p.store.attendeeNoticeDismissed(id, membership), ...(l?.part ? { part: l.part } : {}), ...(l?.step ? { step: l.step } : {}), ...(saves ? { saves } : {}) }
   }
   const set = (id: string, status: NoteStatus, draft = '', part?: { part: number; of: number }, step?: 'loading') => { live.set(id, { status, draft, part, step }); p.send(view(id)) }
 
@@ -247,6 +250,10 @@ export function hookNotes(p: {
 
   const notes = {
     view,
+    dismissPeopleChange(id: string, membership: string) {
+      if (changedMembership(id) === membership) p.store.setDismissedAttendees(id, membership)
+      p.send(view(id))
+    },
     /** A user stop is final; queue preemption for a recording still resumes later. */
     stop(id: string): Promise<void> {
       const pending = stopping.get(id)
@@ -295,7 +302,7 @@ export function hookNotes(p: {
     applyPeople(id: string, retitle = true) {
       const refreshTitle = retitle || rewriteTimers.has(id)
       clearTimeout(rewriteTimers.get(id)); rewriteTimers.delete(id)
-      const due = () => { const n = currentNotes(id); return !resuming.has(id) && p.store.meeting(id)?.state !== 'recording' && n.enhanced != null && !n.edited && !live.has(id) && !rewriting.has(id) && peopleChanged(id, true) }
+      const due = () => { const n = currentNotes(id); return !resuming.has(id) && p.store.meeting(id)?.state !== 'recording' && n.enhanced != null && !n.edited && !live.has(id) && !rewriting.has(id) && changedMembership(id) != null }
       const titleDue = () => refreshTitle && !resuming.has(id) && p.store.meeting(id)?.state !== 'recording' && p.store.meeting(id)?.titleSource === 'auto'
       if (!due() && !titleDue()) { p.send(view(id)); return }
       rewriteTimers.set(id, setTimeout(() => {

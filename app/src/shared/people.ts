@@ -8,7 +8,24 @@ export function matchingOwnEmail(people: Person[], emails: string[]): string | n
 
 export const personEmail = (email: string) => email.trim().toLowerCase()
 export const attendeePrivacy = (focused: boolean, text: string) => focused || text.includes('@')
-export const attendeeMembership = (people: Person[]) => 'members:' + JSON.stringify(people.map(p => p.email ? `email:${personEmail(p.email)}` : `name:${p.name}`).sort())
+const membershipPrefix = 'members:'
+function membership(keys: string[]) {
+  const normalized = keys.map(key => key.startsWith('name:') ? 'name:' + key.slice(5).trim().replace(/\s+/g, ' ').toLowerCase() : key)
+  return membershipPrefix + JSON.stringify([...new Set(normalized)].sort())
+}
+export const attendeeMembership = (people: Person[]) => membership(people.map(p => p.email?.trim() ? `email:${personEmail(p.email)}` : `name:${p.name}`))
+
+/** Older fingerprints kept duplicate identities and the original spelling of names. */
+function normalizedMembership(value: string) {
+  if (value.startsWith(membershipPrefix)) {
+    try {
+      const keys: unknown = JSON.parse(value.slice(membershipPrefix.length))
+      if (Array.isArray(keys) && keys.every(key => typeof key === 'string')) return membership(keys)
+    } catch { /* Keep an unrecognized baseline as recorded. */ }
+  }
+  return value
+}
+export const sameAttendeeMembership = (a: string | null, b: string) => a === b || (a != null && normalizedMembership(a) === normalizedMembership(b))
 export function emailName(email: string): string {
   const local = email.split('@')[0], name = local.replace(/[._-]+/g, ' ').trim() || local
   return name.charAt(0).toUpperCase() + name.slice(1)
