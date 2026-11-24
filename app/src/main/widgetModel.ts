@@ -64,7 +64,7 @@ export class WidgetModel {
     if (!m) return null
     const end = this.pausedAt ?? (this.kind === 'captured' ? this.endedAt : now)
     let note: WidgetView['note'] = null
-    const muted = micIsOff(this.micState) || this.micState === 'unmuting'
+    const muted = micIsOff(this.micState)
     if (this.kind === 'recording') {
       if (now < this.hiccupUntil) note = { tone: 'hiccup', text: this.pausedAt !== null ? t('Recording is still paused after an interruption.') : t('Recording resumed after an interruption.') }
       else if (muted && this.missingAudio.has('systemAudio')) note = { tone: 'hint', code: 'no-system-audio', text: t("Mic off. Yogurt can’t hear call audio.") }

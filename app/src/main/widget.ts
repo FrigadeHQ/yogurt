@@ -200,7 +200,7 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
   onRecordingEvent((e) => {
     if (!model.meetingId) return
     if (e.t === 'level') {
-      speech = recordingSpeech(speech, e, floors, micIsOff(model.micState) || model.micState === 'unmuting', performance.timeOrigin + performance.now())
+      speech = recordingSpeech(speech, e, floors, micIsOff(model.micState), performance.timeOrigin + performance.now())
       broadcast('widget:level', { me: e.me, them: e.them, speech })
     } else if (e.t === 'mic-state' && e.meetingId === model.meetingId) {
       if (micIsOff(model.micState) !== micIsOff(e.state)) speech = silentSpeech

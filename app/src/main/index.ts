@@ -478,7 +478,7 @@ function startDetection() {
   ipcMain.handle('meetings:set-paused', (_e, id: unknown, paused: unknown) => pauseRecording(id, paused))
   ipcMain.handle('meetings:set-mic-muted', (e, id: unknown, muted: unknown) => {
     if (e.senderFrame !== e.sender.mainFrame || (e.sender !== win?.webContents && !widget.owns(e.sender))) return false
-    return isId(id) && typeof muted === 'boolean' && activeMeeting()?.id === id && setMicMuted(id, muted)
+    return isId(id) && typeof muted === 'boolean' && activeMeeting()?.id === id && setMicMuted(id, muted, e.sender === win?.webContents ? 'note' : 'widget')
   })
   recordingControls = { start: startNotes, pause: pauseRecording }
   ipcMain.handle('meetings:retry-stop-save', (_e, id: unknown) => isId(id) && retryStopSave(id))

@@ -345,6 +345,40 @@ describe('restart after a crash', () => {
     return { starts, procs, joined, stopped, begin: (id: string) => startFn({ id }), stop: (id: string) => stopFn({ id }) }
   }
 
+  it('sends one command per transition when both controls repeat clicks, including during the pending notification', async () => {
+    const r = rig(), states: string[] = []
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {})
+    const off = onRecordingEvent(event => {
+      if (event.t !== 'mic-state') return
+      states.push(event.state)
+      if (event.state === 'muting' || event.state === 'unmuting') {
+        for (let i = 0; i < 3; i++) {
+          setMicMuted('meeting', true)
+          setMicMuted('meeting', false)
+        }
+      }
+    })
+    try {
+      r.begin('meeting')
+      for (const [request, muted] of [[1, true], [2, false]] as const) {
+        setMicMuted('meeting', muted, 'widget')
+        const reply = encodeFrame({ t: 'mic-muted', id: request, muted, ms: 100 * request })
+        r.procs[0].out.write(reply)
+        r.procs[0].out.write(reply)
+        setMicMuted('meeting', muted)
+      }
+      expect(states).toEqual(['muting', 'off', 'unmuting', 'on'])
+      expect(r.procs[0].commands).toEqual(['mute 1', 'unmute 2'])
+      for (const [index, action] of ['mute', 'unmute'].entries()) {
+        expect(info).toHaveBeenCalledWith(expect.stringContaining(`MIC ${action} requested meeting=meeting request=${index + 1} source=widget`))
+        expect(info).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`MIC ${action} confirmed meeting=meeting request=${index + 1} durationMs=[0-9]+`)))
+      }
+      setMicMuted('meeting', true)
+      r.procs[0].out.write(encodeFrame({ t: 'mic-muted', id: 3, muted: false, ms: 300 }))
+      expect(info).toHaveBeenCalledWith(expect.stringMatching(/MIC mute failed meeting=meeting request=3 durationMs=\d+ reason=mute-refused/))
+    } finally { off(); r.stop('meeting'); r.procs[0].exit(0); await recordingFinished('meeting'); info.mockRestore() }
+  })
+
   it('serializes both controls, checks replies, and starts each recording with its mic on', async () => {
     const r = rig(), states: string[] = []
     const off = onRecordingEvent(e => { if (e.t === 'mic-state') states.push(e.state) })
@@ -392,7 +426,7 @@ describe('restart after a crash', () => {
       const id = state === 'unmuting' ? 3 : 2
       expect(r.procs[1].commands).toEqual(['mute ' + id])
       ack(0, id, true)
-      expect(states.at(-1)).toBe('muting')
+      expect(states.at(-1)).toBe(state === 'muting' ? 'muting' : 'restoring-off')
       ack(1, id, true)
       expect(states.at(-1)).toBe('off')
       r.stop('meeting'); r.procs[1].exit(0)

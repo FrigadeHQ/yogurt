@@ -440,8 +440,9 @@ export type MicDevice = { id: string; name: string; isDefault: boolean }
 export type MicsView = { devices: MicDevice[]; choice: string | null; using: string | null; defaultName: string | null }
 
 /** What the recording widget shows: recording (time, hints) or the card after stopping */
-export type MicState = 'on' | 'muting' | 'off' | 'unmuting' | 'still-off' | 'unconfirmed'
-export const micIsOff = (state?: MicState) => state === 'off' || state === 'still-off'
+export type MicState = 'on' | 'muting' | 'off' | 'unmuting' | 'still-off' | 'unconfirmed' | 'restoring-off'
+export const micIsOff = (state?: MicState) => state === 'off' || state === 'still-off' || state === 'unmuting' || state === 'restoring-off'
+export const micPendingAction = (state?: MicState) => state === 'restoring-off' ? 'muting' : state === 'muting' || state === 'unmuting' ? state : undefined
 
 export type WidgetView = {
   micState?: MicState
