@@ -857,5 +857,9 @@
   "Mic will stay off on resume": "سيظل الميكروفون مكتومًا عند الاستئناف",
   "Mic mute couldn’t be confirmed.": "تعذّر التأكد من كتم الميكروفون.",
   "Mic off. Yogurt can’t hear call audio.": "الميكروفون مكتوم. لا يستطيع Yogurt سماع صوت المكالمة.",
-  "From Zoom's captions": "من الترجمة النصية في Zoom"
+  "From Zoom's captions": "من الترجمة النصية في Zoom",
+  "Captions only (no microphone)": "الترجمة النصية فقط (بدون ميكروفون)",
+  "Your words come from Zoom's captions": "كلماتك من الترجمة النصية في Zoom",
+  "Captions only": "الترجمة النصية فقط",
+  "No captions found, so your words aren't being recorded. Turn the microphone back on, or ask the host to turn on captions.": "لم يتم العثور على ترجمة نصية، لذا لا يتم تسجيل كلماتك. شغّل الميكروفون مرة أخرى، أو اطلب من المضيف تشغيل الترجمة النصية."
 }

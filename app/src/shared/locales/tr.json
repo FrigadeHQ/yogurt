@@ -789,5 +789,9 @@
   "Mic will stay off on resume": "Kayıt devam ettiğinde mikrofon kapalı kalacak",
   "Mic mute couldn’t be confirmed.": "Mikrofonun sessize alındığı doğrulanamadı.",
   "Mic off. Yogurt can’t hear call audio.": "Mikrofon kapalı. Yogurt aramanın sesini alamıyor.",
-  "From Zoom's captions": "Zoom altyazılarından"
+  "From Zoom's captions": "Zoom altyazılarından",
+  "Captions only (no microphone)": "Yalnızca altyazı (mikrofon yok)",
+  "Your words come from Zoom's captions": "Sözleriniz Zoom altyazılarından gelir",
+  "Captions only": "Yalnızca altyazı",
+  "No captions found, so your words aren't being recorded. Turn the microphone back on, or ask the host to turn on captions.": "Altyazı bulunamadı, bu yüzden sözleriniz kaydedilmiyor. Mikrofonu yeniden açın veya toplantı sahibinden altyazıları açmasını isteyin."
 }

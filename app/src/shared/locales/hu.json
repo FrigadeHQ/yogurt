@@ -789,5 +789,9 @@
   "Mic will stay off on resume": "Folytatáskor a mikrofon néma marad",
   "Mic mute couldn’t be confirmed.": "Nem sikerült megerősíteni a mikrofon némítását.",
   "Mic off. Yogurt can’t hear call audio.": "A mikrofon néma. A Yogurt nem érzékeli a hívás hangját.",
-  "From Zoom's captions": "A Zoom feliratából"
+  "From Zoom's captions": "A Zoom feliratából",
+  "Captions only (no microphone)": "Csak felirat (mikrofon nélkül)",
+  "Your words come from Zoom's captions": "A szavaid a Zoom feliratából jönnek",
+  "Captions only": "Csak felirat",
+  "No captions found, so your words aren't being recorded. Turn the microphone back on, or ask the host to turn on captions.": "Nem található felirat, ezért a szavaidat nem rögzítjük. Kapcsold vissza a mikrofont, vagy kérd meg a házigazdát, hogy kapcsolja be a feliratot."
 }

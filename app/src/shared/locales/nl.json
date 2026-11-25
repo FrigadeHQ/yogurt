@@ -801,5 +801,9 @@
   "Mic will stay off on resume": "De microfoon blijft uit bij het hervatten",
   "Mic mute couldn’t be confirmed.": "Het dempen van de microfoon kon niet worden bevestigd.",
   "Mic off. Yogurt can’t hear call audio.": "Microfoon uit. Yogurt ontvangt geen gespreksaudio.",
-  "From Zoom's captions": "Uit de ondertiteling van Zoom"
+  "From Zoom's captions": "Uit de ondertiteling van Zoom",
+  "Captions only (no microphone)": "Alleen ondertiteling (geen microfoon)",
+  "Your words come from Zoom's captions": "Jouw woorden komen uit de ondertiteling van Zoom",
+  "Captions only": "Alleen ondertiteling",
+  "No captions found, so your words aren't being recorded. Turn the microphone back on, or ask the host to turn on captions.": "Geen ondertiteling gevonden, dus je woorden worden niet opgenomen. Zet de microfoon weer aan, of vraag de host om de ondertiteling aan te zetten."
 }

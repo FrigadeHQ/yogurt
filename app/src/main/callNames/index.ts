@@ -68,9 +68,11 @@ const MAX_RESTARTS = 20
 const LOGGED_CHANGES = 30
 /** how long after a caption last moved it still counts as being written (Zoom writes one every 0.62 s, median) */
 const CAPTION_LIVE_MS = 1500
+/** captions chosen for the person's words and no caption row for this long: their words are not being recorded */
+const NO_CAPTIONS_MS = 30_000
 
 type Sample = Omit<CallSample, 'ms'> & { t: number }
-type Session = { app: string | null; ids: string[]; pids?: number[]; heardAt: number; quietMs: number; restarts: number; samples: Sample[]; priorLines: Set<number>; watch?: { stop(): void }; everyApp: boolean; offset?: number; startedAt: number; pictured: boolean; missPictured?: boolean; picturedPeople?: boolean; picturedTalking?: boolean; errors: Set<string>; last: string; logged: number; /** a call window with people was read (Zoom, Teams) */ windowSeen?: CallKind; /** since when the readings say that window is gone, and the last one that said so */ goneSince?: number; goneAt?: number; /** the newest caption's mark at the last reading, and when it last moved, so a frozen caption is not read as speech */ caption?: string; captionAt?: number; /** the captions assembled so far (captions.ts), for a call whose audio carried nothing */ captionLines?: CaptionLine[]; /** the call's own audio carried sound at some point */ themHeard?: boolean }
+type Session = { app: string | null; ids: string[]; pids?: number[]; heardAt: number; quietMs: number; restarts: number; samples: Sample[]; priorLines: Set<number>; watch?: { stop(): void }; everyApp: boolean; offset?: number; startedAt: number; pictured: boolean; missPictured?: boolean; picturedPeople?: boolean; picturedTalking?: boolean; errors: Set<string>; last: string; logged: number; /** a call window with people was read (Zoom, Teams) */ windowSeen?: CallKind; /** since when the readings say that window is gone, and the last one that said so */ goneSince?: number; goneAt?: number; /** the newest caption's mark at the last reading, and when it last moved, so a frozen caption is not read as speech */ caption?: string; captionAt?: number; /** the captions assembled so far (captions.ts), for a call whose audio carried nothing */ captionLines?: CaptionLine[]; /** the call's own audio carried sound at some point */ themHeard?: boolean; /** the person chose Zoom's captions for their words (the mic muted in Yogurt for it) */ captionsOnly?: boolean; /** meeting time: since when the mic is muted for captions, and the stretches it was before */ captionsFrom?: number; captionsSpans?: Array<[number, number]>; /** wall clock the mic was muted for captions; a caption row came since; the widget was told there were none */ captionsAt?: number; captionsSeen?: boolean; warnedNoCaptions?: boolean; /** the mic is muted in Yogurt now, for whatever reason */ muted?: boolean }
 
 export function hookCallNames(p: {
   store: Pick<Store, 'meeting' | 'segments' | 'setSegmentSpeakers' | 'updateMeeting' | 'addSegments'>
@@ -83,7 +85,9 @@ export function hookCallNames(p: {
   changed: (id: string) => void
   onStart: (fn: (m: RecordingStart) => void) => unknown
   onStop: (fn: (m: Meeting) => void) => unknown
-  onCapture: (fn: (c: { on(e: 'pcm', fn: (track: 'me' | 'them', ms: number, samples: Float32Array) => void): unknown }, meetingId: string) => void) => unknown
+  onCapture: (fn: (c: { on(e: 'pcm', fn: (track: 'me' | 'them', ms: number, samples: Float32Array) => void): unknown; on(e: 'mic-boundary', fn: (ack: { muted: boolean; ms: number }) => void): unknown }, meetingId: string) => void) => unknown
+  /** with captions chosen for the person's words: no captions to give them, or captions again (the recording widget says so) */
+  warn?: (code: 'no-captions' | 'captions-back') => void
   /** the processes of a call app on the mic now (detect.ts micPids): two Zoom meetings are two processes (#98) */
   micPids?: (app: string) => number[]
   /** a recording started by hand learned its call app from the mic (watch.ts, CALL bind) */
@@ -140,7 +144,10 @@ export function hookCallNames(p: {
       return
     }
     const { byMute, caption, captionRows, ...r } = readCall(kind, l.windows)
-    if (captionRows) foldCaptions(s.captionLines ??= [], captionRows, l.t)
+    if (captionRows) {
+      foldCaptions(s.captionLines ??= [], captionRows, l.t)
+      if (s.captionsFrom !== undefined && !s.captionsSeen) { s.captionsSeen = true; if (s.warnedNoCaptions) { s.warnedNoCaptions = false; p.warn?.('captions-back') } }
+    }
     // The first reading of each meeting goes to the log in short, so a real call shows what its app gives. Teams opens
     // the mic on its join screen, minutes before the call (#138), so the first reading with people in it goes there too.
     // Meet's lobby shows people too (#112), so the first reading with someone marked talking goes there as well, long
@@ -221,6 +228,19 @@ export function hookCallNames(p: {
 
   // meeting time 0 on the wall clock: the earliest any audio could have been heard (each frame arrives a little after it was said)
   p.onCapture((c, id) => {
+    // Yogurt's own mute (capture.ts): with captions chosen for the person's words, the stretch it is muted is the one
+    // their own captions stand in for. A plain mute keeps them out (#118: a side conversation stays out of it).
+    c.on('mic-boundary', ({ muted, ms }) => {
+      const s = sessions.get(id)
+      if (!s) return
+      s.muted = muted
+      if (muted && s.captionsOnly && s.captionsFrom === undefined) { s.captionsFrom = ms; s.captionsAt = now(); s.captionsSeen = false }
+      else if (!muted) {
+        if (s.captionsFrom !== undefined) { (s.captionsSpans ??= []).push([s.captionsFrom, ms]); s.captionsFrom = undefined }
+        s.captionsOnly = false
+        if (s.warnedNoCaptions) { s.warnedNoCaptions = false; p.warn?.('captions-back') }
+      }
+    })
     c.on('pcm', (track, ms, samples) => {
       const s = sessions.get(id)
       if (!s) return
@@ -266,15 +286,20 @@ export function hookCallNames(p: {
       // the call's track and no line of it. The person's own captions are left out: the mic has their words.
       const mine = new Set([...o.myNames, ...s.samples.map((x) => x.me)].filter((x): x is string => !!x).map(norm))
       const zero = (s.offset ?? s.startedAt) + APP_LAG_MS
-      const captioned = !lines.length && !s.themHeard && s.captionLines?.length
-        ? finishCaptions(s.captionLines).filter((c) => !mine.has(norm(c.who))).map((c) => ({
-          meetingId: m.id, track: 'them' as const, startMs: Math.max(0, c.firstAt - zero), endMs: Math.max(0, c.firstAt - zero + 500, c.lastAt - zero),
-          text: c.text, speaker: c.who, source: 'captions' as const,
-        }))
+      const caps = s.captionLines?.length ? finishCaptions(s.captionLines) : []
+      const at = (c: CaptionLine) => ({ startMs: Math.max(0, c.firstAt - zero), endMs: Math.max(0, c.firstAt - zero + 500, c.lastAt - zero) })
+      const theirs = !lines.length && !s.themHeard
+        ? caps.filter((c) => !mine.has(norm(c.who))).map((c) => ({ meetingId: m.id, track: 'them' as const, ...at(c), text: c.text, speaker: c.who, source: 'captions' as const }))
         : []
+      // With captions chosen for the person's words, theirs said while the mic was muted for it become their lines
+      // (the mic has the rest; a plain mute keeps them out)
+      const spans = [...(s.captionsSpans ?? []), ...(s.captionsFrom !== undefined ? [[s.captionsFrom, Infinity] as [number, number]] : [])]
+      const own = caps.filter((c) => mine.has(norm(c.who)) && spans.some(([from, to]) => at(c).startMs >= from && at(c).startMs <= to))
+        .map((c) => ({ meetingId: m.id, track: 'me' as const, ...at(c), text: c.text, speaker: 'me', source: 'captions' as const }))
+      const captioned = [...theirs, ...own].sort((a, b) => a.startMs - b.startMs)
       if (captioned.length) {
         p.store.addSegments(captioned)
-        log(`call names: the call's audio carried nothing, ${captioned.length} lines written from Zoom's captions`)
+        log(`call names: ${captioned.length} lines written from Zoom's captions (${theirs.length} of the other side, ${own.length} of the person's, said with the mic muted for captions)`)
       }
       if (moved.length || added.length || captioned.length) p.changed(m.id)
     })().catch((e) => console.error('call names after the meeting failed', e)).finally(() => { sessions.delete(m.id); finals.delete(m.id) })
@@ -284,6 +309,8 @@ export function hookCallNames(p: {
   /** a reader that stopped sending readings is stopped and started again (the cause is logged where it's known) */
   function checkQuiet() {
     for (const [id, s] of sessions) {
+      // captions chosen for the person's words and none for a while: nothing gives their words, so the widget says so
+      if (s.captionsFrom !== undefined && !s.captionsSeen && !s.warnedNoCaptions && now() - (s.captionsAt ?? now()) >= NO_CAPTIONS_MS) { s.warnedNoCaptions = true; p.warn?.('no-captions') }
       // the app came on the mic after the reader started: from now on only that process, and what was read before
       // may be another meeting's (#98)
       if (s.watch && s.app && !s.pids && p.micPids?.(s.app).length) {
@@ -307,6 +334,16 @@ export function hookCallNames(p: {
 
   return {
     checkQuiet,
+    /** the person chose Zoom's captions for their words in this meeting (on), or the mic again (off) */
+    captionsOnly(id: string, on: boolean) {
+      const s = sessions.get(id)
+      if (!s) return
+      s.captionsOnly = on
+      // already muted: no boundary is coming, so the stretch starts now, on meeting time
+      if (on && s.muted && s.captionsFrom === undefined) { s.captionsFrom = Math.max(0, now() - (s.offset ?? s.startedAt)); s.captionsAt = now(); s.captionsSeen = false }
+    },
+    /** whether captions stand in for the person's words now */
+    usingCaptions: (id: string) => sessions.get(id)?.captionsFrom !== undefined,
     /** the name for a line of the other side just heard, or null for Them */
     nameFor(meetingId: string, startMs: number, endMs: number): string | null {
       const s = sessions.get(meetingId)

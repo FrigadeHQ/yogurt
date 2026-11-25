@@ -1,4 +1,4 @@
-import type { TranscribeWarn, WarnCode } from './capture'
+import type { CaptionsWarn, TranscribeWarn, WarnCode } from './capture'
 import { micIsOff, type MicState, type WidgetView } from '../shared/types'
 import { t } from '../shared/i18n'
 export { formatElapsed } from '../shared/wave'
@@ -18,6 +18,8 @@ export class WidgetModel {
   private kind: 'recording' | 'captured' = 'recording'
   private endedAt = 0
   private missingAudio = new Set<'mic' | 'systemAudio'>()
+  /** Zoom's captions chosen for the person's words, and none have come to give them */
+  private noCaptions = false
   /** transcription trouble; the recorder's hints come first */
   private textHint: TranscribeWarn | null = null
   private hiccupUntil = 0
@@ -31,13 +33,14 @@ export class WidgetModel {
 
   start(m: { id: string; title: string; startedAt: number }) {
     this.m = m; this.micState = 'on'; this.kind = 'recording'
-    this.missingAudio.clear(); this.textHint = null; this.hiccupUntil = 0; this.crashed = false; this.savePending = false
+    this.missingAudio.clear(); this.noCaptions = false; this.textHint = null; this.hiccupUntil = 0; this.crashed = false; this.savePending = false
     this.pausedAt = null; this.pausedMs = 0; this.byCall = false
   }
   get meetingId(): string | null { return this.m?.id ?? null }
   /** a new title for the meeting shown; true when it changed */
   retitle(title: string): boolean { if (!this.m || this.m.title === title) return false; this.m = { ...this.m, title }; return true }
-  warn(code: WarnCode | TranscribeWarn) {
+  warn(code: WarnCode | TranscribeWarn | CaptionsWarn) {
+    if (code === 'no-captions' || code === 'captions-back') { this.noCaptions = code === 'no-captions'; return }
     if (code === 'no-system-audio' || code === 'no-mic') this.missingAudio.add(code === 'no-mic' ? 'mic' : 'systemAudio')
     // a pause says the most: nothing more comes live, so a later hint never replaces it
     else if (code === 'live-paused') this.textHint = code
@@ -74,6 +77,7 @@ export class WidgetModel {
       else if (!muted && this.missingAudio.has('mic')) note = { tone: 'hint', code: 'no-mic', text: this.mac ? t("Yogurt can't hear your mic. Allow it in System Settings.") : this.noMic() }
       else if (this.missingAudio.has('systemAudio')) note = { tone: 'hint', code: 'no-system-audio', text: this.mac ? t("Yogurt can't hear the call audio. Allow it in System Settings.") : t("Yogurt can't hear the call audio on this computer.") }
       else if (this.textHint === 'live-paused') note = { tone: 'hint', text: t('Live transcription paused. Yogurt will finish the transcript from the recording after the meeting.') }
+      else if (this.noCaptions) note = { tone: 'hint', text: t("No captions found, so your words aren't being recorded. Turn the microphone back on, or ask the host to turn on captions.") }
       else if (this.textHint === 'transcribe-failed') note = { tone: 'hint', text: t('Some lines are missing for now. Yogurt will fill them in from the recording after the meeting.') }
       else if (this.textHint === 'no-speech-model') note = { tone: 'hint', text: t("The speech model isn't ready yet, so only audio is being saved.") }
       else if (this.textHint === 'falling-behind') note = { tone: 'hint', text: t('Yogurt is falling behind. Some lines may be missing.') }

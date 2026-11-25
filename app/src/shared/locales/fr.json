@@ -817,5 +817,9 @@
   "Mic will stay off on resume": "Le micro restera coupé à la reprise",
   "Mic mute couldn’t be confirmed.": "Impossible de confirmer la coupure du micro.",
   "Mic off. Yogurt can’t hear call audio.": "Micro coupé. Yogurt ne reçoit pas le son de l’appel.",
-  "From Zoom's captions": "D’après les sous-titres de Zoom"
+  "From Zoom's captions": "D’après les sous-titres de Zoom",
+  "Captions only (no microphone)": "Sous-titres uniquement (sans micro)",
+  "Your words come from Zoom's captions": "Vos paroles viennent des sous-titres de Zoom",
+  "Captions only": "Sous-titres uniquement",
+  "No captions found, so your words aren't being recorded. Turn the microphone back on, or ask the host to turn on captions.": "Aucun sous-titre trouvé, vos paroles ne sont donc pas enregistrées. Réactivez le micro ou demandez à l’hôte d’activer les sous-titres."
 }

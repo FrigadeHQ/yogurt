@@ -811,5 +811,9 @@
   "Mic will stay off on resume": "המיקרופון יישאר מושתק כשההקלטה תתחדש",
   "Mic mute couldn’t be confirmed.": "לא ניתן היה לאשר שהמיקרופון הושתק.",
   "Mic off. Yogurt can’t hear call audio.": "המיקרופון מושתק. Yogurt לא קולט את שמע השיחה.",
-  "From Zoom's captions": "מהכתוביות של Zoom"
+  "From Zoom's captions": "מהכתוביות של Zoom",
+  "Captions only (no microphone)": "כתוביות בלבד (ללא מיקרופון)",
+  "Your words come from Zoom's captions": "המילים שלך מגיעות מהכתוביות של Zoom",
+  "Captions only": "כתוביות בלבד",
+  "No captions found, so your words aren't being recorded. Turn the microphone back on, or ask the host to turn on captions.": "לא נמצאו כתוביות, ולכן המילים שלך לא מוקלטות. הפעל שוב את המיקרופון, או בקש מהמארח להפעיל כתוביות."
 }

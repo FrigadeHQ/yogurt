@@ -759,5 +759,9 @@
   "Mic will stay off on resume": "Micrô sẽ vẫn tắt khi tiếp tục ghi âm",
   "Mic mute couldn’t be confirmed.": "Không thể xác nhận micrô đã tắt.",
   "Mic off. Yogurt can’t hear call audio.": "Micrô đã tắt. Yogurt không nghe được âm thanh cuộc gọi.",
-  "From Zoom's captions": "Từ phụ đề của Zoom"
+  "From Zoom's captions": "Từ phụ đề của Zoom",
+  "Captions only (no microphone)": "Chỉ phụ đề (không dùng micrô)",
+  "Your words come from Zoom's captions": "Lời của bạn lấy từ phụ đề của Zoom",
+  "Captions only": "Chỉ phụ đề",
+  "No captions found, so your words aren't being recorded. Turn the microphone back on, or ask the host to turn on captions.": "Không tìm thấy phụ đề nên lời của bạn không được ghi lại. Hãy bật lại micrô hoặc nhờ người chủ trì bật phụ đề."
 }

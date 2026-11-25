@@ -66,18 +66,20 @@ function setup(o: { app?: string | null; attendees?: Meeting['attendees']; micPi
   let stopped = 0
   const starts: Array<(m: Meeting) => void> = [], stops: Array<(m: Meeting) => void> = [], binds: Array<(m: Meeting) => void> = []
   const captures: Array<(c: EventEmitter, id: string) => void> = []
-  const changed: string[] = [], logs: string[] = []
+  const changed: string[] = [], logs: string[] = [], warns: string[] = []
   let transcribed!: () => void
   const done = new Promise<void>((r) => { transcribed = r })
   const hook = hookCallNames({
     store, myNames: () => o.myNames ?? ['Alex Morgan'], transcribed: () => done, changed: (id) => changed.push(id), log: (s) => logs.push(s), now: () => clock, every: () => {},
     watch: (ids, onLine, pids) => { watched.push(ids); watchedPids.push(pids); emit = onLine; return { stop: () => { stopped++ } } },
-    micPids: (app) => micPids[app] ?? [],
+    micPids: (app) => micPids[app] ?? [], warn: (code) => warns.push(code),
     onStart: (fn) => starts.push(fn), onStop: (fn) => stops.push(fn), onCapture: (fn) => captures.push(fn), onBind: (fn) => binds.push(fn),
   })
   const capture = new EventEmitter()
   return {
-    store, m, hook, watched, watchedPids, changed, logs, transcribed, stopped: () => stopped,
+    store, m, hook, watched, watchedPids, changed, logs, warns, transcribed, stopped: () => stopped,
+    /** Yogurt's mute confirmed by the recorder, at meeting time `ms`, wall clock `at` */
+    mute(muted: boolean, ms: number, at: number) { clock = at; capture.emit('mic-boundary', { muted, ms }) },
     /** the processes of an app on the mic now */
     setMic(app: string, pids: number[]) { micPids[app] = pids },
     start() { starts.forEach((f) => f(m)); captures.forEach((f) => f(capture, m.id)) },
@@ -846,5 +848,93 @@ describe('a meeting the call\'s audio never reached: the captions are its transc
     s.stop(); s.transcribed()
     await s.hook.finished(s.m.id)
     expect(s.store.segments(s.m.id).map((x) => x.text)).toEqual(['heard'])
+  })
+})
+
+describe("Zoom's captions chosen for the person's words: the mic muted in Yogurt, their captions stand in", () => {
+  const people = ['Alex Morgan', 'Dana Smith']
+  const said = (s: ReturnType<typeof setup>, from: number, to: number, rows: Array<[string, string]>) => {
+    for (let t = from; t < to; t += 400) s.emit(zoomCaptionLine(t, people, rows, 'Alex Morgan'))
+  }
+
+  it('what the person said while muted for captions becomes their lines; before that the mic had it', async () => {
+    const s = setup()
+    s.start()
+    s.loud(0, 1_000_000)
+    said(s, 1_001_000, 1_002_000, [['Alex Morgan', 'said with the mic on']])
+    s.hook.captionsOnly(s.m.id, true)
+    s.mute(true, 3000, 1_003_000)
+    said(s, 1_004_000, 1_005_000, [['Alex Morgan', 'said with the mic on'], ['Alex Morgan', 'and this with it muted']])
+    said(s, 1_005_000, 1_006_000, [['Alex Morgan', 'and this with it muted'], ['Dana Smith', 'their reply']])
+    s.at(1_006_500)
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    // the call's audio carried sound, so Dana's words are its own transcript's; only Alex's, said while muted for captions
+    expect(s.store.segments(s.m.id).map((x) => [x.track, x.speaker, x.text, x.source])).toEqual([['me', 'me', 'and this with it muted', 'captions']])
+  })
+
+  it('a plain mute keeps the person\'s words out, captions or not (#118: a side conversation stays out)', async () => {
+    const s = setup()
+    s.start()
+    s.loud(0, 1_000_000)
+    s.mute(true, 1000, 1_001_000)
+    said(s, 1_001_400, 1_003_000, [['Alex Morgan', 'something said while muted']])
+    s.at(1_003_500)
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id)).toEqual([])
+  })
+
+  it('unmuting ends it: later captions of the person are the mic\'s again, and a later plain mute stays plain', async () => {
+    const s = setup()
+    s.start()
+    s.audio(0, 1_000_000)
+    s.hook.captionsOnly(s.m.id, true)
+    // captions trail speech by a second or so: these come well after each boundary
+    s.mute(true, 1100, 1_001_000)
+    said(s, 1_002_500, 1_003_500, [['Alex Morgan', 'muted for captions']])
+    s.mute(false, 4100, 1_004_000)
+    s.mute(true, 5100, 1_005_000)
+    said(s, 1_006_500, 1_007_500, [['Alex Morgan', 'muted for captions'], ['Alex Morgan', 'a plain mute now']])
+    s.at(1_008_000)
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id).filter((x) => x.track === 'me').map((x) => x.text)).toEqual(['muted for captions'])
+  })
+
+  it('captions chosen while already muted start at once', async () => {
+    const s = setup()
+    s.start()
+    s.audio(0, 1_000_000)
+    s.mute(true, 500, 1_000_500)
+    s.at(1_001_000)
+    s.hook.captionsOnly(s.m.id, true)
+    said(s, 1_002_500, 1_003_500, [['Alex Morgan', 'right after choosing']])
+    s.at(1_004_000)
+    s.stop(); s.transcribed()
+    await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id).filter((x) => x.track === 'me').map((x) => x.text)).toEqual(['right after choosing'])
+  })
+
+  it('no captions for 30 s after choosing them: the recording widget is told, once; captions or the mic clear it', () => {
+    const s = setup()
+    s.start()
+    s.hook.captionsOnly(s.m.id, true)
+    s.mute(true, 0, 1_000_000)
+    s.at(1_020_000); s.hook.checkQuiet()
+    expect(s.warns).toEqual([])
+    s.at(1_031_000); s.hook.checkQuiet()
+    s.at(1_040_000); s.hook.checkQuiet()
+    expect(s.warns).toEqual(['no-captions'])
+    said(s, 1_041_000, 1_041_500, [['Dana Smith', 'captions are on now']])
+    expect(s.warns).toEqual(['no-captions', 'captions-back'])
+  })
+
+  it('a plain mute never warns about captions', () => {
+    const s = setup()
+    s.start()
+    s.mute(true, 0, 1_000_000)
+    s.at(1_040_000); s.hook.checkQuiet()
+    expect(s.warns).toEqual([])
   })
 })

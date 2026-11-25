@@ -17,9 +17,10 @@ const FELL_BACK_MS = 8000
 
 /**
  * The mic under the note's bar, as a menu: Auto (the mic the Mac is set to) or any mic on this Mac, the one in use checked.
- * Choosing switches the recording without stopping it, and is remembered for the next one.
+ * Choosing switches the recording without stopping it, and is remembered for the next one. captions: a Zoom meeting being
+ * recorded on a Mac can also take the person's words from Zoom's captions, the mic muted in Yogurt, for this recording only.
  */
-export function MicMenu({ recording, paused }: { recording: boolean; paused?: boolean }) {
+export function MicMenu({ recording, paused, captions = false }: { recording: boolean; paused?: boolean; captions?: boolean }) {
   const [view, setView] = useState<MicsView>()
   const [open, setOpen] = useState<false | 'pointer' | 'keyboard'>(false)
   const presence = usePopoverPresence(open)
@@ -62,8 +63,16 @@ export function MicMenu({ recording, paused }: { recording: boolean; paused?: bo
 
   const choose = async (id: string | null) => {
     setOpen(false); setLost(null); button.current?.focus()
-    if (view) setView({ ...view, choice: id, using: id ? view.devices.find((d) => d.id === id)?.name ?? view.using : view.defaultName })
+    if (view) setView({ ...view, choice: id, off: false, using: id ? view.devices.find((d) => d.id === id)?.name ?? view.using : view.defaultName })
+    // a mic chosen while the captions stand in for it: the mic again
+    if (view?.off) await window.yogurt.audio.captionsOnly(false).catch(() => false)
     await window.yogurt.audio.setMic(id).catch(() => false)
+    void load()
+  }
+  const chooseOff = async () => {
+    setOpen(false); setLost(null); button.current?.focus()
+    if (view) setView({ ...view, off: true })
+    await window.yogurt.audio.captionsOnly(true).catch(() => false)
     void load()
   }
   const onKey = (e: KeyboardEvent) => {
@@ -77,7 +86,8 @@ export function MicMenu({ recording, paused }: { recording: boolean; paused?: bo
     else if (e.key === 'Tab') setOpen(false)
   }
 
-  const name = view?.using ?? t('No microphone')
+  const off = !!view?.off
+  const name = off ? t('Captions only') : view?.using ?? t('No microphone')
   const row = 'flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-start text-sm hover:bg-[var(--line)] focus-visible:bg-[var(--line)] focus-visible:outline-none'
   const tick = (on: boolean) => <Check size={15} aria-hidden="true" className={`ms-auto shrink-0 ${on ? '' : 'invisible'}`} />
   return (
@@ -97,7 +107,7 @@ export function MicMenu({ recording, paused }: { recording: boolean; paused?: bo
       {presence.value && view && (
         <div data-testid="mic-menu" {...presence.props} data-anchor="bottom-start" role="menu" aria-label={t('Microphone')} onKeyDown={onKey}
           className="menu-entry absolute bottom-full start-0 z-30 mb-2 w-72 rounded-xl border border-line bg-float p-1.5 text-ink shadow-[var(--shadow)]">
-          <button role="menuitemradio" aria-checked={view.choice === null} data-testid="mic-auto" onClick={() => void choose(null)} className={row}>
+          <button role="menuitemradio" aria-checked={!off && view.choice === null} data-testid="mic-auto" onClick={() => void choose(null)} className={row}>
             <span className="flex min-w-0 flex-col">
               <span className="flex items-center gap-1.5">
                 {t('Auto')}
@@ -107,15 +117,25 @@ export function MicMenu({ recording, paused }: { recording: boolean; paused?: bo
               </span>
               {view.defaultName && <span data-testid="mic-auto-name" className="truncate text-xs text-muted">{view.defaultName}</span>}
             </span>
-            {tick(view.choice === null)}
+            {tick(!off && view.choice === null)}
           </button>
           {view.devices.length > 0 && <div aria-hidden="true" className="mx-2 my-1 h-px bg-[var(--line)]" />}
           {view.devices.map((d) => (
-            <button key={d.id} role="menuitemradio" aria-checked={view.choice === d.id} data-testid="mic-option" data-id={d.id} onClick={() => void choose(d.id)} className={row}>
+            <button key={d.id} role="menuitemradio" aria-checked={!off && view.choice === d.id} data-testid="mic-option" data-id={d.id} onClick={() => void choose(d.id)} className={row}>
               <span className="truncate">{d.name}</span>
-              {tick(view.choice === d.id)}
+              {tick(!off && view.choice === d.id)}
             </button>
           ))}
+          {(captions || off) && <>
+            <div aria-hidden="true" className="mx-2 my-1 h-px bg-[var(--line)]" />
+            <button role="menuitemradio" aria-checked={off} data-testid="mic-off" onClick={() => void chooseOff()} className={row}>
+              <span className="flex min-w-0 flex-col">
+                <span>{t('Captions only (no microphone)')}</span>
+                <span className="text-xs text-muted">{t("Your words come from Zoom's captions")}</span>
+              </span>
+              {tick(off)}
+            </button>
+          </>}
         </div>
       )}
     </div>

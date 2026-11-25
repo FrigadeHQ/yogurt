@@ -515,7 +515,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
           {recording && hint && <RecordingHint hint={hint} />}
           <div className="note-footer-bar">
           <div className="note-status pointer-events-auto flex flex-wrap items-center gap-1.5 text-[11px] text-muted">
-            {(recording || m.state === 'prepared') && <><MicMenu recording={recording} paused={recording && m.paused} /><SpokenMenu /><span aria-hidden="true">·</span></>}
+            {(recording || m.state === 'prepared') && <><MicMenu recording={recording} paused={recording && m.paused} captions={recording && m.app === 'Zoom' && window.yogurt.platform === 'darwin'} /><SpokenMenu /><span aria-hidden="true">·</span></>}
             {saveStatus !== 'failed' && <>
               <p data-testid="note-save-status" data-state={saveStatus} role="status" className="flex items-center gap-1.5">
                 <Lock size={10} aria-hidden="true" />

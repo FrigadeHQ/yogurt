@@ -789,5 +789,9 @@
   "Mic will stay off on resume": "रिकॉर्डिंग फिर शुरू होने पर माइक बंद रहेगा",
   "Mic mute couldn’t be confirmed.": "माइक म्यूट होने की पुष्टि नहीं हो सकी।",
   "Mic off. Yogurt can’t hear call audio.": "माइक बंद है। Yogurt को कॉल की आवाज़ सुनाई नहीं दे रही है।",
-  "From Zoom's captions": "Zoom के कैप्शन से"
+  "From Zoom's captions": "Zoom के कैप्शन से",
+  "Captions only (no microphone)": "सिर्फ़ कैप्शन (माइक्रोफ़ोन नहीं)",
+  "Your words come from Zoom's captions": "आपके शब्द Zoom के कैप्शन से आते हैं",
+  "Captions only": "सिर्फ़ कैप्शन",
+  "No captions found, so your words aren't being recorded. Turn the microphone back on, or ask the host to turn on captions.": "कोई कैप्शन नहीं मिला, इसलिए आपके शब्द रिकॉर्ड नहीं हो रहे हैं। माइक्रोफ़ोन फिर से चालू करें, या होस्ट से कैप्शन चालू करने को कहें।"
 }

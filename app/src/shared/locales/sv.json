@@ -801,5 +801,9 @@
   "Mic will stay off on resume": "Mikrofonen förblir avstängd när inspelningen återupptas",
   "Mic mute couldn’t be confirmed.": "Det gick inte att bekräfta att mikrofonen stängts av.",
   "Mic off. Yogurt can’t hear call audio.": "Mikrofonen är av. Yogurt kan inte höra samtalsljudet.",
-  "From Zoom's captions": "Från Zooms undertexter"
+  "From Zoom's captions": "Från Zooms undertexter",
+  "Captions only (no microphone)": "Bara undertexter (ingen mikrofon)",
+  "Your words come from Zoom's captions": "Dina ord kommer från Zooms undertexter",
+  "Captions only": "Bara undertexter",
+  "No captions found, so your words aren't being recorded. Turn the microphone back on, or ask the host to turn on captions.": "Inga undertexter hittades, så dina ord spelas inte in. Slå på mikrofonen igen eller be värden att slå på undertexter."
 }

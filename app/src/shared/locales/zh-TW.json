@@ -759,5 +759,9 @@
   "Mic will stay off on resume": "繼續錄製後麥克風會保持靜音",
   "Mic mute couldn’t be confirmed.": "無法確認麥克風是否已靜音。",
   "Mic off. Yogurt can’t hear call audio.": "麥克風已關閉。Yogurt 無法接收通話音訊。",
-  "From Zoom's captions": "來自 Zoom 字幕"
+  "From Zoom's captions": "來自 Zoom 字幕",
+  "Captions only (no microphone)": "僅字幕（不用麥克風）",
+  "Your words come from Zoom's captions": "你的話來自 Zoom 字幕",
+  "Captions only": "僅字幕",
+  "No captions found, so your words aren't being recorded. Turn the microphone back on, or ask the host to turn on captions.": "沒有找到字幕，所以沒有錄下你的話。請重新開啟麥克風，或請主持人開啟字幕。"
 }
