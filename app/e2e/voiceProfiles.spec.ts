@@ -2,6 +2,7 @@ import { _electron as electron, expect, test, type Page } from '@playwright/test
 import { existsSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { openFromCorner } from './cornerNavigation'
 
 const main = join(import.meta.dirname, '../out/main/index.js')
 
@@ -22,7 +23,8 @@ const whoOf = (page: Page, text: string) => page.getByTestId('transcript-turn').
 const profilesOf = (page: Page) => page.evaluate(() => window.yogurt.voices.list())
 
 async function settings(page: Page) {
-  await page.getByTestId('settings-open').click()
+  // a window too narrow for the sidebar keeps Settings behind the corner menu, as the other specs open it
+  await openFromCorner(page, 'settings-open')
   await expect(page.getByTestId('voice-recognition')).toBeVisible()
 }
 
