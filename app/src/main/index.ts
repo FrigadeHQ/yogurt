@@ -20,7 +20,7 @@ import { isAppRoute } from '../shared/routes'
 import { resumesNote } from '../shared/agendaNote'
 import { relaunchOptions, stripAppImageEnv } from './relaunch'
 import { capabilities, micListHelper, platformOf, supportedKinds } from '../shared/platform'
-import { app, BrowserWindow, dialog, ipcMain, nativeTheme, Notification, protocol, safeStorage, screen, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, nativeTheme, Notification, powerMonitor, protocol, safeStorage, screen, shell } from 'electron'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import { basename, join } from 'node:path'
@@ -87,7 +87,7 @@ import { hookFolders } from './foldersIpc'
 import { hookMcp } from './mcp'
 import { createQuietStart } from './quietStart'
 import { startArgs, startReason, type StartReason } from './startReason'
-import { quitCalledOff, quitting, started as startedAfterQuit } from './quitByUser'
+import { quitCalledOff, quitting, recordingQuitGuard, started as startedAfterQuit } from './quitByUser'
 import { deleteRecording } from './deleteRecording'
 import { AUDIO_SCHEME, audioExts, createAudioHandler, playbackFile, trackFile, type AudioExt } from './audio'
 import { helperDecode, wavDecode } from './asr/backfill'
@@ -1038,9 +1038,20 @@ app.whenReady().then(() => {
       window.webContents.send('notes:flush-request', token)
     })
   }
+  // The active meeting keeps its id while paused and clears it on stop.
+  const waitForRecordingChoice = recordingQuitGuard(() => activeMeeting()?.id, async signal => {
+    showMain()
+    const options = { type: 'question' as const, message: t('Stop recording and quit?'),
+      buttons: [t('Cancel'), t('Stop and Quit')], defaultId: 0, cancelId: 0, noLink: true, signal }
+    const answer = win && !win.isDestroyed() ? await dialog.showMessageBox(win, options) : await dialog.showMessageBox(options)
+    return answer.response === 1
+  })
+  let sessionEnding = false
+  // On macOS this also covers logout. Other platforms only prompt for an explicit menu command.
+  if (process.platform === 'darwin') powerMonitor.on('shutdown', () => { sessionEnding = true; app.quit() })
   // Flush the last keystroke and retained drafts before the existing recording/transcription shutdown.
   const resumeEditing = () => {
-    finishing = false; allowQuit = false; discardUnsaved = false
+    finishing = false; allowQuit = false; discardUnsaved = false; sessionEnding = false
     // a quit called off: the next one is the person's only if they ask again (#147)
     quitCalledOff()
     uploads.resume(); savedTranscriptions.resume()
@@ -1057,7 +1068,7 @@ app.whenReady().then(() => {
   app.on('before-quit', (e) => {
     if (allowQuit) return
     e.preventDefault()
-    if (finishing) return
+    if (finishing || waitForRecordingChoice(sessionEnding)) return
     finishing = true
     // #127: a quit left no line of its own, so what it stopped (whisper-server loading) looked like a crash
     console.info('APP quitting')

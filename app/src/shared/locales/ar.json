@@ -175,6 +175,8 @@
   "File": "ملف",
   "Stopping…": "جارٍ الإيقاف…",
   "Stop recording": "إيقاف التسجيل",
+  "Stop recording and quit?": "هل تريد إيقاف التسجيل والخروج؟",
+  "Stop and Quit": "إيقاف التسجيل والخروج",
   "Finish saving first": "أكمل الحفظ أولًا",
   "Finish setup": "إكمال الإعداد",
   "Flag": "علم",

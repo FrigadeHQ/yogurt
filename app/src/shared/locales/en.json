@@ -21,6 +21,8 @@
   "Stop": "Stop",
   "Stopping…": "Stopping…",
   "Stop recording": "Stop recording",
+  "Stop recording and quit?": "Stop recording and quit?",
+  "Stop and Quit": "Stop and Quit",
   "Add “{credit}”": "Add “{credit}”",
   "On copied summaries and saved Markdown files.": "On copied summaries and saved Markdown files.",
   "Stop recording when the call ends": "Stop recording when the call ends",

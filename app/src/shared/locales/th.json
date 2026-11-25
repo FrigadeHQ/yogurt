@@ -161,6 +161,8 @@
   "File": "ไฟล์",
   "Stopping…": "กำลังหยุด…",
   "Stop recording": "หยุดบันทึกเสียง",
+  "Stop recording and quit?": "หยุดบันทึกเสียงและออกจากแอปหรือไม่",
+  "Stop and Quit": "หยุดและออก",
   "Finish saving first": "บันทึกให้เสร็จก่อน",
   "Finish setup": "ตั้งค่าให้เสร็จ",
   "Flag": "ธง",

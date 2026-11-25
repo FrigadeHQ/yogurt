@@ -161,6 +161,8 @@
   "File": "파일",
   "Stopping…": "중지 중…",
   "Stop recording": "녹음 중지",
+  "Stop recording and quit?": "녹음을 중지하고 종료할까요?",
+  "Stop and Quit": "중지하고 종료",
   "Finish saving first": "먼저 저장을 마치세요",
   "Finish setup": "설정 마치기",
   "Flag": "깃발",

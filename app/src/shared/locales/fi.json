@@ -167,6 +167,8 @@
   "File": "Arkisto",
   "Stopping…": "Pysäytetään…",
   "Stop recording": "Pysäytä tallennus",
+  "Stop recording and quit?": "Pysäytetäänkö tallennus ja lopetetaanko sovellus?",
+  "Stop and Quit": "Pysäytä ja lopeta",
   "Finish saving first": "Viimeistele tallennus ensin",
   "Finish setup": "Viimeistele käyttöönotto",
   "Flag": "Lippu",
