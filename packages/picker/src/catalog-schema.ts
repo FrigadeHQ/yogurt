@@ -34,7 +34,7 @@ const Asr = z.object({
   id: Id, name: z.string().min(1), license: z.string().min(1),
   url: z.string().url(), sha256: Sha,
   sizeGB: z.number().positive(), bytes: z.number().int().positive(), minMemGB: z.number().min(0),
-  gpuOnly: z.boolean().optional(), lastResort: z.boolean().optional(),
+  gpuOnly: z.boolean().optional(), lastResort: z.boolean().optional(), manual: z.boolean().optional(),
 })
 
 /** the model that turns text into vectors for meaning search across meetings (EmbeddingGemma); dims: the length Yogurt keeps */

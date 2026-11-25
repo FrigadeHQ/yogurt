@@ -15,7 +15,7 @@ test('Settings → Transcription: another speech model downloads, then takes ove
     await expect(page.getByTestId('home')).toBeVisible({ timeout: 15_000 })
     await page.evaluate(() => window.yogurt.nav.go('/settings'))
     const speech = page.getByTestId('settings-speech')
-    await expect(speech.locator('option')).toHaveText(['Auto (Whisper large-v3-turbo)', 'Whisper large-v3-turbo · 574 MB', 'Whisper small · 190 MB', 'Whisper base · 60 MB', 'Whisper tiny · 32 MB'])
+    await expect(speech.locator('option')).toHaveText(['Auto (Whisper large-v3-turbo)', 'Whisper large-v3 · 1,081 MB', 'Whisper large-v3-turbo · 574 MB', 'Whisper small · 190 MB', 'Whisper base · 60 MB', 'Whisper tiny · 32 MB'])
     await expect(page.getByTestId('settings-speech-status')).toHaveText('Always on this computer. Transcribing with Whisper large-v3-turbo.')
     await speech.selectOption('whisper-small-q5_1')
     await expect(page.getByTestId('settings-speech-status')).toHaveText('Always on this computer. Transcribing with Whisper small.', { timeout: 15_000 })
@@ -23,6 +23,10 @@ test('Settings → Transcription: another speech model downloads, then takes ove
     expect(asr.some((f) => f.includes('small'))).toBe(true)
     expect(asr.some((f) => f.includes('turbo'))).toBe(false)
     expect(JSON.parse(readFileSync(join(userData, 'settings.json'), 'utf8')).speechModel).toBe('whisper-small-q5_1')
+    // large-v3 is only ever somebody's own pick (the catalog marks it manual), and goes the same way
+    await speech.selectOption('whisper-large-v3-q5_0')
+    await expect(page.getByTestId('settings-speech-status')).toHaveText('Always on this computer. Transcribing with Whisper large-v3.', { timeout: 15_000 })
+    expect(JSON.parse(readFileSync(join(userData, 'settings.json'), 'utf8')).speechModel).toBe('whisper-large-v3-q5_0')
     // back to Auto: this computer's pick again
     await speech.selectOption('auto')
     await expect(page.getByTestId('settings-speech-status')).toHaveText('Always on this computer. Transcribing with Whisper large-v3-turbo.', { timeout: 15_000 })

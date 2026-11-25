@@ -61,6 +61,14 @@ describe('the measured speed check (Windows and Linux)', () => {
   it('every model is pinned with a sha256', () => {
     for (const a of catalog.asr) expect(a.sha256).toMatch(/^[a-f0-9]{64}$/)
   })
+  it('a model offered only by choice (large-v3) is listed first but never picked for a Mac, tried by the speed check or used as a fallback', () => {
+    expect(catalog.asr.filter((a) => a.manual).map((a) => a.id)).toEqual(['whisper-large-v3-q5_0'])
+    for (const m of [machines.m1max32, machines.m4max128, machines.linux3060]) {
+      expect(pickAsr(m, catalog).model.id).toBe('whisper-large-v3-turbo-q5_0')
+      expect(pickAsr(m, catalog, { exclude: ['whisper-large-v3-turbo-q5_0'] }).model.id).toBe('whisper-small-q5_1')
+    }
+    expect(ids(asrCandidates(machines.linux3060, catalog, { exclude: ['whisper-large-v3-turbo-q5_0'] }))).toEqual(['whisper-small-q5_1', 'whisper-base-q5_1', 'whisper-tiny-q5_1'])
+  })
 })
 
 describe('pickBySpeed', () => {

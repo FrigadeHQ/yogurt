@@ -55,6 +55,8 @@ export interface CatalogAsr {
   gpuOnly?: boolean
   /** Windows and Linux only, picked by the speed check when nothing better keeps up; never on a Mac */
   lastResort?: boolean
+  /** only when the person picks it in Settings: never chosen for a computer, never timed by the speed check, never a fallback */
+  manual?: boolean
 }
 
 /** The embedding model for meaning search across meetings: one GGUF file, run by the notes model's worker */

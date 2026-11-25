@@ -47,8 +47,8 @@ function setup(over: Partial<SetupDeps> = {}) {
 const starterUrl = catalog.models.find((m) => m.starter)!.builds[0].url
 const bigUrl = catalog.models.find((m) => m.id === 'gemma-4-26b-a4b')!.builds[0].url
 const embedUrl = catalog.embedding.url
-const turboUrl = catalog.asr[0].url
-const smallUrl = catalog.asr[1].url
+const turboUrl = catalog.asr.find((a) => a.id === 'whisper-large-v3-turbo-q5_0')!.url
+const smallUrl = catalog.asr.find((a) => a.id === 'whisper-small-q5_1')!.url
 
 describe('SetupController', () => {
   it('keeps a failed fake notes download in the real retry state while recording remains ready', async () => {
