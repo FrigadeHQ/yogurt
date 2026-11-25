@@ -1,4 +1,12 @@
 {
+  "Edit attendee": "Muokkaa osallistujaa",
+  "Name": "Nimi",
+  "Email": "Sähköposti",
+  "Add email": "Lisää sähköposti",
+  "Enter a valid email address.": "Anna kelvollinen sähköpostiosoite.",
+  "Enter a name.": "Anna nimi.",
+  "Remove from meeting": "Poista kokouksesta",
+  "{name} removed from meeting": "{name} poistettiin kokouksesta",
   "Record": "Tallenna",
   "Search meetings": "Hae kokouksia",
   "About Yogurt": "Tietoja Yogurtista",

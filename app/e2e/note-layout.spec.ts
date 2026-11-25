@@ -179,7 +179,7 @@ test('edited summaries can dismiss an attendee change until membership changes a
     await expect.poll(async () => (await notesOf(page, id)).edited).toBe(true)
     const banner = page.getByTestId('note-people-changed')
     await page.getByTestId('note-attendees').click()
-    const removeAnn = page.getByRole('button', { name: 'Remove Ann Lee', exact: true })
+    const removeAnn = page.getByTestId('people-row').filter({ hasText: 'Ann Lee' }).getByRole('button', { name: 'Remove from meeting', exact: true })
     await expect(removeAnn).toHaveCount(2)
     await removeAnn.last().click()
     await expect(removeAnn).toHaveCount(1)

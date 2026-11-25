@@ -1,4 +1,12 @@
 {
+  "Edit attendee": "Rediger deltager",
+  "Name": "Navn",
+  "Email": "E-mail",
+  "Add email": "Tilføj e-mail",
+  "Enter a valid email address.": "Angiv en gyldig e-mailadresse.",
+  "Enter a name.": "Angiv et navn.",
+  "Remove from meeting": "Fjern fra mødet",
+  "{name} removed from meeting": "{name} blev fjernet fra mødet",
   "Record": "Optag",
   "Search meetings": "Søg i møder",
   "About Yogurt": "Om Yogurt",

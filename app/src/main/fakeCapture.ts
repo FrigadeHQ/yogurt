@@ -120,11 +120,20 @@ export function fakeCaptureProc(meetingDir: string, startMs = 0, o: { speech?: b
 
   const finish = (code: number | null, signal: NodeJS.Signals | null) => {
     if (ended) return
-    playUntil(elapsedSamples())
     ended = true; clearInterval(timer)
-    for (const track of ['me', 'them'] as const) writeFileSync(join(meetingDir, o.part ? `${track}.${o.part}.wav` : `${track}.wav`), wavOf(played[track]))
-    stdout.end()
-    setImmediate(() => ev.emit('exit', code, signal))
+    const stopAt = elapsedSamples()
+    // Stop can arrive mid-frame. Let both tracks finish that tick before flushing to the stop time.
+    setImmediate(() => {
+      try {
+        playUntil(stopAt)
+        for (const track of ['me', 'them'] as const) writeFileSync(join(meetingDir, o.part ? `${track}.${o.part}.wav` : `${track}.wav`), wavOf(played[track]))
+      } catch (error) {
+        console.error('fake capture could not finish', error)
+        code = 1
+      }
+      stdout.end()
+      ev.emit('exit', code, signal)
+    })
   }
   const playUntil = (target: number) => {
     // everything due by now, in 100 ms chunks, so slow timers don't slow the audio
@@ -151,7 +160,7 @@ export function fakeCaptureProc(meetingDir: string, startMs = 0, o: { speech?: b
   const elapsedSamples = () => Math.max(sent, Math.floor((Date.now() - started) * RATE / 1000))
   const timer = setInterval(() => {
     checkMics()
-    playUntil(sent + Math.floor((elapsedSamples() - sent) / CHUNK) * CHUNK)
+    if (!ended) playUntil(sent + Math.floor((elapsedSamples() - sent) / CHUNK) * CHUNK)
   }, 50)
 
   const applyMute = (cmd: string) => {
@@ -166,6 +175,7 @@ export function fakeCaptureProc(meetingDir: string, startMs = 0, o: { speech?: b
 
   stdin.on('data', (d: Buffer) => {
     for (const cmd of d.toString().split('\n')) {
+      if (ended) return
       if (cmd === 'pause') paused = true
       else if (cmd === 'resume') paused = false
       else if (/^(un)?mute [0-9]+$/.test(cmd)) {

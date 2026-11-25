@@ -1,4 +1,12 @@
 {
+  "Edit attendee": "Résztvevő szerkesztése",
+  "Name": "Név",
+  "Email": "E-mail-cím",
+  "Add email": "E-mail-cím hozzáadása",
+  "Enter a valid email address.": "Adj meg egy érvényes e-mail-címet.",
+  "Enter a name.": "Adj meg egy nevet.",
+  "Remove from meeting": "Eltávolítás a megbeszélésről",
+  "{name} removed from meeting": "{name} eltávolítva a megbeszélésről",
   "Record": "Rögzítés",
   "Search meetings": "Megbeszélések keresése",
   "About Yogurt": "A Yogurt névjegye",

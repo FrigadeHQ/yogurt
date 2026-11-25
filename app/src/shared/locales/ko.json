@@ -1,4 +1,12 @@
 {
+  "Edit attendee": "참석자 편집",
+  "Name": "이름",
+  "Email": "이메일",
+  "Add email": "이메일 추가",
+  "Enter a valid email address.": "올바른 이메일 주소를 입력하세요.",
+  "Enter a name.": "이름을 입력하세요.",
+  "Remove from meeting": "회의에서 제외",
+  "{name} removed from meeting": "회의에서 {name} 님을 제외했어요",
   "Record": "녹음",
   "Search meetings": "회의 검색",
   "About Yogurt": "Yogurt 정보",

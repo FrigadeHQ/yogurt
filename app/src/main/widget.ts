@@ -49,6 +49,14 @@ function createWindow(os = 'darwin'): BrowserWindow {
   return w
 }
 
+function closeAfterLoad(w: BrowserWindow) {
+  if (w.isDestroyed()) return
+  const close = () => { if (!w.isDestroyed()) w.close() }
+  // A tray stop can arrive while the recording window is still navigating to its page.
+  if (w.webContents.isLoadingMainFrame()) w.webContents.once('did-stop-loading', close)
+  else close()
+}
+
 /** every window: the pill draws the level, and the note's recording bar does too */
 const broadcast = (channel: string, v: unknown) => { for (const w of BrowserWindow.getAllWindows()) if (!w.isDestroyed()) w.webContents.send(channel, v) }
 
@@ -141,10 +149,12 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
     screen.removeListener('display-added', displayChanged)
     screen.removeListener('display-removed', displayChanged)
     screen.removeListener('display-metrics-changed', displayChanged)
-    if (win && !win.isDestroyed()) {
-      if (retires) { win.hide(); win.webContents.setBackgroundThrottling(true); retired = win } else win.destroy()
-    }
+    const w = win
     win = undefined
+    if (!w || w.isDestroyed()) return
+    w.hide()
+    if (retires) { w.webContents.setBackgroundThrottling(true); retired = w }
+    else closeAfterLoad(w)
   }
   const open = () => {
     if (win && !win.isDestroyed()) return
@@ -155,7 +165,7 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
     pill = { ...lastPosition!, width: lastWidth, height: FIRST_H }
     layout = widgetLayout(pill, screen.getDisplayMatching(pill).workArea)
     w.on('closed', () => { if (win === w) { clearTimeout(pointerTimer); win = undefined } })
-    if (retired && !retired.isDestroyed()) retired.destroy()
+    if (retired) closeAfterLoad(retired)
     retired = undefined
   }
 
@@ -218,15 +228,21 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
   })
 
   ipcMain.handle('widget:state', () => model.view(Date.now()))
-  ipcMain.on('widget:open', () => {
+  const owns = (sender: Electron.WebContents) => !!win && !win.isDestroyed() && sender === win.webContents
+  ipcMain.on('widget:open', (e) => {
     const id = model.meetingId
-    if (!id) return
+    if (!id || !owns(e.sender)) return
     shown = false
     clearTimeout(pointerTimer); pressed = false
     if (win && !win.isDestroyed()) { win.webContents.send('widget:reset'); hitTest(); win.hide() }
     d.open(id)
   })
-  ipcMain.on('widget:stop', () => { const id = model.meetingId; if (id && model.view(Date.now())?.kind === 'recording') { stopPressed = true; d.stop(id) } })
+  ipcMain.on('widget:stop', (e) => {
+    const id = model.meetingId
+    if (!id || !owns(e.sender) || model.view(Date.now())?.kind !== 'recording') return
+    stopPressed = true
+    d.stop(id)
+  })
   ipcMain.handle('widget:layout', () => win && !win.isDestroyed() ? layout : null)
   ipcMain.on('widget:surface', (e, value: unknown) => {
     if (!win || win.isDestroyed() || e.sender !== win.webContents || !value || typeof value !== 'object') return
@@ -285,7 +301,7 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
 
   return {
     visibilityChanged,
-    owns: (sender: Electron.WebContents) => !!win && !win.isDestroyed() && sender === win.webContents,
+    owns,
     elapsed: () => model.view(Date.now())?.elapsedMs ?? 0,
     /** the recording is about to stop because its call ended: the finished card says so */
     callEnded: (meetingId: string) => { if (model.meetingId === meetingId) model.callEnded() },

@@ -1,9 +1,9 @@
 import type { Person } from './types'
-export const ownAddress = (value: unknown): string | null => typeof value === 'string' && /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(value.trim()) ? value.trim().toLowerCase() : null
+export const normalizedEmail = (value: unknown): string | null => typeof value === 'string' && /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(value.trim()) ? value.trim().toLowerCase() : null
 /** Only an address already identified as ours can fill an unlinked note's self row. */
 export function matchingOwnEmail(people: Person[], emails: string[]): string | null {
-  const domains = new Set(people.map(p => ownAddress(p.email)?.split('@')[1]).filter(Boolean))
-  return emails.map(ownAddress).filter((email): email is string => !!email).sort().find(email => domains.has(email.split('@')[1])) ?? null
+  const domains = new Set(people.map(p => normalizedEmail(p.email)?.split('@')[1]).filter(Boolean))
+  return emails.map(normalizedEmail).filter((email): email is string => !!email).sort().find(email => domains.has(email.split('@')[1])) ?? null
 }
 
 export const personEmail = (email: string) => email.trim().toLowerCase()

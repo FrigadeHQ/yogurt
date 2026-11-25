@@ -6,7 +6,7 @@ import { helperFile } from '../shared/platform'
 import type { Person } from './store'
 import type { Settings } from './settings'
 import { noteOwnEmail } from './vocab'
-import { ownAddress } from '../shared/people'
+import { normalizedEmail } from '../shared/people'
 
 /** One meeting on the calendar, times in ms */
 export type CalEvent = { id: string; title: string; start: number; end: number; attendees: Person[]; url: string | null; calendar?: CalendarSource; aliases?: string[]; ownEmail?: string | null; declined?: boolean }
@@ -131,7 +131,7 @@ export function parseEvents(raw: unknown, hidden: string[] = []): CalEvent[] {
     if (!r || typeof r !== 'object') continue
     const id = str(r.id), start = Date.parse(String(r.start)), end = Date.parse(String(r.end))
     // the helper leaves the person using this Mac out of the attendees, and gives their address on its own
-    const ownEmail = ownAddress(r.me)
+    const ownEmail = normalizedEmail(r.me)
     // a meeting shared onto a second calendar comes twice with the same id; once is enough, and the list needs ids to be unique
     if (!id || Number.isNaN(start) || Number.isNaN(end)) continue
     if (ownEmail) { noteOwnEmail(ownEmail); rememberOwnEmail(ownEmail) }

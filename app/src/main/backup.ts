@@ -3,7 +3,7 @@ import { segmentSpeaker } from './speakerName'
 import { migrateMeetingChats } from './library/store'
 import backupFormat from '../shared/backupFormat.json'
 import { backfillPeople, mergePeople } from './people'
-import { ownAddress } from '../shared/people'
+import { normalizedEmail } from '../shared/people'
 import { constants, existsSync } from 'node:fs'
 import { cp, lstat, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -130,7 +130,7 @@ export function mergeBackup(into: DatabaseSync, from: DatabaseSync): { added: st
     if (tables(from).has('own_emails')) {
       const save = into.prepare('INSERT OR IGNORE INTO own_emails (email) VALUES (?)')
       for (const row of from.prepare('SELECT email FROM own_emails').all()) {
-        const email = ownAddress(row.email)
+        const email = normalizedEmail(row.email)
         if (email) save.run(email)
       }
     }

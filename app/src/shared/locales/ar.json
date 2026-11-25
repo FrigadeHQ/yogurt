@@ -1,4 +1,12 @@
 {
+  "Edit attendee": "تعديل بيانات المشارك",
+  "Name": "الاسم",
+  "Email": "البريد الإلكتروني",
+  "Add email": "إضافة بريد إلكتروني",
+  "Enter a valid email address.": "أدخل عنوان بريد إلكتروني صالحًا.",
+  "Enter a name.": "أدخل اسمًا.",
+  "Remove from meeting": "إزالة من الاجتماع",
+  "{name} removed from meeting": "تمت إزالة {name} من الاجتماع",
   "Record": "تسجيل",
   "Search meetings": "البحث في الاجتماعات",
   "About Yogurt": "حول Yogurt",

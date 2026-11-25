@@ -1,4 +1,12 @@
 {
+  "Edit attendee": "Змінити дані учасника",
+  "Name": "Ім’я",
+  "Email": "Електронна пошта",
+  "Add email": "Додати електронну адресу",
+  "Enter a valid email address.": "Введіть дійсну електронну адресу.",
+  "Enter a name.": "Введіть ім’я.",
+  "Remove from meeting": "Вилучити із зустрічі",
+  "{name} removed from meeting": "Зі зустрічі вилучено {name}",
   "Record": "Записати",
   "Search meetings": "Пошук зустрічей",
   "About Yogurt": "Про Yogurt",

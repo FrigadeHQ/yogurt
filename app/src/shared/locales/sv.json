@@ -1,4 +1,12 @@
 {
+  "Edit attendee": "Redigera deltagare",
+  "Name": "Namn",
+  "Email": "E-post",
+  "Add email": "Lägg till e-post",
+  "Enter a valid email address.": "Ange en giltig e-postadress.",
+  "Enter a name.": "Ange ett namn.",
+  "Remove from meeting": "Ta bort från mötet",
+  "{name} removed from meeting": "{name} har tagits bort från mötet",
   "Record": "Spela in",
   "Search meetings": "Sök möten",
   "About Yogurt": "Om Yogurt",

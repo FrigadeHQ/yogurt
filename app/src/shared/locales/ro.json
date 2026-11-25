@@ -1,4 +1,12 @@
 {
+  "Edit attendee": "Editează participantul",
+  "Name": "Nume",
+  "Email": "E-mail",
+  "Add email": "Adaugă o adresă de e-mail",
+  "Enter a valid email address.": "Introdu o adresă de e-mail validă.",
+  "Enter a name.": "Introdu un nume.",
+  "Remove from meeting": "Elimină din întâlnire",
+  "{name} removed from meeting": "{name} nu mai apare în lista de participanți",
   "Record": "Înregistrați",
   "Search meetings": "Căutați întâlniri",
   "About Yogurt": "Despre Yogurt",

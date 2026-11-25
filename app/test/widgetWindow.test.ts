@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const state = vi.hoisted(() => ({
@@ -20,7 +21,7 @@ vi.mock('electron', () => ({
   BrowserWindow: class {
     static getAllWindows() { return state.windows }
     bounds: any; options: any; dead = false; listeners = new Map<string, () => void>()
-    webContents = { send: vi.fn(), once: (_name: string, fn: () => void) => fn(), setBackgroundThrottling: vi.fn() }
+    webContents = Object.assign(new EventEmitter(), { send: vi.fn(), isLoadingMainFrame: vi.fn(() => false), setBackgroundThrottling: vi.fn() })
     constructor(options: any) { this.options = options; this.bounds = { x: options.x, y: options.y, width: options.width, height: options.height }; state.windows.push(this) }
     getBounds() { return { ...this.bounds } }
     setBounds(bounds: any) { this.bounds = bounds }
@@ -31,6 +32,7 @@ vi.mock('electron', () => ({
     hide = vi.fn()
     showInactive() {}
     destroy() { this.dead = true; this.listeners.get('closed')?.() }
+    close() { this.destroy() }
     loadFile() { return Promise.resolve() }
   },
   ipcMain: { on: (name: string, fn: (...args: any[]) => unknown) => state.handlers.set(name, fn), handle: vi.fn() },
@@ -59,6 +61,7 @@ vi.mock('../src/main/meeting', () => ({
 const send = (channel: string, ...args: unknown[]) => state.handlers.get(channel)!({ sender: win.webContents }, ...args)
 let win: any
 const open = vi.fn()
+const stop = vi.fn()
 let showRecordingPill = true
 let widget: ReturnType<typeof import('../src/main/widget').createWidget>
 beforeEach(async () => {
@@ -67,10 +70,10 @@ beforeEach(async () => {
   vi.stubEnv('YOGURT_BACKGROUND', '0')
   vi.resetModules(); state.handlers.clear(); state.windows.length = 0
   state.notifications.length = 0; state.fake = false; state.stopPending = false; state.supported = true
-  state.finished.mockReset().mockResolvedValue(); open.mockReset()
+  state.finished.mockReset().mockResolvedValue(); open.mockReset(); stop.mockReset()
   const { createWidget } = await import('../src/main/widget')
   showRecordingPill = true
-  widget = createWidget({ open, stop: vi.fn(), foreground: () => false, platform: 'darwin', showRecordingPill: () => showRecordingPill })
+  widget = createWidget({ open, stop, foreground: () => false, platform: 'darwin', showRecordingPill: () => showRecordingPill })
   state.start!({ id: 'meeting', title: 'Review', startedAt: 0 })
   win = state.windows[0]
 })
@@ -109,9 +112,27 @@ describe('floating recorder placement', () => {
     // the old window's closed event leaves the new one in place
     expect(linux.snapshot().bounds).not.toBeNull()
   })
-  it('destroys a stopped pill at once elsewhere', () => {
+  it('closes a loaded pill at once on macOS', () => {
     state.stop!({ id: 'meeting' })
     expect(win.dead).toBe(true)
+  })
+  it('a quick stop hides a still-loading pill and closes only that window when loading ends', () => {
+    win.webContents.isLoadingMainFrame.mockReturnValue(true)
+    state.stop!({ id: 'meeting' })
+    expect(win.dead).toBe(false)
+    expect(win.hide).toHaveBeenCalled()
+    expect(widget.snapshot().bounds).toBeNull()
+
+    state.start!({ id: 'next', title: 'Next meeting', startedAt: 1 })
+    const next = state.windows.at(-1)
+    send('widget:open')
+    send('widget:stop')
+    expect(open).not.toHaveBeenCalled()
+    expect(stop).not.toHaveBeenCalled()
+    win.webContents.emit('did-stop-loading')
+    expect(win.dead).toBe(true)
+    expect(next.dead).toBe(false)
+    expect(widget.owns(next.webContents)).toBe(true)
   })
   it('moves the surface and pill together and remembers the pill for the next meeting', () => {
     const before = widget.snapshot().bounds!, frame = win.getBounds()

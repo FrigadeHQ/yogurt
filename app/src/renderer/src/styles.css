@@ -236,10 +236,10 @@ html.widget, .widget-pill[data-illustration] { --pill:#232326;--pill-ink:#F7F7FA
 .note-chip { transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease, opacity var(--dur-micro) var(--ease-out), box-shadow var(--dur-micro) ease; }
 .note-chip:hover, .note-chip[aria-expanded="true"] { background:var(--control-hover);color:var(--ink); }
 .note-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.person-remove { opacity: 0; }
+.person-action { opacity: 0; }
 .person-row:hover { background: color-mix(in srgb, var(--line) 45%, transparent); }
 /* The card may focus a name on open. Always reveal an action that receives focus itself. */
-.person-row:hover .person-remove, .person-row:has([data-focus-ring]) .person-remove, .person-remove:focus { opacity: 1; }
+.person-row:hover .person-action, .person-row:has([data-focus-ring]) .person-action, .person-action:focus { opacity: 1; }
 .menu-entry { transform-origin:var(--transform-origin, top right); }
 /* Menus share the floating surface in each theme. */
 .menu-entry[role="menu"] { color:var(--ink);border-color:var(--line);border-radius:9px;padding:5px;background:var(--float);box-shadow:var(--shadow); }

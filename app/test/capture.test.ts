@@ -123,6 +123,27 @@ describe('fake capture', () => {
   let dir = ''
   afterEach(() => { if (dir) rmSync(dir, { recursive: true, force: true }) })
 
+  it('finishes both tracks when Stop arrives during a playback tick', async () => {
+    dir = mkdtempSync(join(tmpdir(), 'yogurt-cap-stop-'))
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(0)
+    try {
+      const proc = fakeCaptureProc(dir)
+      const errors: Error[] = []
+      proc.stdout.on('error', error => errors.push(error))
+      const capture = new Capture(proc)
+      const samples = { me: 0, them: 0 }
+      capture.on('pcm', (track, _ms, chunk) => { samples[track] += chunk.length })
+      clock.mockReturnValue(125)
+      await new Promise<void>(resolve => capture.once('pcm', () => {
+        resolve(capture.stop())
+        clock.mockReturnValue(500)
+      }))
+      expect(errors).toEqual([])
+      expect(samples).toEqual({ me: 2000, them: 2000 })
+      for (const track of ['me', 'them']) expect(readWav(join(dir, track + '.wav'))).toHaveLength(2000)
+    } finally { clock.mockRestore() }
+  })
+
   it('pause emits no new PCM; resuming retains the existing meeting timeline', async () => {
     dir = mkdtempSync(join(tmpdir(), 'yogurt-cap-pause-'))
     const c = new Capture(fakeCaptureProc(dir))

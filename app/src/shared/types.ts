@@ -111,7 +111,8 @@ export type YogurtApi = {
     /** every meeting in the Trash deleted for good; failed: ones that couldn't go now */
     emptyTrash(): Promise<{ deleted: number; failed: number }>
     /** who was there, set by hand; unedited notes are written again with them */
-    renameAttendee(id: string, index: number, name: string, expected: Person): Promise<boolean>
+    renameAttendee(id: string, index: number, name: string, expected: Person, email?: string | null): Promise<boolean>
+    changeAttendee(id: string, action: 'add' | 'remove', person: Person, index?: number): Promise<boolean>
     setAttendees(id: string, people: Person[]): Promise<void>
     /** link: copies this calendar event's title and people; null: unlinks without changing either or rewriting notes */
     linkEvent(id: string, eventId: string | null, day?: number): Promise<void>

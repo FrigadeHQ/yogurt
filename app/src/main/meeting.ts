@@ -1,5 +1,6 @@
 import { eventIds, type CalEvent } from './calendar'
-import type { Meeting, Store } from './store'
+import { searchPersonKey } from '../shared/searchPeople'
+import type { Meeting, Person, Store } from './store'
 import type { MeetingView } from '../shared/types'
 import { t } from '../shared/i18n'
 import { sourceOf } from './titles'
@@ -192,11 +193,7 @@ export function renameMeeting(id: string, raw: string): Meeting | undefined {
   if (!store) return undefined
   const title = raw.replace(/\s+/g, ' ').trim().slice(0, TITLE_MAX)
   if (!title || !store.meeting(id)) return undefined
-  store.updateMeeting(id, { title, titleSource: 'user' })
-  const m = store.meeting(id)!
-  if (active?.id === id) active = m
-  run(changes, m)
-  return m
+  return update(id, { title, titleSource: 'user' })
 }
 
 /** At most this many people on one meeting; a pasted list is cut */
@@ -211,6 +208,30 @@ export function setAttendees(id: string, people: unknown): Meeting | undefined {
     return name ? [{ name, email: tidy(p?.email, TITLE_MAX) || null }] : []
   })
   return update(id, { attendees, keepAttendees: true })
+}
+
+/** Change one attendee against the current membership, including Undo after the popover closes. */
+export function changeAttendee(id: string, action: unknown, value: unknown, index?: unknown): boolean {
+  const meeting = store?.meeting(id)
+  if (!meeting || (action !== 'add' && action !== 'remove') || !value || typeof value !== 'object') return false
+  if (index !== undefined && (typeof index !== 'number' || !Number.isSafeInteger(index) || index < 0)) return false
+  if (!('name' in value) || typeof value.name !== 'string' || !value.name.trim() ||
+      !('email' in value) || !(value.email === null || typeof value.email === 'string')) return false
+  const person: Person = index === undefined
+    ? { name: tidy(value.name, TITLE_MAX), email: tidy(value.email, TITLE_MAX) || null }
+    : { name: value.name, email: value.email }
+  const people = meeting.attendees
+  const key = searchPersonKey(person)
+  if (action === 'remove') {
+    if (typeof index !== 'number' || !people[index] || searchPersonKey(people[index]) !== key || people[index].name !== person.name) return false
+    people.splice(index, 1)
+  } else {
+    if (people.some(p => searchPersonKey(p) === key)) return true
+    if (people.length >= PEOPLE_MAX) return false
+    people.splice(typeof index === 'number' ? index : people.length, 0, person)
+  }
+  update(id, { attendees: people, keepAttendees: true })
+  return true
 }
 
 /** The note belongs to this calendar event: its title and people */
@@ -247,6 +268,10 @@ export function unlinkEvent(id: string): Meeting | undefined {
 
 function update(id: string, patch: Partial<Omit<Meeting, 'id'>>): Meeting {
   store!.updateMeeting(id, patch)
+  return publishMeetingChange(id)
+}
+
+export function publishMeetingChange(id: string): Meeting {
   const m = store!.meeting(id)!
   if (active?.id === id) active = m
   run(changes, m)
