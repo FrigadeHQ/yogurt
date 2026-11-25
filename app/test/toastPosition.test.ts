@@ -4,13 +4,14 @@ import { expect, it } from 'vitest'
 const css = ['styles.css', 'workspace.css'].map(file =>
   readFileSync(new URL(`../src/renderer/src/${file}`, import.meta.url), 'utf8')).join('\n')
 
-it('uses one fixed toast stack across workspace routes, panel widths, sidebar states and reduced motion', () => {
-  const rules = [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]*\.app-toast-viewport[^{}]*)\{([^{}]*)\}/g)]
-  expect(rules.map(rule => rule[1].trim())).toEqual(['.app-toast-viewport'])
-  expect(rules[0][2]).toMatch(/position:\s*fixed;/)
-  expect(rules[0][2]).toContain('bottom:max(20px,12px + max(anchor(--note-footer top,0px),anchor(--ask-composer top,0px),anchor(--transcript-player top,0px)))')
-  expect(rules[0][2]).toMatch(/inset-inline-end:\s*20px;/)
-  expect(rules[0][2]).not.toMatch(/(?:translate|transform):/)
+it('anchors the fixed stack to the window or the bottom inline-start corner of docked Ask', () => {
+  const normal = css.match(/^\.app-toast-viewport \{([^}]+)\}/m)![1]
+  expect(normal).toContain('position:fixed;inset-inline-end:20px;')
+  expect(normal).toContain('bottom:max(20px,12px + max(anchor(--note-footer top,0px),anchor(--ask-composer top,0px),anchor(--transcript-player top,0px)))')
+  expect(css).toContain('.chat-panel[open]:not([aria-modal=true]) { anchor-name:--docked-ask; }')
+  const beside = css.match(/\[data-beside-ask\] \.app-toast-viewport \{([^}]+)\}/)![1]
+  expect(beside).toContain('inset-inline-end:calc(anchor(--docked-ask start) + 12px)')
+  expect(beside).toContain('bottom:anchor(--docked-ask bottom)')
 })
 
 it('clears the footer, docked composer and visible player without reserving space in the page', () => {

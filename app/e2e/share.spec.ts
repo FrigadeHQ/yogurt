@@ -1,4 +1,5 @@
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
+import { expectBesideAsk } from './toastPosition'
 import { mkdtempSync, readFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -193,6 +194,8 @@ for (const theme of ['light', 'dark'] as const) test(`a failed export can be ret
   const { app, page } = await launch()
   try {
     await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' })
+    const win = await app.browserWindow(page)
+    await win.evaluate(w => w.setContentSize(1200, 720))
     await finished(app, page)
     await page.getByTestId('note-transcript-toggle').click()
     await expect(page.getByTestId('transcript-line').first()).toBeVisible()
@@ -224,15 +227,71 @@ for (const theme of ['light', 'dark'] as const) test(`a failed export can be ret
     expect(await footer.boundingBox()).toEqual(before)
     expect(await player.boundingBox()).toEqual(playerBefore)
     await page.screenshot({ path: info.outputPath(`toast-footer-${theme}-after.png`) })
+    const panel = page.getByTestId('chat-panel')
+    await page.keyboard.press('Meta+j')
+    await expect(panel).toBeVisible()
     await page.getByTestId('share-button').click()
     await page.getByTestId('share-export').click()
-    await expect(toast).toBeVisible()
+    await expectBesideAsk(toast)
+    const retry = toast.getByRole('button', { name: 'Try again' })
+    await page.keyboard.press('F6')
+    await expect(page.locator('.app-toast-viewport')).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(toast).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(retry).toBeFocused()
+    await retry.click({ trial: true })
+    await page.getByTestId('chat-close').click()
+    await expect(panel).toHaveCount(0)
+    await expect.poll(() => toast.boundingBox()).toEqual(notice)
     await page.getByTestId('note-summary-tab').click()
     await expect(player).toHaveCount(0)
-    await expect.poll(() => toast.evaluate(el =>
-      Math.round(document.querySelector('.note-footer')!.getBoundingClientRect().top - el.getBoundingClientRect().bottom)
-    )).toBe(12)
-    await toast.getByRole('button', { name: 'Try again' }).click()
+    await expect.poll(() => toast.evaluate(el => {
+      const box = el.getBoundingClientRect(), footer = document.querySelector('.note-footer')!.getBoundingClientRect()
+      return [Math.round(innerWidth - box.right), Math.round(footer.top - box.bottom)]
+    })).toEqual([20, 12])
+    const normal = (await toast.boundingBox())!
+    await page.screenshot({ path: info.outputPath(`toast-no-player-${theme}.png`) })
+
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'no-preference' })
+    const slides = await page.locator('.app-toast-viewport').evaluateHandle(el => {
+      const slides: Animation[] = [], animate = el.animate.bind(el)
+      el.animate = (...args) => { const slide = animate(...args); slides.push(slide); return slide }
+      return slides
+    })
+    await page.keyboard.press('Meta+j')
+    await expectBesideAsk(toast)
+    await page.screenshot({ path: info.outputPath(`toast-ask-open-${theme}.png`) })
+    const docked = (await toast.boundingBox())!
+    // Sample both real animations at the same instant, independent of CI screenshot latency.
+    const closing = await panel.evaluateHandle(el => {
+      el.querySelector<HTMLButtonElement>('[data-testid=chat-close]')!.click()
+      const nodes = [document.querySelector('.app-toast-viewport')!, el.querySelector('.chat-morph-surface')!,
+        el.querySelector('.chat-panel-contents')!, document.getElementById('meeting-ask')!]
+      const animations = nodes.flatMap(node => node.getAnimations())
+      for (const animation of animations) { animation.pause(); animation.currentTime = 60 }
+      return animations
+    })
+    const transitions = await slides.evaluate(animations => animations.map(animation => {
+      const effect = animation.effect as KeyframeEffect
+      return { duration: effect.getTiming().duration, properties: Object.keys(effect.getKeyframes()[0])
+        .filter(key => !['offset', 'computedOffset', 'easing', 'composite'].includes(key)) }
+    }))
+    expect(transitions).toEqual(Array(2).fill({ duration: 240, properties: ['transform'] }))
+    const midway = (await toast.boundingBox())!
+    expect(midway.x).toBeGreaterThan(docked.x)
+    expect(midway.x).toBeLessThan(normal.x)
+    expect(await toast.evaluate(el => {
+      const toast = el.getBoundingClientRect(), surface = document.querySelector('.chat-morph-surface')!.getBoundingClientRect()
+      const left = Math.max(toast.left, surface.left), right = Math.min(toast.right, surface.right)
+      const top = Math.max(toast.top, surface.top), bottom = Math.min(toast.bottom, surface.bottom)
+      return left >= right || top >= bottom || !el.contains(document.elementFromPoint((left + right) / 2, (top + bottom) / 2))
+    })).toBe(true)
+    await page.screenshot({ path: info.outputPath(`toast-ask-closing-${theme}.png`) })
+    await closing.evaluate(animations => animations.forEach(animation => animation.play()))
+    await expect(panel).toHaveCount(0)
+    await expect.poll(() => toast.boundingBox()).toEqual(normal)
+    await retry.click()
     await expect(page.getByTestId('share-said')).toHaveText('Saved')
   } finally { await app.close() }
 })

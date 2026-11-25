@@ -9,9 +9,24 @@ import { changeMeetingRows } from '../meetingRowMotion'
 import { trashMeetings, restoreMeetings } from '../trashMeetings'
 
 let toastHost: HTMLDivElement | undefined
-// Keep Undo reachable when Ask uses the native modal top layer on smaller windows.
-export function setToastDialog(dialog: HTMLDialogElement | null) {
-  if (toastHost) (dialog ?? document.body).append(toastHost)
+// Keep one live stack as Ask opens, including in the native modal top layer.
+export function setToastDialog(dialog: HTMLDialogElement | null, beside = false, animate = false) {
+  const host = toastHost
+  if (!host) return
+  const parent = dialog ?? document.body
+  const changedSide = host.hasAttribute('data-beside-ask') !== beside
+  if (!changedSide && host.parentElement === parent) return
+  const viewport = host.querySelector<HTMLElement>('.app-toast-viewport')
+  const from = changedSide && animate && viewport?.querySelector('.app-toast') &&
+    !window.matchMedia('(prefers-reduced-motion: reduce)').matches ? viewport.getBoundingClientRect() : null
+  if (changedSide) viewport?.getAnimations().forEach(animation => animation.cancel())
+  if (host.parentElement !== parent) parent.append(host)
+  host.toggleAttribute('data-beside-ask', beside)
+  if (from && viewport) {
+    const to = viewport.getBoundingClientRect()
+    viewport.animate([{ transform: `translate(${from.x - to.x}px, ${from.y - to.y}px)` }, { transform: 'none' }],
+      { duration: motion.surface, easing: motion.ease })
+  }
 }
 
 type Shown = { ids: string[]; bulk?: boolean; error?: string; /** the note it was moved from: Undo opens it again */ from?: string }

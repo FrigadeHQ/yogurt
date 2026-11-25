@@ -114,7 +114,7 @@ export function ShareMenu({ id, shown, status, hasEnhanced, beforeUse }: { id: s
       </button>
       {presence.value && (
         <div data-testid="share-menu" {...presence.props} role="menu" aria-label={t('Share')} onKeyDown={onMenuKey}
-          className="menu-entry absolute end-0 top-full z-30 mt-2 w-60 rounded-xl border border-line bg-float p-1.5 text-ink shadow-[var(--shadow)]">
+          className="menu-entry absolute end-0 top-full z-[80] mt-2 w-60 rounded-xl border border-line bg-float p-1.5 text-ink shadow-[var(--shadow)]">
           <button ref={(el) => { items.current[0] = el }} role="menuitem" data-testid="share-copy-summary" disabled={!hasEnhanced && !writing}
             onClick={() => run(() => void copy('notes', 'enhanced'))} className={`${row} disabled:opacity-40`}>
             <Copy size={15} aria-hidden="true" className="flex-none text-muted" />{t('Copy summary')}

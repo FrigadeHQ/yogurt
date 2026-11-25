@@ -1,4 +1,5 @@
 import { openFromCorner } from './cornerNavigation'
+import { expectBesideAsk } from './toastPosition'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -31,10 +32,7 @@ for (const theme of ['light', 'dark'] as const) test(`standard recording reminde
     await toast.hover()
     await page.screenshot({ path: info.outputPath(`reminder-${theme}-closed.png`) })
     await page.getByTestId('chat-open').click()
-    await expect.poll(async () => {
-      const reminder = await toast.boundingBox(), composer = await page.locator('.chat-composer').boundingBox()
-      return !!reminder && !!composer && Math.round(composer.y - reminder.y - reminder.height) === 12
-    }).toBe(true)
+    await expectBesideAsk(toast)
     await toast.hover()
     await page.getByTestId('chat-panel').evaluate(el => Promise.allSettled([el, ...el.querySelectorAll('.chat-morph-surface,.chat-panel-contents')].flatMap(node => node.getAnimations()).map(a => a.finished)))
     await page.screenshot({ path: info.outputPath(`reminder-${theme}-ask.png`) })

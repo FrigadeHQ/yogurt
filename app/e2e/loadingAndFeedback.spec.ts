@@ -1,4 +1,5 @@
 import { openFromCorner } from './cornerNavigation'
+import { expectBesideAsk } from './toastPosition'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -116,12 +117,16 @@ test('the same Undo toast clears docked controls across pages and stays reachabl
     await toast.hover()
     await page.screenshot({ path: testInfo.outputPath('toast-closed.png') })
     await page.getByTestId('chat-open').click()
-    await expectPosition('.chat-composer')
+    await expectBesideAsk(toast)
+    expect(await page.locator('.app-toast-viewport').evaluate(el => el.getAnimations().length)).toBe(0)
+    await page.evaluate(() => document.documentElement.dir = 'rtl')
+    await expectBesideAsk(toast)
+    await page.evaluate(() => document.documentElement.dir = 'ltr')
     await toast.hover()
     await page.getByTestId('chat-panel').evaluate(el => Promise.allSettled([el, ...el.querySelectorAll('.chat-morph-surface,.chat-panel-contents')].flatMap(node => node.getAnimations()).map(a => a.finished)))
     await page.emulateMedia({ colorScheme: 'dark' })
-    await expectPosition('.chat-composer')
-    await page.screenshot({ path: testInfo.outputPath('toast-above-composer.png') })
+    await expectBesideAsk(toast)
+    await page.screenshot({ path: testInfo.outputPath('toast-beside-ask.png') })
     await page.getByTestId('chat-close').click()
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(w => !w.isDestroyed())!.setSize(820, 740))
     await expect(page.getByTestId('chat-open')).toHaveAttribute('aria-expanded', 'false')

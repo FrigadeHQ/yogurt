@@ -304,6 +304,8 @@
   bottom:max(20px,12px + max(anchor(--note-footer top,0px),anchor(--ask-composer top,0px),anchor(--transcript-player top,0px)));
   width:340px;max-width:calc(100% - 40px);z-index:90;outline:none;pointer-events:none;
 }
+.chat-panel:not([aria-modal=true]) .app-toast-viewport { z-index:0; }
+[data-beside-ask] .app-toast-viewport { inset-inline-end:calc(anchor(--docked-ask start) + 12px);bottom:anchor(--docked-ask bottom); }
 .app-toast { position:absolute;inset-block-end:0;inset-inline:0;width:100%;height:var(--toast-frontmost-height,var(--toast-height));border:1px solid var(--line);border-radius:11px;background:var(--float);color:var(--ink);box-shadow:0 8px 24px #0000001F,0 1px 3px #00000014;pointer-events:auto;outline:none;--gap:10px;z-index:calc(100 - var(--toast-index,0)); }
 .app-toast[data-expanded] { height:var(--toast-height); }
 .app-toast[data-limited] { opacity:0; }
@@ -486,7 +488,7 @@
 .ask-turn:last-child { margin-bottom:0; }
 .ask-question { width:fit-content;max-width:80%;margin:0;margin-inline-start:auto;white-space:pre-wrap;overflow-wrap:anywhere;border-radius:12px;background:var(--control);padding:8px 12px;font-size:14px;line-height:20px; }
 .ask-composer { flex:none;min-width:0;container-type:inline-size; }
-.ask-conversation:not(.ask-landing) .ask-composer { anchor-name:--ask-composer; }
+:is(.ask-page,.chat-panel[aria-modal=true]) .ask-conversation:not(.ask-landing) .ask-composer { anchor-name:--ask-composer; }
 .ask-box { position:relative;min-width:0;border:1px solid var(--line);border-radius:12px;background:var(--float); }
 /* Composers are never lit; a short tapered flare invites typing instead. */
 .ask-tracer { position:absolute;inset:-1px;width:calc(100% + 2px);height:calc(100% + 2px);overflow:visible;pointer-events:none;opacity:0;fill:none;stroke:var(--accent);stroke-width:3;stroke-linecap:round;filter:drop-shadow(0 0 4px color-mix(in srgb,var(--accent) 70%,transparent)) drop-shadow(0 0 10px color-mix(in srgb,var(--accent) 35%,transparent)); }

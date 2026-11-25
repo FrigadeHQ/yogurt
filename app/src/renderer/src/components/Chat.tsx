@@ -43,6 +43,7 @@ export function Ask({ id, recording, anchor, onSource }: { id: string; recording
   const morph = (expand: boolean, animate = true) => {
     const shell = surface.current, body = contents.current, dialog = panel.current, button = trigger.current
     if (!shell || !body || !dialog || !button) return
+    setToastDialog(dialog, expand && !narrow, animate)
     const running = animations.current.some(animation => animation.playState === 'running')
     const style = getComputedStyle(shell)
     const interrupted = running ? { '--ask-left': style.left, '--ask-top': style.top, width: style.width, height: style.height, borderRadius: style.borderRadius } : undefined
@@ -97,7 +98,6 @@ export function Ask({ id, recording, anchor, onSource }: { id: string; recording
     position()
     // Native modal behavior makes the covered note inert at narrow widths; desktop stays editable.
     if (narrow) dialog.showModal(); else dialog.show()
-    setToastDialog(narrow ? dialog : null)
     dialog.querySelector('textarea')?.focus({ preventScroll: true })
     morph(true, animateOpen.current)
     animateOpen.current = false
@@ -113,6 +113,7 @@ export function Ask({ id, recording, anchor, onSource }: { id: string; recording
     const done = () => {
       if (!closing.current) return
       closing.current = false
+      setToastDialog(null)
       panel.current?.close(); setOpen(false)
       trigger.current?.focus({ preventScroll: true })
     }
