@@ -1141,32 +1141,27 @@ func compactAudio(_ dir: URL, into destination: URL) {
 // MARK: decode
 
 /// A meeting's m4a as 16 kHz mono 16-bit PCM. The m4a's timeline is meeting time, so the WAV is too.
+/// AVAudioFile reads it: the asset track reader cannot be told another sample rate (asked for one it hands back no
+/// samples at all, and a header-only WAV was the whole result), and one converter for the whole file, chunks at a
+/// time, keeps a hours-long meeting out of memory — the way the stdout decode below does it.
 func decodeAudio(input: URL, output: URL) -> Int32 {
-  let asset = AVURLAsset(url: input)
-  guard let track = asset.tracks(withMediaType: .audio).first, let reader = try? AVAssetReader(asset: asset) else { log("unsupported-input"); return 1 }
-  let out = AVAssetReaderTrackOutput(track: track, outputSettings: [
-    AVFormatIDKey: kAudioFormatLinearPCM, AVSampleRateKey: 16000, AVNumberOfChannelsKey: 1,
-    AVLinearPCMBitDepthKey: 16, AVLinearPCMIsFloatKey: false, AVLinearPCMIsBigEndianKey: false, AVLinearPCMIsNonInterleaved: false,
-  ])
-  guard reader.canAdd(out) else { log("read failed"); return 1 }
-  reader.add(out)
-  guard reader.startReading() else { log("read failed"); return 1 }
+  guard let f = try? AVAudioFile(forReading: input) else { log("unsupported-input"); return 1 }
+  let pcm16 = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16000, channels: 1, interleaved: true)!
+  guard let conv = AVAudioConverter(from: f.processingFormat, to: pcm16) else { log("read failed"); return 1 }
   FileManager.default.createFile(atPath: output.path, contents: nil)
   guard let handle = try? FileHandle(forWritingTo: output) else { log("write failed"); return 1 }
   defer { try? handle.close() }
   // 44 bytes of header first; rewritten with the real size once the samples are in
   try? handle.write(contentsOf: wavHeader(bytes: 0))
-  let pcm16 = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16000, channels: 1, interleaved: true)!
   var bytes = 0
-  while let sample = out.copyNextSampleBuffer() {
-    let frames = CMSampleBufferGetNumSamples(sample)
-    guard frames > 0, let b = AVAudioPCMBuffer(pcmFormat: pcm16, frameCapacity: AVAudioFrameCount(frames)),
-          CMSampleBufferCopyPCMDataIntoAudioBufferList(sample, at: 0, frameCount: Int32(frames), into: b.mutableAudioBufferList) == noErr else { continue }
-    let n = Int(b.frameLength) * MemoryLayout<Int16>.size
-    try? handle.write(contentsOf: Data(bytes: b.int16ChannelData![0], count: n))
-    bytes += n
+  while let b = AVAudioPCMBuffer(pcmFormat: f.processingFormat, frameCapacity: 48000), (try? f.read(into: b)) != nil, b.frameLength > 0 {
+    autoreleasepool {
+      guard let m = convert(conv, b), m.frameLength > 0, let pcm = m.int16ChannelData else { return }
+      let n = Int(m.frameLength) * MemoryLayout<Int16>.size
+      try? handle.write(contentsOf: Data(bytes: pcm[0], count: n))
+      bytes += n
+    }
   }
-  if reader.status == .failed { log("read failed: \(reader.error?.localizedDescription ?? "")"); return 1 }
   try? handle.seek(toOffset: 0)
   try? handle.write(contentsOf: wavHeader(bytes: bytes))
   return 0

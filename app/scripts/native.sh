@@ -82,8 +82,11 @@ elif [ ! -f "$out" ] || [ "$0" -nt "$out" ]; then
     git clone --quiet --depth 1 https://github.com/google/sentencepiece.git "$dir/.deps/sentencepiece-src"
     git -C "$dir/.deps/sentencepiece-src" fetch --quiet --depth 1 origin "$NEMO_SENTENCEPIECE_COMMIT"
     git -C "$dir/.deps/sentencepiece-src" checkout --quiet --force "$NEMO_SENTENCEPIECE_COMMIT"
+    # the app's own 14.4 minimum: without a target here its objects are built for this Mac's version and the link
+    # warns about every one of them
     "$CMAKE" -S "$dir/.deps/sentencepiece-src" -B "$dir/.deps/sentencepiece-build" -DCMAKE_BUILD_TYPE=Release \
-      -DSPM_BUILD_TEST=OFF -DSPM_ENABLE_SHARED=OFF -DSPM_ENABLE_TCMALLOC=OFF >/dev/null
+      -DSPM_BUILD_TEST=OFF -DSPM_ENABLE_SHARED=OFF -DSPM_ENABLE_TCMALLOC=OFF \
+      -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=14.4 >/dev/null
     "$CMAKE" --build "$dir/.deps/sentencepiece-build" --config Release --target sentencepiece-static -j "$(sysctl -n hw.ncpu)" >/dev/null
     mkdir -p "$sp/lib" "$sp/include"
     cp "$dir/.deps/sentencepiece-build/src/libsentencepiece.a" "$sp/lib/libsentencepiece.a"
@@ -98,5 +101,10 @@ elif [ ! -f "$out" ] || [ "$0" -nt "$out" ]; then
     -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=14.4 >/dev/null
   "$CMAKE" --build "$dir/build" --config Release --target nemo_speech_cli -j "$(sysctl -n hw.ncpu)" >/dev/null
   cp "$dir/build/bin/nemo-speech" "$out"
+  # the CLI resolves a --model against its model index (models/index.json at the pin), which its own install puts at
+  # <bin>/../share/nemo-speech/model-index.json; without it diarize fails before it reads anything: copy it there,
+  # where the packaged app (extraResources share) and this computer's runs both find it
+  mkdir -p resources/share/nemo-speech
+  cp "$dir/models/index.json" resources/share/nemo-speech/model-index.json
   echo "built $out"
 fi

@@ -24,6 +24,10 @@ extraResources:
   # speech to text; on Windows and Linux the Rust recorder, system helper and AI apps relay, and whisper-server
   - from: resources/bin
     to: bin
+  # nemo-speech's model index (native.sh and nemo-build.mjs copy it from the pin): the CLI resolves a --model against
+  # it and looks beside its own folder first, in the layout its own install uses (<bin>/../share/nemo-speech)
+  - from: resources/share
+    to: share
   # nemo-speech's shared libraries on Linux (nemo-build.mjs copies them here; its binary looks in ../lib, the layout
   # NeMo-Speech.cpp's own install uses); empty on a Mac (static binary) and Windows (not built yet)
   - from: resources/lib

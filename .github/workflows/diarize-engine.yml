@@ -63,6 +63,9 @@ jobs:
             -filter_complex "[0:a][1:a]concat=n=2:v=0:a=1,aformat=sample_rates=48000:channel_layouts=mono" \
             -c:a libopus "$RUNNER_TEMP/them.ogg"
           app/resources/bin/yogurt-audio decode --in "$RUNNER_TEMP/them.ogg" --out "$RUNNER_TEMP/them.wav"
+          # the decoded audio is the recording: a header-only wav (a decode that wrote nothing) fails here, not in a meeting
+          DUR=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$RUNNER_TEMP/them.wav")
+          [ "${DUR%%.*}" -ge 10 ] || { echo "the decode wrote ${DUR}s of audio"; exit 1; }
       - name: Diarize on Vulkan, then the CPU fallback
         run: |
           for device in vulkan cpu; do
@@ -110,6 +113,9 @@ jobs:
           app/resources/bin/yogurt-audio decode --in "$RUNNER_TEMP/them.m4a" --out "$RUNNER_TEMP/them.wav"
           # the diarizer's input is 16 kHz mono PCM, so check what the decode produced
           [ "$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate,channels -of default=nw=1:nk=1 "$RUNNER_TEMP/them.wav" | tr '\n' ' ')" = '16000 1 ' ]
+          # and that it is the recording: a header-only wav (a decode that wrote nothing) fails here, not in a meeting
+          DUR=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$RUNNER_TEMP/them.wav")
+          [ "${DUR%%.*}" -ge 10 ] || { echo "the decode wrote ${DUR}s of audio"; exit 1; }
       - name: Diarize on Metal, then the CPU comparison
         run: |
           for device in metal cpu; do

@@ -132,5 +132,10 @@ for (const e of libs) {
 }
 copyFileSync(join(built, win ? 'nemo-speech.exe' : 'nemo-speech'), out)
 if (!win) spawnSync('chmod', ['0755', out])
+// the CLI resolves a --model against its model index (models/index.json at the pin), which its own install puts at
+// <bin>/../share/nemo-speech/model-index.json; without it diarize fails before it reads anything: copy it there,
+// where the packaged app (extraResources share) and the engine job find it
+mkdirSync(join(app, 'resources', 'share', 'nemo-speech'), { recursive: true })
+copyFileSync(join(dir, 'models', 'index.json'), join(app, 'resources', 'share', 'nemo-speech', 'model-index.json'))
 // a Windows build may need the UTF-8 manifest whisper-server gets (whisper-build.mjs), once model paths reach it
 console.log(`built ${out} with ${libs.map((e) => e.name).join(', ')}${win ? '' : ` in ${libDir}`}`)

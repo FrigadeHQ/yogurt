@@ -44,6 +44,12 @@ it("only Windows and Linux carry the speed check's clip: a Mac never times its s
   expect(config.split(/^win:$/m)[0]).not.toContain('resources/speed')
 })
 
+it('nemo-speech carries its model index where its CLI looks for it, on every platform', () => {
+  // the CLI resolves a --model against <bin>/../share/nemo-speech/model-index.json (model_store.cpp at the pin) and
+  // throws without it, so diarization would fail before it reads anything: the pack must put share beside bin
+  expect(config.split(/^win:$/m)[0]).toContain('- from: resources/share\n    to: share')
+})
+
 it('the Linux build starts through the launcher that picks X11 on Wayland (#8)', () => {
   expect(config).toMatch(/^afterPack: scripts\/linux-launcher\.cjs$/m)
 })

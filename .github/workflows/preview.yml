@@ -190,6 +190,8 @@ jobs:
         run: |
           node app/scripts/asar-check.mjs app/dist/${{ matrix.unpacked }}/resources/app.asar
           cd app
+          # nemo-speech resolves its model against the index beside it: without it diarization fails before it reads anything
+          test -f dist/${{ matrix.unpacked }}/resources/share/nemo-speech/model-index.json
           # a preview never looks for updates; a release build does
           node -e "const p=JSON.parse(require('@electron/asar').extractFile(process.argv[1],'package.json'));const want=process.argv[2]==='true';if((p.yogurtPreview===true)!==want){console.error('yogurtPreview is',p.yogurtPreview,'but this build is',want?'a preview':'for a release');process.exit(1)}" dist/${{ matrix.unpacked }}/resources/app.asar ${{ inputs.release != true }}
           if [ "$RUNNER_OS" = "Linux" ]; then

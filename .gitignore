@@ -17,6 +17,8 @@ e2e/zz-*
 app/resources/bin/
 app/resources/vad/
 app/resources/dict/
+# nemo-speech's model index (native.sh and nemo-build.mjs copy it from the pin)
+app/resources/share/
 # nemo-speech's shared libraries (scripts/nemo-build.mjs)
 app/resources/lib/
 
