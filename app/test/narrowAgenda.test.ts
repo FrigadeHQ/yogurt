@@ -3,6 +3,11 @@ import { expect, it } from 'vitest'
 
 const css = readFileSync(new URL('../src/renderer/src/workspace.css', import.meta.url), 'utf8')
 
+it('reserves the search button height in the Meetings header when the sidebar is pinned', () => {
+  expect(css).toMatch(/\.native-home \.library-page-heading \{[^}]*height:var\(--button-height\);/)
+  expect(css).toContain('.workspace:not(.sidebar-collapsed) .home-search { display:none; }')
+})
+
 it('scrolls the agenda header and events together within the narrow grid row', () => {
   const narrow = css.slice(css.indexOf('@container (max-width:520px)')).split(/^}/m)[0]
   expect(narrow).toMatch(/\.native-agenda\s*\{[^}]*overflow-y:\s*auto/)

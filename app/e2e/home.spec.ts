@@ -367,6 +367,48 @@ test('meeting rows fill a laptop pane and stay centred in their own column throu
   } finally { await app.close() }
 })
 
+test('the Meetings title and first row stay in place when the sidebar peeks', async () => {
+  const { app, page } = await launch()
+  try {
+    await fake(app, 'manyMeetings', { n: 2, clean: true })
+    await page.reload()
+    const title = page.getByRole('heading', { name: 'Your meetings', exact: true })
+    const row = page.getByTestId('past-note').first()
+    const search = page.getByRole('button', { name: 'Search meetings', exact: true })
+    const workspace = page.getByTestId('workspace')
+    const boxes = () => Promise.all([title.boundingBox(), row.boundingBox()])
+    await expect(row).toBeVisible()
+    await expect(page.locator('.library-load')).toHaveAttribute('data-loading-phase', 'ready')
+
+    // At 900px pinning also takes the content pane across its 700px breakpoint.
+    for (const [colorScheme, width] of [['light', 1440], ['dark', 900]] as const) {
+      await page.setViewportSize({ width, height: 900 })
+      await page.emulateMedia({ colorScheme, reducedMotion: 'no-preference' })
+      await expect(search).toBeHidden()
+      const pinned = await boxes()
+      await page.getByTestId('sidebar-collapse').press('Enter')
+      await expect(search).toBeVisible()
+      const collapsed = await boxes()
+      // Pinning changes the list width but preserves both vertical positions.
+      expect(collapsed.map(box => box!.y)).toEqual(pinned.map(box => box!.y))
+
+      await page.mouse.move(12, 200)
+      await expect(workspace).toHaveAttribute('data-peeking', 'true')
+      await expect(search).toBeVisible()
+      expect(await boxes()).toEqual(collapsed)
+      await page.getByTestId('search-open').hover()
+      await page.mouse.move(720, 200)
+      await expect(workspace).toHaveAttribute('data-peeking', 'false')
+      await expect(search).toBeVisible()
+      expect(await boxes()).toEqual(collapsed)
+
+      await page.getByTestId('sidebar-expand').press('Enter')
+      await expect(search).toBeHidden()
+      expect(await boxes()).toEqual(pinned)
+    }
+  } finally { await app.close() }
+})
+
 test('wide Home with both sidebars hidden in light and dark', async ({}, testInfo) => {
   const { app, page } = await launch()
   try {
