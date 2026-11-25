@@ -7,3 +7,6 @@ onlyBuiltDependencies:
   - node-llama-cpp
 patchedDependencies:
   node-llama-cpp@3.22.1: patches/node-llama-cpp@3.22.1.patch
+overrides:
+  simple-git: ^4.0.1
+  'minimatch@>=7.0.0 <11.0.1': ^11.0.1
