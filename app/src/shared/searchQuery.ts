@@ -25,13 +25,15 @@ const parsers: Record<string, Chrono> = { en, de, fr, ja, pt, nl, ru, es, uk, it
 
 /** Calendar boundaries use local dates, including days that are not 24 hours long. */
 export function parseSearchQuery(query: string, { now = new Date(), locale = new Intl.DateTimeFormat().resolvedOptions().locale, language = locale }: SearchOptions = {}) {
+  let jumpAt: number | undefined
   let date: SearchDate | undefined
   let dateSpan: { start: number; end: number } | undefined
   let text = query
   const day = (offset = 0) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset)
-  const consume = (span: { start: number; end: number }, start: Date, end: Date) => {
+  const consume = (span: { start: number; end: number }, start: Date, end: Date, calendarStart = start.getTime()) => {
     if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start) return
     date = { start: start.getTime(), end: end.getTime() }
+    if (new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1).getTime() === date.end) jumpAt = calendarStart
     dateSpan = span
     text = (query.slice(0, span.start) + ' ' + query.slice(span.end)).replace(/\s+/g, ' ').trim()
   }
@@ -84,6 +86,8 @@ export function parseSearchQuery(query: string, { now = new Date(), locale = new
         const numeric = [...result.text.matchAll(/\b(\d{1,2})\/(\d{1,2})(?:\/\d{4})?\b/g)]
         if (numeric.some(m => Number(m[dayFirst ? 2 : 1]) > 12)) continue
       }
+      // Go to uses the parsed calendar day. Meeting history searches the most recent occurrence.
+      const calendarStart = start.getTime()
       if (result.start.isCertain('month') && !result.start.isCertain('year') && !result.end?.isCertain('year') && start > day()) {
         const month = start.getMonth(), lastMonth = last.getMonth()
         start.setFullYear(start.getFullYear() - 1); last.setFullYear(last.getFullYear() - 1)
@@ -95,11 +99,11 @@ export function parseSearchQuery(query: string, { now = new Date(), locale = new
       }
       const end = monthOnly ? new Date(start.getFullYear(), start.getMonth() + 1, 1)
         : new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1)
-      consume(span, start, end)
+      consume(span, start, end, calendarStart)
       if (date) break
     }
   }
-  return { text, words: searchWords(text), date, ...(dateSpan ? { dateSpan } : {}) }
+  return { text, words: searchWords(text), date, jumpAt, ...(dateSpan ? { dateSpan } : {}) }
 }
 
 /** A single insertion, deletion or substitution; short words stay exact. */

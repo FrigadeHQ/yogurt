@@ -5,6 +5,7 @@ import { readAgendaOpen, saveAgendaOpen } from '../src/renderer/src/agenda'
 import { Home } from '../src/renderer/src/screens/Home'
 import { pickNext } from '../src/shared/comingUp'
 import { loadUpTo } from '../src/renderer/src/paging'
+import { landOnHeading, resolveMeetingDate } from '../src/renderer/src/meetingDateJump'
 import type { CalEvent } from '../src/shared/types'
 
 vi.mock('../src/renderer/src/components/LoadingContent', () => ({ LoadingContent: () => null }))
@@ -47,6 +48,58 @@ describe('loadUpTo', () => {
     const end = await loadUpTo(fetch, 5000, 40)
     expect(end.cards).toHaveLength(1234)
     expect(end.more).toBe(false)
+  })
+})
+
+describe('Go to a meeting day', () => {
+  afterEach(() => vi.unstubAllGlobals())
+  const at = (day: number, hour = 0) => new Date(2026, 10, day, hour).getTime()
+  const cards = (days: number[]) => days.map(d => ({ startedAt: at(d, 23) }))
+  const jump = (day: number, days: number[], more: boolean) => resolveMeetingDate(at(day), cards(days), more, at(15, 12))
+  const key = (day: number) => new Date(at(day)).toDateString()
+  it('lands on the exact local day, including today and meetings late in the day', () => {
+    for (const day of [15, 11]) expect(jump(day, [15, 12, 11, 11, 8], true)).toEqual({ kind: 'day', key: key(day) })
+  })
+  it('chooses the closest calendar day in either direction, preferring the earlier day on a tie', () => {
+    expect(jump(11, [14, 12, 6, 4], true)).toEqual({ kind: 'day', key: key(12) })
+    expect(jump(11, [14, 10, 6], true)).toEqual({ kind: 'day', key: key(10) })
+    expect(jump(11, [12, 10], true)).toEqual({ kind: 'day', key: key(10) })
+    expect(jump(15, [11, 8], true)).toEqual({ kind: 'day', key: key(11) })
+    const aroundMidnight = [{ startedAt: at(2) }, { startedAt: at(0) }]
+    expect(resolveMeetingDate(at(1, 23), aroundMidnight, false, at(15))).toEqual({ kind: 'day', key: key(0) })
+  })
+  it('pages until the closest day is known and lands at the bottom for dates before the library', () => {
+    expect(jump(4, [14, 10], true)).toEqual({ kind: 'page' })
+    expect(jump(4, [14, 10, 7, 5], true)).toEqual({ kind: 'page' })
+    expect(jump(4, [14, 10, 7, 5, 4], true)).toEqual({ kind: 'day', key: key(4) })
+    expect(jump(4, [14, 10, 7, 5, 1], false)).toEqual({ kind: 'day', key: key(5) })
+    expect(jump(3, [14, 10, 7, 5, 4], false)).toEqual({ kind: 'bottom', key: key(4) })
+    expect(jump(3, [], false)).toEqual({ kind: 'empty' })
+  })
+  it('sends a future date directly to the top regardless of the loaded meetings', () => {
+    for (const days of [[15, 12], [12], []]) expect(jump(16, days, true)).toEqual({ kind: 'top' })
+  })
+  it.each([false, true])('limits travel to one viewport going back to the top without highlighting (reduced %s)', reduced => {
+    vi.stubGlobal('window', { matchMedia: () => ({ matches: reduced }) })
+    vi.stubGlobal('performance', { now: () => 0 })
+    let frame: FrameRequestCallback | undefined
+    vi.stubGlobal('requestAnimationFrame', (fn: FrameRequestCallback) => { frame = fn; return 1 })
+    vi.stubGlobal('cancelAnimationFrame', vi.fn())
+    const root = Object.assign(new EventTarget(), { scrollTop: 3200, clientHeight: 500 })
+    const heading = { focus: vi.fn(), animate: vi.fn() }
+    const cleanup = landOnHeading(root as HTMLElement, heading as unknown as HTMLElement, 0)
+    expect(heading.focus).toHaveBeenCalledWith({ preventScroll: true })
+    if (reduced) expect(frame).toBeUndefined()
+    else {
+      expect(root.scrollTop).toBe(500)
+      frame!(150)
+      expect(root.scrollTop).toBeGreaterThan(0)
+      expect(root.scrollTop).toBeLessThan(250)
+      frame!(300)
+    }
+    expect(root.scrollTop).toBe(0)
+    expect(heading.animate).not.toHaveBeenCalled()
+    cleanup()
   })
 })
 

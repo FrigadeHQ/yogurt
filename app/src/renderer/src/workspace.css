@@ -164,6 +164,7 @@
 .native-library>h1 { font-size:20px;line-height:26px;font-weight:600;letter-spacing:-.55px;margin-bottom:9px; }
 .native-meeting-day { margin-top:25px; }
 .native-meeting-day>h2,.meeting-day-exit { font-size:11px;line-height:14px;font-weight:550;color:var(--written);margin-bottom:9px; }
+.native-home :is(h1, [data-row-heading])[tabindex="-1"]:focus { outline:none; }
 .native-meeting-row { position:relative;display:grid;grid-template-columns:minmax(0,1fr) max-content;align-items:center;column-gap:12px;margin-inline:-8px;padding-inline-end:8px;border-radius:7px;overflow:hidden; }
 .native-meeting-row:hover:not([data-focus-ring]):not(:has([data-focus-ring])) { background:var(--row-hover); }
 .native-meeting-card { grid-area:1 / 1 / 2 / 3;display:grid;grid-template-columns:subgrid;align-items:center;min-width:0;border-radius:inherit; }
