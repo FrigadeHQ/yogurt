@@ -1,13 +1,14 @@
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
-import { mkdtempSync } from 'node:fs'
+import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 const main = join(import.meta.dirname, '../out/main/index.js')
 const zoom = { bundleId: 'us.zoom.xos', name: 'zoom.us' }
 
-async function launch(env: Record<string, string> = {}) {
+async function launch(env: Record<string, string> = {}, settings?: Record<string, unknown>) {
   const userData = mkdtempSync(join(tmpdir(), 'yogurt-e2e-'))
+  if (settings) writeFileSync(join(userData, 'settings.json'), JSON.stringify(settings))
   const app = await electron.launch({ args: [main], env: { ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: userData, ...env } })
   const page = await app.firstWindow()
   await expect(page.getByTestId('home')).toBeVisible()
@@ -28,7 +29,7 @@ const windowOf = async (app: ElectronApplication, hash: string): Promise<Page> =
 const whoOf = (page: Page, text: string) => page.getByTestId('transcript-turn').filter({ has: page.getByTestId('transcript-line').filter({ hasText: text }) }).getByTestId('transcript-who')
 
 test('live, each turn says who: You on the mic, and the name the call app shows talking on the other side', async () => {
-  const { app, page } = await launch()
+  const { app, page } = await launch({}, { speakerDiarization: true })
   try {
     await fake(app, 'signals', { micApps: [zoom], events: [] })
     await (await windowOf(app, '#prompt')).getByTestId('prompt-take-notes').click()
@@ -168,7 +169,7 @@ test('transcription trouble shows in the widget in plain words', async () => {
 })
 
 test('without Accessibility the other side is Them live; after, its voices are numbered, never guessed', async () => {
-  const { app, page } = await launch({ YOGURT_FAKE_AX: 'denied' })
+  const { app, page } = await launch({ YOGURT_FAKE_AX: 'denied' }, { speakerDiarization: true })
   try {
     await fake(app, 'signals', { micApps: [zoom], events: [] })
     await (await windowOf(app, '#prompt')).getByTestId('prompt-take-notes').click()

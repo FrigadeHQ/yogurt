@@ -1,5 +1,5 @@
 import { _electron as electron, expect, test, type Page } from '@playwright/test'
-import { mkdtempSync } from 'node:fs'
+import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -7,6 +7,8 @@ const main = join(import.meta.dirname, '../out/main/index.js')
 
 async function launch(env: Record<string, string> = {}) {
   const userData = mkdtempSync(join(tmpdir(), 'yogurt-diarize-e2e-'))
+  // the feature is opt-in: on, the way the computer of someone asking for speakers to be separated has it
+  writeFileSync(join(userData, 'settings.json'), JSON.stringify({ speakerDiarization: true }))
   const app = await electron.launch({ args: [main], env: { ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: userData, ...env } })
   const page = await app.firstWindow()
   await expect(page.getByTestId('home')).toBeVisible()
@@ -19,7 +21,8 @@ const whoOf = (page: Page, text: string) => turnOf(page, text).getByTestId('tran
 
 /** a recorded, finished meeting with its transcript open; done means the diarization ran (the notes wait for it) */
 async function record(page: Page) {
-  await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+  // the header's button: an empty library keeps a second Start recording button in the page, so the name alone is ambiguous
+  await page.getByTestId('new-note').click()
   await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
   await page.getByTestId('note-transcript-toggle').click()
   // the fake meeting is heard in real time: both of the other side's lines arrive at 5.2 s and 13.3 s

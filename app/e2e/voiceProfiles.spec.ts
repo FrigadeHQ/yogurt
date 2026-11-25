@@ -1,5 +1,5 @@
 import { _electron as electron, expect, test, type Page } from '@playwright/test'
-import { mkdtempSync } from 'node:fs'
+import { existsSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -7,6 +7,10 @@ const main = join(import.meta.dirname, '../out/main/index.js')
 
 /** dir can be passed again so a later app reads the same data: that is how a stored profile matches across meetings */
 async function launch(env: Record<string, string> = {}, dir = mkdtempSync(join(tmpdir(), 'yogurt-voices-e2e-'))) {
+  // the feature is opt-in: on, the way the computer of someone asking for speakers to be separated has it. A reused
+  // dir keeps its settings (the voice toggle of the first meeting wrote speakerProfiles next to it)
+  const settings = join(dir, 'settings.json')
+  if (!existsSync(settings)) writeFileSync(settings, JSON.stringify({ speakerDiarization: true }))
   const app = await electron.launch({ args: [main], env: { ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: dir, ...env } })
   const page = await app.firstWindow()
   await expect(page.getByTestId('home')).toBeVisible()
@@ -25,7 +29,8 @@ async function settings(page: Page) {
 /** a recorded meeting stopped once both of the other side's lines were heard; done means its diarization ran (the notes wait for it) */
 async function recordOnce(page: Page) {
   await page.getByTestId('nav-home').click()
-  await page.getByRole('button', { name: 'Start recording', exact: true }).click()
+  // the header's button: an empty library keeps a second Start recording button in the page, so the name alone is ambiguous
+  await page.getByTestId('new-note').click()
   await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
   await page.getByTestId('note-transcript-toggle').click()
   await expect(page.getByTestId('transcript-line').filter({ hasText: 'She will send a draft' })).toBeVisible({ timeout: 45_000 })

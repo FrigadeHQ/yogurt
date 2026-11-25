@@ -1,7 +1,7 @@
 import { openFromCorner } from './cornerNavigation'
 import { selectNoteVersion } from './noteVersion'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
-import { existsSync, mkdtempSync, readFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
@@ -11,8 +11,9 @@ const main = join(import.meta.dirname, '../out/main/index.js')
 const zoom = { bundleId: 'us.zoom.xos', name: 'zoom.us' }
 type Snap = { visible: boolean; view: { kind: string; meetingId: string } | null; notice: { title: string; body: string; meetingId: string } | null }
 
-async function launch(env: Record<string, string> = {}) {
+async function launch(env: Record<string, string> = {}, settings?: Record<string, unknown>) {
   const userData = mkdtempSync(join(tmpdir(), 'yogurt-e2e-'))
+  if (settings) writeFileSync(join(userData, 'settings.json'), JSON.stringify(settings))
   const app = await electron.launch({ args: [main], env: { ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: userData, ...env } })
   const page = await app.firstWindow()
   await expect(page.getByTestId('home')).toBeVisible()
@@ -202,7 +203,7 @@ test('stopping writes the enhanced notes, streamed in, with their own line marke
 })
 
 test('the notes name the voice the transcript kept, never a call name whose claim was too short', async () => {
-  const { app, page } = await launch()
+  const { app, page } = await launch({}, { speakerDiarization: true })
   try {
     const id = await record(app, page)
     // the fixture's second line of the other side, at 13.3 s, is marked Bo Park's in the call
