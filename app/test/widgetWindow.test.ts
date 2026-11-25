@@ -165,7 +165,7 @@ describe('floating recorder placement', () => {
       if (height > 42) {
         send('widget:size', 134, 42)
         expect(win.getBounds()).toEqual(dropped)
-        expect(widget.snapshot().bounds).toEqual({ ...before, ...previous })
+        expect(widget.snapshot().bounds).toEqual({ ...before, ...previous, x: previous.x - 7, width: 134 })
       }
       else expect(win.getBounds()).toEqual(widgetLayout({ ...before, ...previous }, area).bounds)
       expect(state.windows).toHaveLength(1)
@@ -178,6 +178,16 @@ describe('floating recorder placement', () => {
     send('widget:pressed', false); send('widget:size', 134, 42)
     expect(widget.snapshot().bounds).toEqual({ ...before, x: before.x - 7, width: 134 })
   })
+  it('accepts the new compact width even when the last reported surface was expanded', () => {
+    const native = win.getBounds(), initial = widget.snapshot().bounds!
+    const right = initial.x + initial.width
+    send('widget:surface', { x: 8, y: 8, width: 340, height: 390, radius: 16 })
+    for (const width of [75, 124, 75]) {
+      send('widget:size', width, 42)
+      expect(widget.snapshot().bounds).toEqual({ ...initial, width, x: right - width })
+      expect(win.getBounds()).toEqual(native)
+    }
+  })
   it('restores the normal card after dragging during opening, dropping, closing and reopening', async () => {
     const { widgetLayout, widgetExpanded, WidgetIntent } = await import('../src/shared/widgetMorph')
     const intent = new WidgetIntent()
@@ -187,8 +197,7 @@ describe('floating recorder placement', () => {
     send('widget:surface', partial); send('widget:pressed', true)
     send('widget:drag', -frame.bounds.x - partial.x, -frame.bounds.y - partial.y)
     const latest = () => win.webContents.send.mock.calls.filter(([channel]: [string]) => channel === 'widget:layout').at(-1)[1]
-    const clipped = latest()
-    expect(clipped.bounds.width).toBeLessThan(340)
+    expect(widgetExpanded(latest(), false)).toMatchObject({ width: 340, height: 390 })
     send('widget:drag-end'); send('widget:pressed', false)
     intent.release(300, true)
     expect(intent.open).toBe(true)

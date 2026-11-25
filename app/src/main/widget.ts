@@ -9,7 +9,7 @@ import { micIsOff, type WidgetView } from '../shared/types'
 import { floatingType, floatOverFullScreen } from './float'
 import { isFake } from './paths'
 import { t, onLanguage } from '../shared/i18n'
-import { widgetLayout, widgetDragLayout, widgetRestLayout, widgetContains, type WidgetSurface, type WidgetLayout } from '../shared/widgetMorph'
+import { widgetLayout, widgetDragLayout, widgetRestLayout, widgetSizedPill, widgetContains, type WidgetSurface, type WidgetLayout } from '../shared/widgetMorph'
 
 const BACKGROUND = process.env.YOGURT_BACKGROUND === '1'
 const FIRST_W = 127, FIRST_H = 42
@@ -261,24 +261,22 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
     hitTest()
   })
   ipcMain.on('widget:drag-end', (e) => {
-    if (!win || win.isDestroyed() || e.sender !== win.webContents) return
-    if (dragPosition) {
-      lastPosition = { x: pill.x, y: pill.y }
-      if (layout && surface && surface.height > FIRST_H + 1) place(widgetRestLayout(layout, screen.getDisplayMatching(pill).workArea, model.view(Date.now())?.note ? 446 : 390))
-    }
+    if (!win || win.isDestroyed() || e.sender !== win.webContents || !dragPosition) return
+    lastPosition = { x: pill.x, y: pill.y }
     dragPosition = null; dragFrame = null
-    if (!surface || surface.height <= FIRST_H + 1) place()
+    if (layout && surface && surface.height > FIRST_H + 1) place(widgetRestLayout(layout, screen.getDisplayMatching(pill).workArea, surface.height))
+    else place()
   })
   ipcMain.on('widget:size', (e, w: unknown, h: unknown) => {
-    if (!win || win.isDestroyed() || e.sender !== win.webContents || typeof w !== 'number' || !Number.isFinite(w) || w < 60 || w > 340 || h !== FIRST_H || pressed) return
-    // Apply timer width changes once collapsed, so they cannot re-anchor a dropped card.
-    if (surface && surface.height > FIRST_H + 1) return
-    // rounded, not up: the timer is a fractional width, and rounding up left the right end a pixel wider than the left
-    const width = Math.round(w)
-    if (width === pill.width) return
-    lastWidth = width
-    pill = fit({ ...pill, x: pill.x + pill.width - width, width })
-    lastPosition = { x: pill.x, y: pill.y }; place()
+    if (!win || win.isDestroyed() || !layout || e.sender !== win.webContents || typeof w !== 'number' || !Number.isFinite(w) || w < 60 || w > 340 || h !== FIRST_H || pressed) return
+    const next = widgetSizedPill(layout, w)
+    if (next.width === pill.width) return
+    // Remember the measured pill without moving the native window that contains both shapes.
+    layout = { ...layout, pill: next }
+    lastWidth = next.width
+    pill = { ...next, x: layout.bounds.x + next.x, y: layout.bounds.y + next.y }
+    lastPosition = { x: pill.x, y: pill.y }
+    win.webContents.send('widget:layout', layout)
   })
   const displayChanged = () => {
     if (!win || win.isDestroyed()) return

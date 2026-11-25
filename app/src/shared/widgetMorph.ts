@@ -4,33 +4,39 @@ export type WidgetRect = { x: number; y: number; width: number; height: number }
 export type WidgetSurface = WidgetRect & { radius: number }
 export type WidgetLayout = { bounds: WidgetRect; pill: WidgetRect; open: WidgetRect; up: boolean }
 
+const CARD_WIDTH = 340, MAX_CARD_HEIGHT = 446
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n))
 
 /** Keep the pill's corner fixed; turn inward at the display edges. */
 export function widgetLayout(pill: WidgetRect, area: WidgetRect): WidgetLayout {
-  const width = Math.min(340, area.width), height = Math.min(446, area.height)
+  const width = Math.min(CARD_WIDTH, area.width), height = Math.min(MAX_CARD_HEIGHT, area.height)
   const x = clamp(pill.x + pill.width - width < area.x ? pill.x : pill.x + pill.width - width, area.x, area.x + area.width - width)
   const up = pill.y + height > area.y + area.height
   const y = clamp(up ? pill.y + pill.height - height : pill.y, area.y, area.y + area.height - height)
-  // Leave room for the spring without extending beyond the display.
+  // Keep a small transparent margin inside the display.
   const bounds = { x: Math.max(area.x, x - 8), y: Math.max(area.y, y - 8), width: 0, height: 0 }
   bounds.width = Math.min(area.x + area.width, x + width + 8) - bounds.x
   bounds.height = Math.min(area.y + area.height, y + height + 8) - bounds.y
   return { bounds, pill: { ...pill, x: pill.x - bounds.x, y: pill.y - bounds.y }, open: { x: x - bounds.x, y: y - bounds.y, width, height }, up }
 }
 
-/** Move the frozen visible surface; trim unused native space at the work area's edges. */
+/** Resize the pill inside the existing window, keeping the edge it shares with the card. */
+export function widgetSizedPill({ pill, open, bounds }: WidgetLayout, measured: number): WidgetRect {
+  const width = Math.min(Math.round(measured), bounds.width)
+  const x = pill.x === open.x ? pill.x : pill.x + pill.width - width
+  return { ...pill, x: clamp(x, 0, bounds.width - width), width }
+}
+
+/** Keep the dragged surface under the pointer and enough native space for the card to reopen. */
 export function widgetDragLayout(frame: WidgetLayout, surface: WidgetRect, dx: number, dy: number, area: WidgetRect): WidgetLayout {
   const x = clamp(frame.bounds.x + Math.round(dx), area.x - surface.x, area.x + area.width - surface.x - surface.width)
   const y = clamp(frame.bounds.y + Math.round(dy), area.y - surface.y, area.y + area.height - surface.y - surface.height)
-  const clip = (r: WidgetRect): WidgetRect => {
-    const left = Math.max(area.x, r.x), top = Math.max(area.y, r.y)
-    return { x: left, y: top, width: Math.min(area.x + area.width, r.x + r.width) - left, height: Math.min(area.y + area.height, r.y + r.height) - top }
+  const width = Math.min(area.width, Math.max(CARD_WIDTH, Math.ceil(x + frame.bounds.width) - Math.floor(x)))
+  const height = Math.min(area.height, Math.max(MAX_CARD_HEIGHT, Math.ceil(y + frame.bounds.height) - Math.floor(y)))
+  const bounds = {
+    x: clamp(Math.floor(x), area.x, area.x + area.width - width),
+    y: clamp(Math.floor(y), area.y, area.y + area.height - height), width, height,
   }
-  const bounds = clip({
-    x: Math.floor(x), y: Math.floor(y),
-    width: Math.ceil(x + frame.bounds.width) - Math.floor(x), height: Math.ceil(y + frame.bounds.height) - Math.floor(y),
-  })
   const local = (r: WidgetRect) => ({ ...r, x: r.x - bounds.x, y: r.y - bounds.y })
   return {
     bounds, up: frame.up,
@@ -41,7 +47,7 @@ export function widgetDragLayout(frame: WidgetLayout, surface: WidgetRect, dx: n
 
 /** Restore room for the normal card without moving the frozen surface on release. */
 export function widgetRestLayout(frame: WidgetLayout, area: WidgetRect, height: number): WidgetLayout {
-  const width = Math.min(340, area.width), fullHeight = Math.min(446, area.height)
+  const width = Math.min(CARD_WIDTH, area.width), fullHeight = Math.min(MAX_CARD_HEIGHT, area.height)
   height = Math.min(height, fullHeight)
   const x = clamp(frame.bounds.x + frame.open.x, area.x, area.x + area.width - width)
   const y = clamp(frame.bounds.y + frame.open.y + (frame.up ? frame.open.height - height : 0), area.y, area.y + area.height - height)
@@ -63,7 +69,7 @@ export function widgetRestLayout(frame: WidgetLayout, area: WidgetRect, height: 
 
 export function widgetExpanded(layout: WidgetLayout, warning: boolean): WidgetRect {
   const width = Math.min(layout.open.width, layout.bounds.width)
-  const height = Math.min(warning ? 446 : 390, layout.open.height, layout.bounds.height)
+  const height = Math.min(warning ? MAX_CARD_HEIGHT : 390, layout.open.height, layout.bounds.height)
   return {
     x: clamp(layout.open.x, 0, layout.bounds.width - width),
     y: clamp(layout.open.y + (layout.up ? layout.open.height - height : 0), 0, layout.bounds.height - height),

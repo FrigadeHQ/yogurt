@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { WidgetIntent, widgetContains, widgetDragLayout, widgetExpanded, widgetLayout, widgetRestLayout, widgetSettings } from '../src/shared/widgetMorph'
+import { WidgetIntent, widgetContains, widgetDragLayout, widgetExpanded, widgetLayout, widgetRestLayout, widgetSettings, widgetSizedPill } from '../src/shared/widgetMorph'
 import { WidgetModel } from '../src/main/widgetModel'
 
 describe('recorder hover intent', () => {
@@ -56,6 +56,18 @@ describe('recorder hover intent', () => {
 
 describe('recorder geometry', () => {
   const area = { x: -1200, y: -100, width: 1200, height: 900 }
+  it.each([-1200, -200])('keeps the card and its shared edge fixed through mute, timer growth and unmute at x=%s', x => {
+    const initial = widgetLayout({ x, y: 0, width: 75, height: 42 }, area)
+    const left = x === area.x
+    const edge = left ? initial.pill.x : initial.pill.x + initial.pill.width
+    let frame = initial
+    for (const width of [124, 75, 82, 131, 82, 75]) {
+      const pill = widgetSizedPill(frame, width + 0.2)
+      expect(pill).toEqual({ ...initial.pill, width, x: left ? edge : edge - width })
+      frame = { ...frame, pill }
+      expect(widgetExpanded(frame, false)).toEqual(widgetExpanded(initial, false))
+    }
+  })
   it.each([
     [-200, 0, -413, 0], [-1200, 0, -1200, 0], [-200, 750, -413, 346], [-1200, 750, -1200, 346],
   ])('keeps the pill at %s,%s and grows inward', (x, y, openX, openY) => {
@@ -72,9 +84,10 @@ describe('recorder geometry', () => {
   it('fits a small work area while preserving the pill location', () => {
     const result = widgetLayout({ x: 80, y: 130, width: 118, height: 42 }, { x: 0, y: 0, width: 250, height: 200 })
     expect(result.bounds).toEqual({ x: 0, y: 0, width: 250, height: 200 })
+    expect(widgetExpanded(result, false)).toEqual(result.bounds)
     expect(result.pill).toMatchObject({ x: 80, y: 130 })
   })
-  it.each([42, 180, 390, 446])('clamps the visible %spt surface at every edge without reserving invisible space', height => {
+  it.each([42, 180, 390, 446])('clamps the visible %spt surface at every edge and keeps room to open', height => {
     for (const y of [0, 700]) {
       const frame = widgetLayout({ x: -600, y, width: 127, height: 42 }, area)
       const up = frame.pill.y > frame.open.y
@@ -89,6 +102,7 @@ describe('recorder geometry', () => {
         expect(moved.bounds.y).toBeGreaterThanOrEqual(area.y)
         expect(moved.bounds.x + moved.bounds.width).toBeLessThanOrEqual(area.x + area.width)
         expect(moved.bounds.y + moved.bounds.height).toBeLessThanOrEqual(area.y + area.height)
+        expect(widgetExpanded(moved, false)).toMatchObject({ width: 340, height: 390 })
         if (height === 390 || height === 446) {
           const resumedHeight = Math.min(height, moved.open.height)
           const resumedUp = moved.pill.y + moved.pill.height > moved.open.y + moved.open.height / 2
