@@ -1,4 +1,4 @@
-import { joinWords } from '../../shared/liveWords'
+
 import type { Word } from '../store'
 import type { Turn } from './rttm'
 
@@ -56,8 +56,18 @@ export function evidenceName(claims: Array<{ name: string | null; ms: number }>)
 }
 
 /** punctuation whisper splits off joins the word before it without a space, when it does not start after that word ends */
-/** the tokens carry their own spacing (whisper's pieces: " Mat"+" he"+" v" is "Mathev"), so the line's text comes back exactly */
-const textOf = (words: Word[], spell: (t: string) => string) => spell(words.map(w => w.text).join(''))
+/** a stored word's spacing when its `glue` is unknown (lines saved before it was kept): punctuation joins, words do not */
+const GLUE = /^[.,!?;:…、。！？)\]}»”’]/
+/**
+ * The run's text from its words, keeping whisper's own spacing. A saved word is trimmed and carries `glue` when its
+ * token had no leading space (punctuation, and the pieces of a word); joining the raw texts would instead lose every
+ * space ("Shewillsendadraft"). Raw pieces that still carry their space pass through as they are.
+ */
+const textOf = (words: Word[], spell: (t: string) => string) => spell(words.reduce((text, w, i) => {
+  if (i === 0) return w.text
+  const glue = w.glue ?? GLUE.test(w.text)
+  return text + (glue || /^\s/.test(w.text) ? w.text : ' ' + w.text)
+}, ''))
 
 /**
  * The whole ordered word stream of the rows being diarized, split at speaker changes. Whisper's line boundaries

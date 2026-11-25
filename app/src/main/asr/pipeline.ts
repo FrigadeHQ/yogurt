@@ -114,7 +114,9 @@ export function createPipeline(p: {
   const speakerOf = (l: Line) => { if (l.track === 'me') return 'me'; try { return segmentSpeaker(p.nameOf?.(l.startMs, l.endMs)) } catch { return null } }
   // the mic's words never get saved (its lines are never re-split); the other side's are, so diarization can re-split without re-transcribing
   const out = (l: Line, hidden = false): Out => ({ meetingId: p.meetingId, track: l.track, startMs: l.startMs, endMs: l.endMs, text: spell(l.text), speaker: speakerOf(l),
-    ...(l.track === 'them' && l.words?.length ? { words: l.words.map(w => ({ text: w.text, startMs: w.startMs, endMs: w.endMs })) } : {}),
+    // its words carry their spacing with them: the text is trimmed, and glue says whether the token had a leading
+    // space (punctuation whisper gives as its own piece does not), so a re-split rebuilds the line exactly
+    ...(l.track === 'them' && l.words?.length ? { words: l.words.map(w => ({ text: w.text, startMs: w.startMs, endMs: w.endMs, ...(w.glue ? { glue: true } : {}) })) } : {}),
     ...(hidden ? { hidden: true } : {}) })
   const give = (lines: Line[]) => {
     if (!lines.length) return

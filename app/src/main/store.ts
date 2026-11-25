@@ -53,8 +53,9 @@ export type Meeting = {
   /** voice profiles were allowed to hear this meeting (snapshotted at recording start) */
   voicesAllowed: boolean
 }
-/** A whisper word with its times on meeting time (them lines only, persisted so lines can be re-split without re-transcribing) */
-export type Word = { text: string; startMs: number; endMs: number }
+/** A whisper word with its times on meeting time (them lines only, persisted so lines can be re-split without re-transcribing).
+ *  glue: joins the word before it without a space (punctuation whisper gives as its own piece); the text itself is trimmed */
+export type Word = { text: string; startMs: number; endMs: number; glue?: boolean }
 /** speaker: 'me' on the mic; on the other side the name the call app showed talking (callNames), null for Them */
 export type Segment = { id: number; meetingId: string; track: 'me' | 'them'; startMs: number; endMs: number; text: string; speaker: string | null
   /** an echo of the other side found on the mic: kept, but out of the transcript, notes, search and export until shown again */

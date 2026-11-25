@@ -4,8 +4,9 @@ import type { Turn } from '../src/main/diarize/rttm'
 
 const identity = (t: string) => t
 const w = (text: string, startMs: number, endMs: number) => ({ text: /^[^\p{L}\p{N}]/u.test(text) ? text : ' ' + text, startMs, endMs })
-/** verbatim whisper pieces, spacing included (" geb"+"ür"+"t"+"iger" is " gebürtiger") */
-const word = (text: string, startMs: number, endMs: number) => ({ text, startMs, endMs })
+/** verbatim whisper pieces, spacing included (" geb"+"ür"+"t"+"iger" is " gebürtiger"); glue marks a piece the line
+ *  keeps against the one before it without a space (what the transcript stores as `glue`) */
+const word = (text: string, startMs: number, endMs: number, glue?: boolean) => ({ text, startMs, endMs, ...(glue ? { glue: true } : {}) })
 const row = (id: number, text: string, startMs: number, endMs: number, speaker: string | null = null): SplitRow =>
   ({ id, text, startMs, endMs, speaker, words: text.split(' ').map((t, i, a) => w(t, startMs + i * Math.round((endMs - startMs) / a.length), startMs + (i + 1) * Math.round((endMs - startMs) / a.length))) })
 const turns: Turn[] = [{ key: 'v1', startMs: 0, endMs: 1000 }, { key: 'v2', startMs: 2000, endMs: 4000 }]
@@ -97,8 +98,8 @@ describe('splitPlan', () => {
     const question: SplitRow = {
       id: 1, text: '. Du bist also auch gebürtiger Berliner', startMs: 99729, endMs: 102549, speaker: null,
       words: [word('.', 99729, 99729), word(' Du', 100729, 100729), word(' bist', 100729, 100729), word(' also', 100729, 100729),
-        word(' auch', 100769, 100989), word(' geb', 100989, 101249), word('ür', 101259, 101439), word('t', 101439, 101529),
-        word('iger', 101529, 101879), word(' Ber', 101999, 102159), word('liner', 102159, 102549)],
+        word(' auch', 100769, 100989), word(' geb', 100989, 101249), word('ür', 101259, 101439, true), word('t', 101439, 101529, true),
+        word('iger', 101529, 101879, true), word(' Ber', 101999, 102159), word('liner', 102159, 102549, true)],
     }
     const turns: Turn[] = [{ key: 'v1', startMs: 96021, endMs: 98429 }, { key: 'v2', startMs: 104581, endMs: 106769 }]
     const { keep, runs } = splitPlan([question], turns, identity)
@@ -116,7 +117,7 @@ describe('splitPlan', () => {
     const narration: SplitRow = {
       id: 3, text: ' Als Lead Engineer bei Wunderlist half', startMs: 15834, endMs: 17474, speaker: null,
       words: [word(' Als', 15834, 15934), word(' Lead', 16044, 16174), word(' Engineer', 16194, 16574), word(' bei', 16574, 16714),
-        word(' W', 16714, 16774), word('under', 16774, 17014), word('list', 17014, 17194), word(' half', 17234, 17474)],
+        word(' W', 16714, 16774), word('under', 16774, 17014, true), word('list', 17014, 17194, true), word(' half', 17234, 17474)],
     }
     const gap: Turn[] = [{ key: 'v2', startMs: 12221, endMs: 14999 }, { key: 'v2', startMs: 19531, endMs: 31249 }]
     expect(splitPlan([narration], gap, identity).runs.map(r => [r.key, r.text])).toEqual([['v2', ' Als Lead Engineer bei Wunderlist half']])
@@ -135,6 +136,18 @@ describe('splitPlan', () => {
   it('glues punctuation without a space, like the live view does', () => {
     const glued: SplitRow = { id: 1, text: 'Sure.', startMs: 0, endMs: 500, speaker: null, words: [w('Sure', 0, 400), w('.', 400, 500)] }
     expect(splitPlan([glued], [{ key: 'v1', startMs: 0, endMs: 500 }], identity).runs[0].text).toBe(' Sure.')
+  })
+  it('rebuilds a saved line from its trimmed words, which keep the spacing as glue', () => {
+    // what the transcript stores (asr/pipeline.ts): the live reader trims each word and records whether the token
+    // had a leading space. Joining the raw texts lost every space: "ShewillsendadraftbyFriday."
+    const words = ['She', 'will', 'send', 'a', 'draft', 'by', 'Friday'].map((text, i) => ({ text, startMs: i * 300, endMs: (i + 1) * 300 }))
+    const row: SplitRow = { id: 1, text: 'She will send a draft by Friday.', startMs: 0, endMs: 2400, speaker: null, words: [...words, { text: '.', startMs: 2100, endMs: 2400, glue: true }] }
+    expect(splitPlan([row], [{ key: 'v1', startMs: 0, endMs: 2400 }], identity).runs[0].text).toBe('She will send a draft by Friday.')
+  })
+  it('a line saved before glue was kept still spaces its words, punctuation included', () => {
+    const words = ['She', 'will', 'send', 'a', 'draft', '.'].map((text, i) => ({ text, startMs: i * 300, endMs: (i + 1) * 300 }))
+    const row: SplitRow = { id: 1, text: 'She will send a draft.', startMs: 0, endMs: 1800, speaker: null, words }
+    expect(splitPlan([row], [{ key: 'v1', startMs: 0, endMs: 1800 }], identity).runs[0].text).toBe('She will send a draft.')
   })
   it('passes the text through the spell normalizer', () => {
     expect(splitPlan([row(1, 'aple', 0, 400)], [{ key: 'v1', startMs: 0, endMs: 400 }], t => t.replace('aple', 'apple')).runs[0].text).toBe(' apple')
