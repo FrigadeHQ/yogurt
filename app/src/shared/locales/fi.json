@@ -806,5 +806,10 @@
   "Unmute my mic in Yogurt": "Poista mikrofonini mykistys Yogurtissa",
   "Mic will stay off on resume": "Mikrofoni pysyy mykistettynä, kun tallennusta jatketaan",
   "Mic mute couldn’t be confirmed.": "Mikrofonin mykistystä ei voitu vahvistaa.",
-  "Mic off. Yogurt can’t hear call audio.": "Mikrofoni on mykistetty. Yogurt ei kuule puhelun ääntä."
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofoni on mykistetty. Yogurt ei kuule puhelun ääntä.",
+  "From Zoom's captions": "Zoomin tekstityksistä",
+  "Captions only (no microphone)": "Vain tekstitys (ei mikrofonia)",
+  "Your words come from Zoom's captions": "Sanasi tulevat Zoomin tekstityksestä",
+  "Captions only": "Vain tekstitys",
+  "No captions found, so your words aren't being recorded. Turn the microphone back on, or ask the host to turn on captions.": "Tekstitystä ei löytynyt, joten sanojasi ei tallenneta. Ota mikrofoni uudelleen käyttöön tai pyydä isäntää ottamaan tekstitys käyttöön."
 }

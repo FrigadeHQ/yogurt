@@ -129,6 +129,11 @@ describe('transcription hints', () => {
     expect(hintAt(w)).toBe("The speech model isn't ready yet, so only audio is being saved.")
     w.warn('falling-behind')
     expect(hintAt(w)).toBe('Yogurt is falling behind. Some lines may be missing.')
+    // Zoom's captions chosen for the person's words and none came: said above the transcription hints, cleared when they come
+    w.warn('no-captions')
+    expect(hintAt(w)).toBe("No captions found, so your words aren't being recorded. Turn the microphone back on, or ask the host to turn on captions.")
+    w.warn('captions-back')
+    expect(hintAt(w)).toBe('Yogurt is falling behind. Some lines may be missing.')
     expect(w.view(2000)!.note?.tone).toBe('hint')
     w.warn('no-mic')
     expect(w.view(2000)!.note?.code).toBe('no-mic')

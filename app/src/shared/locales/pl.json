@@ -836,5 +836,10 @@
   "Unmute my mic in Yogurt": "Włącz mój mikrofon w Yogurt",
   "Mic will stay off on resume": "Po wznowieniu mikrofon pozostanie wyciszony",
   "Mic mute couldn’t be confirmed.": "Nie udało się potwierdzić wyciszenia mikrofonu.",
-  "Mic off. Yogurt can’t hear call audio.": "Mikrofon wyciszony. Yogurt nie odbiera dźwięku rozmowy."
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofon wyciszony. Yogurt nie odbiera dźwięku rozmowy.",
+  "From Zoom's captions": "Z napisów Zooma",
+  "Captions only (no microphone)": "Tylko napisy (bez mikrofonu)",
+  "Your words come from Zoom's captions": "Twoje słowa pochodzą z napisów Zooma",
+  "Captions only": "Tylko napisy",
+  "No captions found, so your words aren't being recorded. Turn the microphone back on, or ask the host to turn on captions.": "Nie znaleziono napisów, więc Twoje słowa nie są nagrywane. Włącz ponownie mikrofon lub poproś gospodarza o włączenie napisów."
 }

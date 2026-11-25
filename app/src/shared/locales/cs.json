@@ -831,5 +831,10 @@
   "Unmute my mic in Yogurt": "Zapnout můj mikrofon v Yogurtu",
   "Mic will stay off on resume": "Po obnovení nahrávání zůstane mikrofon ztlumený",
   "Mic mute couldn’t be confirmed.": "Ztlumení mikrofonu se nepodařilo potvrdit.",
-  "Mic off. Yogurt can’t hear call audio.": "Mikrofon je ztlumený. Yogurt neslyší zvuk hovoru."
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofon je ztlumený. Yogurt neslyší zvuk hovoru.",
+  "From Zoom's captions": "Z titulků Zoomu",
+  "Captions only (no microphone)": "Jen titulky (bez mikrofonu)",
+  "Your words come from Zoom's captions": "Vaše slova pocházejí z titulků Zoomu",
+  "Captions only": "Jen titulky",
+  "No captions found, so your words aren't being recorded. Turn the microphone back on, or ask the host to turn on captions.": "Nenašly se žádné titulky, takže se vaše slova nenahrávají. Znovu zapněte mikrofon nebo požádejte hostitele, aby zapnul titulky."
 }

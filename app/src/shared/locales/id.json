@@ -758,5 +758,10 @@
   "Unmute my mic in Yogurt": "Aktifkan mikrofon saya di Yogurt",
   "Mic will stay off on resume": "Mikrofon akan tetap nonaktif saat perekaman dilanjutkan",
   "Mic mute couldn’t be confirmed.": "Status bisu mikrofon tidak dapat dipastikan.",
-  "Mic off. Yogurt can’t hear call audio.": "Mikrofon nonaktif. Yogurt tidak dapat mendengar audio panggilan."
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofon nonaktif. Yogurt tidak dapat mendengar audio panggilan.",
+  "From Zoom's captions": "Dari teks Zoom",
+  "Captions only (no microphone)": "Hanya teks (tanpa mikrofon)",
+  "Your words come from Zoom's captions": "Kata-katamu berasal dari teks Zoom",
+  "Captions only": "Hanya teks",
+  "No captions found, so your words aren't being recorded. Turn the microphone back on, or ask the host to turn on captions.": "Tidak ada teks yang ditemukan, jadi kata-katamu tidak direkam. Nyalakan lagi mikrofon, atau minta host menyalakan teks."
 }

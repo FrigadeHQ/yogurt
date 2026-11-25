@@ -816,5 +816,10 @@
   "Unmute my mic in Yogurt": "Ativar meu microfone no Yogurt",
   "Mic will stay off on resume": "O microfone continuará silenciado ao retomar",
   "Mic mute couldn’t be confirmed.": "Não foi possível confirmar se o microfone foi silenciado.",
-  "Mic off. Yogurt can’t hear call audio.": "Microfone silenciado. O Yogurt não consegue ouvir o áudio da chamada."
+  "Mic off. Yogurt can’t hear call audio.": "Microfone silenciado. O Yogurt não consegue ouvir o áudio da chamada.",
+  "From Zoom's captions": "Das legendas do Zoom",
+  "Captions only (no microphone)": "Só legendas (sem microfone)",
+  "Your words come from Zoom's captions": "Suas palavras vêm das legendas do Zoom",
+  "Captions only": "Só legendas",
+  "No captions found, so your words aren't being recorded. Turn the microphone back on, or ask the host to turn on captions.": "Nenhuma legenda encontrada, então suas palavras não estão sendo gravadas. Ligue o microfone de novo ou peça ao anfitrião para ativar as legendas."
 }

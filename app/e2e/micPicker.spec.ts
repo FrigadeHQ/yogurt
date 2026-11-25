@@ -1,5 +1,5 @@
 import { _electron as electron, expect, test, type ElectronApplication } from '@playwright/test'
-import { mkdtempSync, readFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -54,6 +54,7 @@ test('the mic picker lists the mics, switches the live recording, remembers the 
     // Auto again: the Mac's own mic
     await page.getByTestId('mic-auto').click()
     await expect(page.getByTestId('rec-mic')).toHaveText('MacBook Pro Microphone')
+    await expect(page.getByTestId('note-mic')).toHaveAttribute('aria-pressed', 'false')
     await expect.poll(async () => (await page.evaluate(() => window.yogurt.audio.mics())).choice).toBeNull()
     expect(JSON.parse(readFileSync(join(userData, 'settings.json'), 'utf8')).mic).toBeUndefined()
 
@@ -91,5 +92,50 @@ test('the mic picker lists the mics, switches the live recording, remembers the 
     await expect(page.getByTestId('rec-mic')).toHaveText('MacBook Pro Microphone')
     await expect.poll(async () => (await page.evaluate(() => window.yogurt.audio.mics())).choice).toBeNull()
     await expect(page.getByTestId('rec-mic-note')).toHaveCount(0)
+  } finally { await app.close() }
+})
+
+test("a Zoom meeting can take your words from its captions, the mic muted in Yogurt; that is never remembered, and nothing else offers it", async () => {
+  const userData = mkdtempSync(join(tmpdir(), 'yogurt-mic-'))
+  const app = await electron.launch({ args: [join(import.meta.dirname, '../out/main/index.js')], env: { ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: userData } })
+  try {
+    const page = await app.firstWindow()
+    await expect(page.getByTestId('home')).toBeVisible()
+    // a recording whose call app isn't known: no captions to give the person's words, so not offered
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Start recording', exact: true }).click()
+    await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
+    await page.getByTestId('rec-mic-chip').click()
+    await expect(page.getByTestId('mic-menu')).toBeVisible()
+    await expect(page.getByTestId('mic-off')).toHaveCount(0)
+    await page.keyboard.press('Escape')
+    await page.getByTestId('note-stop').click()
+    await expect(page.getByTestId('note-state')).not.toHaveAttribute('data-state', 'recording')
+
+    // a Zoom call
+    await fake(app, 'signals', { micApps: [{ bundleId: 'us.zoom.xos', name: 'zoom.us' }], events: [] })
+    const prompt = await (async () => { for (let i = 0; i < 100; i++) { const w = app.windows().find((p) => p.url().includes('#prompt')); if (w) return w; await new Promise((r) => setTimeout(r, 50)) } throw new Error('no prompt') })()
+    await prompt.getByTestId('prompt-take-notes').click()
+    await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
+    const chip = page.getByTestId('rec-mic-chip')
+    await expect(page.getByTestId('rec-mic')).toHaveText('MacBook Pro Microphone')
+    await chip.click()
+    await expect(page.getByTestId('mic-off')).toContainText('Captions only (no microphone)')
+    await expect(page.getByTestId('mic-off')).toContainText("Your words come from Zoom's captions")
+    await expect(page.getByTestId('mic-off')).toHaveAttribute('aria-checked', 'false')
+    await page.getByTestId('mic-off').click()
+    await expect(page.getByTestId('rec-mic')).toHaveText('Captions only')
+    // it is Yogurt's own mute: its mic button says so too
+    await expect(page.getByTestId('note-mic')).toHaveAttribute('aria-pressed', 'true')
+    await expect.poll(async () => (await page.evaluate(() => window.yogurt.audio.mics())).off).toBe(true)
+    // for this recording only: nothing is saved for the next one
+    const saved = join(userData, 'settings.json')
+    expect(existsSync(saved) ? JSON.parse(readFileSync(saved, 'utf8')).mic : undefined).toBeUndefined()
+    await chip.click()
+    await expect(page.getByTestId('mic-off')).toHaveAttribute('aria-checked', 'true')
+    await expect(page.getByTestId('mic-auto')).toHaveAttribute('aria-checked', 'false')
+    // choosing a mic brings it back
+    await page.getByTestId('mic-auto').click()
+    await expect(page.getByTestId('rec-mic')).toHaveText('MacBook Pro Microphone')
+    await expect.poll(async () => (await page.evaluate(() => window.yogurt.audio.mics())).off).toBeFalsy()
   } finally { await app.close() }
 })

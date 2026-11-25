@@ -758,5 +758,10 @@
   "Unmute my mic in Yogurt": "Yogurt で自分のマイクのミュートを解除",
   "Mic will stay off on resume": "録音を再開してもマイクはオフのままです",
   "Mic mute couldn’t be confirmed.": "マイクがミュートされたか確認できませんでした。",
-  "Mic off. Yogurt can’t hear call audio.": "マイクはオフです。Yogurt に通話音声が届いていません。"
+  "Mic off. Yogurt can’t hear call audio.": "マイクはオフです。Yogurt に通話音声が届いていません。",
+  "From Zoom's captions": "Zoom の字幕から",
+  "Captions only (no microphone)": "字幕のみ（マイクなし）",
+  "Your words come from Zoom's captions": "あなたの言葉は Zoom の字幕から取ります",
+  "Captions only": "字幕のみ",
+  "No captions found, so your words aren't being recorded. Turn the microphone back on, or ask the host to turn on captions.": "字幕が見つからないため、あなたの言葉は録音されていません。マイクをもう一度オンにするか、ホストに字幕をオンにするよう頼んでください。"
 }

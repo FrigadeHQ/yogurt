@@ -758,5 +758,10 @@
   "Unmute my mic in Yogurt": "เปิดไมค์ของฉันใน Yogurt",
   "Mic will stay off on resume": "ไมค์จะยังปิดอยู่เมื่อบันทึกต่อ",
   "Mic mute couldn’t be confirmed.": "ยืนยันไม่ได้ว่าปิดไมค์แล้ว",
-  "Mic off. Yogurt can’t hear call audio.": "ไมค์ปิดอยู่ Yogurt ไม่ได้ยินเสียงการโทร"
+  "Mic off. Yogurt can’t hear call audio.": "ไมค์ปิดอยู่ Yogurt ไม่ได้ยินเสียงการโทร",
+  "From Zoom's captions": "จากคำบรรยายของ Zoom",
+  "Captions only (no microphone)": "คำบรรยายเท่านั้น (ไม่ใช้ไมโครโฟน)",
+  "Your words come from Zoom's captions": "คำพูดของคุณมาจากคำบรรยายของ Zoom",
+  "Captions only": "คำบรรยายเท่านั้น",
+  "No captions found, so your words aren't being recorded. Turn the microphone back on, or ask the host to turn on captions.": "ไม่พบคำบรรยาย จึงไม่มีการบันทึกคำพูดของคุณ เปิดไมโครโฟนอีกครั้ง หรือขอให้โฮสต์เปิดคำบรรยาย"
 }

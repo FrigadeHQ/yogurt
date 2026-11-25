@@ -155,6 +155,7 @@ const api: YogurtApi = {
     tracks: (id) => ipcRenderer.invoke('audio:tracks', id),
     mics: () => ipcRenderer.invoke('audio:mics'),
     setMic: (id) => ipcRenderer.invoke('audio:set-mic', id),
+    captionsOnly: (on) => ipcRenderer.invoke('audio:captions-only', on),
     onMics: (fn) => {
       const on = (_e: unknown, v: { fellBack: boolean }) => fn(v)
       ipcRenderer.on('audio:mics-changed', on)

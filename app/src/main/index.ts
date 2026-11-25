@@ -534,6 +534,17 @@ function startDetection() {
       go: (r) => goTo(r),
       warn: (code) => tell({ t: 'warn', code: code as WarnCode }),
       // a long finished meeting: n lines half a second apart, voices taking turns, with quiet low-rate audio to play
+      /** a meeting joined without computer audio: the other side's lines came from Zoom's captions */
+      captionMeeting: () => {
+        const store = storeRef!
+        const startedAt = Date.now() - 60_000
+        const m = store.createMeeting({ title: 'Captions only', startedAt, endedAt: startedAt + 60_000, eventId: null, app: 'Zoom', attendees: [], state: 'done' })
+        store.addSegments([
+          { meetingId: m.id, track: 'me', startMs: 1000, endMs: 3000, text: 'Can everyone hear me?', speaker: 'me' },
+          { meetingId: m.id, track: 'them', startMs: 4000, endMs: 9000, text: 'Yes, the next step is the storage move.', speaker: 'Dana Smith', source: 'captions' },
+        ])
+        return m.id
+      },
       bigMeeting: (n) => {
         const store = storeRef!
         const startedAt = Date.now() - n * 500
@@ -660,7 +671,7 @@ app.whenReady().then(() => {
     transcribed: async (id) => { await recordingFinished(id); await transcriptFinished(id) },
     // people seen in the call joined the meeting: unedited notes already written get written again for them
     changed: (id) => { win?.webContents.send('transcript:speakers', id); sendWidgetTranscript('transcript:speakers', id); win?.webContents.send('meetings:changed'); notes.applyPeople(id) },
-    onStart: onMeetingStart, onStop: onMeetingStop, onCapture: onCaptureStart, onBind: onMeetingBound, micPids: (app) => micPidsNow(app),
+    onStart: onMeetingStart, onStop: onMeetingStop, onCapture: onCaptureStart, onBind: onMeetingBound, micPids: (app) => micPidsNow(app), warn: (code) => tell({ t: 'warn', code }),
   })
   if (process.platform === 'darwin' || process.platform === 'win32') callWindowOf = (id) => callNames.callWindow(id)
   // Windows and Linux: whisper left the graphics card in a meeting, so the speed check (timed with it) runs again next start
@@ -922,7 +933,19 @@ app.whenReady().then(() => {
     return (['me', 'them'] as const).filter((t) => !!trackFile(meetingDir(id), t, audioKinds))
   })
   // the mic picker under the note's bar: the mics, the chosen one, and switching while recording
-  hookMics({ helper: micListHelper(process.platform) === 'system' || isFake() ? runHelper : audioHelper.run, settingsFile, send: (channel, payload) => win?.webContents.send(channel, payload) })
+  hookMics({ helper: micListHelper(process.platform) === 'system' || isFake() ? runHelper : audioHelper.run, settingsFile, send: (channel, payload) => win?.webContents.send(channel, payload),
+    captions: () => { const m = activeMeeting(); return !!m && callNames.usingCaptions(m.id) } })
+  // Zoom's captions for the person's words, for the meeting being recorded only: the mic is muted in Yogurt (capture.ts)
+  // and their own captions said meanwhile become their lines. Only a Zoom meeting on a Mac, the one place captions are read.
+  ipcMain.handle('audio:captions-only', (e, on: unknown) => {
+    if (e.sender !== win?.webContents || typeof on !== 'boolean') return false
+    const m = activeMeeting()
+    if (!m || (on && (m.app !== 'Zoom' || process.platform !== 'darwin'))) return false
+    callNames.captionsOnly(m.id, on)
+    const ok = setMicMuted(m.id, on, 'note')
+    win?.webContents.send('audio:mics-changed', { fellBack: false })
+    return ok
+  })
   hookShare({ store, window: () => win, includeRecordingCredit: () => includesRecordingCredit(loadSettings(settingsFile)) })
   const foldersChanged = () => { win?.webContents.send('folders:changed'); folderSuggestions.refresh() }
   hookFolders({ store, changed: foldersChanged })

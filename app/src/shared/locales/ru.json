@@ -828,5 +828,10 @@
   "Unmute my mic in Yogurt": "Включить мой микрофон в Yogurt",
   "Mic will stay off on resume": "При возобновлении записи микрофон останется выключенным",
   "Mic mute couldn’t be confirmed.": "Не удалось подтвердить отключение микрофона.",
-  "Mic off. Yogurt can’t hear call audio.": "Микрофон выключен. Yogurt не слышит звук звонка."
+  "Mic off. Yogurt can’t hear call audio.": "Микрофон выключен. Yogurt не слышит звук звонка.",
+  "From Zoom's captions": "Из субтитров Zoom",
+  "Captions only (no microphone)": "Только субтитры (без микрофона)",
+  "Your words come from Zoom's captions": "Ваши слова берутся из субтитров Zoom",
+  "Captions only": "Только субтитры",
+  "No captions found, so your words aren't being recorded. Turn the microphone back on, or ask the host to turn on captions.": "Субтитры не найдены, поэтому ваши слова не записываются. Снова включите микрофон или попросите организатора включить субтитры."
 }

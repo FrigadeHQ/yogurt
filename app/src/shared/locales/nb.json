@@ -800,5 +800,10 @@
   "Unmute my mic in Yogurt": "Slå på mikrofonen min i Yogurt",
   "Mic will stay off on resume": "Mikrofonen forblir av når opptaket fortsetter",
   "Mic mute couldn’t be confirmed.": "Kunne ikke bekrefte at mikrofonen er av.",
-  "Mic off. Yogurt can’t hear call audio.": "Mikrofonen er av. Yogurt får ikke lyd fra samtalen."
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofonen er av. Yogurt får ikke lyd fra samtalen.",
+  "From Zoom's captions": "Fra Zooms teksting",
+  "Captions only (no microphone)": "Bare teksting (ingen mikrofon)",
+  "Your words come from Zoom's captions": "Ordene dine kommer fra Zooms teksting",
+  "Captions only": "Bare teksting",
+  "No captions found, so your words aren't being recorded. Turn the microphone back on, or ask the host to turn on captions.": "Fant ingen teksting, så ordene dine blir ikke tatt opp. Slå på mikrofonen igjen, eller be verten slå på teksting."
 }

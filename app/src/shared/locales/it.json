@@ -819,5 +819,10 @@
   "Unmute my mic in Yogurt": "Riattiva il mio microfono in Yogurt",
   "Mic will stay off on resume": "Il microfono resterà disattivato alla ripresa",
   "Mic mute couldn’t be confirmed.": "Impossibile confermare la disattivazione del microfono.",
-  "Mic off. Yogurt can’t hear call audio.": "Microfono disattivato. Yogurt non riceve l’audio della chiamata."
+  "Mic off. Yogurt can’t hear call audio.": "Microfono disattivato. Yogurt non riceve l’audio della chiamata.",
+  "From Zoom's captions": "Dai sottotitoli di Zoom",
+  "Captions only (no microphone)": "Solo sottotitoli (senza microfono)",
+  "Your words come from Zoom's captions": "Le tue parole arrivano dai sottotitoli di Zoom",
+  "Captions only": "Solo sottotitoli",
+  "No captions found, so your words aren't being recorded. Turn the microphone back on, or ask the host to turn on captions.": "Nessun sottotitolo trovato, quindi le tue parole non vengono registrate. Riattiva il microfono o chiedi all’host di attivare i sottotitoli."
 }

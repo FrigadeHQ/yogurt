@@ -817,5 +817,10 @@
   "Unmute my mic in Yogurt": "Pornește-mi microfonul în Yogurt",
   "Mic will stay off on resume": "Microfonul va rămâne oprit la reluare",
   "Mic mute couldn’t be confirmed.": "Oprirea microfonului nu a putut fi confirmată.",
-  "Mic off. Yogurt can’t hear call audio.": "Microfon oprit. Yogurt nu poate auzi sunetul apelului."
+  "Mic off. Yogurt can’t hear call audio.": "Microfon oprit. Yogurt nu poate auzi sunetul apelului.",
+  "From Zoom's captions": "Din subtitrările Zoom",
+  "Captions only (no microphone)": "Doar subtitrări (fără microfon)",
+  "Your words come from Zoom's captions": "Cuvintele tale vin din subtitrările Zoom",
+  "Captions only": "Doar subtitrări",
+  "No captions found, so your words aren't being recorded. Turn the microphone back on, or ask the host to turn on captions.": "Nu s-au găsit subtitrări, așa că cuvintele tale nu sunt înregistrate. Pornește din nou microfonul sau roagă gazda să activeze subtitrările."
 }

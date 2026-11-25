@@ -53,7 +53,10 @@ export type Segment = { id: number; meetingId: string; track: 'me' | 'them'; sta
   /** High-confidence echo: retained for recovery, omitted from inline disclosures. */
   echoConfident?: boolean
   /** Shared display-only palette index, supplied by the transcript bridge. */
-  speakerColor?: number }
+  speakerColor?: number
+  /** where the words came from when it was not the audio: 'captions', the call app's live captions (a meeting joined
+   * without computer audio). Zoom's words, not what Yogurt heard, and shown as such. */
+  source?: 'captions' }
 export type Notes = { mine: string; enhanced: string | null; edited: boolean }
 
 const toMeeting = (r: Row): Meeting => ({
@@ -80,6 +83,7 @@ const toSegment = (r: Row): Segment => ({
   id: Number(r.id), meetingId: String(r.meeting_id), track: r.track as Segment['track'], startMs: Number(r.start_ms), endMs: Number(r.end_ms),
   text: String(r.text), speaker: r.speaker == null ? null : String(r.speaker), hidden: Number(r.hidden ?? 0) === 1,
   ...(Number(r.echo_confident ?? 0) === 1 ? { echoConfident: true } : {}),
+  ...(r.source === 'captions' ? { source: 'captions' as const } : {}),
 })
 
 /** Chinese, Japanese and Korean letters: searched by pairs of characters (they have NOFOLDERS_P between words) */
@@ -289,6 +293,7 @@ export class Store {
     if (!(this.db.prepare('PRAGMA table_info(notes)').all() as Row[]).some((r) => r.name === 'written_with')) this.db.exec('ALTER TABLE notes ADD COLUMN written_with TEXT')
     const segmentCols = (this.db.prepare('PRAGMA table_info(segments)').all() as Row[]).map((r) => String(r.name))
     if (!segmentCols.includes('hidden')) this.db.exec('ALTER TABLE segments ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0')
+    if (!segmentCols.includes('source')) this.db.exec('ALTER TABLE segments ADD COLUMN source TEXT')
     if (!segmentCols.includes('echo_confident')) {
       this.db.exec('BEGIN')
       try {
@@ -526,11 +531,11 @@ export class Store {
     } catch(error) { this.db.exec('ROLLBACK'); throw error }
   }
   addSegments(segs: Omit<Segment, 'id'>[]) {
-    const ins = this.db.prepare('INSERT INTO segments (meeting_id, track, start_ms, end_ms, text, speaker, hidden, echo_confident) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+    const ins = this.db.prepare('INSERT INTO segments (meeting_id, track, start_ms, end_ms, text, speaker, hidden, echo_confident, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
     this.db.exec('BEGIN')
     try {
       for (const s of segs) {
-        const r = ins.run(s.meetingId, s.track, s.startMs, s.endMs, s.text, s.speaker, s.hidden ? 1 : 0, s.hidden && s.echoConfident ? 1 : 0)
+        const r = ins.run(s.meetingId, s.track, s.startMs, s.endMs, s.text, s.speaker, s.hidden ? 1 : 0, s.hidden && s.echoConfident ? 1 : 0, s.source ?? null)
         // a hidden line is not for search
         if (s.hidden) this.db.prepare("INSERT INTO segments_fts(segments_fts, rowid, text) VALUES ('delete', ?, ?)").run(r.lastInsertRowid, s.text)
       }

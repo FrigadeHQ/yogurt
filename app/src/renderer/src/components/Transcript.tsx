@@ -425,6 +425,8 @@ export function Transcript({ id, notice, processing=false, replacing=false, reco
                 <p className={me ? 'sr-only' : 'turn-head flex items-baseline gap-2 px-1 text-xs'}>
                   <span data-testid="transcript-who" data-color={color} data-folder-color={color === undefined ? undefined : SPEAKER_COLORS[color]} className={`line-who font-medium ${me ? '' : 'text-muted'} ${named ? 'name-in' : 'invisible'}`}>{who(first)}</span>
                   <time className="turn-time tabular-nums text-muted">{clock(first.startMs)}</time>
+                  {/* the call's audio never reached Yogurt: these are Zoom's words, not what it heard */}
+                  {'source' in first && first.source === 'captions' && <span data-testid="transcript-source" className="text-muted">{t("From Zoom's captions")}</span>}
                 </p>
                 {bubbles(turn).map((b, i, groups) => (
                   <p key={transcriptRowKey(first.track, groups[i - 1]?.at(-1))} data-testid="transcript-bubble" data-track={first.track} dir="auto" className={`bubble ${me ? 'bubble-me' : 'bubble-them'}`}>

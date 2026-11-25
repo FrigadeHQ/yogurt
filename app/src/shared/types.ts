@@ -219,6 +219,8 @@ export type YogurtApi = {
     mics(): Promise<MicsView>
     /** records with this mic from now on (null: Auto), the meeting being recorded too; remembered for the next one */
     setMic(id: string | null): Promise<boolean>
+    /** Zoom's captions for the person's words in the meeting being recorded, the mic muted in Yogurt for it (on); the mic again (off). Never remembered */
+    captionsOnly(on: boolean): Promise<boolean>
     /** the mic in use changed while recording; fellBack: the chosen one went away and Auto took over */
     onMics(fn: (e: { fellBack: boolean }) => void): () => void
   }
@@ -441,7 +443,8 @@ export type PromptAction = 'take-notes' | 'close' | 'stop' | 'keep-going'
 /** A microphone on this Mac: its Core Audio UID, its name, and whether the Mac uses it now (Auto records with that one) */
 export type MicDevice = { id: string; name: string; isDefault: boolean }
 /** The mic picker: the mics, the chosen one (null: Auto), the name in use, and the default's name for Auto */
-export type MicsView = { devices: MicDevice[]; choice: string | null; using: string | null; defaultName: string | null }
+/** off: while recording, Zoom's captions stand in for the mic (chosen for this recording only) */
+export type MicsView = { devices: MicDevice[]; choice: string | null; using: string | null; defaultName: string | null; off?: boolean }
 
 /** What the recording widget shows: recording (time, hints) or the card after stopping */
 export type MicState = 'on' | 'muting' | 'off' | 'unmuting' | 'still-off' | 'unconfirmed' | 'restoring-off'
