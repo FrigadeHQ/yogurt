@@ -21,6 +21,7 @@ const MAC_APPS: CallApp[] = [
   { id: 'com.apple.FaceTime', name: 'FaceTime' },
   { id: 'com.tinyspeck.slackmacgap', name: 'Slack' },
   { id: 'com.hnc.Discord', name: 'Discord' },
+  { id: 'ru.yandex.desktop.telemost', name: 'Telemost' }, // Yandex Telemost
   { id: 'net.whatsapp.WhatsApp', name: 'WhatsApp' },
   { id: 'WhatsApp', name: 'WhatsApp' }, // legacy desktop app
   { id: 'com.google.Chrome', name: 'Chrome', browser: true },
@@ -31,6 +32,7 @@ const MAC_APPS: CallApp[] = [
   { id: 'com.microsoft.edgemac', name: 'Edge', browser: true },
   { id: 'org.mozilla.firefox', name: 'Firefox', browser: true },
   { id: 'com.brave.Browser', name: 'Brave', browser: true },
+  { id: 'ru.yandex.desktop.yandex-browser', name: 'Yandex Browser', browser: true },
 ]
 // Non-child bundle IDs used by known audio helpers; ownership still needs a running app.
 const MAC_HELPERS: Record<string, string> = {
@@ -40,6 +42,8 @@ const MAC_HELPERS: Record<string, string> = {
   'org.mozilla.plugincontainer': 'org.mozilla.firefox',
   'com.apple.WebKit.WebContent': 'com.apple.Safari',
   'com.apple.WebKit.GPU': 'com.apple.Safari',
+  // Telemost is a Qt app: its calls can run in Qt's shared web helper, which counts only while Telemost is running
+  'org.qt-project.Qt.QtWebEngineProcess': 'ru.yandex.desktop.telemost',
 }
 const named = (name: string, ids: string[], browser?: boolean): CallApp[] => ids.map((id) => ({ id, name, ...(browser ? { browser } : {}) }))
 /**
@@ -105,7 +109,8 @@ export const tabTitleApp = (bundleId: string): string | null => {
   return a?.browser ? a.id : null
 }
 
-const WEB_CALL = /\b(meet|teams|zoom)\b/i
+// Telemost's tabs are named in Russian ("Телемост", "Встреча в Телемосте"), where \b does not apply
+const WEB_CALL = /\b(meet|teams|zoom|telemost)\b|телемост/i
 
 /** the event this moment belongs to: starts within 10 minutes either way, not over; one with a call link first */
 export function matchEvent(events: CalEvent[], now: number): CalEvent | null {

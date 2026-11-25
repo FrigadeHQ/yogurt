@@ -103,7 +103,7 @@ export async function requestCalendarAccess(): Promise<CalendarStatus> {
 }
 
 // Links that start a call; anything else in an invite (docs, agendas) is not one
-const LINK = /https?:\/\/(?:[\w-]+\.)?(?:zoom\.us|zoomgov\.com|meet\.google\.com|teams\.microsoft\.com|teams\.live\.com|webex\.com|whereby\.com|facetime\.apple\.com|discord\.gg|around\.co|gotomeeting\.com)\/[^\s<>"')]*/i
+const LINK = /https?:\/\/(?:[\w-]+\.)?(?:zoom\.us|zoomgov\.com|meet\.google\.com|teams\.microsoft\.com|teams\.live\.com|webex\.com|whereby\.com|telemost(?:\.360)?\.yandex\.(?:ru|com)|facetime\.apple\.com|discord\.gg|around\.co|gotomeeting\.com)\/[^\s<>"')]*/i
 export const meetingLink = (text: string | undefined | null): string | null => text?.match(LINK)?.[0] ?? null
 
 const str = (v: unknown) => (typeof v === 'string' && v ? v : null)

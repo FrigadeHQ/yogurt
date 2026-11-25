@@ -90,18 +90,28 @@ describe('real bundle ids', () => {
     ['com.cisco.webexmeetingsapp', 'Webex'], ['Cisco-Systems.Spark', 'Webex'], ['com.apple.FaceTime', 'FaceTime'],
     ['com.tinyspeck.slackmacgap', 'Slack'], ['com.hnc.Discord', 'Discord'],
     ['net.whatsapp.WhatsApp', 'WhatsApp'], ['WhatsApp', 'WhatsApp'],
+    ['ru.yandex.desktop.telemost', 'Telemost'],
   ])('%s is %s', (id, name) => expect(p(id)).toBe(name))
   it.each([
     ['com.google.Chrome', 'Chrome'], ['company.thebrowser.Browser', 'Arc'], ['com.microsoft.edgemac', 'Edge'],
     ['org.mozilla.firefox', 'Firefox'], ['com.brave.Browser', 'Brave'], ['com.ardia.browser', 'Ardia'], ['company.thebrowser.dia', 'Dia'],
     ['com.apple.Safari', 'Safari'], ['com.apple.WebKit.WebContent', 'Safari'], ['com.apple.WebKit.GPU', 'Safari'],
+    ['ru.yandex.desktop.yandex-browser', 'Yandex Browser'],
   ])('browser %s is %s once the tab is a call', (id, name) => expect(p(id, { title: 'Zoom Meeting' })).toBe(name))
+  it('Qt\'s web helper on the mic is Telemost only while Telemost runs', () => {
+    const qt = { bundleId: 'org.qt-project.Qt.QtWebEngineProcess', name: 'QtWebEngineProcess' }
+    expect(decide(sig({ micApps: [qt], runningApps: ['ru.yandex.desktop.telemost'] }), NOW, none)?.app).toBe('Telemost')
+    expect(decide(sig({ micApps: [qt] }), NOW, none)).toBeNull()
+  })
   it('safari\'s web process without a call sign: nothing', () => expect(p('com.apple.WebKit.WebContent', { title: 'YouTube' })).toBeUndefined())
 })
 
 describe('browser tab titles', () => {
   it('chrome on the mic, a Meet tab, no event: a prompt', () => {
     expect(decide(sig({ micApps: [{ ...chrome, title: 'Meet - abc-defg-hij' }] }), NOW, none)).toMatchObject({ app: 'Chrome', event: null })
+  })
+  it.each(['Телемост', 'Встреча в Телемосте', 'Яндекс Телемост — Yandex', 'Telemost'])('a Telemost tab (%s): a prompt', title => {
+    expect(decide(sig({ micApps: [{ ...chrome, title }] }), NOW, none)).toMatchObject({ app: 'Chrome', event: null })
   })
   it('chrome on the mic, YouTube tab: null', () => {
     expect(decide(sig({ micApps: [{ ...chrome, title: 'YouTube' }] }), NOW, none)).toBeNull()
@@ -162,7 +172,7 @@ describe('audio helpers need their running owner', () => {
 
 
 describe('all supported browsers need a call sign', () => {
-  it.each(['com.google.Chrome', 'com.apple.Safari', 'com.microsoft.edgemac', 'org.mozilla.firefox', 'company.thebrowser.Browser', 'com.brave.Browser'])('%s never triggers from mic use alone', bundleId => {
+  it.each(['com.google.Chrome', 'com.apple.Safari', 'com.microsoft.edgemac', 'org.mozilla.firefox', 'company.thebrowser.Browser', 'com.brave.Browser', 'ru.yandex.desktop.yandex-browser'])('%s never triggers from mic use alone', bundleId => {
     const mic = { bundleId, name: 'Browser' }
     expect(tabTitleApp(bundleId)).toBe(bundleId)
     expect(decide(sig({ micApps: [mic] }), NOW, none)).toBeNull()
