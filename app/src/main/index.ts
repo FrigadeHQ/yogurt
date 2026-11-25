@@ -670,7 +670,13 @@ app.whenReady().then(() => {
     store, watch: !caps.callNames ? () => ({ stop() {} }) : isFake() ? fakeCallWatch : helperWatch(helperPath), myNames: () => [me(), macName()],
     transcribed: async (id) => { await recordingFinished(id); await transcriptFinished(id) },
     // people seen in the call joined the meeting: unedited notes already written get written again for them
-    changed: (id) => { win?.webContents.send('transcript:speakers', id); sendWidgetTranscript('transcript:speakers', id); win?.webContents.send('meetings:changed'); notes.applyPeople(id) },
+    // names from the call can finish the speaker labels on their own, so the notes held for labels must go on and
+    // the tray's mark must go quiet: a pass nobody asked for changes the labels without asking anyone
+    changed: (id) => {
+      win?.webContents.send('transcript:speakers', id); sendWidgetTranscript('transcript:speakers', id); win?.webContents.send('meetings:changed')
+      labelsWait.recheck(id); trayRef?.refresh()
+      notes.applyPeople(id)
+    },
     onStart: onMeetingStart, onStop: onMeetingStop, onCapture: onCaptureStart, onBind: onMeetingBound, micPids: (app) => micPidsNow(app),
   })
   if (process.platform === 'darwin' || process.platform === 'win32') callWindowOf = (id) => callNames.callWindow(id)
