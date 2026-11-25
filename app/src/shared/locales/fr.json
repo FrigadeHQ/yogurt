@@ -169,6 +169,8 @@
   "File": "Fichier",
   "Stopping…": "Arrêt en cours…",
   "Stop recording": "Arrêter l’enregistrement",
+  "Stop recording and quit?": "Arrêter l’enregistrement et quitter ?",
+  "Stop and Quit": "Arrêter et quitter",
   "Finish saving first": "Terminez d’abord l’enregistrement",
   "Finish setup": "Terminer la configuration",
   "Flag": "Drapeau",

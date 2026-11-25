@@ -161,6 +161,8 @@
   "File": "ファイル",
   "Stopping…": "停止中…",
   "Stop recording": "録音を停止",
+  "Stop recording and quit?": "録音を停止して終了しますか？",
+  "Stop and Quit": "停止して終了",
   "Finish saving first": "先に保存を終えてください",
   "Finish setup": "セットアップを完了",
   "Flag": "旗",
