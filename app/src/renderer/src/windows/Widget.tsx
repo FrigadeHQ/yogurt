@@ -4,7 +4,7 @@ import { widgetDragDelta, isWidgetClick, type WidgetPress } from '../../../share
 import { Loading } from '../components/Loading'
 import { bubbles, turns, withLive } from '../../../shared/transcript'
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { ArrowDown, MicOff, TriangleAlert } from '../components/Icons'
+import { ArrowDown, TriangleAlert } from '../components/Icons'
 import type { Segment, TranscriptPartial, WidgetView } from '../../../shared/types'
 import { formatElapsed } from '../../../shared/wave'
 import { t } from '../../../shared/i18n'
@@ -107,17 +107,14 @@ function Recording({ view }: { view: WidgetView }) {
   const showFeedback = view.micState === 'unconfirmed' || view.micState === 'still-off'
   const hover = useWidgetMorph(card, !!view.note || showFeedback, time, muted)
   const press = useDragOrClick(() => window.yogurt.widget.open(), hover)
-  return <RecordingPill ref={card} time={time} expanded={hover.open} data-testid="widget" data-kind="recording" role={hover.open ? 'group' : 'button'} tabIndex={0}
+  return <RecordingPill ref={card} time={time} expanded={hover.open} muted={muted} data-testid="widget" data-kind="recording" role={hover.open ? 'group' : 'button'} tabIndex={0}
     className="widget-morph" {...press}
     onFocus={e => { if (e.target.matches(':focus-visible')) hover.focus(true) }}
     onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) hover.focus(false) }}
     onMouseMove={e => hover.pointer(e.clientX, e.clientY)}
     onMouseLeave={() => hover.pointer(-1, -1)}
     aria-label={[t('Open {title}', { title: view.title }), muted && t('Mic off in Yogurt')].filter(Boolean).join('. ')} title={view.note?.text ?? t('Recording {title}', { title: view.title })}>
-    {hover.open ? <MicToggle pill id={view.meetingId} state={view.micState} />
-      : muted && <span className="widget-mic-status" aria-hidden="true">
-        <span className="widget-mic-off" data-testid="widget-mic-off"><MicOff size={14} /></span>
-      </span>}
+    {hover.open && <MicToggle pill id={view.meetingId} state={view.micState} />}
     <Preview view={view} open={hover.open} />
   </RecordingPill>
 }
