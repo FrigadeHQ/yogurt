@@ -47,8 +47,8 @@ function setup(over: Partial<SetupDeps> = {}) {
 const starterUrl = catalog.models.find((m) => m.starter)!.builds[0].url
 const bigUrl = catalog.models.find((m) => m.id === 'gemma-4-26b-a4b')!.builds[0].url
 const embedUrl = catalog.embedding.url
-const turboUrl = catalog.asr[0].url
-const smallUrl = catalog.asr[1].url
+const turboUrl = catalog.asr.find((a) => a.id === 'whisper-large-v3-turbo-q5_0')!.url
+const smallUrl = catalog.asr.find((a) => a.id === 'whisper-small-q5_1')!.url
 
 describe('SetupController', () => {
   it('keeps a failed fake notes download in the real retry state while recording remains ready', async () => {
@@ -591,6 +591,70 @@ describe('the speed check (Windows and Linux): speech models timed on this compu
 const preference = (root: string): NonNullable<SetupDeps['upgradePreference']> => ({
   load: () => loadSettings(join(root, 'settings.json')).notesUpgradeSkipped === true,
   save: skipped => { updateSettings(join(root, 'settings.json'), { notesUpgradeSkipped: skipped }) },
+})
+
+describe('Settings → Transcription', () => {
+  const smallFile = name(smallUrl), turboFile = name(turboUrl)
+  it('uses the speech model picked instead of the pick for this computer, and skips the speed check for it', async () => {
+    const mac = setup({ speechChoice: () => 'whisper-small-q5_1' })
+    await mac.c.start()
+    expect(mac.c.state).toMatchObject({ phase: 'ready', speechModel: 'whisper-small-q5_1' })
+    expect(mac.c.installed()?.asr).toContain(smallFile)
+    expect(mac.rec.asked).not.toContain(turboUrl)
+    // Auto still means this Mac's pick
+    expect(mac.c.speechModels()).toMatchObject({ choice: 'whisper-small-q5_1', auto: { id: 'whisper-large-v3-turbo-q5_0' } })
+    expect(mac.c.speechModels()?.models.map((m) => m.id)).toContain('whisper-small-q5_1')
+    const timed: string[] = []
+    const pc = setup({ getHardware: async () => ({ ...m1max, os: 'win32', arch: 'x64', gpu: { kind: 'none', name: '', vramGB: 0 } }), speechChoice: () => 'whisper-base-q5_1',
+      speed: { measure: async (p) => { timed.push(p); return { rtf: 0.1 } }, load: () => undefined, save: () => {} } })
+    await pc.c.start()
+    expect(pc.c.state).toMatchObject({ phase: 'ready', speechModel: 'whisper-base-q5_1' })
+    expect(timed).toEqual([])
+    // a choice that is no longer in the catalog: the pick for this computer
+    const gone = setup({ speechChoice: () => 'whisper-huge' })
+    await gone.c.start()
+    expect(gone.c.state.speechModel).toBe('whisper-large-v3-turbo-q5_0')
+  })
+  it('downloads a new pick while the old one goes on, waits for meetings to be transcribed, then swaps and removes the old file', async () => {
+    let choice: string | undefined, busy = true
+    const s = setup({ speechChoice: () => choice, speechBusy: () => busy, speechWaitMs: 5 })
+    await s.c.start()
+    const old = s.c.installed()!.asr
+    expect(old).toContain(turboFile)
+    {
+      choice = 'whisper-small-q5_1'
+      await s.c.switchSpeech()
+      expect(s.states.some((x) => x.speechSwitch?.id === 'whisper-small-q5_1')).toBe(true)
+      // a meeting is still being transcribed: the old one stays meanwhile
+      expect(s.c.state).toMatchObject({ speechModel: 'whisper-large-v3-turbo-q5_0', speechSwitchPending: 'whisper-small-q5_1' })
+      expect(s.c.installed()!.asr).toBe(old)
+      busy = false
+      await vi.waitFor(() => expect(s.c.state).toMatchObject({ speechModel: 'whisper-small-q5_1' }))
+      expect(s.c.state.speechSwitchPending).toBeUndefined()
+      expect(s.c.installed()!.asr).toContain(smallFile)
+      expect(existsSync(old)).toBe(false)
+      // back to Auto: this Mac's pick again
+      choice = undefined
+      await s.c.switchSpeech()
+      expect(s.c.state.speechModel).toBe('whisper-large-v3-turbo-q5_0')
+      // already the one in use: nothing to download
+      const asked = s.rec.asked.length
+      await s.c.switchSpeech()
+      expect(s.rec.asked.length).toBe(asked)
+    }
+  })
+  it('keeps the speech model it has when the new one does not download', async () => {
+    let choice: string | undefined
+    const inner = fakeDownloadDeps({ stepMs: 0 })
+    const download: DownloadDeps['download'] = async (url, ...rest) => { if (url === smallUrl) throw new Error('offline'); return inner.download(url, ...rest) }
+    const s = setup({ speechChoice: () => choice, speechBusy: () => false, download: { ...inner, download } })
+    await s.c.start()
+    choice = 'whisper-small-q5_1'
+    await s.c.switchSpeech()
+    expect(s.c.state.speechSwitchError).toBeTruthy()
+    expect(s.c.state.speechModel).toBe('whisper-large-v3-turbo-q5_0')
+    expect(s.c.installed()!.asr).toContain(turboFile)
+  })
 })
 
 describe('optional better notes model', () => {

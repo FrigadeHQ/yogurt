@@ -23,6 +23,8 @@ const api: YogurtApi = {
     retry: () => ipcRenderer.invoke('setup:retry'),
     skipUpgrade: () => ipcRenderer.invoke('setup:skip-upgrade'),
     downloadUpgrade: () => ipcRenderer.invoke('setup:download-upgrade'),
+    speechModels: () => ipcRenderer.invoke('setup:speech-models'),
+    setSpeechModel: (id) => ipcRenderer.invoke('setup:set-speech', id),
     removeUpgrade: () => ipcRenderer.invoke('setup:remove-upgrade'),
   },
   prompt: {

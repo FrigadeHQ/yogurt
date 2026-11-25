@@ -58,6 +58,8 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   spoken?: Spoken
   /** the default for newly written summaries; the meeting's language when left out */
   summaryLanguage?: string
+  /** Settings → Transcription: the speech model's catalog id; the pick for this computer when left out */
+  speechModel?: string
   /** new versions download by themselves; on unless turned off */
   autoUpdate?: boolean
   /** when the updater last fetched latest*.yml (ms): checks happen about once a day (updates.ts) */

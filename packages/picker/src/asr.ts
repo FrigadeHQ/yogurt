@@ -3,10 +3,11 @@ import type { AsrChoice, Catalog, CatalogAsr, Hardware } from './types'
 /**
  * The speech model for this Mac: the best one whose memory need fits (turbo on every Mac with 8 GB or more,
  * because the notes model never runs while recording on small Macs), small under that or when turbo failed
- * verification. The catalog lists them best first. Last-resort models are for the Windows and Linux speed check only.
+ * verification. The catalog lists them best first. Last-resort models are for the Windows and Linux speed check only;
+ * manual ones (large-v3) are only ever the person's own pick in Settings.
  */
 export function pickAsr(hw: Hardware, c: Catalog, opts: { exclude?: string[] } = {}): AsrChoice {
-  const all = c.asr.filter((a) => !a.lastResort)
+  const all = c.asr.filter((a) => !a.lastResort && !a.manual)
   const usable = all.filter((a) => !opts.exclude?.includes(a.id))
   const list = usable.length ? usable : all
   // Windows and Linux without graphics: whisper runs on the processor, where only the small model keeps up (a Mac always has them)
@@ -38,7 +39,7 @@ export const SPEED_CHECK_VERSION = 'v2'
 export function asrCandidates(hw: Hardware, c: Catalog, opts: { exclude?: string[] } = {}): CatalogAsr[] {
   if (hw.os === 'darwin') return []
   const cpuOnly = hw.gpu.kind === 'none'
-  return c.asr.filter((a) => a.minMemGB <= hw.totalRamGB && !(cpuOnly && a.gpuOnly) && !opts.exclude?.includes(a.id))
+  return c.asr.filter((a) => !a.manual && a.minMemGB <= hw.totalRamGB && !(cpuOnly && a.gpuOnly) && !opts.exclude?.includes(a.id))
 }
 
 /**

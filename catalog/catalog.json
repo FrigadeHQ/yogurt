@@ -188,6 +188,18 @@
   },
   "asr": [
     {
+      "id": "whisper-large-v3-q5_0",
+      "manual": true,
+      "name": "Whisper large-v3",
+      "license": "MIT",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-large-v3-q5_0.bin",
+      "sha256": "d75795ecff3f83b5faa89d1900604ad8c780abd5739fae406de19f23ecd98ad1",
+      "sizeGB": 1.08,
+      "bytes": 1081140203,
+      "minMemGB": 16,
+      "gpuOnly": true
+    },
+    {
       "id": "whisper-large-v3-turbo-q5_0",
       "name": "Whisper large-v3-turbo",
       "license": "MIT",
