@@ -18,7 +18,13 @@ concurrency:
 
 jobs:
   test:
-    # Xcode 26: the helpers use macOS 26's speech APIs
+    # Xcode 26: the helpers use macOS 26's speech APIs. The Mac end-to-end tests are split over 4 machines at once
+    # (about 53 min on one); this is a public repo, so the Mac runners cost nothing. Part 1 also typechecks and unit-tests.
+    name: test (${{ matrix.shard }}/4)
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
@@ -31,8 +37,10 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Typecheck
+        if: matrix.shard == 1
         run: pnpm -r typecheck
       - name: Unit tests
+        if: matrix.shard == 1
         run: pnpm -r test
       - name: Prepare CI motion capture
         run: pnpm -C app exec playwright install ffmpeg
@@ -40,12 +48,12 @@ jobs:
         # windows are shown on CI (nobody is watching)
         env:
           YOGURT_BACKGROUND: '0'
-        run: pnpm -C app e2e
+        run: pnpm -C app e2e --shard=${{ matrix.shard }}/4
       - name: Keep agenda motion review
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: agenda-motion
+          name: agenda-motion-${{ matrix.shard }}
           path: app/test-results/**/agenda-motion/*.webm
           if-no-files-found: ignore
           retention-days: 7
@@ -53,7 +61,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ui-review
+          name: ui-review-${{ matrix.shard }}
           path: |
             app/test-results/**/*.png
             app/test-results/**/scrub-motion/**/*.webm
@@ -64,7 +72,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-report
+          name: e2e-report-${{ matrix.shard }}
           path: app/test-results
           if-no-files-found: ignore
 
