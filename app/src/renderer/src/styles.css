@@ -168,36 +168,41 @@ html.widget, .widget-pill[data-illustration] { --pill:#232326;--pill-ink:#F7F7FA
 }
 .widget-pill:focus-visible { outline: 2px solid var(--pill-accent); outline-offset: -3px; }
 .widget-retry { color:#FFB0BD; }
-.widget-morph { position:absolute;visibility:hidden;overflow:hidden;isolation:isolate;user-select:none;color:var(--pill-ink);cursor:default; }
-.widget-morph[data-open=true] { cursor:grab; }
-.widget-details { position:absolute;left:0;top:0;z-index:2; }
+.widget-morph { --row-center:20px;position:absolute;visibility:hidden;overflow:hidden;isolation:isolate;user-select:none;color:var(--pill-ink);cursor:default;border-radius:10px; }
+.widget-morph[data-open=true] { --row-center:26px;cursor:grab;border-radius:16px; }
+.widget-details { position:absolute;left:0;right:0;top:0;z-index:2; }
 .widget-details>* { position:absolute;left:0;top:0;margin:0; }
-.widget-details>.widget-brand { left:16px;top:17px;animation:motion-fade var(--dur-micro) var(--ease-out) 40ms both; }
+.widget-morph .widget-details>* { top:var(--row-center);transform:translateY(-50%); }
+.widget-details>.widget-brand { left:16px; }
+.widget-morph .widget-readout { left:12px; }
+.widget-morph[data-open=true] .widget-readout { left:auto;right:46px; }
 .widget-readout { display:flex;align-items:center;gap:12px;width:max-content;direction:ltr; }
 /* The resting recorder in the first-run call. Only the native window morphs on hover. */
 .widget-pill[data-illustration] { width:max-content;border-radius:10px;color:var(--pill-ink);direction:ltr; }
 .widget-pill[data-illustration] .widget-details { position:static;display:flex;align-items:center;gap:12px;height:40px;padding:0 12px; }
 .widget-pill[data-illustration] .widget-details>* { position:static; }
-.widget-mic { position:absolute;z-index:2;right:9px;top:10px;display:grid;place-items:center;width:28px;height:28px;border-radius:5px;color:var(--pill-ink); }
+.widget-mic { position:absolute;z-index:2;right:9px;top:var(--row-center);transform:translateY(-50%);display:grid;place-items:center;width:28px;height:28px;border-radius:5px;color:var(--pill-ink); }
 .widget-mic[aria-busy=true] { opacity:.55; }
 .widget-mic:hover { background:#FFFFFF14; }
 .widget-mic:focus-visible { outline:2px solid var(--pill-accent); }
 .widget-mic[aria-pressed=true] { color:#FF797C;background:#FF5E661A; }
-.widget-mic-status { position:absolute;right:12px;top:8px;height:24px;display:flex;align-items:center;border-left:1px solid var(--widget-line);padding-left:12px; }
+.widget-mic-status { height:24px;display:flex;align-items:center;border-left:1px solid var(--widget-line);padding-left:12px; }
 .widget-mic-off { display:grid;place-items:center;width:24px;height:24px;border-radius:7px;color:#E5484D;background:rgba(229,72,77,.14); }
 .mic-feedback { margin:6px auto;font-size:13px;text-align:center; }
 .mic-pending-status { position:absolute;z-index:2;margin:0;font-size:12px;line-height:18px;pointer-events:none; }
 .widget-preview > .mic-pending-status { top:-36px;left:44px;right:125px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
 .note-footer > .mic-pending-status { bottom:100%;inset-inline:0;width:fit-content;max-width:100%;margin:auto;padding:2px 8px;border-radius:4px;background:var(--bg); }
 .widget-time { white-space:nowrap;font-size:10px;font-weight:500;font-variant-numeric:tabular-nums;text-box:trim-both cap alphabetic;line-height:15px;opacity:.8; }
-.widget-preview { position:absolute;left:0;top:52px;display:flex;flex-direction:column;padding:0 4px 12px 12px;color:var(--pill-ink);font-size:14px;line-height:21px;transform-origin:50% 0;cursor:default; }
-/* closed: the transcript stays mounted but unpainted (hidden once the close has played, its live dots paused); the meter repaints only itself */
-.widget-preview[aria-hidden=true] { visibility:hidden;transition:visibility 0s linear var(--dur-base); }
+.widget-preview { position:absolute;inset:52px 0 0;display:flex;flex-direction:column;padding:0 4px 12px 12px;color:var(--pill-ink);font-size:14px;line-height:21px;cursor:default; }
+/* Keep the transcript mounted, but hide it on the same frame as the compact pill. */
+.widget-preview[aria-hidden=true] { visibility:hidden;pointer-events:none; }
 .widget-preview[aria-hidden=true] * { animation-play-state:paused !important; }
+@media (prefers-reduced-motion:no-preference) {
+  .widget-preview[aria-hidden=false] { animation:motion-fade var(--dur-micro) var(--ease-out); }
+}
 .recording-wave { flex:none;overflow:visible; }
 .recording-wave line { transform-origin:center;transform-box:view-box; }
 .recording-wave:dir(rtl) > g { transform-origin:center;transform:scaleX(-1); }
-.widget-preview[aria-hidden=true] { pointer-events:none; }
 /* the scroll fade sets overflow inline; the reserved thin scrollbar keeps the reading edge still */
 .widget-preview-conversation { flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:scroll !important;overscroll-behavior:contain;padding:8px 4px 4px 0;scrollbar-gutter:stable;scrollbar-width:auto;scrollbar-color:auto; }
 /* Custom scrollbars stay visible even when macOS uses automatic overlay scrollbars. */
@@ -924,7 +929,6 @@ html:not(.widget) button:focus-visible, html:not(.widget) input:focus-visible { 
   .player-btn { transition:opacity var(--dur-micro) var(--ease-out); }
   .scrubber::-webkit-slider-thumb,.scrubber:hover::-webkit-slider-thumb,.scrubber:active::-webkit-slider-thumb { transition:none;transform:none; }
   .notes-download-trigger>svg { transition:none; }
-  .widget-preview[aria-hidden=true] { transition-delay:var(--dur-micro); }
 }
 
 .search-panel.dialog-motion,.search-panel.dialog-motion[data-ending-style] { transition:opacity var(--dur-micro) var(--ease-out),transform var(--dur-micro) var(--ease-out); }

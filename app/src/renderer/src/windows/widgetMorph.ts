@@ -1,38 +1,27 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { motion } from '../motion'
-import { WidgetIntent, widgetContains, widgetExpanded, type WidgetLayout } from '../../../shared/widgetMorph'
+import { WidgetIntent, widgetContains, widgetExpanded, widgetSizedPill, type WidgetLayout, type WidgetSurface } from '../../../shared/widgetMorph'
 
-/** The same surface and details travel between the two shapes. */
 export function useWidgetMorph(card: React.RefObject<HTMLDivElement | null>, warning: boolean, time: string, muted: boolean) {
   const intent = useRef(new WidgetIntent()).current
   const [open, setOpen] = useState(false)
   const [layout, setLayout] = useState<WidgetLayout | null>(null)
   const pointer = useRef({ x: -1, y: -1 })
   const keyboardFocus = useRef(false)
+  const surface = useRef<WidgetSurface | null>(null)
   const collapsedWidth = useRef(0)
-  const animations = useRef<Animation[]>([])
-  const resumeAt = useRef<number | null>(null)
-  const morph = useRef((immediate = false) => { void immediate })
-  /** the frame loop sleeps while nothing can change; anything that might change wakes it */
   const wake = useRef(() => {})
-  const freeze = () => {
-    for (const a of animations.current) {
-      if (card.current?.isConnected) a.commitStyles()
-      a.cancel()
-    }
-    animations.current = []
-  }
+
   useEffect(() => {
-    let alive = true
-    const off = window.yogurt.widget.onLayout(setLayout)
-    void window.yogurt.widget.layout().then(v => { if (alive) setLayout(v) })
+    let initial = true
+    const off = window.yogurt.widget.onLayout(next => { initial = false; setLayout(next) })
+    void window.yogurt.widget.layout().then(next => { if (initial) setLayout(next) })
     const offPointer = window.yogurt.widget.onPointer(p => { pointer.current = p; wake.current() })
     const offReset = window.yogurt.widget.onReset(() => {
       keyboardFocus.current = false
       intent.open = false; intent.over = false; intent.pressed = false; intent.due = null
-      resumeAt.current = null; setOpen(false); morph.current(true); wake.current()
+      setOpen(false); wake.current()
     })
-    return () => { alive = false; off(); offPointer(); offReset(); freeze() }
+    return () => { initial = false; off(); offPointer(); offReset() }
   }, [])
   useLayoutEffect(() => {
     const was = intent.warning
@@ -40,77 +29,40 @@ export function useWidgetMorph(card: React.RefObject<HTMLDivElement | null>, war
     if (was && !warning && !intent.over) intent.leave(performance.now())
     wake.current()
   }, [warning])
-  const previous = useRef<WidgetLayout | null>(null)
+
   useLayoutEffect(() => {
     const el = card.current
     if (!el || !layout) return
-    const readout = el.querySelector<HTMLElement>('.widget-readout')!
-    const body = el.querySelector<HTMLElement>('.widget-preview')!
-    const expanded = widgetExpanded(layout, warning)
-    morph.current = (immediate = false) => {
-      freeze()
-      const opened = intent.open, box = opened ? expanded : layout.pill
-      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      const duration = opened ? motion.surface : motion.base, easing = opened ? motion.soft : motion.ease
-      const animate = (node: HTMLElement, to: Record<string, string>, ms: number = duration, ease = easing, delay = 0) => {
-        const computed = getComputedStyle(node), from = Object.fromEntries(Object.keys(to).map(k => [k, computed[k as keyof CSSStyleDeclaration]]))
-        Object.assign(node.style, to)
-        if (!immediate && (!reduced || 'opacity' in to)) animations.current.push(node.animate([from, to] as Keyframe[], { duration: reduced ? motion.micro : ms, easing: ease, delay: reduced ? 0 : delay, fill: 'both' }))
-      }
-      animate(el, { left: `${box.x}px`, top: `${box.y}px`, width: `${box.width}px`, height: `${box.height}px`, borderRadius: opened ? '16px' : '10px' })
-      const readoutX = opened ? box.width - readout.getBoundingClientRect().width - 48 : 12
-      animate(readout, { transform: `translate(${readoutX}px,${opened ? 18 : 12}px)` })
-      body.style.width = `${expanded.width - 2}px`; body.style.height = `${expanded.height - 54}px`
-      animate(body, { transform: opened ? 'translateX(0) scale(1)' : 'translateX(40px) scale(.97)', filter: opened ? 'blur(0px)' : 'blur(2px)' }, duration, motion.ease)
-      animate(body, { opacity: opened ? '1' : '0' }, opened ? motion.base : motion.micro, motion.ease, opened ? 40 : 0)
-      el.style.visibility = 'visible'
+    // Measure the mounted row, including its badge, before the same React commit paints.
+    const box = open ? widgetExpanded(layout, warning)
+      : widgetSizedPill(layout, 26 + el.querySelector<HTMLElement>('.widget-readout')!.getBoundingClientRect().width)
+    Object.assign(el.style, { left: `${box.x}px`, top: `${box.y}px`, width: `${box.width}px`, height: `${box.height}px`, visibility: 'visible' })
+    if (!open) {
+      collapsedWidth.current = box.width
+      if (!intent.pressed && box.width !== layout.pill.width) window.yogurt.widget.size(box.width, 42)
     }
-    const before = previous.current
-    if (before && (intent.pressed || (resumeAt.current !== null && performance.now() < resumeAt.current))) {
-      freeze()
-      el.style.left = `${parseFloat(el.style.left) + layout.pill.x - before.pill.x}px`
-      el.style.top = `${parseFloat(el.style.top) + layout.pill.y - before.pill.y}px`
-      el.style.width = `${Math.min(parseFloat(el.style.width), layout.bounds.width)}px`
-      el.style.height = `${Math.min(parseFloat(el.style.height), layout.bounds.height)}px`
-    } else morph.current(true)
-    previous.current = layout
+    surface.current = { ...box, radius: open ? 16 : 10 }
+    window.yogurt.widget.surface(surface.current)
     wake.current()
-  }, [layout, warning])
-  useLayoutEffect(() => {
-    const readout = card.current?.querySelector<HTMLElement>('.widget-readout')
-    if (!readout) return
-    collapsedWidth.current = 26 + readout.getBoundingClientRect().width + (muted ? 12 + 1 + 12 + 24 : 0)
-    if (!intent.pressed) window.yogurt.widget.size(collapsedWidth.current, 42)
-  }, [time, open, layout?.pill.width, muted])
+  }, [layout, open, warning, muted, time.length]) // Tabular digits only change width when the clock gains a character.
+
   useEffect(() => {
-    let frame = 0, lastPoint = { x: -1, y: -1 }, lastSurface = ''
+    let frame = 0, lastPoint = { x: -1, y: -1 }
     const tick = (now: number) => {
       frame = 0
-      const el = card.current
-      if (el && el.style.visibility === 'visible') {
-        const r = el.getBoundingClientRect(), surface = { x: r.x, y: r.y, width: r.width, height: r.height, radius: parseFloat(getComputedStyle(el).borderRadius) }
-        const p = pointer.current, inside = keyboardFocus.current || widgetContains(surface, p.x, p.y)
+      if (surface.current) {
+        const p = pointer.current, inside = keyboardFocus.current || widgetContains(surface.current, p.x, p.y)
         if (inside !== intent.over) inside ? intent.enter(now) : intent.leave(now)
         else if (inside && (p.x !== lastPoint.x || p.y !== lastPoint.y)) intent.move(now)
         lastPoint = p
         const next = intent.tick(now)
-        if (next !== null) { setOpen(next); morph.current(); resumeAt.current = null }
-        else if (!intent.pressed && resumeAt.current !== null && now >= resumeAt.current) { resumeAt.current = null; morph.current() }
-        const key = JSON.stringify(surface)
-        if (key !== lastSurface) {
-          lastSurface = key; window.yogurt.widget.surface(surface)
-          if (!intent.open && !intent.pressed && surface.height === 42 && collapsedWidth.current) window.yogurt.widget.size(collapsedWidth.current, 42)
-        }
+        if (next !== null) setOpen(next)
       }
-      // Keep running only while a hover deadline is pending or the shape is moving.
-      if (intent.due || resumeAt.current !== null || animations.current.some(a => a.playState === 'running')) frame = requestAnimationFrame(tick)
+      if (intent.due) frame = requestAnimationFrame(tick)
     }
     wake.current = () => { if (!frame) frame = requestAnimationFrame(tick) }
     wake.current()
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const swap = () => { morph.current(true); wake.current() }
-    reduced.addEventListener('change', swap)
-    return () => { wake.current = () => {}; cancelAnimationFrame(frame); reduced.removeEventListener('change', swap) }
+    return () => { wake.current = () => {}; cancelAnimationFrame(frame) }
   }, [])
   return {
     open,
@@ -118,19 +70,15 @@ export function useWidgetMorph(card: React.RefObject<HTMLDivElement | null>, war
     pointer: (x: number, y: number) => {
       pointer.current = { x, y }
       wake.current()
-      const el = card.current
-      if (!el || el.style.visibility !== 'visible') return
-      const r = el.getBoundingClientRect()
-      window.yogurt.widget.surface({ x: r.x, y: r.y, width: r.width, height: r.height, radius: parseFloat(getComputedStyle(el).borderRadius) })
+      if (surface.current) window.yogurt.widget.surface(surface.current)
     },
-    press: () => { freeze(); intent.press(); resumeAt.current = null; window.yogurt.widget.pressed(true); wake.current() },
+    press: () => { intent.press(); window.yogurt.widget.pressed(true); wake.current() },
     release: (dragged: boolean) => {
       if (!intent.pressed) return
       intent.release(performance.now(), dragged)
-      resumeAt.current = performance.now() + (dragged ? 650 : 0)
-      wake.current()
       window.yogurt.widget.pressed(false)
-      if (collapsedWidth.current) window.yogurt.widget.size(collapsedWidth.current, 42)
+      if (!intent.open && collapsedWidth.current) window.yogurt.widget.size(collapsedWidth.current, 42)
+      wake.current()
     },
   }
 }

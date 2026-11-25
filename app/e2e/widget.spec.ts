@@ -78,17 +78,22 @@ test('the widget is a compact horizontal recorder with one live wave and no exte
 
 async function captureCenteredReadout(app: ElectronApplication, pill: Locator, path: string) {
   const png = await pill.screenshot({ path, scale: 'device' })
-  const { boxes, center, width } = await pill.evaluate(el => {
+  const { boxes, controls, center, width } = await pill.evaluate(el => {
     const bounds = el.getBoundingClientRect()
     const boxes = ['widget-wave', 'widget-time'].map(id => {
       const b = el.querySelector(`[data-testid="${id}"]`)!.getBoundingClientRect()
       return { left: b.left - bounds.left, right: b.right - bounds.left, mid: b.top - bounds.top + b.height / 2 }
     })
     const center = el.getAttribute('data-open') === 'true' ? 27 : bounds.height / 2
-    return { boxes, center, width: bounds.width }
+    const controls = [...el.querySelectorAll('[data-testid="logo"], .widget-mic, .widget-mic svg, .widget-mic-off, .widget-mic-off svg')].map(node => {
+      const b = node.getBoundingClientRect()
+      return b.top - bounds.top + b.height / 2
+    })
+    return { boxes, controls, center, width: bounds.width }
   })
   expect(Math.abs(boxes[0].mid - boxes[1].mid)).toBeLessThanOrEqual(0.5)
   for (const box of boxes) expect(Math.abs(box.mid - center)).toBeLessThanOrEqual(0.5)
+  for (const mid of controls) expect(Math.abs(mid - center)).toBeLessThanOrEqual(0.5)
   expect(png.readUInt32BE(16)).toBe(Math.round(width) * 2)
   // The old line boxes already lined up. Check the painted digits and strokes at Retina scale too.
   const ink = await app.evaluate(({ nativeImage }, { data, boxes, center }) => {
@@ -113,6 +118,60 @@ async function captureCenteredReadout(app: ElectronApplication, pill: Locator, p
   for (const mid of ink) expect(Math.abs(mid - center)).toBeLessThanOrEqual(0.5)
   expect(Math.abs(ink[0] - ink[1])).toBeLessThanOrEqual(0.5)
 }
+
+test('each visible recorder frame fits its contents across hover, mute and unmute', async () => {
+  const { app, page } = await launch()
+  try {
+    const w = await record(app, page), pill = w.getByTestId('widget')
+    const header = page.getByTestId('note-mic'), mic = w.getByTestId('widget-mic')
+    const badge = w.getByTestId('widget-mic-off')
+    const watch = await pill.evaluateHandle(el => {
+      const errors = new Set<string>(), seen = new Set<string>()
+      const sample = () => {
+        const open = el.dataset.open === 'true', bounds = el.getBoundingClientRect()
+        const timer = el.querySelector('.widget-time')!.getBoundingClientRect()
+        const divider = el.querySelector('.widget-mic-status')?.getBoundingClientRect()
+        const label = open ? 'expanded' : divider ? 'muted pill' : 'unmuted pill'
+        seen.add(label)
+        const width = open ? 340 : Math.round(53 + timer.width + (divider ? 49 : 0))
+        if (Math.abs(bounds.width - width) > 0.01) errors.add(`${label} width ${bounds.width}, expected ${width}`)
+        if (bounds.left < 0 || bounds.top < 0 || bounds.right > innerWidth || bounds.bottom > innerHeight) errors.add('surface outside native window')
+        if (divider && Math.abs(divider.left - timer.right - 12) > 0.01) errors.add('badge gap')
+        const preview = el.querySelector<HTMLElement>('.widget-preview')!
+        const visible = getComputedStyle(preview).visibility === 'visible'
+        const content = preview.getBoundingClientRect()
+        if (visible !== open || (visible && (content.left < bounds.left || content.right > bounds.right || content.bottom > bounds.bottom))) errors.add('transcript clipped or visible in the pill')
+        const brand = el.querySelector('.widget-brand')
+        if (open !== !!brand || (brand && getComputedStyle(brand).opacity !== '1')) errors.add('logo missing on open')
+      }
+      // Sample state commits as well as animation frames: an eventual width assertion misses the first bad paint.
+      const observer = new MutationObserver(sample)
+      observer.observe(el, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-open'] })
+      let frame = 0
+      const tick = () => { sample(); frame = requestAnimationFrame(tick) }
+      tick()
+      return { stop: () => { observer.disconnect(); cancelAnimationFrame(frame); return { errors: [...errors], seen: [...seen] } } }
+    })
+    // First change mute in the compact pill, then collapse directly from each expanded mic state.
+    await header.click()
+    await expect(badge).toBeVisible()
+    await header.click()
+    await expect(badge).toHaveCount(0)
+    await pill.hover()
+    await mic.click()
+    await expect(mic).toHaveAttribute('aria-pressed', 'true')
+    await w.mouse.move(0, 0)
+    await expect(badge).toBeVisible()
+    await pill.hover()
+    await mic.click()
+    await expect(mic).toHaveAttribute('aria-pressed', 'false')
+    await w.mouse.move(0, 0)
+    await expect(pill).toHaveAttribute('data-open', 'false')
+    const result = await watch.evaluate(watch => watch.stop())
+    expect(result.seen.sort()).toEqual(['expanded', 'muted pill', 'unmuted pill'])
+    expect(result.errors).toEqual([])
+  } finally { await app.close() }
+})
 
 test('the header and expanded card share confirmed mute, across collapse, reload and pause', async ({}, testInfo) => {
   const { app, page } = await launch(undefined, 'slow', '--force-device-scale-factor=2')
