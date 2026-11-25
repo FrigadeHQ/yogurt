@@ -12,6 +12,7 @@ import { bestMatch, blend, normalize, type ProfileVec } from './match'
 import { probeBackend, runDecode, runDiarize } from './run'
 import { fakeDecode, fakeTurns, fakeVectorFor } from './fake'
 import { enrollNamed, enrollRanges, SPEAKER_N } from './enroll'
+import { DIARIZE_TMP_PREFIX } from './temp'
 import type { EmbedClient } from './embed-client'
 
 export type Deps = {
@@ -57,7 +58,7 @@ export function createDiarizer(p: Deps) {
     if (!m || m.state === 'recording') return
     const file = trackFile(p.dirOf(id), 'them', p.exts())
     if (!file) { p.store.markDiarized(id, 'no them recording'); return }
-    const dir = mkdtempSync(join(tmpdir(), 'yogurt-diarize-'))
+    const dir = mkdtempSync(join(tmpdir(), DIARIZE_TMP_PREFIX))
     try {
       const wav = join(dir, 'them.wav'), rttmFile = join(dir, 'them.rttm')
       const cap = p.timeoutMs?.(m.durationMs ?? 0)

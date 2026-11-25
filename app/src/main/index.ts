@@ -78,6 +78,7 @@ import { hookReadAhead, readAheadAllowed } from './notes/readAhead'
 import { createQueue, isSmallMac, notesMemory } from './notes/queue'
 import { createDiarizer } from './diarize'
 import { createDiarizeSchedule } from './diarize/afterStop'
+import { sweepDiarizeTemp } from './diarize/temp'
 import { createLabelWait } from './labelsWait'
 import { createEmbedClient } from './diarize/embed-client'
 import { nemoSpeechPath } from './diarize/paths'
@@ -1124,12 +1125,8 @@ app.whenReady().then(() => {
     if (!meeting || meeting.trashedAt != null || activeMeeting() || resumingId) return
     await joinParts(dir)
   })
-  // a crash mid-diarization left a temp wav: sweep it (tmpdir has no meeting data anyone else reads)
-  try {
-    for (const d of readdirSync(tmpdir()).filter((n) => n.startsWith('yogurt-diarize-'))) {
-      rmSync(join(tmpdir(), d), { recursive: true, force: true })
-    }
-  } catch { /* tmpdir unreadable: nothing to sweep */ }
+  // a crash mid-diarization left a temp wav: sweep the runs' own dirs (never anything else in tmpdir)
+  sweepDiarizeTemp(tmpdir())
   // meetings whose notes a quit or crash cut short: caught up once the models are ready, one at a time
   let caughtUp = false
   // and meetings not in the library yet (or changed since) are indexed, once nothing else is waiting
