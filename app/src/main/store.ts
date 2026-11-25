@@ -5,7 +5,7 @@ import { matchSearchPeople, searchPersonKey, uniqueSearchPeople } from '../share
 import { oneEdit, parseSearchQuery, type SearchOptions } from '../shared/searchQuery'
 import { echoConfidence } from './asr/echo'
 import { backfillPeople, rememberPeople, resolvePeople } from './people'
-import { attendeeMembership, matchingOwnEmail, ownAddress, personEmail, sameAttendeeMembership } from '../shared/people'
+import { attendeeMembership, matchingOwnEmail, normalizedEmail, personEmail, sameAttendeeMembership } from '../shared/people'
 import type { FolderSuggestionRecord } from '../shared/folderSuggestion'
 import { unusedPreparedNote } from '../shared/agendaNote'
 import { speakerOrder } from '../shared/speakerColors'
@@ -335,38 +335,43 @@ export class Store {
   }
   private readMeeting(r: Row): Meeting {
     const { ownEmail: savedOwnEmail, ...m } = toMeeting(r)
-    const ownEmail = m.eventId ? ownAddress(savedOwnEmail) : matchingOwnEmail(m.attendees, this.ownEmails())
+    const ownEmail = m.eventId ? normalizedEmail(savedOwnEmail) : matchingOwnEmail(m.attendees, this.ownEmails())
     return { ...m, ...(ownEmail ? { ownEmail } : {}), attendees: resolvePeople(this.db, m.attendees) }
   }
-  renameAttendee(id: string, index: number, raw: string): boolean {
+  renameAttendee(id: string, index: number, raw: string, address?: string | null): boolean {
     const name = raw.replace(/\s+/g, ' ').trim().slice(0, 200)
     const row = this.db.prepare('SELECT attendees FROM meetings WHERE id = ?').get(id)
     if (!row || !name || !Number.isInteger(index) || index < 0) return false
     const people = JSON.parse(String(row.attendees)) as Person[], person = people[index]
     if (!person) return false
-    this.db.exec('SAVEPOINT rename_person')
-    try {
-      if (person.email) {
-        rememberPeople(this.db, [person])
-        this.db.prepare('UPDATE people SET display_name = ? WHERE email = ?').run(name, personEmail(person.email))
-      } else {
+    const previousEmail = person.email ? personEmail(person.email) : null
+    const email = address === undefined ? previousEmail : normalizedEmail(address)
+    if (address?.trim() && (!email || email.length > 200)) return false
+    return this.writeAtomically(() => {
+      const changedAddress = email !== previousEmail
+      const known = changedAddress && email && this.db.prepare('SELECT 1 FROM people WHERE email = ?').get(email)
+      if (email && !known) {
+        rememberPeople(this.db, [changedAddress ? { name, email } : person])
+        this.db.prepare('UPDATE people SET display_name = ? WHERE email = ?').run(name, email)
+      }
+      if (!email || changedAddress) {
         const previous = attendeeMembership(people)
-        person.name = name
+        if (email && people.some((p, i) => i !== index && p.email && personEmail(p.email) === email)) people.splice(index, 1)
+        else people[index] = known ? resolvePeople(this.db, [{ name: '', email }])[0] : { name, email }
         const renamed = attendeeMembership(people)
         this.db.prepare('UPDATE meetings SET attendees = ?, dismissed_attendees = CASE WHEN dismissed_attendees = ? THEN ? END WHERE id = ?')
           .run(JSON.stringify(people), previous, renamed, id)
         if (sameAttendeeMembership(this.writtenWith(id), previous)) this.setWrittenWith(id, renamed)
       }
       this.db.prepare('UPDATE meetings SET keep_attendees = 1 WHERE id = ?').run(id)
-      this.db.exec('RELEASE rename_person')
       return true
-    } catch (e) { this.db.exec('ROLLBACK TO rename_person; RELEASE rename_person'); throw e }
+    })
   }
   ownEmails(): string[] {
     return this.db.prepare('SELECT email FROM own_emails ORDER BY email').all().map(r => String(r.email))
   }
   rememberOwnEmail(value: string | null | undefined) {
-    const email = ownAddress(value)
+    const email = normalizedEmail(value)
     return !!email && this.db.prepare('INSERT OR IGNORE INTO own_emails (email) VALUES (?)').run(email).changes > 0
   }
   close() { this.db.close() }
@@ -386,7 +391,7 @@ export class Store {
   createMeeting(m: Omit<Meeting, 'id' | 'language' | 'titleSource'> & { language?: string | null; titleSource?: TitleSource; folderId?: string }, id: string = randomUUID()): Meeting {
     return this.writeAtomically(() => {
       const language = m.language ?? null
-      const ownEmail = m.eventId ? ownAddress(m.ownEmail) : null
+      const ownEmail = m.eventId ? normalizedEmail(m.ownEmail) : null
       this.rememberOwnEmail(ownEmail)
       const titleSource = m.titleSource ?? sourceOf(m.title, m.eventId)
       this.db.prepare('INSERT INTO meetings (id, title, started_at, ended_at, event_id, app, attendees, state, language, title_source, duration_ms, event_started_at, event_ended_at, event_title, event_calendar_name, event_calendar_source, source, source_id, transcription_pending, own_email, keep_attendees) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
@@ -419,7 +424,7 @@ export class Store {
   rememberEvent(event: CalEvent): Meeting[] {
     this.rememberOwnEmail(event.ownEmail)
     const ids = eventIds(event)
-    const values = [event.start, event.end, event.title, event.calendar?.name ?? null, event.calendar?.source ?? null, ownAddress(event.ownEmail)]
+    const values = [event.start, event.end, event.title, event.calendar?.name ?? null, event.calendar?.source ?? null, normalizedEmail(event.ownEmail)]
     const columns = ['event_started_at', 'event_ended_at', 'event_title', 'event_calendar_name', 'event_calendar_source', 'own_email']
     const rows = this.db.prepare(`UPDATE meetings SET ${columns.map(c => `${c} = ?`).join(', ')}
       WHERE event_id IN (${ids.map(() => '?').join(', ')}) AND (${columns.map(c => `${c} IS NOT ?`).join(' OR ')}) RETURNING *`)

@@ -1,4 +1,12 @@
 {
+  "Edit attendee": "Deelnemer bewerken",
+  "Name": "Naam",
+  "Email": "E-mailadres",
+  "Add email": "E-mailadres toevoegen",
+  "Enter a valid email address.": "Vul een geldig e-mailadres in.",
+  "Enter a name.": "Vul een naam in.",
+  "Remove from meeting": "Uit vergadering verwijderen",
+  "{name} removed from meeting": "{name} is uit de vergadering verwijderd",
   "Record": "Opnemen",
   "Search meetings": "Vergaderingen zoeken",
   "About Yogurt": "Over Yogurt",

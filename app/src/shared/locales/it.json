@@ -1,4 +1,12 @@
 {
+  "Edit attendee": "Modifica partecipante",
+  "Name": "Nome",
+  "Email": "Indirizzo email",
+  "Add email": "Aggiungi email",
+  "Enter a valid email address.": "Inserisci un indirizzo email valido.",
+  "Enter a name.": "Inserisci un nome.",
+  "Remove from meeting": "Rimuovi dalla riunione",
+  "{name} removed from meeting": "{name} non figura più tra i partecipanti",
   "Record": "Registra",
   "Search meetings": "Cerca riunioni",
   "About Yogurt": "Informazioni su Yogurt",

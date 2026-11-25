@@ -1,4 +1,12 @@
 {
+  "Edit attendee": "แก้ไขข้อมูลผู้เข้าร่วม",
+  "Name": "ชื่อ",
+  "Email": "อีเมล",
+  "Add email": "เพิ่มอีเมล",
+  "Enter a valid email address.": "ป้อนที่อยู่อีเมลที่ถูกต้อง",
+  "Enter a name.": "ป้อนชื่อ",
+  "Remove from meeting": "นำออกจากการประชุม",
+  "{name} removed from meeting": "นำ {name} ออกจากการประชุมแล้ว",
   "Record": "บันทึก",
   "Search meetings": "ค้นหาการประชุม",
   "About Yogurt": "เกี่ยวกับ Yogurt",

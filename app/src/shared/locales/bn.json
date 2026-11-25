@@ -1,4 +1,12 @@
 {
+  "Edit attendee": "অংশগ্রহণকারীর তথ্য সম্পাদনা করুন",
+  "Name": "নাম",
+  "Email": "ইমেল",
+  "Add email": "ইমেল যোগ করুন",
+  "Enter a valid email address.": "একটি বৈধ ইমেল ঠিকানা লিখুন।",
+  "Enter a name.": "একটি নাম লিখুন।",
+  "Remove from meeting": "মিটিং থেকে সরান",
+  "{name} removed from meeting": "মিটিং থেকে {name}কে সরানো হয়েছে",
   "Record": "রেকর্ড করুন",
   "Search meetings": "মিটিং খুঁজুন",
   "About Yogurt": "Yogurt সম্পর্কে",

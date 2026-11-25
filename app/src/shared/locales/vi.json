@@ -1,4 +1,12 @@
 {
+  "Edit attendee": "Chỉnh sửa người tham dự",
+  "Name": "Tên",
+  "Email": "Email",
+  "Add email": "Thêm email",
+  "Enter a valid email address.": "Nhập địa chỉ email hợp lệ.",
+  "Enter a name.": "Nhập tên.",
+  "Remove from meeting": "Xóa khỏi cuộc họp",
+  "{name} removed from meeting": "Đã xóa {name} khỏi cuộc họp",
   "Record": "Ghi âm",
   "Search meetings": "Tìm cuộc họp",
   "About Yogurt": "Giới thiệu về Yogurt",

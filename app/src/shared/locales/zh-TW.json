@@ -1,4 +1,12 @@
 {
+  "Edit attendee": "編輯與會者",
+  "Name": "姓名",
+  "Email": "電子郵件",
+  "Add email": "新增電子郵件",
+  "Enter a valid email address.": "請輸入有效的電子郵件地址。",
+  "Enter a name.": "請輸入姓名。",
+  "Remove from meeting": "從會議中移除",
+  "{name} removed from meeting": "已從會議中移除{name}",
   "Record": "錄音",
   "Search meetings": "搜尋會議",
   "About Yogurt": "關於 Yogurt",

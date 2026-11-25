@@ -1,4 +1,12 @@
 {
+  "Edit attendee": "Edit peserta",
+  "Name": "Nama",
+  "Email": "Email",
+  "Add email": "Tambahkan email",
+  "Enter a valid email address.": "Masukkan alamat email yang valid.",
+  "Enter a name.": "Masukkan nama.",
+  "Remove from meeting": "Hapus dari rapat",
+  "{name} removed from meeting": "{name} telah dihapus dari rapat",
   "Record": "Rekam",
   "Search meetings": "Cari rapat",
   "About Yogurt": "Tentang Yogurt",

@@ -1,4 +1,12 @@
 {
+  "Edit attendee": "I-edit ang kalahok",
+  "Name": "Pangalan",
+  "Email": "Email",
+  "Add email": "Magdagdag ng email",
+  "Enter a valid email address.": "Maglagay ng wastong email address.",
+  "Enter a name.": "Maglagay ng pangalan.",
+  "Remove from meeting": "Alisin sa pulong",
+  "{name} removed from meeting": "Inalis si {name} sa pulong",
   "Record": "Mag-record",
   "Search meetings": "Maghanap ng mga meeting",
   "About Yogurt": "Tungkol sa Yogurt",

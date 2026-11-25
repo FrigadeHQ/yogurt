@@ -55,7 +55,7 @@ import { createSignals } from './detectSignals'
 import { createMicWatch, spawnMicWatch } from './micWatch'
 import { Watcher } from './watch'
 import { createPrompts } from './prompts'
-import { activeMeeting, bindMeetingApp, getMeeting, initMeetings, onMeetingBound, onMeetingChange, onMeetingStart, onMeetingStop, onMeetingStopSaved, createFolderNote, refreshEventSnapshots, linkEvent, unlinkEvent, prepareMeeting, startPreparedMeeting, resumeMeeting, pauseMeetingClock, renameMeeting, retryStopSave, setAttendees, startMeeting, stopMeeting, stopSavePending, withStopState } from './meeting'
+import { activeMeeting, bindMeetingApp, changeAttendee, getMeeting, initMeetings, onMeetingBound, onMeetingChange, onMeetingStart, onMeetingStop, onMeetingStopSaved, createFolderNote, publishMeetingChange, refreshEventSnapshots, linkEvent, unlinkEvent, prepareMeeting, startPreparedMeeting, resumeMeeting, pauseMeetingClock, renameMeeting, retryStopSave, setAttendees, startMeeting, stopMeeting, stopSavePending, withStopState } from './meeting'
 import { deleteMeeting } from './deleteMeeting'
 import { emptyTrash, moveToTrash, purgeTrash } from './trash'
 import { isId, text, rewriteNote } from './ipcArgs'
@@ -1115,18 +1115,23 @@ app.whenReady().then(() => {
   // the person's own title for a note
   ipcMain.handle('meetings:rename', (_e, id: unknown, title: unknown) => { if (isId(id) && typeof title === 'string') renameMeeting(id, title) })
   // who was there, by hand, or from a calendar event picked for the note: unedited notes are written again with them
-  ipcMain.handle('meetings:rename-attendee', (_e, id: unknown, index: unknown, name: unknown, expected: unknown) => {
+  ipcMain.handle('meetings:rename-attendee', (_e, id: unknown, index: unknown, name: unknown, expected: unknown, email: unknown) => {
+    if (email !== undefined && email !== null && typeof email !== 'string') return false
     if (!isId(id) || typeof index !== 'number' || typeof name !== 'string') return false
     const before = store.meeting(id)
     const person = before?.attendees[index]
     if (!person || !expected || typeof expected !== 'object') return false
     const previous = expected as { name?: unknown; email?: unknown }
     if (person.email ? previous.email !== person.email : previous.email != null || previous.name !== person.name) return false
-    if (!store.renameAttendee(id, index, name)) return false
-    notes.renamed(id, before.attendees, store.meeting(id)!.attendees)
-    win?.webContents.send('meetings:changed')
+    if (!store.renameAttendee(id, index, name, email)) return false
+    notes.renamed(id, before.attendees, publishMeetingChange(id).attendees)
     win?.webContents.send('calendar:changed')
     void indexer.refresh()
+    return true
+  })
+  ipcMain.handle('meetings:change-attendee', (_e, id: unknown, action: unknown, person: unknown, index: unknown) => {
+    if (!isId(id) || !changeAttendee(id, action, person, index)) return false
+    notes.applyPeople(id)
     return true
   })
   const setPeople = (id: unknown, people: unknown): boolean => {

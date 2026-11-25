@@ -1,4 +1,12 @@
 {
+  "Edit attendee": "Upravit účastníka",
+  "Name": "Jméno",
+  "Email": "E-mail",
+  "Add email": "Přidat e-mail",
+  "Enter a valid email address.": "Zadejte platnou e-mailovou adresu.",
+  "Enter a name.": "Zadejte jméno.",
+  "Remove from meeting": "Odebrat ze schůzky",
+  "{name} removed from meeting": "Ze schůzky odebráno: {name}",
   "Record": "Nahrávat",
   "Search meetings": "Hledat schůzky",
   "About Yogurt": "O aplikaci Yogurt",

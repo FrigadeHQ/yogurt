@@ -1,4 +1,12 @@
 {
+  "Edit attendee": "Katılımcıyı düzenle",
+  "Name": "Ad",
+  "Email": "E-posta",
+  "Add email": "E-posta ekle",
+  "Enter a valid email address.": "Geçerli bir e-posta adresi girin.",
+  "Enter a name.": "Bir ad girin.",
+  "Remove from meeting": "Toplantıdan kaldır",
+  "{name} removed from meeting": "{name} toplantıdan kaldırıldı",
   "Record": "Kaydet",
   "Search meetings": "Toplantı ara",
   "About Yogurt": "Yogurt hakkında",

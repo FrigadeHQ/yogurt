@@ -1,4 +1,12 @@
 {
+  "Edit attendee": "Επεξεργασία συμμετέχοντα",
+  "Name": "Όνομα",
+  "Email": "Email",
+  "Add email": "Προσθήκη email",
+  "Enter a valid email address.": "Εισαγάγετε μια έγκυρη διεύθυνση email.",
+  "Enter a name.": "Εισαγάγετε ένα όνομα.",
+  "Remove from meeting": "Αφαίρεση από τη σύσκεψη",
+  "{name} removed from meeting": "Το άτομο {name} αφαιρέθηκε από τη σύσκεψη",
   "Record": "Ηχογράφηση",
   "Search meetings": "Αναζήτηση συναντήσεων",
   "About Yogurt": "Σχετικά με το Yogurt",

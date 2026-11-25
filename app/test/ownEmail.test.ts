@@ -6,7 +6,7 @@ import { openStore } from '../src/main/store'
 import { parseEvents, setCalendarOwnEmail } from '../src/main/calendar'
 import { initMeetings, linkEvent, prepareMeeting, refreshEventSnapshots, startMeeting, stopMeeting, unlinkEvent } from '../src/main/meeting'
 import { mergeBackup } from '../src/main/backup'
-import { groupPeople, matchingOwnEmail, ownAddress } from '../src/shared/people'
+import { groupPeople, matchingOwnEmail, normalizedEmail } from '../src/shared/people'
 
 const people = [{ name: 'Attendee One', email: 'one@studio.example' }, { name: 'Attendee Two', email: 'two@client.example' }]
 const note = { title: 'Planning', startedAt: 1, endedAt: 2, eventId: null, app: null, attendees: people, state: 'done' as const }
@@ -19,7 +19,7 @@ it('uses only a valid, known own address with an exact matching attendee domain'
   expect(matchingOwnEmail(people, [])).toBeNull()
   expect(matchingOwnEmail([], ['self@studio.example'])).toBeNull()
   expect(matchingOwnEmail(people, ['z@studio.example', 'a@studio.example'])).toBe('a@studio.example')
-  for (const value of [null, {}, '', 'not-email', 'two@@studio.example', 'two@studio', 'two name@studio.example']) expect(ownAddress(value)).toBeNull()
+  for (const value of [null, {}, '', 'not-email', 'two@@studio.example', 'two@studio', 'two name@studio.example']) expect(normalizedEmail(value)).toBeNull()
 })
 
 it('keeps the helper own address on its event without adding it to attendees', () => {

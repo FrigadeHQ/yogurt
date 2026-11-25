@@ -1,4 +1,12 @@
 {
+  "Edit attendee": "עריכת פרטי משתתף",
+  "Name": "שם",
+  "Email": "דוא״ל",
+  "Add email": "הוספת דוא״ל",
+  "Enter a valid email address.": "יש להזין כתובת דוא״ל תקינה.",
+  "Enter a name.": "יש להזין שם.",
+  "Remove from meeting": "הסרה מהפגישה",
+  "{name} removed from meeting": "השם {name} הוסר מרשימת המשתתפים",
   "Record": "הקלטה",
   "Search meetings": "חיפוש פגישות",
   "About Yogurt": "על Yogurt",

@@ -115,7 +115,7 @@ it('keeps caret movement quiet and restores a previously unfocused containing sc
 it('reveals the focused action and clears overlapping metadata even when the focus ring is quiet', () => {
   const style = readFileSync(new URL('../src/renderer/src/styles.css', import.meta.url), 'utf8')
   const workspace = readFileSync(new URL('../src/renderer/src/workspace.css', import.meta.url), 'utf8')
-  expect(style).toMatch(/\.person-remove:focus\s*\{\s*opacity:\s*1;/)
+  expect(style).toMatch(/\.person-action:focus\s*\{\s*opacity:\s*1;/)
   const swap = workspace.match(/\.workspace-folder-item:hover,([^{}]+)\{([^{}]+)\}/)
   expect(swap?.[1]).toContain('.workspace-nav:is(:focus-visible:not([data-quiet-focus]),[data-focus-ring])')
   expect(swap?.[1]).toContain('.workspace-folder-more:is(:focus,[aria-expanded=true])')

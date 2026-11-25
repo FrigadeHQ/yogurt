@@ -1,4 +1,12 @@
 {
+  "Edit attendee": "参加者を編集",
+  "Name": "名前",
+  "Email": "メールアドレス",
+  "Add email": "メールアドレスを追加",
+  "Enter a valid email address.": "有効なメールアドレスを入力してください。",
+  "Enter a name.": "名前を入力してください。",
+  "Remove from meeting": "会議から削除",
+  "{name} removed from meeting": "会議から{name}さんを削除しました",
   "Record": "録音",
   "Search meetings": "会議を検索",
   "About Yogurt": "Yogurt について",

@@ -1,4 +1,12 @@
 {
+  "Edit attendee": "编辑参会者",
+  "Name": "姓名",
+  "Email": "电子邮箱",
+  "Add email": "添加邮箱",
+  "Enter a valid email address.": "请输入有效的电子邮箱地址。",
+  "Enter a name.": "请输入姓名。",
+  "Remove from meeting": "从会议中移除",
+  "{name} removed from meeting": "已从会议中移除{name}",
   "Record": "录音",
   "Search meetings": "搜索会议",
   "About Yogurt": "关于 Yogurt",

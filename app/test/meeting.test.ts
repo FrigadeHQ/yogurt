@@ -3,7 +3,7 @@ import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
 import { Capture, activeCapture, hookCapture, recordingFinished, type CaptureProc } from '../src/main/capture'
 import { openStore, type Store } from '../src/main/store'
-import { activeMeeting, bindMeetingApp, getMeeting, initMeetings, onMeetingChange, onMeetingStart, onMeetingStop, onMeetingStopSaved, createFolderNote, prepareMeeting, startPreparedMeeting, resumeMeeting, pauseMeetingClock, renameMeeting, retryStopSave, setAttendees, refreshEventSnapshots, linkEvent, unlinkEvent, startMeeting, stopMeeting, withStopState } from '../src/main/meeting'
+import { activeMeeting, bindMeetingApp, changeAttendee, getMeeting, initMeetings, onMeetingChange, onMeetingStart, onMeetingStop, onMeetingStopSaved, createFolderNote, prepareMeeting, startPreparedMeeting, resumeMeeting, pauseMeetingClock, renameMeeting, retryStopSave, setAttendees, refreshEventSnapshots, linkEvent, unlinkEvent, startMeeting, stopMeeting, withStopState } from '../src/main/meeting'
 
 let store: Store
 beforeEach(() => { store = openStore(':memory:'); initMeetings(store) })
@@ -12,6 +12,17 @@ const event = { id: 'e1', title: 'Design review', start: 1000, end: 2000, attend
 
 describe('meeting lifecycle', () => {
   // #127: a recording ended a second after it started, and nothing in main.log said what ended it
+  it('restores just the removed attendee at their old position and ignores a repeated Undo', () => {
+    const { id } = startMeeting({ title: '', event, app: null })
+    const ann = event.attendees[0], bo = { name: 'Bo', email: null }
+    expect(changeAttendee(id, 'remove', bo, 0)).toBe(false)
+    expect(changeAttendee(id, 'remove', ann, 0)).toBe(true)
+    expect(changeAttendee(id, 'add', bo)).toBe(true)
+    expect(changeAttendee(id, 'add', ann, 0)).toBe(true)
+    expect(changeAttendee(id, 'add', ann, 0)).toBe(true)
+    expect(activeMeeting()?.attendees).toEqual([ann, bo])
+    expect(store.meeting(id)?.attendees).toEqual([ann, bo])
+  })
   it('says in the log what stopped a recording, and how long after it started', () => {
     const info = vi.spyOn(console, 'info').mockImplementation(() => {})
     try {
