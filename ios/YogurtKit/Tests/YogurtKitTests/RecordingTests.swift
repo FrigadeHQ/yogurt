@@ -211,6 +211,47 @@ private func no(_ b: Bool, _ loc: SourceLocation = #_sourceLocation) { #expect(!
         #expect(rec.summary == nil && rec.uploadedAt == nil)
     }
 
+    @Test(arguments: [0, 85])
+    func trashInTheFirstBufferIsAtomicAndRecoveryHonorsRestore(_ ms: Int) throws {
+        let folder = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let store = try Store(url: folder.appendingPathComponent("store.sqlite"))
+        var p = RecordingInProgress(id: "brief", startedAt: t0, audioFile: "brief.m4a")
+        p.myNotes = "First thought"
+        p.lines = [.init(startMs: 0, endMs: 50, text: "Hi")]
+        p.trashedAt = t0
+        p.finishedDurationMs = ms
+        let audio = folder.appendingPathComponent(p.audioFile), journal = folder.appendingPathComponent("brief.json")
+        let bytes = Data([1, 2, 3])
+        try bytes.write(to: audio)
+        try JSONEncoder().encode(p).write(to: journal)
+        let recovered = try JSONDecoder().decode(RecordingInProgress.self, from: Data(contentsOf: journal))
+        #expect(recovered.trashedAt == t0 && recovered.finishedDurationMs == ms)
+        func finish() throws {
+            try recovered.finish(in: folder, title: "Brief", durationMs: ms, store: store)
+        }
+        try store.db.run("CREATE TRIGGER fail_trash BEFORE INSERT ON pending_ops BEGIN SELECT RAISE(ABORT, 'test'); END")
+        #expect(throws: DatabaseError.self) { try finish() }
+        #expect(store.meeting(p.id) == nil && store.localRecordings().isEmpty)
+        #expect(try Data(contentsOf: audio) == bytes && FileManager.default.fileExists(atPath: journal.path))
+        try store.db.run("DROP TRIGGER fail_trash")
+        try finish()
+        #expect(store.hasTrashedMeetings && store.meetings().isEmpty)
+        #expect(store.meetings(trashed: true).map(\.trashedAt) == [t0])
+        #expect(store.notes(p.id)?.mine == "First thought")
+        #expect(store.segments(p.id).map(\.text) == ["Hi"])
+        #expect(store.meeting(p.id)?.endedAt == t0.addingTimeInterval(Double(ms == 0 ? 50 : ms) / 1000))
+        #expect(store.staysOnPhone(p.id) == (ms == 0))
+        #expect(FileManager.default.fileExists(atPath: audio.path) == (ms > 0))
+        #expect(!FileManager.default.fileExists(atPath: journal.path))
+        try store.enqueue(PendingOp(Op(kind: .restore, meetingId: p.id)))
+        try finish()
+        #expect(store.meetings().map(\.id) == [p.id])
+        #expect(!store.hasTrashedMeetings)
+        #expect(store.pendingOps().map(\.op.kind) == [.trash, .restore])
+    }
+
     @Test func withoutAKnownLengthTheLastLineSetsTheEnd() {
         var p = RecordingInProgress(id: "r", startedAt: t0, audioFile: "r.m4a")
         p.lines = [.init(startMs: 0, endMs: 42_000, text: "x")]

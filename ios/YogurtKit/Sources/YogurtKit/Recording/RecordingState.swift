@@ -131,9 +131,27 @@ public struct RecordingInProgress: Sendable, Codable, Equatable {
     public var lines: [LocalRecording.Line] = []
     /// the spoken language it is transcribed in (BCP-47); nil from an older build
     public var language: String?
+    /// Saved before the audio writer closes so recovery honors Move to Trash.
+    public var trashedAt: Date?
+    /// Zero is distinct from a writer that never finished before a crash.
+    public var finishedDurationMs: Int?
 
     public init(id: String, startedAt: Date, audioFile: String) {
         self.id = id; self.startedAt = startedAt; self.audioFile = audioFile
+    }
+
+    /// Zero duration means no captured audio. An unknown duration keeps the file. Remove the journal last.
+    public func finish(in folder: URL, title: String, durationMs: Int?, store: Store) throws {
+        let rec = recording(in: folder, title: title, durationMs: durationMs == 0 ? nil : durationMs)
+        try store.finishRecording(rec, trashedAt: trashedAt, hasAudio: durationMs != 0)
+        let files = FileManager.default
+        do {
+            if store.staysOnPhone(id), files.fileExists(atPath: rec.audioURL.path) { try files.removeItem(at: rec.audioURL) }
+            try files.removeItem(at: folder.appendingPathComponent("\(id).json"))
+        } catch CocoaError.fileNoSuchFile {
+        } catch {
+            store.log("Could not clean up finished recording \(id)")
+        }
     }
 
     /// durationMs: the audio's length when it could be read, else the end of the last line.

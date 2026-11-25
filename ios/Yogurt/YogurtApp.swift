@@ -16,7 +16,6 @@ struct YogurtApp: App {
                     Text(S.storeFailed).foregroundStyle(Theme.muted).multilineTextAlignment(.center).padding(32)
                 }
             }
-            .tint(Theme.accent)
         }
     }
 }
@@ -174,11 +173,29 @@ final class AppModel {
     /// An edit made on this iPhone is in the Store: show it everywhere now, even with no computer to sync with.
     func edited() { edits &+= 1 }
 
-    /// Queues an edit for the computer and lets sync send it.
-    func send(_ op: Op) {
-        try? store.enqueue(PendingOp(op))
+    func waitsToSync(_ id: String) -> Bool {
+        guard engine.status.isPaired, !store.staysOnPhone(id) else { return false }
+        if case .connected = engine.status { return false }
+        return true
+    }
+
+    /// Queues an edit for the computer and returns any feedback needed while it waits.
+    @discardableResult
+    func send(_ op: Op) throws -> String? {
+        try store.enqueue(PendingOp(op))
         edited()
         Task { await engine.syncNow() }
+        return waitsToSync(op.meetingId) ? S.changeQueued : nil
+    }
+
+    func registerTrashUndo(_ id: String, with manager: UndoManager, notice: @escaping (String) -> Void) {
+        manager.registerUndo(withTarget: self) { [store] model in
+            guard model.store === store, store.meeting(id)?.trashedAt != nil else { return }
+            do {
+                if let message = try model.send(Op(kind: .restore, meetingId: id)) { notice(message) }
+            } catch { notice(S.notSaved) }
+        }
+        manager.setActionName(S.moveToTrash)
     }
 }
 

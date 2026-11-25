@@ -13,7 +13,7 @@ struct PhoneDraftNotice: View {
         let reads = AppleIntelligence.reads(locale)
         let available = AppleIntelligence.modelAvailable && reads
         let notice = DraftNotice.for(hasSummary: false, writing: drafts.isWriting(meetingId), modelAvailable: AppleIntelligence.modelAvailable,
-                                     modelPreparing: AppleIntelligence.preparing, languageSupported: reads, paired: model.engine.status != .notPaired)
+                                     modelPreparing: AppleIntelligence.preparing, languageSupported: reads, paired: model.engine.status != .notPaired && !model.store.staysOnPhone(meetingId))
         VStack(alignment: .leading, spacing: 12) {
             switch notice {
             case .writing:

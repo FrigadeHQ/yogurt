@@ -47,13 +47,15 @@ export async function importPhoneRecording(
   const titleSource = m.titleSource === 'typed' ? 'user' : m.titleSource === 'model' ? 'auto' : 'generic'
   d.store.createMeeting({ title: m.title, titleSource, source: 'audio-file',
     startedAt: m.startedAt, endedAt: m.endedAt, durationMs: m.endedAt - m.startedAt, eventId: null, app: null, attendees: m.attendees,
-    state: 'stopped', transcriptionPending: true, language: m.language ? languageName(m.language) : null }, m.id)
+    state: 'stopped', trashedAt: m.trashedAt, transcriptionPending: true, language: m.language ? languageName(m.language) : null }, m.id)
   // marked as the phone's, so its language is kept when it is transcribed (phoneLanguage)
   d.store.updateMeeting(m.id, { sourceId: summary ? DRAFT + m.id : `phone:${m.id}` })
   if (draft.myNotes.trim() || summary) d.store.setNotes(m.id, { mine: draft.myNotes, ...(summary ? { enhanced: summary } : {}) })
   // one microphone in a room: nobody is named, like an uploaded file
   if (lines.length) d.store.addSegments(lines.map((l) => ({ meetingId: m.id, track: 'them' as const, startMs: l.startMs, endMs: l.endMs, text: l.text.trim(), speaker: AUDIO_SPEAKER })))
+  // A restored note with phone lines uses the same staged replacement as an active import.
+  if (m.trashedAt != null && lines.length) d.store.beginTranscriptionReplacement(m.id)
   d.changed()
   // with the phone's lines shown, this computer's transcript is staged and replaces them only when it is done
-  void d.start(m.id, lines.length > 0)
+  if (m.trashedAt == null) void d.start(m.id, lines.length > 0)
 }

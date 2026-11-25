@@ -9,12 +9,12 @@ struct RecordView: View {
     /// called with the new meeting's id after Stop
     let saved: (String) -> Void
     var preview = false
+    var trashed: (String) -> Void = { _ in }
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var recording = RecordingController()
     @State private var pickingLanguage = false
     @State private var tab: Tab = .transcript
-    @State private var confirmDiscard = false
     @Environment(\.scenePhase) private var phase
     @FocusState private var typing: Bool
 
@@ -37,20 +37,6 @@ struct RecordView: View {
         .padding(.horizontal, 20)
         .background(Theme.bg)
         .safeAreaInset(edge: .bottom) { controls }
-        .alert(S.discardQuestion, isPresented: $confirmDiscard) {
-            Button(S.keepRecording, role: .cancel) {}
-                .accessibilityIdentifier("record-keep")
-            Button(S.discard, role: .destructive) {
-                Task {
-                    #if DEBUG
-                    if preview { dismiss(); return }
-                    #endif
-                    await recording.discard()
-                    dismiss()
-                }
-            }
-            .accessibilityIdentifier("record-discard-confirm")
-        }
         .sheet(isPresented: $pickingLanguage) {
             SpokenLanguageList(selection: Binding(get: { recording.spokenSelection }, set: { recording.changeLanguage(to: $0) }),
                                hint: S.forThisRecording)
@@ -101,10 +87,9 @@ struct RecordView: View {
                 Spacer(minLength: 8)
                 if recording.state.isLive {
                     Menu {
-                        Button(role: .destructive) { confirmDiscard = true } label: {
-                            Label(S.discard, systemImage: "trash")
-                        }
-                        .accessibilityIdentifier("record-discard")
+                        Button(S.moveToTrash, systemImage: "trash", role: .destructive) { Task { await stop(moveToTrash: true) } }
+                        .tint(Color(uiColor: .systemRed))
+                        .accessibilityIdentifier("record-move-to-trash")
                     } label: {
                         Image(systemName: "ellipsis")
                             .foregroundStyle(Theme.ink)
@@ -254,14 +239,21 @@ struct RecordView: View {
         }
     }
 
-    private func stop() async {
+    private func stop(moveToTrash: Bool = false) async {
         typing = false
         #if DEBUG
-        if preview { dismiss(); return }
-        #endif
-        if let id = await recording.stop(model: model) {
+        if preview {
+            if moveToTrash {
+                guard recording.trashPreview(model: model) else { return }
+                trashed(recording.id)
+            }
             dismiss()
-            saved(id)
+            return
+        }
+        #endif
+        if let id = await recording.stop(model: model, moveToTrash: moveToTrash) {
+            dismiss()
+            if moveToTrash { trashed(id) } else { saved(id) }
         }
     }
 
@@ -273,6 +265,17 @@ struct LiveTranscriptView: View {
     let transcript: LiveTranscript
     let live: Bool
 
+    // Monospaced digits make the last settled time as wide as the widest one, at any text size.
+    private func timestamp(_ ms: Int? = nil) -> some View {
+        ZStack(alignment: .leading) {
+            Text(Format.offset(transcript.lines.last?.startMs ?? 0)).hidden().accessibilityHidden(true)
+            if let ms { Text(Format.offset(ms)) }
+        }
+        .font(.caption.monospacedDigit())
+        .foregroundStyle(Theme.muted)
+        .fixedSize()
+    }
+
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 14) {
@@ -281,10 +284,8 @@ struct LiveTranscriptView: View {
                         .font(.subheadline).foregroundStyle(Theme.muted)
                 }
                 ForEach(Array(transcript.lines.enumerated()), id: \.offset) { _, line in
-                    HStack(alignment: .firstTextBaseline, spacing: 10) {
-                        Text(Format.offset(line.startMs))
-                            .font(.caption.monospacedDigit()).foregroundStyle(Theme.muted)
-                            .frame(minWidth: 36, alignment: .leading)
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        timestamp(line.startMs)
                         Text(line.text).font(.body).foregroundStyle(Theme.written).lineSpacing(4)
                             .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -293,8 +294,8 @@ struct LiveTranscriptView: View {
                     .transition(.opacity)
                 }
                 if !transcript.volatile.isEmpty {
-                    HStack(alignment: .firstTextBaseline, spacing: 10) {
-                        Color.clear.frame(width: 36, height: 1)
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        timestamp()
                         Text(transcript.volatile).font(.body).foregroundStyle(Theme.muted).lineSpacing(4)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }

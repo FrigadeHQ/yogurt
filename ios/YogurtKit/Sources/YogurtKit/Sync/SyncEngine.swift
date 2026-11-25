@@ -151,6 +151,7 @@ public final class SyncEngine: SyncEngineProtocol {
     /// recordings the computer didn't take: how many tries so far, and not before when
     @ObservationIgnored private var uploadWaits: [String: (tries: Int, until: ContinuousClock.Instant)] = [:]
     @ObservationIgnored private var uploadRetry: Task<Void, Never>?
+    public private(set) var uploadingId: String?
     var uploadFolder: URL { config.uploadFolder }
     var audioFolder: URL { config.audioFolder }
     /// a recording that waits a moment before going to the computer (its draft notes and title are being written)
@@ -485,7 +486,12 @@ public final class SyncEngine: SyncEngineProtocol {
             try await pull(s, from: fullPull ? 0 : nil)
             fullPull = false
             var again = try await sendOps(s)
-            again = try await sendUploads(s) || again
+            let imported = try await sendUploads(s)
+            if !imported.isEmpty {
+                // A fresh phone meeting can only be moved to Trash once the computer has imported it.
+                _ = try await sendOps(s, for: imported)
+                again = true
+            }
             if again || fullPull {
                 try await pull(s, from: fullPull ? 0 : nil)
                 fullPull = false
@@ -560,11 +566,13 @@ public final class SyncEngine: SyncEngineProtocol {
     }
 
     /// In order; each is cleared only once the desktop said ok. True when any was answered.
-    private func sendOps(_ s: DesktopSession) async throws -> Bool {
+    private func sendOps(_ s: DesktopSession, for meetingIDs: Set<String>? = nil) async throws -> Bool {
         var answered = false
         // a meeting whose op has to wait keeps its later ops waiting too, so they arrive in order
         var held = Set<String>()
         for p in store.pendingOps() where !held.contains(p.op.meetingId) {
+            if let meetingIDs, !meetingIDs.contains(p.op.meetingId) { continue }
+            if store.staysOnPhone(p.op.meetingId) { continue }
             let body = try JSONSerialization.jsonObject(with: JSONEncoder().encode(p.op)) as? [String: Any] ?? [:]
             do {
                 let r = try await s.request("op", body, timeout: .seconds(30))
@@ -604,17 +612,21 @@ public final class SyncEngine: SyncEngineProtocol {
         await syncNow()
     }
 
-    private func sendUploads(_ s: DesktopSession) async throws -> Bool {
-        var any = false
+    private func sendUploads(_ s: DesktopSession) async throws -> Set<String> {
+        var imported = Set<String>()
         // one still recording (no end yet) waits until it's finished
         let now = ContinuousClock.now
         let waiting = store.localRecordings().filter {
             $0.uploadedAt == nil && $0.endedAt != nil && !holdsUpload($0.id) && (uploadWaits[$0.id]?.until ?? now) <= now
         }
         for (i, rec) in waiting.enumerated() {
+            // Another recording may have been deleted while the previous one was sending.
+            guard !store.audioDeleted(rec.id) else { continue }
+            uploadingId = rec.id
+            defer { uploadingId = nil }
             if session === s { status = .connected(name, syncing: waiting.count - i) }
             do {
-                if try await upload(rec, over: s) { any = true }
+                if try await upload(rec, over: s) { imported.insert(rec.id) }
                 uploadWaits[rec.id] = nil
             } catch let e as SyncError where e == .closed || e == .timeout {
                 throw e
@@ -629,7 +641,7 @@ public final class SyncEngine: SyncEngineProtocol {
         // gone meanwhile (imported, discarded): nothing to wait for
         let open = Set(store.localRecordings().filter { $0.uploadedAt == nil }.map(\.id))
         uploadWaits = uploadWaits.filter { open.contains($0.key) }
-        return any
+        return imported
     }
 
     /// True once the desktop has the meeting for good.
@@ -639,6 +651,7 @@ public final class SyncEngine: SyncEngineProtocol {
             "id": rec.id, "title": rec.title, "titleSource": rec.titleSource.rawValue, "startedAt": ms(rec.startedAt), "endedAt": ms(rec.endedAt ?? rec.startedAt),
             "attendees": rec.attendees.map { ["name": $0.name ?? "", "email": $0.email as Any? ?? NSNull()] },
         ]
+        if let trashedAt = store.meeting(rec.id)?.trashedAt { meeting["trashedAt"] = ms(trashedAt) }
         // the computer transcribes it again in the language it was spoken in, instead of its own setting
         if let language = rec.language { meeting["language"] = language }
         var body: [String: Any] = ["meeting": meeting, "myNotes": rec.myNotes,
@@ -723,6 +736,35 @@ public final class SyncEngine: SyncEngineProtocol {
         return try JSONDecoder().decode(RemoteAnswer.self, from: JSONSerialization.data(withJSONObject: r))
     }
 
+    /// Deletes only files on this phone. The computer requires audio to import a new recording.
+    public func deleteAudio(meetingId id: String) throws {
+        guard uploadingId != id else { throw SyncError.remote("busy") }
+        let fm = FileManager.default
+        var files: [URL] = []
+        do {
+            files = try fm.contentsOfDirectory(at: config.audioFolder, includingPropertiesForKeys: nil).filter {
+                let stem = $0.deletingPathExtension().lastPathComponent
+                return (stem == id + "-me" || stem == id + "-them") && PlayerLogic.canPlay(ext: $0.pathExtension)
+            }
+        } catch CocoaError.fileReadNoSuchFile {}
+        if let rec = try store.localRecording(id) {
+            guard rec.id == id, rec.audioURL.lastPathComponent == id + ".m4a" else { throw SyncError.badMessage }
+            let wav = wavURL(id)
+            files += [wav, wav.appendingPathExtension("part"), rec.audioURL]
+        }
+        try store.db.transaction {
+            try store.markAudioDeleted(id)
+            for file in files {
+                do {
+                    guard try file.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile == true else { throw CocoaError(.fileWriteInvalidFileName) }
+                    try fm.removeItem(at: file)
+                } catch CocoaError.fileReadNoSuchFile {} catch CocoaError.fileNoSuchFile {}
+            }
+        }
+        uploadWaits[id] = nil
+        revision += 1
+    }
+
     /// A track fetched before, if it's still in the caches folder.
     public func cachedAudio(meetingId: String, track: String = "them") -> URL? {
         let names = (try? FileManager.default.contentsOfDirectory(atPath: config.audioFolder.path)) ?? []
@@ -737,6 +779,7 @@ public final class SyncEngine: SyncEngineProtocol {
     /// One track of a desktop meeting's audio ("me" is the mic, "them" the call; a phone recording is "them"),
     /// fetched once into the caches folder under the kind of file the computer has. `progress` goes from 0 to 1.
     public func audioURL(meetingId: String, track: String = "them", progress: (@MainActor (Double) -> Void)? = nil) async throws -> URL {
+        guard !store.audioDeleted(meetingId) else { throw SyncError.remote("gone") }
         if let file = cachedAudio(meetingId: meetingId, track: track) { return file }
         guard let s = session else { throw SyncError.notConnected }
         try PrivateFolder.make(config.audioFolder)
@@ -757,6 +800,7 @@ public final class SyncEngine: SyncEngineProtocol {
                 return index >= of - 1
             }
             try out.close()
+            guard !store.audioDeleted(meetingId) else { throw SyncError.remote("gone") }
             let file = config.audioFolder.appending(path: "\(meetingId)-\(track).\(ext.lowercased())")
             try? FileManager.default.removeItem(at: file)
             try FileManager.default.moveItem(at: part, to: file)

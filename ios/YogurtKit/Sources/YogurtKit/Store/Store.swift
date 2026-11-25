@@ -95,6 +95,7 @@ public final class Store {
     /// exist nowhere else), as drafts again, with the edits made to them: those go to whichever computer gets them.
     public func forgetDesktop() throws {
         try db.transaction {
+            try db.run("DELETE FROM meta WHERE key LIKE 'deletedAudio:%' AND substr(key, length('deletedAudio:') + 1) NOT IN (\(Self.notUploaded))")
             try db.run("DELETE FROM pending_ops WHERE meeting_id NOT IN (\(Self.notUploaded))")
             try db.run("DELETE FROM op_aliases WHERE live_id NOT IN (SELECT id FROM pending_ops)")
             try resetForNewEpoch()
@@ -187,7 +188,11 @@ public final class Store {
 
     // MARK: - Reading
 
-    /// Newest first. Trashed meetings only when `trashed` is true.
+    public var hasTrashedMeetings: Bool {
+        (try? db.query("SELECT 1 FROM meetings WHERE trashed_at IS NOT NULL LIMIT 1").first) != nil
+    }
+
+    /// Newest first. The Trash and the active library are separate lists.
     public func meetings(folder: String? = nil, trashed: Bool = false) -> [Meeting] {
         let join = folder == nil ? "" : "JOIN folder_members f ON f.meeting_id = m.id AND f.folder_id = ?"
         let rows = (try? db.query("""
@@ -353,6 +358,18 @@ public final class Store {
 
     // MARK: - Recorded on the phone
 
+    /// Commit a finished recording and its initial Trash operation together. A leftover journal may replay after Restore.
+    public func finishRecording(_ rec: LocalRecording, trashedAt: Date?, hasAudio: Bool) throws {
+        try db.transaction {
+            guard try localRecording(rec.id) == nil else { return }
+            try saveLocalRecording(rec)
+            if !hasAudio { try markAudioDeleted(rec.id) }
+            if let trashedAt {
+                try enqueue(PendingOp(Op(kind: .trash, meetingId: rec.id), createdAt: trashedAt))
+            }
+        }
+    }
+
     /// Keeps (or updates) a recording and shows it as a draft meeting until the desktop sends its own.
     public func saveLocalRecording(_ rec: LocalRecording) throws {
         try db.transaction {
@@ -360,6 +377,22 @@ public final class Store {
                        [.text(rec.id), .real(rec.startedAt.timeIntervalSince1970), .text(json(rec))])
             try writeDraft(rec)
         }
+    }
+
+    /// A local choice: opening this note again must not fetch the deleted audio from the computer.
+    public func audioDeleted(_ id: String) -> Bool { meta("deletedAudio:" + id) != nil }
+
+    public func markAudioDeleted(_ id: String) throws { try setMeta("deletedAudio:" + id, "1") }
+
+    public func awaitsFirstUpload(_ id: String) -> Bool {
+        (try? db.query("SELECT 1 FROM meetings WHERE id = ? AND source = 'phone' AND id IN (\(Self.notUploaded))", [.text(id)]).first) != nil
+    }
+
+    public func staysOnPhone(_ id: String) -> Bool { audioDeleted(id) && awaitsFirstUpload(id) }
+
+    public func localRecording(_ id: String) throws -> LocalRecording? {
+        guard let data = try db.query("SELECT data FROM local_recordings WHERE id = ?", [.text(id)]).first?.first?.string else { return nil }
+        return try JSONDecoder().decode(LocalRecording.self, from: Data(data.utf8))
     }
 
     public func localRecordings() -> [LocalRecording] { (try? loadRecordings()) ?? [] }

@@ -114,7 +114,7 @@ struct SettingsView: View {
                 }
                 .disabled(syncing)
                 Button(role: .destructive) { confirmUnpair = true } label: {
-                    rowLabel(S.unpair, icon: "minus.circle", color: Theme.danger)
+                    rowLabel(S.unpair, icon: "minus.circle", color: .red, iconColor: .red)
                 }
             }
         } header: { sectionTitle(S.computer) } footer: {
@@ -132,10 +132,10 @@ struct SettingsView: View {
             .foregroundStyle(Theme.muted)
     }
 
-    private func rowLabel(_ title: String, icon: String, color: Color = Theme.ink) -> some View {
+    private func rowLabel(_ title: String, icon: String, color: Color = Theme.ink, iconColor: Color = Theme.muted) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .foregroundStyle(Theme.muted)
+                .foregroundStyle(iconColor)
                 .frame(width: iconWidth)
                 .accessibilityHidden(true)
             Text(title).foregroundStyle(color)

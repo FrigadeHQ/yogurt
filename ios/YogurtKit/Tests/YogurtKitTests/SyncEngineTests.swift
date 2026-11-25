@@ -90,6 +90,35 @@ import Testing
         #expect(rig.store.pendingOps().map(\.op.kind) == [.setMine, .rename])
     }
 
+    @Test func aRecordingTrashedOfflineReachesTrashOnTheComputerInOneSync() async throws {
+        let rig = try Rig()
+        let audio = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".m4a")
+        defer { try? FileManager.default.removeItem(at: audio) }
+        let bytes = Data([10, 20, 30])
+        try bytes.write(to: audio)
+        let start = Date(timeIntervalSince1970: 10)
+        let rec = LocalRecording(id: "brief", title: "Brief", startedAt: start, endedAt: start.addingTimeInterval(0.1),
+                                 attendees: [], audioURL: audio, myNotes: "", transcript: [], summary: nil)
+        try rig.store.finishRecording(rec, trashedAt: start.addingTimeInterval(1), hasAudio: true)
+        let desk = rig.desktop
+        // An older computer ignores trashedAt on upload and only accepts the operation after import.
+        desk.opReply = { body in
+            guard desk.imported[rec.id] != nil else { return .failure(.remote("gone")) }
+            desk.addMeeting(rec.id, title: rec.title, trashedAt: body["kind"] as? String == "trash" ? 11_000 : nil)
+            return .success(["applied": true])
+        }
+        rig.engine.setForeground(true)
+        #expect(await eventually { rig.connected && rig.store.pendingOps().isEmpty })
+        let meeting = try #require(desk.requests("uploadMeeting").first?["meeting"] as? [String: Any])
+        #expect(meeting["trashedAt"] as? Int == 11_000)
+        #expect(desk.importedAudio[rec.id] == bytes)
+        #expect(rig.store.meetings(trashed: true).map(\.id) == [rec.id])
+        try rig.store.enqueue(PendingOp(Op(kind: .restore, meetingId: rec.id)))
+        await rig.engine.syncNow()
+        #expect(rig.store.meetings().map(\.id) == [rec.id])
+        #expect(desk.imported[rec.id] == 1)
+    }
+
     @Test func anUploadCutOffAfterChunkThreeStartsOverAndTheDesktopGetsOneMeeting() async throws {
         let rig = try Rig()
         let audio = Data((0..<50).map { UInt8($0) })
@@ -163,6 +192,75 @@ import Testing
         // fetched once
         _ = try await rig.engine.audioURL(meetingId: "m1")
         #expect(rig.desktop.requests("audio").count == 1)
+    }
+
+    @Test func deletingCachedAudioOnThePhoneKeepsTheComputerCopy() async throws {
+        let bytes = Data("audio".utf8)
+        let rig = try Rig { $0.addMeeting("m1", title: "Walk"); $0.audioFiles["m1"] = bytes }
+        rig.engine.setForeground(true)
+        #expect(await eventually { rig.connected })
+        let them = try await rig.engine.audioURL(meetingId: "m1")
+        let mic = try await rig.engine.audioURL(meetingId: "m1", track: "me")
+        let other = rig.engine.audioFolder.appending(path: "m10-them.wav")
+        try bytes.write(to: other)
+
+        try rig.engine.deleteAudio(meetingId: "m1")
+        try rig.engine.deleteAudio(meetingId: "m1")
+        #expect(!FileManager.default.fileExists(atPath: them.path))
+        #expect(!FileManager.default.fileExists(atPath: mic.path))
+        #expect(try Data(contentsOf: other) == bytes)
+        #expect(rig.desktop.audioFiles["m1"] == bytes)
+        #expect(rig.store.meeting("m1")?.title == "Walk")
+        #expect(!rig.store.staysOnPhone("m1"))
+        await #expect(throws: SyncError.remote("gone")) { try await rig.engine.audioURL(meetingId: "m1") }
+        #expect(rig.desktop.requests("audio").count == 2)
+        try rig.store.forgetDesktop()
+        #expect(!rig.store.audioDeleted("m1"))
+    }
+
+    @Test func aFailedRemovalCanBeRetriedWithoutRemovingADirectory() throws {
+        let rig = try Rig()
+        let fm = FileManager.default
+        let track = rig.engine.audioFolder.appending(path: "m1-me.wav")
+        try fm.createDirectory(at: track, withIntermediateDirectories: true)
+        #expect(throws: CocoaError.self) { try rig.engine.deleteAudio(meetingId: "m1") }
+        #expect(fm.fileExists(atPath: track.path))
+        #expect(!rig.store.audioDeleted("m1"))
+        try fm.removeItem(at: track)
+        try Data([1]).write(to: track)
+        try rig.engine.deleteAudio(meetingId: "m1")
+        #expect(!fm.fileExists(atPath: track.path))
+        #expect(rig.store.audioDeleted("m1"))
+    }
+
+    @Test func deletingUnsentAudioKeepsTheDraftWithoutRetryingItsUpload() async throws {
+        let rig = try Rig()
+        let fm = FileManager.default
+        let folder = fm.temporaryDirectory.appending(path: UUID().uuidString)
+        try fm.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: folder) }
+        let original = folder.appending(path: "p1.m4a")
+        let wav = rig.engine.uploadFolder.appending(path: "p1.wav")
+        try fm.createDirectory(at: rig.engine.uploadFolder, withIntermediateDirectories: true)
+        try Data([1]).write(to: original)
+        try Data([2]).write(to: wav)
+        let rec = LocalRecording(id: "p1", title: "Walk", startedAt: .now, endedAt: .now, attendees: [], audioURL: original,
+                                 myNotes: "My note", transcript: [.init(startMs: 0, endMs: 800, text: "Hello")], summary: "A summary")
+        try rig.store.saveLocalRecording(rec)
+        try rig.engine.deleteAudio(meetingId: "p1")
+        #expect(!fm.fileExists(atPath: original.path))
+        #expect(!fm.fileExists(atPath: wav.path))
+        try rig.store.editMine(meetingId: "p1", text: "Edited")
+        rig.engine.setForeground(true)
+        #expect(await eventually { rig.connected })
+        #expect(rig.desktop.requests("uploadMeeting").isEmpty)
+        #expect(rig.desktop.requests("op").isEmpty)
+        try rig.store.forgetDesktop()
+        #expect(rig.store.staysOnPhone("p1"))
+        #expect(rig.store.meeting("p1")?.title == "Walk")
+        #expect(rig.store.notes("p1")?.mine == "Edited")
+        #expect(rig.store.notes("p1")?.summary == "A summary")
+        #expect(rig.store.segments("p1").first?.text == "Hello")
     }
 
     @Test func fetchedAudioIsNamedByTheComputersKindAndReportsProgress() async throws {

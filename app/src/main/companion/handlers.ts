@@ -17,7 +17,7 @@ export const askSources = (sources: { n: number; meetingId: string; title: strin
   sources.map((s) => ({ n: s.n, meetingId: s.meetingId, title: s.title, atMs: s.atMs, text: s.excerpt ?? '' }))
 /** titleSource: 'default' for the phone's "Meeting at 3:04 PM", 'model' when Apple's model wrote it, 'typed' when the person did */
 /** language: the code of the language it was spoken in ('de'), as whisper takes it; left out when the phone didn't say */
-export type UploadMeeting = { id: string; title: string; titleSource: 'default' | 'model' | 'typed'; startedAt: number; endedAt: number; attendees: { name: string; email: string | null }[]; language?: string }
+export type UploadMeeting = { id: string; title: string; titleSource: 'default' | 'model' | 'typed'; startedAt: number; endedAt: number; trashedAt?: number; attendees: { name: string; email: string | null }[]; language?: string }
 export type PhoneDraft = { myNotes: string; transcript: { startMs: number; endMs: number; text: string }[]; summary?: string }
 
 export type HandlerDeps = {
@@ -82,6 +82,7 @@ function meetingOf(v: unknown): UploadMeeting {
   const language = languageOf(v.language)
   return {
     id: id(v.id), title: str(v.title, 200).trim() || 'Recording', startedAt, endedAt, ...(language ? { language } : {}),
+    ...(v.trashedAt == null ? {} : { trashedAt: ms(v.trashedAt) }),
     // anything else (left out, or from a newer phone) counts as the default title
     titleSource: v.titleSource === 'model' || v.titleSource === 'typed' ? v.titleSource : 'default',
     attendees: attendees.map((a) => {

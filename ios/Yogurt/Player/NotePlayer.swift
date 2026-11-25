@@ -53,6 +53,8 @@ final class NotePlayer {
     private var isDownloading: Bool { if case .downloading = state { true } else { false } }
 
     private func run(_ id: String, _ model: AppModel) async {
+        guard !model.store.audioDeleted(id) else { state = .noAudio; return }
+        files = []
         let sync = model.sync
         // Sample meetings have a pretend computer and no tracks in the real computer's cache.
         let hasComputer = model.engine === sync
@@ -98,12 +100,33 @@ final class NotePlayer {
         #if DEBUG
         if UserDefaults.standard.bool(forKey: "previewAudio") { return PreviewTone.url }
         #endif
-        guard let rec = model.store.localRecordings().first(where: { $0.id == id && $0.uploadedAt == nil }),
+        guard let rec = try? model.store.localRecording(id), rec.uploadedAt == nil,
               FileManager.default.fileExists(atPath: rec.audioURL.path) else { return nil }
         return rec.audioURL
     }
 
+    func deleteAudio(meetingId: String, model: AppModel) throws {
+        if model.engine === model.sync {
+            try model.sync.deleteAudio(meetingId: meetingId)
+        } else {
+            // Sample notes share a generated tone and have a separate store.
+            try model.store.markAudioDeleted(meetingId)
+            model.edited()
+        }
+        stop()
+        files = []
+        state = .noAudio
+    }
+
+    var canDeleteAudio: Bool {
+        switch state {
+        case .ready, .failed: !files.isEmpty
+        default: false
+        }
+    }
+
     private func prepare(_ files: [URL]) async {
+        self.files = files
         do {
             let asset: AVAsset
             if files.count == 1 {
@@ -122,7 +145,7 @@ final class NotePlayer {
             guard try await asset.load(.isPlayable) else { state = .failed(S.audioCantPlay); return }
             let seconds = try await asset.load(.duration).seconds
             guard seconds.isFinite, seconds > 0 else { state = .failed(S.audioCantPlay); return }
-            self.files = files
+            try Task.checkCancellation()
             attach(AVPlayerItem(asset: asset), duration: seconds)
         } catch is CancellationError {
         } catch {

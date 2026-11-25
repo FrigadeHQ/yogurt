@@ -9,18 +9,16 @@ private let log = Logger(subsystem: "so.yogurt.ios", category: "recording")
 
 /// Where recordings made on this iPhone are kept until the computer has them.
 enum RecordingsFolder {
-    static var url: URL { URL.applicationSupportDirectory.appending(path: "Yogurt/Recordings", directoryHint: .isDirectory) }
+    static func url(in library: URL) -> URL { library.appending(path: "Recordings", directoryHint: .isDirectory) }
 
     /// Created readable while the phone is locked, as long as a file was opened before: a meeting goes on in a pocket.
-    static func make() throws -> URL {
-        let url = url
+    static func make(in library: URL) throws -> URL {
+        let url = url(in: library)
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true,
                                                 attributes: [.protectionKey: FileProtectionType.completeUnlessOpen])
         try? FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUnlessOpen], ofItemAtPath: url.path)
         return url
     }
-
-    static func progressURL(_ id: String) -> URL { url.appending(path: "\(id).json") }
 }
 
 /// One meeting being recorded: the audio, the live transcript, My notes typed meanwhile, and Stop, which saves it as a
@@ -42,6 +40,8 @@ final class RecordingController {
     @ObservationIgnored private var transcription: Task<Void, Never>?
     @ObservationIgnored private var recognitionPass = 0
     @ObservationIgnored private var folder: URL?
+    @ObservationIgnored private var trashedAt: Date?
+    @ObservationIgnored private var finishedDurationMs: Int?
     @ObservationIgnored private var saving: Task<Void, Never>?
     @ObservationIgnored private var ticker: Task<Void, Never>?
     @ObservationIgnored private var resuming: Task<Void, Never>?
@@ -83,7 +83,7 @@ final class RecordingController {
         if let space, space < Self.noSpace { state.fail(S.recordingNoSpace); return }
         if let space, space < Self.lowSpace { transcriptNotice = S.recordingLowSpace } else if notificationsOff { transcriptNotice = S.notificationsOff }
         do {
-            let folder = try RecordingsFolder.make()
+            let folder = try RecordingsFolder.make(in: model.storeFolder)
             self.folder = folder
             recorder.events = Recorder.Events(
                 interrupted: { [weak self] began in self?.interrupted(began) },
@@ -190,8 +190,13 @@ final class RecordingController {
 
     /// Saves it as a meeting and starts its notes. Returns the meeting's id, or nil if it couldn't be saved (it is then
     /// found again at the next launch).
-    func stop(model: AppModel) async -> String? {
-        guard state.stop(at: Date()) else { return nil }
+    func stop(model: AppModel, moveToTrash: Bool = false) async -> String? {
+        let now = Date()
+        guard state.stop(at: now) else { return nil }
+        if moveToTrash {
+            trashedAt = now
+            saveProgress()
+        }
         return await finish(model: model)
     }
 
@@ -206,45 +211,29 @@ final class RecordingController {
         ticker?.cancel(); saving?.cancel(); resuming?.cancel()
         clearPausedNotification()
         let durationMs = await recorder.stop()
+        finishedDurationMs = durationMs
+        if trashedAt != nil { saveProgress() }
         transcription?.cancel()
         if let t = relay.current { await waitAtMost(seconds: 6) { await t.finish() } }
         let progress = currentProgress()
         writeProgress(progress)
-        guard let folder else { return nil }
-        let rec = progress.recording(in: folder, title: title, durationMs: durationMs > 0 ? durationMs : nil)
         // a recording isn't live once Stop is pressed: if saving fails, the next visit to Home finds it again
         Self.liveId = nil
+        guard let folder else { return nil }
         do {
-            try model.store.saveLocalRecording(rec)
+            try progress.finish(in: folder, title: title, durationMs: durationMs, store: model.store)
         } catch {
             log.error("saving the recording failed: \(String(describing: error), privacy: .public)")
             state.fail(S.recordingSaveFailed)
             return nil
         }
-        try? FileManager.default.removeItem(at: RecordingsFolder.progressURL(id))
         _ = state.finished()
         model.edited()
         // first, so the upload waits for the draft notes and title; paired, it goes to the computer now if they're
         // connected, else the next time they are
-        PhoneDrafts.shared.write(rec.id, model: model)
+        PhoneDrafts.shared.write(id, model: model)
         Task { await model.engine.syncNow() }
-        return rec.id
-    }
-
-    /// Stops and throws the recording away: its audio, transcript and notes.
-    func discard() async {
-        guard state.stop(at: Date()) else { return }
-        ticker?.cancel(); saving?.cancel(); resuming?.cancel()
-        clearPausedNotification()
-        _ = await recorder.stop()
-        transcription?.cancel()
-        if let t = relay.current { await waitAtMost(seconds: 1) { await t.finish() } }
-        Self.liveId = nil
-        if let folder {
-            try? FileManager.default.removeItem(at: folder.appending(path: "\(id).m4a"))
-            try? FileManager.default.removeItem(at: RecordingsFolder.progressURL(id))
-        }
-        _ = state.finished()
+        return id
     }
 
     private func freeSpace() -> Int64? {
@@ -267,6 +256,21 @@ final class RecordingController {
     }
 
     #if DEBUG
+    func trashPreview(model: AppModel) -> Bool {
+        if model.store !== model.samples.store { model.preview.show(.connected(PreviewSyncEngine.computerName, syncing: nil)) }
+        var rec = currentProgress().recording(in: .temporaryDirectory, title: title, durationMs: 754_000)
+        rec.audioURL = PreviewTone.url
+        do {
+            try model.samples.store.finishRecording(rec, trashedAt: .now, hasAudio: true)
+            model.edited()
+            Task { await model.preview.syncNow() }
+            return true
+        } catch {
+            state.fail(S.recordingSaveFailed)
+            return false
+        }
+    }
+
     func startPreview() {
         _ = state.begin()
         startedAt = Date().addingTimeInterval(-754)
@@ -290,6 +294,8 @@ final class RecordingController {
 
     private func currentProgress() -> RecordingInProgress {
         var p = RecordingInProgress(id: id, startedAt: startedAt, audioFile: "\(id).m4a")
+        p.finishedDurationMs = finishedDurationMs
+        p.trashedAt = trashedAt
         p.myNotes = myNotes
         p.lines = transcript.settled
         p.language = language.identifier(.bcp47)
@@ -302,8 +308,9 @@ final class RecordingController {
     }
 
     private func writeProgress(_ p: RecordingInProgress) {
+        guard let folder else { return }
         do {
-            try JSONEncoder().encode(p).write(to: RecordingsFolder.progressURL(id), options: [.atomic, .completeFileProtectionUnlessOpen])
+            try JSONEncoder().encode(p).write(to: folder.appending(path: "\(id).json"), options: [.atomic, .completeFileProtectionUnlessOpen])
         } catch {
             log.error("keeping the recording's progress failed: \(String(describing: error), privacy: .public)")
         }
@@ -383,24 +390,25 @@ final class PhoneDrafts {
     }
 
     private func recover(model: AppModel) async {
-        let folder = RecordingsFolder.url
+        let folder = RecordingsFolder.url(in: model.storeFolder)
         let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
         for file in files where file.pathExtension == "json" {
             guard let data = try? Data(contentsOf: file), let p = try? JSONDecoder().decode(RecordingInProgress.self, from: data),
                   p.id != RecordingController.liveId else { continue }
             let audio = folder.appending(path: p.audioFile)
-            let seconds = try? await AVURLAsset(url: audio).load(.duration).seconds
-            let ms = seconds.flatMap { $0.isFinite && $0 > 0 ? Int($0 * 1000) : nil }
-            // killed in its first seconds: no audio could be read and nothing was heard, so there's nothing to keep
-            if ms == nil && p.lines.isEmpty && p.myNotes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            var ms = p.finishedDurationMs
+            if ms == nil, let seconds = try? await AVURLAsset(url: audio).load(.duration).seconds,
+               seconds.isFinite, seconds >= 0 { ms = Int(seconds * 1000) }
+            // A decoder failure alone is not evidence that a fragment contains no audio.
+            if ms == nil, !FileManager.default.fileExists(atPath: audio.path) || (try? audio.resourceValues(forKeys: [.fileSizeKey]).fileSize) == 0 { ms = 0 }
+            if ms == 0, p.trashedAt == nil, model.store.meeting(p.id) == nil,
+               p.lines.isEmpty, p.myNotes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 try? FileManager.default.removeItem(at: audio)
                 try? FileManager.default.removeItem(at: file)
                 continue
             }
-            let rec = p.recording(in: folder, title: S.meetingAt(Format.time(p.startedAt)), durationMs: ms)
             do {
-                try model.store.saveLocalRecording(rec)
-                try? FileManager.default.removeItem(at: file)
+                try p.finish(in: folder, title: S.meetingAt(Format.time(p.startedAt)), durationMs: ms, store: model.store)
                 log.notice("recovered recording \(p.id, privacy: .public)")
                 model.edited()
             } catch {
@@ -413,7 +421,7 @@ final class PhoneDrafts {
     func homeDetail(for meeting: Meeting, recordings: [String: LocalRecording], model: AppModel) -> String? {
         guard let rec = recordings[meeting.id], model.store.notes(meeting.id)?.summarySource == .phoneDraft else { return nil }
         if writing.contains(meeting.id) { return "\(S.recordedHere) · \(S.writingNotes)" }
-        if model.engine.status != .notPaired && rec.uploadedAt == nil { return "\(S.recordedHere) · \(S.waitingForComputer)" }
+        if model.engine.status != .notPaired && rec.uploadedAt == nil && !model.store.audioDeleted(meeting.id) { return "\(S.recordedHere) · \(S.waitingForComputer)" }
         return S.recordedHere
     }
 }

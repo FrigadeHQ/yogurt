@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { openStore, type Store } from '../src/main/store'
 import { importPhoneRecording, isPhoneDraft, phoneWavOk } from '../src/main/companion/phoneImport'
+import { createHandlers } from '../src/main/companion/handlers'
 import { wavBytes } from '../src/main/asr/transcribe'
 import { AUDIO_SPEAKER } from '../src/shared/audioUpload'
 
@@ -34,6 +35,33 @@ it('a phone WAV becomes them.wav, keeps the phone transcript and draft notes, an
   // the computer's transcript replaces the phone's only once it has one
   expect(start).toHaveBeenCalledExactlyOnceWith(meeting.id, true)
   expect(changed).toHaveBeenCalled()
+})
+
+it('a trashed phone recording first appears in Trash and keeps its audio and draft for Restore', async () => {
+  const inTrash = { ...meeting, trashedAt: 70_000 }
+  const firstChange = () => expect(store.trashed().map(m => m.id)).toEqual([meeting.id])
+  const handlers = createHandlers({
+    store, uploadDir: join(root, 'staging'), hello: vi.fn(), ask: vi.fn(), audioFiles: vi.fn(),
+    log: vi.fn(), now: Date.now, ops: { notesRewrite: vi.fn() },
+    importRecording: (m, path, d) => importPhoneRecording({ ...deps(), changed: firstChange }, m, path, d),
+  })
+  const request = async (type: string, body: object) => {
+    const send = vi.fn(async (_message: object) => {})
+    await handlers.handle({ id: '1', type, body }, send)
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({ type: 'ok' }))
+  }
+  await request('uploadMeeting', { meeting: inTrash, ...draft })
+  await request('uploadAudio', { meetingId: meeting.id, index: 0, of: 1, mime: 'audio/wav', chunk: readFileSync(tinyWav()).toString('base64') })
+  await request('op', { kind: 'trash', meetingId: meeting.id })
+  expect(store.meeting(meeting.id)?.trashedAt).toBe(inTrash.trashedAt)
+  expect(store.untranscribedMeetings()).toEqual([])
+  expect(start).not.toHaveBeenCalled()
+  await request('op', { kind: 'restore', meetingId: meeting.id })
+  await request('uploadMeeting', { meeting: inTrash, ...draft })
+  expect(store.untranscribedMeetings()).toMatchObject([{ id: meeting.id, transcriptionAgain: true }])
+  expect(store.notes(meeting.id).mine).toBe(draft.myNotes)
+  expect(store.segments(meeting.id)).toHaveLength(2)
+  expect(existsSync(join(root, 'meetings', meeting.id, 'them.wav'))).toBe(true)
 })
 
 it('with nothing from the phone it is transcribed like any upload', async () => {

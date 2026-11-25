@@ -9,10 +9,12 @@ struct NoteView: View {
     let meetingId: String
     /// opened from an Ask source: the transcript, at this moment (ms)
     var atMs: Int? = nil
+    var trashed: (String) -> Void = { _ in }
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var tab: Tab?
     @State private var renaming = false
+    @State private var confirmDeleteAudio = false
     @State private var newTitle = ""
     @State private var toast: String?
     @State private var toastTask: Task<Void, Never>?
@@ -91,6 +93,16 @@ struct NoteView: View {
                     .accessibilityIdentifier("note-ask")
             }
             ToolbarItem(placement: .topBarTrailing) { menu(meeting, folders: folders, inFolders: inFolders) }
+        }
+        .alert(S.deleteAudioQuestion, isPresented: $confirmDeleteAudio) {
+            Button(S.cancel, role: .cancel) {}
+            Button(S.deleteAudio, role: .destructive) {
+                do { try player.deleteAudio(meetingId: meetingId, model: model) }
+                catch { say(S.deleteAudioFailed) }
+            }
+        } message: {
+            let unsent = model.store.awaitsFirstUpload(meetingId)
+            Text(unsent ? S.deleteAudioBody + "\n\n" + S.unsyncedAudioBody : S.deleteAudioBody)
         }
         .alert(S.renameTitle, isPresented: $renaming) {
             TextField(S.title, text: $newTitle)
@@ -195,12 +207,20 @@ struct NoteView: View {
                     }
                 } label: { Label(S.addToFolder, systemImage: "folder") }
             }
+            if player.canDeleteAudio || m.trashedAt == nil { Divider() }
+            if player.canDeleteAudio {
+                Button(S.deleteAudio, systemImage: "waveform.slash", role: .destructive) { confirmDeleteAudio = true }
+                    .tint(Color(uiColor: .systemRed))
+                    .disabled(audioShare != nil || model.sync.uploadingId == meetingId)
+            }
             if m.trashedAt == nil {
-                Divider()
-                Button(role: .destructive) {
-                    change(Op(kind: .trash, meetingId: meetingId))
+                Button(S.moveToTrash, systemImage: "trash", role: .destructive) {
+                    do { try model.send(Op(kind: .trash, meetingId: meetingId)) }
+                    catch { say(S.notSaved); return }
+                    trashed(meetingId)
                     dismiss()
-                } label: { Label(S.moveToTrash, systemImage: "trash") }
+                }
+                .tint(Color(uiColor: .systemRed))
             }
         } label: {
             Image(systemName: "ellipsis").accessibilityLabel(S.more)
@@ -293,13 +313,10 @@ struct NoteView: View {
         }
     }
 
-    /// Edits other than My notes show once the computer has taken them, so say when that has to wait.
     private func change(_ op: Op) {
-        model.send(op)
-        // on its own there is no computer to wait for
-        guard model.engine.status.isPaired else { return }
-        if case .connected = model.engine.status { return }
-        say(S.changeQueued)
+        do {
+            if let message = try model.send(op) { say(message) }
+        } catch { say(S.notSaved) }
     }
 
     @ViewBuilder private var toastView: some View {
@@ -323,16 +340,24 @@ struct NoteView: View {
             .transition(.move(edge: .bottom).combined(with: .opacity))
             .accessibilityIdentifier("share-audio-progress")
         } else if let toast {
-            Text(toast)
-                .font(.footnote)
-                .foregroundStyle(Theme.ink)
-                .padding(.horizontal, 14).padding(.vertical, 10)
-                .background(Theme.float, in: Capsule())
-                .overlay(Capsule().strokeBorder(Theme.line))
-                .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
-                .padding(.bottom, 16).padding(.horizontal, 20)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+            NoteToast(text: toast)
         }
+    }
+}
+
+struct NoteToast: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.footnote)
+            .foregroundStyle(Theme.ink)
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .background(Theme.float, in: Capsule())
+            .overlay(Capsule().strokeBorder(Theme.line))
+            .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
+            .padding(.bottom, 16).padding(.horizontal, 20)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 }
 
@@ -344,9 +369,9 @@ struct SummaryPane: View {
     var body: some View {
         if let summary = notes?.summary, !summary.isEmpty {
             VStack(alignment: .leading, spacing: 14) {
-                if notes?.summarySource == .phoneDraft {
-                    // on its own no computer writes a final one
-                    Label(model.engine.status.isPaired ? S.draftSummary : S.writtenHere, systemImage: "iphone")
+                if let notes, notes.summarySource == .phoneDraft {
+                    let localOnly = model.store.staysOnPhone(notes.meetingId)
+                    Label(model.engine.status.isPaired && !localOnly ? S.draftSummary : S.writtenHere, systemImage: "iphone")
                         .font(.footnote)
                         .foregroundStyle(Theme.muted)
                 }
