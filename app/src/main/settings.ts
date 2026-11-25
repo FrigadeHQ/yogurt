@@ -14,6 +14,8 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   notesUpgradeSkipped?: boolean
   /** Windows and Linux: the notes engine found the graphics card with Vulkan, not its default (CUDA) build (#32) */
   notesGpuBackend?: 'vulkan'
+  /** Windows and Linux: the most layers this notes model may put on the graphics card, after it ran out of memory with more (#165); 0: the processor */
+  notesGpuLayers?: { model: string; layers: number }
   /** home's Finish setup was put away while these were missing; it comes back only when something else is */
   setupDismissed?: import('./permissions').PermissionKind[]
   /** opens when the Mac starts; off unless the person said yes */

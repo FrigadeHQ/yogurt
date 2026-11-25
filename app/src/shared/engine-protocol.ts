@@ -3,11 +3,16 @@
 export const CONTEXT = 32_768
 export const MIN_CONTEXT = 8192
 
+/** the graphics card ran out of its own memory (Vulkan or CUDA), as a load or the first words computed on it (#165) */
+export const outOfGraphicsMemory = (message: string): boolean =>
+  /ErrorOutOfDeviceMemory|VK_ERROR_OUT_OF_DEVICE_MEMORY|CUDA error: out of memory|cudaMalloc failed: out of memory/i.test(message)
+
 export type EngineMessage = { role: 'system' | 'user' | 'assistant'; content: string }
 
 export type EngineRequest =
   /** contextSize: the most worth having; the worker takes what memory allows down to minContext */
-  | { id: number; type: 'load'; modelPath: string; contextSize: number; minContext: number }
+  /** gpuLayers: the most layers on the graphics card (it ran out of memory with more, #165); 0: the processor alone */
+  | { id: number; type: 'load'; modelPath: string; contextSize: number; minContext: number; gpuLayers?: number }
   | { id: number; type: 'unload' }
   /** tokens in each text, by the loaded model's tokenizer */
   | { id: number; type: 'count'; texts: string[] }

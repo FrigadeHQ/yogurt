@@ -3,8 +3,9 @@ import { cleanAnswer, streamCleaner } from './control'
 import { samplingFor } from './sampling'
 import { holds } from './prefix'
 import { engineThreads } from './threads'
+import { vramCap } from './vram'
 import { availableParallelism } from 'node:os'
-import type { EngineMessage } from '../shared/engine-protocol'
+import { outOfGraphicsMemory, type EngineMessage } from '../shared/engine-protocol'
 
 const toHistory = (messages: EngineMessage[]): ChatHistoryItem[] =>
   messages.map((m) => (m.role === 'system' ? { type: 'system', text: m.content } : m.role === 'user' ? { type: 'user', text: m.content } : { type: 'model', response: [m.content] }))
@@ -12,7 +13,8 @@ const toHistory = (messages: EngineMessage[]): ChatHistoryItem[] =>
 /**
  * The notes model itself: load, count tokens, write. Used by the worker process. Callers run one thing at a time (the worker's serial()).
  */
-export function createLlm() {
+export function createLlm(o: { platform?: string } = {}) {
+  const platform = o.platform ?? process.platform
   let llama: Llama | undefined
   /** the processor alone, when the graphics have no room at all (#57) */
   let cpuLlama: Llama | undefined
@@ -25,7 +27,20 @@ export function createLlm() {
   // YOGURT_ENGINE_GPU=off: the graphics card crashed the engine before, on Windows or Linux; =vulkan: the default
   // (CUDA) build found no card but Vulkan did (#32). Both come from src/main/engine.ts.
   const gpu = process.env.YOGURT_ENGINE_GPU
-  const getL = async () => (llama ??= await getLlama(gpu === 'off' ? { gpu: false } : gpu === 'vulkan' ? { gpu: 'vulkan' } : undefined))
+  /** the graphics memory as node-llama-cpp found it, before the cap below: what the probe reports */
+  let found: { total: number; unifiedSize: number } | undefined
+  /** plans only for the card's own memory, less room for whisper-server (#165: a 4 GB card counted as 21 GB) */
+  const fitCard = async (l: Llama): Promise<Llama> => {
+    if (!l.gpu) return l
+    found = await l.getVramState()
+    const cap = vramCap(found, platform)
+    if (cap !== null) { await l.setVramCap(cap); console.info(`notes engine: plans for ${(cap / 1024 ** 3).toFixed(1)} GiB of graphics memory`) }
+    return l
+  }
+  const getL = async (): Promise<Llama> => {
+    if (!llama) llama = await fitCard(await getLlama(gpu === 'off' ? { gpu: false } : gpu === 'vulkan' ? { gpu: 'vulkan' } : undefined))
+    return llama
+  }
   // Gemma's auto wrapper requests thinking; a zero token budget cuts it off instead of disabling it.
   const threads = (l: Llama) => { const n = engineThreads(process.platform, l.cpuMathCores, availableParallelism()); return n === undefined ? {} : { threads: n } }
   const chatWrapper = () => model?.fileInfo.metadata.general.architecture === 'gemma4' ? new Gemma4ChatWrapper({ reasoning: false }) : 'auto' as const
@@ -47,7 +62,8 @@ export function createLlm() {
     /** the graphics this engine can use: a Mac never asks */
     async probe() {
       const l = await getL()
-      const v = await l.getVramState()
+      // as found, not as capped: the picker takes the card's own memory from it (main/hardware.ts)
+      const v = found ?? await l.getVramState()
       const GB = 1e9
       return { gpuType: l.gpu, vramTotalGB: v.total / GB, unifiedGB: v.unifiedSize / GB, gpuNames: await l.getGpuDeviceNames() }
     },
@@ -67,9 +83,11 @@ export function createLlm() {
       return out
     },
     /** gpu: what it runs on (cuda, vulkan, metal, or false: the processor alone), for the log */
-    async load(modelPath: string, contextSize: number, minContext: number): Promise<{ contextSize: number; gpu: string | false; gpuLayers: number }> {
+    /** maxGpuLayers: the most layers on the card, after it ran out of memory with more (#165); 0: the processor alone */
+    async load(modelPath: string, contextSize: number, minContext: number, maxGpuLayers?: number): Promise<{ contextSize: number; gpu: string | false; gpuLayers: number }> {
       await unload()
-      const l = await getL()
+      // the processor alone never touches the graphics
+      const l = maxGpuLayers === 0 ? (cpuLlama ??= await getLlama({ gpu: false })) : await getL()
       const size = { min: Math.min(minContext, contextSize), max: contextSize }
       // The model fills the graphics card first and keeps room for only a tiny context; on a card with little memory the
       // notes' context then doesn't fit (InsufficientMemoryError, every summary failing). So: load again leaving room for
@@ -77,8 +95,11 @@ export function createLlm() {
       // A model that doesn't fit on the card at all can fail to load outright (#37): that gets the same fewer layers.
       // Integrated graphics can say the context won't fit even with no layers on them (an Intel Arc, #57): last, the
       // graphics are left out altogether and the processor does it all.
-      const steps: Array<{ cpu?: true; gpuLayers?: { fitContext: { contextSize: number } } | 0 }> =
-        [{}, { gpuLayers: { fitContext: { contextSize: size.min } } }, { gpuLayers: 0 }, ...(l.gpu ? [{ cpu: true as const }] : [])]
+      // With a cap the same steps, never over it.
+      const max = maxGpuLayers ? { max: maxGpuLayers } : {}
+      type Step = { cpu?: true; gpuLayers?: { max?: number; fitContext?: { contextSize: number } } | 0 }
+      const steps: Step[] = maxGpuLayers === 0 ? [{ cpu: true }]
+        : [maxGpuLayers ? { gpuLayers: max } : {}, { gpuLayers: { ...max, fitContext: { contextSize: size.min } } }, { gpuLayers: 0 }, ...(l.gpu ? [{ cpu: true as const }] : [])]
       let used = l
       for (const [i, step] of steps.entries()) {
         const last = i === steps.length - 1
@@ -88,16 +109,24 @@ export function createLlm() {
           console.warn('the notes model did not load; loading it again with fewer layers on the graphics', (e as Error).message)
           continue
         }
-        try { context = await model.createContext({ contextSize: size, ...threads(used) }); break } catch (e) {
+        try { context = await model.createContext({ contextSize: size, ...threads(used) }) } catch (e) {
           if (!(e instanceof InsufficientMemoryError) || last) throw e
           console.warn('the notes did not fit next to the model; loading it again with fewer layers on the graphics', e.message)
           await model.dispose(); model = undefined
+          continue
+        }
+        main = context.getSequence()
+        // the first evaluation pages the weights in from disk: pay it here, not on the first word of the notes. The card
+        // can run out of memory only now, as it first computes (#165): fewer layers again.
+        try { await main.evaluateWithoutGeneratingNewTokens(model.tokenize('Hello')); break } catch (e) {
+          if (!outOfGraphicsMemory((e as Error).message) || last) throw e
+          console.warn('the graphics card ran out of memory reading in; loading it again with fewer layers on the graphics', (e as Error).message)
+          main = undefined
+          await context.dispose(); context = undefined
+          await model.dispose(); model = undefined
         }
       }
-      if (!model || !context) throw new Error('The notes model did not load')
-      main = context.getSequence()
-      // the first evaluation pages the weights in from disk: pay it here, not on the first word of the notes
-      await main.evaluateWithoutGeneratingNewTokens(model.tokenize('Hello'))
+      if (!model || !context || !main) throw new Error('The notes model did not load')
       return { contextSize: context.contextSize, gpu: model.gpuLayers === 0 ? false : used.gpu, gpuLayers: model.gpuLayers }
     },
     count(texts: string[]): number[] {

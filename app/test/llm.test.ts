@@ -2,13 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Gemma4ChatWrapper, type LlamaChatSessionOptions } from 'node-llama-cpp'
 import { createLlm } from '../src/engine/llm'
 
-const fake = vi.hoisted(() => ({ architecture: 'gemma4', sessions: [] as unknown[], loads: [] as unknown[], llamas: [] as unknown[], disposed: 0, contextFails: 0, loadFails: 0, contextError: undefined as (() => Error) | undefined }))
+const fake = vi.hoisted(() => ({ architecture: 'gemma4', sessions: [] as unknown[], loads: [] as unknown[], llamas: [] as unknown[], disposed: 0, contextFails: 0, loadFails: 0, contextError: undefined as (() => Error) | undefined, warmFails: 0, vram: { total: 0, unifiedSize: 0 }, caps: [] as unknown[] }))
 vi.mock('node-llama-cpp', async (original) => {
   const actual = await original<typeof import('node-llama-cpp')>()
-  const sequence = { contextTokens: [], tokenMeter: { usedInputTokens: 0 }, evaluateWithoutGeneratingNewTokens: async () => {} }
+  const sequence = { contextTokens: [], tokenMeter: { usedInputTokens: 0 }, evaluateWithoutGeneratingNewTokens: async () => { if (fake.warmFails > 0) { fake.warmFails--; throw new Error('vk::Device::allocateMemory: ErrorOutOfDeviceMemory') } } }
   return {
     ...actual,
-    getLlama: async (opts?: { gpu?: false }) => (fake.llamas.push(opts), { gpu: opts?.gpu === false ? false : 'vulkan', loadModel: async (o: { gpuLayers?: unknown }) => {
+    getLlama: async (opts?: { gpu?: false }) => (fake.llamas.push(opts), { gpu: opts?.gpu === false ? false : 'vulkan', getVramState: async () => ({ ...fake.vram, free: fake.vram.total, used: 0 }), setVramCap: async (b: number) => { fake.caps.push(b) }, getGpuDeviceNames: async () => [], loadModel: async (o: { gpuLayers?: unknown }) => {
       fake.loads.push(o.gpuLayers)
       if (fake.loadFails > 0 && o.gpuLayers !== 0) { fake.loadFails--; throw new Error('Failed to load model') }
       return {
@@ -30,7 +30,7 @@ vi.mock('node-llama-cpp', async (original) => {
   }
 })
 
-beforeEach(() => { fake.sessions.length = 0; fake.loads.length = 0; fake.llamas.length = 0; fake.disposed = 0; fake.contextFails = 0; fake.loadFails = 0; fake.contextError = undefined })
+beforeEach(() => { fake.sessions.length = 0; fake.loads.length = 0; fake.llamas.length = 0; fake.disposed = 0; fake.contextFails = 0; fake.loadFails = 0; fake.contextError = undefined; fake.warmFails = 0; fake.vram = { total: 0, unifiedSize: 0 }; fake.caps.length = 0 })
 
 describe('model prompt wrapper', () => {
   it.each(['gemma4', 'qwen3', 'gpt-oss'])('preload and answers use the same format for %s', async (architecture) => {
@@ -99,5 +99,36 @@ describe('too little room on the graphics card for the notes', () => {
     fake.contextFails = 1; fake.contextError = () => new Error('bad file')
     await expect(createLlm().load('fixture.gguf', 32768, 8192)).rejects.toThrow('bad file')
     expect(fake.loads).toEqual([undefined])
+  })
+})
+
+describe('the card\'s real memory, and fewer layers after it ran out (#165)', () => {
+  it('a card next to built-in graphics: the model plans for the card\'s own memory only', async () => {
+    fake.vram = { total: 21.2 * 1024 ** 3, unifiedSize: 17.2 * 1024 ** 3 }
+    await createLlm({ platform: 'win32' }).load('fixture.gguf', 32768, 8192)
+    expect(fake.caps).toHaveLength(1)
+    expect(fake.caps[0]).toBeLessThan(4 * 1024 ** 3)
+    // the check of the graphics still reports them as found: the picker needs the whole picture
+    const llm = createLlm({ platform: 'win32' })
+    fake.llamas.length = 0
+    expect(await llm.probe()).toMatchObject({ vramTotalGB: 21.2 * 1024 ** 3 / 1e9, unifiedGB: 17.2 * 1024 ** 3 / 1e9 })
+    // a Mac: as before
+    fake.caps.length = 0
+    await createLlm({ platform: 'darwin' }).load('fixture.gguf', 32768, 8192)
+    expect(fake.caps).toHaveLength(0)
+  })
+  it('with a cap from the engine: never more layers than that, then fewer, then the processor', async () => {
+    fake.contextFails = 2
+    expect(await createLlm().load('fixture.gguf', 32768, 8192, 21)).toMatchObject({ gpu: false, gpuLayers: 0 })
+    expect(fake.loads).toEqual([{ max: 21 }, { max: 21, fitContext: { contextSize: 8192 } }, 0])
+  })
+  it('a cap of none: the processor alone, the graphics never touched', async () => {
+    expect(await createLlm().load('fixture.gguf', 32768, 8192, 0)).toMatchObject({ gpu: false, gpuLayers: 0 })
+    expect(fake.llamas).toEqual([{ gpu: false }])
+  })
+  it('running out at the first words read in: loaded again with fewer layers', async () => {
+    fake.warmFails = 1
+    expect(await createLlm().load('fixture.gguf', 32768, 8192)).toMatchObject({ gpu: 'vulkan', gpuLayers: 20 })
+    expect(fake.loads).toEqual([undefined, { fitContext: { contextSize: 8192 } }])
   })
 })

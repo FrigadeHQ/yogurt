@@ -14,7 +14,7 @@ export function createHandler(llm: Llm, send: (e: EngineEvent) => void) {
   const run = serial()
 
   const handle = async (req: EngineRequest): Promise<unknown> => {
-    if (req.type === 'load') return llm.load(req.modelPath, req.contextSize, req.minContext)
+    if (req.type === 'load') return llm.load(req.modelPath, req.contextSize, req.minContext, req.gpuLayers)
     if (req.type === 'unload') return llm.unload()
     if (req.type === 'count') return llm.count(req.texts)
     if (req.type === 'embed') return llm.embed(req.modelPath, req.texts)

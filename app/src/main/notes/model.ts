@@ -1,5 +1,5 @@
 import { CONTEXT, MIN_CONTEXT, type EngineMessage } from '../../shared/engine-protocol'
-import { GraphicsGaveUpError, type Engine } from '../engine'
+import { GraphicsFullError, GraphicsGaveUpError, type Engine } from '../engine'
 import type { Llm } from './enhance'
 import { readInSteps } from './readAhead'
 
@@ -15,6 +15,9 @@ export function heldMatch(held: string, prompt: string): string {
   const line = prompt.slice(0, same).split('\n').length
   return `differs from what was read ahead at char ${same.toLocaleString('en-US')} of ${held.length.toLocaleString('en-US')} (line ${line}): read again from there`
 }
+
+/** steps down when the card runs out of memory: 43 layers, 21, 10, 5, then the processor */
+const FULL_TRIES = 5
 
 /** an earlier prompt and answer, as the conversation they were */
 const before = (pairs: string[] = []): EngineMessage[] => pairs.map((content, i) => ({ role: i % 2 ? 'assistant' : 'user', content }))
@@ -50,10 +53,14 @@ export function createNotesModel(o: { engine: Engine; modelPath: () => string | 
     }).finally(() => { loading = undefined })
     return loading
   }
-  /** Windows and Linux: the graphics card gave up (stuck or crashed while starting); the engine now runs without it, once more */
-  const again = <T>(run: () => Promise<T>, ok = () => true): Promise<T> => run().catch((e) => {
+  /**
+   * Windows and Linux: the graphics card gave up (stuck or crashed while starting); the engine now runs without it, once
+   * more. Out of memory on it, once for each step down to the processor (half the layers each time, #165).
+   */
+  const again = <T>(run: () => Promise<T>, ok = () => true, full = 0): Promise<T> => run().catch((e) => {
     if (!(e instanceof GraphicsGaveUpError) || !ok()) throw e
     loaded = undefined; loading = undefined; held = ''
+    if (e instanceof GraphicsFullError && full < FULL_TRIES) return again(run, ok, full + 1)
     return run()
   })
   const load = () => again(ensure)

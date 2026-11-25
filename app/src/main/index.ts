@@ -720,10 +720,13 @@ app.whenReady().then(() => {
   const shim = engineShim(process.platform, [process.resourcesPath && join(process.resourcesPath, 'bin', SHIM), join(__dirname, '../../resources/bin', SHIM)].filter((x): x is string => !!x), existsSync)
   if (process.platform === 'linux') console.info('NOTES', shim ? `big allocations go through ${shim}` : `${SHIM} is missing: the notes engine can crash on the processor`)
   // Windows and Linux: a CUDA build that won't start finds no card; Vulkan is tried next, and kept when it finds one (#32)
-  const backends = backendOrder(process.platform, process.env, loadSettings(settingsFile).notesGpuBackend)
+  const saved = loadSettings(settingsFile)
+  const backends = backendOrder(process.platform, process.env, saved.notesGpuBackend)
   const engine = isFake() ? new FakeEngine() : new UtilityEngine(join(__dirname, 'engine.js'), {
     gpuFallback: process.platform !== 'darwin', cpuCrashes: process.platform === 'linux' && !shim, ...(shim ? { preload: shim } : {}),
     backends, onBackend: (b) => { console.info('NOTES', `graphics found with ${b === 'auto' ? 'the default build' : b}; kept for next time`); updateSettings(settingsFile, { notesGpuBackend: b === 'vulkan' ? b : undefined }) },
+    // the card ran out of memory (#165): fewer layers from the next launch on, too
+    ...(saved.notesGpuLayers ? { gpuLayers: saved.notesGpuLayers } : {}), onGpuLayers: (l) => updateSettings(settingsFile, { notesGpuLayers: l }),
   })
   if (engine instanceof UtilityEngine) probeGpu = () => engine.probe().then((g) => {
     console.info('NOTES', `graphics: ${g.gpuType || 'none'}${g.gpuNames.length ? ` (${g.gpuNames.join(', ')})` : ''}, ${g.vramTotalGB.toFixed(1)} GB`)

@@ -1,10 +1,19 @@
 import { utilityProcess, type UtilityProcess } from 'electron'
-import type { EngineEvent, EngineMessage, EngineRequest } from '../shared/engine-protocol'
+import { outOfGraphicsMemory, type EngineEvent, type EngineMessage, type EngineRequest } from '../shared/engine-protocol'
+export { outOfGraphicsMemory }
 import type { GpuProbe } from './hardware'
 
 export class InsufficientMemoryError extends Error { name = 'InsufficientMemoryError' }
 /** Windows and Linux: the graphics card took too long (or crashed), so the engine starts again without it; try once more */
 export class GraphicsGaveUpError extends Error { name = 'GraphicsGaveUpError' }
+/** the card ran out of memory: the engine starts again with fewer layers on it, each time down to the processor (#165) */
+export class GraphicsFullError extends GraphicsGaveUpError { name = 'GraphicsFullError' }
+
+/** after the card ran out of memory with this many layers on it: the most for the next try, 0 for the processor alone */
+export const fewerLayers = (layers: number): number => layers >= 8 ? Math.floor(layers / 2) : 0
+/** the most layers a model may put on the card (kept in settings, so the next launch doesn't run out again) */
+export type GpuLayers = { model: string; layers: number }
+const fileName = (path: string) => path.split(/[\\/]/).pop() ?? path
 
 /**
  * Off a Mac, how long a step may take before the graphics card counts as stuck (a hang, not a crash: some drivers do).
@@ -75,16 +84,41 @@ export class UtilityEngine implements Engine {
 
   private limits: Limits
   private backend: Backend
+  /** the cap on layers after the card ran out of memory (#165), and what the model in this process put on the card */
+  private gpuLayers: GpuLayers | undefined
+  private onCard: GpuLayers | undefined
+  /** the model being loaded or last loaded */
+  private model = ''
 
   /**
    * cpuCrashes (Linux without the shim): the engine dies on the processor alone (code 132: Electron's allocator refuses
    * llama.cpp's single > 2 GiB weight buffer), so a lost graphics card starts the engine again on the card, not without it.
    * preload: the shim that prevents that crash (engineShim), put in the engine's LD_PRELOAD.
    * backends (backendOrder): what probe() checks the graphics with until one finds a card; onBackend: the one that did.
+   * gpuLayers: the cap kept from an earlier launch; onGpuLayers: a new one, after the card ran out of memory (#165).
    */
-  constructor(private workerPath: string, private opts: { gpuFallback?: boolean; cpuCrashes?: boolean; preload?: string; backends?: Backend[]; onBackend?: (b: Backend) => void } & Partial<Limits> = {}) {
+  constructor(private workerPath: string, private opts: { gpuFallback?: boolean; cpuCrashes?: boolean; preload?: string; backends?: Backend[]; onBackend?: (b: Backend) => void; gpuLayers?: GpuLayers; onGpuLayers?: (l: GpuLayers) => void } & Partial<Limits> = {}) {
     this.limits = { ...WATCH, ...opts }
     this.backend = opts.backends?.[0] ?? 'auto'
+    this.gpuLayers = opts.gpuLayers
+  }
+
+  /** the cap for this model, if it ran out of memory before */
+  private capFor(model: string) { return this.gpuLayers?.model === model ? this.gpuLayers.layers : undefined }
+
+  /**
+   * The card ran out of memory (#165: a 4 GB card given every layer and a 32k context): the next engine gets half the
+   * layers, then the processor alone, and that is kept. On the processor already, there is nothing to step down from.
+   */
+  private outOfMemory(message: string): boolean {
+    if (!this.opts.gpuFallback || this.cpuOnly || !this.model || !outOfGraphicsMemory(message)) return false
+    const was = this.onCard?.model === this.model ? this.onCard.layers : undefined
+    if (was === 0 || this.capFor(this.model) === 0) return false
+    // a load that still ran out (its own fewer layers did not help): the processor
+    this.gpuLayers = { model: this.model, layers: was === undefined ? 0 : fewerLayers(was) }
+    console.warn(`notes engine: the graphics card ran out of memory (${message}); starting it again ${this.gpuLayers.layers ? `with at most ${this.gpuLayers.layers} layers on it` : 'without the graphics card'}`)
+    this.opts.onGpuLayers?.(this.gpuLayers)
+    return true
   }
 
   /** a different backend means a fresh engine process, and a fresh try on the card */
@@ -116,6 +150,7 @@ export class UtilityEngine implements Engine {
   private drop(error: () => Error) {
     const proc = this.proc
     this.proc = undefined
+    this.onCard = undefined
     const waiting = [...this.pending.values()]
     this.pending.clear()
     proc?.kill()
@@ -145,7 +180,11 @@ export class UtilityEngine implements Engine {
       clearTimeout(p.timer)
       if (e.type === 'result' && p.model) this.loaded = true
       if (e.type === 'result') p.resolve(e.data)
-      else if (this.opts.gpuFallback && deviceLost(e.message)) {
+      else if (this.outOfMemory(e.message)) {
+        // a fresh process: one that ran out may not give the memory back
+        this.pending.set(e.id, p)
+        this.drop(() => new GraphicsFullError(`The graphics card ran out of memory: ${e.message}`))
+      } else if (this.opts.gpuFallback && deviceLost(e.message)) {
         // the card was reset under it: a fresh engine (on the processor, where that works) is the only way on
         if (!this.opts.cpuCrashes) this.cpuOnly = true
         console.warn(`notes engine: the graphics card was lost (${e.message}); starting it again${this.cpuOnly ? ' without the graphics card' : ''}`)
@@ -157,6 +196,7 @@ export class UtilityEngine implements Engine {
       // stopped as stuck (drop): already dealt with
       if (this.proc !== proc) return
       this.proc = undefined
+      this.onCard = undefined
       const loading = !!this.opts.gpuFallback && !this.loaded && [...this.pending.values()].some((p) => p.load)
       const starting = loading && !this.cpuOnly
       // it died starting without the card too (Linux, code 132): staying off the card would only crash again, so the
@@ -212,10 +252,17 @@ export class UtilityEngine implements Engine {
     return done
   }
   load(modelPath: string, contextSize: number, minContext: number) {
-    console.info('NOTES', `loading the notes model ${modelPath.split(/[\\/]/).pop()}${this.opts.gpuFallback ? (this.cpuOnly ? ' without the graphics card' : ' (graphics card allowed)') : ''}`)
-    const { id, done } = this.call<{ contextSize: number; gpu?: string | false; gpuLayers?: number }>({ type: 'load', modelPath, contextSize, minContext })
+    const model = this.model = fileName(modelPath)
+    this.onCard = undefined
+    const cap = this.capFor(model)
+    console.info('NOTES', `loading the notes model ${model}${this.opts.gpuFallback ? (this.cpuOnly || cap === 0 ? ' without the graphics card' : ` (graphics card allowed${cap ? `, at most ${cap} layers: it ran out of memory with more` : ''})`) : ''}`)
+    const { id, done } = this.call<{ contextSize: number; gpu?: string | false; gpuLayers?: number }>({ type: 'load', modelPath, contextSize, minContext, ...(cap !== undefined ? { gpuLayers: cap } : {}) })
     this.watch(id, 'loading the model', this.limits.loadMs, this.limits.cpuLoadMs)
-    return done.then((r) => { console.info('NOTES', `notes model loaded: context ${r.contextSize}, graphics ${r.gpu === undefined ? 'unknown' : r.gpu || 'none'}${r.gpu && r.gpuLayers !== undefined ? ` (${r.gpuLayers} layers)` : ''}`); return r })
+    return done.then((r) => {
+      if (this.model === model && r.gpu !== undefined) this.onCard = { model, layers: r.gpu ? r.gpuLayers ?? 0 : 0 }
+      console.info('NOTES', `notes model loaded: context ${r.contextSize}, graphics ${r.gpu === undefined ? 'unknown' : r.gpu || 'none'}${r.gpu && r.gpuLayers !== undefined ? ` (${r.gpuLayers} layers)` : ''}`)
+      return r
+    })
   }
   async unload() { if (this.proc) await this.call({ type: 'unload' }).done }
   count(texts: string[]) { return this.call<number[]>({ type: 'count', texts }).done }

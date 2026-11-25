@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createNotesModel } from '../src/main/notes/model'
-import { GraphicsGaveUpError, type Engine } from '../src/main/engine'
+import { GraphicsFullError, GraphicsGaveUpError, type Engine } from '../src/main/engine'
 
 /** an engine whose graphics card gives up the first `fails` times a step is tried */
-function rig(o: { loadFails?: number; chatFails?: number; chatError?: Error }) {
+function rig(o: { loadFails?: number; chatFails?: number; chatError?: () => Error }) {
   let loadFails = o.loadFails ?? 0, chatFails = o.chatFails ?? 0
   const exits: (() => void)[] = []
   const calls: string[] = []
@@ -13,7 +13,7 @@ function rig(o: { loadFails?: number; chatFails?: number; chatError?: Error }) {
     onExit: (cb) => { exits.push(cb) },
     chat: vi.fn(async (_r, onToken) => {
       calls.push('chat')
-      if (chatFails-- > 0) { exits.forEach((f) => f()); throw o.chatError ?? new GraphicsGaveUpError('no first word') }
+      if (chatFails-- > 0) { exits.forEach((f) => f()); throw o.chatError?.() ?? new GraphicsGaveUpError('no first word') }
       onToken('Hi'); return 'Hi'
     }),
   }
@@ -42,8 +42,15 @@ describe('the notes model when the graphics card gives up (Windows and Linux)', 
     expect(words).toEqual(['Hi'])
   })
 
+  it('the card running out of memory: tried again each time the engine steps down, until the processor (#165)', async () => {
+    const r = rig({ chatFails: 3, chatError: () => new GraphicsFullError('out of memory') })
+    const llm = await r.model.llm()
+    await expect(llm.chat('the prompt', () => {})).resolves.toBe('Hi')
+    expect(r.calls).toEqual(['load', 'chat', 'load', 'chat', 'load', 'chat', 'load', 'chat'])
+  })
+
   it('any other failure is not retried', async () => {
-    const r = rig({ chatFails: 1, chatError: new Error('Stopped') })
+    const r = rig({ chatFails: 1, chatError: () => new Error('Stopped') })
     const llm = await r.model.llm()
     await expect(llm.chat('the prompt', () => {})).rejects.toThrow('Stopped')
     expect(r.calls).toEqual(['load', 'chat'])
