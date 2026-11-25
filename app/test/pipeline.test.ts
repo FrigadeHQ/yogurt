@@ -63,6 +63,14 @@ describe('pipeline', () => {
     expect(s.sent.sort()).toEqual(['I will send the notes', 'Thanks for the update'])
   })
 
+  it('leaves a live line unnamed when attribution returns speech', async () => {
+    const s = setup(() => [], { nameOf: () => 'Is everyone ready?' })
+    s.p.speechLines('them', [{ track: 'them', startMs: 0, endMs: 800, text: 'Keep these words' }])
+    await s.p.finish()
+    expect(s.saved).toMatchObject([{ speaker: null, text: 'Keep these words' }])
+    expect(s.sent).toEqual(['Keep these words'])
+  })
+
   it('a line of the other side gets the name the call app showed for its time; the mic is always the person', async () => {
     const asked: Array<[number, number]> = []
     const s = setup((c) => [line(c, c.track === 'me' ? 'mine' : 'theirs')], { nameOf: (a, b) => { asked.push([a, b]); return 'Dana Smith' } })

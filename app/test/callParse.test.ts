@@ -49,6 +49,23 @@ describe('Zoom', () => {
     expect(r.speaking).toEqual(['Dana Smith'])
   })
 
+  it.each([
+    'Talking points',
+    // The native accessibility reader clips a text value at 300 characters, even mid-word.
+    ('Talking: ' + 'The draft has a section we still need to revise before the review. '.repeat(5)).slice(0, 300),
+    'Talking: Ready?',
+  ])('leaves a line unnamed when Zoom exposes speech as static text (%#)', (v) => {
+    const snapshot = zoomWindow([], [], [node('AXStaticText', { v })])
+    const reading = readCall('zoom', [snapshot])
+    expect(nameFor({ startMs: 0, endMs: 800 }, [{ ms: 0, ...reading }])).toBeNull()
+  })
+
+  it.each([{ i: 'captions' }, { d: 'Live Transcript' }])('ignores caption text beside a localized speaker label (%#)', (panel) => {
+    const captions = node('AXGroup', panel, node('AXStaticText', { v: 'Talking: First Draft' }))
+    const label = node('AXStaticText', { v: '正在发言：李明' })
+    expect(readCall('zoom', [zoomWindow([], [], [captions, label])]).speaking).toEqual(['李明'])
+  })
+
   it('a Zoom that changed its window reads as nothing, never a wrong name', () => {
     const r = readCall('zoom', [win(node('AXWindow', {}, node('AXGroup', { d: 'Dana Smith' }), node('AXTabGroup', { d: 'Chat' }), node('AXStaticText', { v: 'Dana Smith' })))])
     expect(r).toEqual({ speaking: [], participants: [], me: null })

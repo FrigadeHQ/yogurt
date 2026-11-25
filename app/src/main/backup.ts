@@ -1,3 +1,5 @@
+import { readDraftLines } from './store'
+import { segmentSpeaker } from './speakerName'
 import { migrateMeetingChats } from './library/store'
 import backupFormat from '../shared/backupFormat.json'
 import { backfillPeople, mergePeople } from './people'
@@ -107,7 +109,8 @@ export function mergeBackup(into: DatabaseSync, from: DatabaseSync): { added: st
         for (const row of p.read.all(id) as Row[]) {
           // a meeting that was recording when the backup was made stopped there, as after a crash
           if (p.table === 'meetings' && row.state === 'recording') row.state = 'stopped'
-          if (p.table === 'segments' && lettered && row.track === 'them') row.speaker = null
+          if (p.table === 'segments') row.speaker = lettered && row.track === 'them' ? null : segmentSpeaker(row.speaker)
+          if (p.table === 'transcription_drafts') row.payload = JSON.stringify(readDraftLines(row.payload))
           const r = p.write.run(...p.cols.map((c) => row[c]))
           // the insert trigger puts every line in search; hidden echo lines come out again, as addSegments does
           if (p.table === 'segments') {

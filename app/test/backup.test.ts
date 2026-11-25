@@ -63,6 +63,19 @@ describe('backup merge', () => {
     mergeBackup(into.db, from.db)
     expect(into.segments(m.id).map((s) => s.speaker)).toEqual([null])
   })
+  it('restores the words of a legacy segment and draft with an invalid speaker', () => {
+    const from = openStore(':memory:'), into = openStore(':memory:')
+    stores.push(from, into)
+    const m = fill(from, 'Old', 'pricing')
+    const [line] = from.segments(m.id)
+    from.db.prepare('UPDATE segments SET speaker = ? WHERE id = ?').run('Is it ready?', line.id)
+    from.db.prepare('INSERT INTO transcription_drafts (meeting_id, payload) VALUES (?, ?)')
+      .run(m.id, JSON.stringify([{ ...line, speaker: 'Is it ready?' }]))
+    mergeBackup(into.db, from.db)
+    expect(into.db.prepare('SELECT speaker, text FROM segments WHERE hidden = 0').get()).toMatchObject({ speaker: null, text: line.text })
+    const payload = into.db.prepare('SELECT payload FROM transcription_drafts').get()?.payload
+    expect(JSON.parse(String(payload))[0]).toMatchObject({ speaker: null, text: line.text })
+  })
   it('adds meetings that are not here with every row that belongs to them, and skips the ones that are', () => {
     const from = fresh(), into = fresh()
     const shared = fill(from, 'Weekly sync', 'budget')

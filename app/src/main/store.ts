@@ -1,3 +1,4 @@
+import { segmentSpeaker, speakerName } from './speakerName'
 import type { TranscriptionState } from '../shared/transcription'
 import { eventIds, type CalEvent } from './calendar'
 import { matchSearchPeople, searchPersonKey, uniqueSearchPeople } from '../shared/searchPeople'
@@ -76,9 +77,12 @@ const toMeeting = (r: Row): Meeting => ({
   ...(r.duration_ms == null ? {} : { durationMs: Number(r.duration_ms) }),
   ...(r.trashed_at == null ? {} : { trashedAt: Number(r.trashed_at) }),
 })
+const draftLine = (s: Omit<Segment, 'id'>) => ({ ...s, speaker: segmentSpeaker(s.speaker) })
+export const readDraftLines = (payload: unknown): Omit<Segment, 'id'>[] => JSON.parse(String(payload)).map(draftLine)
+
 const toSegment = (r: Row): Segment => ({
   id: Number(r.id), meetingId: String(r.meeting_id), track: r.track as Segment['track'], startMs: Number(r.start_ms), endMs: Number(r.end_ms),
-  text: String(r.text), speaker: r.speaker == null ? null : String(r.speaker), hidden: Number(r.hidden ?? 0) === 1,
+  text: String(r.text), speaker: segmentSpeaker(r.speaker), hidden: Number(r.hidden ?? 0) === 1,
   ...(Number(r.echo_confident ?? 0) === 1 ? { echoConfident: true } : {}),
 })
 
@@ -502,10 +506,10 @@ export class Store {
     } catch(error) {this.db.exec('ROLLBACK');throw error}
   }
   transcriptionDraft(id: string): Omit<Segment,'id'>[] {
-    return this.db.prepare('SELECT payload FROM transcription_drafts WHERE meeting_id = ? ORDER BY rowid').all(id).flatMap(row => JSON.parse(String(row.payload)))
+    return this.db.prepare('SELECT payload FROM transcription_drafts WHERE meeting_id = ? ORDER BY rowid').all(id).flatMap(row => readDraftLines(row.payload))
   }
   addTranscriptionDraft(id: string, segments: Omit<Segment,'id'>[]) {
-    this.db.prepare('INSERT INTO transcription_drafts (meeting_id,payload) VALUES (?,?)').run(id,JSON.stringify(segments))
+    this.db.prepare('INSERT INTO transcription_drafts (meeting_id,payload) VALUES (?,?)').run(id,JSON.stringify(segments.map(draftLine)))
   }
   clearTranscriptionDraft(id: string) { this.db.prepare('DELETE FROM transcription_drafts WHERE meeting_id = ?').run(id) }
   commitTranscriptionDraft(id: string) {
@@ -530,7 +534,7 @@ export class Store {
     this.db.exec('BEGIN')
     try {
       for (const s of segs) {
-        const r = ins.run(s.meetingId, s.track, s.startMs, s.endMs, s.text, s.speaker, s.hidden ? 1 : 0, s.hidden && s.echoConfident ? 1 : 0)
+        const r = ins.run(s.meetingId, s.track, s.startMs, s.endMs, s.text, segmentSpeaker(s.speaker), s.hidden ? 1 : 0, s.hidden && s.echoConfident ? 1 : 0)
         // a hidden line is not for search
         if (s.hidden) this.db.prepare("INSERT INTO segments_fts(segments_fts, rowid, text) VALUES ('delete', ?, ?)").run(r.lastInsertRowid, s.text)
       }
@@ -552,7 +556,7 @@ export class Store {
     const names = arriving && previous.length ? [arriving] : (this.db.prepare(
       "SELECT speaker FROM segments WHERE meeting_id = ? AND track = 'them' AND speaker IS NOT NULL GROUP BY speaker ORDER BY MIN(start_ms), MIN(id)"
     ).all(meetingId) as Row[]).map(r => String(r.speaker))
-    const next = speakerOrder(previous, [...names, arriving ?? null])
+    const next = speakerOrder(previous, [...names, arriving].map(speakerName))
     if (next.length !== previous.length) {
       try { this.db.prepare('UPDATE meetings SET speaker_order = ? WHERE id = ?').run(JSON.stringify(next), meetingId) }
       catch (e) { console.warn('Could not save speaker colour order', e); return previous }
@@ -610,7 +614,7 @@ export class Store {
     const up = this.db.prepare('UPDATE segments SET speaker = ? WHERE id = ?')
     this.db.exec('BEGIN')
     try {
-      for (const s of list) up.run(s.speaker, s.id)
+      for (const s of list) up.run(segmentSpeaker(s.speaker), s.id)
       this.db.exec('COMMIT')
     } catch (e) { this.db.exec('ROLLBACK'); throw e }
   }
