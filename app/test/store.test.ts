@@ -3,6 +3,9 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
+import { AUDIO_SPEAKER } from '../src/shared/audioUpload'
+import { transcriptSpeaker } from '../src/shared/transcript'
+import { previousSpeaker } from '../src/shared/transcriptReplacement'
 import { openStore, type Store } from '../src/main/store'
 
 const dirs: string[] = []
@@ -66,6 +69,50 @@ describe('store', () => {
     const [a] = s.segments(m.id)
     s.setSegmentSpeakers([{ id: a.id, speaker: 'Dana Smith' }])
     expect(s.segments(m.id).map((x) => x.speaker)).toEqual(['Dana Smith', null])
+  })
+
+  it('saves plausible names and leaves speech unnamed on insert and late attribution', () => {
+    const s = openStore(':memory:')
+    stores.push(s)
+    const meetingId = s.createMeeting({ ...base, startedAt: 1 }).id
+    const line = { meetingId, track: 'them' as const, startMs: 0, endMs: 1, text: 'Keep these words' }
+    const valid = ['李明', 'Ana María de la Cruz', 'J. R. Smith Jr.', 'Smith, Dana', 'Mary-Jane O’Neil', 'alex.lee', 'A'.repeat(60), AUDIO_SPEAKER]
+    const invalid = ['A'.repeat(61), 'we can go over this next week', 'All done.', 'Ready?', '可以。', 'Wait…', 'Try: again', 'Two\nlines']
+    s.addSegments([...valid, ...invalid].map(speaker => ({ ...line, speaker })))
+    const saved = () => s.db.prepare('SELECT speaker FROM segments ORDER BY id').all().map(row => row.speaker)
+    expect(saved()).toEqual([...valid, ...invalid.map(() => null)])
+    s.setSegmentSpeakers([{ id: s.segments(meetingId)[0].id, speaker: 'Any questions?' }])
+    expect(saved()[0]).toBeNull()
+  })
+
+  it('reads legacy speech labels as Them without editing the saved words or label', () => {
+    const s = openStore(':memory:')
+    stores.push(s)
+    const meetingId = s.createMeeting({ ...base, startedAt: 1 }).id
+    const line = { meetingId, track: 'them' as const, startMs: 0, endMs: 800, text: 'Keep these words', speaker: 'Ready?' }
+    s.db.prepare('INSERT INTO segments (meeting_id, track, start_ms, end_ms, text, speaker) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(meetingId, line.track, line.startMs, line.endMs, line.text, line.speaker)
+    s.addSegments([{ ...line, startMs: 800, endMs: 1600, speaker: 'Dana Smith' }])
+    const saved = s.segments(meetingId)
+    expect(saved[0]).toMatchObject({ speaker: null, text: line.text })
+    expect(saved.map(transcriptSpeaker)).toEqual(['Them', 'Dana Smith'])
+    expect(previousSpeaker(saved, 'them', 0, 800)).toBeNull()
+    expect(s.speakerOrder(meetingId)).toEqual(['Dana Smith'])
+    expect(s.db.prepare('SELECT speaker FROM segments WHERE id = ?').get(saved[0].id)?.speaker).toBe(line.speaker)
+  })
+
+  it('validates draft speakers on save and when committing a legacy draft', () => {
+    const s = openStore(':memory:')
+    stores.push(s)
+    const meetingId = s.createMeeting({ ...base, startedAt: 1 }).id
+    const line = { meetingId, track: 'them' as const, startMs: 0, endMs: 800, text: 'Keep these words', speaker: 'Ready?' }
+    s.addTranscriptionDraft(meetingId, [line])
+    const payload = s.db.prepare('SELECT payload FROM transcription_drafts').get()?.payload
+    expect(JSON.parse(String(payload))).toEqual([{ ...line, speaker: null }])
+    s.db.prepare('UPDATE transcription_drafts SET payload = ?').run(JSON.stringify([line]))
+    expect(s.transcriptionDraft(meetingId)).toEqual([{ ...line, speaker: null }])
+    s.commitTranscriptionDraft(meetingId)
+    expect(s.db.prepare('SELECT speaker, text FROM segments').get()).toMatchObject({ speaker: null, text: line.text })
   })
 
   it('deleteMeeting removes the meeting with its lines, notes and chat, and search no longer finds it', () => {

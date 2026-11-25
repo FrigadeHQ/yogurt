@@ -1,3 +1,5 @@
+import { speakerName } from '../speakerName'
+
 /**
  * What a call app's window says about who is in the call and who is talking, read from its accessibility tree
  * (yogurt-mac call-watch copies it out on a Mac, yogurt-system on Linux; this reads either). Every rule fails towards
@@ -69,7 +71,7 @@ const tagsOf = (raw: string): string[] => {
 const cleanZoom = (raw: string): string | null => {
   let name = raw.normalize('NFKC').trim()
   while (ZOOM_TAGS.test(name)) name = name.replace(ZOOM_TAGS, '')
-  return name && !/^participants \(/i.test(name) ? name : null
+  return /^participants \(/i.test(name) ? null : speakerName(name)
 }
 
 /** "Ana Ruiz, Computer audio unmuted, Video off, Active speaker" → Ana Ruiz, talking; null when it isn't a tile */
@@ -100,8 +102,11 @@ export function zoomLinuxTile(name: string): { name: string; talking: boolean } 
   if (!m) return null
   const talking = LINUX_ACTIVE.test(m[1])
   const person = cleanZoom(m[1].replace(LINUX_ACTIVE, ''))
-  return person && person.length <= 60 ? { name: person, talking } : null
+  return person ? { name: person, talking } : null
 }
+
+const zoomCaption = (n: AxNode) => n.r === 'caption' || /caption|transcript/i.test(n.i ?? '')
+  || /^(?:(?:closed|live|full) )?(?:captions?|transcript(?:ion)?)$/i.test(n.d ?? n.t ?? '')
 
 function readZoom(windows: AxWindow[]): CallReading {
   const speaking: string[] = [], participants: string[] = []
@@ -127,7 +132,10 @@ function readZoom(windows: AxWindow[]): CallReading {
         for (const raw of [n.v, n.t]) {
           if (!raw) continue
           const v = raw.normalize('NFKC')
-          for (const key of TALKING) if (v.startsWith(key)) { const name = cleanZoom(v.slice(key.length).replace(/^\s*[:：]\s*/, '')); if (name) speaking.push(name) }
+          const colon = v.indexOf(':')
+          if (colon < 0 || !TALKING.includes(v.slice(0, colon).trimEnd()) || zoomCaption(n) || up.some(zoomCaption)) continue
+          const name = cleanZoom(v.slice(colon + 1))
+          if (name) speaking.push(name)
         }
       }
       // a row of the participants list: its first text is the name, "(me)" on the person using Yogurt
