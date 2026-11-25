@@ -425,7 +425,8 @@ it('keeps a failed preference actionable when another preference saves', async (
   const settings = { get: async () => ({ myName: 'Meeting host', recordingReminder: true, theme: 'system' }), setRecordingReminder: reminder, setTheme: vi.fn().mockResolvedValue(undefined) }
   vi.stubGlobal('window', { yogurt: { settings, capabilities: {} } })
   try {
-    const draw = renderer(() => Settings({ revision: 17 }))
+    let focus = 'notifications'
+    const draw = renderer(() => Settings({ revision: 17, focus }))
     draw()
     vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.includes(17))![0]()
     await Promise.resolve()
@@ -433,6 +434,7 @@ it('keeps a failed preference actionable when another preference saves', async (
     await vi.waitFor(() => expect(toast).toHaveBeenCalled())
     const failed = toast.mock.lastCall![0]
     close.mockClear()
+    focus = 'general'
     find(draw(), 'settings-theme').props.onChange({ target: { value: 'light' } })
     await vi.waitFor(() => expect(settings.setTheme).toHaveBeenCalledWith('light'))
     expect(close).not.toHaveBeenCalledWith(failed.id)
@@ -449,7 +451,7 @@ it.each([false, true])('retries the last requested AI access setting (reopen Set
   const set = vi.fn(async (enabled: boolean) => (saved = { ...saved, enabled }))
     .mockImplementationOnce(() => new Promise((_, no) => { reject = no }))
   vi.stubGlobal('window', { yogurt: { capabilities: {}, mcp: { status: async () => saved, onClients: () => () => {}, set } } })
-  const panel = find(renderer(() => Settings({}))(), 'AiApps')
+  const panel = find(renderer(() => Settings({ focus: 'connections' }))(), 'AiApps')
   const mount = async () => {
     const render = renderer(() => (panel.type as Function)(panel.props))
     render()
@@ -485,7 +487,7 @@ it('offers letting AI apps make changes only once they can read, off until turne
   let saved = { enabled: false, changes: false, command: 'test', clients: [] as string[] }
   const setChanges = vi.fn(async (changes: boolean) => (saved = { ...saved, changes }))
   vi.stubGlobal('window', { yogurt: { capabilities: {}, mcp: { status: async () => saved, onClients: () => () => {}, set: vi.fn(), setChanges } } })
-  const panel = find(renderer(() => Settings({}))(), 'AiApps')
+  const panel = find(renderer(() => Settings({ focus: 'connections' }))(), 'AiApps')
   const mount = async () => {
     const render = renderer(() => (panel.type as Function)(panel.props))
     render()
@@ -515,6 +517,43 @@ it.each([false, true])('opens a pending command-search question as a draft when 
   find(render(), 'search').props.onKeyDown({ key: 'Enter', metaKey, nativeEvent: {}, preventDefault() {} })
   await vi.waitFor(() => expect(onNavigate).toHaveBeenCalledExactlyOnceWith('/chat/draft-id'))
   expect(draft).toHaveBeenCalledExactlyOnceWith('draft-id', 'What did we decide?')
+})
+
+it.each([
+  ['General', '/settings'], ['Notifications', '/settings/notifications'], ['Recording & notes', '/settings/recording'],
+  ['Connections', '/settings/connections'], ['Storage & backup', '/settings/storage'],
+])('opens Settings: %s from the palette inside Settings with Enter', async (name, route) => {
+  vi.useFakeTimers()
+  vi.stubGlobal('document', { activeElement: null })
+  vi.stubGlobal('HTMLButtonElement', class {})
+  vi.stubGlobal('window', { yogurt: { capabilities: {}, search: { query: async () => [] } } })
+  const onNavigate = vi.fn()
+  const draw = renderer(() => Search({ inSettings: true, onOpen() {}, onNavigate, onSettingsChange() {}, onShortcuts() {}, onClose() {}, sidebarCollapsed: false }))
+  find(draw(), 'search-input').props.onChange({ target: { value: name } })
+  draw()
+  vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.length === 6)![0]()
+  await vi.runAllTimersAsync()
+  const tree = draw()
+  const id = route === '/settings' ? 'general' : route.split('/').pop()
+  expect(find(find(tree, 'command-settings-' + id), 'command-label').props.children[0]).toBe(name)
+  find(tree, 'search').props.onKeyDown({ key: 'Enter', nativeEvent: {}, preventDefault() {} })
+  expect(onNavigate).toHaveBeenCalledExactlyOnceWith(route)
+})
+
+it.each(['', 'notifications', 'settings'])('keeps Settings section destinations out of workspace search for %j', async q => {
+  vi.useFakeTimers()
+  vi.stubGlobal('document', { activeElement: null })
+  vi.stubGlobal('window', { yogurt: { capabilities: {}, search: { query: async () => [] } } })
+  const draw = renderer(() => Search({ onOpen() {}, onNavigate() {}, onSettingsChange() {}, onShortcuts() {}, onClose() {}, sidebarCollapsed: false }))
+  find(draw(), 'search-input').props.onChange({ target: { value: q } })
+  draw()
+  vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.length === 6)![0]()
+  await vi.runAllTimersAsync()
+  const tree = draw()
+  for (const section of ['general', 'notifications', 'recording', 'connections', 'storage']) {
+    expect(() => find(tree, 'command-settings-' + section)).toThrow()
+  }
+  if (q !== 'notifications') expect(find(tree, 'command-settings')).toBeDefined()
 })
 
 it.each([
@@ -1431,4 +1470,38 @@ it('hands the same shell from the Mac launch to a read error, checking and the r
   expect(find(tree, 'MacLaunch').props.active).toBe(false)
   const workspace = find(tree, 'Workspace')
   expect(workspace.props.route).toBe('')
+})
+
+it.each([false, true])('Back from a Settings detail restores the note and its sidebar (collapsed: %s)', async collapsed => {
+  vi.useFakeTimers()
+  const go = vi.fn()
+  vi.stubGlobal('window', { innerWidth: collapsed ? 800 : 1100, yogurt: {
+    nav: { go }, setup: { state: async () => ({ phase: 'ready' }), onState: vi.fn() },
+    onboarding: { plan: async () => ({ steps: [], intro: false }) },
+  } })
+  const draw = renderer(App)
+  draw()
+  const [setup, plan] = vi.mocked(useEffect).mock.calls.slice(2, 4)
+  setup[0](); plan[0]()
+  await Promise.resolve()
+  draw()
+  vi.mocked(useEffect).mock.calls[4][0]()
+  vi.runAllTimers()
+  const workspace = () => find(draw(), 'Workspace').props
+  workspace().go('/note/standup')
+  workspace().go('/settings/calendar')
+  const shell = workspace()
+  expect(shell.collapsed).toBe(false)
+  const layout = renderer(() => Workspace(shell))()
+  const sidebar = find(find(layout, 'workspace-sidebar'), 'SettingsSidebar')
+  expect(renderToStaticMarkup(sidebar)).toContain('data-testid="settings-nav-connections" aria-current="page"')
+  expect(() => find(layout, 'nav-home')).toThrow()
+  shell.toggleSidebar()
+  sidebar.props.go('/settings/notifications')
+  workspace().go('/settings/recordings')
+  workspace().settingsSidebar.props.back()
+  expect(go).toHaveBeenLastCalledWith('/note/standup')
+  expect(workspace().collapsed).toBe(collapsed)
+  workspace().forward()
+  expect(workspace().route).toBe('/settings/recordings')
 })

@@ -290,6 +290,7 @@ async function captureSwitch(app: ElectronApplication, page: Page, id: string, t
 
 scene('01', 'AI access after a rejected save', async ({ app, page, profile, theme }) => {
   await openFromCorner(page, 'settings-open')
+  if (after) await page.getByTestId('settings-nav-connections').click()
   const toggle = page.getByTestId('ai-apps-toggle')
   await expect(toggle).toHaveAttribute('aria-checked', 'true')
   await toggle.evaluate(el => el.scrollIntoView({ block: 'center' }))
@@ -314,6 +315,7 @@ for (const [id, control, channel, toast] of [
 ] as const) {
   scene(id, 'rejected save for ' + control, async s => {
     await openFromCorner(s.page, 'settings-open')
+    if (after && id === '01-general') await s.page.getByTestId('settings-nav-notifications').click()
     const toggle = s.page.getByTestId(control)
     await expect(toggle).toBeEnabled()
     await toggle.evaluate(el => el.scrollIntoView({ block: 'center' }))

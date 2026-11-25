@@ -265,6 +265,7 @@ const api: YogurtApi = {
     setAppVisibility: (choice) => ipcRenderer.invoke('settings:visibility', choice),
     setOpenAtLogin: (on) => ipcRenderer.invoke('settings:login', on),
     setName: (name) => ipcRenderer.invoke('settings:name', name),
+    setDetectMeetingsAutomatically: on => ipcRenderer.invoke('settings:detect-meetings', on),
     setStopWhenCallEnds: (on) => ipcRenderer.invoke('settings:auto-stop', on),
     setIncludeRecordingCredit: (on) => ipcRenderer.invoke('settings:recording-credit', on),
     setRecordingReminder: (on) => ipcRenderer.invoke('settings:recording-reminder', on),

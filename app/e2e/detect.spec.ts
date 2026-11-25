@@ -162,7 +162,7 @@ test('the window is away: clicking the "Take notes?" notification starts the not
   try {
     // test runs keep the window hidden: away, as far as Yogurt can tell
     await signals(app, { micApps: [zoom], events: [event()] })
-    await card(app)
+    await expect((await card(app)).getByTestId('prompt-heading')).toHaveText('Take notes?')
     await expect.poll(notice).toEqual({ title: 'Take notes?', body: 'Design review' })
     await clickNotice()
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
@@ -175,8 +175,9 @@ test('the window is away: clicking the "Take notes?" notification starts the not
     await signals(app, { micApps: [], events: [event()] })
     await advance(app, 31_000)
     await expect.poll(notice).toMatchObject({ title: 'Stop recording?' })
+    await expect((await card(app)).getByTestId('prompt-heading')).toHaveText('Stop recording?')
     await clickNotice()
-    await expect(page.getByTestId('note-state')).not.toHaveAttribute('data-state', 'recording')
+    await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', /^(stopped|done)$/)
     expect(await notice()).toBeNull()
   } finally { await app.close() }
 })

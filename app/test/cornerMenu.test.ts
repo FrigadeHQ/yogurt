@@ -15,9 +15,9 @@ function nodes(node: ReactNode): ReactElement<Record<string, any>>[] {
   if (!isValidElement<Record<string, any>>(node)) return []
   return [node, ...nodes(node.props.children)]
 }
-function render(recording = false, visible = true) {
+function render(recording = false, visible = true, section = '/settings') {
   cursor = 0
-  tree = CornerMenu({ visible, section: '/settings', recording, go, shortcuts })
+  tree = CornerMenu({ visible, section, recording, go, shortcuts })
 }
 const props = (id: string) => nodes(tree).find(n => n.props['data-testid'] === id)?.props
 const root = () => nodes(tree).find(n => n.type === Menu.Root)!.props
@@ -75,7 +75,11 @@ it('uses the approved seven rows and appends the downloaded version nearest the 
     root().onOpenChangeComplete(false)
     expect(focus).toHaveBeenCalledTimes(i + 1)
   }
-  expect(go.mock.calls).toEqual([['/settings'],['/trash']]); expect(shortcuts).toHaveBeenCalledOnce()
+  expect(go.mock.calls).toEqual([['/trash']]); expect(shortcuts).toHaveBeenCalledOnce()
+  render(false, true, '/trash')
+  props('settings-open')!.onClick()
+  root().onOpenChangeComplete(false)
+  expect(go.mock.calls).toEqual([['/trash'], ['/settings']])
 })
 
 it('closes the menu with its sidebar and keeps a ready update on the corner trigger', () => {

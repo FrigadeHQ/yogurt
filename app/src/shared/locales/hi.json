@@ -217,7 +217,6 @@
   "In Screen & System Audio Recording, under System Audio Recording Only, turn on Yogurt.": "स्क्रीन और सिस्टम ऑडियो रिकॉर्डिंग में, केवल सिस्टम ऑडियो रिकॉर्डिंग के नीचे Yogurt चालू करें।",
   "Has notes": "नोट्स हैं",
   "It installs the next time you quit Yogurt.": "यह अगली बार Yogurt बंद करने पर इंस्टॉल होगा।",
-  "It runs in the background, ready for your first call.": "यह बैकग्राउंड में चलता है, आपकी पहली कॉल के लिए तैयार।",
   "Italic": "इटैलिक",
   "Its notes, transcript and recording are removed from this Mac for good.": "इसके नोट्स, ट्रांसक्रिप्ट और रिकॉर्डिंग इस Mac से हमेशा के लिए हटा दिए जाते हैं।",
   "Its notes, transcript and recording are removed from this computer for good.": "इसके नोट्स, ट्रांसक्रिप्ट और रिकॉर्डिंग इस कंप्यूटर से हमेशा के लिए हटा दिए जाते हैं।",
@@ -251,6 +250,7 @@
   "Meeting controls": "मीटिंग कंट्रोल",
   "Meeting view": "मीटिंग व्यू",
   "Meetings": "मीटिंग्स",
+  "Meetings you remove stay in the Trash for {count} days, then they're deleted for good.": "आप जो मीटिंग हटाते हैं, वे {count} दिन तक ट्रैश में रहती हैं। इसके बाद वे हमेशा के लिए मिट जाती हैं।",
   "Meetings in the Trash are deleted for good after {count} days, with their recordings.": {
     "one": "ट्रैश में रखी मीटिंग्स {count} दिन बाद अपनी रिकॉर्डिंग के साथ हमेशा के लिए डिलीट हो जाती हैं।",
     "other": "ट्रैश में रखी मीटिंग्स {count} दिन बाद अपनी रिकॉर्डिंग के साथ हमेशा के लिए डिलीट हो जाती हैं।"
@@ -334,7 +334,6 @@
   "Recorded time": "रिकॉर्ड किया गया समय",
   "Recording": "रिकॉर्ड हो रहा है",
   "Recording paused": "रिकॉर्डिंग रुकी हुई है",
-  "Recording reminder": "रिकॉर्डिंग रिमाइंडर",
   "Recording stopped. Open Yogurt to finish saving.": "रिकॉर्डिंग रुक गई। सेव करना पूरा करने के लिए Yogurt खोलें।",
   "Recording stopped. Yogurt couldn't save when it ended. Keep Yogurt open and try again.": "रिकॉर्डिंग रुक गई। खत्म होने पर Yogurt सेव नहीं कर सका। Yogurt खुला रखें और फिर से कोशिश करें।",
   "Recording stopped. Your notes are safe.": "रिकॉर्डिंग रुक गई। आपके नोट्स सुरक्षित हैं।",
@@ -565,7 +564,6 @@
   "Yogurt runs entirely on your computer, and this one can't write down a meeting as fast as people talk. Installing the driver for your graphics card may help. Otherwise it needs a faster processor, or graphics it can use.": "Yogurt पूरी तरह आपके कंप्यूटर पर चलता है, और यह कंप्यूटर मीटिंग को उतनी तेज़ी से नहीं लिख पा रहा जितनी तेज़ी से लोग बोलते हैं। अपने ग्राफ़िक्स कार्ड का ड्राइवर इंस्टॉल करने से मदद मिल सकती है। नहीं तो इसे तेज़ प्रोसेसर, या ऐसे ग्राफ़िक्स चाहिए जिन्हें यह इस्तेमाल कर सके।",
   "Generating notes…": "नोट्स बन रहे हैं…",
   "Calendar access": "कैलेंडर की पहुँच",
-  "Remove Yogurt’s access in System Settings.": "सिस्टम सेटिंग्स में Yogurt की पहुँच हटाएँ।",
   "Downloading AI": "AI डाउनलोड हो रहा है",
   "Downloading AI · {percent}": "AI डाउनलोड हो रहा है · {percent}",
   "AI download stopped": "AI का डाउनलोड रुक गया",
@@ -798,5 +796,18 @@
   "Unmute my mic in Yogurt": "Yogurt में मेरा माइक अनम्यूट करें",
   "Mic will stay off on resume": "रिकॉर्डिंग फिर शुरू होने पर माइक बंद रहेगा",
   "Mic mute couldn’t be confirmed.": "माइक म्यूट होने की पुष्टि नहीं हो सकी।",
-  "Mic off. Yogurt can’t hear call audio.": "माइक बंद है। Yogurt को कॉल की आवाज़ सुनाई नहीं दे रही है।"
+  "Mic off. Yogurt can’t hear call audio.": "माइक बंद है। Yogurt को कॉल की आवाज़ सुनाई नहीं दे रही है।",
+  "Connections": "कनेक्शन",
+  "Storage & backup": "स्टोरेज और बैकअप",
+  "Closing the window keeps Yogurt running.": "विंडो बंद करने पर भी Yogurt चलता रहता है।",
+  "Detect meetings automatically": "मीटिंग का अपने आप पता लगाएँ",
+  "Automatic meeting detection is off.": "मीटिंग का अपने आप पता लगाना बंद है।",
+  "Recording & notes": "रिकॉर्डिंग और नोट्स",
+  "Back to app": "ऐप पर वापस जाएँ",
+  "Search settings": "सेटिंग खोजें",
+  "No settings match": "कोई सेटिंग मेल नहीं खाती",
+  "Remind me to tell others I’m recording": "दूसरों को बताने की याद दिलाएँ कि रिकॉर्डिंग हो रही है",
+  "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "रिकॉर्डिंग खुद शुरू और खत्म करें। कॉल शुरू होने पर Yogurt नहीं खुलेगा।",
+  "System notifications": "सिस्टम सूचनाएँ",
+  "Microphone access": "माइक्रोफ़ोन का ऐक्सेस"
 }

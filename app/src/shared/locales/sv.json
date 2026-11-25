@@ -217,7 +217,6 @@
   "In Screen & System Audio Recording, under System Audio Recording Only, turn on Yogurt.": "Under Skärm- och systemljudinspelning, vid Endast systemljudinspelning, slår du på Yogurt.",
   "Has notes": "Har anteckningar",
   "It installs the next time you quit Yogurt.": "Den installeras nästa gång du avslutar Yogurt.",
-  "It runs in the background, ready for your first call.": "Körs i bakgrunden, redo för ditt första samtal.",
   "Italic": "Kursiv",
   "Its notes, transcript and recording are removed from this Mac for good.": "Anteckningar, transkription och inspelning tas bort från den här Macen för alltid.",
   "Its notes, transcript and recording are removed from this computer for good.": "Anteckningar, transkription och inspelning tas bort från den här datorn för alltid.",
@@ -251,6 +250,10 @@
   "Meeting controls": "Mötesreglage",
   "Meeting view": "Mötesvy",
   "Meetings": "Möten",
+  "Meetings you remove stay in the Trash for {count} days, then they're deleted for good.": {
+    "one": "Möten som du tar bort ligger kvar i papperskorgen i {count} dag. Sedan raderas de permanent.",
+    "other": "Möten som du tar bort ligger kvar i papperskorgen i {count} dagar. Sedan raderas de permanent."
+  },
   "Meetings in the Trash are deleted for good after {count} days, with their recordings.": {
     "one": "Möten i papperskorgen raderas för alltid efter {count} dag, med sina inspelningar.",
     "other": "Möten i papperskorgen raderas för alltid efter {count} dagar, med sina inspelningar."
@@ -334,7 +337,6 @@
   "Recorded time": "Inspelad tid",
   "Recording": "Spelar in",
   "Recording paused": "Inspelningen är pausad",
-  "Recording reminder": "Påminnelse om inspelning",
   "Recording stopped. Open Yogurt to finish saving.": "Inspelningen har stoppats. Öppna Yogurt för att spara klart.",
   "Recording stopped. Yogurt couldn't save when it ended. Keep Yogurt open and try again.": "Inspelningen har stoppats. Yogurt kunde inte spara när den slutade. Låt Yogurt vara öppet och försök igen.",
   "Recording stopped. Your notes are safe.": "Inspelningen har stoppats. Dina anteckningar är i säkerhet.",
@@ -565,7 +567,6 @@
   "Yogurt runs entirely on your computer, and this one can't write down a meeting as fast as people talk. Installing the driver for your graphics card may help. Otherwise it needs a faster processor, or graphics it can use.": "Yogurt körs helt på din dator, och den här hinner inte skriva ner ett möte lika fort som folk pratar. Det kan hjälpa att installera drivrutinen för ditt grafikkort. Annars behöver den en snabbare processor, eller grafik som den kan använda.",
   "Generating notes…": "Skapar anteckningar…",
   "Calendar access": "Kalenderåtkomst",
-  "Remove Yogurt’s access in System Settings.": "Ta bort Yogurts åtkomst i Systeminställningar.",
   "Downloading AI": "Laddar ner AI",
   "Downloading AI · {percent}": "Laddar ner AI · {percent}",
   "AI download stopped": "AI-nedladdningen stoppades",
@@ -810,5 +811,18 @@
   "Unmute my mic in Yogurt": "Slå på min mikrofon i Yogurt",
   "Mic will stay off on resume": "Mikrofonen förblir avstängd när inspelningen återupptas",
   "Mic mute couldn’t be confirmed.": "Det gick inte att bekräfta att mikrofonen stängts av.",
-  "Mic off. Yogurt can’t hear call audio.": "Mikrofonen är av. Yogurt kan inte höra samtalsljudet."
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofonen är av. Yogurt kan inte höra samtalsljudet.",
+  "Connections": "Anslutningar",
+  "Storage & backup": "Lagring och säkerhetskopiering",
+  "Closing the window keeps Yogurt running.": "Yogurt fortsätter att köras när du stänger fönstret.",
+  "Detect meetings automatically": "Upptäck möten automatiskt",
+  "Automatic meeting detection is off.": "Automatisk mötesidentifiering är avstängd.",
+  "Recording & notes": "Inspelning och anteckningar",
+  "Back to app": "Tillbaka till appen",
+  "Search settings": "Sök i inställningarna",
+  "No settings match": "Inga matchande inställningar",
+  "Remind me to tell others I’m recording": "Påminn mig om att berätta för andra att jag spelar in",
+  "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "Starta och avsluta inspelningar själv. Yogurt öppnas inte när ett samtal börjar.",
+  "System notifications": "Systemnotiser",
+  "Microphone access": "Mikrofonåtkomst"
 }

@@ -19,7 +19,7 @@ const FELL_BACK_MS = 8000
  * The mic under the note's bar, as a menu: Auto (the mic the Mac is set to) or any mic on this Mac, the one in use checked.
  * Choosing switches the recording without stopping it, and is remembered for the next one.
  */
-export function MicMenu({ recording, paused }: { recording: boolean; paused?: boolean }) {
+export function MicMenu({ recording, paused, placement = 'above' }: { recording: boolean; paused?: boolean; placement?: 'above' | 'below' }) {
   const [view, setView] = useState<MicsView>()
   const [open, setOpen] = useState<false | 'pointer' | 'keyboard'>(false)
   const presence = usePopoverPresence(open)
@@ -95,8 +95,8 @@ export function MicMenu({ recording, paused }: { recording: boolean; paused?: bo
         </span>
       )}
       {presence.value && view && (
-        <div data-testid="mic-menu" {...presence.props} data-anchor="bottom-start" role="menu" aria-label={t('Microphone')} onKeyDown={onKey}
-          className="menu-entry absolute bottom-full start-0 z-30 mb-2 w-72 rounded-xl border border-line bg-float p-1.5 text-ink shadow-[var(--shadow)]">
+        <div data-testid="mic-menu" {...presence.props} data-anchor={placement === 'below' ? 'end' : 'bottom-start'} role="menu" aria-label={t('Microphone')} onKeyDown={onKey}
+          className={`menu-entry absolute z-30 w-72 rounded-xl border border-line bg-float p-1.5 text-ink shadow-[var(--shadow)] ${placement === 'below' ? 'top-full end-0 mt-1 max-h-64 overflow-y-auto' : 'bottom-full start-0 mb-2'}`}>
           <button role="menuitemradio" aria-checked={view.choice === null} data-testid="mic-auto" onClick={() => void choose(null)} className={row}>
             <span className="flex min-w-0 flex-col">
               <span className="flex items-center gap-1.5">

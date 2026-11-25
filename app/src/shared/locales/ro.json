@@ -219,7 +219,6 @@
   "In Screen & System Audio Recording, under System Audio Recording Only, turn on Yogurt.": "În Înregistrare ecran și audio sistem, la Numai înregistrare audio sistem, activați Yogurt.",
   "Has notes": "Are notițe",
   "It installs the next time you quit Yogurt.": "Se instalează data viitoare când închideți Yogurt.",
-  "It runs in the background, ready for your first call.": "Rulează în fundal, gata pentru primul apel.",
   "Italic": "Cursiv",
   "Its notes, transcript and recording are removed from this Mac for good.": "Notițele, transcrierea și înregistrarea sunt eliminate definitiv de pe acest Mac.",
   "Its notes, transcript and recording are removed from this computer for good.": "Notițele, transcrierea și înregistrarea sunt eliminate definitiv de pe acest computer.",
@@ -253,6 +252,11 @@
   "Meeting controls": "Comenzi întâlnire",
   "Meeting view": "Vizualizare întâlnire",
   "Meetings": "Întâlniri",
+  "Meetings you remove stay in the Trash for {count} days, then they're deleted for good.": {
+    "one": "Întâlnirile pe care le elimini rămân în Coș timp de {count} zi, apoi sunt șterse definitiv.",
+    "few": "Întâlnirile pe care le elimini rămân în Coș timp de {count} zile, apoi sunt șterse definitiv.",
+    "other": "Întâlnirile pe care le elimini rămân în Coș timp de {count} de zile, apoi sunt șterse definitiv."
+  },
   "Meetings in the Trash are deleted for good after {count} days, with their recordings.": {
     "one": "Întâlnirile din Coș sunt șterse definitiv după {count} zi, împreună cu înregistrările.",
     "few": "Întâlnirile din Coș sunt șterse definitiv după {count} zile, împreună cu înregistrările.",
@@ -337,7 +341,6 @@
   "Recorded time": "Timp înregistrat",
   "Recording": "Se înregistrează",
   "Recording paused": "Înregistrare pe pauză",
-  "Recording reminder": "Memento pentru înregistrare",
   "Recording stopped. Open Yogurt to finish saving.": "Înregistrarea s-a oprit. Deschideți Yogurt ca să terminați salvarea.",
   "Recording stopped. Yogurt couldn't save when it ended. Keep Yogurt open and try again.": "Înregistrarea s-a oprit. Yogurt nu a putut salva la final. Țineți Yogurt deschis și încercați din nou.",
   "Recording stopped. Your notes are safe.": "Înregistrarea s-a oprit. Notițele dvs. sunt în siguranță.",
@@ -575,7 +578,6 @@
   "Yogurt runs entirely on your computer, and this one can't write down a meeting as fast as people talk. Installing the driver for your graphics card may help. Otherwise it needs a faster processor, or graphics it can use.": "Yogurt rulează în întregime pe computerul dvs., iar acesta nu poate scrie o întâlnire la fel de repede cum vorbesc oamenii. Instalarea driverului pentru placa grafică poate ajuta. Altfel, are nevoie de un procesor mai rapid sau de o placă grafică pe care o poate folosi.",
   "Generating notes…": "Se generează notițele…",
   "Calendar access": "Acces la calendar",
-  "Remove Yogurt’s access in System Settings.": "Elimină accesul Yogurt din Setările de sistem.",
   "Downloading AI": "Se descarcă AI-ul",
   "Downloading AI · {percent}": "Se descarcă AI-ul · {percent}",
   "AI download stopped": "Descărcarea AI s-a oprit",
@@ -827,5 +829,18 @@
   "Unmute my mic in Yogurt": "Pornește-mi microfonul în Yogurt",
   "Mic will stay off on resume": "Microfonul va rămâne oprit la reluare",
   "Mic mute couldn’t be confirmed.": "Oprirea microfonului nu a putut fi confirmată.",
-  "Mic off. Yogurt can’t hear call audio.": "Microfon oprit. Yogurt nu poate auzi sunetul apelului."
+  "Mic off. Yogurt can’t hear call audio.": "Microfon oprit. Yogurt nu poate auzi sunetul apelului.",
+  "Connections": "Conexiuni",
+  "Storage & backup": "Stocare și copii de rezervă",
+  "Closing the window keeps Yogurt running.": "Yogurt continuă să ruleze când închizi fereastra.",
+  "Detect meetings automatically": "Detectează automat întâlnirile",
+  "Automatic meeting detection is off.": "Detectarea automată a întâlnirilor este dezactivată.",
+  "Recording & notes": "Înregistrare și notițe",
+  "Back to app": "Înapoi la aplicație",
+  "Search settings": "Caută în setări",
+  "No settings match": "Nicio setare corespunzătoare",
+  "Remind me to tell others I’m recording": "Amintește-mi să le spun celorlalți că înregistrez",
+  "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "Pornește și oprește înregistrările manual. Yogurt nu se va deschide la începutul unui apel.",
+  "System notifications": "Notificări de sistem",
+  "Microphone access": "Acces la microfon"
 }

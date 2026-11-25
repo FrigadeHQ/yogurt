@@ -93,7 +93,7 @@ test('the grace can be shortened in fake mode', async () => {
 test('switched off in Settings: it asks as before', async () => {
   const { app, page, userData } = await launch()
   try {
-    await openFromCorner(page, 'settings-open')
+    await openFromCorner(page, 'settings-open', 'notifications')
     const toggle = page.getByTestId('autostop-toggle')
     await expect(toggle).toHaveAttribute('aria-checked', 'true')
     await toggle.click()

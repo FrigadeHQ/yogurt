@@ -217,7 +217,6 @@
   "In Screen & System Audio Recording, under System Audio Recording Only, turn on Yogurt.": "Zet bij Scherm- en systeemaudio-opname, onder Alleen systeemaudio-opname, Yogurt aan.",
   "Has notes": "Heeft notities",
   "It installs the next time you quit Yogurt.": "Wordt geïnstalleerd de volgende keer dat je Yogurt stopt.",
-  "It runs in the background, ready for your first call.": "Draait op de achtergrond, klaar voor je eerste gesprek.",
   "Italic": "Cursief",
   "Its notes, transcript and recording are removed from this Mac for good.": "De notities, het transcript en de opname worden definitief van deze Mac verwijderd.",
   "Its notes, transcript and recording are removed from this computer for good.": "De notities, het transcript en de opname worden definitief van deze computer verwijderd.",
@@ -251,6 +250,10 @@
   "Meeting controls": "Meetingbediening",
   "Meeting view": "Meetingweergave",
   "Meetings": "Meetings",
+  "Meetings you remove stay in the Trash for {count} days, then they're deleted for good.": {
+    "one": "Meetings die je verwijdert, blijven {count} dag in de prullenmand staan. Daarna worden ze definitief verwijderd.",
+    "other": "Meetings die je verwijdert, blijven {count} dagen in de prullenmand staan. Daarna worden ze definitief verwijderd."
+  },
   "Meetings in the Trash are deleted for good after {count} days, with their recordings.": {
     "one": "Meetings in de prullenmand worden na {count} dag definitief verwijderd, met hun opnames.",
     "other": "Meetings in de prullenmand worden na {count} dagen definitief verwijderd, met hun opnames."
@@ -334,7 +337,6 @@
   "Recorded time": "Opnameduur",
   "Recording": "Opname",
   "Recording paused": "Opname gepauzeerd",
-  "Recording reminder": "Opnameherinnering",
   "Recording stopped. Open Yogurt to finish saving.": "Opname gestopt. Open Yogurt om het bewaren af te ronden.",
   "Recording stopped. Yogurt couldn't save when it ended. Keep Yogurt open and try again.": "Opname gestopt. Yogurt kon aan het eind niet bewaren. Houd Yogurt open en probeer het opnieuw.",
   "Recording stopped. Your notes are safe.": "Opname gestopt. Je notities zijn veilig.",
@@ -565,7 +567,6 @@
   "Yogurt runs entirely on your computer, and this one can't write down a meeting as fast as people talk. Installing the driver for your graphics card may help. Otherwise it needs a faster processor, or graphics it can use.": "Yogurt draait helemaal op je computer, en deze kan een vergadering niet zo snel uitschrijven als er gepraat wordt. De driver voor je grafische kaart installeren kan helpen. Anders is er een snellere processor nodig, of graphics die Yogurt kan gebruiken.",
   "Generating notes…": "Notities worden gemaakt…",
   "Calendar access": "Agendatoegang",
-  "Remove Yogurt’s access in System Settings.": "Trek de toegang van Yogurt in via Systeeminstellingen.",
   "Downloading AI": "AI downloaden",
   "Downloading AI · {percent}": "AI downloaden · {percent}",
   "AI download stopped": "AI-download gestopt",
@@ -810,5 +811,18 @@
   "Unmute my mic in Yogurt": "Mijn microfoon aanzetten in Yogurt",
   "Mic will stay off on resume": "De microfoon blijft uit bij het hervatten",
   "Mic mute couldn’t be confirmed.": "Het dempen van de microfoon kon niet worden bevestigd.",
-  "Mic off. Yogurt can’t hear call audio.": "Microfoon uit. Yogurt ontvangt geen gespreksaudio."
+  "Mic off. Yogurt can’t hear call audio.": "Microfoon uit. Yogurt ontvangt geen gespreksaudio.",
+  "Connections": "Verbindingen",
+  "Storage & backup": "Opslag en back-up",
+  "Closing the window keeps Yogurt running.": "Yogurt blijft actief als je het venster sluit.",
+  "Detect meetings automatically": "Vergaderingen automatisch detecteren",
+  "Automatic meeting detection is off.": "Automatische vergaderdetectie staat uit.",
+  "Recording & notes": "Opname en notities",
+  "Back to app": "Terug naar de app",
+  "Search settings": "Zoeken in instellingen",
+  "No settings match": "Geen overeenkomende instellingen",
+  "Remind me to tell others I’m recording": "Herinner me eraan anderen te vertellen dat ik opneem",
+  "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "Start en stop opnamen zelf. Yogurt opent niet wanneer een gesprek begint.",
+  "System notifications": "Systeemmeldingen",
+  "Microphone access": "Microfoontoegang"
 }

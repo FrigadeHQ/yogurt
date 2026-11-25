@@ -89,7 +89,7 @@ export function CornerMenu({ visible, section, recording, go, shortcuts }: { vis
     // Finish the menu's focus lifecycle before the destination can accept input.
     button.current?.focus({ preventScroll: true })
     if (next === 'shortcuts') shortcuts()
-    else go('/' + next)
+    else if (next !== 'settings' || section !== '/settings') go('/' + next)
   }
   const labels = {
     news: t("What's new"), github: t('Star us on GitHub'), discord: t('Join Discord'),

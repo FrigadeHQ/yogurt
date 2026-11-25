@@ -20,7 +20,7 @@ test('personal jargon: added with Enter or the suggestion, removed with × or Ba
   const a = await launch()
   const { page } = a
   try {
-    await openFromCorner(page, 'settings-open')
+    await openFromCorner(page, 'settings-open', 'recording')
     const input = page.getByTestId('jargon-input')
     const chips = page.getByTestId('jargon-chip')
     await input.fill('  zentrik ')
@@ -58,7 +58,7 @@ test('personal jargon: added with Enter or the suggestion, removed with × or Ba
 
   const b = await launch(a.userData)
   try {
-    await openFromCorner(b.page, 'settings-open')
+    await openFromCorner(b.page, 'settings-open', 'recording')
     await expect(b.page.getByTestId('jargon-chip')).toHaveText(['zentrik', 'SOC 2'])
   } finally { await b.app.close() }
 })
@@ -66,7 +66,7 @@ test('personal jargon: added with Enter or the suggestion, removed with × or Ba
 test('personal jargon reaches whisper and the notes', async () => {
   const { app, page } = await launch()
   try {
-    await openFromCorner(page, 'settings-open')
+    await openFromCorner(page, 'settings-open', 'recording')
     const input = page.getByTestId('jargon-input')
     for (const term of ['Kubernetes', 'PostHog']) { await input.fill(term); await input.press('Enter') }
     await expect(page.getByTestId('jargon-chip')).toHaveCount(2)

@@ -23,7 +23,7 @@ test('every meeting goes to one file and into a fresh Yogurt, with notes, transc
   try {
     await fake(a.app, 'manyMeetings', { n: 3, clean: true })
     id = await fake<string>(a.app, 'bigMeeting', 4)
-    await openFromCorner(a.page, 'settings-open')
+    await openFromCorner(a.page, 'settings-open', 'storage')
     await a.page.getByTestId('backup-export').click()
     await expect(a.page.getByTestId('backup-said')).toContainText('Exported 4 meetings')
     await expect(a.page.getByTestId('backup-show')).toBeVisible()
@@ -33,10 +33,10 @@ test('every meeting goes to one file and into a fresh Yogurt, with notes, transc
   const b = await launch({ YOGURT_BACKUP_PATH: file })
   try {
     await expect(b.page.getByTestId('past-note')).toHaveCount(0)
-    await openFromCorner(b.page, 'settings-open')
+    await openFromCorner(b.page, 'settings-open', 'storage')
     await b.page.getByTestId('backup-import').click()
     await expect(b.page.getByTestId('backup-said')).toHaveText('Added 4 meetings.')
-    await b.page.getByTestId('nav-home').click()
+    await b.page.getByTestId('settings-back').click()
     // home heard about it without a reload
     await expect(b.page.getByTestId('past-note')).toHaveCount(4)
     expect(existsSync(join(b.userData, 'meetings', id, 'me.wav'))).toBe(true)
@@ -60,10 +60,10 @@ test('every meeting goes to one file and into a fresh Yogurt, with notes, transc
     await expect(b.page.getByTestId('transcript-line')).toHaveCount(4)
     await expect(b.page.getByTestId('transcript-line').first()).toContainText('Line 1 of the long meeting.')
 
-    await fake(b.app, 'go', '/settings')
+    await fake(b.app, 'go', '/settings/storage')
     await b.page.getByTestId('backup-import').click()
     await expect(b.page.getByTestId('backup-said')).toHaveText('Nothing new in this backup. 4 were already here.')
-    await b.page.getByTestId('nav-home').click()
+    await b.page.keyboard.press('ControlOrMeta+1')
     await expect(b.page.getByTestId('past-note')).toHaveCount(4)
   } finally { await b.app.close() }
 })
@@ -75,13 +75,13 @@ test('@everywhere a backup restores into a fresh Yogurt on this computer, record
   let id: string
   try {
     id = await fake<string>(a.app, 'bigMeeting', 4)
-    await openFromCorner(a.page, 'settings-open')
+    await openFromCorner(a.page, 'settings-open', 'storage')
     await a.page.getByTestId('backup-export').click()
     await expect(a.page.getByTestId('backup-said')).toContainText('Exported 1 meeting')
   } finally { await a.app.close() }
   const b = await launch({ YOGURT_BACKUP_PATH: file })
   try {
-    await openFromCorner(b.page, 'settings-open')
+    await openFromCorner(b.page, 'settings-open', 'storage')
     await b.page.getByTestId('backup-import').click()
     await expect(b.page.getByTestId('backup-said')).toHaveText('Added 1 meeting.')
     expect(existsSync(join(b.userData, 'meetings', id, 'me.wav'))).toBe(true)
@@ -92,13 +92,13 @@ test('import waits while a meeting records, and an unreadable file reports a ret
   const dir = mkdtempSync(join(tmpdir(), 'yogurt-backup-'))
   const { app, page } = await launch({ YOGURT_BACKUP_PATH: join(dir, 'missing.zip') })
   try {
-    await openFromCorner(page, 'settings-open')
+    await openFromCorner(page, 'settings-open', 'storage')
     await page.getByTestId('backup-import').click()
     await expect(page.getByTestId('backup-said')).toHaveText("Couldn't import that backup. Try again.")
     // a new note from the menu bar starts recording
     await fake(app, 'trayClick', 'new')
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
-    await fake(app, 'go', '/settings')
+    await fake(app, 'go', '/settings/storage')
     await expect(page.getByTestId('backup-import')).toBeDisabled()
     await expect(page.getByTestId('backup-wait')).toBeVisible()
     await expect(page.getByTestId('backup-export')).toBeEnabled()
@@ -108,7 +108,7 @@ test('import waits while a meeting records, and an unreadable file reports a ret
 test('Settings shows rejected backup requests and allows retrying', async () => {
   const { app, page } = await launch({})
   try {
-    await openFromCorner(page, 'settings-open')
+    await openFromCorner(page, 'settings-open', 'storage')
     await app.evaluate(({ ipcMain }) => {
       for (const name of ['backup:export', 'backup:import']) {
         ipcMain.removeHandler(name)

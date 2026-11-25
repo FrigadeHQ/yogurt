@@ -217,7 +217,6 @@
   "In Screen & System Audio Recording, under System Audio Recording Only, turn on Yogurt.": "Sa Screen & System Audio Recording, sa ilalim ng System Audio Recording Only, i-on ang Yogurt.",
   "Has notes": "May mga tala",
   "It installs the next time you quit Yogurt.": "Mai-install ito sa susunod mong pag-quit sa Yogurt.",
-  "It runs in the background, ready for your first call.": "Gumagana ito sa background, handa para sa una mong tawag.",
   "Italic": "Italic",
   "Its notes, transcript and recording are removed from this Mac for good.": "Tuluyang aalisin sa Mac na ito ang mga note, transcript at recording nito.",
   "Its notes, transcript and recording are removed from this computer for good.": "Tuluyang aalisin sa computer na ito ang mga note, transcript at recording nito.",
@@ -251,6 +250,10 @@
   "Meeting controls": "Mga kontrol ng meeting",
   "Meeting view": "View ng meeting",
   "Meetings": "Mga Meeting",
+  "Meetings you remove stay in the Trash for {count} days, then they're deleted for good.": {
+    "one": "Mananatili sa Trash ang mga meeting na inalis mo nang {count} araw. Pagkatapos, tuluyan nang mabubura ang mga ito.",
+    "other": "Mananatili sa Trash ang mga meeting na inalis mo nang {count} na araw. Pagkatapos, tuluyan nang mabubura ang mga ito."
+  },
   "Meetings in the Trash are deleted for good after {count} days, with their recordings.": {
     "one": "Tuluyang dine-delete ang mga meeting sa Trash pagkalipas ng {count} araw, kasama ang mga recording nito.",
     "other": "Tuluyang dine-delete ang mga meeting sa Trash pagkalipas ng {count} na araw, kasama ang mga recording nito."
@@ -334,7 +337,6 @@
   "Recorded time": "Oras ng recording",
   "Recording": "Nagre-record",
   "Recording paused": "Naka-pause ang recording",
-  "Recording reminder": "Paalala sa pag-record",
   "Recording stopped. Open Yogurt to finish saving.": "Huminto ang recording. Buksan ang Yogurt para matapos ang pag-save.",
   "Recording stopped. Yogurt couldn't save when it ended. Keep Yogurt open and try again.": "Huminto ang recording. Hindi naka-save ang Yogurt nang matapos ito. Panatilihing bukas ang Yogurt at subukan ulit.",
   "Recording stopped. Your notes are safe.": "Huminto ang recording. Ligtas ang mga note mo.",
@@ -565,7 +567,6 @@
   "Yogurt runs entirely on your computer, and this one can't write down a meeting as fast as people talk. Installing the driver for your graphics card may help. Otherwise it needs a faster processor, or graphics it can use.": "Tumatakbo ang Yogurt nang buo sa computer mo, at hindi kayang isulat ng isang ito ang meeting nang kasimbilis ng pagsasalita ng mga tao. Baka makatulong ang pag-install ng driver ng graphics card mo. Kung hindi, kailangan nito ng mas mabilis na processor, o graphics na magagamit nito.",
   "Generating notes…": "Ginagawa ang mga note…",
   "Calendar access": "Access sa kalendaryo",
-  "Remove Yogurt’s access in System Settings.": "Alisin ang access ng Yogurt sa System Settings.",
   "Downloading AI": "Dina-download ang AI",
   "Downloading AI · {percent}": "Dina-download ang AI · {percent}",
   "AI download stopped": "Huminto ang pag-download ng AI",
@@ -810,5 +811,18 @@
   "Unmute my mic in Yogurt": "I-unmute ang mikropono ko sa Yogurt",
   "Mic will stay off on resume": "Mananatiling naka-mute ang mikropono kapag ipinagpatuloy ang pag-record",
   "Mic mute couldn’t be confirmed.": "Hindi makumpirmang naka-mute ang mikropono.",
-  "Mic off. Yogurt can’t hear call audio.": "Naka-mute ang mikropono. Hindi marinig ng Yogurt ang audio ng tawag."
+  "Mic off. Yogurt can’t hear call audio.": "Naka-mute ang mikropono. Hindi marinig ng Yogurt ang audio ng tawag.",
+  "Connections": "Mga koneksyon",
+  "Storage & backup": "Storage at backup",
+  "Closing the window keeps Yogurt running.": "Patuloy na gagana ang Yogurt kapag isinara mo ang window.",
+  "Detect meetings automatically": "Awtomatikong tukuyin ang mga meeting",
+  "Automatic meeting detection is off.": "Naka-off ang awtomatikong pagtukoy ng mga meeting.",
+  "Recording & notes": "Pagre-record at mga tala",
+  "Back to app": "Bumalik sa app",
+  "Search settings": "Maghanap sa mga setting",
+  "No settings match": "Walang tumutugmang setting",
+  "Remind me to tell others I’m recording": "Ipaalala sa aking sabihing nagre-record ako",
+  "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "Ikaw ang magsisimula at magtatapos ng pagre-record. Hindi bubukas ang Yogurt kapag nagsimula ang isang tawag.",
+  "System notifications": "Mga notification ng system",
+  "Microphone access": "Access sa mikropono"
 }

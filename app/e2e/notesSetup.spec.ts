@@ -34,7 +34,7 @@ async function go(page: Page, route: string) {
   await page.evaluate(route => window.yogurt.nav.go(route), route)
   await expect.poll(() => page.evaluate(() => window.yogurt.nav.current())).toBe(route)
   const screen = route.startsWith('/note/') ? 'note-menu-button' : route.startsWith('/folder/') ? 'folder-page'
-    : route.startsWith('/chat') ? 'chat-page' : route === '/trash' ? 'trash-empty' : route === '/settings' ? 'settings' : 'home'
+    : route.startsWith('/chat') ? 'chat-page' : route === '/trash' ? 'trash-empty' : route.startsWith('/settings') ? 'settings' : 'home'
   await expect(page.getByTestId(screen)).toBeVisible()
 }
 
@@ -348,7 +348,7 @@ test('Settings shows restore progress without a title-bar download and keeps the
         })
       }))
     })
-    await go(page, '/settings')
+    await go(page, '/settings/recording')
     const row = page.getByTestId('settings-notes-model')
     const action = page.getByTestId('settings-notes-model-action')
     for (const fail of [true, false]) {
@@ -398,10 +398,11 @@ test('Settings download, Skip, restart and Remove use the real setup controller'
   const root = mkdtempSync(join(tmpdir(), 'yogurt-upgrade-controls-'))
   let { app, page } = await launch(root, '1600')
   try {
-    await go(page, '/settings')
+    await go(page, '/settings/recording')
     const action = page.getByTestId('settings-notes-model-action')
     await expect(action).toHaveText('Remove')
     await expect(page.getByTestId('settings-notes-model')).toContainText('Removing this model restores the smaller one.')
+    await expect(page.getByTestId('settings-page-recording')).not.toContainText(/gemma|qwen|gpt-oss|gguf|\bLLM\b|quantiz/i)
     await action.click()
     await expect(action).toHaveText(/^Download \([\d.]+ GB\)$/)
     await expect(page.getByTestId('settings-notes-model')).toContainText("More detailed, accurate notes. Replaces the current model, so you don't keep both.")
@@ -421,7 +422,7 @@ test('Settings download, Skip, restart and Remove use the real setup controller'
     await app.close()
     ;({ app, page } = await launch(root, '1600'))
     await expect(page.getByTestId('notes-setup-open')).toHaveCount(0)
-    await go(page, '/settings')
+    await go(page, '/settings/recording')
     const restarted = page.getByTestId('settings-notes-model-action')
     await expect(restarted).toHaveText(/^Download \([\d.]+ GB\)$/)
     await restarted.click()

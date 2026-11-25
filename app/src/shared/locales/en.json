@@ -81,6 +81,10 @@
     "one": "1 meeting",
     "other": "{count} meetings"
   },
+  "Meetings you remove stay in the Trash for {count} days, then they're deleted for good.": {
+    "one": "Meetings you remove stay in the Trash for {count} day, then they're deleted for good.",
+    "other": "Meetings you remove stay in the Trash for {count} days, then they're deleted for good."
+  },
   "Meetings in the Trash are deleted for good after {count} days, with their recordings.": {
     "one": "Meetings in the Trash are deleted for good after 1 day, with their recordings.",
     "other": "Meetings in the Trash are deleted for good after {count} days, with their recordings."
@@ -308,5 +312,18 @@
   "Mute my mic": "Mute my mic",
   "Mic on in Yogurt": "Mic on in Yogurt",
   "Mic mute couldn’t be confirmed.": "Mic mute couldn’t be confirmed.",
-  "Mic off. Yogurt can’t hear call audio.": "Mic off. Yogurt can’t hear call audio."
+  "Mic off. Yogurt can’t hear call audio.": "Mic off. Yogurt can’t hear call audio.",
+  "Connections": "Connections",
+  "Storage & backup": "Storage & backup",
+  "Closing the window keeps Yogurt running.": "Closing the window keeps Yogurt running.",
+  "Detect meetings automatically": "Detect meetings automatically",
+  "Automatic meeting detection is off.": "Automatic meeting detection is off.",
+  "Recording & notes": "Recording & notes",
+  "Back to app": "Back to app",
+  "Search settings": "Search settings",
+  "No settings match": "No settings match",
+  "Remind me to tell others I’m recording": "Remind me to tell others I’m recording",
+  "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "Start and finish recordings yourself. Yogurt won’t open when a call starts.",
+  "System notifications": "System notifications",
+  "Microphone access": "Microphone access"
 }

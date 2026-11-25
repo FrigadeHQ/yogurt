@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { NextMeetingSetting, PermissionRow } from '../src/renderer/src/screens/Settings'
+import { PermissionRow } from '../src/renderer/src/components/PermissionRow'
+import { NextMeetingSetting } from '../src/renderer/src/screens/Settings'
 import type { Access, PermissionKind } from '../src/shared/types'
 
 const row = (kind: PermissionKind, status: Access) => renderToStaticMarkup(createElement(PermissionRow, { kind, status, onAsk() {} }))

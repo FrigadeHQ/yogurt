@@ -217,7 +217,6 @@
   "In Screen & System Audio Recording, under System Audio Recording Only, turn on Yogurt.": "Laita Yogurt päälle kohdassa Näytön ja järjestelmän äänen tallennus, Vain järjestelmän äänen tallennus -kohdan alla.",
   "Has notes": "Muistiinpanoja saatavilla",
   "It installs the next time you quit Yogurt.": "Se asennetaan, kun lopetat Yogurtin seuraavan kerran.",
-  "It runs in the background, ready for your first call.": "Toimii taustalla valmiina ensimmäiseen puheluusi.",
   "Italic": "Kursivointi",
   "Its notes, transcript and recording are removed from this Mac for good.": "Sen muistiinpanot, litterointi ja tallenne poistetaan tästä Macista pysyvästi.",
   "Its notes, transcript and recording are removed from this computer for good.": "Sen muistiinpanot, litterointi ja tallenne poistetaan tältä tietokoneelta pysyvästi.",
@@ -251,6 +250,10 @@
   "Meeting controls": "Kokouksen säätimet",
   "Meeting view": "Kokousnäkymä",
   "Meetings": "Kokoukset",
+  "Meetings you remove stay in the Trash for {count} days, then they're deleted for good.": {
+    "one": "Poistamasi kokoukset säilyvät roskakorissa {count} päivän. Sen jälkeen ne poistetaan pysyvästi.",
+    "other": "Poistamasi kokoukset säilyvät roskakorissa {count} päivää. Sen jälkeen ne poistetaan pysyvästi."
+  },
   "Meetings in the Trash are deleted for good after {count} days, with their recordings.": {
     "one": "Roskakorissa olevat kokoukset poistetaan pysyvästi tallenteineen {count} päivän kuluttua.",
     "other": "Roskakorissa olevat kokoukset poistetaan pysyvästi tallenteineen {count} päivän kuluttua."
@@ -334,7 +337,6 @@
   "Recorded time": "Tallennettu aika",
   "Recording": "Tallennetaan",
   "Recording paused": "Tallennus keskeytetty",
-  "Recording reminder": "Tallennusmuistutus",
   "Recording stopped. Open Yogurt to finish saving.": "Tallennus pysäytettiin. Avaa Yogurt ja viimeistele tallennus.",
   "Recording stopped. Yogurt couldn't save when it ended. Keep Yogurt open and try again.": "Tallennus pysäytettiin. Yogurt ei voinut tallentaa sen päättyessä. Pidä Yogurt auki ja yritä uudelleen.",
   "Recording stopped. Your notes are safe.": "Tallennus pysäytettiin. Muistiinpanosi ovat tallessa.",
@@ -568,7 +570,6 @@
   "Yogurt runs entirely on your computer, and this one can't write down a meeting as fast as people talk. Installing the driver for your graphics card may help. Otherwise it needs a faster processor, or graphics it can use.": "Yogurt toimii kokonaan tietokoneellasi, eikä tämä ehdi kirjoittaa kokousta ylös niin nopeasti kuin ihmiset puhuvat. Näytönohjaimesi ajurin asentaminen voi auttaa. Muuten se tarvitsee nopeamman suorittimen tai näytönohjaimen, jota se voi käyttää.",
   "Generating notes…": "Luodaan muistiinpanoja…",
   "Calendar access": "Kalenterin käyttöoikeus",
-  "Remove Yogurt’s access in System Settings.": "Poista Yogurtin käyttöoikeus Järjestelmäasetuksista.",
   "Downloading AI": "Ladataan tekoälyä",
   "Downloading AI · {percent}": "Ladataan tekoälyä · {percent}",
   "AI download stopped": "Tekoälyn lataus pysähtyi",
@@ -816,5 +817,18 @@
   "Unmute my mic in Yogurt": "Poista mikrofonini mykistys Yogurtissa",
   "Mic will stay off on resume": "Mikrofoni pysyy mykistettynä, kun tallennusta jatketaan",
   "Mic mute couldn’t be confirmed.": "Mikrofonin mykistystä ei voitu vahvistaa.",
-  "Mic off. Yogurt can’t hear call audio.": "Mikrofoni on mykistetty. Yogurt ei kuule puhelun ääntä."
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofoni on mykistetty. Yogurt ei kuule puhelun ääntä.",
+  "Connections": "Yhteydet",
+  "Storage & backup": "Tallennustila ja varmuuskopiot",
+  "Closing the window keeps Yogurt running.": "Yogurt jää käyntiin, kun suljet ikkunan.",
+  "Detect meetings automatically": "Tunnista kokoukset automaattisesti",
+  "Automatic meeting detection is off.": "Automaattinen kokousten tunnistus on pois käytöstä.",
+  "Recording & notes": "Tallennus ja muistiinpanot",
+  "Back to app": "Takaisin sovellukseen",
+  "Search settings": "Hae asetuksista",
+  "No settings match": "Vastaavia asetuksia ei löytynyt",
+  "Remind me to tell others I’m recording": "Muistuta kertomaan muille tallennuksesta",
+  "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "Aloita ja lopeta tallennukset itse. Yogurt ei avaudu puhelun alkaessa.",
+  "System notifications": "Järjestelmän ilmoitukset",
+  "Microphone access": "Mikrofonin käyttöoikeus"
 }

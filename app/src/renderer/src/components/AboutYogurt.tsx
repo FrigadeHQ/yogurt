@@ -43,7 +43,7 @@ export function AboutYogurt() {
   return <section aria-labelledby="about-yogurt">
     <h2 id="about-yogurt" className="settings-section-heading">{t('About Yogurt')}</h2>
     <div className="settings-group settings-backup">
-      <p className="settings-label grid">
+      <p className="settings-label grid" data-settings-skip>
         <span className={`col-start-1 row-start-1 ${error ? 'invisible' : ''}`}>{t('Like Yogurt? Sharing it or starring it on GitHub helps us keep building it.')}</span>
         <span role="status" className={error ? 'col-start-1 row-start-1 text-danger' : 'sr-only'}>{message || (copied ? done : '')}</span>
       </p>

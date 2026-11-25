@@ -217,7 +217,6 @@
   "In Screen & System Audio Recording, under System Audio Recording Only, turn on Yogurt.": "Ekran ve Sistem Sesi Kaydı bölümünde, Yalnızca Sistem Sesi Kaydı altında Yogurt’u açın.",
   "Has notes": "Notlar var",
   "It installs the next time you quit Yogurt.": "Yogurt’tan bir sonraki çıkışınızda yüklenir.",
-  "It runs in the background, ready for your first call.": "İlk aramanız için hazır olarak arka planda çalışır.",
   "Italic": "İtalik",
   "Its notes, transcript and recording are removed from this Mac for good.": "Notları, transkripti ve kaydı bu Mac’ten kalıcı olarak kaldırılır.",
   "Its notes, transcript and recording are removed from this computer for good.": "Notları, transkripti ve kaydı bu bilgisayardan kalıcı olarak kaldırılır.",
@@ -251,6 +250,7 @@
   "Meeting controls": "Toplantı denetimleri",
   "Meeting view": "Toplantı görünümü",
   "Meetings": "Toplantılar",
+  "Meetings you remove stay in the Trash for {count} days, then they're deleted for good.": "Kaldırdığınız toplantılar Çöp Sepeti’nde {count} gün kalır, ardından kalıcı olarak silinir.",
   "Meetings in the Trash are deleted for good after {count} days, with their recordings.": {
     "one": "Çöp Sepeti’ndeki toplantılar {count} gün sonra kayıtlarıyla birlikte kalıcı olarak silinir.",
     "other": "Çöp Sepeti’ndeki toplantılar {count} gün sonra kayıtlarıyla birlikte kalıcı olarak silinir."
@@ -334,7 +334,6 @@
   "Recorded time": "Kayıt süresi",
   "Recording": "Kaydediliyor",
   "Recording paused": "Kayıt duraklatıldı",
-  "Recording reminder": "Kayıt hatırlatıcısı",
   "Recording stopped. Open Yogurt to finish saving.": "Kayıt durduruldu. Kaydetmeyi bitirmek için Yogurt’u açın.",
   "Recording stopped. Yogurt couldn't save when it ended. Keep Yogurt open and try again.": "Kayıt durduruldu. Yogurt kayıt bittiğinde kaydedemedi. Yogurt’u açık tutup yeniden deneyin.",
   "Recording stopped. Your notes are safe.": "Kayıt durduruldu. Notlarınız güvende.",
@@ -565,7 +564,6 @@
   "Yogurt runs entirely on your computer, and this one can't write down a meeting as fast as people talk. Installing the driver for your graphics card may help. Otherwise it needs a faster processor, or graphics it can use.": "Yogurt tamamen bilgisayarınızda çalışır ve bu bilgisayar bir toplantıyı insanların konuştuğu hızda yazıya dökemiyor. Ekran kartınızın sürücüsünü yüklemek işe yarayabilir. Aksi halde daha hızlı bir işlemci veya kullanabileceği bir grafik birimi gerekiyor.",
   "Generating notes…": "Notlar oluşturuluyor…",
   "Calendar access": "Takvim erişimi",
-  "Remove Yogurt’s access in System Settings.": "Yogurt’un erişimini Sistem Ayarları’ndan kaldır.",
   "Downloading AI": "Yapay zeka indiriliyor",
   "Downloading AI · {percent}": "Yapay zeka indiriliyor · {percent}",
   "AI download stopped": "Yapay zeka indirmesi durdu",
@@ -798,5 +796,18 @@
   "Unmute my mic in Yogurt": "Yogurt’ta mikrofonumu aç",
   "Mic will stay off on resume": "Kayıt devam ettiğinde mikrofon kapalı kalacak",
   "Mic mute couldn’t be confirmed.": "Mikrofonun sessize alındığı doğrulanamadı.",
-  "Mic off. Yogurt can’t hear call audio.": "Mikrofon kapalı. Yogurt aramanın sesini alamıyor."
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofon kapalı. Yogurt aramanın sesini alamıyor.",
+  "Connections": "Bağlantılar",
+  "Storage & backup": "Depolama ve yedekleme",
+  "Closing the window keeps Yogurt running.": "Pencereyi kapattığınızda Yogurt çalışmaya devam eder.",
+  "Detect meetings automatically": "Toplantıları otomatik algıla",
+  "Automatic meeting detection is off.": "Toplantıların otomatik algılanması kapalı.",
+  "Recording & notes": "Kayıt ve notlar",
+  "Back to app": "Uygulamaya dön",
+  "Search settings": "Ayarlarda ara",
+  "No settings match": "Eşleşen ayar yok",
+  "Remind me to tell others I’m recording": "Kayıt yaptığımı diğer katılımcılara söylememi hatırlat",
+  "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "Kayıtları kendiniz başlatıp bitirin. Bir arama başladığında Yogurt açılmaz.",
+  "System notifications": "Sistem bildirimleri",
+  "Microphone access": "Mikrofon erişimi"
 }

@@ -221,7 +221,6 @@
   "In Screen & System Audio Recording, under System Audio Recording Only, turn on Yogurt.": "V Nahrávání obrazovky a systémového zvuku, v části Pouze nahrávání systémového zvuku, zapněte Yogurt.",
   "Has notes": "Má poznámky",
   "It installs the next time you quit Yogurt.": "Nainstaluje se, až příště ukončíte Yogurt.",
-  "It runs in the background, ready for your first call.": "Běží na pozadí, připravený na váš první hovor.",
   "Italic": "Kurzíva",
   "Its notes, transcript and recording are removed from this Mac for good.": "Poznámky, přepis i nahrávka budou z tohoto Macu natrvalo odstraněny.",
   "Its notes, transcript and recording are removed from this computer for good.": "Poznámky, přepis i nahrávka budou z tohoto počítače natrvalo odstraněny.",
@@ -255,6 +254,12 @@
   "Meeting controls": "Ovládání schůzky",
   "Meeting view": "Zobrazení schůzky",
   "Meetings": "Schůzky",
+  "Meetings you remove stay in the Trash for {count} days, then they're deleted for good.": {
+    "one": "Odebrané schůzky zůstanou v koši {count} den. Pak se natrvalo smažou.",
+    "few": "Odebrané schůzky zůstanou v koši {count} dny. Pak se natrvalo smažou.",
+    "many": "Odebrané schůzky zůstanou v koši {count} dne. Pak se natrvalo smažou.",
+    "other": "Odebrané schůzky zůstanou v koši {count} dní. Pak se natrvalo smažou."
+  },
   "Meetings in the Trash are deleted for good after {count} days, with their recordings.": {
     "one": "Schůzky v koši se po {count} dni natrvalo smažou i s nahrávkami.",
     "few": "Schůzky v koši se po {count} dnech natrvalo smažou i s nahrávkami.",
@@ -340,7 +345,6 @@
   "Recorded time": "Doba nahrávání",
   "Recording": "Nahrává se",
   "Recording paused": "Nahrávání pozastaveno",
-  "Recording reminder": "Připomenutí při nahrávání",
   "Recording stopped. Open Yogurt to finish saving.": "Nahrávání se zastavilo. Otevřete Yogurt a dokončete ukládání.",
   "Recording stopped. Yogurt couldn't save when it ended. Keep Yogurt open and try again.": "Nahrávání se zastavilo. Yogurt na konci nemohl uložit. Nechte Yogurt otevřený a zkuste to znovu.",
   "Recording stopped. Your notes are safe.": "Nahrávání se zastavilo. Vaše poznámky jsou v bezpečí.",
@@ -585,7 +589,6 @@
   "Yogurt runs entirely on your computer, and this one can't write down a meeting as fast as people talk. Installing the driver for your graphics card may help. Otherwise it needs a faster processor, or graphics it can use.": "Yogurt běží celý na vašem počítači a tento nestíhá zapisovat schůzku tak rychle, jak lidé mluví. Může pomoct instalace ovladače grafické karty. Jinak potřebuje rychlejší procesor, nebo grafiku, kterou může použít.",
   "Generating notes…": "Vytváření poznámek…",
   "Calendar access": "Přístup ke kalendáři",
-  "Remove Yogurt’s access in System Settings.": "Přístup Yogurtu odeberete v Nastavení systému.",
   "Downloading AI": "Stahování AI",
   "Downloading AI · {percent}": "Stahování AI · {percent}",
   "AI download stopped": "Stahování AI se zastavilo",
@@ -841,5 +844,18 @@
   "Unmute my mic in Yogurt": "Zapnout můj mikrofon v Yogurtu",
   "Mic will stay off on resume": "Po obnovení nahrávání zůstane mikrofon ztlumený",
   "Mic mute couldn’t be confirmed.": "Ztlumení mikrofonu se nepodařilo potvrdit.",
-  "Mic off. Yogurt can’t hear call audio.": "Mikrofon je ztlumený. Yogurt neslyší zvuk hovoru."
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofon je ztlumený. Yogurt neslyší zvuk hovoru.",
+  "Connections": "Připojení",
+  "Storage & backup": "Úložiště a zálohy",
+  "Closing the window keeps Yogurt running.": "Po zavření okna zůstane Yogurt spuštěný.",
+  "Detect meetings automatically": "Automaticky rozpoznávat schůzky",
+  "Automatic meeting detection is off.": "Automatické rozpoznávání schůzek je vypnuté.",
+  "Recording & notes": "Nahrávání a poznámky",
+  "Back to app": "Zpět do aplikace",
+  "Search settings": "Hledat v nastavení",
+  "No settings match": "Žádná odpovídající nastavení",
+  "Remind me to tell others I’m recording": "Připomenout mi, ať ostatním řeknu, že nahrávám",
+  "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "Nahrávání spouštíte a ukončujete sami. Při zahájení hovoru se Yogurt neotevře.",
+  "System notifications": "Systémová oznámení",
+  "Microphone access": "Přístup k mikrofonu"
 }

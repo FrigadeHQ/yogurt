@@ -46,7 +46,9 @@ test('picking a language in Settings changes everything at once, menus too, and 
     // no reload: the same page, now in German
     await expect(page.getByTestId('settings-heading')).toHaveText('Einstellungen')
     await expect(page.locator('html')).toHaveAttribute('lang', 'de')
+    await page.getByRole('navigation', { name: 'Einstellungen' }).getByRole('button', { name: 'Zurück zur App', exact: true }).click()
     await expect(page.getByRole('navigation', { name: 'Arbeitsbereich' })).toBeVisible()
+    await openFromCorner(page, 'settings-open')
     await expect.poll(() => tray(app)).toContain('Yogurt öffnen')
     await expect.poll(() => menuBar(app)).toContain('Bearbeiten')
 
@@ -78,18 +80,20 @@ test('summary language defaults to the meeting and persists independently of app
   const a = await launch('en-US')
   let { app, page } = a
   try {
-    await openFromCorner(page, 'settings-open')
+    await openFromCorner(page, 'settings-open', 'recording')
     const picker = page.getByTestId('settings-summary-language')
     await expect(picker).toHaveValue('')
     await expect(picker.locator('option').first()).toHaveText('Same as the meeting')
     await expect(picker.locator('option')).toHaveCount(33)
     await picker.selectOption('fr')
+    await page.getByTestId('settings-nav-general').click()
     await expect(page.getByTestId('settings-app-language')).toHaveValue('')
+    await page.getByTestId('settings-nav-recording').click()
     await expect(page.getByTestId('settings-spoken-en')).toHaveAttribute('aria-checked', 'true')
     await expect.poll(() => page.evaluate(() => window.yogurt.settings.get().then(s => s.summaryLanguage))).toBe('fr')
     await app.close()
     ;({ app, page } = await launch('en-US', a.userData))
-    await openFromCorner(page, 'settings-open')
+    await openFromCorner(page, 'settings-open', 'recording')
     await expect(page.getByTestId('settings-summary-language')).toHaveValue('fr')
     await page.getByTestId('settings-summary-language').selectOption('')
     await expect.poll(() => page.evaluate(() => window.yogurt.settings.get().then(s => s.summaryLanguage))).toBe('')

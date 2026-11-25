@@ -217,7 +217,6 @@
   "In Screen & System Audio Recording, under System Audio Recording Only, turn on Yogurt.": "Στην Εγγραφή οθόνης και ήχου συστήματος, στην ενότητα Μόνο εγγραφή ήχου συστήματος, ενεργοποιήστε το Yogurt.",
   "Has notes": "Υπάρχουν σημειώσεις",
   "It installs the next time you quit Yogurt.": "Θα εγκατασταθεί την επόμενη φορά που θα κλείσετε το Yogurt.",
-  "It runs in the background, ready for your first call.": "Εκτελείται στο παρασκήνιο, έτοιμο για την πρώτη σας κλήση.",
   "Italic": "Πλάγια",
   "Its notes, transcript and recording are removed from this Mac for good.": "Οι σημειώσεις, η απομαγνητοφώνηση και η ηχογράφηση αφαιρούνται οριστικά από αυτό το Mac.",
   "Its notes, transcript and recording are removed from this computer for good.": "Οι σημειώσεις, η απομαγνητοφώνηση και η ηχογράφηση αφαιρούνται οριστικά από αυτόν τον υπολογιστή.",
@@ -251,6 +250,10 @@
   "Meeting controls": "Χειριστήρια σύσκεψης",
   "Meeting view": "Προβολή σύσκεψης",
   "Meetings": "Συσκέψεις",
+  "Meetings you remove stay in the Trash for {count} days, then they're deleted for good.": {
+    "one": "Οι συσκέψεις που αφαιρείτε παραμένουν στον Κάδο για {count} ημέρα και μετά διαγράφονται οριστικά.",
+    "other": "Οι συσκέψεις που αφαιρείτε παραμένουν στον Κάδο για {count} ημέρες και μετά διαγράφονται οριστικά."
+  },
   "Meetings in the Trash are deleted for good after {count} days, with their recordings.": {
     "one": "Οι συσκέψεις στον Κάδο διαγράφονται οριστικά μετά από {count} ημέρα, μαζί με τις ηχογραφήσεις τους.",
     "other": "Οι συσκέψεις στον Κάδο διαγράφονται οριστικά μετά από {count} ημέρες, μαζί με τις ηχογραφήσεις τους."
@@ -334,7 +337,6 @@
   "Recorded time": "Χρόνος ηχογράφησης",
   "Recording": "Ηχογράφηση",
   "Recording paused": "Η ηχογράφηση είναι σε παύση",
-  "Recording reminder": "Υπενθύμιση εγγραφής",
   "Recording stopped. Open Yogurt to finish saving.": "Η ηχογράφηση σταμάτησε. Ανοίξτε το Yogurt για να ολοκληρωθεί η αποθήκευση.",
   "Recording stopped. Yogurt couldn't save when it ended. Keep Yogurt open and try again.": "Η ηχογράφηση σταμάτησε. Το Yogurt δεν μπόρεσε να αποθηκεύσει στο τέλος. Αφήστε το Yogurt ανοιχτό και δοκιμάστε ξανά.",
   "Recording stopped. Your notes are safe.": "Η ηχογράφηση σταμάτησε. Οι σημειώσεις σας είναι ασφαλείς.",
@@ -565,7 +567,6 @@
   "Yogurt runs entirely on your computer, and this one can't write down a meeting as fast as people talk. Installing the driver for your graphics card may help. Otherwise it needs a faster processor, or graphics it can use.": "Το Yogurt λειτουργεί εξ ολοκλήρου στον υπολογιστή σας, και αυτός δεν μπορεί να καταγράφει μια σύσκεψη τόσο γρήγορα όσο μιλούν οι άνθρωποι. Μπορεί να βοηθήσει η εγκατάσταση του προγράμματος οδήγησης της κάρτας γραφικών σας. Αλλιώς χρειάζεται ταχύτερο επεξεργαστή ή γραφικά που μπορεί να χρησιμοποιήσει.",
   "Generating notes…": "Δημιουργούνται οι σημειώσεις…",
   "Calendar access": "Πρόσβαση στο ημερολόγιο",
-  "Remove Yogurt’s access in System Settings.": "Αφαίρεσε την πρόσβαση του Yogurt στις Ρυθμίσεις συστήματος.",
   "Downloading AI": "Γίνεται λήψη AI",
   "Downloading AI · {percent}": "Γίνεται λήψη AI · {percent}",
   "AI download stopped": "Η λήψη AI σταμάτησε",
@@ -813,5 +814,18 @@
   "Unmute my mic in Yogurt": "Ενεργοποίηση του μικροφώνου μου στο Yogurt",
   "Mic will stay off on resume": "Το μικρόφωνο θα παραμείνει σε σίγαση κατά τη συνέχιση",
   "Mic mute couldn’t be confirmed.": "Δεν ήταν δυνατή η επιβεβαίωση της σίγασης του μικροφώνου.",
-  "Mic off. Yogurt can’t hear call audio.": "Μικρόφωνο σε σίγαση. Το Yogurt δεν λαμβάνει τον ήχο της κλήσης."
+  "Mic off. Yogurt can’t hear call audio.": "Μικρόφωνο σε σίγαση. Το Yogurt δεν λαμβάνει τον ήχο της κλήσης.",
+  "Connections": "Συνδέσεις",
+  "Storage & backup": "Αποθήκευση και αντίγραφα ασφαλείας",
+  "Closing the window keeps Yogurt running.": "Το Yogurt συνεχίζει να λειτουργεί όταν κλείσετε το παράθυρο.",
+  "Detect meetings automatically": "Αυτόματος εντοπισμός συναντήσεων",
+  "Automatic meeting detection is off.": "Ο αυτόματος εντοπισμός συναντήσεων είναι απενεργοποιημένος.",
+  "Recording & notes": "Εγγραφή και σημειώσεις",
+  "Back to app": "Επιστροφή στην εφαρμογή",
+  "Search settings": "Αναζήτηση στις ρυθμίσεις",
+  "No settings match": "Δεν βρέθηκαν αντίστοιχες ρυθμίσεις",
+  "Remind me to tell others I’m recording": "Υπενθύμιση να ενημερώσω τους άλλους ότι κάνω εγγραφή",
+  "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "Ξεκινήστε και τερματίστε εσείς τις εγγραφές. Το Yogurt δεν θα ανοίγει όταν ξεκινά μια κλήση.",
+  "System notifications": "Ειδοποιήσεις συστήματος",
+  "Microphone access": "Πρόσβαση στο μικρόφωνο"
 }

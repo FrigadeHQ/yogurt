@@ -32,7 +32,7 @@ beforeEach(async () => {
   vi.stubEnv('YOGURT_BACKGROUND', '0'); vi.resetModules()
   state.windows.length = 0; state.notices.length = 0; state.handlers.clear(); state.theme.clear(); state.dark = false
   const { createPrompts } = await import('../src/main/prompts')
-  prompts = createPrompts({windowVisible:()=>true,takeNotes:vi.fn(),stop:vi.fn(),dismissed:vi.fn(),keepGoing:vi.fn(),dismissStop:vi.fn(),open:vi.fn()})
+  prompts = createPrompts({ windowVisible:()=>true,takeNotes:vi.fn(),stop:vi.fn(),dismissed:vi.fn(),keepGoing:vi.fn(),dismissStop:vi.fn(),open:vi.fn()})
 })
 afterEach(() => { prompts.hide(); vi.unstubAllEnvs() })
 it('gives both prompts the same compact frame and top-right placement', () => {
@@ -49,7 +49,7 @@ it("a Mac's Take notes card is a non-activating panel, so its X never brings Yog
   expect(state.windows.at(-1).options.type).toBeUndefined()
   prompts.hide()
   const { createPrompts } = await import('../src/main/prompts')
-  const pc = createPrompts({windowVisible:()=>true,takeNotes:vi.fn(),stop:vi.fn(),dismissed:vi.fn(),keepGoing:vi.fn(),dismissStop:vi.fn(),open:vi.fn(),os:'win32'})
+  const pc = createPrompts({ windowVisible:()=>true,takeNotes:vi.fn(),stop:vi.fn(),dismissed:vi.fn(),keepGoing:vi.fn(),dismissStop:vi.fn(),open:vi.fn(),os:'win32'})
   pc.offer({key:'call',app:'Zoom',title:''} as any)
   expect(state.windows.at(-1).options).toMatchObject({type:'toolbar',focusable:false,skipTaskbar:true})
   pc.hide()
@@ -155,14 +155,20 @@ it('Stop on an already-ended meeting closes the stale card and leaves its summar
   } finally { r.store.close() }
 })
 
-it.each(['stop', 'keep-going'] as const)('the live %s action still works and closes both surfaces', async action => {
+it.each(['stop', 'keep-going', 'notification'] as const)('the live %s action still works and closes both surfaces', async action => {
   const r = await recording()
   try {
-    state.handlers.get('prompt:act')!({}, action)
+    if (action === 'notification') r.notice.listeners.get('click')!()
+    else state.handlers.get('prompt:act')!({}, action)
     expect(r.card.isDestroyed()).toBe(true)
     expect(r.notice.close).toHaveBeenCalledOnce()
-    if (action === 'stop') expect(r.stop).toHaveBeenCalledWith(r.m.id)
-    else { expect(r.keepGoing).toHaveBeenCalledOnce(); expect(r.activeMeeting()?.id).toBe(r.m.id) }
+    if (action === 'keep-going') {
+      expect(r.keepGoing).toHaveBeenCalledOnce()
+      expect(r.activeMeeting()?.id).toBe(r.m.id)
+    } else {
+      expect(r.stop).toHaveBeenCalledWith(r.m.id)
+      expect(r.store.meeting(r.m.id)?.state).toBe('stopped')
+    }
   } finally { r.store.close() }
 })
 
@@ -191,5 +197,17 @@ it('Close hides the card and system notification without stopping or snoozing th
     expect(r.stop).not.toHaveBeenCalled()
     expect(r.keepGoing).not.toHaveBeenCalled()
     expect(r.activeMeeting()?.id).toBe(r.m.id)
+  } finally { r.store.close() }
+})
+
+it('a withdrawn call-ended notification can no longer open its note', async () => {
+  const r = await recording()
+  try {
+    prompts.stopped(r.m)
+    const notice = state.notices.at(-1)
+    prompts.hide()
+    notice.listeners.get('click')!()
+    expect(notice.close).toHaveBeenCalledOnce()
+    expect(r.open).not.toHaveBeenCalled()
   } finally { r.store.close() }
 })

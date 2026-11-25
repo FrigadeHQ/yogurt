@@ -178,3 +178,14 @@ describe.skipIf(process.platform === 'win32')('spawnMicWatch', () => {
     expect(ends).toBe(1)
   })
 })
+
+it('releases a pending read when disabled without starting a fallback mic poll', async () => {
+  const x = setup()
+  const pending = x.w.read()
+  x.w.stop()
+  expect(x.p.last().stopped).toBe(true)
+  x.p.last().line(JSON.stringify([zoom]))
+  expect(await pending).toEqual([])
+  expect(await x.w.read()).toEqual([])
+  expect(x.polls).toEqual([])
+})

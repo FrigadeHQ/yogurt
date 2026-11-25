@@ -217,7 +217,6 @@
   "In Screen & System Audio Recording, under System Audio Recording Only, turn on Yogurt.": "A Képernyő- és rendszerhangfelvételben, a Csak rendszerhangfelvétel alatt kapcsold be a Yogurtot.",
   "Has notes": "Vannak jegyzetek",
   "It installs the next time you quit Yogurt.": "Akkor települ, amikor legközelebb kilépsz a Yogurtból.",
-  "It runs in the background, ready for your first call.": "A háttérben fut, készen az első hívásra.",
   "Italic": "Dőlt",
   "Its notes, transcript and recording are removed from this Mac for good.": "A jegyzetei, az átirata és a felvétele végleg törlődik erről a Macről.",
   "Its notes, transcript and recording are removed from this computer for good.": "A jegyzetei, az átirata és a felvétele végleg törlődik erről a számítógépről.",
@@ -251,6 +250,7 @@
   "Meeting controls": "Megbeszélés vezérlői",
   "Meeting view": "Megbeszélés nézet",
   "Meetings": "Megbeszélések",
+  "Meetings you remove stay in the Trash for {count} days, then they're deleted for good.": "Az eltávolított megbeszélések {count} napig a Kukában maradnak, majd végleg törlődnek.",
   "Meetings in the Trash are deleted for good after {count} days, with their recordings.": {
     "one": "A Kukában lévő megbeszélések {count} nap után végleg törlődnek a felvételeikkel együtt.",
     "other": "A Kukában lévő megbeszélések {count} nap után végleg törlődnek a felvételeikkel együtt."
@@ -334,7 +334,6 @@
   "Recorded time": "Rögzített idő",
   "Recording": "Felvétel",
   "Recording paused": "Felvétel szüneteltetve",
-  "Recording reminder": "Felvételi emlékeztető",
   "Recording stopped. Open Yogurt to finish saving.": "A felvétel leállt. Nyisd meg a Yogurtot a mentés befejezéséhez.",
   "Recording stopped. Yogurt couldn't save when it ended. Keep Yogurt open and try again.": "A felvétel leállt. A Yogurt nem tudott menteni a végén. Hagyd nyitva a Yogurtot, és próbáld újra.",
   "Recording stopped. Your notes are safe.": "A felvétel leállt. A jegyzeteid biztonságban vannak.",
@@ -565,7 +564,6 @@
   "Yogurt runs entirely on your computer, and this one can't write down a meeting as fast as people talk. Installing the driver for your graphics card may help. Otherwise it needs a faster processor, or graphics it can use.": "A Yogurt teljes egészében a számítógépeden fut, és ez a gép nem tudja olyan gyorsan leírni a megbeszélést, ahogy az emberek beszélnek. Segíthet a grafikus kártya illesztőprogramjának telepítése. Különben gyorsabb processzor kell, vagy használható grafikus kártya.",
   "Generating notes…": "Készülnek a jegyzetek…",
   "Calendar access": "Naptár-hozzáférés",
-  "Remove Yogurt’s access in System Settings.": "A Yogurt hozzáférését a Rendszerbeállításokban szüntetheted meg.",
   "Downloading AI": "AI letöltése",
   "Downloading AI · {percent}": "AI letöltése · {percent}",
   "AI download stopped": "Az AI letöltése leállt",
@@ -798,5 +796,18 @@
   "Unmute my mic in Yogurt": "Mikrofonom bekapcsolása a Yogurtban",
   "Mic will stay off on resume": "Folytatáskor a mikrofon néma marad",
   "Mic mute couldn’t be confirmed.": "Nem sikerült megerősíteni a mikrofon némítását.",
-  "Mic off. Yogurt can’t hear call audio.": "A mikrofon néma. A Yogurt nem érzékeli a hívás hangját."
+  "Mic off. Yogurt can’t hear call audio.": "A mikrofon néma. A Yogurt nem érzékeli a hívás hangját.",
+  "Connections": "Kapcsolatok",
+  "Storage & backup": "Tárhely és biztonsági mentés",
+  "Closing the window keeps Yogurt running.": "Az ablak bezárása után a Yogurt tovább fut.",
+  "Detect meetings automatically": "Értekezletek automatikus észlelése",
+  "Automatic meeting detection is off.": "Az értekezletek automatikus észlelése ki van kapcsolva.",
+  "Recording & notes": "Felvétel és jegyzetek",
+  "Back to app": "Vissza az alkalmazásba",
+  "Search settings": "Keresés a beállításokban",
+  "No settings match": "Nincs egyező beállítás",
+  "Remind me to tell others I’m recording": "Emlékeztessen, hogy szóljak a többieknek a felvételről",
+  "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "A felvételt kézzel indíthatja el és állíthatja le. A Yogurt nem nyílik meg a hívás kezdetekor.",
+  "System notifications": "Rendszerértesítések",
+  "Microphone access": "Mikrofon-hozzáférés"
 }

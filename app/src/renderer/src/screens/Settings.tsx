@@ -1,22 +1,25 @@
+import type { SettingsSection } from '../../../shared/routes'
+import { TRASH_DAYS } from '../../../shared/trash'
+import { sectionFor, sections } from '../settingsSections'
 import { AboutYogurt } from '../components/AboutYogurt'
 import { retryToast, toasts } from '../components/TrashToast'
 import { LoadingContent } from '../components/LoadingContent'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Check, ChevronDown, Copy, Download, ExternalLink, Globe, Lock, Upload, FileText } from '../components/Icons'
-import type { Access, AppVisibility, McpStatus, PermissionKind, PermissionStatus, SetupState, Theme, UpdateStatus } from '../../../shared/types'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { ChevronRight, Check, ChevronDown, Copy, Download, FileText, Lock, Upload } from '../components/Icons'
+import type { AppVisibility, McpStatus, PermissionKind, PermissionStatus, SetupState, Theme, UpdateStatus } from '../../../shared/types'
 import { notesDownloadText, notesUpgradeSize } from '../notesSetup'
-import { permissionCopy } from '../permissionCopy'
+import { PermissionRow } from '../components/PermissionRow'
 import { LOCALES, t } from '../../../shared/i18n'
 import { onMac, osWords } from '../keys'
 import { applyLanguage } from '../i18n'
 import { flushOpenNotes } from '../noteAutosave'
 import { Jargon } from '../components/Jargon'
 import { SpokenSetting } from '../components/SpokenSetting'
-import { useScrollMemory } from '../useScrollMemory'
-import { appShortcuts } from '../components/Shortcuts'
+import { rememberedScroll, useScrollMemory } from '../useScrollMemory'
+import { MicMenu } from '../components/MicMenu'
 import { CalendarSettings } from '../components/CalendarSettings'
 import { PhoneSettings } from '../components/PhoneSettings'
-import { supportedKinds, settingsPage } from '../../../shared/platform'
+import { supportedKinds } from '../../../shared/platform'
 import { Swap, SwapText } from '../components/Swap'
 
 export function NextMeetingSetting({ visible, on, onChange }: { visible: boolean; on: boolean; onChange(on: boolean): void }) {
@@ -76,14 +79,16 @@ function useSettingSave(actionId: string, refresh: () => void) {
   return { save, busy }
 }
 
-/** Settings, kept small: what Yogurt may use, your name, open at login, stop when the call ends, light or dark, a backup and updates. Nothing technical. */
-/** focus: the setting requested by the entry point */
-export function Settings({ revision = 0, focus }: { revision?: number; focus?: string }) {
+export function Settings({ revision = 0, indexing = false, focus, shortcuts }: { revision?: number; indexing?: boolean; focus?: string; shortcuts?(): void }) {
+  const section = sectionFor(focus)
   const [perms, setPerms] = useState<PermissionStatus>()
   const [prefs, setPrefs] = useState<Awaited<ReturnType<typeof window.yogurt.settings.get>>>()
+  // The deep link takes focus after the loading mask lifts and scroll restoration finishes.
+  const [storageReady, setStorageReady] = useState(false)
   const [name, setName] = useState('')
-  const [generalReady, setGeneralReady] = useState(false)
-  const scroll = useScrollMemory<HTMLDivElement>('settings', !!prefs && !!perms)
+  const scrollKey = 'settings/' + (focus ?? 'general')
+  const scroll = useScrollMemory<HTMLDivElement>(scrollKey, !!prefs && !!perms)
+  useLayoutEffect(() => { if (scroll.current && rememberedScroll(scrollKey) === undefined) scroll.current.scrollTop = 0 }, [scrollKey])
   useEffect(() => { void window.yogurt.settings.get().then(setPrefs) }, [revision])
   const reload = useCallback(() => { void window.yogurt.permissions.status().then(setPerms) }, [])
   useEffect(() => {
@@ -140,17 +145,40 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
     setPrefs(await window.yogurt.settings.get())
   }
 
+  const permissions = (kinds: PermissionKind[], heading = t('What Yogurt can use')) => {
+    const supported = supportedKinds(window.yogurt.capabilities).filter(k => kinds.includes(k))
+    return supported.length > 0 && <>
+      <h2 className="settings-section-heading">{heading}</h2>
+      <LoadingContent pending={!perms}><ul className="settings-group">
+        {supported.map(k => <PermissionRow key={k} kind={k} status={perms?.[k]} onAsk={() => void window.yogurt.permissions.request(k).then(reload)} />)}
+      </ul></LoadingContent>
+    </>
+  }
+  const detectionOff = prefs?.detectMeetingsAutomatically === false
+  const detectionOffText = t('Automatic meeting detection is off.')
+  const heading = useRef<HTMLHeadingElement>(null)
+  const previousPage = useRef(focus)
+  useEffect(() => {
+    if (previousPage.current !== focus && focus !== 'recordings' && focus !== 'calendar') heading.current?.focus({ preventScroll: true })
+    previousPage.current = focus
+  }, [focus])
+
+  // While filtering, index the same localized rows and platform-specific controls the person can open.
+  const page = (id: SettingsSection, content: () => ReactNode) => (id === section || indexing) && (
+    <div key={id} hidden={id !== section} className="settings-content" data-settings-section={id} data-testid={`settings-page-${id}`}>
+      <h2 className="settings-heading" ref={id === section ? heading : undefined} tabIndex={-1}>{sections[id].label()}</h2>
+      {content()}
+    </div>
+  )
+
   return (
-    <div data-testid="settings" className="settings-screen">
+    <main data-testid="settings" className="settings-screen">
       <div className="settings-titlebar-space" />
       <div className="settings-scroll" ref={scroll}>
-        <div className="settings-content">
-          <h1 data-testid="settings-heading" className="settings-heading">{t('Settings')}</h1>
-
-          <h2 className="settings-section-heading">{t('General')}</h2>
-          <div className="settings-group"><LoadingContent pending={!prefs} testId="settings-loading" onReady={() => setGeneralReady(true)}>
+        {page('general', () => <>
+          <div className="settings-group"><LoadingContent pending={!prefs} testId="settings-loading">
             <div className="settings-row">
-              <label htmlFor="settings-theme" className="settings-label settings-row-copy">{t('Appearance')}</label>
+              <label htmlFor="settings-theme" data-settings-keywords={[t('Light theme'), t('Dark theme')].join(' ')} className="settings-label settings-row-copy">{t('Appearance')}</label>
               <span className="settings-select-wrap">
                 <select id="settings-theme" data-testid="settings-theme" value={prefs?.theme ?? 'system'} disabled={!prefs || general.busy}
                   onChange={(e) => theme(e.target.value as Theme)} className="settings-select">
@@ -159,19 +187,16 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
                 <ChevronDown size={14} aria-hidden="true" />
               </span>
             </div>
-            <div className="settings-row">
-              <div className="settings-row-copy">
-                <label htmlFor="settings-name" className="settings-label">{t('Your name')}</label>
-                <p className="settings-description">{t('Yogurt uses your name to identify you in calls.')}</p>
-              </div>
-              <input id="settings-name" data-testid="settings-name" disabled={general.busy} value={name} maxLength={80} autoComplete="name" spellCheck={false}
-                onChange={(e) => setName(e.target.value)} onBlur={saveName} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
-                className="settings-name-field" />
-            </div>
+            <AppLanguage language={prefs?.language ?? ''} systemLocale={prefs?.systemLocale} onChange={value => {
+              void window.yogurt.settings.setLanguage(value).then(locale => {
+                setPrefs(p => p && { ...p, language: value, locale })
+                applyLanguage(locale)
+              })
+            }} />
             <div className="settings-row">
               <div className="settings-row-copy">
                 <p className="settings-label">{loginLabel()}</p>
-                <p className="settings-description">{t('It runs in the background, ready for your first call.')}</p>
+                <p className="settings-description">{t('Closing the window keeps Yogurt running.')}</p>
               </div>
               <button data-testid="login-toggle" disabled={!prefs || general.busy} role="switch" aria-checked={!!prefs?.openAtLogin} aria-label={loginLabel()} onClick={login}
                 className="settings-toggle">
@@ -209,30 +234,39 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
                 aria-disabled={!prefs?.showInMenuBar} aria-describedby="recording-pill-description"
                 className="settings-toggle" onClick={recordingPill}><span className="settings-toggle-knob" /></button>
             </div>}
+          </LoadingContent></div>
+          <button data-testid="settings-shortcuts" className="settings-row settings-group" onClick={shortcuts}>
+            <span className="settings-label settings-row-copy">{t('Keyboard shortcuts')}</span>
+            <span className="settings-row-arrow"><ChevronRight size={15} aria-hidden="true" className="rtl:-scale-x-100" /></span>
+          </button>
+          <Updates />
+          <AboutYogurt />
+        </>)}
+        {page('recording', () => <>
+          <div className="settings-group"><LoadingContent pending={!prefs} testId="settings-loading">
             <div className="settings-row">
-              <div className="settings-row-copy">
-                <p className="settings-label">{t('Stop recording when the call ends')}</p>
-                <p className="settings-description">{t('Automatically end the recording a few seconds after you hang up.')}</p>
-              </div>
-              <button data-testid="autostop-toggle" disabled={!prefs || general.busy} role="switch" aria-checked={!!prefs?.stopWhenCallEnds} aria-label={t('Stop recording when the call ends')} onClick={autoStop}
-                className="settings-toggle">
-                <span className="settings-toggle-knob" />
-              </button>
+              <span className="settings-label settings-row-copy">{t('Microphone')}</span>
+              <MicMenu recording={false} placement="below" />
             </div>
             <div className="settings-row">
               <div className="settings-row-copy">
-                <p className="settings-label">{t('Recording reminder')}</p>
-                <p className="settings-description">{t('Show a brief reminder when recording starts.')}</p>
+                <label htmlFor="settings-name" className="settings-label">{t('Your name')}</label>
+                <p className="settings-description">{t('Yogurt uses your name to identify you in calls.')}</p>
               </div>
-              <button data-testid="recording-reminder-toggle" disabled={!prefs || general.busy} role="switch" aria-checked={!!prefs?.recordingReminder} aria-label={t('Recording reminder')}
-                onClick={() => { if (!prefs) return; const on = !prefs.recordingReminder; void general.save(async () => { await window.yogurt.settings.setRecordingReminder(on); setPrefs(p => p && { ...p, recordingReminder: on }) }, 'recording-reminder-retry') }}
-                className="settings-toggle"><span className="settings-toggle-knob" /></button>
+              <input id="settings-name" data-testid="settings-name" disabled={general.busy} value={name} maxLength={80} autoComplete="name" spellCheck={false}
+                onChange={(e) => setName(e.target.value)} onBlur={saveName} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
+                className="settings-name-field" />
             </div>
-
-            <RecordingSetting reveal={focus === 'recordings' && generalReady && !!perms} on={prefs?.keepRecordings ?? true} disabled={!prefs} onChange={async on => {
-              await window.yogurt.settings.setKeepRecordings(on)
-              setPrefs(p => p && { ...p, keepRecordings: on })
-            }} />
+          </LoadingContent></div>
+          {permissions(['mic', 'systemAudio', 'accessibility'])}
+          <h2 className="settings-section-heading">{t('Language')}</h2>
+          <div data-testid="settings-language" className="settings-group">
+            <SummaryLanguage />
+            <SpokenSetting />
+            <Jargon />
+          </div>
+          <h2 className="settings-section-heading">{t('Summary')}</h2>
+          <div className="settings-group">
             <div className="settings-row">
               <div className="settings-row-copy">
                 <label htmlFor="recording-credit" className="settings-label">{t('Add “{credit}”', { credit: t('Recorded with {app}', { app: 'Yogurt' }) })}</label>
@@ -249,42 +283,64 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
                 }}><span className="settings-toggle-knob" /></button>
             </div>
             <NotesModel reveal={focus === 'notes-model'} />
-          </LoadingContent></div>
-
-          <h2 className="settings-section-heading">{t('What Yogurt can use')}</h2>
-          <LoadingContent pending={!perms}><ul className="settings-group">
-            {supportedKinds(window.yogurt.capabilities).map((k) => <PermissionRow key={k} kind={k} status={perms?.[k]} onAsk={() => void window.yogurt.permissions.request(k).then(reload)} />)}
-          </ul></LoadingContent>
-
-          {window.yogurt.capabilities.calendar && <CalendarSettings connect={focus === 'calendar'} />}
-
-          <h2 className="settings-section-heading">{t('Language')}</h2>
-          <div data-testid="settings-language" className="settings-group">
-            <AppLanguage />
-            <SummaryLanguage />
-            <SpokenSetting />
-            <Jargon />
           </div>
-
-          <Backup onImported={() => { void window.yogurt.settings.get().then(setPrefs) }} />
-
+        </>)}
+        {page('notifications', () => <>
+          <div className="settings-group"><LoadingContent pending={!prefs} testId="settings-loading">
+            <div className="settings-row">
+              <div className="settings-row-copy">
+                <label htmlFor="detect-meetings" className="settings-label">{t('Detect meetings automatically')}</label>
+                <p id="detect-meetings-description" className="settings-description">{detectionOff ? t('Start and finish recordings yourself. Yogurt won’t open when a call starts.') : t('Asks you to record when a call starts.')}</p>
+              </div>
+              <button id="detect-meetings" data-testid="detect-meetings" role="switch" className="settings-toggle"
+                aria-checked={!detectionOff} aria-describedby="detect-meetings-description" disabled={!prefs || general.busy}
+                onClick={() => void general.save(async () => {
+                  await window.yogurt.settings.setDetectMeetingsAutomatically(detectionOff)
+                  setPrefs(await window.yogurt.settings.get())
+                }, 'detect-meetings-retry')}><span className="settings-toggle-knob" /></button>
+            </div>
+            <div className="settings-row">
+              <div className="settings-row-copy">
+                <p className="settings-label">{t('Stop recording when the call ends')}</p>
+                <p id="auto-stop-description" className="settings-description">{detectionOff ? detectionOffText : t('Automatically end the recording a few seconds after you hang up.')}</p>
+              </div>
+              <button data-testid="autostop-toggle" aria-describedby="auto-stop-description" disabled={!prefs || general.busy || detectionOff} role="switch" aria-checked={!!prefs?.stopWhenCallEnds} aria-label={t('Stop recording when the call ends')} onClick={autoStop}
+                className="settings-toggle">
+                <span className="settings-toggle-knob" />
+              </button>
+            </div>
+            <div className="settings-row">
+              <div className="settings-row-copy">
+                <p className="settings-label">{t('Remind me to tell others I’m recording')}</p>
+                <p className="settings-description">{t('Show a brief reminder when recording starts.')}</p>
+              </div>
+              <button data-testid="recording-reminder-toggle" disabled={!prefs || general.busy} role="switch" aria-checked={!!prefs?.recordingReminder} aria-label={t('Remind me to tell others I’m recording')}
+                onClick={() => { if (!prefs) return; const on = !prefs.recordingReminder; void general.save(async () => { await window.yogurt.settings.setRecordingReminder(on); setPrefs(p => p && { ...p, recordingReminder: on }) }, 'recording-reminder-retry') }}
+                className="settings-toggle"><span className="settings-toggle-knob" /></button>
+            </div>
+          </LoadingContent></div>
+          {permissions(['notifications'], t('System notifications'))}
+        </>)}
+        {page('connections', () => <>
+          {window.yogurt.capabilities.calendar && <CalendarSettings connect={focus === 'calendar'} access={perms?.calendar} onAccessChanged={reload} />}
           <AiApps />
 
-          <PhoneSettings />
-
-          <Updates />
-          <AboutYogurt />
-
-          <h2 className="settings-section-heading">{t('Keyboard shortcuts')}</h2>
-          <dl data-testid="settings-shortcuts" className="settings-group settings-shortcuts">
-            {appShortcuts().map(([label, keys]) =>
-              <div className="settings-row" key={keys}><dt>{label}</dt><dd><kbd>{keys}</kbd></dd></div>)}
-          </dl>
-
+          {onMac() && <PhoneSettings />}
+        </>)}
+        {page('storage', () => <>
+          <div className="settings-group"><LoadingContent pending={!prefs} testId="settings-loading" onReady={() => setStorageReady(true)}>
+            <RecordingSetting reveal={focus === 'recordings' && storageReady && !!perms} on={prefs?.keepRecordings ?? true} disabled={!prefs} onChange={async on => {
+              await window.yogurt.settings.setKeepRecordings(on)
+              setPrefs(p => p && { ...p, keepRecordings: on })
+            }} />
+          </LoadingContent></div>
+          {/* ImportSettings belongs here when the Granola importer lands (/settings/import). */}
+          <Backup onImported={() => { void window.yogurt.settings.get().then(setPrefs) }} />
+          <p className="settings-privacy">{t("Meetings you remove stay in the Trash for {count} days, then they're deleted for good.", { count: TRASH_DAYS })}</p>
           <p className="settings-privacy"><Lock size={12} aria-hidden="true" />{t('Yogurt stores your meetings, notes and audio on this computer.')}</p>
-        </div>
+        </>)}
       </div>
-    </div>
+    </main>
   )
 }
 
@@ -330,30 +386,23 @@ function NotesModel({ reveal = false }: { reveal?: boolean }) {
 }
 
 /** Settings → Language: the interface's language, the Mac's unless one is picked. It changes at once, in every window */
-function AppLanguage() {
-  const [s, setS] = useState<{ language: string; systemLocale: string }>()
-  useEffect(() => { void window.yogurt.settings.get().then(setS) }, [])
-  const pick = (language: string) => {
-    setS((p) => p && { ...p, language })
-    void window.yogurt.settings.setLanguage(language).then(applyLanguage)
-  }
-  const system = LOCALES.find((l) => l.id === s?.systemLocale)?.name ?? 'English'
+function AppLanguage({ language, systemLocale, onChange }: { language: string; systemLocale?: string; onChange(value: string): void }) {
+  const system = LOCALES.find(l => l.id === systemLocale)?.name ?? 'English'
   return (
-    <LoadingContent pending={!s} testId="language-loading"><div className="settings-row">
-      <span className="settings-permission-icon"><Globe size={17} aria-hidden="true" /></span>
+    <div className="settings-row">
       <div className="settings-row-copy">
         <label htmlFor="settings-app-language" className="settings-label">{t('App language')}</label>
         <p className="settings-description">{t("This changes the language of Yogurt's menus and buttons.")}</p>
       </div>
       <span className="settings-select-wrap">
-      <select id="settings-app-language" data-testid="settings-app-language" value={s?.language ?? ''} disabled={!s} onChange={(e) => pick(e.target.value)} className="settings-select">
+      <select id="settings-app-language" data-testid="settings-app-language" value={language} onChange={e => onChange(e.target.value)} className="settings-select">
         <option value="">{t('System language ({name})', { name: system })}</option>
         {/* each in its own name, so anyone can find theirs */}
         {LOCALES.map((l) => <option key={l.id} value={l.id} lang={l.id}>{l.name}</option>)}
       </select>
       <ChevronDown size={14} aria-hidden="true" />
       </span>
-    </div></LoadingContent>
+    </div>
   )
 }
 
@@ -379,36 +428,6 @@ function SummaryLanguage() {
         <ChevronDown size={14} aria-hidden="true" />
       </span>
     </div></LoadingContent>
-  )
-}
-
-export function PermissionRow({ kind, status, onAsk }: { kind: PermissionKind; status?: Access; onAsk(): void }) {
-  const c = permissionCopy(kind)
-  const Icon = c.icon
-  const ask = status === 'unknown' && kind !== 'accessibility'
-  const turnOn = ask || status === 'denied' && kind !== 'accessibility' && kind !== 'notifications'
-  const granted = status === 'granted'
-  return (
-    <li data-testid="permission-row" data-kind={kind} data-status={status ?? ''} className="settings-row">
-      <span className="settings-permission-icon"><Icon size={17} aria-hidden="true" /></span>
-      <div className="settings-row-copy">
-        <p className="settings-permission-label">
-          {c.name}
-          {status && !(status === 'unknown' && turnOn) && <span data-testid="permission-status" className="settings-permission-status">
-            {status === 'granted' ? t('On') : status === 'denied' ? t('Off') : status === 'unknown' ? t('Not set up')
-              : status === 'asked' ? t('Check in Settings') : t('Managed by your organization')}
-          </span>}
-        </p>
-        <p className="settings-description">{c.reason}</p>
-      </div>
-      {status !== 'restricted' && (ask || settingsPage(globalThis.window?.yogurt?.os ?? 'darwin', kind)) ? (
-        <button data-testid={ask ? 'permission-ask' : 'permission-open'} onClick={ask ? onAsk : () => void window.yogurt.permissions.open(kind)}
-          className={`workspace-button settings-action${granted ? '' : ' primary'}`}>
-          <span>{!status || granted ? t('Manage') : turnOn ? t('Turn on') : osWords({ mac: t('Open System Settings'), other: t('Open Settings') })}</span>
-          {!ask && <ExternalLink size={13} aria-hidden="true" className="shrink-0 rtl:-scale-x-100" />}
-        </button>
-      ) : null}
-    </li>
   )
 }
 
@@ -524,12 +543,12 @@ function AiApps() {
             <div className="settings-row-copy">
               <p className="settings-description">{t('Copy this command and add it as a local MCP server in your AI app.')}</p>
               <div className="mt-3 flex min-w-0 items-center gap-2 rounded-md border border-line bg-bg p-1.5">
-                <input data-testid="ai-apps-command" aria-label={t('MCP command')} dir="ltr" readOnly value={status.command} className="min-w-0 flex-1 bg-transparent px-2 font-mono text-[12px] text-muted" />
+                <input data-testid="ai-apps-command" data-settings-item aria-label={t('MCP command')} dir="ltr" readOnly value={status.command} className="min-w-0 flex-1 bg-transparent px-2 font-mono text-[12px] text-muted" />
                 <button data-testid="ai-apps-copy" onClick={copy} className="workspace-button shrink-0">
                   <Swap show={copied ? 'done' : 'copy'} options={{ copy: <Copy size={14} className="text-muted" />, done: <Check size={14} className="text-muted" /> }} /><SwapText text={copied ? t('Copied') : t('Copy')} widest={t('Copied')} />
                 </button>
               </div>
-              {status.clients.length > 0 && <p data-testid="ai-apps-clients" aria-live="polite" className="mt-3 text-[12px] leading-[18px] text-muted">
+              {status.clients.length > 0 && <p data-testid="ai-apps-clients" data-settings-item aria-live="polite" className="mt-3 text-[12px] leading-[18px] text-muted">
                 {t('Connected apps · {apps}', { apps: [...new Set(status.clients)].join(', ') })}
               </p>}
             </div>
@@ -577,9 +596,9 @@ function Updates() {
             {blocked && <p className="settings-description">{t('You can restart once the recording stops.')}</p>}
           </div>
           {status?.state === 'ready' &&
-            <button data-testid="updates-restart" onClick={restart} className="workspace-button settings-action primary">{t('Restart Yogurt')}</button>}
+            <button data-settings-item data-testid="updates-restart" onClick={restart} className="workspace-button settings-action primary">{t('Restart Yogurt')}</button>}
           {status?.available && status.on && (status.state === 'idle' || status.state === 'latest' || status.state === 'error') &&
-            <button data-testid="updates-check" onClick={() => void window.yogurt.updates.check()} className="workspace-button settings-action">{status.state === 'error' ? t('Try again') : t('Check now')}</button>}
+            <button data-settings-item data-testid="updates-check" onClick={() => void window.yogurt.updates.check()} className="workspace-button settings-action">{status.state === 'error' ? t('Try again') : t('Check now')}</button>}
         </div>
       </div></LoadingContent>
     </>

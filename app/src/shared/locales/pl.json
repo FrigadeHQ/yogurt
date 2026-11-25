@@ -221,7 +221,6 @@
   "In Screen & System Audio Recording, under System Audio Recording Only, turn on Yogurt.": "W sekcji Nagrywanie ekranu i dźwięku systemowego, pod Tylko nagrywanie dźwięku systemowego, włącz Yogurt.",
   "Has notes": "Zawiera notatki",
   "It installs the next time you quit Yogurt.": "Zainstaluje się przy następnym zamknięciu Yogurt.",
-  "It runs in the background, ready for your first call.": "Działa w tle, gotowy na Twoją pierwszą rozmowę.",
   "Italic": "Kursywa",
   "Its notes, transcript and recording are removed from this Mac for good.": "Notatki, transkrypcja i nagranie zostaną usunięte z tego Maca na zawsze.",
   "Its notes, transcript and recording are removed from this computer for good.": "Notatki, transkrypcja i nagranie zostaną usunięte z tego komputera na zawsze.",
@@ -255,6 +254,12 @@
   "Meeting controls": "Sterowanie spotkaniem",
   "Meeting view": "Widok spotkania",
   "Meetings": "Spotkania",
+  "Meetings you remove stay in the Trash for {count} days, then they're deleted for good.": {
+    "one": "Usunięte spotkania pozostają w Koszu przez {count} dzień, a potem są trwale usuwane.",
+    "few": "Usunięte spotkania pozostają w Koszu przez {count} dni, a potem są trwale usuwane.",
+    "many": "Usunięte spotkania pozostają w Koszu przez {count} dni, a potem są trwale usuwane.",
+    "other": "Usunięte spotkania pozostają w Koszu przez {count} dnia, a potem są trwale usuwane."
+  },
   "Meetings in the Trash are deleted for good after {count} days, with their recordings.": {
     "one": "Spotkania w Koszu są usuwane na zawsze po {count} dniu, razem z nagraniami.",
     "few": "Spotkania w Koszu są usuwane na zawsze po {count} dniach, razem z nagraniami.",
@@ -340,7 +345,6 @@
   "Recorded time": "Czas nagrania",
   "Recording": "Nagrywanie",
   "Recording paused": "Nagrywanie wstrzymane",
-  "Recording reminder": "Przypomnienie o nagrywaniu",
   "Recording stopped. Open Yogurt to finish saving.": "Nagrywanie zatrzymane. Otwórz Yogurt, aby dokończyć zapisywanie.",
   "Recording stopped. Yogurt couldn't save when it ended. Keep Yogurt open and try again.": "Nagrywanie zatrzymane. Yogurt nie mógł zapisać na końcu. Nie zamykaj Yogurt i spróbuj ponownie.",
   "Recording stopped. Your notes are safe.": "Nagrywanie zatrzymane. Twoje notatki są bezpieczne.",
@@ -585,7 +589,6 @@
   "Yogurt runs entirely on your computer, and this one can't write down a meeting as fast as people talk. Installing the driver for your graphics card may help. Otherwise it needs a faster processor, or graphics it can use.": "Yogurt działa w całości na Twoim komputerze, a ten nie nadąża z zapisywaniem spotkania tak szybko, jak ludzie mówią. Może pomóc instalacja sterownika karty graficznej. W przeciwnym razie potrzebny jest szybszy procesor albo grafika, z której może korzystać.",
   "Generating notes…": "Tworzenie notatek…",
   "Calendar access": "Dostęp do kalendarza",
-  "Remove Yogurt’s access in System Settings.": "Odbierz Yogurtowi dostęp w Ustawieniach systemowych.",
   "Downloading AI": "Pobieranie AI",
   "Downloading AI · {percent}": "Pobieranie AI · {percent}",
   "AI download stopped": "Pobieranie AI zatrzymane",
@@ -846,5 +849,18 @@
   "Unmute my mic in Yogurt": "Włącz mój mikrofon w Yogurt",
   "Mic will stay off on resume": "Po wznowieniu mikrofon pozostanie wyciszony",
   "Mic mute couldn’t be confirmed.": "Nie udało się potwierdzić wyciszenia mikrofonu.",
-  "Mic off. Yogurt can’t hear call audio.": "Mikrofon wyciszony. Yogurt nie odbiera dźwięku rozmowy."
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofon wyciszony. Yogurt nie odbiera dźwięku rozmowy.",
+  "Connections": "Połączenia",
+  "Storage & backup": "Pamięć i kopie zapasowe",
+  "Closing the window keeps Yogurt running.": "Yogurt działa dalej po zamknięciu okna.",
+  "Detect meetings automatically": "Automatycznie wykrywaj spotkania",
+  "Automatic meeting detection is off.": "Automatyczne wykrywanie spotkań jest wyłączone.",
+  "Recording & notes": "Nagrywanie i notatki",
+  "Back to app": "Wróć do aplikacji",
+  "Search settings": "Szukaj w ustawieniach",
+  "No settings match": "Brak pasujących ustawień",
+  "Remind me to tell others I’m recording": "Przypomnij mi, żeby poinformować innych o nagrywaniu",
+  "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "Samodzielnie rozpoczynaj i kończ nagrywanie. Yogurt nie otworzy się po rozpoczęciu rozmowy.",
+  "System notifications": "Powiadomienia systemowe",
+  "Microphone access": "Dostęp do mikrofonu"
 }

@@ -38,6 +38,8 @@ export class Watcher {
   readonly dismissed = new Set<string>()
   private shown: string | null = null // key of the start card, or 'stop'
   private busy = false
+  private enabled = true
+  private generation = 0
   private rec: { id: string; lastMic: number; snoozeUntil: number; /** the call app was on the mic during this recording */ seen: boolean; stopped: boolean; /** started without a call app (New note, the agenda): stopped by itself only once its call window is gone */ byHand: boolean; /** when the window-gone line last went to the log */ windowLogAt?: number } | null = null
 
   /** call apps on the mic at the last look before recording: a recording started from the card belongs to that call */
@@ -57,7 +59,23 @@ export class Watcher {
 
   /** recordings started with Join and record: plainly a call, so it may stop by itself once that call has ended (#100) */
   private joins = new Set<string>()
-  joined(meetingId: string) { this.joins.add(meetingId) }
+  joined(meetingId: string) { if (this.enabled) this.joins.add(meetingId) }
+
+  setDetectionEnabled(on: boolean) {
+    if (this.enabled === on) return
+    this.enabled = on
+    this.generation++
+    if (on) return
+    this.d.hide()
+    this.cleared()
+    this.shownApp = null
+    this.idleCall = null
+    this.wasRecording = false
+    this.idleMic.clear()
+    this.dismissed.clear()
+    this.joins.clear()
+  }
+
   /** the person closed the start card */
   dismiss(key: string) { this.dismissed.add(key); this.shown = null }
   /** "Keep going": ask again in a while, not every tick */
@@ -72,11 +90,13 @@ export class Watcher {
   onCall(): boolean { return !!this.d.active() || this.idleMic.size > 0 }
 
   async tick(): Promise<void> {
-    if (this.busy) return
+    if (!this.enabled || this.busy) return
+    const generation = this.generation
     this.busy = true
     try {
       const now = this.d.now()
       const reading = await this.d.read(now)
+      if (generation !== this.generation) return
       const rec = this.d.active()
       const s: Signals = { ...reading, recording: !!rec }
       if (rec) this.recording(rec, s, now)

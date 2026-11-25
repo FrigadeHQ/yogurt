@@ -221,7 +221,6 @@
   "In Screen & System Audio Recording, under System Audio Recording Only, turn on Yogurt.": "В разделе «Запись экрана и системного звука», в блоке «Только запись системного звука», включите Yogurt.",
   "Has notes": "Есть заметки",
   "It installs the next time you quit Yogurt.": "Установится, когда вы в следующий раз закроете Yogurt.",
-  "It runs in the background, ready for your first call.": "Работает в фоновом режиме, готовый к первому звонку.",
   "Italic": "Курсив",
   "Its notes, transcript and recording are removed from this Mac for good.": "Заметки, расшифровка и запись будут навсегда удалены с этого Mac.",
   "Its notes, transcript and recording are removed from this computer for good.": "Заметки, расшифровка и запись будут навсегда удалены с этого компьютера.",
@@ -255,6 +254,12 @@
   "Meeting controls": "Управление встречей",
   "Meeting view": "Вид встречи",
   "Meetings": "Встречи",
+  "Meetings you remove stay in the Trash for {count} days, then they're deleted for good.": {
+    "one": "Удалённые встречи остаются в Корзине {count} день, а затем удаляются навсегда.",
+    "few": "Удалённые встречи остаются в Корзине {count} дня, а затем удаляются навсегда.",
+    "many": "Удалённые встречи остаются в Корзине {count} дней, а затем удаляются навсегда.",
+    "other": "Удалённые встречи остаются в Корзине {count} дня, а затем удаляются навсегда."
+  },
   "Meetings in the Trash are deleted for good after {count} days, with their recordings.": {
     "one": "Встречи в Корзине удаляются навсегда через {count} день, вместе с записями.",
     "few": "Встречи в Корзине удаляются навсегда через {count} дня, вместе с записями.",
@@ -340,7 +345,6 @@
   "Recorded time": "Время записи",
   "Recording": "Идёт запись",
   "Recording paused": "Запись на паузе",
-  "Recording reminder": "Напоминание о записи",
   "Recording stopped. Open Yogurt to finish saving.": "Запись остановлена. Откройте Yogurt, чтобы завершить сохранение.",
   "Recording stopped. Yogurt couldn't save when it ended. Keep Yogurt open and try again.": "Запись остановлена. Yogurt не удалось сохранить её в конце. Не закрывайте Yogurt и попробуйте снова.",
   "Recording stopped. Your notes are safe.": "Запись остановлена. Ваши заметки в безопасности.",
@@ -585,7 +589,6 @@
   "Yogurt runs entirely on your computer, and this one can't write down a meeting as fast as people talk. Installing the driver for your graphics card may help. Otherwise it needs a faster processor, or graphics it can use.": "Yogurt работает целиком на вашем компьютере, а этот не успевает записывать встречу так же быстро, как говорят люди. Может помочь установка драйвера для вашей видеокарты. Иначе нужен более быстрый процессор или видеокарта, которую можно использовать.",
   "Generating notes…": "Создаём заметки…",
   "Calendar access": "Доступ к календарю",
-  "Remove Yogurt’s access in System Settings.": "Уберите доступ Yogurt в Системных настройках.",
   "Downloading AI": "Загрузка ИИ",
   "Downloading AI · {percent}": "Загрузка ИИ · {percent}",
   "AI download stopped": "Загрузка ИИ остановлена",
@@ -838,5 +841,18 @@
   "Unmute my mic in Yogurt": "Включить мой микрофон в Yogurt",
   "Mic will stay off on resume": "При возобновлении записи микрофон останется выключенным",
   "Mic mute couldn’t be confirmed.": "Не удалось подтвердить отключение микрофона.",
-  "Mic off. Yogurt can’t hear call audio.": "Микрофон выключен. Yogurt не слышит звук звонка."
+  "Mic off. Yogurt can’t hear call audio.": "Микрофон выключен. Yogurt не слышит звук звонка.",
+  "Connections": "Подключения",
+  "Storage & backup": "Хранилище и резервные копии",
+  "Closing the window keeps Yogurt running.": "После закрытия окна Yogurt продолжает работать.",
+  "Detect meetings automatically": "Автоматически определять встречи",
+  "Automatic meeting detection is off.": "Автоматическое определение встреч выключено.",
+  "Recording & notes": "Запись и заметки",
+  "Back to app": "Вернуться в приложение",
+  "Search settings": "Поиск по настройкам",
+  "No settings match": "Подходящих настроек нет",
+  "Remind me to tell others I’m recording": "Напоминать мне предупредить других о записи",
+  "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "Начинайте и завершайте запись вручную. Yogurt не откроется в начале звонка.",
+  "System notifications": "Системные уведомления",
+  "Microphone access": "Доступ к микрофону"
 }

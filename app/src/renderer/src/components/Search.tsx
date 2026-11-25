@@ -1,3 +1,5 @@
+import { settingsRoute, settingsSections } from '../../../shared/routes'
+import { sections } from '../settingsSections'
 import { useDialogFocus } from '../useDialogFocus'
 import { InlineError } from './InlineError'
 import { Dialog } from '@animate-ui/react/primitives/base-ui/dialog'
@@ -27,9 +29,9 @@ function Marked({ parts }: { parts: SnippetPart[] }) {
 /**
  * ⌘K searches meetings and the app's destinations and actions. A folder scopes meeting results and new questions.
  */
-export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, onShortcuts, onClose, sidebarCollapsed, onToggleSidebar }: {
-  folder?: Folder; folders?: Folder[]; onOpen: (id: string) => void; onNavigate: (route: string, agendaDate?: number) => void; onSettingsChange: () => void; onShortcuts: () => void; onClose: () => void
-  sidebarCollapsed: boolean; onToggleSidebar: () => void
+export function Search({ inSettings = false, folder, folders, onOpen, onNavigate, onSettingsChange, onShortcuts, onClose, sidebarCollapsed, onToggleSidebar }: {
+  inSettings?: boolean; folder?: Folder; folders?: Folder[]; onOpen: (id: string) => void; onNavigate: (route: string, agendaDate?: number) => void; onSettingsChange: () => void; onShortcuts: () => void; onClose: () => void
+  sidebarCollapsed: boolean; onToggleSidebar?: () => void
 }) {
   const [open, setOpen] = useState(true)
   const close = useRef(onClose)
@@ -105,13 +107,21 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
   const filtered = !!shown.date || shown.people.length > 0
   const navigate = (route: string) => { onNavigate(route) }
   const settingsAction = async (run: () => Promise<void>) => { await run(); onSettingsChange() }
-  const allCommands = [
+  const sectionCommands = inSettings ? settingsSections.map(id => ({
+    id: 'settings-' + id, label: sections[id].label(),
+    group: t('Go to'), Icon: sections[id].icon, run: () => navigate(settingsRoute(id)),
+  })) : []
+  const allCommands: {
+    id: string; label: string; group: string; Icon: typeof Settings; run(): void | Promise<void>
+    synonyms?: string[]; shortcut?: string; folder?: Folder
+  }[] = [
     { id: 'meetings', label: t('Meetings'), group: t('Go to'), Icon: FileText, run: () => navigate(''), shortcut: keys('⌘1') },
     { id: 'chat', synonyms: ['chat'], label: t('Ask'), group: t('Go to'), Icon: MessageCircle, run: () => navigate('/chat'), shortcut: keys('⌘2') },
     { id: 'trash', label: t('Trash'), group: t('Go to'), Icon: Trash2, run: () => navigate('/trash'), shortcut: keys('⌘3') },
     { id: 'settings', synonyms: ['preferences', 'prefs'], label: t('Settings'), group: t('Go to'), Icon: Settings, run: () => navigate('/settings'), shortcut: keys('⌘,') },
+    ...sectionCommands,
     { id: 'shortcuts', label: t('Keyboard shortcuts'), group: t('Go to'), Icon: Keyboard, run: onShortcuts, shortcut: keys('⌘/') },
-    { id: 'sidebar', label: sidebarCollapsed ? t('Show Sidebar') : t('Hide Sidebar'), group: t('Go to'), synonyms: [t('View')], Icon: PanelLeft, run: onToggleSidebar, shortcut: keys('⌃⌘S') },
+    ...(onToggleSidebar ? [{ id: 'sidebar', label: sidebarCollapsed ? t('Show Sidebar') : t('Hide Sidebar'), group: t('Go to'), synonyms: [t('View')], Icon: PanelLeft, run: onToggleSidebar, shortcut: keys('⌃⌘S') }] : []),
     ...(folders ?? []).map((f) => ({ id: `folder-${f.id}`, label: f.name, group: t('Go to'), synonyms: [t('Folders')], Icon: FolderIcon, folder: f, run: () => navigate(`/folder/${f.id}`) })),
     { id: 'theme-light', synonyms: ['theme', 'appearance', 'mode', 'light'], label: t('Light theme'), group: t('Appearance'), Icon: Sun, run: () => settingsAction(() => window.yogurt.settings.setTheme('light')) },
     { id: 'theme-dark', synonyms: ['theme', 'appearance', 'mode', 'dark'], label: t('Dark theme'), group: t('Appearance'), Icon: Moon, run: () => settingsAction(() => window.yogurt.settings.setTheme('dark')) },
@@ -120,12 +130,19 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
       { id: 'login', label: prefs.openAtLogin ? t('Turn off open at login') : t('Open Yogurt at login'), group: t('Settings'), Icon: LogIn, run: () => settingsAction(() => window.yogurt.settings.setOpenAtLogin(!prefs.openAtLogin)) },
       { id: 'auto-stop', label: prefs.stopWhenCallEnds ? t('Keep recording when the call ends') : t('Stop recording when the call ends'), group: t('Settings'), Icon: AudioLines, run: () => settingsAction(() => window.yogurt.settings.setStopWhenCallEnds(!prefs.stopWhenCallEnds)) },
     ] : []),
-  ].filter((c) => !c.id.startsWith('theme-') || !!prefs)
+  ].filter(c => (!c.id.startsWith('theme-') || !!prefs) && (c.id !== 'auto-stop' || prefs?.detectMeetingsAutomatically !== false))
   const defaultSelection = useRef<string | undefined>(undefined)
   const rank = (search: typeof request, list: SearchResult[]) => {
     const date = searchDateCommand(search.jumpAt, search.q)
     const commands = date ? [{ ...date, Icon: CalendarDays, run: () => onNavigate('', date.at) }, ...allCommands] : allCommands
-    return searchPalette(commands, list, search.q, search.q, search.suggestions, defaultSelection.current, !!search.date || search.people.length > 0)
+    const matches = searchPalette(commands, list, search.q, search.q, search.suggestions, defaultSelection.current, !!search.date || search.people.length > 0)
+    if (!search.q.trim()) {
+      const destinations = inSettings ? sectionCommands : commands.filter(c => c.id === 'settings')
+      const rows = destinations.map(command => ({ kind: 'command' as const, command, score: 0 }))
+      if (inSettings) matches.rows.unshift(...rows)
+      else matches.rows.push(...rows)
+    }
+    return matches
   }
   const palette = results ? rank(results, results.list) : { rows: [], active: 0 }
   const rows = palette.rows
@@ -308,7 +325,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
               {(previous?.kind !== 'command' || previous.command.group !== c.group) && <p className="command-section">{c.group}</p>}
               <div id={`command-${c.id}`} data-testid={`command-${c.id}`} role="option" aria-selected={activeIndex === i} aria-current={current || undefined} aria-disabled={running}
                 onMouseMove={(e) => hover(e, i)} onClick={() => void runCommand(c)} className="search-row command-row">
-                {'folder' in c ? <FolderGlyph appearance={c.folder} /> : <c.Icon size={16} aria-hidden="true" />}
+                {'folder' in c && c.folder ? <FolderGlyph appearance={c.folder} /> : <c.Icon size={16} aria-hidden="true" />}
                 <span className="command-label">{c.label}{current && <span aria-hidden="true"> ✓</span>}</span>
                 {activeIndex === i && ('shortcut' in c
                   ? <kbd className="search-key search-shortcut">{c.shortcut}</kbd> : returnKey)}

@@ -53,8 +53,9 @@ for (const theme of ['light', 'dark'] as const) {
         await page.screenshot({ clip, animations: 'disabled', path: testInfo.outputPath(`palette-${state}-${theme}.png`) })
       }
       await expect(input).toHaveAttribute('placeholder', 'Ask, search, or open a meeting…')
-      await expect(options).toHaveCount(3)
-      await expect(results.locator('.command-section')).toHaveText(['Recent meetings'])
+      await expect(options).toHaveCount(4)
+      await expect(results.getByTestId('command-settings')).toBeVisible()
+      await expect(results.locator('.command-section')).toHaveText(['Recent meetings', 'Go to'])
       await capture('empty')
       await input.fill('Launch planning')
       const meeting = results.getByTestId('search-result')
@@ -106,15 +107,11 @@ test('@everywhere search returns focus with the same ring the opener had', async
     }
     await opener.click()
     await page.keyboard.press('ControlOrMeta+k')
-    await page.getByTestId('search-input').fill('settings')
-    await expect(page.getByTestId('command-settings')).toHaveAttribute('aria-selected', 'true')
+    await page.getByTestId('search-input').fill('trash')
+    await expect(page.getByTestId('command-trash')).toHaveAttribute('aria-selected', 'true')
     await page.keyboard.press('Enter')
-    await expect(page.getByTestId('settings')).toBeVisible()
+    await expect(page.getByTestId('trash-page')).toBeVisible()
     await expect(search).toHaveCount(0)
-    if (await page.evaluate(() => window.yogurt.capabilities.calendarLink)) {
-      await expect(page.getByTestId('calendar-link-add')).toHaveAttribute('aria-expanded', 'true')
-      await expect(page.getByTestId('calendar-link-input')).not.toBeFocused()
-    }
     await expect(opener).toBeFocused()
     await expect(opener).toHaveCSS('outline-style', 'none')
 
@@ -125,6 +122,14 @@ test('@everywhere search returns focus with the same ring the opener had', async
     await page.keyboard.press('Escape')
     await expect(search).toHaveCount(0)
     await expect.poll(() => page.evaluate(() => document.activeElement === document.body)).toBe(true)
+
+    if (await page.evaluate(() => window.yogurt.capabilities.calendarLink)) {
+      await openFromCorner(page, 'settings-open', 'connections')
+      await expect(page.getByTestId('calendar-link-add')).toHaveAttribute('aria-expanded', 'true')
+      const input = page.getByTestId('calendar-link-input')
+      await expect(input).toBeVisible()
+      await expect(input).not.toBeFocused()
+    }
   } finally { await app.close() }
 })
 
@@ -457,6 +462,7 @@ test('selection updates the shortcut and footer, and the secondary shortcut send
     await expect(page.getByTestId('search-secondary-hint')).toContainText('Ask')
     await page.keyboard.press('ArrowDown')
     await expect(settings.locator('kbd')).toHaveCount(0)
+    await expect(page.locator('[data-testid^="command-settings-"]')).toHaveCount(0)
     await expect(page.getByTestId('search-primary-hint')).toHaveText('↵Select')
     await expect(page.locator('[role=option] kbd')).toHaveCount(1)
     await page.keyboard.press('Meta+Enter')
@@ -608,9 +614,9 @@ test('typing keeps the input anchored and replaces meeting and command results t
     // While the delayed search is pending, retain one coherent result set instead of clearing its rows.
     await page.waitForTimeout(250)
     await expect(palette.getByTestId('search-result')).toHaveCount(3)
-    await expect(palette.getByTestId('command-settings')).toHaveCount(0)
+    await expect(palette.getByTestId('command-settings')).toHaveAttribute('aria-selected', 'false')
     await expect(palette.getByTestId('search-result')).toHaveCount(0)
-    await expect(palette.getByTestId('command-settings')).toBeVisible()
+    await expect(palette.getByTestId('command-settings')).toHaveAttribute('aria-selected', 'true')
     await expect(palette.getByTestId('command-meetings')).toHaveCount(0)
     await input.fill('zzqx')
     await expect(palette.getByTestId('search-none')).toHaveText('No matches')
@@ -713,9 +719,9 @@ test('back and forward restore Settings and a paged meeting list to the same scr
     await page.keyboard.press('Meta+,')
     const settings = page.locator('.settings-scroll')
     await expect(page.getByTestId('settings')).toBeVisible()
-    await page.getByTestId('settings-shortcuts').scrollIntoViewIfNeeded()
+    await page.getByRole('link', { name: 'View on GitHub' }).scrollIntoViewIfNeeded()
     const settingsTop = await settings.evaluate(el => el.scrollTop)
-    expect(settingsTop).toBeGreaterThan(500)
+    expect(settingsTop).toBeGreaterThan(0)
     await page.keyboard.press('Meta+[')
     await expect.poll(() => library.evaluate(el => el.scrollTop)).toBeCloseTo(homeTop, 0)
     await page.keyboard.press('Meta+]')

@@ -73,10 +73,10 @@ function PhoneSection() {
     : status?.pairingClosed === 'tooMany' ? t('Too many wrong codes. Start pairing again.')
     : status?.pairingClosed === 'expired' ? t('The code ran out. Start pairing again.')
     : ''
-  const pairButton = <button type="button" data-testid="phone-pair" disabled={busy || !status} onClick={() => void start()} className="workspace-button settings-action">{t('Pair a phone')}</button>
+  const pairButton = <button type="button" data-settings-item data-testid="phone-pair" disabled={busy || !status} onClick={() => void start()} className="workspace-button settings-action">{t('Pair a phone')}</button>
 
   return <section data-testid="phone-settings" aria-labelledby="phone-settings-heading">
-    <h2 id="phone-settings-heading" className="settings-section-heading">{t('Phone')}</h2>
+    <h2 id="phone-settings-heading" data-settings-keywords={t('Yogurt on your iPhone')} className="settings-section-heading">{t('Phone')}</h2>
     <div className="settings-group">
       {pairing ? <div data-testid="phone-pairing" className="settings-row">
         <div className="settings-row-copy">
@@ -106,7 +106,7 @@ function PhoneSection() {
           <button type="button" data-testid="phone-unpair-cancel" disabled={busy} onClick={() => setConfirming(false)} className="workspace-button">{t('Cancel')}</button>
           <button type="button" data-testid="phone-unpair-confirm" disabled={busy} onClick={() => void unpair()} className="workspace-button text-danger">{t('Unpair')}</button>
         </div>
-          : <button type="button" data-testid="phone-unpair" disabled={busy} onClick={() => setConfirming(true)} className="workspace-button settings-action">{t('Unpair')}</button>}
+          : <button type="button" data-settings-item data-testid="phone-unpair" disabled={busy} onClick={() => setConfirming(true)} className="workspace-button settings-action">{t('Unpair')}</button>}
       </div>
       : <div data-testid="phone-unpaired" className="settings-row">
         <Smartphone size={16} aria-hidden="true" className="shrink-0 text-muted" />

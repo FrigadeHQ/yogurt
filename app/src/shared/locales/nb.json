@@ -217,7 +217,6 @@
   "In Screen & System Audio Recording, under System Audio Recording Only, turn on Yogurt.": "Under Skjerm- og systemlydopptak, ved Kun systemlydopptak, slår du på Yogurt.",
   "Has notes": "Har notater",
   "It installs the next time you quit Yogurt.": "Den installeres neste gang du avslutter Yogurt.",
-  "It runs in the background, ready for your first call.": "Kjører i bakgrunnen, klar til din første samtale.",
   "Italic": "Kursiv",
   "Its notes, transcript and recording are removed from this Mac for good.": "Notater, transkripsjon og opptak fjernes fra denne Macen for godt.",
   "Its notes, transcript and recording are removed from this computer for good.": "Notater, transkripsjon og opptak fjernes fra denne datamaskinen for godt.",
@@ -251,6 +250,10 @@
   "Meeting controls": "Møtekontroller",
   "Meeting view": "Møtevisning",
   "Meetings": "Møter",
+  "Meetings you remove stay in the Trash for {count} days, then they're deleted for good.": {
+    "one": "Møter du fjerner, blir liggende i papirkurven i {count} dag. Deretter slettes de for godt.",
+    "other": "Møter du fjerner, blir liggende i papirkurven i {count} dager. Deretter slettes de for godt."
+  },
   "Meetings in the Trash are deleted for good after {count} days, with their recordings.": {
     "one": "Møter i papirkurven slettes for godt etter {count} dag, med opptakene.",
     "other": "Møter i papirkurven slettes for godt etter {count} dager, med opptakene."
@@ -334,7 +337,6 @@
   "Recorded time": "Opptakstid",
   "Recording": "Tar opp",
   "Recording paused": "Opptaket er på pause",
-  "Recording reminder": "Påminnelse om opptak",
   "Recording stopped. Open Yogurt to finish saving.": "Opptaket er stoppet. Åpne Yogurt for å lagre ferdig.",
   "Recording stopped. Yogurt couldn't save when it ended. Keep Yogurt open and try again.": "Opptaket er stoppet. Yogurt kunne ikke lagre da det sluttet. La Yogurt være åpent og prøv igjen.",
   "Recording stopped. Your notes are safe.": "Opptaket er stoppet. Notatene dine er trygge.",
@@ -565,7 +567,6 @@
   "Yogurt runs entirely on your computer, and this one can't write down a meeting as fast as people talk. Installing the driver for your graphics card may help. Otherwise it needs a faster processor, or graphics it can use.": "Yogurt kjører helt på datamaskinen din, og denne klarer ikke å skrive ned et møte så fort som folk snakker. Det kan hjelpe å installere driveren til grafikkortet ditt. Ellers trenger den en raskere prosessor, eller grafikk den kan bruke.",
   "Generating notes…": "Lager notater…",
   "Calendar access": "Kalendertilgang",
-  "Remove Yogurt’s access in System Settings.": "Fjern tilgangen til Yogurt i Systeminnstillinger.",
   "Downloading AI": "Laster ned KI",
   "Downloading AI · {percent}": "Laster ned KI · {percent}",
   "AI download stopped": "KI-nedlastingen stoppet",
@@ -810,5 +811,18 @@
   "Unmute my mic in Yogurt": "Slå på mikrofonen min i Yogurt",
   "Mic will stay off on resume": "Mikrofonen forblir av når opptaket fortsetter",
   "Mic mute couldn’t be confirmed.": "Kunne ikke bekrefte at mikrofonen er av.",
-  "Mic off. Yogurt can’t hear call audio.": "Mikrofonen er av. Yogurt får ikke lyd fra samtalen."
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofonen er av. Yogurt får ikke lyd fra samtalen.",
+  "Connections": "Tilkoblinger",
+  "Storage & backup": "Lagring og sikkerhetskopi",
+  "Closing the window keeps Yogurt running.": "Yogurt fortsetter å kjøre når du lukker vinduet.",
+  "Detect meetings automatically": "Oppdag møter automatisk",
+  "Automatic meeting detection is off.": "Automatisk møtegjenkjenning er slått av.",
+  "Recording & notes": "Opptak og notater",
+  "Back to app": "Tilbake til appen",
+  "Search settings": "Søk i innstillingene",
+  "No settings match": "Ingen samsvarende innstillinger",
+  "Remind me to tell others I’m recording": "Minn meg på å fortelle de andre at jeg tar opp",
+  "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "Start og avslutt opptak selv. Yogurt åpnes ikke når en samtale starter.",
+  "System notifications": "Systemvarsler",
+  "Microphone access": "Mikrofontilgang"
 }

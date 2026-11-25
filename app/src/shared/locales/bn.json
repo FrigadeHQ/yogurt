@@ -217,7 +217,6 @@
   "In Screen & System Audio Recording, under System Audio Recording Only, turn on Yogurt.": "স্ক্রিন ও সিস্টেম অডিও রেকর্ডিং-এ, শুধু সিস্টেম অডিও রেকর্ডিং-এর নিচে Yogurt চালু করুন।",
   "Has notes": "নোট আছে",
   "It installs the next time you quit Yogurt.": "পরের বার Yogurt বন্ধ করলে এটি ইনস্টল হবে।",
-  "It runs in the background, ready for your first call.": "এটি ব্যাকগ্রাউন্ডে চলে, আপনার প্রথম কলের জন্য প্রস্তুত থাকে।",
   "Italic": "তির্যক",
   "Its notes, transcript and recording are removed from this Mac for good.": "এর নোট, ট্রান্সক্রিপ্ট ও রেকর্ডিং এই Mac থেকে চিরতরে সরানো হয়।",
   "Its notes, transcript and recording are removed from this computer for good.": "এর নোট, ট্রান্সক্রিপ্ট ও রেকর্ডিং এই কম্পিউটার থেকে চিরতরে সরানো হয়।",
@@ -251,6 +250,7 @@
   "Meeting controls": "মিটিং কন্ট্রোল",
   "Meeting view": "মিটিং ভিউ",
   "Meetings": "মিটিং",
+  "Meetings you remove stay in the Trash for {count} days, then they're deleted for good.": "আপনি যে মিটিংগুলো সরান, সেগুলো ট্র্যাশে {count} দিন থাকে। তারপর সেগুলো চিরতরে মুছে যায়।",
   "Meetings in the Trash are deleted for good after {count} days, with their recordings.": {
     "one": "ট্র্যাশের মিটিং {count} দিন পর রেকর্ডিংসহ চিরতরে মুছে যায়।",
     "other": "ট্র্যাশের মিটিং {count} দিন পর রেকর্ডিংসহ চিরতরে মুছে যায়।"
@@ -334,7 +334,6 @@
   "Recorded time": "রেকর্ড করা সময়",
   "Recording": "রেকর্ড হচ্ছে",
   "Recording paused": "রেকর্ডিং বিরতিতে",
-  "Recording reminder": "রেকর্ডিং রিমাইন্ডার",
   "Recording stopped. Open Yogurt to finish saving.": "রেকর্ডিং থেমেছে। সেভ শেষ করতে Yogurt খুলুন।",
   "Recording stopped. Yogurt couldn't save when it ended. Keep Yogurt open and try again.": "রেকর্ডিং থেমেছে। শেষ হওয়ার সময় Yogurt সেভ করতে পারেনি। Yogurt খোলা রেখে আবার চেষ্টা করুন।",
   "Recording stopped. Your notes are safe.": "রেকর্ডিং থেমেছে। আপনার নোট নিরাপদ।",
@@ -565,7 +564,6 @@
   "Yogurt runs entirely on your computer, and this one can't write down a meeting as fast as people talk. Installing the driver for your graphics card may help. Otherwise it needs a faster processor, or graphics it can use.": "Yogurt পুরোপুরি আপনার কম্পিউটারে চলে, আর এই কম্পিউটারটি মানুষ যত দ্রুত কথা বলে তত দ্রুত মিটিং লিখে রাখতে পারছে না। গ্রাফিক্স কার্ডের ড্রাইভার ইনস্টল করলে কাজ হতে পারে। না হলে এর আরও দ্রুত প্রসেসর, অথবা ব্যবহারযোগ্য গ্রাফিক্স দরকার।",
   "Generating notes…": "নোট তৈরি হচ্ছে…",
   "Calendar access": "ক্যালেন্ডার অ্যাক্সেস",
-  "Remove Yogurt’s access in System Settings.": "সিস্টেম সেটিংসে Yogurt-এর অ্যাক্সেস সরান।",
   "Downloading AI": "AI ডাউনলোড হচ্ছে",
   "Downloading AI · {percent}": "AI ডাউনলোড হচ্ছে · {percent}",
   "AI download stopped": "AI ডাউনলোড বন্ধ হয়েছে",
@@ -798,5 +796,18 @@
   "Unmute my mic in Yogurt": "Yogurt-এ আমার মাইক আনমিউট করুন",
   "Mic will stay off on resume": "রেকর্ডিং আবার শুরু হলে মাইক বন্ধ থাকবে",
   "Mic mute couldn’t be confirmed.": "মাইক মিউট হয়েছে কি না নিশ্চিত করা যায়নি।",
-  "Mic off. Yogurt can’t hear call audio.": "মাইক বন্ধ। Yogurt কলের শব্দ শুনতে পাচ্ছে না।"
+  "Mic off. Yogurt can’t hear call audio.": "মাইক বন্ধ। Yogurt কলের শব্দ শুনতে পাচ্ছে না।",
+  "Connections": "সংযোগ",
+  "Storage & backup": "স্টোরেজ ও ব্যাকআপ",
+  "Closing the window keeps Yogurt running.": "উইন্ডো বন্ধ করলেও Yogurt চলতে থাকে।",
+  "Detect meetings automatically": "স্বয়ংক্রিয়ভাবে মিটিং শনাক্ত করুন",
+  "Automatic meeting detection is off.": "স্বয়ংক্রিয় মিটিং শনাক্তকরণ বন্ধ আছে।",
+  "Recording & notes": "রেকর্ডিং ও নোট",
+  "Back to app": "অ্যাপে ফিরে যান",
+  "Search settings": "সেটিংস খুঁজুন",
+  "No settings match": "কোনো সেটিংস মেলেনি",
+  "Remind me to tell others I’m recording": "আমি রেকর্ড করছি তা অন্যদের জানাতে মনে করিয়ে দিন",
+  "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "নিজেই রেকর্ডিং শুরু ও শেষ করুন। কল শুরু হলে Yogurt খুলবে না।",
+  "System notifications": "সিস্টেম বিজ্ঞপ্তি",
+  "Microphone access": "মাইক্রোফোন ব্যবহারের অনুমতি"
 }

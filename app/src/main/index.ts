@@ -27,7 +27,7 @@ import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { isFake, modelsFolder, userDataDir } from './paths'
 import { logToFile } from './log'
-import { includesRecordingCredit, loadSettings, localeOf, keepsRecording, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings, visibilityOf, summaryLanguageSetting } from './settings'
+import { detectsMeetings, includesRecordingCredit, loadSettings, localeOf, keepsRecording, recordingReminderOn, spokenSetting, stopsWhenCallEnds, updateSettings, visibilityOf, summaryLanguageSetting } from './settings'
 import { CALL_GONE_MS, micPids, useCallApps, watchEveryMs, type MicApp } from './detect'
 import { systemLocale } from './locale'
 import { language as uiLanguage, onLanguage, setLanguage, t } from '../shared/i18n'
@@ -155,6 +155,7 @@ function openExternally(url: string) {
 }
 
 let updateWidgetVisibility = () => {}
+let detectionChanged = (_on: boolean) => {}
 let recordingPillChanged = (_on: boolean) => {}
 let sendWidgetTranscript = (_channel: string, _value: unknown) => {}
 function createWindow() {
@@ -353,12 +354,16 @@ let indexerRef: { schedule(): Promise<unknown> } | undefined
 /** Notice calls, offer to take notes, stop when the call ends (or ask, with that setting off). Starts nothing without a click. */
 function startDetection() {
   if (isFake()) setHelper(fakeHelper)
-  // On a Mac one mic watch runs for Yogurt's whole life: a new helper per reading wore out coreaudiod and powerd (#143)
-  const micWatch = process.platform === 'darwin' && !isFake()
-    ? createMicWatch({ start: spawnMicWatch(helperPath), poll: () => runHelper(['mic-apps']), recording: () => !!activeMeeting() })
-    : undefined
+  // Start the native watcher on the first authorized read, including after a quiet launch or re-enabling detection.
+  let micWatch: ReturnType<typeof createMicWatch> | undefined
+  const makeSignals = () => createSignals({ helper: runHelper, events: readCalendar,
+    micApps: process.platform === 'darwin' && !isFake() ? () => {
+      micWatch ??= createMicWatch({ start: spawnMicWatch(helperPath), poll: () => runHelper(['mic-apps']), recording: () => !!activeMeeting() })
+      return micWatch.read()
+    } : undefined,
+  })
+  let signals = makeSignals()
   app.on('will-quit', () => micWatch?.stop())
-  const signals = createSignals({ helper: runHelper, micApps: micWatch?.read, events: readCalendar })
   refreshCalendarConsumers = () => signals.invalidateCalendar()
   let lastReading: { micApps: MicApp[]; runningApps?: string[] } | undefined
   // yogurt-system (Windows, Linux) reads no single process yet; the Mac helper does
@@ -366,7 +371,12 @@ function startDetection() {
   const now = isFake() ? fakeNow : Date.now
   let fakeSilence: number | undefined
   const watcher: Watcher = new Watcher({
-    read: async (at) => (lastReading = await signals.read(at)), now, active: activeMeeting, bindApp: bindMeetingApp,
+    read: async at => {
+      const current = signals
+      const reading = await current.read(at)
+      if (signals === current) lastReading = reading
+      return reading
+    }, now, active: activeMeeting, bindApp: bindMeetingApp,
     offer: (p) => prompts.offer(p), askStop: (m) => prompts.askStop(m), hide: () => prompts.hide(),
     // the call ended: the same stop as the widget's Stop button, then say so
     autoStop: (m) => { widget.callEnded(m.id); stopMeeting(m.id, 'call-ended'); prompts.stopped(m) },
@@ -390,6 +400,15 @@ function startDetection() {
     os: process.platform,
   })
   const preferences = loadSettings(join(userDataDir(), 'settings.json'))
+  detectionChanged = on => {
+    watcher.setDetectionEnabled(on)
+    if (on) return
+    micWatch?.stop()
+    micWatch = undefined
+    signals = makeSignals()
+    lastReading = undefined
+  }
+  detectionChanged(detectsMeetings(preferences))
   const visibility = visibilityOf(preferences, platform)
   let showRecordingPill = visibility.showRecordingPill
   const widget = createWidget({
@@ -605,6 +624,7 @@ app.whenReady().then(() => {
   }) : null
   if (calendarLinks) setCalendarLinkSource(calendarLinks, { alongside: !caps.calendarLink })
   const preferences = hookPreferences({
+    detectionChanged: on => detectionChanged(on),
     recordingPillChanged: on => recordingPillChanged(on),
     file: join(userDataDir(), 'settings.json'), permissions, kinds: supportedKinds(caps), os: platform,
     ...(calendarLinks && caps.calendarLink ? { calendarLinked: () => calendarLinks.status() === 'granted' } : {}),

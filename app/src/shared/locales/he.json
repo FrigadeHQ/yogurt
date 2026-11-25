@@ -219,7 +219,6 @@
   "In Screen & System Audio Recording, under System Audio Recording Only, turn on Yogurt.": "בתוך “הקלטת מסך ושמע מערכת”, תחת “הקלטת שמע מערכת בלבד”, להפעיל את Yogurt.",
   "Has notes": "יש הערות",
   "It installs the next time you quit Yogurt.": "היא תותקן בפעם הבאה שיוצאים מ־Yogurt.",
-  "It runs in the background, ready for your first call.": "פועל ברקע, מוכן לשיחה הראשונה שלך.",
   "Italic": "נטוי",
   "Its notes, transcript and recording are removed from this Mac for good.": "ההערות, התמלול וההקלטה יוסרו מה־Mac הזה לצמיתות.",
   "Its notes, transcript and recording are removed from this computer for good.": "ההערות, התמלול וההקלטה יוסרו מהמחשב הזה לצמיתות.",
@@ -253,6 +252,11 @@
   "Meeting controls": "פקדי פגישה",
   "Meeting view": "תצוגת פגישה",
   "Meetings": "פגישות",
+  "Meetings you remove stay in the Trash for {count} days, then they're deleted for good.": {
+    "one": "פגישות שהסרת נשארות בפח יום אחד ואז נמחקות לצמיתות.",
+    "two": "פגישות שהסרת נשארות בפח יומיים ואז נמחקות לצמיתות.",
+    "other": "פגישות שהסרת נשארות בפח במשך {count} ימים ואז נמחקות לצמיתות."
+  },
   "Meetings in the Trash are deleted for good after {count} days, with their recordings.": {
     "one": "פגישות בפח נמחקות לצמיתות אחרי יום אחד, יחד עם ההקלטות שלהן.",
     "two": "פגישות בפח נמחקות לצמיתות אחרי יומיים, יחד עם ההקלטות שלהן.",
@@ -337,7 +341,6 @@
   "Recorded time": "זמן הקלטה",
   "Recording": "מקליט",
   "Recording paused": "ההקלטה מושהית",
-  "Recording reminder": "תזכורת להקלטה",
   "Recording stopped. Open Yogurt to finish saving.": "ההקלטה נעצרה. יש לפתוח את Yogurt כדי לסיים לשמור.",
   "Recording stopped. Yogurt couldn't save when it ended. Keep Yogurt open and try again.": "ההקלטה נעצרה. Yogurt לא הצליח לשמור כשהיא הסתיימה. כדאי להשאיר את Yogurt פתוח ולנסות שוב.",
   "Recording stopped. Your notes are safe.": "ההקלטה נעצרה. ההערות שלך בטוחות.",
@@ -575,7 +578,6 @@
   "Yogurt runs entirely on your computer, and this one can't write down a meeting as fast as people talk. Installing the driver for your graphics card may help. Otherwise it needs a faster processor, or graphics it can use.": "Yogurt פועל כולו במחשב שלך, והמחשב הזה לא מצליח לכתוב פגישה מהר כמו שאנשים מדברים. התקנת מנהל ההתקן של הכרטיס הגרפי עשויה לעזור. אחרת צריך מעבד מהיר יותר, או כרטיס גרפי שאפשר להשתמש בו.",
   "Generating notes…": "יוצר הערות…",
   "Calendar access": "גישה ללוח השנה",
-  "Remove Yogurt’s access in System Settings.": "הסירו את הגישה של Yogurt בהגדרות המערכת.",
   "Downloading AI": "מורידים בינה מלאכותית",
   "Downloading AI · {percent}": "מורידים בינה מלאכותית · {percent}",
   "AI download stopped": "הורדת הבינה המלאכותית נעצרה",
@@ -820,5 +822,18 @@
   "Unmute my mic in Yogurt": "ביטול השתקת המיקרופון שלי ב־Yogurt",
   "Mic will stay off on resume": "המיקרופון יישאר מושתק כשההקלטה תתחדש",
   "Mic mute couldn’t be confirmed.": "לא ניתן היה לאשר שהמיקרופון הושתק.",
-  "Mic off. Yogurt can’t hear call audio.": "המיקרופון מושתק. Yogurt לא קולט את שמע השיחה."
+  "Mic off. Yogurt can’t hear call audio.": "המיקרופון מושתק. Yogurt לא קולט את שמע השיחה.",
+  "Connections": "חיבורים",
+  "Storage & backup": "אחסון וגיבוי",
+  "Closing the window keeps Yogurt running.": "Yogurt ממשיך לפעול לאחר סגירת החלון.",
+  "Detect meetings automatically": "זיהוי פגישות אוטומטי",
+  "Automatic meeting detection is off.": "זיהוי פגישות אוטומטי כבוי.",
+  "Recording & notes": "הקלטה והערות",
+  "Back to app": "חזרה לאפליקציה",
+  "Search settings": "חיפוש בהגדרות",
+  "No settings match": "לא נמצאו הגדרות תואמות",
+  "Remind me to tell others I’m recording": "להזכיר לי לעדכן את האחרים שהשיחה מוקלטת",
+  "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "יש להתחיל ולסיים את ההקלטה ידנית. Yogurt לא ייפתח בתחילת שיחה.",
+  "System notifications": "התראות המערכת",
+  "Microphone access": "גישה למיקרופון"
 }

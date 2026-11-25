@@ -217,7 +217,6 @@
   "In Screen & System Audio Recording, under System Audio Recording Only, turn on Yogurt.": "Slå Yogurt til under Skærm- og systemlydoptagelse ved Kun systemlydoptagelse.",
   "Has notes": "Har noter",
   "It installs the next time you quit Yogurt.": "Den installeres, næste gang du afslutter Yogurt.",
-  "It runs in the background, ready for your first call.": "Det kører i baggrunden, klar til dit første opkald.",
   "Italic": "Kursiv",
   "Its notes, transcript and recording are removed from this Mac for good.": "Noter, transskription og optagelse fjernes fra denne Mac for altid.",
   "Its notes, transcript and recording are removed from this computer for good.": "Noter, transskription og optagelse fjernes fra denne computer for altid.",
@@ -251,6 +250,10 @@
   "Meeting controls": "Mødeknapper",
   "Meeting view": "Mødevisning",
   "Meetings": "Møder",
+  "Meetings you remove stay in the Trash for {count} days, then they're deleted for good.": {
+    "one": "Møder, du fjerner, bliver i papirkurven i {count} dag. Derefter slettes de permanent.",
+    "other": "Møder, du fjerner, bliver i papirkurven i {count} dage. Derefter slettes de permanent."
+  },
   "Meetings in the Trash are deleted for good after {count} days, with their recordings.": {
     "one": "Møder i papirkurven slettes for altid efter {count} dag, sammen med deres optagelser.",
     "other": "Møder i papirkurven slettes for altid efter {count} dage, sammen med deres optagelser."
@@ -334,7 +337,6 @@
   "Recorded time": "Optaget tid",
   "Recording": "Optager",
   "Recording paused": "Optagelse på pause",
-  "Recording reminder": "Påmindelse om optagelse",
   "Recording stopped. Open Yogurt to finish saving.": "Optagelsen er stoppet. Åbn Yogurt for at gemme færdigt.",
   "Recording stopped. Yogurt couldn't save when it ended. Keep Yogurt open and try again.": "Optagelsen er stoppet. Yogurt kunne ikke gemme, da den sluttede. Hold Yogurt åben, og prøv igen.",
   "Recording stopped. Your notes are safe.": "Optagelsen er stoppet. Dine noter er i sikkerhed.",
@@ -565,7 +567,6 @@
   "Yogurt runs entirely on your computer, and this one can't write down a meeting as fast as people talk. Installing the driver for your graphics card may help. Otherwise it needs a faster processor, or graphics it can use.": "Yogurt kører helt på din computer, og denne kan ikke skrive et møde ned så hurtigt, som folk taler. Det kan hjælpe at installere driveren til dit grafikkort. Ellers skal den have en hurtigere processor eller grafik, den kan bruge.",
   "Generating notes…": "Laver noter…",
   "Calendar access": "Kalenderadgang",
-  "Remove Yogurt’s access in System Settings.": "Fjern Yogurts adgang i Systemindstillinger.",
   "Downloading AI": "Henter AI",
   "Downloading AI · {percent}": "Henter AI · {percent}",
   "AI download stopped": "Download af AI stoppet",
@@ -810,5 +811,18 @@
   "Unmute my mic in Yogurt": "Slå min mikrofon til i Yogurt",
   "Mic will stay off on resume": "Mikrofonen forbliver slået fra, når optagelsen fortsætter",
   "Mic mute couldn’t be confirmed.": "Det kunne ikke bekræftes, at mikrofonen er slået fra.",
-  "Mic off. Yogurt can’t hear call audio.": "Mikrofon slået fra. Yogurt kan ikke høre lyden fra opkaldet."
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofon slået fra. Yogurt kan ikke høre lyden fra opkaldet.",
+  "Connections": "Forbindelser",
+  "Storage & backup": "Lager og sikkerhedskopi",
+  "Closing the window keeps Yogurt running.": "Yogurt kører videre, når du lukker vinduet.",
+  "Detect meetings automatically": "Registrer møder automatisk",
+  "Automatic meeting detection is off.": "Automatisk registrering af møder er slået fra.",
+  "Recording & notes": "Optagelse og noter",
+  "Back to app": "Tilbage til appen",
+  "Search settings": "Søg i indstillinger",
+  "No settings match": "Ingen indstillinger matcher",
+  "Remind me to tell others I’m recording": "Mind mig om at fortælle de andre, at jeg optager",
+  "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "Start og afslut selv optagelser. Yogurt åbner ikke, når et opkald starter.",
+  "System notifications": "Systemnotifikationer",
+  "Microphone access": "Adgang til mikrofon"
 }

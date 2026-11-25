@@ -225,7 +225,6 @@
   "In Screen & System Audio Recording, under System Audio Recording Only, turn on Yogurt.": "في «تسجيل الشاشة وصوت النظام»، ضمن «تسجيل صوت النظام فقط»، فعّل Yogurt.",
   "Has notes": "توجد ملاحظات",
   "It installs the next time you quit Yogurt.": "سيُثبَّت في المرة القادمة التي تغلق فيها Yogurt.",
-  "It runs in the background, ready for your first call.": "يعمل في الخلفية، جاهزًا لمكالمتك الأولى.",
   "Italic": "مائل",
   "Its notes, transcript and recording are removed from this Mac for good.": "تُزال ملاحظاته ونصه وتسجيله من هذا الـMac نهائيًا.",
   "Its notes, transcript and recording are removed from this computer for good.": "تُزال ملاحظاته ونصه وتسجيله من هذا الكمبيوتر نهائيًا.",
@@ -259,6 +258,14 @@
   "Meeting controls": "عناصر التحكم في الاجتماع",
   "Meeting view": "عرض الاجتماع",
   "Meetings": "الاجتماعات",
+  "Meetings you remove stay in the Trash for {count} days, then they're deleted for good.": {
+    "zero": "تبقى الاجتماعات التي تزيلها في سلة المهملات لمدة {count} يوم، ثم تُحذف نهائيًا.",
+    "one": "تبقى الاجتماعات التي تزيلها في سلة المهملات لمدة يوم واحد، ثم تُحذف نهائيًا.",
+    "two": "تبقى الاجتماعات التي تزيلها في سلة المهملات لمدة يومين، ثم تُحذف نهائيًا.",
+    "few": "تبقى الاجتماعات التي تزيلها في سلة المهملات لمدة {count} أيام، ثم تُحذف نهائيًا.",
+    "many": "تبقى الاجتماعات التي تزيلها في سلة المهملات لمدة {count} يومًا، ثم تُحذف نهائيًا.",
+    "other": "تبقى الاجتماعات التي تزيلها في سلة المهملات لمدة {count} يوم، ثم تُحذف نهائيًا."
+  },
   "Meetings in the Trash are deleted for good after {count} days, with their recordings.": {
     "zero": "تُحذف الاجتماعات في سلة المهملات نهائيًا مع تسجيلاتها.",
     "one": "تُحذف الاجتماعات في سلة المهملات نهائيًا بعد يوم واحد، مع تسجيلاتها.",
@@ -346,7 +353,6 @@
   "Recorded time": "مدة التسجيل",
   "Recording": "جارٍ التسجيل",
   "Recording paused": "التسجيل متوقف مؤقتًا",
-  "Recording reminder": "تذكير بالتسجيل",
   "Recording stopped. Open Yogurt to finish saving.": "توقف التسجيل. افتح Yogurt لإكمال الحفظ.",
   "Recording stopped. Yogurt couldn't save when it ended. Keep Yogurt open and try again.": "توقف التسجيل. تعذّر على Yogurt الحفظ عند انتهائه. أبقِ Yogurt مفتوحًا وحاول مرة أخرى.",
   "Recording stopped. Your notes are safe.": "توقف التسجيل. ملاحظاتك في أمان.",
@@ -609,7 +615,6 @@
   "Yogurt runs entirely on your computer, and this one can't write down a meeting as fast as people talk. Installing the driver for your graphics card may help. Otherwise it needs a faster processor, or graphics it can use.": "يعمل Yogurt بالكامل على جهاز الكمبيوتر، وهذا الجهاز لا يستطيع كتابة الاجتماع بسرعة كلام الناس. قد يساعد تثبيت برنامج تشغيل بطاقة الرسوميات. وإلا فهو يحتاج إلى معالج أسرع، أو رسوميات يمكنه استخدامها.",
   "Generating notes…": "جارٍ إنشاء الملاحظات…",
   "Calendar access": "الوصول إلى التقويم",
-  "Remove Yogurt’s access in System Settings.": "أزِل وصول Yogurt من إعدادات النظام.",
   "Downloading AI": "جارٍ تنزيل الذكاء الاصطناعي",
   "Downloading AI · {percent}": "جارٍ تنزيل الذكاء الاصطناعي · {percent}",
   "AI download stopped": "توقف تنزيل الذكاء الاصطناعي",
@@ -866,5 +871,18 @@
   "Unmute my mic in Yogurt": "إلغاء كتم الميكروفون الخاص بي في Yogurt",
   "Mic will stay off on resume": "سيظل الميكروفون مكتومًا عند الاستئناف",
   "Mic mute couldn’t be confirmed.": "تعذّر التأكد من كتم الميكروفون.",
-  "Mic off. Yogurt can’t hear call audio.": "الميكروفون مكتوم. لا يستطيع Yogurt سماع صوت المكالمة."
+  "Mic off. Yogurt can’t hear call audio.": "الميكروفون مكتوم. لا يستطيع Yogurt سماع صوت المكالمة.",
+  "Connections": "الاتصالات",
+  "Storage & backup": "التخزين والنسخ الاحتياطي",
+  "Closing the window keeps Yogurt running.": "يستمر Yogurt في العمل عند إغلاق النافذة.",
+  "Detect meetings automatically": "اكتشاف الاجتماعات تلقائيًا",
+  "Automatic meeting detection is off.": "اكتشاف الاجتماعات تلقائيًا متوقف.",
+  "Recording & notes": "التسجيل والملاحظات",
+  "Back to app": "العودة إلى التطبيق",
+  "Search settings": "البحث في الإعدادات",
+  "No settings match": "لا توجد إعدادات مطابقة",
+  "Remind me to tell others I’m recording": "ذكّرني بإخبار الآخرين بأنني أسجّل",
+  "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "ابدأ التسجيلات وأنهِها بنفسك. لن يُفتح Yogurt عند بدء مكالمة.",
+  "System notifications": "إشعارات النظام",
+  "Microphone access": "الوصول إلى الميكروفون"
 }
