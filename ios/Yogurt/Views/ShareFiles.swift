@@ -2,17 +2,23 @@ import AVFoundation
 import UIKit
 import YogurtKit
 
-/// The files Share hands to the share sheet: written to the caches folder, each in a folder of its own so the file
-/// keeps its plain name, and cleared out an hour later (the share sheet may still be reading a recent one).
+/// The files Share hands to the share sheet: written to the caches folder with complete protection (unreadable while
+/// the phone is locked), each in a folder of its own so the file keeps its plain name. Cleared out ten minutes later
+/// (the share sheet may still be reading a recent one), when Yogurt goes to the background, and at launch.
 enum ShareFiles {
     static var root: URL { URL.cachesDirectory.appending(path: "Exports", directoryHint: .isDirectory) }
 
-    static let keepFor: TimeInterval = 3600
+    static let keepFor: TimeInterval = 600
 
     static func write(_ text: String, name: String) throws -> URL {
         let url = try freshFolder().appending(path: name)
-        try Data(text.utf8).write(to: url, options: .atomic)
+        try Data(text.utf8).write(to: url, options: [.atomic, .completeFileProtection])
         return url
+    }
+
+    /// Removes the exports older than `keepFor`; at launch all of them, since no share sheet is open any more.
+    static func clearOld(all: Bool = false) {
+        PrivateFolder.prune(root, unusedFor: all ? -1 : keepFor)
     }
 
     /// One recording as it is; a call's two sides (theirs and the mic) mixed into one m4a, as the player plays them.
@@ -22,6 +28,8 @@ enum ShareFiles {
         if files.count == 1 {
             let url = folder.appending(path: "\(name).\(first.pathExtension.isEmpty ? "m4a" : first.pathExtension)")
             try FileManager.default.copyItem(at: first, to: url)
+            // a copy keeps the recording's own protection; an export gets complete
+            try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: url.path)
             return url
         }
         let mix = AVMutableComposition()
@@ -34,19 +42,16 @@ enum ShareFiles {
         guard let export = AVAssetExportSession(asset: mix, presetName: AVAssetExportPresetAppleM4A) else { throw CocoaError(.fileWriteUnknown) }
         let url = folder.appending(path: "\(name).m4a")
         try await export.export(to: url, as: .m4a)
+        try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: url.path)
         return url
     }
 
     /// A new folder for one share, after clearing out the old ones.
     private static func freshFolder() throws -> URL {
-        let fm = FileManager.default
-        let old = (try? fm.contentsOfDirectory(at: root, includingPropertiesForKeys: [.creationDateKey])) ?? []
-        for url in old {
-            let made = (try? url.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? .distantPast
-            if Date().timeIntervalSince(made) > keepFor { try? fm.removeItem(at: url) }
-        }
+        clearOld()
         let folder = root.appending(path: UUID().uuidString, directoryHint: .isDirectory)
-        try fm.createDirectory(at: folder, withIntermediateDirectories: true)
+        // what's written inside takes the folder's protection
+        try PrivateFolder.make(folder, protection: .complete)
         return folder
     }
 

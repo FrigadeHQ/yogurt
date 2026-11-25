@@ -78,7 +78,7 @@ async function pair(f) {
   const sid = concat(desktopSession, phoneSession)
   const ci = concat(enc('yogurt-pair-v1'), desktopSession, phoneSession)
   const { ya, secret } = cpaceStart(code, ci, sid)
-  sendJson(f, { type: 'pairStart', v: 1, desktopSession: b64(desktopSession), desktopId, desktopName: 'Test Mac', ya: b64(ya) })
+  sendJson(f, { type: 'pairStart', v: 1, desktopSession: b64(desktopSession), desktopId, ya: b64(ya) })
   const reply = await json(f)
   const isk = cpaceFinish(secret, unb64(reply.yb))
   const keys = pairKeys(isk)

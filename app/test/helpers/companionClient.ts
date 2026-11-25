@@ -51,7 +51,7 @@ export async function raw(port: number): Promise<Raw> {
   return r
 }
 
-export type PairResult = { result: Record<string, unknown>; desktop?: { key: Uint8Array; name: string; id: string } }
+export type PairResult = { result: Record<string, unknown>; desktop?: { key: Uint8Array; name: string; id: string }; start?: Record<string, unknown> }
 
 /** The phone's side of pairing with this code; a wrong code still sends pairDone (sealed under its own key). */
 export async function pairAsPhone(port: number, code: string, phone: KeyPair, name = 'Test iPhone', o: { beforeDone?: () => Promise<void> } = {}): Promise<PairResult> {
@@ -76,7 +76,7 @@ export async function pairAsPhone(port: number, code: string, phone: KeyPair, na
     await o.beforeDone?.()
     const mine = enc.encode(JSON.stringify({ key: b64(phone.publicKey), name, id: 'phone-' + b64(phone.publicKey).slice(0, 8).replace(/[^\w]/g, 'x') }))
     c.sendJson({ type: 'pairDone', box: b64(sealBox(keys.toDesktop, mine, enc.encode('pairDone'))) })
-    return { result: await c.json(), desktop }
+    return { result: await c.json(), desktop, start }
   } finally {
     c.socket.destroy()
   }

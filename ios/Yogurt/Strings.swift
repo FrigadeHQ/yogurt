@@ -53,7 +53,12 @@ enum S {
     static let pairFound = String(localized: "Pick your computer")
     static let pairReady = String(localized: "Ready to pair")
     static let pairNotReady = String(localized: "Not showing a pairing code yet")
-    static func codeTitle(_ name: String) -> String { String(localized: "Type the code shown on \(name)") }
+    static func codeTitle(_ name: String) -> String {
+        name.isEmpty ? String(localized: "Type the code shown on your computer") : String(localized: "Type the code shown on \(name)")
+    }
+    /// a computer on the Wi-Fi before pairing: its advert carries no name
+    static let unnamedComputer = String(localized: "Yogurt on this Wi-Fi")
+    static func computerName(_ name: String) -> String { name.isEmpty ? unnamedComputer : name }
     static let codeHelp = String(localized: "It's the 6-digit code in Yogurt's Settings, under Phone.")
     static let codeField = String(localized: "Pairing code")
     static let pairing = String(localized: "Pairing…")

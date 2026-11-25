@@ -38,28 +38,34 @@ public final class LiveNetwork: SyncNetwork {
 
     public func pair(_ at: FoundDesktop, code: String, phoneName: String, phoneKey: Data, phoneId: String) async throws -> PairedDesktop {
         // busy: another phone is mid-exchange, or a wrong guess was just made; the desktop asks for a second's pause
-        for attempt in 0..<4 {
-            let t: NWTransport
-            do { t = try await NWTransport.connect(to: at.endpoint) } catch SyncError.localNetworkDenied { throw SyncError.localNetworkDenied } catch { throw PairingError.unreachable }
-            defer { t.close() }
-            do {
-                return try await pairExchange(t, code: code, phoneName: phoneName, phoneKey: phoneKey, phoneId: phoneId)
-            } catch SyncError.remote("busy") where attempt < 3 {
-                try await Task.sleep(for: .milliseconds(1200))
-            } catch let e as PairingError {
-                throw e
-            } catch {
-                throw PairingError.unreachable
+        // a code that didn't work at one endpoint may have gone to a fake advert: the others are tried too
+        try await eachEndpoint(at.endpoints, soft: { $0 as? PairingError == .unreachable }) { endpoint in
+            for attempt in 0..<4 {
+                let t: NWTransport
+                do { t = try await NWTransport.connect(to: endpoint) } catch SyncError.localNetworkDenied { throw SyncError.localNetworkDenied } catch { throw PairingError.unreachable }
+                defer { t.close() }
+                do {
+                    return try await pairExchange(t, code: code, phoneName: phoneName, phoneKey: phoneKey, phoneId: phoneId)
+                } catch SyncError.remote("busy") where attempt < 3 {
+                    try await Task.sleep(for: .milliseconds(1200))
+                } catch let e as PairingError {
+                    throw e
+                } catch {
+                    throw PairingError.unreachable
+                }
             }
+            throw PairingError.unreachable
         }
-        throw PairingError.unreachable
     }
 
     public func open(_ at: FoundDesktop, phone: KeyPair, desktopKey: Data, appVersion: String) async throws -> DesktopSession {
-        let t = try await NWTransport.connect(to: at.endpoint)
-        do { return try await NoiseSession.open(t, phone: phone, desktopKey: desktopKey, appVersion: appVersion) } catch {
-            t.close()
-            throw error
+        // a refused key counts only if every endpoint refused it
+        try await eachEndpoint(at.endpoints, soft: { $0 as? SyncError == .unrecognised }) { endpoint in
+            let t = try await NWTransport.connect(to: endpoint)
+            do { return try await NoiseSession.open(t, phone: phone, desktopKey: desktopKey, appVersion: appVersion) } catch {
+                t.close()
+                throw error
+            }
         }
     }
 }
@@ -78,7 +84,9 @@ public struct SyncConfig: Sendable {
     public var pullLimit = 200
     /// raw bytes per uploadAudio: base64 of 44000 bytes keeps each message under the 60000-byte chunking limit
     public var audioChunk = 44000
+    /// the computer's audio fetched to play here; what isn't played for `keepAudioFor` is removed at launch
     public var audioFolder = URL.cachesDirectory.appending(path: "Yogurt audio", directoryHint: .isDirectory)
+    public var keepAudioFor: TimeInterval = 7 * 86400
     /// a recording's WAV while it goes to the computer; emptied at launch
     public var uploadFolder = FileManager.default.temporaryDirectory.appending(path: "Yogurt uploads", directoryHint: .isDirectory)
     /// bytes free where the WAV is made (nil when iOS won't say)
@@ -160,6 +168,7 @@ public final class SyncEngine: SyncEngineProtocol {
         roundBackoff = config.retryFrom
         // WAVs a killed or crashed run left behind
         try? FileManager.default.removeItem(at: config.uploadFolder)
+        PrivateFolder.prune(config.audioFolder, unusedFor: config.keepAudioFor)
         pairing = vault.load()
         status = .notPaired
         if let pairing { status = .offline(pairing.desktopName, lastSync: lastSync) }
@@ -263,7 +272,12 @@ public final class SyncEngine: SyncEngineProtocol {
     private func foundChanged(_ list: [FoundDesktop]) {
         let before = Set(found.map(\.desktop.id))
         found = list
-        discovered = list.map(\.desktop)
+        // the advert names no one; the paired computer is known by the name it gave in pairing
+        discovered = list.map { f in
+            var d = f.desktop
+            if d.name.isEmpty, let pairing, d.id == pairing.desktopId { d.name = pairing.desktopName }
+            return d
+        }
         guard let pairing, session == nil else { return }
         // the computer just showed up: no reason to wait out the backoff
         if !before.contains(pairing.desktopId), list.contains(where: { $0.desktop.id == pairing.desktopId }) {
@@ -662,7 +676,7 @@ public final class SyncEngine: SyncEngineProtocol {
         let source = rec.audioURL, part = wav.appendingPathExtension("part")
         // made off the main actor, under another name until it's whole
         let made = await Task.detached(priority: .utility) { () -> Bool in
-            try? FileManager.default.createDirectory(at: wav.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try? PrivateFolder.make(wav.deletingLastPathComponent())
             do {
                 try PhoneAudio.wav(from: source, to: part)
                 try FileManager.default.moveItem(at: part, to: wav)
@@ -712,8 +726,12 @@ public final class SyncEngine: SyncEngineProtocol {
     /// A track fetched before, if it's still in the caches folder.
     public func cachedAudio(meetingId: String, track: String = "them") -> URL? {
         let names = (try? FileManager.default.contentsOfDirectory(atPath: config.audioFolder.path)) ?? []
-        return names.first { $0.hasPrefix("\(meetingId)-\(track).") && PlayerLogic.canPlay(ext: ($0 as NSString).pathExtension) }
-            .map { config.audioFolder.appending(path: $0) }
+        guard let name = names.first(where: { $0.hasPrefix("\(meetingId)-\(track).") && PlayerLogic.canPlay(ext: ($0 as NSString).pathExtension) })
+        else { return nil }
+        let file = config.audioFolder.appending(path: name)
+        // played again: kept another `keepAudioFor`
+        PrivateFolder.touch(file)
+        return file
     }
 
     /// One track of a desktop meeting's audio ("me" is the mic, "them" the call; a phone recording is "them"),
@@ -721,7 +739,7 @@ public final class SyncEngine: SyncEngineProtocol {
     public func audioURL(meetingId: String, track: String = "them", progress: (@MainActor (Double) -> Void)? = nil) async throws -> URL {
         if let file = cachedAudio(meetingId: meetingId, track: track) { return file }
         guard let s = session else { throw SyncError.notConnected }
-        try FileManager.default.createDirectory(at: config.audioFolder, withIntermediateDirectories: true)
+        try PrivateFolder.make(config.audioFolder)
         // its own name, so two fetches of the same track can't write into one file
         let part = config.audioFolder.appending(path: "\(UUID().uuidString).part")
         FileManager.default.createFile(atPath: part.path, contents: nil)

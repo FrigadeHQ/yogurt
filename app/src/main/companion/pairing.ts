@@ -1,5 +1,5 @@
 // Pairing over one connection, before any Noise session (the desktop is CPace initiator A):
-//   pairHello {v:1, phoneSession, phoneName} → pairStart {v:1, desktopSession, desktopId, desktopName, ya}
+//   pairHello {v:1, phoneSession, phoneName} → pairStart {v:1, desktopSession, desktopId, ya}
 //   → pairReply {yb} → pairConfirm {box} → pairDone {box} → pairOk {} | pairFail {reason: code | expired | tooMany | busy}
 // sid = desktopSession ‖ phoneSession, CI = "yogurt-pair-v1" ‖ desktopSession ‖ phoneSession, no AD. The boxes are
 // XChaCha20-Poly1305 under pairKeys(ISK) (toPhone, AD "pairConfirm"; toDesktop, AD "pairDone") holding JSON
@@ -78,7 +78,8 @@ export async function pair(io: PairIo, hello: Record<string, unknown>, ctx: Pair
   const sid = new Uint8Array([...desktopSession, ...phoneSession])
   const ci = new Uint8Array([...enc.encode('yogurt-pair-v1'), ...desktopSession, ...phoneSession])
   const { ya, secret } = cpaceStart(code, ci, sid)
-  io.send({ type: 'pairStart', v: 1, desktopSession: b64(desktopSession), desktopId: ctx.desktop.id, desktopName: ctx.desktop.name, ya: b64(ya) })
+  // the computer's name goes only in the sealed pairConfirm box, never in the clear
+  io.send({ type: 'pairStart', v: 1, desktopSession: b64(desktopSession), desktopId: ctx.desktop.id, ya: b64(ya) })
   let yb: Uint8Array
   try { yb = bytes((await message(io, 'pairReply')).yb, 32) } catch (err) { secret.scalar.fill(0); ctx.stalled(); throw err }
   // from here the phone can test its one guess against pairConfirm, so it counts whatever happens next

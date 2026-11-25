@@ -14,7 +14,13 @@ public enum PhoneAudio {
         guard let to = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16000, channels: 1, interleaved: true),
               let converter = AVAudioConverter(from: from, to: to) else { throw ExportError.convert }
 
+        // a meeting's audio: readable while locked only once opened, like the recordings it's made from
+        #if os(iOS)
+        FileManager.default.createFile(atPath: target.path, contents: header(dataBytes: 0),
+                                       attributes: [.protectionKey: FileProtectionType.completeUnlessOpen])
+        #else
         FileManager.default.createFile(atPath: target.path, contents: header(dataBytes: 0))
+        #endif
         let out = try FileHandle(forWritingTo: target)
         defer { try? out.close() }
         try out.seekToEnd()

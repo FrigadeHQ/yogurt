@@ -127,11 +127,16 @@ final class AppModel {
 
     static func open() -> AppModel? {
         let support = URL.applicationSupportDirectory
+        // nothing can still be sharing an export from before this launch
+        ShareFiles.clearOld(all: true)
+        let vault = KeychainVault()
+        // the Keychain outlives deleting the app: a fresh install starts unpaired
+        LeftoverPairing.forget(vault: vault, protectedDataAvailable: UIApplication.shared.isProtectedDataAvailable)
         guard let library = try? Library(folder: support.appending(path: "Yogurt", directoryHint: .isDirectory)) else { return nil }
         var config = SyncConfig()
         config.appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
         config.phoneName = UIDevice.current.name
-        let sync = SyncEngine(store: library.store, vault: KeychainVault(), network: LiveNetwork(), config: config)
+        let sync = SyncEngine(store: library.store, vault: vault, network: LiveNetwork(), config: config)
         // a recording goes once its draft notes and title are written, so the computer gets them with it
         sync.holdsUpload = { PhoneDrafts.shared.isWriting($0) }
         #if DEBUG
@@ -204,7 +209,7 @@ struct RootView: View {
             lock.phaseChanged(now)
             // sync runs only while Yogurt is on screen; a brief inactive (Control Centre) keeps the connection
             if now == .active { model.sync.setForeground(true) }
-            if now == .background { model.sync.setForeground(false) }
+            if now == .background { model.sync.setForeground(false); ShareFiles.clearOld() }
         }
     }
 }

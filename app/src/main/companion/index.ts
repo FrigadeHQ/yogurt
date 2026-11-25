@@ -1,6 +1,7 @@
 // The iPhone companion on the desktop: off until the person starts pairing or a phone is paired. Then it listens on
 // every interface (a fixed port once picked, so the phone can try the last host:port) and advertises _yogurt._tcp
-// with TXT v=1, id, name, pairing=0|1. One phone at a time: pairing another replaces it.
+// with TXT v=1, id, pairing=0|1 (no computer name: that goes sealed in pairing, then in hello). One phone at a time:
+// pairing another replaces it.
 import { createHash, randomUUID } from 'node:crypto'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -274,7 +275,8 @@ export async function createCompanion(d: CompanionDeps) {
       await s?.close()
       return
     }
-    advertiser.publish({ name: `Yogurt ${saved.id.slice(0, 8)}`, port: saved.port!, txt: { v: '1', id: saved.id, name: d.deviceName(), pairing: pairing ? '1' : '0' } })
+    // no computer name in the open: anyone on the Wi-Fi sees the advert. The phone gets it sealed when pairing, then in hello
+    advertiser.publish({ name: `Yogurt ${saved.id.slice(0, 8)}`, port: saved.port!, txt: { v: '1', id: saved.id, pairing: pairing ? '1' : '0' } })
   }
 
   await refresh()

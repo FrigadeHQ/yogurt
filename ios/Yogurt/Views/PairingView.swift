@@ -135,7 +135,7 @@ struct ConnectSheet: View {
                 .frame(width: 38, height: 38)
                 .background(Theme.control, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
             VStack(alignment: .leading, spacing: 2) {
-                Text(d.name).font(.body.weight(.medium)).foregroundStyle(Theme.ink)
+                Text(S.computerName(d.name)).font(.body.weight(.medium)).foregroundStyle(Theme.ink)
                 Text(d.pairing ? S.pairReady : S.pairNotReady)
                     .font(.footnote)
                     .foregroundStyle(d.pairing ? Theme.live : Theme.muted)
