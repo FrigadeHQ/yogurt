@@ -11,7 +11,7 @@ import { AudioLines, ArrowDown, ChevronDown } from './Icons'
 import type { Segment, TranscriptPartial } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
 import { useLanguage } from '../i18n'
-import { transcriptRowKey, transcriptSpeaker, bubbles, clock, echoRuns, lineAt, recentRuns, stableKeys, turns, withLive, type LiveSaid } from '../../../shared/transcript'
+import { transcriptRowKey, transcriptSpeaker, mergeSaved, bubbles, clock, echoRuns, lineAt, recentRuns, stableKeys, turns, withLive, type LiveSaid } from '../../../shared/transcript'
 import { TranscriptFind } from './TranscriptFind'
 import { Player, type PlayerHandle } from './Player'
 import { attachPlayerVisibility } from '../playerVisibility'
@@ -31,7 +31,7 @@ const HANDS_OFF_MS = 400
 const who = transcriptSpeaker
 
 /** The lines of a meeting, live while it records; `live` holds the lines that arrived while watching */
-function useLines(id: string,replacing:boolean) {
+export function useLines(id: string,replacing:boolean) {
   const [draft,setDraft]=useState<Line[]>([])
   const draftRef=useRef<Line[]>([])
   draftRef.current=draft
@@ -69,11 +69,7 @@ function useLines(id: string,replacing:boolean) {
         if (!active || request !== epoch) return
         setFailed(false); setLoaded(true)
         if (replace) setLines(saved)
-        else setLines(cur => {
-          const fresh = new Map(saved.map(l => [key(l), l]))
-          const have = new Set(cur.map(key))
-          return [...cur.map(l => fresh.get(key(l)) ?? l), ...saved.filter(l => !have.has(key(l)))].sort((a, b) => a.startMs - b.startMs)
-        })
+        else setLines(cur => mergeSaved(cur, saved))
       }, () => { if (active && request === epoch) setFailed(true) })
     }
     load()

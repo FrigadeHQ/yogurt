@@ -33,8 +33,12 @@ export async function fakeTranscribe(c: Chunk, o?: { partial?: boolean }, prompt
   const kept = o?.partial ? timed.slice(0, Math.max(2, Math.min(words.length - 1, Math.round(words.length * (c.samples.length / 16000) / 5))))
     : !overlaps ? timed : timed.filter((_, i) => { const at = near.at + (i + 0.5) * step; return at >= c.startMs && at < endMs })
   const text = kept.map((w) => w.text).join(' ')
+  // whisper's row starts at its chunk, before the first word it says; YOGURT_FAKE_LEAD gives a test that shape, so the
+  // row's start matches no line the diarizer saves. By default the chunker cuts at the speech, so the row starts at
+  // its first word.
+  const lead = Number(process.env.YOGURT_FAKE_LEAD ?? 0)
   // Partials are only shown and replaced: they stay wordless like before (their timing comes from the text), so the
   // live view is unchanged. Finals that overlap the script carry the times: the other side's saved line needs them for
   // diarization. A resumed stand-in beyond the script does not, so it keeps the old wordless line.
-  return text ? [{ track: c.track, startMs: c.startMs, endMs, text, ...(o?.partial || !overlaps ? {} : { words: kept }) }] : []
+  return text ? [{ track: c.track, startMs: Math.max(0, c.startMs - lead), endMs, text, ...(o?.partial || !overlaps ? {} : { words: kept }) }] : []
 }

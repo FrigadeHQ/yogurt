@@ -46,6 +46,20 @@ test('a recorded meeting splits into two speakers with distinct colours', async 
   } finally { await app.close() }
 })
 
+test('the row whisper saved goes when diarization re-splits it, so its words show once in the named runs', async () => {
+  // whisper's row starts at its chunk, before its first word: the runs the diarizer saves start at the words, so the
+  // row's own start matches no saved line
+  const { app, page } = await launch({ YOGURT_FAKE_AX: 'denied', YOGURT_FAKE_LEAD: '1200' })
+  try {
+    await record(page)
+    await expect(whoOf(page, 'The site goes live on Tuesday')).toHaveText('Speaker 1', { timeout: 30_000 })
+    await expect(whoOf(page, 'She will send a draft')).toHaveText('Speaker 2', { timeout: 30_000 })
+    // nothing is shown a second time under Them: the row the store no longer has left the view
+    await expect(page.getByTestId('transcript-line').filter({ hasText: 'The site goes live' })).toHaveCount(1)
+    await expect(page.getByTestId('transcript-line').filter({ hasText: 'She will send a draft' })).toHaveCount(1)
+  } finally { await app.close() }
+})
+
 test('inline rename updates every turn of the voice, keeps its colour, and survives a reload; a taken name asks to merge', async () => {
   const { app, page } = await launch({ YOGURT_FAKE_AX: 'denied' })
   try {
