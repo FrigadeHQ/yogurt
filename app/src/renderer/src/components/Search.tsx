@@ -48,7 +48,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
   const selectedPeople = uniqueSearchPeople(personQuery.matches.map(m => m.person))
   const peopleKey = selectedPeople.map(searchPersonKey).join('|')
   const parsed = parseSearchQuery(personQuery.text, searchOptions)
-  const request = { q, scope, peopleKey, people: selectedPeople, date: parsed.date, suggestions: personQuery.suggestions.slice(0, 5) }
+  const request = { q, scope, peopleKey, people: selectedPeople, date: parsed.date, jumpAt: parsed.jumpAt, suggestions: personQuery.suggestions.slice(0, 5) }
   const [results, setResults] = useState<typeof request & { list: SearchResult[] }>()
   const [active, setActive] = useState<number | null>(null)
   const [prefs, setPrefs] = useState<Awaited<ReturnType<typeof window.yogurt.settings.get>>>()
@@ -123,7 +123,7 @@ export function Search({ folder, folders, onOpen, onNavigate, onSettingsChange, 
   ].filter((c) => !c.id.startsWith('theme-') || !!prefs)
   const defaultSelection = useRef<string | undefined>(undefined)
   const rank = (search: typeof request, list: SearchResult[]) => {
-    const date = search.date && (search.date.start <= Date.now() || window.yogurt.capabilities.calendar) && searchDateCommand(search.date, search.q)
+    const date = searchDateCommand(search.jumpAt, search.q)
     const commands = date ? [{ ...date, Icon: CalendarDays, run: () => onNavigate('', date.at) }, ...allCommands] : allCommands
     return searchPalette(commands, list, search.q, search.q, search.suggestions, defaultSelection.current, !!search.date || search.people.length > 0)
   }

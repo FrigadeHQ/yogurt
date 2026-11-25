@@ -4,6 +4,7 @@ import { App } from '../src/renderer/src/App'
 import { afterEach, expect, it, vi } from 'vitest'
 import { useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import { useDialogFocus } from '../src/renderer/src/useDialogFocus'
+import { useMeetingDateJump } from '../src/renderer/src/meetingDateJump'
 import { Search } from '../src/renderer/src/components/Search'
 import { Ask } from '../src/renderer/src/components/Chat'
 import { AskContext, scopeLabel } from '../src/renderer/src/components/AskContext'
@@ -516,7 +517,11 @@ it.each([false, true])('opens a pending command-search question as a draft when 
   expect(draft).toHaveBeenCalledExactlyOnceWith('draft-id', 'What did we decide?')
 })
 
-it.each([[true, 2028], [false, 2028], [false, 2025]] as const)('offers a date when the list or agenda can show it (calendar %s, year %s)', async (calendar, year) => {
+it.each([
+  [true, 'December 12', new Date(2026, 11, 12), 2025],
+  [false, 'December 12', new Date(2026, 11, 12), 2025],
+  [false, 'November 11, 2025', new Date(2025, 10, 11), 2025],
+] as const)('opens the requested day with or without Agenda (calendar %s, query %s)', async (calendar, query, target, filterYear) => {
   vi.useFakeTimers()
   vi.setSystemTime(new Date(2026, 10, 14, 12))
   vi.stubGlobal('document', { activeElement: null })
@@ -524,19 +529,38 @@ it.each([[true, 2028], [false, 2028], [false, 2025]] as const)('offers a date wh
   vi.stubGlobal('window', { yogurt: { capabilities: { calendar }, search: { query: vi.fn().mockResolvedValue([]) } } })
   const onNavigate = vi.fn()
   const render = renderer(() => Search({ onOpen() {}, onNavigate, onSettingsChange() {}, onShortcuts() {}, onClose() {}, sidebarCollapsed: false, onToggleSidebar() {} }))
-  find(render(), 'search-input').props.onChange({ target: { value: `November 11, ${year}` } })
+  find(render(), 'search-input').props.onChange({ target: { value: query } })
   render()
   vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.length === 6)![0]()
   await vi.runAllTimersAsync()
   const tree = render()
-  expect(find(tree, 'search-date').props.children[1].props.title).toContain(String(year))
-  if (!calendar && year === 2028) { expect(() => find(tree, 'command-agenda-date')).toThrow('Missing'); return }
+  expect(find(tree, 'search-date').props.children[1].props.title).toContain(String(filterYear))
   const row = find(tree, 'command-agenda-date')
   expect(row.props['aria-selected']).toBe(true)
   expect(row.props.children[0].type).toBe(CalendarDays)
-  expect(row.props.children[1].props.children[0]).toBe(`Go to Nov 11, ${year}`)
+  expect(row.props.children[1].props.children[0]).toBe('Go to ' + target.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }))
   find(tree, 'search').props.onKeyDown({ key: 'Enter', nativeEvent: {}, preventDefault() {} })
-  expect(onNavigate).toHaveBeenCalledExactlyOnceWith('', new Date(year, 10, 11).getTime())
+  expect(onNavigate).toHaveBeenCalledExactlyOnceWith('', target.getTime())
+})
+
+it.each([0, 3200])('returns a scrolled list to zero and leaves focus alone if already there (scrollTop %s)', scrollTop => {
+  vi.useFakeTimers()
+  vi.setSystemTime(new Date(2026, 10, 24, 12))
+  vi.stubGlobal('window', { matchMedia: () => ({ matches: true }) })
+  const heading = { focus: vi.fn() }
+  const root = Object.assign(new EventTarget(), { scrollTop, clientHeight: 500, scrollHeight: 3700, querySelector: vi.fn(() => heading) })
+  const next = vi.fn()
+  renderer(() => {
+    useMeetingDateJump({ at: new Date(2026, 11, 12).getTime() }, {
+      cards: [{ startedAt: new Date(2026, 10, 20).getTime() }], root: root as unknown as HTMLElement, more: true, failed: 'page', next,
+    }, true)
+    return null
+  })()
+  for (const [effect] of vi.mocked(useLayoutEffect).mock.calls) effect()
+  expect(root.scrollTop).toBe(0)
+  expect(next).not.toHaveBeenCalled()
+  if (scrollTop) expect(root.querySelector).toHaveBeenCalledWith('h1')
+  expect(heading.focus).toHaveBeenCalledTimes(scrollTop ? 1 : 0)
 })
 
 it('jumps a mounted agenda to the day and week, closes details, and keeps arrows and repeated jumps working', async () => {

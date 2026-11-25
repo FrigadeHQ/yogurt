@@ -23,7 +23,6 @@
   "Now": "Ngayon",
   "in {count} min": "sa loob ng {count} min",
   "No matching meetings with {name}.": "Walang tumutugmang pulong kasama si {name}.",
-  "No meetings on {date}": "Walang pulong sa {date}",
   "No matching meetings on {date}.": "Walang tumutugmang pulong sa {date}.",
   "No matching meetings with {name} on {date}.": "Walang tumutugmang pulong kasama si {name} sa {date}.",
   "Couldn't load this content.": "Hindi ma-load ang nilalamang ito.",

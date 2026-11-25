@@ -44,7 +44,7 @@ export function Home({ open, openSearch, openFolder, agendaJump, searching }: { 
   const calendar = window.yogurt.capabilities.calendar
   const [agendaOpen, setAgendaOpen] = useState(readAgendaOpen)
   const [listReady, setListReady] = useState(false)
-  const notice = useMeetingDateJump(agendaJump, past, listReady && !searching)
+  useMeetingDateJump(agendaJump, past, listReady && !searching)
   const [agendaMotion, setAgendaMotion] = useState(false)
   const [toolbar, setToolbar] = useState<HTMLElement | null>(null)
   const toggle = useRef<HTMLButtonElement>(null)
@@ -84,13 +84,12 @@ export function Home({ open, openSearch, openFolder, agendaJump, searching }: { 
       <LoadingContent pending={!past.cards && !past.failed} onReady={() => setListReady(true)}
         testId="meetings-loading" skeleton={<MeetingListLoading />} className="library-load">
         {past.cards?.length ? <PastNotes cards={past.cards} day={day} more={past.more} sentinel={past.setSentinel}
-          onOpen={open} openFolder={openFolder} notice={notice} /> :
+          onOpen={open} openFolder={openFolder} /> :
           <LibraryEmpty testId="past-empty" icon={<FileText size={28} aria-hidden="true" />} title={t('Your notes will show up here')}
             description={t('Your summary appears after you stop recording.')} retry={past.failed ? past.retry : undefined}>
             <div ref={setEmptyActions} />
           </LibraryEmpty>}
       </LoadingContent>
-      {notice && !notice.key && <h2 data-empty-date="" className="meeting-date-note">{notice.text}</h2>}
     </div>
     {calendar && <div ref={panel} id="home-agenda" className="home-agenda-panel" inert={!agendaOpen}>
       {(agendaOpen || agendaMotion) && <Agenda revision={calendarRevision} recording={recording} onStart={start} onOpen={open} jumpTo={agendaJump} />}
@@ -183,7 +182,7 @@ export function usePastNotes(folder?: string) {
 }
 
 /** Delete on a row moves the meeting to the Trash at once (Undo in the note at the bottom) */
-export function PastNotes({ cards, day, more, sentinel, onOpen, openFolder, showFolders = true, loading = false, notice }: { loading?: boolean; cards: MeetingCard[]; day: string; more: boolean; sentinel: (el: HTMLDivElement | null) => void; onOpen: (id: string) => void; openFolder?: (id: string) => void; showFolders?: boolean; notice?: { key?: string; text: string } }) {
+export function PastNotes({ cards, day, more, sentinel, onOpen, openFolder, showFolders = true, loading = false }: { loading?: boolean; cards: MeetingCard[]; day: string; more: boolean; sentinel: (el: HTMLDivElement | null) => void; onOpen: (id: string) => void; openFolder?: (id: string) => void; showFolders?: boolean }) {
   const lang = useLanguage()
   const me = useMyName()
   const [selection, select] = useReducer(meetingSelection, emptySelection)
@@ -231,9 +230,7 @@ export function PastNotes({ cards, day, more, sentinel, onOpen, openFolder, show
     else if (e.key === 'Escape') { e.preventDefault(); select({ type: 'clear' }) }
   }}>
     {days.map((group) => <div className="native-meeting-day" key={group.key}>
-      <h2 data-row-heading={loading ? undefined : group.key} data-testid={loading ? undefined : "past-day"}>{loading ? <span className="loading-bar" style={{ width: 48 }} /> : group.label}
-        {notice?.key === group.key && <span className="meeting-date-note"> {notice.text}</span>}
-      </h2>
+      <h2 data-row-heading={loading ? undefined : group.key} data-testid={loading ? undefined : "past-day"}>{loading ? <span className="loading-bar" style={{ width: 48 }} /> : group.label}</h2>
       <ul>{group.cards.map((meeting) => loading ? <li className="native-meeting-row" key={meeting.id}><PastCard c={meeting} onOpen={onOpen} me="" showFolders={showFolders} loading /></li> : <MeetingRow key={meeting.id} id={meeting.id} recording={meeting.state === 'recording'} selected={selected.includes(meeting.id)} targets={meetingTargets(selected, meeting.id)} memberships={memberships} busy={busy}
         onSelect={() => select({ type: 'select', id: meeting.id, visible })} onTrash={ids => void trash(ids)}
         onClick={e => {

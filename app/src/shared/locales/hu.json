@@ -23,7 +23,6 @@
   "Now": "Most",
   "in {count} min": "{count} perc múlva",
   "No matching meetings with {name}.": "Nincs megfelelő megbeszélés vele: {name}.",
-  "No meetings on {date}": "Ezen a napon nincs megbeszélés: {date}",
   "No matching meetings on {date}.": "Nincs megfelelő megbeszélés ekkor: {date}.",
   "No matching meetings with {name} on {date}.": "Nincs megfelelő megbeszélés vele: {name}, ekkor: {date}.",
   "Couldn't load this content.": "Nem sikerült betölteni ezt a tartalmat.",

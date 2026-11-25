@@ -3,13 +3,11 @@ import type { Person } from '../../shared/types'
 import type { SearchPersonMatch } from '../../shared/searchPeople'
 import type { SearchDate } from '../../shared/searchQuery'
 
-export function searchDateCommand(date: SearchDate | undefined, query: string) {
-  if (!date) return undefined
-  const start = new Date(date.start)
-  if (new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1).getTime() !== date.end) return undefined
+export function searchDateCommand(at: number | undefined, query: string) {
+  if (at === undefined) return undefined
   return { id: 'agenda-date', query, group: t('Go to'), label: t('Go to {date}', {
-    date: new Intl.DateTimeFormat(language(), { month: 'short', day: 'numeric', year: 'numeric' }).format(start),
-  }), at: date.start }
+    date: new Intl.DateTimeFormat(language(), { month: 'short', day: 'numeric', year: 'numeric' }).format(at),
+  }), at }
 }
 
 export function searchDateLabel(date: SearchDate, locale = language()) {

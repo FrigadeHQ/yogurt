@@ -23,7 +23,6 @@
   "Now": "正在进行",
   "in {count} min": "{count} 分钟后",
   "No matching meetings with {name}.": "没有与{name}的匹配会议。",
-  "No meetings on {date}": "{date}没有会议",
   "No matching meetings on {date}.": "{date}没有匹配的会议。",
   "No matching meetings with {name} on {date}.": "{date}没有与{name}的匹配会议。",
   "Couldn't load this content.": "无法加载此内容。",

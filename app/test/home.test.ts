@@ -56,48 +56,49 @@ describe('Go to a meeting day', () => {
   const at = (day: number, hour = 0) => new Date(2026, 10, day, hour).getTime()
   const cards = (days: number[]) => days.map(d => ({ startedAt: at(d, 23) }))
   const jump = (day: number, days: number[], more: boolean) => resolveMeetingDate(at(day), cards(days), more, at(15, 12))
-  it('lands on local day headings, including today and meetings late in the day', () => {
-    for (const day of [15, 11]) expect(jump(day, [15, 12, 11, 11, 8], true)).toEqual({ kind: 'day', key: new Date(at(day)).toDateString(), exact: true })
+  const key = (day: number) => new Date(at(day)).toDateString()
+  it('lands on the exact local day, including today and meetings late in the day', () => {
+    for (const day of [15, 11]) expect(jump(day, [15, 12, 11, 11, 8], true)).toEqual({ kind: 'day', key: key(day) })
   })
-  it('uses the nearest earlier day for a gap, even when a later meeting is closer', () => {
-    expect(jump(11, [14, 12, 6, 4], true)).toEqual({ kind: 'day', key: new Date(at(6)).toDateString(), exact: false })
+  it('chooses the closest calendar day in either direction, preferring the earlier day on a tie', () => {
+    expect(jump(11, [14, 12, 6, 4], true)).toEqual({ kind: 'day', key: key(12) })
+    expect(jump(11, [14, 10, 6], true)).toEqual({ kind: 'day', key: key(10) })
+    expect(jump(11, [12, 10], true)).toEqual({ kind: 'day', key: key(10) })
+    expect(jump(15, [11, 8], true)).toEqual({ kind: 'day', key: key(11) })
+    const aroundMidnight = [{ startedAt: at(2) }, { startedAt: at(0) }]
+    expect(resolveMeetingDate(at(1, 23), aroundMidnight, false, at(15))).toEqual({ kind: 'day', key: key(0) })
   })
-  it('requests older pages until an exact or earlier day is loaded, or history runs out', () => {
+  it('pages until the closest day is known and lands at the bottom for dates before the library', () => {
     expect(jump(4, [14, 10], true)).toEqual({ kind: 'page' })
     expect(jump(4, [14, 10, 7, 5], true)).toEqual({ kind: 'page' })
-    expect(jump(4, [14, 10, 7, 5, 4], true)).toMatchObject({ kind: 'day', exact: true })
-    expect(jump(3, [14, 10, 7, 5, 4], false)).toEqual({ kind: 'empty' })
+    expect(jump(4, [14, 10, 7, 5, 4], true)).toEqual({ kind: 'day', key: key(4) })
+    expect(jump(4, [14, 10, 7, 5, 1], false)).toEqual({ kind: 'day', key: key(5) })
+    expect(jump(3, [14, 10, 7, 5, 4], false)).toEqual({ kind: 'bottom', key: key(4) })
     expect(jump(3, [], false)).toEqual({ kind: 'empty' })
   })
-  it('leaves the meeting list alone for a future date', () => {
-    expect(jump(16, [15], true)).toEqual({ kind: 'future' })
+  it('sends a future date directly to the top regardless of the loaded meetings', () => {
+    for (const days of [[15, 12], [12], []]) expect(jump(16, days, true)).toEqual({ kind: 'top' })
   })
-  it.each([false, true])('limits travel to one viewport and clears the notice only after a subsequent scroll (reduced %s)', reduced => {
+  it.each([false, true])('limits travel to one viewport going back to the top without highlighting (reduced %s)', reduced => {
     vi.stubGlobal('window', { matchMedia: () => ({ matches: reduced }) })
     vi.stubGlobal('performance', { now: () => 0 })
     let frame: FrameRequestCallback | undefined
     vi.stubGlobal('requestAnimationFrame', (fn: FrameRequestCallback) => { frame = fn; return 1 })
     vi.stubGlobal('cancelAnimationFrame', vi.fn())
-    const root = Object.assign(new EventTarget(), { scrollTop: 90, clientHeight: 500 })
-    const heading = { focus: vi.fn(), animate: vi.fn(() => ({ cancel: vi.fn() })) }, dismiss = vi.fn()
-    const cleanup = landOnHeading(root as HTMLElement, heading as unknown as HTMLElement, 3200, dismiss)
+    const root = Object.assign(new EventTarget(), { scrollTop: 3200, clientHeight: 500 })
+    const heading = { focus: vi.fn(), animate: vi.fn() }
+    const cleanup = landOnHeading(root as HTMLElement, heading as unknown as HTMLElement, 0)
     expect(heading.focus).toHaveBeenCalledWith({ preventScroll: true })
     if (reduced) expect(frame).toBeUndefined()
     else {
-      expect(root.scrollTop).toBe(2700)
+      expect(root.scrollTop).toBe(500)
       frame!(150)
-      expect(root.scrollTop).toBeGreaterThan(2950)
-      expect(root.scrollTop).toBeLessThan(3200)
-      root.dispatchEvent(new Event('scroll'))
+      expect(root.scrollTop).toBeGreaterThan(0)
+      expect(root.scrollTop).toBeLessThan(250)
       frame!(300)
     }
-    expect(root.scrollTop).toBe(3200)
-    expect(heading.animate).toHaveBeenCalledWith(expect.any(Array), expect.objectContaining({ duration: 1000 }))
-    root.dispatchEvent(new Event('scroll'))
-    expect(dismiss).not.toHaveBeenCalled()
-    root.scrollTop -= 20
-    root.dispatchEvent(new Event('scroll'))
-    expect(dismiss).toHaveBeenCalledOnce()
+    expect(root.scrollTop).toBe(0)
+    expect(heading.animate).not.toHaveBeenCalled()
     cleanup()
   })
 })

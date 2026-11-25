@@ -23,7 +23,6 @@
   "Now": "Τώρα",
   "in {count} min": "σε {count} λεπτά",
   "No matching meetings with {name}.": "Δεν βρέθηκαν συναντήσεις που να ταιριάζουν με {name}.",
-  "No meetings on {date}": "Δεν υπάρχουν συναντήσεις στις {date}",
   "No matching meetings on {date}.": "Δεν βρέθηκαν συναντήσεις που να ταιριάζουν στις {date}.",
   "No matching meetings with {name} on {date}.": "Δεν βρέθηκαν συναντήσεις που να ταιριάζουν με {name} στις {date}.",
   "Couldn't load this content.": "Δεν ήταν δυνατή η φόρτωση αυτού του περιεχομένου.",

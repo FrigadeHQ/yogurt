@@ -23,7 +23,6 @@
   "Now": "Nu",
   "in {count} min": "om {count} min",
   "No matching meetings with {name}.": "Inga matchande möten med {name}.",
-  "No meetings on {date}": "Inga möten den {date}",
   "No matching meetings on {date}.": "Inga matchande möten den {date}.",
   "No matching meetings with {name} on {date}.": "Inga matchande möten med {name} den {date}.",
   "Couldn't load this content.": "Det gick inte att läsa in det här innehållet.",

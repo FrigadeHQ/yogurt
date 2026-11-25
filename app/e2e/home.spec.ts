@@ -466,7 +466,7 @@ test('calendar access turned off: the one button opens the Mac settings', async 
 })
 
 for (const theme of ['light', 'dark'] as const) {
-  test(`Go to date pages back, focuses the nearest earlier meeting day and highlights it in ${theme}`, async ({}, testInfo) => {
+  test(`Go to date lands on the nearest meeting day and returns to the top for a future date in ${theme}`, async ({}, testInfo) => {
     const { app, page, userData } = await launch()
     const db = new DatabaseSync(join(userData, 'yogurt.db'), { timeout: 5000 })
     try {
@@ -474,9 +474,11 @@ for (const theme of ['light', 'dark'] as const) {
       const rows = db.prepare('SELECT id FROM meetings ORDER BY started_at DESC').all()
       const date = (offset: number) => new Date(2024, 10, 11 + offset, 12)
       const stamp = db.prepare('UPDATE meetings SET started_at = ?, ended_at = ? WHERE id = ?')
-      // Alternating days leave a gap on Nov 12 and put Nov 11 on the second page.
+      const today = new Date(2026, 10, 24, 12)
+      await page.clock.setFixedTime(today)
+      // Nov 12 is a tie. Skipping Nov 9 makes Nov 11 the closest day to Nov 10 on the second page.
       rows.forEach(({ id }, i) => {
-        const at = date(2 * (60 - i)).getTime()
+        const at = theme === 'light' && i < 3 ? today.getTime() - i * 60_000 : date(i === 61 ? -4 : 2 * (60 - i)).getTime()
         stamp.run(at, at + 30 * 60_000, id)
       })
       await page.evaluate(theme => window.yogurt.settings.setTheme(theme), theme)
@@ -487,60 +489,63 @@ for (const theme of ['light', 'dark'] as const) {
       await page.getByRole('button', { name: 'Hide Agenda' }).click()
       if (theme === 'dark') await openFromCorner(page, 'nav-trash')
 
-      const jump = async (day: number, year = 2024) => {
+      const jump = async (query: string) => {
         await page.keyboard.press('Meta+k')
-        await page.getByTestId('search-input').fill(`November ${day}, ${year}`)
+        await page.getByTestId('search-input').fill(query)
         await expect(page.getByTestId('command-agenda-date')).toHaveAttribute('aria-selected', 'true')
         await page.keyboard.press('Enter')
+        await expect(page.getByTestId('search')).toHaveCount(0)
       }
-      // Sample the last screen of travel and hold the real fade for a deterministic capture.
-      const trace = await page.evaluateHandle(() => {
-        const landing = new Promise<{ from: number; to: number; viewport: number; duration: number }>(resolve => {
+      const library = page.locator('.native-home .native-library')
+      const trace = await page.evaluateHandle(() => ({
+        landing: new Promise<{ from: number; viewport: number }>(resolve => {
           document.addEventListener('focusin', function onFocus(event) {
             const heading = event.target
             if (!(heading instanceof HTMLElement) || !heading.dataset.rowHeading) return
             document.removeEventListener('focusin', onFocus)
-            const pane = heading.closest<HTMLElement>('.native-library')!, from = pane.scrollTop
-            const sample = () => {
-              const fade = heading.getAnimations().find(a => a.id === 'meeting-date-highlight')
-              if (!fade) { requestAnimationFrame(sample); return }
-              fade.pause()
-              fade.currentTime = 80
-              resolve({ from, to: pane.scrollTop, viewport: pane.clientHeight, duration: Number(fade.effect!.getTiming().duration) })
-            }
-            requestAnimationFrame(sample)
+            const pane = heading.closest<HTMLElement>('.native-library')!
+            resolve({ from: pane.scrollTop, viewport: pane.clientHeight })
           })
-        })
-        return { landing }
-      })
-      await jump(12)
+        }),
+      }))
+      await jump('November 12, 2024')
       const heading = page.locator(`[data-row-heading="${date(0).toDateString()}"]`)
       await expect(heading).toBeFocused()
-      const note = heading.getByText('No meetings on November 12, 2024')
-      await expect(note).toBeVisible()
-      const { from, to, viewport, duration } = await trace.evaluate(t => t.landing)
-      expect(duration).toBe(1000)
+      await expect.poll(() => heading.evaluate(el => {
+        const pane = el.closest<HTMLElement>('.native-library')!
+        return Math.abs(el.getBoundingClientRect().top - pane.getBoundingClientRect().top - parseFloat(getComputedStyle(pane).paddingTop))
+      })).toBeLessThan(1)
+      const { from, viewport } = await trace.evaluate(t => t.landing)
+      const to = await library.evaluate(el => el.scrollTop)
       expect(to).toBeGreaterThan(viewport * 2)
-      if (theme === 'light') expect(to - from).toBeCloseTo(viewport, 0)
+      if (theme === 'light') expect(Math.abs(to - from - viewport)).toBeLessThanOrEqual(1)
       else expect(from).toBe(0)
-      await expect(heading).toBeInViewport()
+      await expect(heading).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+      await expect(heading).toHaveCSS('outline-style', 'none')
+      await expect(library.getByText(/^No meetings on /)).toHaveCount(0)
       const agenda = page.getByRole('complementary', { name: 'Agenda' })
       await expect(agenda.getByRole('button', { name: 'Tuesday, November 12', exact: true })).toHaveAttribute('aria-pressed', 'true')
       await page.getByTestId('home').screenshot({ path: testInfo.outputPath(`meeting-date-jump-${theme}.png`) })
-      const library = page.locator('.native-home .native-library')
-      await library.evaluate(el => { el.scrollTop += 30 })
-      await expect(note).toHaveCount(0)
-      await jump(11)
-      await expect(page.getByTestId('search')).toHaveCount(0)
+
+      await jump('November 10, 2024')
       await expect(heading).toBeFocused()
-      await expect(agenda.getByRole('button', { name: 'Monday, November 11', exact: true })).toHaveAttribute('aria-pressed', 'true')
-      await expect(heading.locator('.meeting-date-note')).toHaveCount(0)
-      await expect.poll(() => library.evaluate(el => el.scrollTop)).toBe(to)
-      const futureYear = new Date().getFullYear() + 2
-      await jump(12, futureYear)
-      await expect(page.getByTestId('search')).toHaveCount(0)
-      await expect(agenda.locator('.agenda-month')).toHaveText(`November ${futureYear}`)
-      expect(await library.evaluate(el => el.scrollTop)).toBe(to)
+      await expect(agenda.getByRole('button', { name: 'Sunday, November 10', exact: true })).toHaveAttribute('aria-pressed', 'true')
+      await jump('November 11, 2023')
+      const oldest = date(2 * (61 - rows.length)).toDateString()
+      await expect(library.locator(`[data-row-heading="${oldest}"]`)).toBeFocused()
+      await expect.poll(() => library.evaluate(el => Math.abs(el.scrollHeight - el.clientHeight - el.scrollTop))).toBeLessThan(1)
+      await expect(library.getByText(/^No meetings on /)).toHaveCount(0)
+
+      await jump('December 12')
+      await expect(agenda.getByRole('button', { name: 'Saturday, December 12', exact: true })).toHaveAttribute('aria-pressed', 'true')
+      await expect.poll(() => library.evaluate(el => el.scrollTop)).toBe(0)
+      await expect(library.getByRole('heading', { name: 'Your meetings', exact: true })).toBeFocused()
+
+      await library.focus()
+      await jump('December 13')
+      await expect(agenda.getByRole('button', { name: 'Sunday, December 13', exact: true })).toHaveAttribute('aria-pressed', 'true')
+      await expect(library).toBeFocused()
+      expect(await library.evaluate(el => el.scrollTop)).toBe(0)
     } finally { db.close(); await app.close() }
   })
 }
