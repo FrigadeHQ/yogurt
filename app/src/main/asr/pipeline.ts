@@ -43,6 +43,8 @@ export function createPipeline(p: {
   respell?: (text: string) => string
   /** the echo canceller for the mic (asr/aec3.ts); null: none (the mic goes to whisper as it is) */
   cancelEcho?: () => Canceller | null
+  /** the mic after the echo canceller, on meeting time: kept for listening back where the meeting had echo (cleanMic.ts) */
+  cleanMic?: (ms: number, samples: Float32Array) => void
 }) {
   const hold = p.holdMs ?? 2000
   const extraWait = p.extraWaitMs ?? EXTRA_WAIT_MS
@@ -210,7 +212,12 @@ export function createPipeline(p: {
   }
   const cut = chunker(queue, p.emitPartial ? partial : undefined)
   // their voice taken off the mic before it is cut into chunks; the echo detector above hears the mic as recorded
-  const aec = createEchoCancel({ make: p.cancelEcho ?? aec3, out: (track, ms, samples) => cut.push(track, ms, samples) })
+  const aec = createEchoCancel({ make: p.cancelEcho ?? aec3, out: (track, ms, samples) => {
+    if (track === 'me' && p.cleanMic) { try { p.cleanMic(ms, samples) } catch (e) { console.error('keeping the mic without echo failed', e) } }
+    cut.push(track, ms, samples)
+  } })
+  /** where the audio given to it started and ended, on meeting time */
+  let firstMs = Infinity, endMs = 0
   let finishing: Promise<void> | undefined
 
   return {
@@ -238,6 +245,7 @@ export function createPipeline(p: {
     push(track: Track, ms: number, samples: Float32Array) {
       if (closed) return
       wallOffset = Date.now() - (ms + samples.length / 16)
+      firstMs = Math.min(firstMs, ms); endMs = Math.max(endMs, ms + samples.length / 16)
       echo.push(track, ms, samples)
       aec.push(track, ms, samples)
     },
@@ -281,6 +289,7 @@ export function createPipeline(p: {
     /** audio waiting for whisper on the busiest track (not counting the chunk being worked on), in ms */
     backlogMs: () => Math.max(...(['me', 'them'] as const).map((t) => waiting[t].reduce((n, c) => n + c.samples.length, 0) / 16)),
     busy: () => !finishing || queued('me') + queued('them') + held.length > 0,
+    span: () => ({ firstMs: Number.isFinite(firstMs) ? firstMs : 0, endMs }),
     stats: () => ({ echoDropped, dropped: [...dropped], delays: [...delays] }),
     /** echo was heard in this meeting (their voice on the mic): the sweep after it may hide lines; whether the mic echoed at a moment; what a line's own audio says */
     echoPresent: () => echoCheck().echo ?? false,

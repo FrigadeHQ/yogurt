@@ -89,7 +89,7 @@ import { createQuietStart } from './quietStart'
 import { startArgs, startReason, type StartReason } from './startReason'
 import { quitCalledOff, quitting, started as startedAfterQuit } from './quitByUser'
 import { deleteRecording } from './deleteRecording'
-import { AUDIO_SCHEME, audioExts, createAudioHandler, trackFile, type AudioExt } from './audio'
+import { AUDIO_SCHEME, audioExts, createAudioHandler, playbackFile, trackFile, type AudioExt } from './audio'
 import { helperDecode, wavDecode } from './asr/backfill'
 import { finishQuit, hookUpdates, isPreviewBuild, updatesOn } from './updates'
 import { createCompanion, type Companion } from './companion'
@@ -676,6 +676,8 @@ app.whenReady().then(() => {
     warn: (code) => tell({ t: 'warn', code }), pidFile: join(userDataDir(), 'whisper-server.pid'),
     // whisper-server went down mid-meeting (#127): the rest is read from the saved recording once the transcript is settled
     queued: () => { void savedTranscriptions.pump() },
+    // the mic without the other side's echo is kept beside the recording, for listening back (#166)
+    meetingDir: (id) => join(userDataDir(), 'meetings', id),
     // English only (the default) or Multi-language, read on each chunk so the footer's picker counts at once
     spoken: () => spokenSetting(loadSettings(settingsFile)),
     // Apple's on-device speech for the live words (macOS 26, Apple Silicon); fake mode has a stand-in when a test asks
@@ -1209,7 +1211,8 @@ app.whenReady().then(() => {
       start: (id, again) => savedTranscriptions.start(id, again) }, m, audioPath, draft),
     audioFiles: async (id) => {
       await rejoined; await recordingSettled(id)
-      return (['me', 'them'] as const).flatMap((track) => { const path = trackFile(meetingDir(id), track, audioKinds); return path ? [{ track, path }] : [] })
+      // the iPhone plays what the note's player plays: the mic without echo where there is one (#166)
+      return (['me', 'them'] as const).flatMap((track) => { const path = playbackFile(meetingDir(id), track, audioKinds); return path ? [{ track, path }] : [] })
     },
     ops: {
       // a new revision; an open note takes it unless it was typed in since (then both texts are kept)

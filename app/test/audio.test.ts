@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { audioExts, createAudioHandler, parseRange, trackFile } from '../src/main/audio'
+import { audioExts, createAudioHandler, parseRange, playbackFile, trackFile } from '../src/main/audio'
 
 const ID = '3f2b8c1e-7d4a-4c9b-9e1f-0a1b2c3d4e5f'
 function setup(o: { known?: (id: string) => boolean; ready?: () => Promise<void> } = {}) {
@@ -119,5 +119,25 @@ describe('a meeting restored from another computer', () => {
     expect([me.status, me.headers.get('content-type'), await me.text()]).toEqual([200, 'audio/ogg', 'OggS-pc'])
     const them = await get(handle, `yogurt-audio://${ID}/them`)
     expect([them.headers.get('content-type'), await them.text()]).toEqual(['audio/mp4', 'mac-them'])
+  })
+})
+
+describe('the mic without the echo (#166)', () => {
+  it('plays the cleaned mic copy where there is one, and keeps the recording as it was', async () => {
+    const { root, handle } = setup()
+    const dir = join(root, 'meetings', ID)
+    writeFileSync(join(dir, 'me-clean.wav'), 'RIFF-clean')
+    const me = await get(handle, `yogurt-audio://${ID}/me`)
+    expect([me.status, me.headers.get('content-type'), await me.text()]).toEqual([200, 'audio/wav', 'RIFF-clean'])
+    expect(await (await get(handle, `yogurt-audio://${ID}/them`)).text()).toBe('abcdefghij')
+    expect(playbackFile(dir, 'me', ['m4a'])).toBe(join(dir, 'me-clean.wav'))
+    expect(playbackFile(dir, 'them', ['m4a'])).toBe(join(dir, 'them.m4a'))
+    // transcribing again, AI apps and backups read the recording itself
+    expect(trackFile(dir, 'me', ['m4a'])).toBe(join(dir, 'me.m4a'))
+  })
+  it('falls back to the recording without a cleaned copy', () => {
+    const { root } = setup()
+    const dir = join(root, 'meetings', ID)
+    expect(playbackFile(dir, 'me', ['m4a'])).toBe(join(dir, 'me.m4a'))
   })
 })

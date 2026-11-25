@@ -44,7 +44,7 @@ export async function deleteRecording(id: string, p: {
     // Native joins retain exact audio inputs here, sometimes as hard links.
     rmSync(join(dir, 'original'), { recursive: true, force: true })
     // Unlink synchronously so a resumed recording cannot start between the guard and deletion.
-    for (const f of files) if (/^(me|them)(\.joined)?\.(m4a|ogg|wav|f32)(\.joined|\.tmp)?$/.test(f)) unlinkSync(join(dir, f))
+    for (const f of files) if (/^(me|them)(\.joined|-clean)?\.(m4a|ogg|wav|f32)(\.joined|\.tmp|\.part)?$/.test(f)) unlinkSync(join(dir, f))
     try { p.removed(id) } catch (e) { console.warn('recording deleted; window refresh failed', id, e) }
     return 'deleted'
   } catch (e) {

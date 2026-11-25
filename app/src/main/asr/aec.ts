@@ -8,8 +8,8 @@ import type { Track } from '../capture'
  *
  * This lines the two tracks up on meeting time: their audio goes on at once and is kept as the reference; the mic waits
  * until their track has reached the same time, then each 10 ms mic frame goes in with their frame from the same moment
- * (the canceller finds the room's own delay itself). Only the copy for transcription is cancelled; the saved files stay
- * as recorded.
+ * (the canceller finds the room's own delay itself). The saved files stay as recorded; the cancelled mic is also kept
+ * beside them for listening back where the meeting had echo (cleanMic.ts).
  */
 export const FRAME = 160
 const FRAME_MS = 10

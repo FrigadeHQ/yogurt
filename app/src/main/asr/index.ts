@@ -6,6 +6,7 @@ import { isFake } from '../paths'
 import { feedRecording } from './backfill'
 import type { Meeting, Segment, Store } from '../store'
 import { createPipeline, type Pipeline } from './pipeline'
+import { createCleanMic, type CleanMic } from './cleanMic'
 import { loadAec3 } from './aec3'
 import { echoConfidence } from './echo'
 import { appleSpeechAvailable, installSpeechLocale, readSpeechLocales, speechDisagrees, speechFits, wantedSpeechLocale, type SpeechHost, type SpeechLocales } from './appleSpeech'
@@ -30,6 +31,9 @@ type Session = { complete?: () => boolean; pipeline: Pipeline | null; priorLines
   /** a live meeting whose speech engine was there: a transcript left incomplete is queued for its saved recording */
   liveEngine?: boolean
   replacement?: boolean
+  /** the mic without echo, for listening back (cleanMic.ts) */
+  cleanMic?: CleanMic
+  aborted?: () => boolean
   /** Apple's speech listens in this locale for the meeting (null: whisper only); off once whisper hears another language */
   speech?: string | null
   micQuickAfterFinal?: boolean
@@ -207,6 +211,8 @@ export function hookTranscription(p: {
   spoken?: () => Spoken
   /** a live transcript came out incomplete (whisper-server died, #127): its saved recording waits to be transcribed */
   queued?: (meetingId: string) => void
+  /** the meeting's folder, where the mic without echo is kept for listening back (#166); none: not kept */
+  meetingDir?: (meetingId: string) => string
 }): () => void {
   idleMs = p.serverIdleMs ?? SERVER_IDLE_MS
   // the echo canceller is ready long before the first meeting: the mic's copy of their voice goes before whisper reads it
@@ -317,7 +323,11 @@ export function hookTranscription(p: {
         } catch (error) { if (options.signal?.aborted) return []; throw error }
       }
     }
+    // a reading of part of a saved recording (from a gap) would make a copy with holes: the one there stays
+    const whole = !later || !Object.values(options?.fromMs ?? {}).some((ms) => (ms ?? 0) > 0)
+    const cleanMic = transcribe && whole && p.meetingDir ? createCleanMic(p.meetingDir(id)) : undefined
     const s: Session = {
+      cleanMic, aborted: () => !!options?.signal?.aborted,
       complete: () => !!transcribe && !pendingBefore && !saveFailed && !warned.has('transcribe-failed') && !s.failed && !options?.signal?.aborted && !s.pipeline?.paused() && !Object.keys(s.pipeline?.gaps() ?? {}).length,
       replacement: !!options?.save, liveEngine: !later && !!transcribe, store: p.store, refresh: p.refresh, speech: speechLocaleFor(id), priorLines: new Set(p.store.segments?.(id).map((s) => s.id) ?? []),
       pipeline: transcribe ? createPipeline({ meetingId: id, transcribe, save: (segs) => {
@@ -332,7 +342,8 @@ export function hookTranscription(p: {
         if (part.track === 'me' && s.micQuickAfterFinal !== undefined && !part.words?.length) micQuickReads(s, s.micQuickAfterFinal)
       }, holdMs: p.holdMs, extraWaitMs: p.extraWaitMs, onWarn: warnOnce,
         nameOf: (a, b) => p.store.meeting?.(id)?.source === 'audio-file' ? AUDIO_SPEAKER : p.nameOf?.(id, a, b) ?? previousSpeaker(priorSegments,'them',a,b),
-        respell: (t) => { const m = p.store.meeting?.(id); return m ? respell(t, meetingWords(m)) : t } }) : null,
+        respell: (t) => { const m = p.store.meeting?.(id); return m ? respell(t, meetingWords(m)) : t },
+        cleanMic: cleanMic && ((ms, x) => cleanMic.push(ms, x)) }) : null,
     }
     if (s.speech) s.pipeline?.setQuickReads(false)
     sessions.set(id, s)
@@ -466,6 +477,7 @@ function finishSession(id: string, s: Session, audioDone: () => Promise<void> = 
   s.store ??= store
   let queued = false
   s.done ??= audioDone().then(() => s.pipeline?.finish()).then(() => {
+    if (s.cleanMic && s.pipeline) s.cleanMic.finish({ echo: s.pipeline.echoPresent(), ...s.pipeline.span(), failed: !!s.failed || !!s.aborted?.() })
     if (!s.replacement) clearAfterGaps(id, s)
     if (!s.replacement) sweepEcho(id, s)
     if (!s.replacement && s.complete?.()) s.store?.updateMeeting(id, { transcriptionPending: false })

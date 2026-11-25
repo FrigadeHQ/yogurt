@@ -20,7 +20,7 @@ function setup({ transcript = true, summary = true } = {}) {
   const folder = store.createFolder('Launch'); store.addToFolder(folder.id, m.id)
   store.addChatTurn(m.id, 'When is launch?')
   const dir = join(root, m.id); mkdirSync(dir)
-  for (const name of ['me.m4a', 'them.ogg', 'me.wav', 'them.f32', 'me.m4a.joined', 'me.joined.m4a', 'them.joined.ogg', 'metadata.json']) writeFileSync(join(dir, name), 'fixture')
+  for (const name of ['me.m4a', 'them.ogg', 'me.wav', 'them.f32', 'me.m4a.joined', 'me.joined.m4a', 'them.joined.ogg', 'me-clean.wav', 'me-clean.wav.part', 'metadata.json']) writeFileSync(join(dir, name), 'fixture')
   mkdirSync(join(dir, 'original'))
   linkSync(join(dir, 'me.m4a'), join(dir, 'original', 'previous-me.m4a'))
   writeFileSync(join(dir, 'original', 'previous-them.1.ogg'), 'original recording')

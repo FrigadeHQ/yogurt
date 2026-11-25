@@ -1,6 +1,7 @@
 import { createReadStream, existsSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
+import { CLEAN_MIC } from './asr/cleanMic'
 
 /** yogurt-audio://<meetingId>/<track>: a meeting's recording, for the transcript's player */
 export const AUDIO_SCHEME = 'yogurt-audio'
@@ -39,6 +40,15 @@ export function trackFile(dir: string, track: string, exts: readonly AudioExt[])
 }
 
 /**
+ * The file to listen to: the mic without the other side's echo where the meeting had one (asr/cleanMic.ts), else the
+ * recording. Transcribing again, AI apps and backups read the recording itself (trackFile).
+ */
+export function playbackFile(dir: string, track: string, exts: readonly AudioExt[]): string | null {
+  const clean = join(dir, CLEAN_MIC)
+  return track === 'me' && existsSync(clean) ? clean : trackFile(dir, track, exts)
+}
+
+/**
  * Serves only me and them of a meeting the store knows, from its own folder, once its files are final
  * (the m4a is only playable after the recorder closes it). Range requests let the player seek.
  */
@@ -49,7 +59,7 @@ export function createAudioHandler(p: { dirOf: (id: string) => string; known: (i
     const id = url.hostname, track = url.pathname.slice(1)
     if (url.protocol !== `${AUDIO_SCHEME}:` || !UUID.test(id) || !(TRACKS as readonly string[]).includes(track) || !p.known(id)) return notFound()
     await p.ready(id)
-    const file = trackFile(p.dirOf(id), track, p.exts)
+    const file = playbackFile(p.dirOf(id), track, p.exts)
     if (!file) return notFound()
     let size: number
     try { size = statSync(file).size } catch { return notFound() }

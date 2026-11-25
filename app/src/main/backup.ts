@@ -141,8 +141,8 @@ export function mergeBackup(into: DatabaseSync, from: DatabaseSync): { added: st
   return { added: add, skipped }
 }
 
-/** the live copy older versions kept for telling voices apart: scratch, not a recording */
-const scratch = (name: string) => name.endsWith('.f32')
+/** the live copy older versions kept for telling voices apart, and a file still being written: scratch, not a recording */
+const scratch = (name: string) => name.endsWith('.f32') || name.endsWith('.part')
 // Cleanup cannot undo a committed export/import or replace the original failure.
 const cleanup = (dir: string) => rm(dir, { recursive: true, force: true }).catch((e) => console.warn('backup cleanup failed', dir, e))
 
