@@ -5,7 +5,6 @@ import { describe, expect, it, vi } from 'vitest'
 import { speedKey, type Catalog, type Hardware } from '@yogurt/picker'
 import bundled from '../../catalog/catalog.json'
 import { SetupController, type SetupDeps, type SpeedDeps, type SpeedResult } from '../src/main/setup'
-import { tooSlow } from '../src/main/localCheck'
 import { fakeDownloadDeps } from '../src/main/fake'
 import { DiskSpaceError, type DownloadDeps } from '../src/main/downloader'
 import type { SetupState } from '../src/shared/types'
@@ -411,11 +410,16 @@ describe('the speed check (Windows and Linux): speech models timed on this compu
   const gpuPc: Hardware = { os: 'linux', arch: 'x64', cpuModel: 'AMD Ryzen 5 5600X', totalRamGB: 16, freeDiskGB: 500, gpu: { kind: 'discrete', name: 'NVIDIA GeForce RTX 3060', vramGB: 12 }, cores: 12 }
   const url = (id: string) => catalog.asr.find((a) => a.id === id)!.url
   /** fake timings per model file, and a store kept in memory */
-  function speed(rtf: Record<string, number | null>, saved?: SpeedResult) {
+  function speed(rtf: Record<string, number | null>, saved?: SpeedResult, onCpu: Record<string, number | null> = {}) {
     const timed: string[] = []
     let stored = saved
+    const idOf = (path: string) => catalog.asr.find((a) => path.includes(a.url.split('/').pop()!))!.id
     const deps: SpeedDeps = {
-      measure: async (path) => { const id = Object.keys(rtf).find((k) => path.includes(catalog.asr.find((a) => a.id === k)!.url.split('/').pop()!))!; timed.push(id); return { rtf: rtf[id] } },
+      measure: async (path, o) => {
+        const id = idOf(path)
+        timed.push(o?.cpu ? `${id}@cpu` : id)
+        return { rtf: (o?.cpu ? onCpu[id] : rtf[id]) ?? null }
+      },
       load: () => stored, save: (r) => { stored = r },
     }
     return { deps, timed, stored: () => stored }
@@ -546,26 +550,66 @@ describe('the speed check (Windows and Linux): speech models timed on this compu
     expect(s.stored()?.model).toBe('whisper-small-q5_1')
   })
 
-  it("none keeps up: setup stops with the plain words, stores that, and says it again next time without timing; Try again times again", async () => {
+  // a Reddit report: "won't install due to performance requirements". Recording works on any computer; where speech
+  // can't keep up live, the transcript is written from the recording after the meeting
+  it('none keeps up: setup still gets ready, with the best model that read the clip, transcribed after the meeting; kept for next time', async () => {
     for (const os of ['win32', 'linux'] as const) {
       const pc = { ...cpuPc, os }
-      const s = speed({ 'whisper-small-q5_1': 2, 'whisper-base-q5_1': 1.1, 'whisper-tiny-q5_1': null })
+      const s = speed({ 'whisper-small-q5_1': null, 'whisper-base-q5_1': 0.8, 'whisper-tiny-q5_1': 0.6 })
       const first = setup({ getHardware: async () => pc, speed: s.deps })
-      await first.c.start()
-      expect(first.c.state).toMatchObject({ phase: 'error', message: tooSlow(os) })
-      expect(first.c.installed()).toBeUndefined()
-      expect(s.stored()).toMatchObject({ model: null, rtf: { 'whisper-small-q5_1': 2, 'whisper-base-q5_1': 1.1, 'whisper-tiny-q5_1': null } })
-      expect(s.timed).toHaveLength(3)
+      await first.c.start(); await first.c.idle()
+      expect(first.c.state.phase).toBe('ready')
+      expect(first.c.installed()?.asr).toContain('ggml-base-q5_1.bin')
+      expect(first.c.installed()?.asrAfterMeeting).toBe(true)
+      expect(first.c.installed()?.llm).toBeTruthy()
+      expect(s.stored()).toMatchObject({ model: 'whisper-base-q5_1', afterMeeting: true, rtf: { 'whisper-small-q5_1': null, 'whisper-base-q5_1': 0.8, 'whisper-tiny-q5_1': 0.6 } })
+      // the ones not kept are deleted again
+      expect(existsSync(join(first.root, 'asr', name(url('whisper-tiny-q5_1'))))).toBe(false)
 
       const again = setup({ getHardware: async () => pc, speed: s.deps, modelsDir: first.root })
-      await again.c.start()
-      expect(again.c.state).toMatchObject({ phase: 'error', message: tooSlow(os) })
+      await again.c.start(); await again.c.idle()
+      expect(again.c.state.phase).toBe('ready')
+      expect(again.c.installed()?.asrAfterMeeting).toBe(true)
       expect(s.timed).toHaveLength(3)
-      expect(again.rec.asked).toEqual([])
-
-      await again.c.retry()
-      expect(s.timed).toHaveLength(6)
     }
+  })
+
+  it('a computer an earlier version found too slow is timed again, never stopped', async () => {
+    const s = speed({ 'whisper-small-q5_1': 0.3 }, { key: speedKey(cpuPc), model: null, rtf: { 'whisper-small-q5_1': 2 }, at: 1 })
+    const { c } = setup({ getHardware: async () => cpuPc, speed: s.deps })
+    await c.start(); await c.idle()
+    expect(c.state.phase).toBe('ready')
+    expect(s.timed).toEqual(['whisper-small-q5_1'])
+    expect(c.installed()?.asrAfterMeeting).toBeUndefined()
+  })
+
+  it('a Ryzen 7 7735U with a Radeon 680M (32 GB, Windows): graphics slower than the processor, so whisper keeps to the processor, live', async () => {
+    const pc: Hardware = { os: 'win32', arch: 'x64', cpuModel: 'AMD Ryzen 7 7735U with Radeon Graphics', totalRamGB: 33.4, freeDiskGB: 500, gpu: { kind: 'unified', name: 'AMD Radeon(TM) Graphics', vramGB: 2 }, cores: 16 }
+    const s = speed({ 'whisper-large-v3-turbo-q5_0': null, 'whisper-small-q5_1': 1.6 }, undefined, { 'whisper-small-q5_1': 0.45 })
+    const { c, rec } = setup({ getHardware: async () => pc, speed: s.deps })
+    await c.start(); await c.idle()
+    expect(c.state.phase).toBe('ready')
+    // turbo is never timed on the processor
+    expect(s.timed).toEqual(['whisper-large-v3-turbo-q5_0', 'whisper-small-q5_1', 'whisper-small-q5_1@cpu'])
+    expect(c.installed()).toMatchObject({ asrCpu: true })
+    expect(c.installed()?.asr).toContain('ggml-small-q5_1.bin')
+    expect(c.installed()?.asrAfterMeeting).toBeUndefined()
+    expect(s.stored()).toMatchObject({ model: 'whisper-small-q5_1', cpu: true })
+    // the 14 GB 26B is never downloaded for graphics that share the memory
+    expect(rec.asked).not.toContain(bigUrl)
+
+    const again = setup({ getHardware: async () => pc, speed: s.deps })
+    await again.c.start(); await again.c.idle()
+    expect(again.c.installed()).toMatchObject({ asrCpu: true })
+    expect(s.timed).toHaveLength(3)
+  })
+
+  it('without graphics the processor is not timed twice', async () => {
+    const s = speed({ 'whisper-small-q5_1': 2, 'whisper-base-q5_1': 0.3 })
+    const { c } = setup({ getHardware: async () => cpuPc, speed: s.deps })
+    await c.start(); await c.idle()
+    expect(s.timed).toEqual(['whisper-small-q5_1', 'whisper-base-q5_1'])
+    expect(c.installed()?.asrCpu).toBeUndefined()
   })
 
   it('a model that keeps failing its checksum is skipped for the next one', async () => {

@@ -11,24 +11,18 @@ const launch = (env: Record<string, string>) => {
 }
 const stored = (profile: string) => JSON.parse(readFileSync(join(profile, 'speech-speed.json'), 'utf8'))
 
-const words: Record<string, string> = {
-  win32: "Yogurt runs entirely on your computer, and this one can't write down a meeting as fast as people talk. Updating your graphics driver may help. Otherwise it needs a faster processor, or graphics it can use.",
-  linux: "Yogurt runs entirely on your computer, and this one can't write down a meeting as fast as people talk. Installing the driver for your graphics card may help. Otherwise it needs a faster processor, or graphics it can use.",
-}
-
 for (const platform of ['win32', 'linux']) {
-  test(`@everywhere on ${platform}: a computer that can't keep up is told so plainly, and nothing records; Try again times it again`, async () => {
+  // a Reddit report: "won't install due to performance requirements". A computer that can't keep up live still records,
+  // and its meetings are transcribed from the recording after they end
+  test(`@everywhere on ${platform}: a computer that can't keep up live still gets ready, and transcribes after the meeting`, async () => {
     const { app: launching, profile } = launch({ YOGURT_FAKE_PLATFORM: platform, YOGURT_FAKE_RTF: '2' })
     const app = await launching
     try {
       const page = await app.firstWindow()
-      await expect(page.getByTestId('setup-error')).toHaveText(words[platform], { timeout: 15_000 })
-      await expect(page.getByTestId('home')).toHaveCount(0)
-      expect(stored(profile)).toMatchObject({ model: null, rtf: { 'whisper-large-v3-turbo-q5_0': 2, 'whisper-small-q5_1': 2, 'whisper-base-q5_1': 2, 'whisper-tiny-q5_1': 2 } })
-      const at = stored(profile).at
-      await page.getByTestId('setup-retry').click()
-      await expect.poll(() => stored(profile).at, { timeout: 15_000 }).not.toBe(at)
-      await expect(page.getByTestId('setup-error')).toHaveText(words[platform])
+      await expect(page.getByTestId('home')).toBeVisible({ timeout: 15_000 })
+      await expect(page.getByTestId('setup-error')).toHaveCount(0)
+      expect(stored(profile)).toMatchObject({ afterMeeting: true, rtf: { 'whisper-large-v3-turbo-q5_0': 2, 'whisper-small-q5_1': 2, 'whisper-base-q5_1': 2, 'whisper-tiny-q5_1': 2 } })
+      expect(stored(profile).model).toEqual(expect.any(String))
     } finally { await app.close() }
   })
 

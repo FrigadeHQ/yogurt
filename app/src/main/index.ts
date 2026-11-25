@@ -232,7 +232,7 @@ function createSetup(): SetupController {
     download: isFake() ? fakeDownloadDeps({ stepMs: Number(process.env.YOGURT_FAKE_STEP_MS ?? 5), notesMs: Number(process.env.YOGURT_FAKE_NOTES_MODEL_MS ?? 0), notesFailOnce: process.env.YOGURT_FAKE_NOTES_MODEL_FAIL_ONCE === '1' }) : realDeps,
     ...(isFake() ? { sha256Override: 'FAKE' } : {}),
     // Windows and Linux: speech models timed on this computer (asr/speedCheck.ts); a Mac never is
-    ...(platform === 'darwin' ? {} : { speed: { ...speedStore(speedFile()), measure: isFake() ? fakeMeasure() : (model: string) => measureSpeed(model, { binary: whisperServerPath(), vadModel: vadModelPath(), clip: speedClipPath() ?? '' }) } }),
+    ...(platform === 'darwin' ? {} : { speed: { ...speedStore(speedFile()), measure: isFake() ? fakeMeasure() : (model: string, o?: { cpu?: boolean }) => measureSpeed(model, { binary: whisperServerPath(), vadModel: vadModelPath(), clip: speedClipPath() ?? '', cpu: o?.cpu }) } }),
   })
 }
 /** what the speed check found (Windows and Linux) */
@@ -665,7 +665,9 @@ app.whenReady().then(() => {
   if (process.platform === 'darwin' || process.platform === 'win32') callWindowOf = (id) => callNames.callWindow(id)
   // Windows and Linux: whisper left the graphics card in a meeting, so the speed check (timed with it) runs again next start
   onWhisperGpuOff(() => speedStore(speedFile()).forget())
-  hookTranscription({ store, modelPath: () => setup.installed()?.asr, smallerModels: () => setup.installed()?.smallerAsr ?? [], send: (seg) => {
+  hookTranscription({ store, modelPath: () => setup.installed()?.asr, smallerModels: () => setup.installed()?.smallerAsr ?? [],
+    // the speed check's findings: whisper on the processor (faster there than on built-in graphics), or after the meeting
+    cpuOnly: () => !!setup.installed()?.asrCpu, afterMeeting: () => !!setup.installed()?.asrAfterMeeting, send: (seg) => {
     const order = seg.track === 'them' && seg.speaker ? store.speakerOrder(seg.meetingId, seg.speaker) : []
     const colored = { ...seg, speakerColor: speakerColor(seg.track, seg.speaker, order) }
     win?.webContents.send('transcript:segment', colored); sendWidgetTranscript('transcript:segment', colored)

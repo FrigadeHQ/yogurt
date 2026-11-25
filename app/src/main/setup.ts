@@ -8,10 +8,14 @@ import { t } from '../shared/i18n'
 import { tooSlow, tooWeak } from './localCheck'
 
 /** What the speed check found on one computer (speedKey): the model kept (null: none keeps up) and each one's time over the clip's length */
-export type SpeedResult = { key: string; model: string | null; rtf: Record<string, number | null>; at: number; /** whisper had to leave the graphics card while it was timed */ gpuOff?: boolean }
+export type SpeedResult = { key: string; model: string | null; rtf: Record<string, number | null>; at: number; /** whisper had to leave the graphics card while it was timed */ gpuOff?: boolean
+  /** times on the processor alone, for models too slow on the graphics */ cpuRtf?: Record<string, number | null>
+  /** the model kept up on the processor, not the graphics: whisper stays there */ cpu?: boolean
+  /** none keeps up live: meetings are transcribed from the recording after they end */ afterMeeting?: boolean }
 /** Windows and Linux: time a speech model on this computer (null: it ran out of time), and keep what was found */
 export type SpeedDeps = {
-  measure(modelPath: string): Promise<{ rtf: number | null; gpuOff?: boolean }>
+  /** cpu: on the processor alone, never the graphics */
+  measure(modelPath: string, o?: { cpu?: boolean }): Promise<{ rtf: number | null; gpuOff?: boolean }>
   load(): SpeedResult | undefined
   save(r: SpeedResult): void
 }
@@ -35,7 +39,7 @@ export type SetupDeps = {
 }
 
 /** Where the models ended up, for the parts of the app that use them; llm once the first notes model is in (after ready) */
-export type Installed = { asr: string; /** smaller speech models already on disk, best first: one takes over when the processor is too slow for asr (#156) */ smallerAsr?: string[]; llm?: string; recommendedLlm?: string; /** meaning search across meetings; word search works without it */ embed?: string }
+export type Installed = { asr: string; /** whisper runs on the processor: it kept up there and not on the graphics */ asrCpu?: true; /** whisper can't keep up live here: meetings are transcribed after they end */ asrAfterMeeting?: true; /** smaller speech models already on disk, best first: one takes over when the processor is too slow for asr (#156) */ smallerAsr?: string[]; llm?: string; recommendedLlm?: string; /** meaning search across meetings; word search works without it */ embed?: string }
 
 /** the first notes model keeps being tried after ready: a minute, five, then every ten (a download picks up where it stopped) */
 const NOTES_RETRY_MS = [60_000, 5 * 60_000, 10 * 60_000]
@@ -228,10 +232,12 @@ export class SetupController {
       const key = speedKey(hw)
       const saved = speed && !this.recheck ? speed.load() : undefined
       this.recheck = false
-      const known = saved?.key === key ? saved : undefined
+      // a computer an earlier version stored as too slow (model null) is timed again: there is always a model now
+      const known = saved?.key === key && saved.model ? saved : undefined
       const candidates = speed ? asrCandidates(hw, catalog) : []
-      if (speed && (known?.model === null || !candidates.length)) return this.set({ phase: 'error', fraction: 0, message: tooSlow(hw.os) })
+      if (speed && !candidates.length) return this.set({ phase: 'error', fraction: 0, message: tooSlow(hw.os) })
       const keep = known && candidates.find((a) => a.id === known.model)
+      let how: Pick<Installed, 'asrCpu' | 'asrAfterMeeting'> = keep ? { ...(known.cpu ? { asrCpu: true } : {}), ...(known.afterMeeting ? { asrAfterMeeting: true } : {}) } : {}
 
       const waitFor: Item[] = [asrItem(speed ? keep ?? candidates[0] : asr.model)]
       const total = waitFor.reduce((n, i) => n + i.bytes, 0)
@@ -253,10 +259,13 @@ export class SetupController {
       let asrPath: string | undefined
       if (speed && keep) asrPath = await get(asrItem(keep))
       else if (speed) {
-        const r = await this.timeSpeech(speed, candidates, get, asrItem)
+        const r = await this.timeSpeech(speed, candidates, get, asrItem, hw.gpu.kind !== 'none')
         speed.save({ key, ...r.result, at: Date.now() })
+        // every model downloaded corrupted: nothing to transcribe with
         if (!r.path) return this.set({ phase: 'error', fraction: this._state.fraction, message: tooSlow(hw.os) })
         asrPath = r.path
+        how = { ...(r.result.cpu ? { asrCpu: true } : {}), ...(r.result.afterMeeting ? { asrAfterMeeting: true } : {}) }
+        if (r.result.afterMeeting) console.warn(`speed check: no speech model keeps up live here; ${r.result.model} transcribes meetings after they end`)
       }
       while (!asrPath) {
         try { asrPath = await get(asrItem(asr.model)) } catch (err) {
@@ -268,7 +277,7 @@ export class SetupController {
       // never downloaded for this: only what is already there (a model the speed check or an earlier pick left)
       const picked = catalog.asr.findIndex((a) => join(dirs.asr, fileNameFor(a.url)) === asrPath)
       const smallerAsr = picked < 0 ? [] : catalog.asr.slice(picked + 1).map(asrItem).filter((i) => isVerified(i.dir, i.fileName, this.sha(i))).map((i) => join(i.dir, i.fileName))
-      this.paths = { asr: asrPath, ...(smallerAsr.length ? { smallerAsr } : {}) }
+      this.paths = { asr: asrPath, ...how, ...(smallerAsr.length ? { smallerAsr } : {}) }
       if (hasUpgrade) {
         this.paths.recommendedLlm = join(bigger!.dir, bigger!.fileName)
         if (isVerified(starterItem.dir, starterItem.fileName, this.sha(starterItem))) this.paths.llm = join(starterItem.dir, starterItem.fileName)
@@ -285,24 +294,33 @@ export class SetupController {
    * Windows and Linux: download each speech model in turn and time it on a short clip, until one reads two voices as fast
    * as they talk. The ones that were too slow are deleted again. A model that downloads corrupted is skipped.
    */
-  private async timeSpeech(speed: SpeedDeps, candidates: CatalogAsr[], get: (i: Item) => Promise<string>, asrItem: (m: CatalogAsr) => Item) {
+  private async timeSpeech(speed: SpeedDeps, candidates: CatalogAsr[], get: (i: Item) => Promise<string>, asrItem: (m: CatalogAsr) => Item, graphics: boolean) {
     const paths = new Map<string, string>()
     let gpuOff = false
-    const r = await pickBySpeed(candidates, async (m) => {
-      try { paths.set(m.id, await get(asrItem(m))) } catch (err) {
-        if (err instanceof ChecksumError) { console.warn(`speed check: ${m.id} downloaded corrupted, trying the next one`); return null }
-        throw err
+    /** models whose graphics run fell back to the processor: timing them there again would measure the same */
+    const ranOnCpu = new Set<string>()
+    const corrupt = new Set<string>()
+    const r = await pickBySpeed(candidates, async (m, onCpu) => {
+      if (corrupt.has(m.id)) return null
+      if (!paths.has(m.id)) {
+        try { paths.set(m.id, await get(asrItem(m))) } catch (err) {
+          if (err instanceof ChecksumError) { console.warn(`speed check: ${m.id} downloaded corrupted, trying the next one`); corrupt.add(m.id); return null }
+          throw err
+        }
       }
       // "Preparing the transcription model" while it is timed
       this.set({ phase: 'downloading', fraction: 1 })
-      const t = await speed.measure(paths.get(m.id)!)
-      if (t.gpuOff) gpuOff = true
-      console.log(`speed check: ${m.id} took ${t.rtf === null ? 'too long' : `${t.rtf.toFixed(2)} x`} the clip's length`)
+      const t = await speed.measure(paths.get(m.id)!, onCpu ? { cpu: true } : undefined)
+      if (t.gpuOff && !onCpu) { gpuOff = true; ranOnCpu.add(m.id) }
+      console.log(`speed check: ${m.id}${onCpu ? ' on the processor' : ''} took ${t.rtf === null ? 'too long' : `${t.rtf.toFixed(2)} x`} the clip's length`)
       return t.rtf
-    // small may lag a little behind live: base and tiny are very weak outside English (#107)
-    }, { lagsOk: (m) => m.id.startsWith('whisper-small') })
-    for (const [id, p] of paths) if (id !== r.model?.id) rmSync(p, { force: true })
-    return { path: r.model && paths.get(r.model.id), result: { model: r.model?.id ?? null, rtf: r.rtf, ...(gpuOff ? { gpuOff } : {}) } }
+    // small may lag a little behind live: base and tiny are very weak outside English (#107). With graphics, a model too
+    // slow there is timed on the processor too (turbo never: 4 to 9 times too slow there); a built-in Radeon can be slower
+    }, { lagsOk: (m) => m.id.startsWith('whisper-small'), cpuToo: (m) => graphics && !m.gpuOnly && !ranOnCpu.has(m.id) && !corrupt.has(m.id) })
+    // the smallest fallback may be one that downloaded corrupted: then the smallest that did not
+    const model = r.model && !corrupt.has(r.model.id) ? r.model : [...candidates].reverse().find((c) => paths.has(c.id) && !corrupt.has(c.id)) ?? null
+    for (const [id, p] of paths) if (id !== model?.id) rmSync(p, { force: true })
+    return { path: model && paths.get(model.id), result: { model: model?.id ?? null, rtf: r.rtf, ...(r.cpuRtf ? { cpuRtf: r.cpuRtf } : {}), ...(gpuOff ? { gpuOff } : {}), ...(r.cpu && model === r.model ? { cpu: true } : {}), ...(r.afterMeeting || model !== r.model ? { afterMeeting: true } : {}) } }
   }
 
   /**

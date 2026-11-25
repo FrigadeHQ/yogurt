@@ -10,7 +10,7 @@ Download Yogurt from [GitHub Releases](https://github.com/FrigadeHQ/yogurt/relea
 - **Windows:** Windows 10 version 2004 or later, x64. Run the `.exe` installer. It's signed by Frigade Inc.
 - **Linux:** x64, Ubuntu 22.04 or a compatible newer system, with PulseAudio or PipeWire. Make the `.AppImage` executable in its file properties, then open it. If it doesn't open, install FUSE 2 first: `sudo apt install libfuse2` on Ubuntu 22.04, `sudo apt install libfuse2t64` on 24.04 and newer. GNOME needs the AppIndicator extension to show the tray icon.
 
-On first run, Yogurt downloads the models it needs. Windows and Linux also check transcription speed and stop setup if the computer cannot keep up. Recording works as soon as setup finishes. The notes model keeps downloading in the background, and notes and questions work offline once it's in. Calendar access and speaker names from calls are available on Mac only.
+On first run, Yogurt downloads the models it needs. Windows and Linux also check transcription speed; a computer that can't transcribe live still records, and its meetings are transcribed right after they end. Recording works as soon as setup finishes. The notes model keeps downloading in the background, and notes and questions work offline once it's in. Calendar access and speaker names from calls are available on Mac only.
 
 ## Mac permissions
 

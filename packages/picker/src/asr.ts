@@ -44,15 +44,38 @@ export function asrCandidates(hw: Hardware, c: Catalog, opts: { exclude?: string
 /**
  * Times the candidates in order and keeps the first that keeps up; nothing smaller is timed after it.
  * measure gives the realtime factor (time taken over the clip's length), or null when it ran out of time.
+ *
+ * cpuToo: a model that is too slow on the graphics is timed on the processor too. Graphics built into the processor
+ * (a Radeon 680M through Vulkan) can be slower there than the processor itself; whichever keeps up is kept (cpu: true).
+ *
+ * None keeps up: there is still a model, never none (a computer that once got "too slow" could not record at all). It
+ * is read after the meeting instead of live (afterMeeting): the best one that read the clip within its own length,
+ * else the fastest, else the smallest. A meeting is recorded either way and its transcript follows.
  */
-export async function pickBySpeed<M extends { id: string }>(candidates: M[], measure: (m: M) => Promise<number | null>, opts: { lagsOk?: (m: M) => boolean } = {}): Promise<{ model: M | null; rtf: Record<string, number | null> }> {
+export async function pickBySpeed<M extends { id: string }>(candidates: M[], measure: (m: M, onCpu?: boolean) => Promise<number | null>, opts: { lagsOk?: (m: M) => boolean; cpuToo?: (m: M) => boolean } = {}): Promise<{ model: M | null; rtf: Record<string, number | null>; cpuRtf?: Record<string, number | null>; cpu?: true; afterMeeting?: true }> {
   const rtf: Record<string, number | null> = {}
+  const cpuRtf: Record<string, number | null> = {}
+  const withCpu = () => (Object.keys(cpuRtf).length ? { cpuRtf } : {})
+  const keepsUp = (m: M, r: number | null) => r !== null && r <= (opts.lagsOk?.(m) ? LAGS_A_LITTLE_RTF : KEEPS_UP_RTF)
   for (const m of candidates) {
     const r = await measure(m)
     rtf[m.id] = r
-    if (r !== null && r <= (opts.lagsOk?.(m) ? LAGS_A_LITTLE_RTF : KEEPS_UP_RTF)) return { model: m, rtf }
+    if (keepsUp(m, r)) return { model: m, rtf, ...withCpu() }
+    if (opts.cpuToo?.(m)) {
+      const c = await measure(m, true)
+      cpuRtf[m.id] = c
+      if (keepsUp(m, c)) return { model: m, rtf, cpuRtf, cpu: true }
+    }
   }
-  return { model: null, rtf }
+  const best = (m: M) => {
+    const g = rtf[m.id] ?? Infinity, c = cpuRtf[m.id] ?? Infinity
+    return { m, t: Math.min(g, c), cpu: c < g }
+  }
+  const timed = candidates.map(best)
+  const fastest = timed.filter((x) => Number.isFinite(x.t)).sort((a, b) => a.t - b.t)[0]
+  const chosen = timed.find((x) => x.t <= 1) ?? fastest ?? (candidates.length ? { m: candidates[candidates.length - 1], cpu: false } : undefined)
+  if (!chosen) return { model: null, rtf }
+  return { model: chosen.m, rtf, ...withCpu(), ...(chosen.cpu ? { cpu: true as const } : {}), afterMeeting: true }
 }
 
 /** What the speed depends on: the processor and the graphics. A different one of either and the check runs again. */

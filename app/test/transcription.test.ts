@@ -417,12 +417,12 @@ describe('when whisper cannot keep up', () => {
     }
     return { made, make }
   }
-  function hooks(make: (model: string) => import('../src/main/asr/server').WhisperServer, smaller: string[] = [], capture = true) {
+  function hooks(make: (model: string) => import('../src/main/asr/server').WhisperServer, smaller: string[] = [], capture = true, afterMeeting = false) {
     const starts: Array<(m: Meeting) => void> = [], stops: Array<(m: Meeting) => void> = []
     const warns: string[] = [], queued: string[] = []
     disposers.push(hookTranscription({
       store, modelPath: () => '/turbo.bin', smallerModels: () => smaller, send: () => {}, warn: (c) => warns.push(c), server: make, serverIdleMs: 60_000, holdMs: 0,
-      queued: (id) => queued.push(id), onStart: (fn) => { starts.push(fn) }, onStop: (fn) => { stops.push(fn) },
+      queued: (id) => queued.push(id), onStart: (fn) => { starts.push(fn) }, onStop: (fn) => { stops.push(fn) }, afterMeeting: () => afterMeeting,
     }))
     const procs: ReturnType<typeof fakeProc>[] = []
     if (capture) hookCapture({
@@ -446,6 +446,23 @@ describe('when whisper cannot keep up', () => {
     await tick()
     await h.end(m)
     expect(store.segments(m.id).map((x) => x.startMs)).toEqual([500])
+    expect(store.meeting(m.id)?.transcriptionState).toBe('queued')
+    expect(h.queued).toEqual([m.id])
+    restore()
+  })
+
+  it('the speed check found no model that keeps up live: the meeting records, says so, nothing is read live, and the saved recording gives the transcript', async () => {
+    const restore = quietly()
+    const s = servers(await inference(), Infinity)
+    const h = hooks(s.make, [], true, true)
+    const m = meeting()
+    h.begin(m)
+    h.procs[0].say('them', 500)
+    h.procs[0].say('me', 3000)
+    await vi.waitFor(() => expect(h.warns).toEqual(['live-paused']))
+    await h.end(m)
+    expect(store.segments(m.id)).toEqual([])
+    expect(s.made.every((x) => x.timed === 0)).toBe(true)
     expect(store.meeting(m.id)?.transcriptionState).toBe('queued')
     expect(h.queued).toEqual([m.id])
     restore()

@@ -152,12 +152,13 @@ let gpuOffListener: (() => void) | undefined
 export function onWhisperGpuOff(cb: () => void) { gpuOffListener = cb }
 
 /** One whisper-server while meetings need it: started (warmed up) when one starts, let go a while after the last */
-function serverFor(model: string, pidFile: string | undefined, make?: (model: string, pidFile?: string) => WhisperServer, o: { cpuOnly?: boolean } = {}): WhisperServer {
+/** keepCpu: the speed check found the processor faster than the graphics here: whisper never tries the graphics */
+function serverFor(model: string, pidFile: string | undefined, make?: (model: string, pidFile?: string) => WhisperServer, o: { cpuOnly?: boolean; keepCpu?: boolean } = {}): WhisperServer {
   clearTimeout(idleTimer)
   const key = `${model}|${pidFile}`
   if (!server || serverKey !== key) {
     void server?.stop()
-    server = make ? make(model, pidFile) : createWhisperServer({ binary: whisperServerPath(), model, pidFile, vadModel: vadModelPath(), gpuFallback: process.platform !== 'darwin', cpuOnly: o.cpuOnly, onGpuOff: () => gpuOffListener?.(), checkGpu: async (url) => { const clip = clipStart(); return !clip || hearsClip(url, clip) } })
+    server = make ? make(model, pidFile) : createWhisperServer({ binary: whisperServerPath(), model, pidFile, vadModel: vadModelPath(), gpuFallback: process.platform !== 'darwin' && !o.keepCpu, cpuOnly: o.cpuOnly || o.keepCpu, onGpuOff: () => gpuOffListener?.(), checkGpu: async (url) => { const clip = clipStart(); return !clip || hearsClip(url, clip) } })
     serverKey = key
   }
   return server
@@ -211,6 +212,10 @@ export function hookTranscription(p: {
   spoken?: () => Spoken
   /** a live transcript came out incomplete (whisper-server died, #127): its saved recording waits to be transcribed */
   queued?: (meetingId: string) => void
+  /** Windows and Linux, from the speed check: whisper on the processor alone (faster there than the built-in graphics) */
+  cpuOnly?: () => boolean
+  /** Windows and Linux, from the speed check: no speech model keeps up live, so meetings are transcribed after they end */
+  afterMeeting?: () => boolean
   /** the meeting's folder, where the mic without echo is kept for listening back (#166); none: not kept */
   meetingDir?: (meetingId: string) => string
 }): () => void {
@@ -250,12 +255,13 @@ export function hookTranscription(p: {
     else {
       const model = p.modelPath()
       if (model) {
-        let srv = serverFor(model, p.pidFile, p.server)
+        const keepCpu = !!p.cpuOnly?.()
+        let srv = serverFor(model, p.pidFile, p.server, { keepCpu })
         srv.resetBudget()
         // no other meeting on it: a graphics card set aside earlier gets another chance (#156: it stayed off until a restart)
         if (!sessions.size) srv.gpuAgain(later ? 'a saved recording' : 'a new meeting')
-        // the model takes a few seconds to load: start now, so the first chunk does not wait for it
-        srv.url().catch((e) => console.error('whisper-server did not start', e))
+        // the model takes a few seconds to load: start now, so the first chunk does not wait for it (not for a meeting read after it ends)
+        if (later || !p.afterMeeting?.()) srv.url().catch((e) => console.error('whisper-server did not start', e))
         const pauseLive = (why: string) => {
           if (s.pipeline?.paused()) return
           console.warn(`ASR ${why}: live transcription pauses, and the saved recording finishes the transcript after the meeting`)
@@ -278,7 +284,7 @@ export function hookTranscription(p: {
           if (next && [...sessions.values()].every((x) => x === s)) {
             tried.add(next); reading = next
             console.warn(`ASR ${why}: ${basename(next)} takes over for the rest of this meeting`)
-            srv = serverFor(next, p.pidFile, p.server, { cpuOnly: true })
+            srv = serverFor(next, p.pidFile, p.server, { cpuOnly: true, keepCpu })
             srv.resetBudget()
             srv.url().catch((e) => console.error('whisper-server did not start', e))
             return
@@ -346,6 +352,13 @@ export function hookTranscription(p: {
         cleanMic: cleanMic && ((ms, x) => cleanMic.push(ms, x)) }) : null,
     }
     if (s.speech) s.pipeline?.setQuickReads(false)
+    // the speed check found no speech model that keeps up live here: the meeting is recorded, and the saved recording
+    // gives the transcript once it ends (never a refusal to record)
+    if (!later && s.pipeline && p.afterMeeting?.()) {
+      console.info('ASR this computer transcribes meetings after they end: live transcription is off')
+      s.pipeline.pause()
+      setTimeout(() => warnOnce('live-paused'), NO_MODEL_NOTE_DELAY_MS)
+    }
     sessions.set(id, s)
     return s
   }

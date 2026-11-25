@@ -42,5 +42,9 @@ export const machines = {
   cpu33: hw({ os: 'linux', arch: 'x64', cpuModel: 'AMD Ryzen 7 5800XT', totalRamGB: 33.3, gpu: { kind: 'none', name: '', vramGB: 0 } }),
   gtx1650_33: hw({ os: 'linux', arch: 'x64', cpuModel: 'AMD Ryzen 7 5700X', totalRamGB: 33.3, gpu: { kind: 'discrete', name: 'NVIDIA GeForce GTX 1650', vramGB: 4 } }),
   win1650_33: hw({ os: 'win32', arch: 'x64', cpuModel: 'AMD Ryzen 7 5700X', totalRamGB: 33.3, gpu: { kind: 'discrete', name: 'NVIDIA GeForce GTX 1650', vramGB: 4 } }),
+  // a Reddit report: Ryzen 7 7735U (8 cores, 16 threads), Radeon 680M built in, 32 GB, Windows 11. The notes engine
+  // sees the 680M through Vulkan sharing the memory (unified), or sees nothing usable (none)
+  ryzen680m: hw({ os: 'win32', arch: 'x64', cpuModel: 'AMD Ryzen 7 7735U with Radeon Graphics', totalRamGB: 33.4, gpu: { kind: 'unified', name: 'AMD Radeon(TM) Graphics', vramGB: 2 }, cores: 16 }),
+  ryzen7735u: hw({ os: 'win32', arch: 'x64', cpuModel: 'AMD Ryzen 7 7735U with Radeon Graphics', totalRamGB: 33.4, gpu: { kind: 'none', name: '', vramGB: 0 }, cores: 16 }),
   tiny4: hw({ os: 'win32', arch: 'x64', cpuModel: 'Intel Celeron', totalRamGB: 4, gpu: { kind: 'none', name: '', vramGB: 0 } }),
 }

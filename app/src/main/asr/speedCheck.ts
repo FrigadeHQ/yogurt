@@ -39,6 +39,8 @@ export function readWav(buf: Buffer): Float32Array {
 
 type MeasureOpts = {
   binary: string; vadModel?: string; clip: string
+  /** on the processor alone (-ng), never the graphics */
+  cpu?: boolean
   /** for tests and the CI smoke: another launcher */
   server?: (model: string) => WhisperServer
 }
@@ -49,7 +51,7 @@ type MeasureOpts = {
  * clip itself is stopped: null, too slow by far.
  */
 export async function measureSpeed(model: string, o: MeasureOpts): Promise<{ rtf: number | null; gpuOff: boolean }> {
-  const srv = o.server?.(model) ?? createWhisperServer({ binary: o.binary, model, vadModel: o.vadModel, gpuFallback: true, startTimeoutMs: 180_000, backoffMs: [0], checkGpu: (url) => hearsClip(url, readWav(readFileSync(o.clip)).subarray(0, 5 * 16000)) })
+  const srv = o.server?.(model) ?? createWhisperServer({ binary: o.binary, model, vadModel: o.vadModel, gpuFallback: !o.cpu, cpuOnly: o.cpu, startTimeoutMs: 180_000, backoffMs: [0], checkGpu: (url) => hearsClip(url, readWav(readFileSync(o.clip)).subarray(0, 5 * 16000)) })
   const samples = readWav(readFileSync(o.clip))
   const clipMs = samples.length / 16
   try {

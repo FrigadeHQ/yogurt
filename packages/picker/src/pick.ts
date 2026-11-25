@@ -46,6 +46,8 @@ function evaluate(hw: Hardware, model: CatalogModel, build: CatalogBuild): Choic
     if (pool.device === 'split' && onCard >= 1) continue // fits on the card: that's the gpu pool
     // no usable card, or one too small for it (a 4 GB GTX 1650): it would run from memory, so it isn't offered (#32)
     if (model.gpuOnly && (pool.device === 'cpu' || onCard < GPU_ONLY_MIN_ON_CARD)) continue
+    // graphics built into the processor off a Mac (a Radeon 680M) run it from the same memory, at the processor's speed
+    if (model.gpuOnly && hw.os !== 'darwin' && hw.gpu.kind === 'unified') continue
     const secPerToken = (bytesPerToken * onCard) / pool.bw + (pool.cpuBw ? (bytesPerToken * (1 - onCard)) / pool.cpuBw : 0)
     const estTokPerSec = Math.round((1 / secPerToken) * EFFICIENCY * 10) / 10
     const choice: Choice = {

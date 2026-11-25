@@ -68,7 +68,7 @@ Meeting data stays local; Yogurt goes online for model downloads and update chec
 
 <br>
 
-> A Mac with Apple silicon and macOS 14.4 or newer, a 64-bit PC with Windows 10 (version 2004) or newer, or a 64-bit Linux computer with Ubuntu 22.04 or newer. Each needs at least 8 GB of memory. If your computer is too slow, Yogurt tells you during setup. On Windows and Linux, you connect your calendar with a private calendar link.
+> A Mac with Apple silicon and macOS 14.4 or newer, a 64-bit PC with Windows 10 (version 2004) or newer, or a 64-bit Linux computer with Ubuntu 22.04 or newer. Each needs at least 8 GB of memory. On a computer too slow to transcribe live, Yogurt transcribes each meeting right after it ends. On Windows and Linux, you connect your calendar with a private calendar link.
 
 </details>
 

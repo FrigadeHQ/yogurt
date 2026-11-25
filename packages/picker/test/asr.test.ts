@@ -52,6 +52,10 @@ describe('the measured speed check (Windows and Linux)', () => {
   it('with graphics: turbo first, then down to the smallest', () => {
     expect(ids(asrCandidates(machines.linux3060, catalog))).toEqual(['whisper-large-v3-turbo-q5_0', 'whisper-small-q5_1', 'whisper-base-q5_1', 'whisper-tiny-q5_1'])
   })
+  it('a Ryzen 7 7735U: with its Radeon 680M every model is tried, on the processor alone small and smaller', () => {
+    expect(ids(asrCandidates(machines.ryzen680m, catalog))).toEqual(['whisper-large-v3-turbo-q5_0', 'whisper-small-q5_1', 'whisper-base-q5_1', 'whisper-tiny-q5_1'])
+    expect(ids(asrCandidates(machines.ryzen7735u, catalog))).toEqual(['whisper-small-q5_1', 'whisper-base-q5_1', 'whisper-tiny-q5_1'])
+  })
   it('on the processor alone turbo is never tried (it measured 4 to 9 times too slow)', () => {
     expect(ids(asrCandidates(machines.winLaptop8, catalog))).toEqual(['whisper-small-q5_1', 'whisper-base-q5_1', 'whisper-tiny-q5_1'])
   })
@@ -91,9 +95,35 @@ describe('pickBySpeed', () => {
     const t = timed({ turbo: null, small: null, base: null, tiny: 0.19 })
     expect((await pickBySpeed(list, t.measure)).model).toBe(list[3])
   })
-  it('none keeps up: no model, with every time it measured', async () => {
-    const t = timed({ turbo: 9, small: 2, base: 1.1, tiny: 0.6 })
-    expect(await pickBySpeed(list, t.measure)).toEqual({ model: null, rtf: { turbo: 9, small: 2, base: 1.1, tiny: 0.6 } })
+  // a computer that can't keep up live still records: the transcript is written from the recording after the meeting
+  it('none keeps up: the best one that read the clip at all is kept for after the meeting, with every time it measured', async () => {
+    const t = timed({ turbo: null, small: null, base: 0.8, tiny: 0.6 })
+    expect(await pickBySpeed(list, t.measure)).toEqual({ model: list[2], rtf: { turbo: null, small: null, base: 0.8, tiny: 0.6 }, afterMeeting: true })
+  })
+  it('none read the clip in its own length: the fastest one, after the meeting', async () => {
+    expect(await pickBySpeed(list, timed({ turbo: 9, small: 2, base: 1.1, tiny: 1.05 }).measure)).toMatchObject({ model: list[3], afterMeeting: true })
+  })
+  it('none finished at all: still the smallest, after the meeting, never no model', async () => {
+    expect(await pickBySpeed(list, timed({ turbo: null, small: null, base: null, tiny: null }).measure)).toMatchObject({ model: list[3], afterMeeting: true })
+  })
+  it('graphics slower than the processor (a Radeon 680M through Vulkan): the processor is timed too, and kept where it keeps up', async () => {
+    const asked: string[] = []
+    const gpu: Record<string, number | null> = { turbo: 2, small: 0.9, base: 0.6 }, cpu: Record<string, number | null> = { small: 0.4, base: 0.2 }
+    const measure = async (m: { id: string }, onCpu?: boolean) => { asked.push(`${m.id}${onCpu ? '@cpu' : ''}`); return (onCpu ? cpu : gpu)[m.id] }
+    // turbo is never tried on the processor: it measured 4 to 9 times too slow there
+    const r = await pickBySpeed(list, measure, { cpuToo: (m) => m.id !== 'turbo' })
+    expect(r).toEqual({ model: list[1], rtf: { turbo: 2, small: 0.9 }, cpuRtf: { small: 0.4 }, cpu: true })
+    expect(asked).toEqual(['turbo', 'small', 'small@cpu'])
+  })
+  it('graphics that keep up are kept: the processor is not timed', async () => {
+    const asked: string[] = []
+    const r = await pickBySpeed(list, async (m, onCpu) => { asked.push(`${m.id}${onCpu ? '@cpu' : ''}`); return 0.2 }, { cpuToo: () => true })
+    expect(r).toEqual({ model: list[0], rtf: { turbo: 0.2 } })
+    expect(asked).toEqual(['turbo'])
+  })
+  it('after the meeting on whichever was faster for that model', async () => {
+    const r = await pickBySpeed(list, async (m, onCpu) => (m.id === 'small' ? (onCpu ? 0.7 : 0.95) : null), { cpuToo: (m) => m.id !== 'turbo', lagsOk: () => false })
+    expect(r).toMatchObject({ model: list[1], afterMeeting: true, cpu: true })
   })
 })
 

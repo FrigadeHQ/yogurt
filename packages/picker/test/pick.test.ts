@@ -67,6 +67,9 @@ describe('pick', () => {
     it('a 4 GB card (GTX 1650) on Linux or Windows: never the 26B', () => {
       for (const hw of [machines.gtx1650_33, machines.win1650_33]) expect(offered(pick(hw, models))).not.toContain('gemma-4-26b-a4b')
     })
+    it('graphics built into the processor (Radeon 680M) share the memory: never the 26B there either', () => {
+      expect(offered(pick(machines.ryzen680m, models))).not.toContain('gemma-4-26b-a4b')
+    })
     it('a card that holds most of it still gets it (RTX 3060 12 GB), and Macs are unchanged', () => {
       expect(id(pick(machines.linux3060, models).recommended)).toBe('gemma-4-26b-a4b')
       expect(id(pick(machines.rtx3060_32, models).recommended)).toBe('gemma-4-26b-a4b')
@@ -107,6 +110,14 @@ describe('pick', () => {
     expect(id(r.recommended)).toBe('gemma-4-e4b-compact')
     expect(r.liteMode).toBe(false)
     expect(r.all.map((c) => c.model.id)).toContain('gemma-4-e2b')
+  })
+  it('a Ryzen 7 7735U with a Radeon 680M and 32 GB always gets a notes model, whether the graphics are usable or not', () => {
+    for (const hw of [machines.ryzen680m, machines.ryzen7735u]) {
+      const r = pick(hw, models)
+      expect(r.recommended).not.toBeNull()
+      expect(r.starter).not.toBeNull()
+      expect(r.recommended!.build.sizeGB).toBeLessThan(13)
+    }
   })
   it('nothing fits → recommended null, no crash', () => {
     const r = pick(machines.tiny4, models)

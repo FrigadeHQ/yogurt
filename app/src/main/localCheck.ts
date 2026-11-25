@@ -21,8 +21,8 @@ export function tooWeak(hw: Hardware, hasPick: boolean): string | null {
 }
 
 /**
- * Windows and Linux: the speed check timed every speech model and none keeps up with two voices as they talk. Recording
- * stays off: a live transcript that falls further and further behind would drop what was said. Nothing goes to a cloud.
+ * Windows and Linux: the speed check could not get any speech model to time (every download came out damaged). A
+ * computer that is only slow never sees this: it transcribes meetings after they end (setup.ts). Nothing goes to a cloud.
  */
 export function tooSlow(os: string): string {
   return os === 'win32'
