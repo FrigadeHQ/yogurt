@@ -41,6 +41,12 @@ async function record(app: ElectronApplication, page: Page) {
   return widget
 }
 
+async function leaveRecorder(w: Page) {
+  // The mic swaps its SVG under the pointer. Leave from a target that stays mounted.
+  await w.getByTestId('widget-time').hover()
+  await w.mouse.move(0, 0)
+}
+
 test('the widget is a compact horizontal recorder with one live wave and no external shadow', async () => {
   const { app, page } = await launch()
   try {
@@ -160,12 +166,12 @@ test('each visible recorder frame fits its contents across hover, mute and unmut
     await pill.hover()
     await mic.click()
     await expect(mic).toHaveAttribute('aria-pressed', 'true')
-    await w.mouse.move(0, 0)
+    await leaveRecorder(w)
     await expect(badge).toBeVisible()
     await pill.hover()
     await mic.click()
     await expect(mic).toHaveAttribute('aria-pressed', 'false')
-    await w.mouse.move(0, 0)
+    await leaveRecorder(w)
     await expect(pill).toHaveAttribute('data-open', 'false')
     const result = await watch.evaluate(watch => watch.stop())
     expect(result.seen.sort()).toEqual(['expanded', 'muted pill', 'unmuted pill'])
@@ -225,7 +231,7 @@ test('the header and expanded card share confirmed mute, across collapse, reload
     await expect(card).toHaveAttribute('aria-pressed', 'true')
     await expect(w.getByTestId('widget-mic-off')).toHaveCount(0)
     await capture('off-card')
-    await w.mouse.move(0, 0)
+    await leaveRecorder(w)
     await expect(pill).toHaveAttribute('data-open', 'false')
     await expect(w.getByTestId('widget-mic-off')).toBeVisible()
     await capture('off-collapsed')
