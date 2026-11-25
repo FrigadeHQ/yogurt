@@ -125,7 +125,7 @@ const primary = !x11 && app.requestSingleInstanceLock()
 if (x11) { stripAppImageEnv(); app.relaunch(x11); app.exit(0) }
 else if (!primary) app.quit()
 let win: BrowserWindow | undefined
-/** the iPhone companion once it has started (Settings → Phone pairs and unpairs through it) */
+/** the iPhone companion once it has started (Settings → iPhone pairs and unpairs through it) */
 let companion: Companion | undefined
 let allowQuit = false
 let presentMain = (_foreground = false) => {}
@@ -1179,8 +1179,7 @@ app.whenReady().then(() => {
     } catch (e) { console.warn('tidying prepared notes failed', e) }
   }
   tidyPrepared(); setInterval(tidyPrepared, 60_000).unref()
-  // the iPhone companion: never started until the iPhone app ships (YOGURT_PHONE=1 turns it on); then off until a phone
-  // is paired or Settings starts pairing. Tests also need YOGURT_FAKE_COMPANION=1
+  // The companion starts listening only when a phone is paired or Settings starts pairing.
   app.on('will-quit', () => { void companion?.stop() })
   const meetingsChanged = () => { win?.webContents.send('meetings:changed'); win?.webContents.send('folders:changed') }
   const companionOn = companionWanted(process.env, isFake())

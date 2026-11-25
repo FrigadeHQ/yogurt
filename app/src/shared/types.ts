@@ -38,7 +38,7 @@ export type YogurtApi = {
   capabilities: Capabilities
   /** test mode: stand-ins for models, audio and calendars */
   fake: boolean
-  /** the iPhone companion is turned on (shared/companion.ts PHONE_COMPANION, or YOGURT_PHONE=1); Settings → Phone shows only then */
+  /** whether to show iPhone pairing in Settings */
   phone: boolean
   setup: {
     state(): Promise<SetupState>
@@ -172,7 +172,7 @@ export type YogurtApi = {
     setChanges(on: boolean): Promise<McpStatus>
     onClients(fn: (clients: string[]) => void): () => void
   }
-  /** Settings → Phone: pairing the iPhone app with this computer over the local network; null when it isn't running */
+  /** Settings → iPhone: pairing the iPhone app with this computer over the local network; null when it isn't running */
   companion: {
     status(): Promise<CompanionStatus | null>
     /** ok: false when it couldn't (the status says why when it knows: keychain, listen) */

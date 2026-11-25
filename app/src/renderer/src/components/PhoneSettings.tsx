@@ -18,7 +18,7 @@ function lastSeen(at: number, now: number) {
   return t('Last seen {when}', { when })
 }
 
-/** Settings → Phone, only while the iPhone companion is turned on (hidden until the iPhone app ships) */
+/** Settings → iPhone */
 export function PhoneSettings() {
   return globalThis.window?.yogurt?.phone ? createElement(PhoneSection) : null
 }
@@ -76,7 +76,7 @@ function PhoneSection() {
   const pairButton = <button type="button" data-testid="phone-pair" disabled={busy || !status} onClick={() => void start()} className="workspace-button settings-action">{t('Pair a phone')}</button>
 
   return <section data-testid="phone-settings" aria-labelledby="phone-settings-heading">
-    <h2 id="phone-settings-heading" className="settings-section-heading">{t('Phone')}</h2>
+    <h2 id="phone-settings-heading" className="settings-section-heading">iPhone</h2>
     <div className="settings-group">
       {pairing ? <div data-testid="phone-pairing" className="settings-row">
         <div className="settings-row-copy">
@@ -111,8 +111,7 @@ function PhoneSection() {
       : <div data-testid="phone-unpaired" className="settings-row">
         <Smartphone size={16} aria-hidden="true" className="shrink-0 text-muted" />
         <div className="settings-row-copy">
-          <p className="settings-label">{t('Yogurt on your iPhone')}</p>
-          <p className="settings-description">{t('Read your notes and record meetings on your iPhone. They come back here to be transcribed.')}</p>
+          <p className="settings-label">{t('Already have Yogurt on your iPhone?')}</p>
           {notice && <p role="alert" data-testid="phone-notice" className="settings-description text-danger">{notice}</p>}
         </div>
         {status?.error !== 'keychain' && pairButton}

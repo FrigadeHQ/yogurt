@@ -1,7 +1,7 @@
 import { createElement, useState } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, expect, it, vi } from 'vitest'
-import { PHONE_COMPANION, phoneCompanionOn } from '../src/shared/companion'
+import { phoneCompanionOn } from '../src/shared/companion'
 import { companionWanted } from '../src/main/companion/gate'
 import { PhoneSettings } from '../src/renderer/src/components/PhoneSettings'
 import type { CompanionStatus } from '../src/shared/companion'
@@ -11,20 +11,15 @@ afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
 
 const paired: CompanionStatus = { paired: { name: 'Test iPhone', lastSeen: 1 }, pairing: null, pairingClosed: null, error: null, connected: false, syncing: false }
 
-it('the iPhone companion is off until the iPhone app ships; YOGURT_PHONE=1 turns it on', () => {
-  expect(PHONE_COMPANION).toBe(false)
-  expect(phoneCompanionOn({})).toBe(false)
-  expect(phoneCompanionOn({ YOGURT_PHONE: '0' })).toBe(false)
-  expect(phoneCompanionOn({ YOGURT_PHONE: '1' })).toBe(true)
-})
-
-it('with the flag off the companion never starts, so nothing listens or advertises, paired phone or not', () => {
-  expect(companionWanted({}, false)).toBe(false)
-  expect(companionWanted({ YOGURT_FAKE_COMPANION: '1' }, true)).toBe(false)
-  // on: a real app starts it; fake mode only when a test asks
-  expect(companionWanted({ YOGURT_PHONE: '1' }, false)).toBe(true)
-  expect(companionWanted({ YOGURT_PHONE: '1' }, true)).toBe(false)
-  expect(companionWanted({ YOGURT_PHONE: '1', YOGURT_FAKE_COMPANION: '1' }, true)).toBe(true)
+it.each(['darwin', 'win32', 'linux'] as const)('shows iPhone settings on %s only on Mac or with the override', platform => {
+  const mac = platform === 'darwin'
+  expect(phoneCompanionOn({}, platform)).toBe(mac)
+  expect(phoneCompanionOn({ YOGURT_PHONE: '0' }, platform)).toBe(mac)
+  expect(phoneCompanionOn({ YOGURT_PHONE: '1' }, platform)).toBe(true)
+  expect(companionWanted({}, false, platform)).toBe(mac)
+  expect(companionWanted({}, true, platform)).toBe(false)
+  expect(companionWanted({ YOGURT_FAKE_COMPANION: '1' }, true, platform)).toBe(mac)
+  expect(companionWanted({ YOGURT_PHONE: '1', YOGURT_FAKE_COMPANION: '1' }, true, platform)).toBe(true)
 })
 
 it('with the flag off Settings shows no Phone section, even for a paired phone', async () => {

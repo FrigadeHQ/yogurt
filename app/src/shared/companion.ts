@@ -1,7 +1,7 @@
 /** Heading over the phone's My notes when both sides changed them while apart; neither text is lost. */
 export const FROM_IPHONE = '\n\n## From your iPhone\n\n'
 
-/** What Settings → Phone shows: the paired phone, an open pairing code, or why pairing closed or can't start */
+/** What Settings → iPhone shows: the paired phone, an open pairing code, or why pairing closed or can't start */
 export type CompanionStatus = {
   paired: null | { name: string; lastSeen: number | null }
   pairing: null | { code: string; expiresAt: number; attemptsLeft: number }
@@ -17,6 +17,5 @@ export type CompanionStatus = {
   syncing: boolean
 }
 
-/** The iPhone companion stays off and hidden until the iPhone app ships. YOGURT_PHONE=1 turns it on (dev, tests). */
-export const PHONE_COMPANION = false
-export const phoneCompanionOn = (env: Record<string, string | undefined>): boolean => PHONE_COMPANION || env.YOGURT_PHONE === '1'
+export const phoneCompanionOn = (env: Record<string, string | undefined>, platform: NodeJS.Platform = process.platform): boolean =>
+  platform === 'darwin' || env.YOGURT_PHONE === '1'

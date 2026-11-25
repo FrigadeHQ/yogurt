@@ -1,4 +1,4 @@
-// Settings → Phone talks to the companion through these. It starts after the window can ask, so each call waits for
+// Settings → iPhone talks to the companion through these. It starts after the window can ask, so each call waits for
 // it; when it never started (fake mode, or it failed) the status is null and Settings shows nothing to pair.
 import { ipcMain } from 'electron'
 import type { CompanionStatus } from '../../shared/companion'

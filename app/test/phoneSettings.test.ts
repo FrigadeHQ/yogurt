@@ -7,7 +7,6 @@ import type { CompanionStatus } from '../src/shared/companion'
 
 vi.mock('react', async original => ({ ...await original<typeof import('react')>(), useState: vi.fn() }))
 const NOW = Date.UTC(2026, 10, 20, 12)
-// the section shows only while the iPhone companion is turned on (YOGURT_PHONE=1)
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(NOW); vi.stubGlobal('window', { yogurt: { phone: true } }) })
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); setLanguage('en') })
 
@@ -24,7 +23,9 @@ async function render(status: CompanionStatus | null, ...extra: unknown[]) {
 
 it('not paired: explains it and offers Pair a phone, with the Wi-Fi note', async () => {
   const html = await render(idle)
-  expect(html).toContain('Phone')
+  expect(html).toMatch(/<h2[^>]*>iPhone<\/h2>/)
+  expect(html).toContain('Already have Yogurt on your iPhone?')
+  expect(html).not.toContain('href=')
   expect(html).toContain('data-testid="phone-pair"')
   expect(html).toContain('Pair a phone')
   expect(html).toContain(WIFI)
@@ -99,7 +100,7 @@ it('shows nothing when the companion is not running', async () => {
 it('translates the Phone section in every interface language', () => {
   for (const { id } of LOCALES) {
     setLanguage(id)
-    for (const key of ['Phone', 'Pair a phone', 'Open Yogurt on your iPhone and type this code', WIFI, 'Unpair your iPhone? It keeps its copy until you pair again.', MAC_NETWORK, PC_NETWORK]) {
+    for (const key of ['Already have Yogurt on your iPhone?', 'Pair a phone', 'Open Yogurt on your iPhone and type this code', WIFI, 'Unpair your iPhone? It keeps its copy until you pair again.', MAC_NETWORK, PC_NETWORK]) {
       expect(t(key).trim()).not.toBe('')
       if (id !== 'en') expect(t(key)).not.toBe(key)
     }

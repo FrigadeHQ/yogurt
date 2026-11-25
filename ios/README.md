@@ -24,10 +24,10 @@ There's no App Store version yet. You install it yourself from Xcode onto your o
 
 ## Connect it to Yogurt on your computer (optional)
 
-Pairing needs the desktop build from this branch (`ios-companion`) until it's released.
+On Mac, pairing is available in Settings. For development on Windows or Linux, start Yogurt with `YOGURT_PHONE=1`.
 
-1. On the computer, run Yogurt from this branch: `pnpm install`, then `pnpm dev`.
-2. In Yogurt on the computer, open **Settings → Phone** and click **Pair a phone**. A 6-digit code shows.
+1. Open Yogurt on your computer.
+2. In Yogurt on the computer, open **Settings → iPhone** and click **Pair a phone**. A 6-digit code shows.
 3. On the iPhone, tap the status pill at the top of Home ("On this iPhone only"), or go to Settings → Connect to your computer.
 4. Tap **Allow** when the iPhone asks to find devices on your network, pick your computer, and type the code.
 

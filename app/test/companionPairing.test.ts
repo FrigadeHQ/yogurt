@@ -1,5 +1,6 @@
-import { afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { Server } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { openStore } from '../src/main/store'
@@ -54,7 +55,10 @@ describe('companion pairing', () => {
   })
 
   it('is off until pairing starts: no port, no advert, and a desktop id plus a sealed key on disk', async () => {
+    using listen = vi.spyOn(Server.prototype, 'listen')
     const { c, adverts, dir } = await make()
+    c.status() // opening Settings reads status
+    expect(listen).not.toHaveBeenCalled()
     expect(c.port()).toBeNull()
     expect(adverts.filter(Boolean)).toEqual([])
     const saved = JSON.parse(readFileSync(join(dir, 'companion.json'), 'utf8'))
