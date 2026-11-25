@@ -23,6 +23,7 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
   relaunch(): boolean
   /** fake mode: a slow start, so tests see the launch screen */
   slowStartMs?: number
+  usedGranola?: boolean
   recordingPillChanged?(on: boolean): void
   /** the spoken language changed: the meeting being recorded follows it where it can */
   onSpoken?: (v: Spoken) => void
@@ -38,8 +39,8 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
     if (d.slowStartMs) await new Promise((r) => setTimeout(r, d.slowStartMs))
     const s = loadSettings(d.file)
     if (!d.ask || s.welcomed) return { intro: false, steps: [] }
-    const p = await firstRunPlan({ ask: d.ask, welcomed: !!s.welcomed, introSeen: !!s.introSeen, status: await d.permissions.status(), kinds, ...(d.calendarLinked ? { calendarLink: { linked: d.calendarLinked() } } : {}) })
-    firstRunShowing = p.intro || p.steps.length > 0
+    const p = await firstRunPlan({ granola: d.usedGranola && !s.granolaPromptHidden, ask: d.ask, welcomed: !!s.welcomed, introSeen: !!s.introSeen, status: await d.permissions.status(), kinds, ...(d.calendarLinked ? { calendarLink: { linked: d.calendarLinked() } } : {}) })
+    firstRunShowing = p.intro || p.steps.length > 0 || !!p.granola
     return p
   })()))
   ipcMain.handle('onboarding:intro-seen', () => { updateSettings(d.file, { introSeen: true }) })

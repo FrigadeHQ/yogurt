@@ -84,6 +84,10 @@ import { hookConversations } from './library/conversations'
 import { hookShare } from './share'
 import { hookBackup } from './backupIpc'
 import { hookFolders } from './foldersIpc'
+import { granolaUsed } from './granola'
+import { hookGranola } from './granolaIpc'
+import { meetingImporter } from './mcp/importMeeting'
+import type { McpApp } from './mcp/server'
 import { hookMcp } from './mcp'
 import { createQuietStart } from './quietStart'
 import { startArgs, startReason, type StartReason } from './startReason'
@@ -604,7 +608,9 @@ app.whenReady().then(() => {
     file: join(userDataDir(), 'settings.json'), get: getCalendar, seal: sealSecret, open: openSecret,
   }) : null
   if (calendarLinks) setCalendarLinkSource(calendarLinks, { alongside: !caps.calendarLink })
+  const usedGranola = isFake() ? process.env.YOGURT_FAKE_GRANOLA === '1' : granolaUsed()
   const preferences = hookPreferences({
+    usedGranola,
     recordingPillChanged: on => recordingPillChanged(on),
     file: join(userDataDir(), 'settings.json'), permissions, kinds: supportedKinds(caps), os: platform,
     ...(calendarLinks && caps.calendarLink ? { calendarLinked: () => calendarLinks.status() === 'granted' } : {}),
@@ -940,36 +946,44 @@ app.whenReady().then(() => {
     beforeExport: () => { notes.retryDrafts(); return notes.pendingDraftId() } })
   // AI apps change things only through the functions behind the app's own buttons
   const noteSaved = (id: string, r: ReturnType<typeof notes.replace>) => { if (r === 'saved') win?.webContents.send('meetings:changed'); return r }
+  const meetingActions: McpApp = {
+    ask: (question, chips) => conversations.askOnce(question, chips),
+    comingUp: () => calendarComingUp(),
+    calendarDay: (at) => calendarDay(at),
+    settings: () => preferences.read(),
+    changed: (what) => { if (what === 'folders') foldersChanged(); else win?.webContents.send('meetings:changed') },
+    // a meeting from another notes app: on home, in the library for Ask, and offered a folder like any other
+    imported: (id) => { win?.webContents.send('meetings:changed'); void indexer.schedule(); folderSuggestions.schedule(id) },
+    rename: (id, title) => !!renameMeeting(id, title),
+    setAttendees: (id, people) => setPeople(id, people),
+    linkEvent: (id, eventId, day) => linkMeetingEvent(id, eventId, day).catch(() => false),
+    unlinkEvent: (id) => !!unlinkEvent(id),
+    trash: (id) => trashMeeting(id),
+    restore: (id) => restoreMeeting(id),
+    setMyNotes: (id, md) => noteSaved(id, notes.replace(id, 'mine', md)),
+    setSummary: (id, md) => noteSaved(id, notes.replace(id, 'enhanced', md)),
+    rewriteSummary: (id, instruction) => (['waiting', 'writing'].includes(notes.view(id).status) || !writeAgain(id, instruction) ? 'busy' : 'queued'),
+    notesReady: () => !!setup.notesPath(),
+    startRecording: (o) => recordingControls?.start(o) ?? Promise.resolve({ error: 'failed' as const }),
+    pauseRecording: (id, paused) => recordingControls?.pause(id, paused) ?? false,
+    stopRecording: (id) => { if (activeMeeting()?.id !== id) return false; stopMeeting(id, 'ai-app'); return true },
+    recording: () => activeMeeting(),
+    setJargon: (terms) => preferences.setJargon(terms),
+    setSpoken: (v) => preferences.setSpoken(v),
+    setSummaryLanguage: (v) => preferences.setSummaryLanguage(v),
+  }
+  const importer = meetingImporter({ store, me, app: meetingActions }, () => undefined, () => {})
+  hookGranola({
+    settingsFile, usedGranola, window: () => win, save: importer.one,
+    sourceIds: () => (store.db.prepare("SELECT source_id FROM meetings WHERE source = 'import' AND source_id GLOB 'granola:*'").all() as { source_id: string }[]).map(row => row.source_id),
+    recording: () => !!activeMeeting() || !!resumingId,
+    previouslyImported: () => !!store.db.prepare("SELECT 1 FROM meetings WHERE source = 'import' AND source_id GLOB 'granola:*' LIMIT 1").get(),
+  })
   void hookMcp({
     store, profile: userDataDir(), me, version: app.getVersion(),
     enabled: () => !!loadSettings(settingsFile).aiApps, setEnabled: (on) => { updateSettings(settingsFile, { aiApps: on || undefined }) },
     changesEnabled: () => !!loadSettings(settingsFile).aiAppChanges, setChangesEnabled: (on) => { updateSettings(settingsFile, { aiAppChanges: on || undefined }) },
-    app: {
-      ask: (question, chips) => conversations.askOnce(question, chips),
-      comingUp: () => calendarComingUp(),
-      calendarDay: (at) => calendarDay(at),
-      settings: () => preferences.read(),
-      changed: (what) => { if (what === 'folders') foldersChanged(); else win?.webContents.send('meetings:changed') },
-      // a meeting from another notes app: on home, in the library for Ask, and offered a folder like any other
-      imported: (id) => { win?.webContents.send('meetings:changed'); void indexer.schedule(); folderSuggestions.schedule(id) },
-      rename: (id, title) => !!renameMeeting(id, title),
-      setAttendees: (id, people) => setPeople(id, people),
-      linkEvent: (id, eventId, day) => linkMeetingEvent(id, eventId, day).catch(() => false),
-      unlinkEvent: (id) => !!unlinkEvent(id),
-      trash: (id) => trashMeeting(id),
-      restore: (id) => restoreMeeting(id),
-      setMyNotes: (id, md) => noteSaved(id, notes.replace(id, 'mine', md)),
-      setSummary: (id, md) => noteSaved(id, notes.replace(id, 'enhanced', md)),
-      rewriteSummary: (id, instruction) => (['waiting', 'writing'].includes(notes.view(id).status) || !writeAgain(id, instruction) ? 'busy' : 'queued'),
-      notesReady: () => !!setup.notesPath(),
-      startRecording: (o) => recordingControls?.start(o) ?? Promise.resolve({ error: 'failed' as const }),
-      pauseRecording: (id, paused) => recordingControls?.pause(id, paused) ?? false,
-      stopRecording: (id) => { if (activeMeeting()?.id !== id) return false; stopMeeting(id, 'ai-app'); return true },
-      recording: () => activeMeeting(),
-      setJargon: (terms) => preferences.setJargon(terms),
-      setSpoken: (v) => preferences.setSpoken(v),
-      setSummaryLanguage: (v) => preferences.setSummaryLanguage(v),
-    },
+    app: meetingActions,
     audio: async (id) => {
       await rejoined; await recordingSettled(id)
       return (['me', 'them'] as const).flatMap((track) => { const path = trackFile(meetingDir(id), track, audioKinds); return path ? [{ track, path }] : [] })

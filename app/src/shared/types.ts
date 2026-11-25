@@ -16,7 +16,7 @@ export type { Access, PermissionKind, PermissionStatus }
 /** one first-run question: a permission, or open at login last */
 export type OnboardingStep = { kind: PermissionKind; status: Access }
 /** the first run: the intro screens (once), then one step per permission still open */
-export type OnboardingPlan = { intro: boolean; steps: OnboardingStep[] }
+export type OnboardingPlan = { granola?: boolean; intro: boolean; steps: OnboardingStep[] }
 /** a permission still off after the first run, for home's Finish setup */
 export type MissingPermission = { kind: PermissionKind; status: Access; essential: boolean }
 export type DeleteRecordingResult = 'deleted' | 'missing' | 'recording' | 'not-transcribed' | 'kept' | 'failed'
@@ -192,6 +192,20 @@ export type YogurtApi = {
     /** hides this version in the title bar until the app restarts; installation is unchanged */
     later(): Promise<void>
     onStatus(fn: (s: UpdateStatus) => void): () => void
+  }
+  granola: {
+    connect(importAfterSignIn?: boolean): Promise<void>
+    disconnect(): Promise<void>
+    importConnected(): Promise<void>
+    cancelConnect(): Promise<void>
+    offer(): Promise<boolean>
+    dismiss(): Promise<void>
+    status(): Promise<import('./granola').GranolaStatus>
+    list(key?: string): Promise<void>
+    remove(): Promise<void>
+    importApi(): Promise<void>
+    importCsv(text: string): Promise<void>
+    onChange(cb: () => void): () => void
   }
   backup: {
     /** import waits while a meeting records */

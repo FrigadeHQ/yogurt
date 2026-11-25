@@ -1,4 +1,5 @@
-import { AudioLines, CalendarDays, Mic, PhoneOff, Plus, Video, X } from './Icons'
+import { AudioLines, CalendarDays, Check, FileText, Mic, PhoneOff, Plus, Video, X } from './Icons'
+import type { GranolaStatus } from '../../../shared/granola'
 import type { PermissionKind } from '../../../shared/types'
 import { AppIcon, Logo } from './Logo'
 import { t } from '../../../shared/i18n'
@@ -91,6 +92,16 @@ function CalendarArt() {
       </div>
     </div>
   )
+}
+
+export function GranolaArt({ status }: { status?: GranolaStatus }) {
+  if (!status?.result?.added) return null
+  return <div className="ob-scene"><div className="ob-card ob-import-list">
+    <div className="ob-card-head"><Logo size={16} />{t('Your meetings')}<span>{t('Added {count} meetings.', { count: status.result.added })}</span></div>
+    <ul>{status.recent.map(meeting => <li key={meeting.id} className="ob-import-row">
+      <FileText size={16} aria-hidden="true" /><span>{meeting.title}</span><Check size={15} aria-hidden="true" />
+    </li>)}</ul>
+  </div></div>
 }
 
 /** A still example of the reminder that appears when a call starts. */

@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } 
 import { LoaderCircle } from '../components/Icons'
 import type { OnboardingPlan, OnboardingStep, PermissionKind, SetupState } from '../../../shared/types'
 import { screensOf, type OnboardingScreen } from '../../../shared/onboarding'
+import type { GranolaMethod } from '../../../shared/granola'
+import { quotaMessage, useGranolaImport } from '../components/GranolaImport'
 import { Wordmark } from '../components/Logo'
-import { ReadyArt, ScreenArt, WelcomeArt } from '../components/OnboardingArt'
+import { GranolaArt, ReadyArt, ScreenArt, WelcomeArt } from '../components/OnboardingArt'
 import { SettingsArt } from '../components/SettingsGuide'
 import { CalendarLinkForm } from '../components/CalendarLinkForm'
 import { SetupStatus, transcriptionPhase, transcriptionPercent } from '../components/SetupStatus'
@@ -18,24 +20,26 @@ import { t } from '../../../shared/i18n'
  */
 export function Onboarding({ state, plan, onDone }: { state: SetupState; plan: OnboardingPlan; onDone(): void }) {
   const screens = useMemo(() => screensOf(plan.steps), [plan])
-  const [stage, setStage] = useState<'intro' | 'steps' | 'progress'>(plan.intro ? 'intro' : screens.length ? 'steps' : 'progress')
+  const [stage, setStage] = useState<'intro' | 'steps' | 'granola' | 'progress'>(plan.intro ? 'intro' : screens.length ? 'steps' : plan.granola ? 'granola' : 'progress')
   const [i, setI] = useState(0)
   const finish = () => { setStage('progress'); void window.yogurt.onboarding.done().finally(onDone) }
+  const afterPermissions = () => plan.granola ? setStage('granola') : finish()
   const introDone = () => {
     void window.yogurt.onboarding.introSeen()
-    if (screens.length) setStage('steps'); else finish()
+    if (screens.length) setStage('steps'); else afterPermissions()
   }
-  const next = () => { if (i + 1 < screens.length) setI(i + 1); else finish() }
+  const next = () => { if (i + 1 < screens.length) setI(i + 1); else afterPermissions() }
   const screen = screens[i]
   // the welcome counts as the first step, so the bar shows how much is left from the start
   const first = plan.intro ? 1 : 0
-  const progress = { n: stage === 'intro' ? 0 : first + i, total: first + screens.length }
+  const progress = { n: stage === 'intro' ? 0 : first + (stage === 'granola' ? screens.length : i), total: first + screens.length + Number(!!plan.granola) }
   return (
     <div data-testid="onboarding" data-phase={state.phase} data-stage={stage} className="setup-screen">
       {stage === 'intro' ? <Welcome state={state} progress={progress} onDone={introDone} />
         : stage === 'steps' && screen ? (screen.id === 'calendar' && window.yogurt.capabilities.calendarLink
           ? <CalendarLinkScreen key={screen.id} state={state} progress={progress} onNext={next} />
           : <PermissionScreen key={screen.id} screen={screen} state={state} progress={progress} onNext={next} />)
+          : stage === 'granola' ? <GranolaStep state={state} progress={progress} onNext={() => { void window.yogurt.granola.dismiss().finally(finish) }} />
           : <Ready state={state} />}
     </div>
   )
@@ -48,8 +52,8 @@ type Progress = { n: number; total: number }
  * buttons sit in the same place on every screen; the note under the buttons has its own room so nothing moves.
  * motionKey: a change fades the words in again; its part before ":" does the same for the picture.
  */
-function Layout({ testId, step, kind, motionKey, art, title, text, textTestId = 'step-reason', actions, note, progress, state }: {
-  testId: string; step?: string; kind?: string; motionKey: string; art: ReactNode; title: string; text: string; textTestId?: string
+function Layout({ testId, step, kind, motionKey, art, artLabel, title, text, chooser, textTestId = 'step-reason', actions, note, progress, state }: {
+  testId: string; step?: string; kind?: string; motionKey: string; art: ReactNode; artLabel?: string; title: string; text: string; chooser?: ReactNode; textTestId?: string
   actions: ReactNode; note?: ReactNode; progress?: Progress; state?: SetupState
 }) {
   return (
@@ -60,6 +64,7 @@ function Layout({ testId, step, kind, motionKey, art, title, text, textTestId = 
           <div key={motionKey} className="ob-copy">
             {step === 'welcome' && <div className="ob-brand ob-intro-brand"><Wordmark height={22} /></div>}
             <h1 data-testid="step-title" className="ob-title"><span>{title}</span></h1>
+            {chooser}
             <p id="step-reason" data-testid={textTestId} className="ob-text">{text}</p>
             <div className="ob-actions">{actions}</div>
             <div className="ob-note-slot">{note}</div>
@@ -70,7 +75,7 @@ function Layout({ testId, step, kind, motionKey, art, title, text, textTestId = 
           {state && <SetupStatus state={state} />}
         </div>
       </div>
-      <div className="ob-stage" aria-hidden="true">
+      <div className="ob-stage" role={artLabel ? 'region' : undefined} aria-label={artLabel} aria-hidden={artLabel ? undefined : true}>
         <div key={motionKey} className="ob-stage-art">{art}</div>
       </div>
     </section>
@@ -89,6 +94,89 @@ function Steps({ n, total }: Progress) {
 /** The keyboard focus goes to the main button whenever what it does changes, so Enter answers and a screen reader reads it */
 function useFocus(ref: RefObject<HTMLButtonElement | null>, deps: unknown[]) {
   useEffect(() => { ref.current?.focus() }, deps)
+}
+
+function GranolaStep({ state, progress, onNext }: { state: SetupState; progress: Progress; onNext(): void }) {
+  const { status, error, retryStatus, clearError, busy, act, input, choose, key, setKey, find } = useGranolaImport()
+  const [method, setMethod] = useState<GranolaMethod>('connect')
+  const select = (value: GranolaMethod) => { setMethod(value); setKey(''); clearError() }
+  const primary = useRef<HTMLButtonElement>(null)
+  const phase = status?.phase ?? 'idle'
+  const matching = status?.source === method
+  const result = matching ? status.result : null
+  const processed = result ? result.added + result.skipped + result.failures.length : 0
+  const count = result ? t('{current} of {count}', { current: processed, count: result.total }) : ''
+  const problem = error || (matching && status.error)
+  const active = phase === 'finding' || phase === 'importing' || phase === 'waiting'
+  const found = method === 'key' && matching && status.available != null ? status.available : null
+  const done = phase === 'idle' && (!!result || found === 0) && !problem
+  const picking = phase === 'idle' && !done
+  const selectingKey = picking && method === 'key' && !status?.hasKey
+  const background = t('You can continue setup. Follow the import in Settings → Import.')
+  let title = t('Bring your notes from Granola')
+  let text = t('Sign in to Granola to add your meetings to Yogurt.')
+  if (method === 'csv') text = t('In Granola, go to Settings → Profile → Generate CSV.')
+  if (method === 'key') text = t('On Business or Enterprise, get your key in Settings → Connectors → API keys.')
+  if (found && !result) text = t('{count} meetings', { count: found })
+  if (phase === 'connecting') { title = t('Connect Granola'); text = t('Finish signing in in your browser.') }
+  else if (phase === 'listing') { title = t('Searching your meetings…') }
+  else if (phase === 'finding') { title = t('Searching your meetings…'); text = background }
+  else if (phase === 'waiting' && status?.retryAt) { title = t('Import paused'); text = quotaMessage(status.retryAt) }
+  else if (phase === 'importing') { title = t('Importing…'); text = background }
+  else if (problem) { title = t("Couldn't import notes"); text = problem }
+  else if (matching && status.cancelled) { title = t('Sign-in cancelled.'); text = t('Sign in to Granola to add your meetings to Yogurt.') }
+  else if (done) {
+    title = result?.total ? t('Added {count} meetings.', { count: result.added }) : t('No meetings')
+    text = result?.total ? t('Open Meetings to read your notes.') : t('No meetings found in Granola.')
+    if (result?.total && !result.added && !result.skipped) text = ''
+    if (status?.notice) text = status.notice
+  }
+  const next = active || done
+  const methodLabels = {
+    connect: status?.connected ? t('Import notes') : t('Connect Granola'),
+    csv: t('Choose CSV'),
+    key: found ? t('Import notes') : t('Find meetings'),
+  }
+  const label = phase === 'connecting' ? t('Cancel') : next ? t('Continue') : problem ? t('Try again') : methodLabels[method]
+  // Keep keyboard focus on the chosen radio while switching methods.
+  useFocus(primary, [phase, !!status, done])
+  const mainAction = () => {
+    if (!status) retryStatus()
+    else if (phase === 'connecting') void window.yogurt.granola.cancelConnect()
+    else if (next) onNext()
+    else if (method === 'csv') choose()
+    else if (method === 'key') { if (found) void act(() => window.yogurt.granola.importApi()); else void find() }
+    else void act(() => status?.connected ? window.yogurt.granola.importConnected() : window.yogurt.granola.connect(true))
+  }
+  const disabled = !status ? !error : !next && phase !== 'connecting' && (busy || (selectingKey && !key.trim()))
+  return <Layout testId="granola-onboarding" step="granola" motionKey="granola" state={state} progress={progress}
+    title={title} text={text} art={<GranolaArt status={status} />} artLabel={status?.result?.added ? t('Your meetings') : undefined}
+    chooser={picking && <fieldset className="granola-picker"><legend className="sr-only">{t('Import')}</legend>
+      {(['connect','csv','key'] as const).map(id => <label key={id}>
+        <input type="radio" className="sr-only" name="granola-method" checked={id === method} onChange={() => select(id)} />
+        {id === 'connect' ? t('Connect') : id === 'csv' ? 'CSV' : t('API key')}
+      </label>)}
+    </fieldset>}
+    actions={<form className="granola-actions" onSubmit={e => { e.preventDefault(); if (!disabled) mainAction() }}>
+      {selectingKey && <input type="password" autoComplete="off" spellCheck={false} className="settings-name-field" placeholder={t('API key')} aria-label={t('API key')} aria-describedby="step-reason" value={key} onChange={e => setKey(e.target.value)} />}
+      <div>
+        <button ref={primary} className="ob-button primary no-drag" disabled={disabled}>{label}</button>
+        {!next && phase !== 'connecting' && <button type="button" className="ob-button quiet no-drag" onClick={onNext}>{t('Skip')}</button>}
+      </div>
+    </form>}
+    note={<div className="ob-note">
+      <div role="status" aria-live="polite">
+        <span className="sr-only">{title}</span>
+        {(active || problem) && count && <p>{count}</p>}
+        {phase === 'waiting' && <p>{background}</p>}
+        {done && !!result?.skipped && <p>{t('{count} were already here.', { count: result.skipped })}</p>}
+        {result && result.failures.length > 0 && <details><summary>{t('Failed imports · {n}', { n: result.failures.length })}</summary>
+          <ul>{result.failures.map((f,i) => <li key={i}>{f.title} — {f.reason}</li>)}</ul></details>}
+      </div>
+      {input}
+      {done && (status?.notice || !result?.total || result.failures.length > 0) && <button className="text-action no-drag" disabled={busy} onClick={() => { select('csv'); choose() }}>{t('Import a CSV')}</button>}
+    </div>}
+  />
 }
 
 /** What Yogurt is, in the website's words */

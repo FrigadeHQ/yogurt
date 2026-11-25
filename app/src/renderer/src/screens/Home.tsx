@@ -1,3 +1,4 @@
+import { GranolaPrompt } from '../components/GranolaImport'
 import { InlineError, ReadError } from '../components/InlineError'
 import { transcriptionLabel } from '../../../shared/transcription'
 import { LoadingContent } from '../components/LoadingContent'
@@ -80,6 +81,7 @@ export function Home({ open, openSearch, openFolder, agendaJump, searching }: { 
           <Search size={16} aria-hidden="true" />{t('Search meetings')}
         </button>
       </div>
+      {past.cards && !recording && <GranolaPrompt />}
       {past.failed && !!past.cards?.length && <InlineError testId="meetings-read-error" retry={past.retry} />}
       <LoadingContent pending={!past.cards && !past.failed} onReady={() => setListReady(true)}
         testId="meetings-loading" skeleton={<MeetingListLoading />} className="library-load">

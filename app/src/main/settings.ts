@@ -8,6 +8,12 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   welcomed?: boolean
   /** Windows and Linux: private calendar addresses (iCal), sealed with the system's keychain where it has one (calendarLink) */
   calendarLinks?: Array<{ id: string; name: string; host: string; url: string }>
+  granolaPromptHidden?: boolean
+  /** Ciphertext from Electron safeStorage. Never returned to the renderer. */
+  granolaKey?: string
+  granolaConnection?: string
+  /** An unfinished connected import. Zero means it can resume immediately. */
+  granolaResumeAt?: number
   /** the intro screens were read or skipped (kept apart, so a restart halfway through goes on with the permissions) */
   introSeen?: boolean
   /** The optional bigger notes model stays off until explicitly downloaded again. */

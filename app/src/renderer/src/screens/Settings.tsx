@@ -1,3 +1,4 @@
+import { ImportSettings } from '../components/GranolaImport'
 import { AboutYogurt } from '../components/AboutYogurt'
 import { retryToast, toasts } from '../components/TrashToast'
 import { LoadingContent } from '../components/LoadingContent'
@@ -265,6 +266,8 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
             <SpokenSetting />
             <Jargon />
           </div>
+
+          <ImportSettings reveal={focus === 'import' && generalReady && !!perms} />
 
           <Backup onImported={() => { void window.yogurt.settings.get().then(setPrefs) }} />
 

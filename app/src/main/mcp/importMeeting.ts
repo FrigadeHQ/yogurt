@@ -1,7 +1,7 @@
 import { NOTES_MAX } from '../notes'
 import { TITLE_MAX, PEOPLE_MAX } from '../meeting'
 import { Refusal, bool, list, people, str, time, type Args } from './args'
-import type { Ctx, Tool } from './server'
+import type { Ctx, McpApp, McpDeps, Tool } from './server'
 import { parseTranscript, timedLines, toSegments, type ImportLine } from './transcriptImport'
 
 /**
@@ -55,7 +55,9 @@ function linesOf(v: unknown[]): ImportLine[] {
   })
 }
 
-export function importHandlers({ d, folderOf, log }: Ctx): Record<string, (a: Args) => Promise<string>> {
+type ImportDeps = Pick<McpDeps, 'store' | 'me'> & { app: Pick<McpApp, 'imported' | 'changed' | 'notesReady' | 'rewriteSummary'> }
+
+export function meetingImporter(d: ImportDeps, folderOf: Ctx['folderOf'], log: Ctx['log']) {
   const s = d.store
   /** one meeting, checked whole before anything is saved */
   const check = (a: Args) => {
@@ -82,9 +84,18 @@ export function importHandlers({ d, folderOf, log }: Ctx): Record<string, (a: Ar
     try { folder = folderOf(folderName) } catch (e) { if (!(e instanceof Refusal) || !createFolder) throw e }
     return { title, startedAt, endedAt, attendees, lines, summary: summary?.trim() ? summary : null, mine: mine ?? '', writeSummary, sourceId, folder, newFolder: !folder && createFolder ? folderName : undefined }
   }
-  const save = (m: ReturnType<typeof check>) => {
+  const save = (m: ReturnType<typeof check>, fillMissingTranscript = false) => {
     const already = m.sourceId ? s.meetingFromSource('import', m.sourceId) : undefined
-    if (already) return { id: already.id, title: already.title, already_imported: true }
+    if (already) {
+      // A CSV export can supply the transcript missing from an earlier Basic import.
+      if (fillMissingTranscript && m.lines.length && !s.segments(already.id, { hidden: true, last: 1 }).length) {
+        const timed = timedLines(m.lines)
+        s.addSegments(toSegments(already.id, timed, d.me()))
+        if (already.endedAt === already.startedAt) s.updateMeeting(already.id, { endedAt: already.startedAt + timed[timed.length - 1].endMs })
+        d.app.imported(already.id)
+      }
+      return { id: already.id, title: already.title, already_imported: true }
+    }
     const timed = timedLines(m.lines)
     const meeting = s.createMeeting({ title: m.title, titleSource: 'user', startedAt: m.startedAt, endedAt: m.endedAt ?? m.startedAt + (timed.at(-1)?.endMs ?? 0),
       eventId: null, app: null, attendees: m.attendees, keepAttendees: true, state: 'done', source: 'import', ...(m.sourceId ? { sourceId: m.sourceId } : {}) })
@@ -103,8 +114,8 @@ export function importHandlers({ d, folderOf, log }: Ctx): Record<string, (a: Ar
     } catch (e) { s.deleteMeeting(meeting.id); throw e }
   }
   return {
-    async create_meeting(a) { return JSON.stringify(save(check(a)), null, 2) },
-    async import_meetings(a) {
+    one: (a: Args, fillMissingTranscript = false) => save(check(a), fillMissingTranscript),
+    batch(a: Args) {
       const all = list(a, 'meetings', { max: IMPORT_BATCH_MAX, required: true })!
       const checked = all.map((m, i) => {
         if (!m || typeof m !== 'object' || Array.isArray(m)) return { index: i, error: 'Each meeting must be an object, as create_meeting takes it.' }
@@ -112,7 +123,15 @@ export function importHandlers({ d, folderOf, log }: Ctx): Record<string, (a: Ar
       })
       const total = checked.reduce((n, c) => n + ('meeting' in c && c.meeting ? c.meeting.lines.length : 0), 0)
       if (total > BATCH_LINES_MAX) throw new Refusal(`These meetings have ${total} transcript lines together: at most ${BATCH_LINES_MAX} a call. Send fewer at a time.`)
-      return JSON.stringify(checked.map((c) => ('meeting' in c && c.meeting ? { index: c.index, ...save(c.meeting) } : c)), null, 2)
+      return checked.map((c) => ('meeting' in c && c.meeting ? { index: c.index, ...save(c.meeting) } : c))
     },
+  }
+}
+
+export function importHandlers({ d, folderOf, log }: Ctx): Record<string, (a: Args) => Promise<string>> {
+  const importer = meetingImporter(d, folderOf, log)
+  return {
+    async create_meeting(a) { return JSON.stringify(importer.one(a), null, 2) },
+    async import_meetings(a) { return JSON.stringify(importer.batch(a), null, 2) },
   }
 }

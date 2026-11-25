@@ -6,6 +6,12 @@ import type { PermissionStatus } from '../src/shared/types'
 const all = (a: PermissionStatus[keyof PermissionStatus]): PermissionStatus => ({ mic: a, systemAudio: a, calendar: a, notifications: a, accessibility: a })
 
 describe('first run', () => {
+  it('offers Granola once on a used computer, even if all permissions are already granted', () => {
+    const base = { ask: true, welcomed: false, introSeen: true, status: all('granted'), granola: true }
+    expect(firstRunPlan(base)).toEqual({ intro: false, steps: [], granola: true })
+    expect(firstRunPlan({ ...base, welcomed: true }).granola).toBeUndefined()
+    expect(firstRunPlan({ ...base, granola: false }).granola).toBeUndefined()
+  })
   it('a new Mac: the intro, then one step per permission, in order, and no open-at-login step', () => {
     const plan = firstRunPlan({ ask: true, welcomed: false, introSeen: false, status: all('unknown') })
     expect(plan.intro).toBe(true)

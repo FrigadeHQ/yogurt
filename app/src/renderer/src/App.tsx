@@ -90,7 +90,7 @@ export function App() {
   // first run: the intro and the questions still to ask; nothing on later launches
   const [plan, setPlan] = useState<OnboardingPlan>()
   useEffect(() => { void window.yogurt.onboarding.plan().then(setPlan, () => setPlan({ intro: false, steps: [] })) }, [])
-  const firstRunDone = !!plan && !plan.intro && plan.steps.length === 0
+  const firstRunDone = !!plan && !plan.intro && !plan.granola && plan.steps.length === 0
   const ready = setup?.phase === 'ready' && firstRunDone
   // the launch screen: up while Yogurt starts, and once it has shown, long enough to be seen
   // a later launch also waits for the models on disk to be checked
