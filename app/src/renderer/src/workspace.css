@@ -159,6 +159,8 @@
 .workspace:dir(rtl) .workspace-toolbar:has(.notes-download-status) { padding-inline-end:132px; }
 .workspace:dir(rtl) .workspace-toolbar[data-note=true]:has(.notes-download-status) { padding-inline-end:185px; }
 .native-library { position:relative;padding:29px 26px 30px;min-width:0;overflow:auto; }
+/* Pinning the sidebar can cross the narrow-pane breakpoint without resizing the window. */
+.native-home>.native-library { padding-top:29px; }
 /* Keep the scroll area full width. The hover background extends 8px past the content on each side. */
 :is(.native-home,.native-folder)>.native-library>* { --meeting-list-max-width:1080px;inline-size:min(100%,calc(var(--meeting-list-max-width) - 16px));margin-inline:auto; }
 .native-library>h1 { font-size:20px;line-height:26px;font-weight:600;letter-spacing:-.55px;margin-bottom:9px; }
@@ -396,7 +398,8 @@
 .folder-glyph { display:inline-flex;align-items:center;justify-content:center;flex:none;color:var(--folder-ink); }
 .folder-preview-tile,.folder-heading-icon { background:var(--folder-tint);color:var(--folder-ink); }
 .library-page-heading { display:flex;align-items:center;gap:12px;margin-bottom:9px; }
-.workspace:not(.sidebar-collapsed) .home-search,.workspace[data-peeking=true] .home-search { display:none; }
+.native-home .library-page-heading { height:var(--button-height); }
+.workspace:not(.sidebar-collapsed) .home-search { display:none; }
 .library-page-heading h1 { min-width:0;font-size:20px;line-height:26px;font-weight:600;letter-spacing:-.55px; }
 .library-page-heading h1 input { font:inherit;letter-spacing:inherit; }
 .folder-heading-icon { display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:10px;border:1px solid color-mix(in srgb,var(--folder-ink) 15%,transparent); }
