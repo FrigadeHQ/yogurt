@@ -79,5 +79,6 @@ export function createSavedTranscriptions(d: {
     resume(){quitting=false;void pump()},
     pump,
     owns:(id:string)=>running?.id===id,
+    busy:()=>!!running,
   }
 }

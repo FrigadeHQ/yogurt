@@ -62,6 +62,10 @@ Finish any recording, then open **Settings → Backup** to export your meetings 
 
 Import a backup from the same section. It adds meetings that are missing and leaves existing meetings unchanged. Backups work across Mac, Windows and Linux.
 
+## Transcription model
+
+**Settings → Transcription** picks the Whisper model that transcribes your meetings, always on your computer. **Auto** uses the one setup picked for it. Another model downloads while the current one keeps working, and takes over once nothing is being recorded or transcribed; the old one is then removed.
+
 ## Connect an AI app
 
 In **Settings → AI apps**, turn on access, copy the helper command, and add it as a local MCP server in your AI app. MCP lets that app read your meetings, notes and transcripts; it cannot change them. Yogurt does not edit the other app's configuration.
