@@ -172,6 +172,8 @@ html.widget, .widget-pill[data-illustration] { --pill:#232326;--pill-ink:#F7F7FA
 .widget-morph[data-open=true] { cursor:grab; }
 .widget-details { position:absolute;left:0;top:0;z-index:2; }
 .widget-details>* { position:absolute;left:0;top:0;margin:0; }
+.widget-details>.widget-brand { left:16px;top:17px;animation:motion-fade var(--dur-micro) var(--ease-out) 40ms both; }
+.widget-readout { display:flex;align-items:center;gap:12px;width:max-content;direction:ltr; }
 /* The resting recorder in the first-run call. Only the native window morphs on hover. */
 .widget-pill[data-illustration] { width:max-content;border-radius:10px;color:var(--pill-ink);direction:ltr; }
 .widget-pill[data-illustration] .widget-details { position:static;display:flex;align-items:center;gap:12px;height:40px;padding:0 12px; }
@@ -187,7 +189,7 @@ html.widget, .widget-pill[data-illustration] { --pill:#232326;--pill-ink:#F7F7FA
 .mic-pending-status { position:absolute;z-index:2;margin:0;font-size:12px;line-height:18px;pointer-events:none; }
 .widget-preview > .mic-pending-status { top:-36px;left:44px;right:125px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
 .note-footer > .mic-pending-status { bottom:100%;inset-inline:0;width:fit-content;max-width:100%;margin:auto;padding:2px 8px;border-radius:4px;background:var(--bg); }
-.widget-time { white-space:nowrap;font-size:10px;font-weight:500;font-variant-numeric:tabular-nums;line-height:15px;opacity:.8; }
+.widget-time { white-space:nowrap;font-size:10px;font-weight:500;font-variant-numeric:tabular-nums;text-box:trim-both cap alphabetic;line-height:15px;opacity:.8; }
 .widget-preview { position:absolute;left:0;top:52px;display:flex;flex-direction:column;padding:0 4px 12px 12px;color:var(--pill-ink);font-size:14px;line-height:21px;transform-origin:50% 0;cursor:default; }
 /* closed: the transcript stays mounted but unpainted (hidden once the close has played, its live dots paused); the meter repaints only itself */
 .widget-preview[aria-hidden=true] { visibility:hidden;transition:visibility 0s linear var(--dur-base); }

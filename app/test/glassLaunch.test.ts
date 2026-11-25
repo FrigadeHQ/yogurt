@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, expect, it, vi } from 'vitest'
 import { App } from '../src/renderer/src/App'
 import { MacLaunch } from '../src/renderer/src/components/BootScreen'
-import { MARK } from '../src/shared/logo'
+import { MARK, MARK_FIT } from '../src/shared/logo'
 import { BOOT } from '../src/shared/onboarding'
 
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals() })
@@ -21,7 +21,7 @@ it('exposes the Mac material with one still Yogurt mark after the existing start
   expect(html).toContain('class="mac-launch" data-active="true"')
   expect(html).toContain('data-testid="app-shell" inert=""')
   expect(html).toContain('width="52" height="52"')
-  expect(html).toContain(`d="${MARK}" fill="currentColor"`)
+  expect(html).toContain(`d="${MARK}" fill="currentColor" transform="${MARK_FIT}"`)
   expect(html).toContain('text-neutral-400 dark:text-white')
   expect(html).not.toMatch(/boot-band|linearGradient/)
   const done = renderToStaticMarkup(createElement(MacLaunch, { active: false }))
@@ -33,6 +33,7 @@ it.each(['win32', 'linux'])('keeps the existing solid launch on %s', os => {
   const html = startup(os, BOOT.showAfterMs)
   expect(html).toContain('class="boot-screen"')
   expect(html).toContain('class="boot-band"')
+  expect(html).toContain(`d="${MARK}" transform="${MARK_FIT}" clip-rule="evenodd"`)
   expect(html).not.toMatch(/mac-launch|inert=""/)
 })
 

@@ -107,7 +107,7 @@ function Recording({ view }: { view: WidgetView }) {
   const showFeedback = view.micState === 'unconfirmed' || view.micState === 'still-off'
   const hover = useWidgetMorph(card, !!view.note || showFeedback, time, muted)
   const press = useDragOrClick(() => window.yogurt.widget.open(), hover)
-  return <RecordingPill ref={card} time={time} data-testid="widget" data-kind="recording" data-open={hover.open} role={hover.open ? 'group' : 'button'} tabIndex={0}
+  return <RecordingPill ref={card} time={time} expanded={hover.open} data-testid="widget" data-kind="recording" role={hover.open ? 'group' : 'button'} tabIndex={0}
     className="widget-morph" {...press}
     onFocus={e => { if (e.target.matches(':focus-visible')) hover.focus(true) }}
     onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) hover.focus(false) }}
