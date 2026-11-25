@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>Yogurt</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>ar</string>
+		<string>bn</string>
+		<string>cs</string>
+		<string>da</string>
+		<string>de</string>
+		<string>el</string>
+		<string>es</string>
+		<string>fi</string>
+		<string>fil</string>
+		<string>fr</string>
+		<string>he</string>
+		<string>hi</string>
+		<string>hu</string>
+		<string>id</string>
+		<string>it</string>
+		<string>ja</string>
+		<string>ko</string>
+		<string>ms</string>
+		<string>nb</string>
+		<string>nl</string>
+		<string>pl</string>
+		<string>pt-BR</string>
+		<string>ro</string>
+		<string>ru</string>
+		<string>sv</string>
+		<string>th</string>
+		<string>tr</string>
+		<string>uk</string>
+		<string>vi</string>
+		<string>zh-Hans</string>
+		<string>zh-Hant</string>
+	</array>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_yogurt._tcp</string>
+	</array>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Yogurt can ask for Face ID before showing your meetings.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Yogurt finds your computer on this Wi-Fi to keep your meetings in sync. Nothing goes through the internet.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Yogurt records your meetings so it can write the transcript and notes.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Yogurt turns your recordings into a transcript on this iPhone.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string></string>
+	</dict>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+</dict>
+</plist>

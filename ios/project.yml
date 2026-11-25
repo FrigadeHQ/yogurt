@@ -1,0 +1,90 @@
+# XcodeGen spec for the iPhone app: `xcodegen --spec ios/project.yml` regenerates ios/Yogurt.xcodeproj.
+name: Yogurt
+options:
+  bundleIdPrefix: so.yogurt
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+  developmentLanguage: en
+packages:
+  YogurtKit:
+    path: YogurtKit
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    DEVELOPMENT_TEAM: 2JNSQVN3N8
+    CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "7"
+targets:
+  Yogurt:
+    type: application
+    platform: iOS
+    sources:
+      - path: Yogurt
+    dependencies:
+      - package: YogurtKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: so.yogurt.ios
+        PRODUCT_NAME: Yogurt
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: Yogurt/Info.plist
+        ENABLE_PREVIEWS: YES
+    info:
+      path: Yogurt/Info.plist
+      properties:
+        CFBundleDisplayName: Yogurt
+        # the languages Localizable.xcstrings has, the same as desktop Yogurt's: iOS shows its per-app Language picker
+        CFBundleLocalizations:
+          - en
+          - ar
+          - bn
+          - cs
+          - da
+          - de
+          - el
+          - es
+          - fi
+          - fil
+          - fr
+          - he
+          - hi
+          - hu
+          - id
+          - it
+          - ja
+          - ko
+          - ms
+          - nb
+          - nl
+          - pl
+          - pt-BR
+          - ro
+          - ru
+          - sv
+          - th
+          - tr
+          - uk
+          - vi
+          - zh-Hans
+          - zh-Hant
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        ITSAppUsesNonExemptEncryption: false
+        LSRequiresIPhoneOS: true
+        UILaunchScreen:
+          UIColorName: ""
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSLocalNetworkUsageDescription: Yogurt finds your computer on this Wi-Fi to keep your meetings in sync. Nothing goes through the internet.
+        NSBonjourServices:
+          - _yogurt._tcp
+        NSMicrophoneUsageDescription: Yogurt records your meetings so it can write the transcript and notes.
+        NSSpeechRecognitionUsageDescription: Yogurt turns your recordings into a transcript on this iPhone.
+        NSFaceIDUsageDescription: Yogurt can ask for Face ID before showing your meetings.
+        UIBackgroundModes:
+          - audio
