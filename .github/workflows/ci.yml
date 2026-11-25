@@ -2,14 +2,14 @@
 # The Mac job runs everything; Windows and Linux typecheck, unit-test, build their helpers and run the e2e specs that work there.
 name: CI
 
-# Docs and licence text don't run it. A newer push to the same branch
+# Docs, licence text and the iPhone app (ios/, tested with swift test) don't run it. A newer push to the same branch
 # stops the run before it: macOS minutes cost ten times Linux ones.
 on:
   push:
     branches: [main]
-    paths-ignore: ['docs/**', '**/*.md', 'LICENSE']
+    paths-ignore: ['docs/**', '**/*.md', 'LICENSE', 'ios/**']
   pull_request:
-    paths-ignore: ['docs/**', '**/*.md', 'LICENSE']
+    paths-ignore: ['docs/**', '**/*.md', 'LICENSE', 'ios/**']
   workflow_dispatch:
 
 concurrency:
