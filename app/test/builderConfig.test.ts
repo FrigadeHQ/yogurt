@@ -18,8 +18,9 @@ it('Windows and Linux builds have fixed file names, like the Mac one', () => {
 
 it('ships the compact and titled Mac tray templates at both display scales', () => {
   for (const scale of [1, 2]) {
-    // tray-labels: the same logo with the red exclamation, drawn at the colour icon's size
-    for (const [name, width, height] of [['tray', 22, 22], ['tray-titled', 23, 22], ['tray-labels', 16, 16]] as const) {
+    // tray-labels: the same logo with the red exclamation, the same size as the tray icon so the menu bar icon
+    // does not change size when a summary starts waiting for labels
+    for (const [name, width, height] of [['tray', 22, 22], ['tray-titled', 23, 22], ['tray-labels', 22, 22]] as const) {
       const file = name + (scale === 2 ? '@2x' : '') + '.png'
       expect(config).toContain('"' + file + '"')
       const png = readFileSync(join(__dirname, '../resources', file))
@@ -32,9 +33,10 @@ it("only Windows and Linux carry the colour tray icons (the Mac's package keeps 
   const block = (name: string) => config.match(new RegExp(`^${name}:\\n((?:  .*\\n|\\n)*)`, 'm'))?.[1] ?? ''
   for (const os of ['win', 'linux']) expect(block(os)).toContain('filter: ["tray-color*.png", "tray-recording*.png", "tray-labels*.png"]')
   expect(config.split(/^win:$/m)[0]).not.toContain('tray-color')
-  for (const state of ['color', 'recording', 'labels']) for (const theme of ['', '-dark']) for (const [scale, size] of [['', 16], ['@2x', 32]] as const) {
+  // the colour tray icons are 16 px (the Windows tray's size); the attention one matches the menu bar's logo
+  for (const [state, size] of [['color', 16], ['recording', 16], ['labels', 22]] as const) for (const theme of ['', '-dark']) for (const [scale, px] of [['', size], ['@2x', size * 2]] as const) {
     const png = readFileSync(join(__dirname, '../resources', `tray-${state}${theme}${scale}.png`))
-    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([size, size])
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([px, px])
   }
 })
 
