@@ -55,7 +55,7 @@ async function finished(app: ElectronApplication, page: Page) {
   await expect(page.getByTestId('note-enhanced')).toBeVisible()
 }
 
-test('the menu copies the notes as text and HTML, the transcript, and Mac shortcut copies too', async () => {
+test('the menu copies the notes as text and HTML, the transcript, and Mac shortcut copies too', async ({}, info) => {
   const { app, page } = await launch()
   await keepClipboard(app)
   try {
@@ -92,6 +92,10 @@ test('the menu copies the notes as text and HTML, the transcript, and Mac shortc
     await page.getByTestId('share-button').focus()
     await page.keyboard.press('Enter')
     await expect(page.getByTestId('share-copy-summary')).toBeFocused()
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme })
+      await page.screenshot({ path: info.outputPath(`brand-share-${colorScheme}.png`) })
+    }
     await page.keyboard.press('ArrowDown')
     await expect(page.getByTestId('share-copy-notes')).toBeFocused()
     await page.keyboard.press('Escape')

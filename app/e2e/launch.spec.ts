@@ -18,10 +18,10 @@ test('@everywhere opens a window called Yogurt with the app shell', async () => 
   } finally { await app.close() }
 })
 
-test('@everywhere shows the Yogurt mark at launch and on the sidebar menu button', async () => {
+test('@everywhere shows the Yogurt mark at launch and on the sidebar menu button', async ({}, info) => {
   const userData = mkdtempSync(join(tmpdir(), 'yogurt-e2e-'))
   const app = await electron.launch({ args: [main], env: {
-    ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: userData, YOGURT_FAKE_BOOT_MS: '4000',
+    ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: userData, YOGURT_FAKE_BOOT_MS: '8000',
   } })
   try {
     const page = await app.firstWindow()
@@ -29,6 +29,10 @@ test('@everywhere shows the Yogurt mark at launch and on the sidebar menu button
     const launchMark = launch.locator('svg')
     await expect(launchMark).toBeVisible()
     await expect(launchMark.locator('path')).toHaveAttribute('d', MARK)
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme })
+      await page.screenshot({ path: info.outputPath(`brand-launch-${colorScheme}.png`) })
+    }
 
     await expect(page.getByTestId('home')).toBeVisible({ timeout: 15_000 })
     await expect(launch).toHaveCount(0)
@@ -38,5 +42,15 @@ test('@everywhere shows the Yogurt mark at launch and on the sidebar menu button
     const cornerMark = button.locator('svg path')
     await expect(cornerMark).toBeVisible()
     await expect(cornerMark).toHaveAttribute('d', MARK)
+    await expect(button.locator('svg')).toHaveAttribute('width', '18')
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme })
+      await page.screenshot({ path: info.outputPath(`brand-corner-${colorScheme}.png`) })
+      await button.click()
+      await expect(page.getByTestId('corner-menu')).toBeVisible()
+      await page.screenshot({ path: info.outputPath(`brand-corner-menu-${colorScheme}.png`) })
+      await page.keyboard.press('Escape')
+      await expect(page.getByTestId('corner-menu')).toBeHidden()
+    }
   } finally { await app.close() }
 })
