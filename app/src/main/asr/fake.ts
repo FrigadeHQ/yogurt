@@ -30,9 +30,21 @@ export async function fakeTranscribe(c: Chunk, o?: { partial?: boolean }, prompt
   // word times as whisper gives them, spread over the phrase (the other side's saved lines carry them to diarization)
   const step = (near.end - near.at) / words.length
   const timed = words.map((text, i) => ({ text, startMs: Math.round(near.at + i * step), endMs: Math.round(near.at + (i + 1) * step) }))
-  const kept = o?.partial ? timed.slice(0, Math.max(2, Math.min(words.length - 1, Math.round(words.length * (c.samples.length / 16000) / 5))))
-    : !overlaps ? timed : timed.filter((_, i) => { const at = near.at + (i + 0.5) * step; return at >= c.startMs && at < endMs })
-  const text = kept.map((w) => w.text).join(' ')
+  // YOGURT_FAKE_SPLIT: whisper gives a word as pieces, the first carrying its leading space, every later one glued to
+  // the word before, all lowercase ("Tuesday," as " tues"+"day,"). The line's text keeps the casing whisper wrote, so
+  // a rebuild has to put the pieces back together, not show "tues day" in the transcript.
+  const raw = process.env.YOGURT_FAKE_SPLIT === '1' && c.track === 'them'
+  const piece = (w: string, startMs: number, endMs: number, glue: boolean) => ({ text: w, startMs, endMs, ...(glue ? { glue: true } : {}) })
+  const piecesOf = (w: string, startMs: number, endMs: number) => {
+    const cut = raw && w.length > 5 ? Math.ceil(w.length / 2) : 0, mid = Math.round((startMs + endMs) / 2)
+    const t = w.toLocaleLowerCase()
+    return cut ? [piece(' ' + t.slice(0, cut), startMs, mid, false), piece(t.slice(cut), mid, endMs, true)] : [piece(raw ? ' ' + w : w, startMs, endMs, false)]
+  }
+  // a piece belongs to the chunk that covers its middle
+  const keptWords = o?.partial ? timed.slice(0, Math.max(2, Math.min(words.length - 1, Math.round(words.length * (c.samples.length / 16000) / 5))))
+    : !overlaps ? timed : timed.filter((w) => { const at = (w.startMs + w.endMs) / 2; return at >= c.startMs && at < endMs })
+  const kept = keptWords.flatMap((w) => piecesOf(w.text, w.startMs, w.endMs))
+  const text = keptWords.map((w) => w.text).join(' ')
   // whisper's row starts at its chunk, before the first word it says; YOGURT_FAKE_LEAD gives a test that shape, so the
   // row's start matches no line the diarizer saves. By default the chunker cuts at the speech, so the row starts at
   // its first word.

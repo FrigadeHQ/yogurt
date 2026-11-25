@@ -55,19 +55,45 @@ export function evidenceName(claims: Array<{ name: string | null; ms: number }>)
   return best
 }
 
-/** punctuation whisper splits off joins the word before it without a space, when it does not start after that word ends */
 /** a stored word's spacing when its `glue` is unknown (lines saved before it was kept): punctuation joins, words do not */
 const GLUE = /^[.,!?;:…、。！？)\]}»”’]/
+/** each piece's slice of its line as whisper wrote it, walked piece by piece: the pieces carry no casing, the line
+ *  does (" f"+"ühr" in the text "Führung" gives "F"+"ühr"). A piece the line does not match keeps its raw text. */
+export function casingOf(text: string, words: Word[]): Map<Word, string> {
+  const flat = text.replace(/\s+/g, '')
+  const out = new Map<Word, string>()
+  let at = 0
+  for (const w of words) {
+    const t = w.text.trim()
+    if (!t) continue
+    if (flat.slice(at, at + t.length).toLowerCase() === t.toLowerCase()) {
+      out.set(w, flat.slice(at, at + t.length)); at += t.length
+    }
+  }
+  return out
+}
+
 /**
  * The run's text from its words, keeping whisper's own spacing. A saved word is trimmed and carries `glue` when its
  * token had no leading space (punctuation, and the pieces of a word); joining the raw texts would instead lose every
  * space ("Shewillsendadraft"). Raw pieces that still carry their space pass through as they are.
+ *
+ * `casing` gives each word its slice of the line as whisper wrote it, so the pieces of one word keep their letters'
+ * casing: whisper's word pieces of "Führungskräfte" are lowercase (" f", "ühr", "ung"…), so a rebuild from the pieces
+ * alone reads "f ühr ung sk rä fte" with the spaces and "führungskräfte" without them. A piece the line's text does
+ * not match (a respelled name, pieces out of order) keeps its raw text.
  */
-const textOf = (words: Word[], spell: (t: string) => string) => spell(words.reduce((text, w, i) => {
-  if (i === 0) return w.text
-  const glue = w.glue ?? GLUE.test(w.text)
-  return text + (glue || /^\s/.test(w.text) ? w.text : ' ' + w.text)
-}, ''))
+export const textOf = (words: Word[], spell: (t: string) => string, casing?: Map<Word, string>) => {
+  // two shapes the words can be in: glue recorded (the trimmed words asr saves now), or whisper's raw tokens with
+  // their leading spaces, which say where a word starts (" f" starts "Führung", "ühr" joins it). A line saved
+  // before either, with words trimmed and no glue, has no signal and keeps its spaces between the words.
+  const raw = words.some(w => /^\s/.test(w.text))
+  const glue = (w: Word) => w.glue ?? (raw ? !/^\s/.test(w.text) : GLUE.test(w.text))
+  return spell(words.reduce((text, w, i) => {
+    const t = casing?.get(w) ?? w.text.trim()
+    return text + (i === 0 ? (/^\s/.test(w.text) ? ' ' : '') + t : glue(w) ? t : ' ' + t)
+  }, ''))
+}
 
 /**
  * The whole ordered word stream of the rows being diarized, split at speaker changes. Whisper's line boundaries
@@ -83,6 +109,9 @@ const textOf = (words: Word[], spell: (t: string) => string) => spell(words.redu
  */
 export function splitPlan(rows: SplitRow[], turns: Turn[], spell: (t: string) => string): { keep: number[]; runs: SplitRun[] } {
   const keep = rows.filter(r => !r.words?.length).map(r => r.id)
+  /** each piece's slice of its line as whisper wrote it, so the pieces of one word keep their casing */
+  const casing = new Map<Word, string>()
+  for (const r of rows) for (const [w, slice] of casingOf(r.text, r.words ?? [])) casing.set(w, slice)
   /** one whisper sentence: words up to sentence punctuation or a pause; a longer unpunctuated stretch can hold a real speaker change: per word there */
   const SENTENCE_WORDS = 16, SENTENCE_MS = 10_000, SENTENCE_PAUSE_MS = 700
   const endsSentence = (text: string) => /[.?!…。！？]["'»”’)\]]*$/.test(text.trimEnd())
@@ -129,10 +158,10 @@ export function splitPlan(rows: SplitRow[], turns: Turn[], spell: (t: string) =>
       prev.run.endMs = w.endMs
       for (const [name, ms] of cur.claims) prev.claims.set(name, (prev.claims.get(name) ?? 0) + ms)
       for (const id of cur.lineIds) if (!prev.run.lineIds.includes(id)) prev.run.lineIds.push(id)
-      prev.run.text = textOf(prev.run.words, spell)
+      prev.run.text = textOf(prev.run.words, spell, casing)
       prev.run.speaker = prev.run.key ? speak(prev.claims) : null
     } else {
-      built.push({ run: { lineIds: cur.lineIds, key: cur.key, startMs: cur.words[0].startMs, endMs: cur.words[cur.words.length - 1].endMs, text: textOf(cur.words, spell), speaker: cur.key ? speak(cur.claims) : null, words: cur.words }, claims: cur.claims })
+      built.push({ run: { lineIds: cur.lineIds, key: cur.key, startMs: cur.words[0].startMs, endMs: cur.words[cur.words.length - 1].endMs, text: textOf(cur.words, spell, casing), speaker: cur.key ? speak(cur.claims) : null, words: cur.words }, claims: cur.claims })
     }
     cur = null
   }

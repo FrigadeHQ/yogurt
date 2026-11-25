@@ -305,3 +305,18 @@ describe('the language lock is reported', () => {
     expect(heard).toEqual([['spanish', false], ['spanish', true]])
   })
 })
+
+describe('the words whisper gives', () => {
+  it('marks the pieces of one word as glue, so a re-split rebuilds "Führungskräfte"', async () => {
+    const s = await stub([{ language: 'german', prob: 0.99, segments: [{ start: 0.5, end: 2, text: ' Führungskräfte müssen',
+      words: [{ word: ' f', start: 0.5, end: 0.6 }, { word: 'ühr', start: 0.6, end: 0.8 }, { word: 'ung', start: 0.8, end: 0.9 },
+        { word: 'sk', start: 0.9, end: 1.0 }, { word: 'rä', start: 1.0, end: 1.1 }, { word: 'fte', start: 1.1, end: 1.3 },
+        { word: ' müssen', start: 1.3, end: 2.0 }] }] }])
+    const tr = createTranscriber({ url: async () => s.url })
+    const [line] = await tr(chunk('them', 0))
+    // a piece with no space before it belongs to the word before it, so the line reads as whisper heard it
+    expect(line.words?.map(w => [w.text, w.glue ?? false])).toEqual([
+      [' f', false], ['ühr', true], ['ung', true], ['sk', true], ['rä', true], ['fte', true], [' müssen', false],
+    ])
+  })
+})

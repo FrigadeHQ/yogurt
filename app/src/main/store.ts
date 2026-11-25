@@ -9,6 +9,7 @@ import { attendeeMembership, matchingOwnEmail, ownAddress, personEmail, sameAtte
 import type { FolderSuggestionRecord } from '../shared/folderSuggestion'
 import { unusedPreparedNote } from '../shared/agendaNote'
 import { speakerOrder } from '../shared/speakerColors'
+import { casingOf, textOf } from './diarize/align'
 import { DatabaseSync } from 'node:sqlite'
 import { randomUUID } from 'node:crypto'
 import { sourceOf, type TitleSource } from './titles'
@@ -366,6 +367,25 @@ export class Store {
       this.db.exec(`UPDATE meetings SET transcription_pending = 1 WHERE state IN ('stopped', 'done') AND trashed_at IS NULL
         AND NOT EXISTS (SELECT 1 FROM segments s WHERE s.meeting_id = meetings.id)`)
       this.db.exec('PRAGMA user_version = 2')
+    }
+    // a diarization run built its lines by putting a space between every piece whisper split a word at, which saved
+    // "Führungskräfte" as "f ühr ung sk rä fte" (this branch before the spacing fix). Each piece carries the spacing
+    // whisper gave it, so the line can be read as it was said again: done once, on the first launch that knows how
+    // the pieces go together.
+    if (Number((this.db.prepare('PRAGMA user_version').get() as Row).user_version) < 3) {
+      const rows = this.db.prepare("SELECT id, text, words FROM segments WHERE track = 'them' AND words IS NOT NULL").all() as Row[]
+      const up = this.db.prepare('UPDATE segments SET text = ? WHERE id = ?')
+      this.db.exec('BEGIN')
+      try {
+        for (const r of rows) {
+          const words = JSON.parse(String(r.words)) as Word[]
+          if (!words.length) continue
+          const text = textOf(words, (t) => t, casingOf(String(r.text), words))
+          if (text && text !== String(r.text)) up.run(text, Number(r.id))
+        }
+        this.db.exec('PRAGMA user_version = 3')
+        this.db.exec('COMMIT')
+      } catch (e) { this.db.exec('ROLLBACK'); throw e }
     }
   }
   private readMeeting(r: Row): Meeting {

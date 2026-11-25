@@ -263,4 +263,31 @@ describe('diarization store', () => {
     expect(s.voiceProfiles()).toEqual([])
     expect(s.meetingSpeakers(m.id)).toEqual([])
   })
+
+  it('rebuilds the text of lines a diarization split between the pieces of one word', () => {
+    const d = mkdtempSync(join(tmpdir(), 'yogurt-diarize-store-'))
+    dirs.push(d)
+    const file = join(d, 'yogurt.db')
+    const s = openStore(file)
+    stores.push(s)
+    const m = s.createMeeting({ ...base, startedAt: 1 })
+    // as a diarization run saved it before the spacing fix: whisper's raw pieces, and the text built by putting a
+    // space between every piece (" f"+"ühr"+"ung"+"sk"+"rä"+"fte" read as "f ühr ung sk rä fte")
+    s.addSegments([{ meetingId: m.id, track: 'them', startMs: 0, endMs: 2000, text: ' f ühr ung sk rä fte müssen',
+      speaker: 'Speaker 1', speakerKey: 'v1', words: [
+        { text: ' f', startMs: 0, endMs: 20 }, { text: 'ühr', startMs: 20, endMs: 150 }, { text: 'ung', startMs: 150, endMs: 180 },
+        { text: 'sk', startMs: 180, endMs: 260 }, { text: 'rä', startMs: 260, endMs: 300 }, { text: 'fte', startMs: 300, endMs: 360 },
+        { text: ' müssen', startMs: 1200, endMs: 2000 }] }])
+    s.db.exec('PRAGMA user_version = 2')   // the version a database from that build has
+    s.close()
+    stores.pop()
+    const again = openStore(file)
+    stores.push(again)
+    expect(again.segments(m.id)[0].text).toBe(' führungskräfte müssen')
+    // the words stay as they were: a re-split uses them the same way
+    expect(again.segments(m.id)[0].words?.map(w => w.text)).toEqual([' f', 'ühr', 'ung', 'sk', 'rä', 'fte', ' müssen'])
+    // and the search index follows the line's text, as every other update does
+    const found = again.db.prepare("SELECT s.text t FROM segments_fts f JOIN segments s ON s.id = f.rowid WHERE segments_fts MATCH 'führungskräfte'").get() as { t?: string } | undefined
+    expect(found?.t).toBe(' führungskräfte müssen')
+  })
 })

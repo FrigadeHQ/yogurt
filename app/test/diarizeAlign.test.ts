@@ -144,6 +144,26 @@ describe('splitPlan', () => {
     const row: SplitRow = { id: 1, text: 'She will send a draft by Friday.', startMs: 0, endMs: 2400, speaker: null, words: [...words, { text: '.', startMs: 2100, endMs: 2400, glue: true }] }
     expect(splitPlan([row], [{ key: 'v1', startMs: 0, endMs: 2400 }], identity).runs[0].text).toBe('She will send a draft by Friday.')
   })
+  it('splits a long word between two voices and rebuilds each side as one word', () => {
+    // "Führungskräfte" as whisper gives it: pieces, the last five of them joined to the one before without a space.
+    // Space between every piece read as "f ühr ung sk rä fte".
+    const pieces: Array<[string, boolean, number, number]> = [['f', false, 0, 20], ['ühr', true, 20, 150], ['ung', true, 150, 180],
+      ['sk', true, 180, 260], ['rä', true, 260, 300], ['fte', true, 300, 360], ['müssen', false, 1200, 1460],
+      ['ihren', false, 1460, 1710], ['mit', false, 1710, 1880], ['arbeit', true, 1880, 2220], ['ern', true, 2220, 2370]]
+    const r: SplitRow = { id: 1, text: 'Führungskräfte müssen ihren Mitarbeitern', startMs: 0, endMs: 2370, speaker: null,
+      words: pieces.map(([text, glue, startMs, endMs]) => ({ text, startMs, endMs, ...(glue ? { glue: true } : {}) })) }
+    const { runs } = splitPlan([r], [{ key: 'v1', startMs: 0, endMs: 360 }, { key: 'v2', startMs: 1200, endMs: 2370 }], identity)
+    expect(runs.map(r => [r.key, r.text])).toEqual([['v1', 'Führungskräfte'], ['v2', 'müssen ihren Mitarbeitern']])
+  })
+  it('rebuilds a line saved before glue, from the spaces its raw pieces carry', () => {
+    // asr stored whisper's raw tokens, leading spaces included, before it recorded glue: " f" starts a word and
+    // "ühr" joins the one before, so the spaces in the data say how the line was said
+    const pieces: Array<[string, number, number]> = [[' f', 0, 20], ['ühr', 20, 150], ['ung', 150, 180],
+      ['sk', 180, 260], ['rä', 260, 300], ['fte', 300, 360], [' müssen', 1200, 1460]]
+    const r: SplitRow = { id: 1, text: 'Führungskräfte müssen', startMs: 0, endMs: 1460, speaker: null,
+      words: pieces.map(([text, startMs, endMs]) => ({ text, startMs, endMs })) }
+    expect(splitPlan([r], [{ key: 'v1', startMs: 0, endMs: 1460 }], identity).runs[0].text).toBe(' Führungskräfte müssen')
+  })
   it('a line saved before glue was kept still spaces its words, punctuation included', () => {
     const words = ['She', 'will', 'send', 'a', 'draft', '.'].map((text, i) => ({ text, startMs: i * 300, endMs: (i + 1) * 300 }))
     const row: SplitRow = { id: 1, text: 'She will send a draft.', startMs: 0, endMs: 1800, speaker: null, words }

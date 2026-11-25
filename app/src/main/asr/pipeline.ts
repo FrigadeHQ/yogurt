@@ -116,7 +116,7 @@ export function createPipeline(p: {
   const out = (l: Line, hidden = false): Out => ({ meetingId: p.meetingId, track: l.track, startMs: l.startMs, endMs: l.endMs, text: spell(l.text), speaker: speakerOf(l),
     // its words carry their spacing with them: the text is trimmed, and glue says whether the token had a leading
     // space (punctuation whisper gives as its own piece does not), so a re-split rebuilds the line exactly
-    ...(l.track === 'them' && l.words?.length ? { words: l.words.map(w => ({ text: w.text, startMs: w.startMs, endMs: w.endMs, ...(w.glue ? { glue: true } : {}) })) } : {}),
+    ...(l.track === 'them' && l.words?.length ? { words: l.words.filter(w => w.text.trim()).map(w => ({ text: w.text.trim(), startMs: w.startMs, endMs: w.endMs, ...(w.glue ? { glue: true } : {}) })) } : {}),
     ...(hidden ? { hidden: true } : {}) })
   const give = (lines: Line[]) => {
     if (!lines.length) return

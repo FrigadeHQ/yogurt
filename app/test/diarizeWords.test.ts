@@ -28,3 +28,17 @@ describe('pipeline saves words for re-splitting', () => {
     expect((save.mock.calls.flat(2) as unknown[])[0]).not.toHaveProperty('words')
   })
 })
+
+  it('saves the words trimmed, with glue on the pieces that join the word before them', async () => {
+    const save = vi.fn()
+    const p = createPipeline({ meetingId: 'm1', save, emit: () => {}, holdMs: 0, extraWaitMs: 0,
+      transcribe: async () => [{ track: 'them', startMs: 0, endMs: 2000, text: 'Führungskräfte müssen',
+        words: [{ text: ' f', startMs: 0, endMs: 600 }, { text: 'ühr', startMs: 600, endMs: 800, glue: true },
+          { text: 'ung', startMs: 800, endMs: 900, glue: true }, { text: ' müssen', startMs: 900, endMs: 2000 }] }] })
+    p.push('them', 0, chunk('them', 0).samples)
+    await p.finish()
+    expect((save.mock.calls.flat(2) as Array<{ words?: unknown[] }>)[0].words).toEqual([
+      { text: 'f', startMs: 0, endMs: 600 }, { text: 'ühr', startMs: 600, endMs: 800, glue: true },
+      { text: 'ung', startMs: 800, endMs: 900, glue: true }, { text: 'müssen', startMs: 900, endMs: 2000 },
+    ])
+  })

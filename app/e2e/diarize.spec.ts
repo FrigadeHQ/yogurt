@@ -60,6 +60,20 @@ test('the row whisper saved goes when diarization re-splits it, so its words sho
   } finally { await app.close() }
 })
 
+test('the words a diarization re-splits stay whole, so the transcript reads as it was said', async () => {
+  // whisper gives a word as pieces (" tues"+"day"). A rebuild that puts a space between every piece showed
+  // "tues day" in the transcript, and "Führungskräfte" as "f ühr ung sk rä fte".
+  const { app, page } = await launch({ YOGURT_FAKE_AX: 'denied', YOGURT_FAKE_SPLIT: '1' })
+  try {
+    await record(page)
+    await expect(whoOf(page, 'The site goes live on Tuesday')).toHaveText('Speaker 1', { timeout: 30_000 })
+    await expect(page.getByTestId('transcript-line').filter({ hasText: 'The site goes live' }).getByTestId('transcript-text'))
+      .toHaveText('Sure. The site goes live on Tuesday, and the email goes out on Wednesday morning.')
+    await expect(page.getByTestId('transcript-line').filter({ hasText: 'She will send a draft' }).getByTestId('transcript-text'))
+      .toHaveText('She will send a draft by Friday.')
+  } finally { await app.close() }
+})
+
 test('inline rename updates every turn of the voice, keeps its colour, and survives a reload; a taken name asks to merge', async () => {
   const { app, page } = await launch({ YOGURT_FAKE_AX: 'denied' })
   try {
