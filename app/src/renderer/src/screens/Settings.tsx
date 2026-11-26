@@ -248,8 +248,10 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
                   }, 'recording-credit-retry')
                 }}><span className="settings-toggle-knob" /></button>
             </div>
-            <NotesModel reveal={focus === 'notes-model'} />
           </LoadingContent></div>
+
+          <h2 className="settings-section-heading">{t('Models')}</h2>
+          <div className="settings-group"><Models reveal={focus === 'notes-model'} /></div>
 
           <h2 className="settings-section-heading">{t('What Yogurt can use')}</h2>
           <LoadingContent pending={!perms}><ul className="settings-group">
@@ -288,18 +290,57 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
   )
 }
 
-function NotesModel({ reveal = false }: { reveal?: boolean }) {
+function Models({ reveal }: { reveal: boolean }) {
   const [setup, setSetup] = useState<SetupState>()
-  const row = useRef<HTMLDivElement>(null)
-  useEffect(() => { if (reveal && setup?.notesUpgradeBytes) row.current?.scrollIntoView({ block: 'center', behavior: 'instant' }) }, [reveal, setup?.notesUpgradeBytes])
-  const [busy, setBusy] = useState(false)
-  const [failed, setFailed] = useState(false)
   useEffect(() => {
     let current = false, active = true
     const off = window.yogurt.setup.onState(state => { current = true; setSetup(state) })
     void window.yogurt.setup.state().then(state => { if (active && !current) setSetup(state) })
     return () => { active = false; off() }
   }, [])
+
+  const speech = setup?.models?.transcription
+  const summary = setup?.models?.summary
+  const speechReason = speech?.reason === 'after-meeting'
+    ? t('In the speed check, no model kept up with live audio. Yogurt chose one to transcribe after recording.')
+    : speech?.reason === 'speed'
+      ? t('The speed check found that this model can keep up with recordings on this computer.')
+      : speech && t('Yogurt chose this model based on this computer’s system memory ({ram} GB RAM).', { ram: speech.ramGB.toLocaleString(undefined, { maximumFractionDigits: 1 }) })
+  const device = summary?.device === 'gpu' ? t('the GPU') : summary?.device === 'split' ? t('the processor and GPU') : t('the processor')
+  const summaryReason = summary && t('Fits the memory budget for {device}, with an estimated speed of {speed} tokens per second.', {
+    device, speed: summary.estimatedTokensPerSecond.toLocaleString(undefined, { maximumFractionDigits: 1 }),
+  })
+
+  const missing = setup?.phase === 'error' ? t('Model recommendation unavailable.') : t('Checking which model works on this computer…')
+  return <>
+    <ModelDetails title={t('Transcription')} testId="settings-transcription-model" model={speech} reason={speechReason} missing={missing} />
+    <ModelDetails title={t('Summaries')} testId="settings-summary-model" model={summary} reason={summaryReason} missing={missing} />
+    {setup && <NotesModel setup={setup} reveal={reveal} />}
+  </>
+}
+
+function ModelDetails({ title, testId, model, reason, missing }: {
+  title: string; testId: string; model?: { recommended: string; current?: string }; reason?: string; missing: string
+}) {
+  return <div className="settings-row" data-testid={testId}>
+    <div className="settings-row-copy">
+      <p className="settings-label">{title}</p>
+      {model ? <>
+        <dl className="settings-description grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+          <dt>{t('Recommended')}</dt><dd>{model.recommended}</dd>
+          <dt>{t('In use')}</dt><dd>{model.current ?? t('Waiting for download')}</dd>
+        </dl>
+        <p className="settings-description">{reason}</p>
+      </> : <p className="settings-description">{missing}</p>}
+    </div>
+  </div>
+}
+
+function NotesModel({ setup, reveal }: { setup: SetupState; reveal: boolean }) {
+  const row = useRef<HTMLDivElement>(null)
+  const [busy, setBusy] = useState(false)
+  const [failed, setFailed] = useState(false)
+  useEffect(() => { if (reveal && setup.notesUpgradeBytes) row.current?.scrollIntoView({ block: 'center', behavior: 'instant' }) }, [reveal, setup.notesUpgradeBytes])
   if (!setup?.notesUpgradeBytes) return null
   const downloading = setup.notesUpgradePending || setup.notesUpgradeDownloading
   const act = async () => {

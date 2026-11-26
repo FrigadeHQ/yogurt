@@ -38,6 +38,30 @@ async function go(page: Page, route: string) {
   await expect(page.getByTestId(screen)).toBeVisible()
 }
 
+test('settings show the recommended and current speech and notes models', async () => {
+  const { app, page } = await launch()
+  try {
+    const state = await page.evaluate(() => window.yogurt.setup.state())
+    const { transcription, summary } = state.models!
+    await go(page, '/settings')
+    const speech = page.getByTestId('settings-transcription-model')
+    const notes = page.getByTestId('settings-summary-model')
+    await expect(speech.getByText('Recommended', { exact: true })).toBeVisible()
+    await expect(speech.getByText(transcription!.recommended, { exact: true }).first()).toBeVisible()
+    await expect(speech).toContainText(transcription!.reason === 'memory' ? 'memory' : 'speed check')
+    await expect(speech.locator('dd').nth(1)).toHaveText(transcription!.current)
+    await expect(notes.getByText(summary!.recommended, { exact: true }).first()).toBeVisible()
+    await expect(notes).toContainText('estimated')
+    await expect(notes.locator('dd').nth(1)).toHaveText(summary!.current!)
+    // Settings receives a new snapshot when the downloaded model changes.
+    await setSetup(app, { ...state, models: { ...state.models, summary: { ...summary!, current: undefined } } })
+    await expect(notes).toContainText('Waiting for download')
+    await setSetup(app, state)
+    await expect(notes.getByText('Waiting for download')).toHaveCount(0)
+    await expect(notes.getByText('In use', { exact: true })).toBeVisible()
+  } finally { await app.close() }
+})
+
 async function expectClear(page: Page) {
   await expect.poll(() => page.getByTestId('notes-setup-open').evaluate(el => {
     const box = el.getBoundingClientRect()

@@ -357,9 +357,25 @@ export type YogurtApi = {
   }
 }
 
-/** First-run setup: the models this Mac needs. Ready (recording works) once the speech model is in place; the notes models keep downloading after. */
+export type ModelRecommendations = {
+  transcription?: {
+    recommended: string
+    current: string
+    reason: 'memory' | 'speed' | 'after-meeting'
+    ramGB: number
+  }
+  summary: {
+    recommended: string
+    current?: string
+    device: 'cpu' | 'gpu' | 'split'
+    estimatedTokensPerSecond: number
+  }
+}
+
+/** First-run setup: the models this computer needs. Ready (recording works) once the speech model is in place; the notes models keep downloading after. */
 export type SetupState = {
   phase: 'checking' | 'downloading' | 'ready' | 'error'
+  models?: ModelRecommendations
   /** 0 to 1 over what ready waits for */
   fraction: number
   message?: string

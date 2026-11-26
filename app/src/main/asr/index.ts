@@ -37,6 +37,7 @@ type Session = { complete?: () => boolean; pipeline: Pipeline | null; priorLines
   /** Apple's speech listens in this locale for the meeting (null: whisper only); off once whisper hears another language */
   speech?: string | null
   micQuickAfterFinal?: boolean
+  clearModelFallback?: () => void
   /** Live input only: saved-file transcription must never influence call detection. */
   live?: { quietSince: number; mic: MicInput; micFrom?: number; frames: Partial<Record<Track, number>> } }
 
@@ -185,6 +186,7 @@ export function hookTranscription(p: {
   modelPath: () => string | undefined
   /** smaller speech models already on disk, best first: one takes over when the processor is too slow for the model (#156) */
   smallerModels?: () => string[]
+  onModelFallback?: (path?: string) => void
   send: (seg: Omit<Segment, 'id'>) => void
   /** saved echoes changed during recording or the final sweep: the window reads them again */
   refresh?: (meetingId: string) => void
@@ -285,6 +287,10 @@ export function hookTranscription(p: {
             tried.add(next); reading = next
             console.warn(`ASR ${why}: ${basename(next)} takes over for the rest of this meeting`)
             srv = serverFor(next, p.pidFile, p.server, { cpuOnly: true, keepCpu })
+            if (p.onModelFallback) {
+              p.onModelFallback(next)
+              s.clearModelFallback = () => p.onModelFallback?.()
+            }
             srv.resetBudget()
             srv.url().catch((e) => console.error('whisper-server did not start', e))
             return
@@ -503,6 +509,7 @@ function finishSession(id: string, s: Session, audioDone: () => Promise<void> = 
     if (lang) { try { s.store?.updateMeeting(id, { language: lang }) } catch (e) { console.error('saving the language failed', e) } }
     heard.delete(id)
     if (sessions.get(id) === s) sessions.delete(id)
+    s.clearModelFallback?.()
     armServerIdle()
     if (queued) { try { queuedListener?.(id) } catch (e) { console.error('queueing the saved recording failed', e) } }
   })

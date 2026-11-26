@@ -101,9 +101,15 @@ describe('SetupController', () => {
     expect(c.state).toMatchObject({ phase: 'ready', fraction: 1 })
     await vi.waitFor(() => expect(rec.asked).toContain(bigUrl))
     expect(c.installed()?.recommendedLlm).toBeUndefined()
+    const recommended = catalog.models.find((m) => m.id === 'gemma-4-26b-a4b')!.name
+    expect(c.state.models).toMatchObject({
+      transcription: { recommended: catalog.asr[0].name, current: catalog.asr[0].name, reason: 'memory', ramGB: m1max.totalRamGB },
+      summary: { recommended, current: catalog.models.find((m) => m.starter)!.name, device: 'gpu' },
+    })
     rec.release()
     await c.idle()
     expect(c.installed()?.recommendedLlm).toMatch(/gemma-4-26B/)
+    expect(c.state.models?.summary).toMatchObject({ recommended, current: recommended })
   })
 
   it('is ready as soon as speech and the speaker models are in: the first notes model arrives after, and says so', async () => {
@@ -433,6 +439,7 @@ describe('the speed check (Windows and Linux): speech models timed on this compu
     expect(shown).toEqual([0, 0.25, 0.5, 0.75, 1])
     expect(c.state.notesFraction).toBeUndefined()
     expect(c.installed()?.llm).toBeTruthy()
+    expect(c.state.models?.transcription).toMatchObject({ recommended: catalog.asr[1].name, current: catalog.asr[1].name, reason: 'speed' })
   })
 
   it('Linux with no usable graphics card (31 GiB, #32): the 14 GB 26B is never downloaded', async () => {
@@ -528,6 +535,10 @@ describe('the speed check (Windows and Linux): speech models timed on this compu
     await c.start(); await c.idle()
     expect(c.installed()?.smallerAsr).toEqual([join(root, 'asr', name(url('whisper-small-q5_1'))), join(root, 'asr', name(url('whisper-tiny-q5_1')))])
     expect(rec.asked.filter((u) => catalog.asr.some((a) => a.url === u))).toEqual([url('whisper-large-v3-turbo-q5_0')])
+    c.speechFallback(c.installed()!.smallerAsr![0])
+    expect(c.state.models?.transcription).toMatchObject({ recommended: catalog.asr[0].name, current: catalog.asr[1].name })
+    c.speechFallback()
+    expect(c.state.models?.transcription?.current).toBe(catalog.asr[0].name)
     const none = setup({ getHardware: async () => gpuPc, speed: speed({ 'whisper-large-v3-turbo-q5_0': 0.1 }).deps })
     await none.c.start(); await none.c.idle()
     expect(none.c.installed()?.smallerAsr).toBeUndefined()
