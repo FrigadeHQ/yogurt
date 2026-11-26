@@ -7,8 +7,10 @@ import type { LibrarySource } from '../../../shared/types'
 import { flushSync } from 'react-dom'
 import { Loading } from '../components/Loading'
 import { LoadingContent } from '../components/LoadingContent'
-import { motion, useReducedMotion } from '../motion'
+import { motion, usePopoverPresence, useReducedMotion } from '../motion'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useBoundaryTime } from '../dates'
+import { resumesNote } from '../../../shared/agendaNote'
 import { useScrollMemory } from '../useScrollMemory'
 import { Lock, RotateCcw, Trash2, Mic, Pause, Play, X } from '../components/Icons'
 import { attendeeMembership } from '../../../shared/people'
@@ -41,7 +43,7 @@ import { SpokenMenu } from '../components/SpokenMenu'
 import { RecordingHint } from '../components/RecordingHint'
 import { FolderChip, FolderPicker, type FolderSuggestion } from '../components/FolderPicker'
 import { FolderName } from '../components/FolderDialogs'
-import { Swap, SwapText } from '../components/Swap'
+import { Swap } from '../components/Swap'
 
 const RECORDING_CONTROL_TREATMENT: 'neutral-icons' | 'accent-icons' | 'word' = 'neutral-icons'
 
@@ -121,7 +123,8 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   const picked = useRef(readingViews.has(id))
   const typing = useRef(false)
   const [primaryState, setPrimary] = useState<'transcript' | 'notes'>(() => readingViews.get(id)?.primary ?? 'notes')
-  const primary = instantSummary ? 'notes' : primaryState
+  // If recording removes the selected Summary tab, show Transcript in that same render.
+  const primary = instantSummary ? 'notes' : view === 'enhanced' && !hasEnhanced ? 'transcript' : primaryState
   const readingScroll = useScrollMemory<HTMLElement>(`note/${id}/${view}`, !!m && !!notes && primary === 'notes')
   useEffect(() => { if (m && notes) readingViews.set(id, { primary, view }) }, [id, m, notes, primary, view])
   const [transcriptVisited, setTranscriptVisited] = useState(primary === 'transcript')
@@ -275,6 +278,12 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   useEffect(()=>{let active=true;const load=()=>void window.yogurt.audio.tracks(id).then(tracks=>{if(active)setHasAudio(!!tracks.length)});load();const off=window.yogurt.meetings.onChange(load);return()=>{active=false;off()}},[id])
   const openedTranscription=useRef<string | undefined>(undefined)
   useLayoutEffect(()=>{if(m&&openedTranscription.current!==id){openedTranscription.current=id;if(transcriptionBusy(m.transcriptionState))setPrimary('transcript')}},[m,id])
+  const resumeUntil = Math.max(m?.eventEndedAt ?? 0, m?.endedAt == null ? 0 : m.endedAt + 10 * 60_000)
+  const recent = useBoundaryTime(resumeUntil) < resumeUntil
+  const finished = !!m && (m.state === 'stopped' || m.state === 'done') && !finishing && !m.stopSavePending && m.trashedAt == null
+  const resumable = finished && resumesNote(m) && !transcriptionBusy(m.transcriptionState)
+  const headerAction = finished && summaryPending ? 'stop' : resumable && recent ? 'resume' : false
+  const actionPresence = usePopoverPresence(headerAction, !reducedMotion, 150)
   const readFailed = meetingReadFailed || notesReadFailed
   if (!m || !notes) return readFailed ? <ReadError testId="note-read-error" retry={retryRead} /> : <LoadingContent pending skeleton={<Loading layout="note" />} className="loading-note-frame" />
   const recording = m.state === 'recording'
@@ -282,7 +291,8 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   const trashed = m.trashedAt != null
   const minutes = m.endedAt ? Math.max(1, Math.round((m.durationMs ?? (m.endedAt - m.startedAt)) / 60_000)) : null
   const shown = hasEnhanced ? view : 'mine'
-  const resumeLabel = summaryPending ? t('Stop summarizing') : t('Resume recording')
+  const stopAction = actionPresence.value === 'stop'
+  const resumeLabel = stopAction ? t('Stop summarizing') : t('Resume recording')
 
   const pick = (v: 'mine' | 'enhanced') => { picked.current = true; setView(v); mineSave.flush(); enhancedSave.flush() }
   const pickPrimary = (next: 'transcript' | 'notes', pointer = false) => {
@@ -341,7 +351,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
       if (!await saveAll()) return
       const result = await window.yogurt.meetings.resume(id)
       if ('error' in result) setResumeFailed(true)
-      else { picked.current = false; requestFinish(false); setPrimary('notes'); setView('mine'); setEditedHere(false) }
+      else { requestFinish(false); setEditedHere(false) }
     } catch { setResumeFailed(true) }
     finally { setStarting(false) }
   }
@@ -379,7 +389,8 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
         </div>
       </Modal>}
       <div data-testid="note-topbar" className="note-topbar no-drag fixed end-4 top-[10px] z-[60]">
-          <NoteMenu key={id} transcription={{reason:transcriptReason,run:()=>void runTranscript(true)}} generation={generation} hasSummary={hasSummary} edited={notes.edited || editedHere} rewriteOpen={rewriteOpen} setRewriteOpen={setRewriteOpen}
+          <NoteMenu key={id} onResume={resumable && !recent ? () => void resumeRecording() : undefined} resumeDisabled={starting || summaryPending}
+            transcription={{reason:transcriptReason,run:()=>void runTranscript(true)}} generation={generation} hasSummary={hasSummary} edited={notes.edited || editedHere} rewriteOpen={rewriteOpen} setRewriteOpen={setRewriteOpen}
             onWriteAgain={(note) => { if (!generation || generation.reason) return; pickPrimary('notes'); pick('enhanced'); void writeAgain(note) }} recording={recording} savePending={m.stopSavePending} trashed={trashed} onRename={() => setRenaming(true)} onDelete={() => { void saveAll().then((saved) => { if (!saved) return; if (trashed) setDeleting(true); else void moveToTrash(id, `/note/${id}`) }) }}
             folders={(close) => <FolderPicker testId="note-menu-folders" meetingId={id} onNew={() => { close(); setNamingFolder(true) }} />} />
       </div>
@@ -410,11 +421,14 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                     </RecordingAction>
                   </>}
                   {finishing && <span data-testid="note-finishing" role="status" className="note-finishing">{t('Stopping…')}</span>}
-                  {!finishing && (summaryPending || (!transcribing && m.source !== 'audio-file')) && (m.state === 'stopped' || m.state === 'done') && !m.stopSavePending && !trashed && <button data-testid="note-resume" disabled={starting && !summaryPending} onClick={() => { if (summaryPending) void window.yogurt.notes.stop(id).catch(console.error); else void resumeRecording() }}
-                    aria-label={resumeLabel} className="workspace-button note-resume-action" title={summaryPending ? resumeLabel : t('Resume recording in this note')}>
-                    {!summaryPending && <Mic className="flex-none" size={14} aria-hidden="true" />}
-                    <SwapText text={starting && !summaryPending ? t('Preparing…') : resumeLabel} />
-                  </button>}
+                  {finished && <div className="note-resume-slot" data-resume={t('Resume recording')} data-stop={t('Stop summarizing')}>
+                    {actionPresence.value && <button data-testid="note-resume" {...actionPresence.props} disabled={starting && !stopAction}
+                      onClick={() => { if (stopAction) void window.yogurt.notes.stop(id).catch(console.error); else void resumeRecording() }}
+                      aria-label={resumeLabel} className="ghost-btn note-resume-action" title={stopAction ? resumeLabel : t('Resume recording in this note')}>
+                      {!stopAction && <Mic className="flex-none" size={14} aria-hidden="true" />}
+                      {starting && !stopAction ? t('Preparing…') : resumeLabel}
+                    </button>}
+                  </div>}
                   {m.state === 'prepared' && !trashed && <button data-testid="note-start" disabled={starting} onClick={() => { void startPrepared() }} className="note-record-action primary">
                     <Mic className="flex-none" size={14} aria-hidden="true" />{starting ? t('Starting…') : t('Start recording')}
                   </button>}

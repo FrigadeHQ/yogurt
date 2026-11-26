@@ -32,11 +32,12 @@ const meetingListeners=new Set<()=>void>()
 const transcriptGet = vi.fn(), stopSummary = vi.fn()
 let segmentChanged: (line: { meetingId: string; text: string }) => void, transcriptChanged: (id: string) => void, setupChanged: (state: SetupState) => void
 let requested: (() => void) | undefined
+let fixtureNumber = 0
 let tree: ReactNode
 const unmount = () => { hooks.effects.forEach(effect => effect.cleanup?.()); hooks.values = []; hooks.refs = []; hooks.memos = []; hooks.effects = [] }
 async function render() {
   hooks.state = 0; hooks.ref = 0; hooks.memo = 0; hooks.effect = 0
-  tree = Note({ id: 'resume-fixture', onTitleChange: title, onSource: source, onResumeRequested: requested })
+  tree = Note({ id: meeting.id, onTitleChange: title, onSource: source, onResumeRequested: requested })
   for (const effect of hooks.effects) if (effect.pending) {
     effect.cleanup?.()
     effect.cleanup = effect.run() || undefined
@@ -51,13 +52,16 @@ function find(node: ReactNode, id: string | typeof NoteMenu | typeof Ask): React
 }
 beforeEach(() => {
   vi.clearAllMocks();meetingListeners.clear();meetingChanged=()=>meetingListeners.forEach(cb=>cb())
-  meeting = { id: 'resume-fixture', title: 'Resume fixture', startedAt: 1, endedAt: 2, eventId: 'event', app: null, attendees: [], state: 'stopped', language: null, titleSource: 'calendar' }
+  meeting = { id: `resume-fixture-${++fixtureNumber}`, title: 'Resume fixture', startedAt: Date.now() - 60_000, endedAt: Date.now(), eventId: null, app: null, attendees: [], state: 'stopped', language: null, titleSource: 'calendar' }
   notes = { meetingId: meeting.id, mine: '', enhanced: null, edited: false, status: 'writing', draft: '', peopleChanged: false }
   requested = () => { consumed(); requested = undefined }
   transcriptGet.mockResolvedValue([])
-  resume.mockResolvedValue({ id: meeting.id })
+  resume.mockImplementation(async () => {
+    meeting = { ...meeting, state: 'recording', endedAt: null }; meetingChanged()
+    return { id: meeting.id }
+  })
   stopSummary.mockResolvedValue(undefined)
-  vi.stubGlobal('window', { matchMedia: () => ({ matches: true }), yogurt: {
+  vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn(), matchMedia: () => ({ matches: true }), yogurt: {
     meetings: { get: async () => meeting, onChange: (cb: typeof meetingChanged) => { meetingListeners.add(cb); return ()=>meetingListeners.delete(cb) }, resume, stop: vi.fn() },
     notes: { stop: stopSummary, setMine: async (_id: string, _text: string, revision: number) => ({ revision, status: 'saved' }), get: async () => notes, onChange: (cb: typeof notesChanged) => { notesChanged = cb; return vi.fn() } },
     transcript: { get: transcriptGet, onSegment: (cb: typeof segmentChanged) => { segmentChanged = cb; return vi.fn() }, onSpeakers: (cb: typeof transcriptChanged) => { transcriptChanged = cb; return vi.fn() } },
@@ -66,7 +70,7 @@ beforeEach(() => {
     widget: { state: async () => null, onState: () => vi.fn() },
   } })
 })
-afterEach(() => { unmount(); vi.unstubAllGlobals() })
+afterEach(() => { unmount(); vi.useRealTimers(); vi.unstubAllGlobals() })
 
 it('waits for the recording note to be visible before mounting the Ask dialog into it', async () => {
   meeting.state = 'recording'; requested = undefined
@@ -94,16 +98,62 @@ it('tints the note wave purple while recording, grey on pause, and purple again 
   }
 })
 
-it.each(['', 'Keep this decision.'])('the note Resume button always lands on My notes with content %j', async mine => {
-  notes = { ...notes, status: 'done', mine }; requested = undefined
+it.each(['note-notes-tab', 'note-transcript-toggle', 'note-summary-tab'])('preserves the reading tab when resuming from %s, using Transcript when Summary closes', async tab => {
+  notes = { ...notes, status: 'done', mine: 'Keep this decision.' }; requested = undefined
+  let finish!: () => void
+  resume.mockImplementationOnce(() => new Promise(resolve => { finish = () => resolve({ id: meeting.id }) }))
   await render(); await render()
+  ;(find(tree, tab)!.props.onClick as (e: { detail: number }) => void)({ detail: 0 }); await render()
   ;(find(tree, 'note-resume')!.props.onClick as () => void)()
+  await render()
+  meeting = { ...meeting, state: 'recording', endedAt: null }; meetingChanged()
   await render(); await render()
+  const selected = tab === 'note-summary-tab' ? 'note-transcript-toggle' : tab
+  expect(find(tree, selected)?.props['aria-selected']).toBe(true)
+  finish(); await render(); await render()
   expect(resume).toHaveBeenCalledExactlyOnceWith(meeting.id)
-  expect(find(tree, 'note-notes-tab')?.props['aria-selected']).toBe(true)
+  expect(find(tree, selected)?.props['aria-selected']).toBe(true)
 })
 
-it('retains the request through queued and writing summaries, then resumes exactly once on My notes', async () => {
+it.each([undefined, 2 * 60_000, 30 * 60_000])('moves Resume at the later of Stop plus ten minutes and event end (%s), including after reopening', async eventLength => {
+  vi.useFakeTimers()
+  const stopped = Date.now()
+  meeting.endedAt = stopped
+  if (eventLength) { meeting.eventId = 'invite'; meeting.eventEndedAt = stopped + eventLength }
+  requested = undefined; notes.status = 'done'; notes.edited = true
+  await render(); await render()
+  vi.advanceTimersByTime(Math.max(10 * 60_000, eventLength ?? 0) - 1); await render()
+  expect(find(tree, 'note-resume')?.props['aria-label']).toBe('Resume recording')
+  expect(find(tree, NoteMenu)?.props.onResume).toBeUndefined()
+  vi.advanceTimersByTime(1); await render()
+  expect(find(tree, 'note-resume')).toBeUndefined()
+  expect(find(tree, NoteMenu)?.props.onResume).toBeTypeOf('function')
+  unmount(); await render(); await render()
+  expect(find(tree, 'note-resume')).toBeUndefined()
+  ;(find(tree, NoteMenu)!.props.onResume as () => void)(); await render()
+  expect(find(tree, 'resume-confirm')).toBeDefined()
+  expect(resume).not.toHaveBeenCalled()
+})
+
+it('offers Stop only while rewriting an old note and keeps non-resumable notes out of the menu', async () => {
+  requested = undefined; meeting.endedAt = null
+  await render(); await render()
+  expect(find(tree, 'note-resume')?.props['aria-label']).toBe('Stop summarizing')
+  expect(find(tree, NoteMenu)?.props.onResume).toBeTypeOf('function')
+  expect(find(tree, NoteMenu)?.props.resumeDisabled).toBe(true)
+  notesChanged({ ...notes, status: 'done' }); await render()
+  expect(find(tree, NoteMenu)?.props.resumeDisabled).toBe(false)
+  expect(find(tree, 'note-resume')).toBeUndefined()
+  expect(find(tree, NoteMenu)?.props.onResume).toBeTypeOf('function')
+  const saved = meeting
+  for (const patch of [{ trashedAt: 1 }, { source: 'audio-file' }, { transcriptionState: 'transcribing' }, { stopSavePending: true }] as const) {
+    meeting = { ...saved, ...patch }; meetingChanged(); await render(); await render()
+    expect(find(tree, NoteMenu)?.props.onResume).toBeUndefined()
+    expect(find(tree, 'note-resume')).toBeUndefined()
+  }
+})
+
+it('retains the request through queued and writing summaries, then resumes exactly once from Summary to Transcript', async () => {
   notes.status = 'waiting'
   await render(); await render()
   expect(consumed).not.toHaveBeenCalled()
@@ -113,7 +163,7 @@ it('retains the request through queued and writing summaries, then resumes exact
   notesChanged({ ...notes, status: 'done' }); await render(); await render()
   expect(consumed).toHaveBeenCalledOnce()
   expect(resume).toHaveBeenCalledExactlyOnceWith(meeting.id)
-  expect(find(tree, 'note-notes-tab')?.props['aria-selected']).toBe(true)
+  expect(find(tree, 'note-transcript-toggle')?.props['aria-selected']).toBe(true)
   await render()
   expect(resume).toHaveBeenCalledOnce()
 })

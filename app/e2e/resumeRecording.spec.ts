@@ -15,15 +15,22 @@ async function launch(profile: string, env: Record<string, string> = {}) {
 test('Stop summarizing preserves a saved rewrite and the header label stays still on hover and focus', async () => {
   const { app, page } = await launch(mkdtempSync(join(tmpdir(), 'yogurt-summary-stop-')), { YOGURT_FAKE_LLM_MS: '120' })
   try {
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
     const id = await app.evaluate(async () => (await (globalThis as unknown as { __fake__: { chatMeetings(): Promise<string[]> } }).__fake__.chatMeetings())[0])
     await page.evaluate(id => window.yogurt.nav.go(`/note/${id}`), id)
     await page.getByTestId('note-summary-tab').click()
     const before = await page.evaluate(id => window.yogurt.notes.get(id), id)
+    await expect(page.getByTestId('note-resume')).toBeHidden()
+    const headerPositions = () => page.locator('[data-testid="note-metadata"] button, [data-testid="share-button"]').evaluateAll(buttons =>
+      buttons.map(button => { const { x, y } = button.getBoundingClientRect(); return [x, y] }))
+    await expect(page.getByTestId('note-folders')).toBeVisible()
+    const positions = await headerPositions()
     await page.evaluate(id => window.yogurt.notes.writeAgain(id), id)
     const button = page.getByTestId('note-resume')
     await expect(button).toHaveText('Stop summarizing')
-    // the button eases to its label's width first; measure once the label's box has reached the words' own width
-    await expect.poll(() => button.locator('.swap-text').evaluate(el => Math.abs(el.getBoundingClientRect().width - el.firstElementChild!.getBoundingClientRect().width) < 0.5)).toBe(true)
+    expect(await headerPositions()).toEqual(positions)
+    await expect(button).toHaveCSS('transition-property', 'opacity')
+    await expect(button).toHaveCSS('transition-duration', '0.15s')
     const width = (await button.boundingBox())!.width
     await button.hover()
     await expect(button).toHaveAccessibleName('Stop summarizing')
@@ -39,6 +46,11 @@ test('Stop summarizing preserves a saved rewrite and the header label stays stil
     expect(after.edited).toBe(before.edited)
     expect(after.mine).toBe(before.mine)
     expect(after.draft).toBe('')
+    await expect(button).toBeHidden()
+    expect(await headerPositions()).toEqual(positions)
+    await page.getByTestId('note-menu-button').click()
+    await expect(page.getByRole('menuitem', { name: 'Resume recording' })).toBeEnabled()
+    await page.keyboard.press('Escape')
     await expect(page.locator('.summary-stopped')).toHaveCount(0)
     await expect(page.getByTestId('note-enhanced-editor')).toBeVisible()
   } finally { await app.close() }
@@ -71,17 +83,27 @@ test('a finished note resumes after reopening, preserves original data, confirms
     await expect(page.getByRole('textbox', { name: 'Summary', exact: true })).toHaveText('My edited summary is kept until I confirm.')
     expect(readFileSync(join(dir, 'me.wav'))).toEqual(originalAudio)
 
+    await expect.poll(() => page.evaluate(id => window.yogurt.notes.get(id).then(view => view.edited), id)).toBe(true)
+    await page.clock.setFixedTime(prior.meeting!.endedAt! + 10 * 60_000)
+    await page.reload()
+    await expect(page.getByTestId('note-resume')).toBeHidden()
+    const resumeFromMenu = async () => {
+      await page.getByTestId('note-menu-button').click()
+      await page.getByRole('menuitem', { name: 'Resume recording' }).click()
+      await page.getByTestId('resume-yes').click()
+    }
     // A bad retained part refuses Resume without changing the saved note or its previous audio.
     writeFileSync(join(dir, 'part.1.json'), JSON.stringify({ startMs: 5000 }))
     writeFileSync(join(dir, 'me.1.wav'), 'unreadable fixture')
-    await page.getByTestId('note-resume').click(); await page.getByTestId('resume-yes').click()
+    await resumeFromMenu()
     await expect(page.getByTestId('note-resume-failed')).toBeVisible()
     expect((await page.evaluate((id) => window.yogurt.meetings.get(id), id))?.state).toBe('done')
     expect(readFileSync(join(dir, 'me.wav'))).toEqual(originalAudio)
     unlinkSync(join(dir, 'part.1.json')); unlinkSync(join(dir, 'me.1.wav'))
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => !w.webContents.getURL().includes('#'))!.setSize(720, 520))
-    await page.getByTestId('note-resume').click(); await page.getByTestId('resume-yes').click()
+    await resumeFromMenu()
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
+    await expect(page.getByTestId('note-transcript-toggle')).toHaveAttribute('aria-selected', 'true')
     expect(await page.evaluate((id) => window.yogurt.meetings.get(id), id)).toMatchObject({ id, startedAt: prior.meeting!.startedAt, title: prior.meeting!.title })
     expect((await page.evaluate((id) => window.yogurt.notes.get(id), id)).mine).toBe(prior.notes.mine)
     expect(await page.evaluate((id) => window.yogurt.transcript.get(id), id)).toEqual(prior.transcript)
@@ -136,7 +158,8 @@ test('Stop offers Stop summarizing and Generate summary before recording resumes
     await expect(page.getByTestId('note-resume')).toHaveText('Resume recording', { timeout: 30_000 })
     await page.getByTestId('note-resume').click()
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
-    await expect(page.getByTestId('note-notes-tab')).toHaveAttribute('aria-selected', 'true')
+    await expect(page.getByTestId('note-transcript-toggle')).toHaveAttribute('aria-selected', 'true')
+    await page.getByTestId('note-notes-tab').click()
     await page.getByRole('textbox', { name: 'My notes', exact: true }).fill('Second session decision, with the first session retained.')
     await app.evaluate(() => { process.env.YOGURT_FAKE_LLM_MS = '1' })
     await page.waitForTimeout(800)
@@ -151,6 +174,7 @@ test('Stop offers Stop summarizing and Generate summary before recording resumes
 test('queued summaries offer Stop and completed, unsuccessful or empty summaries offer Resume', async () => {
   const { app, page } = await launch(mkdtempSync(join(tmpdir(), 'yogurt-summary-states-')))
   try {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
     const id = await app.evaluate(() => (globalThis as unknown as { __fake__: { bigMeeting(n: number): string } }).__fake__.bigMeeting(10))
     await page.evaluate((id) => window.yogurt.nav.go(`/note/${id}`), id)
     const notes = await page.evaluate((id) => window.yogurt.notes.get(id), id)
@@ -163,6 +187,7 @@ test('queued summaries offer Stop and completed, unsuccessful or empty summaries
       await expect(page.getByTestId('note-resume')).toHaveAccessibleName(busy ? 'Stop summarizing' : 'Resume recording')
       await expect(page.getByRole('tab', { name: 'Summary', exact: true })).toHaveAccessibleDescription(status === 'waiting' ? 'Preparing…' : status === 'writing' ? 'Writing the summary' : '')
       await expect(page.getByTestId('note-resume')).not.toHaveAttribute('aria-busy', 'true')
+      await expect(page.getByTestId('note-resume')).toHaveCSS('transition-duration', '0s')
       await expect(page.getByTestId('note-state')).not.toHaveAttribute('data-state', 'recording')
     }
   } finally { await app.close() }

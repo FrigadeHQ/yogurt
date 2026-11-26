@@ -560,6 +560,17 @@ input::selection, textarea::selection, .note-prose ::selection { background: var
 .note-metadata { display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-width:0; }
 .note-meta-row { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:16px; }
 .note-header-actions { display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:12px;margin-inline-start:auto; }
+/* Reserve both localized labels so the chips and Share keep their positions at the cutoff. */
+.note-resume-slot { display:grid;align-items:center;justify-items:end; }
+.note-resume-slot::before,.note-resume-slot::after,.note-resume-slot>button { grid-area:1/1; }
+.note-resume-slot::before,.note-resume-slot::after { visibility:hidden;height:0;overflow:hidden;padding-inline:12px;font-size:12px;line-height:18px;white-space:nowrap; }
+.note-resume-slot::before { content:attr(data-resume);padding-inline-start:32px; }
+.note-resume-slot::after { content:attr(data-stop); }
+@media (prefers-reduced-motion:no-preference) {
+  .note-resume-slot>button { transition:opacity 150ms ease-out; }
+  .note-resume-slot>button[data-ending-style] { opacity:0; }
+  @starting-style { .note-resume-slot>button { opacity:0; } }
+}
 .note-recorder-controls { display:flex;align-items:center;gap:8px; }
 @media (prefers-reduced-motion:no-preference) {
   .note-recorder-controls .recording-wave { transition:color var(--dur-micro) ease; }

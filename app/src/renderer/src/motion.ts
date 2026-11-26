@@ -74,14 +74,14 @@ export function followGlide(el: HTMLElement, done: () => void) {
 }
 
 /** Keep custom popovers mounted for the shared exit, without retaining interactive controls. */
-export function usePopoverPresence<T>(open: T, animate = true) {
+export function usePopoverPresence<T>(open: T, animate = true, exitMs: number = motion.micro) {
   const [last, setLast] = useState({ value: open, animate })
   useLayoutEffect(() => {
     if (open) { setLast({ value: open, animate }); return }
     if (!last.value) return
-    const timer = setTimeout(() => setLast({ value: open, animate: false }), motion.micro)
+    const timer = setTimeout(() => setLast({ value: open, animate: false }), exitMs)
     return () => clearTimeout(timer)
-  }, [open, animate])
+  }, [open, animate, exitMs])
   return {
     value: open || (last.animate ? last.value : undefined),
     props: {

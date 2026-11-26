@@ -13,3 +13,22 @@ export function useDay(): string {
   }, [day])
   return day
 }
+
+/** Refresh at the next boundary, including after the window wakes. */
+export function useBoundaryTime(end: number | null | undefined, start?: number): number {
+  const [now, setNow] = useState(Date.now)
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const update = () => {
+      clearTimeout(timer)
+      const at = Date.now()
+      setNow(at)
+      const next = start != null && at < start ? start : end != null && at < end ? end : undefined
+      if (next !== undefined) timer = setTimeout(update, Math.min(next - at, 2_147_483_647))
+    }
+    update()
+    window.addEventListener('focus', update)
+    return () => { clearTimeout(timer); window.removeEventListener('focus', update) }
+  }, [start, end])
+  return now
+}
