@@ -22,7 +22,7 @@ export function hookAudioUploads(d:Omit<Parameters<typeof createAudioUploads>[0]
     return watched.get(id)!==generation||result.canceled||!result.filePaths[0]?null:uploads.select(id,result.filePaths[0])
   })
   ipcMain.handle('audio-upload:info',(e,token)=>uploads.info(owner(e),token))
-  ipcMain.handle('audio-upload:start',(e,token,title,at)=>uploads.start(owner(e),token,title,at))
+  ipcMain.handle('audio-upload:start',(e,token,title,at,language)=>uploads.start(owner(e),token,title,at,language))
   ipcMain.handle('audio-upload:read',(e,token,offset,length)=>uploads.read(owner(e),token,offset,length))
   ipcMain.handle('audio-upload:write',(e,token,samples,fraction)=>uploads.write(owner(e),token,samples,fraction))
   ipcMain.handle('audio-upload:finish',(e,token)=>uploads.finish(owner(e),token))

@@ -124,7 +124,7 @@ export type YogurtApi = {
     draft(meetingId:string):Promise<Segment[]>
     onDraft(cb:(meetingId:string)=>void):()=>void
     onReplaced(cb:(meetingId:string)=>void):()=>void
-    run(meetingId:string,again:boolean):Promise<boolean>
+    run(meetingId:string,again:boolean,language?:import('./spoken').TranscriptionLanguage|null):Promise<boolean>
     stop(meetingId:string):Promise<void>
     /** the meeting's lines; hidden: the echo lines hidden after the meeting too (each marked hidden); last: only the latest lines */
     get(meetingId: string, o?: { hidden?: boolean; last?: number }): Promise<Segment[]>
@@ -207,7 +207,7 @@ export type YogurtApi = {
   audioUpload: {
     pick(): Promise<AudioUploadFile | null>
     inspect(token: string): Promise<number>
-    start(token: string, title: string, at: number): Promise<void>
+    start(token: string, title: string, at: number, language?: import('./spoken').TranscriptionLanguage): Promise<void>
     cancel(token: string): Promise<void>
     onStatus(cb: (token: string, status: AudioUploadStatus) => void): () => void
   }

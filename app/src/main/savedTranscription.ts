@@ -3,6 +3,7 @@ import { isPhoneDraft, phoneDraftReplaced, phoneLanguage } from './companion/pho
 import type { Track } from './capture'
 import type { RecordedOptions } from './asr'
 import type { TranscriptionState } from '../shared/transcription'
+import type { TranscriptionLanguage } from '../shared/spoken'
 
 /** One queue for uploaded audio and saved recordings. Stopping never deletes either. */
 export function createSavedTranscriptions(d: {
@@ -40,14 +41,14 @@ export function createSavedTranscriptions(d: {
           const fromMs:Partial<Record<Track,number>>={}
           for(const segment of segments)fromMs[segment.track]=Math.max(fromMs[segment.track]??0,segment.endMs)
           // a phone recording is heard in the language the phone said; everything else follows the spoken setting
-          const language=phoneLanguage(current)
+          const language=current.transcriptionLanguage??phoneLanguage(current)
           const complete=await d.transcribe(id,tracks,{signal:job.abort.signal,fromMs,...(language?{language}:{}),...(meeting.transcriptionAgain?{save:segs=>{d.store.addTranscriptionDraft(id,segs);d.draft?.(id)}}:{})})
           if(!d.store.meeting(id)||d.store.meeting(id)?.trashedAt!=null)continue
           if(job.abort.signal.aborted){if(job.stopped)stopped(id);else set(id,d.recording()?'waiting-recording':'queued');continue}
           if(!complete)throw new Error('Saved transcription incomplete')
           if(meeting.transcriptionAgain&&!d.store.transcriptionDraft(id).some(line=>!line.hidden&&line.text.trim())){d.store.cancelTranscriptionReplacement(id);d.changed(id);continue}
           if(meeting.transcriptionAgain)d.store.commitTranscriptionDraft(id)
-          else d.store.updateMeeting(id,{transcriptionPending:false,transcriptionState:'done'})
+          else d.store.updateMeeting(id,{transcriptionPending:false,transcriptionState:'done',transcriptionLanguage:null})
           d.changed(id,!!meeting.transcriptionAgain)
           // Replacing a transcript must not overwrite an existing or edited summary.
           // a phone recording's draft notes are rewritten once, by this computer's notes model
@@ -62,11 +63,11 @@ export function createSavedTranscriptions(d: {
     } finally {draining=false;if(!quitting&&!d.recording()&&d.ready()&&d.store.untranscribedMeetings().some(m=>m.transcriptionState==='queued'))queueMicrotask(()=>void pump())}
   }
   return {
-    async start(id:string,again=false) {
+    async start(id:string,again=false,language?:TranscriptionLanguage|null) {
       const meeting=d.store.meeting(id)
       if(!meeting||meeting.trashedAt!=null||meeting.state==='recording'||running?.id===id)return false
       if(again)d.store.beginTranscriptionReplacement(id)
-      d.store.updateMeeting(id,{transcriptionPending:true,transcriptionState:'queued'});d.changed(id);void pump();return true
+      d.store.updateMeeting(id,{transcriptionPending:true,transcriptionState:'queued',transcriptionLanguage:language});d.changed(id);void pump();return true
     },
     stop(id:string) {
       const meeting=d.store.meeting(id)

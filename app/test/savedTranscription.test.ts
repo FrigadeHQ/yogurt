@@ -1,4 +1,7 @@
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
+import {mkdtempSync} from 'node:fs'
+import {tmpdir} from 'node:os'
+import {join} from 'node:path'
 import {openStore,type Store} from '../src/main/store'
 import {createSavedTranscriptions} from '../src/main/savedTranscription'
 import {feedRecording} from '../src/main/asr/backfill'
@@ -93,6 +96,30 @@ it("a phone recording is transcribed in the language the phone said it was spoke
  await jobs.start(other);await vi.waitFor(()=>expect(store.meeting(other)?.transcriptionState).toBe('done'))
  expect(transcribe.mock.calls[0][2].language).toBe('de')
  expect(transcribe.mock.calls[1][2].language).toBeUndefined()
+})
+
+it('keeps a Portuguese choice in the queued job and applies it after reopening the database', async () => {
+ const root = mkdtempSync(join(tmpdir(), 'yogurt-saved-language-'))
+ const db = join(root, 'yogurt.db')
+ store.close(); store = openStore(db); jobs = make()
+ const id = note().id
+ store.updateMeeting(id, { language: 'english' })
+ model = false
+ await jobs.start(id, false, 'pt')
+ expect(transcribe).not.toHaveBeenCalled()
+ jobs.shutdown(); store.close()
+ store = openStore(db); jobs = make(); model = true
+ await jobs.pump()
+ expect(transcribe).toHaveBeenCalledWith(id, expect.anything(), expect.objectContaining({ language: 'pt' }))
+ expect(store.meeting(id)?.transcriptionLanguage).toBeUndefined()
+})
+
+it('lets explicit automatic detection override a phone recording’s saved language', async () => {
+ const id = note().id
+ store.updateMeeting(id, { language: 'german', sourceId: `phone:${id}` })
+ await jobs.start(id, true, 'auto')
+ await vi.waitFor(() => expect(jobs.owns(id)).toBe(false))
+ expect(transcribe).toHaveBeenCalledWith(id, expect.anything(), expect.objectContaining({ language: 'auto' }))
 })
 
 it('leaves a meeting alone while its live transcript is still being finished (#127)',async()=>{
