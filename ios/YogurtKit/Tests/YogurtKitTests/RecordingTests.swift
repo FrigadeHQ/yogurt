@@ -290,3 +290,62 @@ private func no(_ b: Bool, _ loc: SourceLocation = #_sourceLocation) { #expect(!
         #expect(store.notes("p1")?.summarySource == .desktop)
     }
 }
+
+@Suite struct RoomTranscriptTests {
+    @Test func bubblesAndTimeLabelsUseDifferentPausesFromThePreviousEnd() {
+        let bubbles = RoomBubble.group([
+            .init(startMs: 2000, endMs: 6000, text: "One."),
+            .init(startMs: 7499, endMs: 10_000, text: "Two."),
+            .init(startMs: 11_500, endMs: 13_000, text: "Three."),
+            .init(startMs: 42_999, endMs: 44_000, text: "Four."),
+            .init(startMs: 57_000, endMs: 60_000, text: "  "),
+            .init(startMs: 74_000, endMs: 78_000, text: "Five."),
+        ])
+        #expect(bubbles.map(\.text) == ["One. Two.", "Three.", "Four.", "Five."])
+        #expect(bubbles.map(\.startMs) == [2000, 11_500, 42_999, 74_000])
+        #expect(bubbles.map(\.showsTime) == [true, false, false, true])
+    }
+
+    @Test func partialSettlesInTheSameBubbleAndSurvivesSaving() {
+        var transcript = LiveTranscript()
+        transcript.update("Hello.", startMs: 0, endMs: 2000, isFinal: true)
+        transcript.update("¿Qué tal?", startMs: 2800, endMs: 4900, isFinal: false)
+        var live = RoomBubble.group(transcript.lines)
+        RoomBubble.append(transcript.pendingLine!, live: true, to: &live)
+        let saved = RoomBubble.group(transcript.settled)
+        #expect(live.map(\.id) == saved.map(\.id))
+        #expect(live.first?.text == "Hello.")
+        #expect(live.first?.liveText == "¿Qué tal?")
+        #expect(saved.first?.text == "Hello. ¿Qué tal?")
+        #expect(saved.first?.liveText == "")
+        transcript.update("¿Qué tal?", startMs: 2800, endMs: 4900, isFinal: true)
+        #expect(transcript.pendingLine == nil)
+        #expect(RoomBubble.group(transcript.lines) == saved)
+    }
+
+    @Test func aNewBubbleKeepsItsStartWhenTheRecognizerFinalizesMidSentence() {
+        var transcript = LiveTranscript()
+        transcript.update("We were thinking", startMs: 0, endMs: 1000, isFinal: true)
+        transcript.update("maybe Thursday", startMs: 2500, endMs: 4000, isFinal: false)
+        let interrupted = RoomBubble.group(transcript.settled)
+        transcript.update("maybe Thursday", startMs: 2500, endMs: 4000, isFinal: true)
+        #expect(interrupted.map(\.startMs) == [0, 2500])
+        #expect(RoomBubble.group(transcript.lines) == interrupted)
+    }
+
+    @Test func correctionsAndCarriedWordsKeepTheirArrival() {
+        var live = LiveWordArrivals()
+        live.update("We can", at: at(1))
+        live.update("We could ship", at: at(2))
+        #expect(live.words.map(\.arrived) == [at(1), at(1), at(2)])
+        live.update("could ship Thursday.", at: at(3))
+        #expect(live.words.map(\.arrived) == [at(1), at(2), at(3)])
+    }
+
+    @Test(arguments: ["你好，世界！", "«أهلاً بالعالم»", "👍🏽", "", "  It’s  ready."])
+    func wordBoundariesPreserveTheRecognizersText(_ text: String) {
+        var live = LiveWordArrivals()
+        live.update(text, at: at(1))
+        #expect(live.words.map(\.text).joined() == text)
+    }
+}

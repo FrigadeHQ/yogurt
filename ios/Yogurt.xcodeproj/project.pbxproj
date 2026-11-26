@@ -24,6 +24,7 @@
 		80212B6A5BBCC3DF874DF495 /* AskSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F3D42554C4CEFC6B6511EB3 /* AskSession.swift */; };
 		8958D6449C5AE2C50069E077 /* Recorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 744CB97AE906E8C979503A43 /* Recorder.swift */; };
 		8C7E96775760E1ECD1B60DD2 /* Strings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1214C6BDF777F9AFA2CDCEAF /* Strings.swift */; };
+		963FEA2D0854EA86690F7C37 /* RoomTranscriptBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010704AC098ACECAA9411660 /* RoomTranscriptBubble.swift */; };
 		98E69FC20DE5D08AF7F9E4F7 /* AppleSummarizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B81477DE28A5EE3E288C9E74 /* AppleSummarizer.swift */; };
 		9A8E4BE947AB0B0E37C03FB9 /* Permissions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F17F94FA71F53C9BDA1CF8 /* Permissions.swift */; };
 		9B947AE389924E3F1C301D5F /* SampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BAA6124843653AAF42FDC22 /* SampleData.swift */; };
@@ -46,6 +47,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		010704AC098ACECAA9411660 /* RoomTranscriptBubble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomTranscriptBubble.swift; sourceTree = "<group>"; };
 		0BAA6124843653AAF42FDC22 /* SampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleData.swift; sourceTree = "<group>"; };
 		0F3D42554C4CEFC6B6511EB3 /* AskSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AskSession.swift; sourceTree = "<group>"; };
 		1214C6BDF777F9AFA2CDCEAF /* Strings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Strings.swift; sourceTree = "<group>"; };
@@ -116,6 +118,7 @@
 				764EEF8446D5FC923213C898 /* Recordings.swift */,
 				926FDCB2952E51696433D3A7 /* RecordStrings.swift */,
 				B90133C024F87FA06ED2A20F /* RecordView.swift */,
+				010704AC098ACECAA9411660 /* RoomTranscriptBubble.swift */,
 				F8216BDA0E6DA0EC4F0884E6 /* Spoken.swift */,
 				5B81672668F92FD54423B7A5 /* SpokenLanguagePicker.swift */,
 			);
@@ -329,6 +332,7 @@
 				CC49CF59513E07DABDD6C941 /* RecordView.swift in Sources */,
 				8958D6449C5AE2C50069E077 /* Recorder.swift in Sources */,
 				2B3031B62FE796BCB4D3E5AE /* Recordings.swift in Sources */,
+				963FEA2D0854EA86690F7C37 /* RoomTranscriptBubble.swift in Sources */,
 				9B947AE389924E3F1C301D5F /* SampleData.swift in Sources */,
 				20E726B1DAEBD6F9161F8F68 /* SearchView.swift in Sources */,
 				5373797ED2F260544B28A634 /* SettingsView.swift in Sources */,

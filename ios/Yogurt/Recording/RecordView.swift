@@ -47,8 +47,13 @@ struct RecordView: View {
         .task {
             #if DEBUG
             if preview {
-                recording.loadPreview()
+                recording.startPreview()
                 pickingLanguage = UserDefaults.standard.bool(forKey: "openRecordLanguage")
+                for phrase in ["Leo said he", "Leo says he can", "Leo said he can review it on"] {
+                    guard !Task.isCancelled, recording.state.phase == .recording else { break }
+                    recording.previewVolatile(phrase)
+                    try? await Task.sleep(for: .milliseconds(750))
+                }
                 return
             }
             #endif
@@ -260,52 +265,32 @@ struct RecordView: View {
     private func elapsed(_ s: TimeInterval) -> String { Format.offset(Int(s * 1000)) }
 }
 
-/// The transcript as it's heard: settled lines fade in, the words still changing sit below in a softer colour.
 struct LiveTranscriptView: View {
     let transcript: LiveTranscript
     let live: Bool
+    @State private var settled: [RoomBubble] = []
 
-    // Monospaced digits make the last settled time as wide as the widest one, at any text size.
-    private func timestamp(_ ms: Int? = nil) -> some View {
-        ZStack(alignment: .leading) {
-            Text(Format.offset(transcript.lines.last?.startMs ?? 0)).hidden().accessibilityHidden(true)
-            if let ms { Text(Format.offset(ms)) }
-        }
-        .font(.caption.monospacedDigit())
-        .foregroundStyle(Theme.muted)
-        .fixedSize()
+    private var bubbles: [RoomBubble] {
+        guard let pending = transcript.pendingLine else { return settled }
+        var result = settled
+        RoomBubble.append(pending, live: live, to: &result)
+        return result
     }
 
     var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 14) {
+            LazyVStack(alignment: .leading, spacing: 5) {
                 if transcript.lines.isEmpty && transcript.volatile.isEmpty {
                     Text(live ? S.listening : S.transcriptWaiting)
                         .font(.subheadline).foregroundStyle(Theme.muted)
                 }
-                ForEach(Array(transcript.lines.enumerated()), id: \.offset) { _, line in
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        timestamp(line.startMs)
-                        Text(line.text).font(.body).foregroundStyle(Theme.written).lineSpacing(4)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .textSelection(.enabled)
-                    }
-                    .transition(.opacity)
-                }
-                if !transcript.volatile.isEmpty {
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        timestamp()
-                        Text(transcript.volatile).font(.body).foregroundStyle(Theme.muted).lineSpacing(4)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .id("volatile")
-                    .transition(.opacity)
+                ForEach(bubbles) { bubble in
+                    RoomTranscriptBubble(bubble: bubble)
                 }
             }
             .padding(.top, 16).padding(.bottom, 24)
-            .animation(.easeOut(duration: 0.35), value: transcript.lines.count)
         }
+        .onChange(of: transcript.lines, initial: true) { _, lines in settled = RoomBubble.group(lines) }
         .defaultScrollAnchor(.bottom)
         .defaultScrollAnchor(.top, for: .alignment)
         .scrollIndicators(.hidden)
@@ -358,15 +343,16 @@ final class WaveBox {
 }
 
 #if DEBUG
-extension RecordingController {
-    /// A made-up meeting for checking the screen in the simulator, where there's no microphone.
-    func loadPreview() {
-        startPreview()
-        for (i, line) in ["So the plan is to ship the beta on Thursday.", "Maya, can you write the post by Wednesday?",
-                          "Yes, I'll send a draft tomorrow morning.", "Great. And the pricing page needs the new tiers."].enumerated() {
-            previewLine(line, at: i * 6000)
+extension LiveTranscript {
+    static var roomPreview: Self {
+        var transcript = Self()
+        for (ms, text) in [(0, "So the plan is to ship the beta on Thursday."),
+                           (5400, "Maya, can you write the post by Wednesday?"),
+                           (12_500, "Yes, I'll send a draft tomorrow morning."),
+                           (49_000, "Great. And the pricing page needs the new tiers.")] {
+            transcript.update(text, startMs: ms, endMs: ms + 5000, isFinal: true)
         }
-        previewVolatile("Leo said he can review it on")
+        return transcript
     }
 }
 #endif

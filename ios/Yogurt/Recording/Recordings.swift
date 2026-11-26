@@ -275,10 +275,10 @@ final class RecordingController {
         _ = state.begin()
         startedAt = Date().addingTimeInterval(-754)
         _ = state.started(at: startedAt)
+        transcript = .roomPreview
         previewLevel = 0.55
     }
-    func previewLine(_ text: String, at ms: Int) { transcript.update(text, startMs: ms, endMs: ms + 5000, isFinal: true) }
-    func previewVolatile(_ text: String) { transcript.update(text, startMs: 0, endMs: 0, isFinal: false) }
+    func previewVolatile(_ text: String) { transcript.update(text, startMs: 56_000, endMs: 59_000, isFinal: false) }
     #endif
 
     // MARK: - Kept as it goes

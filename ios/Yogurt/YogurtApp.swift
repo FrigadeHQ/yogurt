@@ -153,6 +153,14 @@ final class AppModel {
     private func applyLaunchArguments() {
         let d = UserDefaults.standard
         if d.bool(forKey: "sample"), !preview.showingSamples { preview.loadSamples() }
+        if d.bool(forKey: "sample"), d.string(forKey: "openMeeting") == "sample-room" {
+            var transcript = LiveTranscript.roomPreview
+            transcript.update("Leo said he can review it on Friday.", startMs: 56_000, endMs: 59_000, isFinal: true)
+            let room = LocalRecording(id: "sample-room", title: "Beta launch", startedAt: Date.now.addingTimeInterval(-60),
+                                      endedAt: .now, attendees: [], audioURL: PreviewTone.url, myNotes: "",
+                                      transcript: transcript.lines, summary: "Ship the beta on Thursday.")
+            try? samples.store.saveLocalRecording(room)
+        }
         if d.bool(forKey: "previewComputer") {
             preview.showDiscovered([PreviewSyncEngine.demoComputer, DiscoveredDesktop(id: "imac", name: "Studio iMac", pairing: false)])
         }

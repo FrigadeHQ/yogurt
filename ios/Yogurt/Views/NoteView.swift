@@ -478,7 +478,7 @@ struct MyNotesPane: View {
 
 struct TranscriptPane: View {
     let meetingId: String
-    /// recorded on one iPhone in a room: nobody is named, so each line stands on its own
+    /// recorded on one iPhone in a room, without speaker labels
     var oneMic = false
     /// scrolls to the turn this moment falls in, once, and marks it
     var atMs: Int? = nil
@@ -488,6 +488,8 @@ struct TranscriptPane: View {
     @Environment(AppModel.self) private var model
     /// nil until read; a long transcript is read off the main thread
     @State private var segments: [Segment]?
+    @State private var bubbles: [RoomBubble] = []
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var scrolled = false
 
     var body: some View {
@@ -496,19 +498,37 @@ struct TranscriptPane: View {
             if let segments { lines(segments) } else { Color.clear.frame(height: 1) }
         }
         .task(id: revision) {
-            segments = await model.reader.segments(meetingId)
+            let read = await model.reader.segments(meetingId)
+            guard !Task.isCancelled else { return }
+            if oneMic {
+                bubbles = RoomBubble.group(read.map { .init(startMs: $0.startMs, endMs: $0.endMs, text: $0.text) })
+            }
+            segments = read
             if let atMs, !scrolled, let target = target(atMs) {
-                scrolled = true
                 // after the lines are laid out
                 try? await Task.sleep(for: .milliseconds(80))
-                withAnimation(.easeOut(duration: 0.25)) { proxy?.scrollTo(target, anchor: .center) }
+                guard !Task.isCancelled else { return }
+                scrolled = true
+                withAnimation(oneMic && reduceMotion ? nil : .easeOut(duration: 0.25)) { proxy?.scrollTo(target, anchor: .center) }
             }
         }
     }
 
     @ViewBuilder private func lines(_ segments: [Segment]) -> some View {
-        if segments.isEmpty {
+        if oneMic ? bubbles.isEmpty : segments.isEmpty {
             Text(S.noTranscript).font(.subheadline).foregroundStyle(Theme.muted)
+        } else if oneMic {
+            let position: Int? = if let player, player.touched, player.isReady { player.positionMs } else { atMs }
+            let marked = position.flatMap { target($0) }
+            LazyVStack(alignment: .leading, spacing: 5) {
+                ForEach(bubbles) { bubble in
+                    let play: (() -> Void)? = if let player, player.isReady, !player.blocked {
+                        { player.playFrom(lineAt: bubble.startMs) }
+                    } else { nil }
+                    RoomTranscriptBubble(bubble: bubble, marked: bubble.id == marked, play: play)
+                        .id(bubble.id)
+                }
+            }
         } else {
             let all = turns(segments)
             let starts = all.map(\.first.startMs)
@@ -522,12 +542,10 @@ struct TranscriptPane: View {
                     let marked = markedIndex == turn.first.index
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            if !oneMic {
-                                Text(speaker(turn.first.speaker))
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(Theme.ink)
-                                Spacer(minLength: 8)
-                            }
+                            Text(speaker(turn.first.speaker))
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Theme.ink)
+                            Spacer(minLength: 8)
                             Text(Format.offset(turn.first.startMs))
                                 .font(.caption.monospacedDigit())
                                 .foregroundStyle(Theme.muted)
@@ -551,6 +569,7 @@ struct TranscriptPane: View {
 
     /// the turn a moment falls in: the last one starting at or before it
     private func target(_ ms: Int) -> Int? {
+        if oneMic { return (bubbles.last { $0.startMs <= ms } ?? bubbles.first)?.id }
         guard let segments else { return nil }
         let all = turns(segments)
         return (all.last { $0.first.startMs <= ms } ?? all.first)?.first.index
@@ -560,7 +579,7 @@ struct TranscriptPane: View {
     private func turns(_ segments: [Segment]) -> [(first: Segment, text: String)] {
         var out: [(first: Segment, text: String)] = []
         for s in segments {
-            if !oneMic, let last = out.last, last.first.speaker == s.speaker {
+            if let last = out.last, last.first.speaker == s.speaker {
                 out[out.count - 1].text += " " + s.text
             } else {
                 out.append((s, s.text))

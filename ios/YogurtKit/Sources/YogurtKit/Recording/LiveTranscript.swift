@@ -5,8 +5,8 @@ import Foundation
 public struct LiveTranscript: Sendable, Equatable {
     /// a line is closed at a sentence end past this many characters, so a long run doesn't become one wall of text
     public static let maxLine = 280
-    /// a pause this long starts a new line
-    static let newLineAfterMs = 2500
+    /// Keep the Mac bubble boundary when the recognizer turns a partial phrase into a saved line.
+    static let newLineAfterMs = 1500
 
     public private(set) var lines: [LocalRecording.Line] = []
     /// what is being heard now; it may still change
@@ -48,9 +48,14 @@ public struct LiveTranscript: Sendable, Equatable {
 
     /// Everything heard, the still-changing words too: what is saved if the recording stops now.
     public var settled: [LocalRecording.Line] {
-        guard !volatile.isEmpty else { return lines }
+        guard let pendingLine else { return lines }
+        return lines + [pendingLine]
+    }
+
+    public var pendingLine: LocalRecording.Line? {
+        guard !volatile.isEmpty else { return nil }
         let start = max(volatileStart, lines.last?.endMs ?? 0)
-        return lines + [.init(startMs: start, endMs: max(volatileEnd, start), text: volatile)]
+        return .init(startMs: start, endMs: max(volatileEnd, start), text: volatile)
     }
 
     private func joins(_ last: LocalRecording.Line, _ next: String, _ start: Int) -> Bool {
