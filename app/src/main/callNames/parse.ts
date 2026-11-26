@@ -10,7 +10,7 @@ import { speakerName } from '../speakerName'
 /** one element of the tree as the helper copies it: role, subrole, description, title, value, identifier, DOM classes, size */
 export type AxNode = { r: string; s?: string; d?: string; t?: string; v?: string; i?: string; c?: string[]; w?: number; h?: number; k?: AxNode[] }
 export type AxWindow = { title?: string; id?: string; tree: AxNode; minimized?: boolean }
-export type CallKind = 'zoom' | 'teams' | 'meet' | 'webex'
+export type CallKind = 'zoom' | 'teams' | 'meet' | 'webex' | 'slack'
 /** byMute: `speaking` is only the one other person not muted (Teams meetings mark nobody), not a mark of the app */
 export type CallReading = { speaking: string[]; participants: string[]; me: string | null; byMute?: boolean }
 
@@ -458,9 +458,56 @@ function readWebex(windows: AxWindow[]): CallReading {
   return { speaking: uniq(speaking), participants: uniq(participants), me }
 }
 
+// ---- Slack huddles (desktop app, Mac) ----
+// Read from a German huddle of one on a Mac (November 2026); the talking mark between several people comes from two
+// projects that read Slack 4.53 this way (github.com/pavelsvitek/realtime-transcription/pull/91, itself a huddle of
+// one, and github.com/Techie5879/hex/pull/14). Each participant is a cell of class "p-huddle_peer_tile" labelled
+// "View <Name>'s profile", with the id "huddle-grid-gridcell-<user>" ("...-self_<user>" on one's own). The tile being
+// heard holds an element of class "p-huddle_peer_tile__overlay--active_speaker". Chromium lists each cell twice
+// (under its row and its column). A changed Slack reads as nothing, never as a wrong name.
+
+const SLACK_TILE = 'p-huddle_peer_tile'
+export const SLACK_TALKING_CLASS = 'p-huddle_peer_tile__overlay--active_speaker'
+const SLACK_SELF = 'huddle-grid-gridcell-self_'
+/** The tile's label, one pattern per language Slack can be shown in; the first group is the name. To support another
+ * language, add its label here, copied from that Slack (never translated by us). */
+const SLACK_TILE_LABELS: RegExp[] = [
+  /^View (.+?)(?:['’]s|(?<=s)['’]) profile$/i, // English
+  /^Profil von (.+?) anzeigen$/i, // German
+]
+
+function slackName(label: string): string | null {
+  for (const re of SLACK_TILE_LABELS) {
+    const m = re.exec(label.normalize('NFKC').trim())
+    if (m) return speakerName(m[1])
+  }
+  return null
+}
+
+function readSlack(windows: AxWindow[]): CallReading {
+  const tiles = new Map<string, { name: string | null; talking: boolean }>()
+  let me: string | null = null
+  for (const w of windows) {
+    walk(w.tree, (n) => {
+      if (!n.c?.includes(SLACK_TILE)) return
+      const label = n.t ?? n.d ?? ''
+      const name = slackName(label)
+      let talking = false
+      walk(n, (x) => { if (x.c?.includes(SLACK_TALKING_CLASS)) talking = true })
+      const key = n.i ?? label
+      tiles.set(key, { name, talking: talking || !!tiles.get(key)?.talking })
+      if (name && n.i?.startsWith(SLACK_SELF)) me = name
+    })
+  }
+  const all = [...tiles.values()]
+  const names = (xs: typeof all) => uniq(xs.flatMap((t) => (t.name ? [t.name] : [])))
+  // a tile whose name can't be read leaves the call's size unknown: nobody is taken for the only other person
+  return { speaking: names(all.filter((t) => t.talking)), participants: all.every((t) => t.name) ? names(all) : [], me }
+}
+
 /** What the call app shows right now */
 export function readCall(kind: CallKind, windows: AxWindow[], o: { talkingClasses?: string[] } = {}): CallReading {
-  return kind === 'zoom' ? readZoom(windows) : kind === 'meet' ? readMeet(windows, o) : kind === 'webex' ? readWebex(windows) : readTeams(windows)
+  return kind === 'slack' ? readSlack(windows) : kind === 'zoom' ? readZoom(windows) : kind === 'meet' ? readMeet(windows, o) : kind === 'webex' ? readWebex(windows) : readTeams(windows)
 }
 
 /**
@@ -482,7 +529,9 @@ export function redact(text: string): string {
  * A short picture of the call window for main.log: role counts, then each element's role, id, classes and words.
  * main.log is pasted into public issues, so names, captions and titles never go in: only the app's own words do.
  */
-const MARKS = new Set([...MEET_TALKING_CLASSES, TEAMS_TALKING_CLASS])
+const MARKS = new Set([...MEET_TALKING_CLASSES, TEAMS_TALKING_CLASS, SLACK_TALKING_CLASS])
+/** a Slack tile's id ends in the person's Slack user id, which stays out of the log */
+const logId = (id: string) => id.replace(/^(huddle-grid-gridcell-(?:self_)?).+/, '$1…')
 export function summarize(windows: AxWindow[], max = 60): string {
   const roles = new Map<string, number>()
   const lines: string[] = []
@@ -495,7 +544,7 @@ export function summarize(windows: AxWindow[], max = 60): string {
       const mark = n.c?.some((c) => MARKS.has(c))
       // past the indent cap the depth is written out, since a Meet tile is told from the page by how deep its name is
       const indent = `${'  '.repeat(Math.min(up.length, 12))}${up.length > 12 ? `@${up.length} ` : ''}`
-      if ((said.length || n.i || mark) && lines.length < max) lines.push(`${indent}${n.r}${n.i ? `#${n.i}` : ''}${said.map((x) => ` ${JSON.stringify(x)}`).join('')}${n.c?.length ? ` .${n.c.slice(0, 6).join('.')}` : ''}`)
+      if ((said.length || n.i || mark) && lines.length < max) lines.push(`${indent}${n.r}${n.i ? `#${logId(n.i)}` : ''}${said.map((x) => ` ${JSON.stringify(x)}`).join('')}${n.c?.length ? ` .${n.c.slice(0, 6).join('.')}` : ''}`)
     })
   }
   return [`roles: ${[...roles].sort((a, b) => b[1] - a[1]).map(([r, n]) => `${r}=${n}`).join(' ')}`, ...lines].join('\n')

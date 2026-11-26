@@ -87,6 +87,7 @@ describe('watchIds: only the call app the meeting is in', () => {
     expect(watchIds('Edge')).toContain('msedge.exe')
     expect(watchIds('Safari')).toEqual(['com.apple.Safari'])
     expect(watchIds('FaceTime')).toEqual([])
+    expect(watchIds('Slack')).toEqual(['com.tinyspeck.slackmacgap'])
     expect(watchIds(null)).toContain('us.zoom.xos')
     expect(watchIds(null)).toContain('org.mozilla.firefox')
     expect(watchIds(null)).toContain('teams-for-linux')
