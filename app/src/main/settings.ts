@@ -58,6 +58,9 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   summaryLanguage?: string
   /** Settings → Transcription: the speech model's catalog id; the pick for this computer when left out */
   speechModel?: string
+  /** Settings → Transcription → Choose a file…: a whisper.cpp model of the person's own, used where it is (never copied
+   * or removed); speechModel then names the catalog model kept beside it, Auto's when left out */
+  speechFile?: string
   /** new versions download by themselves; on unless turned off */
   autoUpdate?: boolean }
 

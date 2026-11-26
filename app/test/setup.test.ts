@@ -1,6 +1,6 @@
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { speedKey, type Catalog, type Hardware } from '@yogurt/picker'
 import bundled from '../../catalog/catalog.json'
@@ -628,6 +628,155 @@ describe('Settings → Transcription', () => {
     expect(s.c.state.speechSwitchError).toBeTruthy()
     expect(s.c.state.speechModel).toBe('whisper-large-v3-turbo-q5_0')
     expect(s.c.installed()!.asr).toContain(turboFile)
+  })
+})
+
+/** a made-up file with a Whisper model's header (large-v3: 128 mel bands), as whisper.cpp writes it */
+function whisperFile(dir: string, file = 'ggml-own.bin') {
+  const head = Buffer.alloc(4096)
+  head.writeUInt32LE(0x67676d6c, 0)
+  ;[51866, 1500, 1280, 20, 32, 448, 1280, 20, 32, 128, 1].forEach((v, i) => head.writeInt32LE(v, 4 + i * 4))
+  const path = join(dir, file)
+  writeFileSync(path, head)
+  return path
+}
+
+describe('Settings → Transcription: a file of the person\'s own', () => {
+  const smallFile = name(smallUrl), turboFile = name(turboUrl)
+  it('downloads nothing, waits for meetings, keeps the catalog model beside it, and is never removed', async () => {
+    let file: string | undefined, choice: string | undefined, busy = true
+    const s = setup({ speechFile: () => file, speechChoice: () => choice, speechBusy: () => busy, speechWaitMs: 5 })
+    await s.c.start()
+    const turbo = s.c.installed()!.asr
+    const own = whisperFile(mkdtempSync(join(tmpdir(), 'yogurt-own-')))
+    file = own
+    // speech models only: the notes models go on downloading meanwhile
+    const speechAsked = () => s.rec.asked.filter((u) => catalog.asr.some((a) => a.url === u)).length
+    const asked = speechAsked()
+    await s.c.switchSpeech(true)
+    expect(s.c.state).toMatchObject({ speechModel: 'whisper-large-v3-turbo-q5_0', speechSwitchPending: 'own-file' })
+    expect(s.c.installed()!.asr).toBe(turbo)
+    busy = false
+    await vi.waitFor(() => expect(s.c.state.speechModel).toBe('own-file'))
+    expect(s.c.speechPath()).toBe(own)
+    expect(s.c.speechModels()).toMatchObject({ choice: null, file: { name: 'ggml-own.bin', bytes: 4096 } })
+    expect(speechAsked()).toBe(asked)
+    expect(existsSync(turbo)).toBe(true)
+    // back to Auto: the model kept takes over, with nothing to download, and the file stays where it is
+    file = undefined
+    await s.c.switchSpeech(true)
+    await vi.waitFor(() => expect(s.c.state.speechModel).toBe('whisper-large-v3-turbo-q5_0'))
+    expect(s.c.installed()!.asr).toBe(turbo)
+    expect(speechAsked()).toBe(asked)
+    expect(existsSync(own)).toBe(true)
+    // the file again, then another catalog model: the one kept beside the file is removed, the file is not
+    file = own
+    await s.c.switchSpeech(true)
+    await vi.waitFor(() => expect(s.c.state.speechModel).toBe('own-file'))
+    file = undefined; choice = 'whisper-small-q5_1'
+    await s.c.switchSpeech(true)
+    await vi.waitFor(() => expect(s.c.state.speechModel).toBe('whisper-small-q5_1'))
+    expect(s.c.installed()!.asr).toContain(smallFile)
+    expect(existsSync(turbo)).toBe(false)
+    expect(existsSync(own)).toBe(true)
+  })
+  it('moved or deleted: the model kept takes over at once, and the choice goes back to Auto with a note', async () => {
+    let file: string | undefined
+    const s = setup({ speechFile: () => file, forgetSpeechFile: (p) => { if (file === p) file = undefined }, speechBusy: () => false })
+    await s.c.start()
+    const turbo = s.c.installed()!.asr
+    file = whisperFile(mkdtempSync(join(tmpdir(), 'yogurt-own-')))
+    await s.c.switchSpeech(true)
+    expect(s.c.state.speechModel).toBe('own-file')
+    rmSync(file)
+    expect(s.c.speechPath()).toBe(turbo)
+    expect(file).toBeUndefined()
+    expect(s.c.state).toMatchObject({ speechModel: 'whisper-large-v3-turbo-q5_0', speechFileGone: 'ggml-own.bin' })
+    expect(s.c.speechModels()?.file).toBeUndefined()
+    // the note stays until the next pick
+    await s.c.switchSpeech()
+    expect(s.c.state.speechFileGone).toBe('ggml-own.bin')
+    await s.c.switchSpeech(true)
+    expect(s.c.state.speechFileGone).toBeUndefined()
+  })
+  it('at launch: a file still there goes before Auto; one gone or no longer a Whisper model goes back to Auto', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'yogurt-own-'))
+    const own = whisperFile(dir)
+    const there = setup({ speechFile: () => own })
+    await there.c.start()
+    expect(there.c.state.speechModel).toBe('own-file')
+    expect(there.c.speechPath()).toBe(own)
+    // Auto's model is still downloaded, to stand by
+    expect(there.rec.asked).toContain(turboUrl)
+    for (const file of [join(dir, 'gone.bin'), (writeFileSync(join(dir, 'other.bin'), Buffer.alloc(4096)), join(dir, 'other.bin'))]) {
+      let forgot = false
+      const s = setup({ speechFile: () => file, forgetSpeechFile: () => { forgot = true } })
+      await s.c.start()
+      expect(s.c.state).toMatchObject({ phase: 'ready', speechModel: 'whisper-large-v3-turbo-q5_0', speechFileGone: basename(file) })
+      expect(s.c.installed()!.asr).toContain(turboFile)
+      expect(forgot).toBe(true)
+    }
+  })
+})
+
+describe('Settings → Transcription: a file of the person\'s own, when things change under it', () => {
+  const turboFile = name(turboUrl)
+  it("refuses a file in Yogurt's models folder, at the pick and at launch, and removes nothing", async () => {
+    const s = setup({ speechBusy: () => false })
+    await s.c.start()
+    const turbo = s.c.installed()!.asr
+    expect(s.c.checkSpeechFile(turbo)).toEqual({ ok: false, error: 'yogurt-model' })
+    const later = setup({ modelsDir: s.root, speechFile: () => turbo })
+    await later.c.start()
+    expect(later.c.state).toMatchObject({ speechModel: 'whisper-large-v3-turbo-q5_0', speechFileGone: turboFile })
+    expect(existsSync(turbo)).toBe(true)
+  })
+  it('a restart keeps the model kept beside the file: a pick before it (small) downloads nothing new', async () => {
+    const own = whisperFile(mkdtempSync(join(tmpdir(), 'yogurt-own-')))
+    const s = setup({ speechFile: () => own, speechChoice: () => 'whisper-small-q5_1' })
+    await s.c.start()
+    expect(s.c.state.speechModel).toBe('own-file')
+    expect(s.rec.asked).toContain(smallUrl)
+    expect(s.rec.asked).not.toContain(turboUrl)
+  })
+  it('changed in place, with the kept model gone too: Auto downloads again, and the file is still not removed', async () => {
+    let file: string | undefined
+    const s = setup({ speechFile: () => file, forgetSpeechFile: (p) => { if (file === p) file = undefined }, speechBusy: () => false })
+    await s.c.start()
+    const turbo = s.c.installed()!.asr
+    const own = whisperFile(mkdtempSync(join(tmpdir(), 'yogurt-own-')))
+    file = own
+    await s.c.switchSpeech(true)
+    expect(s.c.state.speechModel).toBe('own-file')
+    writeFileSync(own, Buffer.alloc(4096))
+    rmSync(turbo); rmSync(turbo + '.ok', { force: true })
+    s.c.speechPath()
+    expect(s.c.state.speechFileGone).toBe('ggml-own.bin')
+    await vi.waitFor(() => expect(s.c.state.speechModel).toBe('whisper-large-v3-turbo-q5_0'))
+    expect(s.c.installed()!.asr).toBe(turbo)
+    expect(existsSync(turbo)).toBe(true)
+    expect(existsSync(own)).toBe(true)
+  })
+  it('the file in use goes missing while a newer one waits for a meeting: the kept model takes over, and the newer one still follows', async () => {
+    let file: string | undefined, busy = false
+    const s = setup({ speechFile: () => file, forgetSpeechFile: (p) => { if (file === p) file = undefined }, speechBusy: () => busy, speechWaitMs: 5 })
+    await s.c.start()
+    const turbo = s.c.installed()!.asr
+    const dir = mkdtempSync(join(tmpdir(), 'yogurt-own-'))
+    const a = whisperFile(dir, 'a.bin'), b = whisperFile(dir, 'b.bin')
+    file = a
+    await s.c.switchSpeech(true)
+    expect(s.c.speechPath()).toBe(a)
+    busy = true
+    file = b
+    await s.c.switchSpeech(true)
+    expect(s.c.state.speechSwitchPending).toBe('own-file')
+    rmSync(a)
+    expect(s.c.speechPath()).toBe(turbo)
+    expect(file).toBe(b)
+    busy = false
+    await vi.waitFor(() => expect(s.c.speechPath()).toBe(b))
+    expect(s.c.state).toMatchObject({ speechModel: 'own-file', speechFileGone: 'a.bin' })
   })
 })
 

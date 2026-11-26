@@ -1,11 +1,12 @@
 import { asrCandidates, pick, pickAsr, pickBySpeed, speedKey, type Catalog, type CatalogAsr, type Choice, type Hardware } from '@yogurt/picker'
-import { rmSync } from 'node:fs'
-import { join } from 'node:path'
+import { existsSync, rmSync } from 'node:fs'
+import { basename, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { ChecksumError, DiskSpaceError, ensureFile, fileNameFor, isVerified, partialDownloadGB, type DownloadDeps } from './downloader'
-import type { SetupState, SpeechModels } from '../shared/types'
+import { OWN_SPEECH_FILE, type SetupState, type SpeechModels } from '../shared/types'
 import { t } from '../shared/i18n'
 import { tooSlow, tooWeak } from './localCheck'
+import { checkSpeechFile, insideDir } from './speechFile'
 
 /** What the speed check found on one computer (speedKey): the model kept (null: none keeps up) and each one's time over the clip's length */
 export type SpeedResult = { key: string; model: string | null; rtf: Record<string, number | null>; at: number; /** whisper had to leave the graphics card while it was timed */ gpuOff?: boolean }
@@ -38,6 +39,10 @@ export type SetupDeps = {
   speechBusy?: () => boolean
   /** how often a waiting speech model looks again (5 s) */
   speechWaitMs?: number
+  /** Settings → Transcription → Choose a file…: a whisper.cpp model of the person's own, used where it is */
+  speechFile?: () => string | undefined
+  /** that file is gone or no longer a Whisper model: the choice goes back to Auto, unless another one was picked since */
+  forgetSpeechFile?: (path: string) => void
 }
 
 /** Where the models ended up, for the parts of the app that use them; llm once the first notes model is in (after ready) */
@@ -88,6 +93,10 @@ export class SetupController {
   private autoAsr: CatalogAsr | undefined
   private speechAbort: AbortController | undefined
   private speechTimer: NodeJS.Timeout | undefined
+  /** the person's own file, while it transcribes; never copied, never removed */
+  private ownFile: string | undefined
+  /** meanwhile the catalog model it took over from stays on disk, to take over again at once should the file go missing */
+  private standby: { id: string; path: string } | undefined
 
   constructor(private deps: SetupDeps) {}
 
@@ -283,13 +292,28 @@ export class SetupController {
           asr = pickAsr(hw, catalog, { exclude: tried })
         }
       }
+      // the person's own file goes before all of these; the catalog model just found waits beside it
+      this.ownFile = undefined; this.standby = undefined
+      let fileGone: string | undefined
+      const file = this.deps.speechFile?.()
+      if (file && this.checkSpeechFile(file).ok) {
+        this.standby = { id: speechModel, path: asrPath }
+        this.ownFile = file; asrPath = file; speechModel = OWN_SPEECH_FILE
+        console.info('SPEECH', `transcribing with the person's own file ${basename(file)}`)
+      } else if (file) {
+        console.warn('SPEECH', `the person's own file ${basename(file)} is gone or not a Whisper model: back to Auto`)
+        this.forget(file)
+        fileGone = basename(file)
+      }
       this.paths = { asr: asrPath }
       if (hasUpgrade) {
         this.paths.recommendedLlm = join(bigger!.dir, bigger!.fileName)
         if (isVerified(starterItem.dir, starterItem.fileName, this.sha(starterItem))) this.paths.llm = join(starterItem.dir, starterItem.fileName)
       }
-      this.set({ phase: 'ready', fraction: 1, speechModel, notesUpgradeBytes: bigger?.bytes, notesUpgradeSkipped: skipped, notesUpgradeInstalled: hasUpgrade })
+      this.set({ phase: 'ready', fraction: 1, speechModel, speechFileGone: fileGone, notesUpgradeBytes: bigger?.bytes, notesUpgradeSkipped: skipped, notesUpgradeInstalled: hasUpgrade })
       this.startNotes(starterItem, embedItem)
+      // the file was gone and the model kept beside it was another pick: Auto takes over the usual way
+      if (fileGone) void this.switchSpeech()
     } catch (err) {
       console.error('setup failed', err)
       this.set({ phase: 'error', fraction: this._state.fraction, message: friendly(err) })
@@ -416,22 +440,79 @@ export class SetupController {
   /** Settings → Transcription: Auto's speech model, and every one there is to pick */
   speechModels(): SpeechModels | undefined {
     if (!this.catalog?.asr.length) return undefined
+    // Settings opening is one more time to notice the person's file went missing
+    this.speechPath()
     const choice = this.deps.speechChoice?.()
+    const file = this.deps.speechFile?.()
+    const checked = file ? this.checkSpeechFile(file) : undefined
     return {
       choice: this.catalog.asr.some((a) => a.id === choice) ? choice! : null,
       auto: this.autoAsr && { id: this.autoAsr.id, name: this.autoAsr.name },
       models: this.catalog.asr.map((a) => ({ id: a.id, name: a.name, bytes: a.bytes })),
+      ...(file && checked?.ok ? { file: { name: basename(file), bytes: checked.bytes } } : {}),
     }
   }
 
   /**
-   * The Transcription choice changed: its model downloads now, while Yogurt goes on with the one it has, and takes
-   * over once nothing is recorded or transcribed (no meeting changes model halfway). The old one is removed then.
+   * The speech model to transcribe with now (a meeting starting asks). The person's own file is looked for first: when
+   * it was moved or deleted, the catalog model kept beside it takes over at once, and the choice goes back to Auto.
    */
-  async switchSpeech() {
+  speechPath() {
+    if (this.ownFile && this.paths?.asr === this.ownFile && !this.checkSpeechFile(this.ownFile).ok) this.speechFileGone(this.ownFile)
+    return this.paths?.asr
+  }
+
+  /**
+   * Choose a file… and every later look at it. A file in Yogurt's own models folder is refused: Yogurt removes the
+   * files there, and a catalog model is picked from the list.
+   */
+  checkSpeechFile(path: string): ReturnType<typeof checkSpeechFile> | { ok: false; error: 'yogurt-model' } {
+    if (insideDir(path, this.deps.modelsDir)) return { ok: false, error: 'yogurt-model' }
+    return checkSpeechFile(path)
+  }
+
+  /** the setting goes back to Auto; the switch below happens even when it cannot be saved */
+  private forget(file: string) {
+    try { this.deps.forgetSpeechFile?.(file) } catch (e) { console.warn('could not save the speech choice', e) }
+  }
+
+  private speechFileGone(file: string) {
+    console.warn('SPEECH', `the person's own file ${basename(file)} is gone or changed: back to Auto`)
+    this.forget(file)
+    if (this.ownFile === file && this.paths?.asr === file) {
+      const kept = this.standby
+      this.ownFile = undefined; this.standby = undefined
+      if (kept && existsSync(kept.path)) {
+        this.paths = { ...this.paths, asr: kept.path }
+        this.set({ ...this._state, speechModel: kept.id })
+      // the model kept is gone too: nothing is in use until Auto has downloaded again
+      } else this.set({ ...this._state, speechModel: undefined })
+    }
+    this.set({ ...this._state, speechSwitchPending: undefined, speechFileGone: basename(file) })
+    // Auto, when the model kept was another one picked before (or a file picked since goes on waiting its turn)
+    if (this.deps.speechFile?.() !== file) void this.switchSpeech()
+  }
+
+  /**
+   * The Transcription choice changed: its model downloads now, while Yogurt goes on with the one it has, and takes
+   * over once nothing is recorded or transcribed (no meeting changes model halfway). The old one is removed then, never
+   * the person's own file. That file downloads nothing: it only waits for the meetings, the same way.
+   */
+  async switchSpeech(picked = false) {
     if (this._state.phase !== 'ready' || !this.catalog || !this.paths) return
     clearTimeout(this.speechTimer)
     this.speechAbort?.abort()
+    // a new pick in Settings: the note about a file that went missing has been read
+    if (picked && this._state.speechFileGone) this.set({ ...this._state, speechFileGone: undefined })
+    // the person's own file: nothing to download, only the wait for meetings to be transcribed
+    const file = this.deps.speechFile?.()
+    if (file) {
+      const abort = new AbortController()
+      this.speechAbort = abort
+      this.set({ ...this._state, speechSwitch: undefined, speechSwitchPending: undefined, speechSwitchError: undefined })
+      if (file !== this.ownFile) this.useSpeech(OWN_SPEECH_FILE, file, abort.signal)
+      return
+    }
     const target = this.catalog.asr.find((a) => a.id === this.deps.speechChoice?.()) ?? this.autoAsr
     if (!target || target.id === this._state.speechModel) {
       this.set({ ...this._state, speechSwitch: undefined, speechSwitchPending: undefined, speechSwitchError: undefined })
@@ -454,15 +535,23 @@ export class SetupController {
 
   private useSpeech(id: string, path: string, signal: AbortSignal) {
     if (signal.aborted) return
+    const own = id === OWN_SPEECH_FILE
+    if (own && !this.checkSpeechFile(path).ok) return this.speechFileGone(path)
     if (this.deps.speechBusy?.()) {
       if (this._state.speechSwitchPending !== id) this.set({ ...this._state, speechSwitch: undefined, speechSwitchPending: id })
       this.speechTimer = setTimeout(() => this.useSpeech(id, path, signal), this.deps.speechWaitMs ?? 5000)
       return
     }
-    const old = this.paths?.asr
+    const old = this.paths?.asr, oldId = this._state.speechModel
     this.paths = { ...this.paths!, asr: path }
-    if (old && old !== path) { try { this.removeFiles(old) } catch (e) { console.warn('could not remove the earlier speech model', e) } }
-    console.info('SPEECH', `transcribing with ${id} from now on`)
+    // the person's own file is never removed; the catalog model it takes over from stays beside it (standby)
+    const remove = own ? [] : [oldId === OWN_SPEECH_FILE ? undefined : old, this.standby?.path]
+    if (own && old && oldId && oldId !== OWN_SPEECH_FILE) this.standby = { id: oldId, path: old }
+    if (!own) this.standby = undefined
+    this.ownFile = own ? path : undefined
+    // only ever a file in Yogurt's own models folder
+    for (const p of remove) if (p && p !== path && insideDir(p, this.deps.modelsDir)) { try { this.removeFiles(p) } catch (e) { console.warn('could not remove the earlier speech model', e) } }
+    console.info('SPEECH', `transcribing with ${own ? `the person's own file ${basename(path)}` : id} from now on`)
     this.set({ ...this._state, speechModel: id, speechSwitch: undefined, speechSwitchPending: undefined })
   }
 

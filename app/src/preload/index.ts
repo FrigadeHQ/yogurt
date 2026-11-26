@@ -23,6 +23,7 @@ const api: YogurtApi = {
     downloadUpgrade: () => ipcRenderer.invoke('setup:download-upgrade'),
     speechModels: () => ipcRenderer.invoke('setup:speech-models'),
     setSpeechModel: (id) => ipcRenderer.invoke('setup:set-speech', id),
+    chooseSpeechFile: () => ipcRenderer.invoke('setup:choose-speech-file'),
     removeUpgrade: () => ipcRenderer.invoke('setup:remove-upgrade'),
   },
   prompt: {

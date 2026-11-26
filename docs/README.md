@@ -52,6 +52,8 @@ Import a backup from the same section. It adds meetings that are missing and lea
 
 **Settings → Transcription** picks the Whisper model that transcribes your meetings, always on your computer. **Auto** uses the one setup picked for it. Another model downloads while the current one keeps working, and takes over once nothing is being recorded or transcribed; the old one is then removed.
 
+**Choose a file…** uses a Whisper model file of your own, such as a fine-tune for a dialect that Yogurt does not offer. It has to be a whisper.cpp model (a ggml `.bin`); a Hugging Face model that only comes as transformers weights can be converted with whisper.cpp's `models/convert-h5-to-ggml.py`. Yogurt uses the file where it is and never removes it. It only checks that the file is a Whisper model, not how well it transcribes. The model Yogurt used before stays on your computer meanwhile: if the file is moved or deleted, Yogurt goes back to **Auto** and says so in Settings.
+
 ## Connect an AI app
 
 In **Settings → AI apps**, turn on access, copy the helper command, and add it as a local MCP server in your AI app. MCP lets that app read your meetings, notes and transcripts; it cannot change them. Yogurt does not edit the other app's configuration.

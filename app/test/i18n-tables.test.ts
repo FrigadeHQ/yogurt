@@ -318,3 +318,17 @@ it('translates both citation destinations in every locale', () => {
     if (id !== 'en') expect(load(id)[key]).not.toBe(key)
   }
 })
+
+it('translates choosing a Whisper model file of your own in every locale', () => {
+  const texts = ['Choose a file…', 'Whisper model', 'Your own file: {name} · {size}', "Transcribing with your own file, {name}. Yogurt hasn't checked how well it works.",
+    '{name} was moved, deleted or changed, so Yogurt went back to Auto.', "That file isn't a Whisper model for whisper.cpp (a ggml .bin file).", "Yogurt can't read that file.",
+    "That file is one of Yogurt's own models. Pick it from the list instead."]
+  for (const key of texts) expect(keys).toContain(key)
+  for (const { id } of LOCALES) {
+    if (id === 'en') continue
+    for (const key of texts) {
+      expect(load(id)[key]).toBeTypeOf('string')
+      expect(blanks(load(id)[key] as string)).toEqual(blanks(key))
+    }
+  }
+})

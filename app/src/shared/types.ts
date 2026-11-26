@@ -47,6 +47,8 @@ export type YogurtApi = {
     speechModels(): Promise<SpeechModels | undefined>
     /** a speech model's id, or null for Auto; it downloads, then takes over once nothing is recorded or transcribed */
     setSpeechModel(id: string | null): Promise<void>
+    /** Choose a file…: a whisper.cpp model (ggml .bin) of the person's own, used where it is; checked by its header only */
+    chooseSpeechFile(): Promise<{ ok: true } | { ok: false; error: 'cancelled' | 'unreadable' | 'not-whisper' | 'yogurt-model' }>
     removeUpgrade(): Promise<void>
   }
   /** the "Take notes?" and "Stop recording?" card */
@@ -343,18 +345,24 @@ export type YogurtApi = {
 
 /** First-run setup: the models this Mac needs. Ready (recording works) once the speech model is in place; the notes models keep downloading after. */
 /** Settings → Transcription: the speech model picked (null: Auto), what Auto means here, and every one there is, best first */
-export type SpeechModels = { choice: string | null; auto?: { id: string; name: string }; models: Array<{ id: string; name: string; bytes: number }> }
+export type SpeechModels = { choice: string | null; auto?: { id: string; name: string }; models: Array<{ id: string; name: string; bytes: number }>
+  /** the person's own file, when that is the pick (choice is null then): never picked by Yogurt, never a fallback */
+  file?: { name: string; bytes: number } }
+/** SetupState.speechModel while the person's own file transcribes (it has no catalog id) */
+export const OWN_SPEECH_FILE = 'own-file'
 export type SetupState = {
   phase: 'checking' | 'downloading' | 'ready' | 'error'
   /** 0 to 1 over what ready waits for */
   fraction: number
   message?: string
-  /** the speech model transcribing now (catalog id) */
+  /** the speech model transcribing now (catalog id, or OWN_SPEECH_FILE) */
   speechModel?: string
   /** Settings → Transcription: the one picked downloading, then waiting for meetings to finish being transcribed */
   speechSwitch?: { id: string; fraction: number }
   speechSwitchPending?: string
   speechSwitchError?: string
+  /** the name of the person's own file that was moved, deleted or changed, so Auto took over again */
+  speechFileGone?: string
   /** Speech is ready, but the first notes-model download failed. Recording and transcription still work. */
   notesError?: string
   /** First notes-model progress (0 to 1), retained on failure until retry or completion. */

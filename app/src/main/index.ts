@@ -88,7 +88,7 @@ import { deleteRecording } from './deleteRecording'
 import { AUDIO_SCHEME, audioExts, createAudioHandler, trackFile, type AudioExt } from './audio'
 import { helperDecode, wavDecode } from './asr/backfill'
 import { finishQuit, hookUpdates, isPreviewBuild, updatesOn } from './updates'
-import type { NoteSaveResult, StartResult } from '../shared/types'
+import { OWN_SPEECH_FILE, type NoteSaveResult, type StartResult } from '../shared/types'
 
 // the transcript's player streams each meeting's audio from here; seeking needs stream support (before ready)
 protocol.registerSchemesAsPrivileged([{ scheme: AUDIO_SCHEME, privileges: { standard: true, secure: true, stream: true } }])
@@ -205,6 +205,12 @@ function createSetup(): SetupController {
     download: isFake() ? fakeDownloadDeps({ stepMs: Number(process.env.YOGURT_FAKE_STEP_MS ?? 5), notesMs: Number(process.env.YOGURT_FAKE_NOTES_MODEL_MS ?? 0), notesFailOnce: process.env.YOGURT_FAKE_NOTES_MODEL_FAIL_ONCE === '1' }) : realDeps,
     ...(isFake() ? { sha256Override: 'FAKE' } : {}),
     speechChoice: () => loadSettings(join(userDataDir(), 'settings.json')).speechModel, speechBusy: () => speechBusy(),
+    speechFile: () => loadSettings(join(userDataDir(), 'settings.json')).speechFile,
+    // back to Auto, unless another file was picked meanwhile
+    forgetSpeechFile: (path) => {
+      const file = join(userDataDir(), 'settings.json')
+      if (loadSettings(file).speechFile === path) updateSettings(file, { speechFile: undefined, speechModel: undefined })
+    },
     // Windows and Linux: speech models timed on this computer (asr/speedCheck.ts); a Mac never is
     ...(platform === 'darwin' ? {} : { speed: { ...speedStore(speedFile()), measure: isFake() ? fakeMeasure() : (model: string) => measureSpeed(model, { binary: whisperServerPath(), vadModel: vadModelPath(), clip: speedClipPath() ?? '' }) } }),
   })
@@ -586,8 +592,27 @@ app.whenReady().then(() => {
   // Settings → Transcription: a catalog id, or null for Auto (the pick for this computer); it downloads, then takes over
   ipcMain.handle('setup:set-speech', (_e, id: unknown) => {
     if (id !== null && !setup.speechModels()?.models.some((m) => m.id === id)) throw new Error('Invalid speech model')
-    updateSettings(join(userDataDir(), 'settings.json'), { speechModel: id === null ? undefined : (id as string) })
-    return setup.switchSpeech()
+    updateSettings(join(userDataDir(), 'settings.json'), { speechModel: id === null ? undefined : (id as string), speechFile: undefined })
+    return setup.switchSpeech(true)
+  })
+  // Choose a file…: a whisper.cpp model of the person's own (a fine-tune the catalog will never have), used where it is
+  ipcMain.handle('setup:choose-speech-file', async () => {
+    let path = isFake() ? process.env.YOGURT_SPEECH_FILE : undefined
+    if (!path) {
+      const opts = { title: t('Choose a file…'), properties: ['openFile' as const], filters: [{ name: t('Whisper model'), extensions: ['bin'] }] }
+      const r = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)
+      if (r.canceled || !r.filePaths[0]) return { ok: false, error: 'cancelled' }
+      path = r.filePaths[0]
+    }
+    const checked = setup.checkSpeechFile(path)
+    if (!checked.ok) return checked
+    // speechModel names the catalog model kept beside the file (Auto's when left out), so a restart downloads nothing new
+    const settingsPath = join(userDataDir(), 'settings.json')
+    const now = setup.state.speechModel
+    const kept = now === OWN_SPEECH_FILE ? loadSettings(settingsPath).speechModel : now === setup.speechModels()?.auto?.id ? undefined : now
+    updateSettings(settingsPath, { speechFile: path, speechModel: kept })
+    void setup.switchSpeech(true)
+    return { ok: true }
   })
   const store = openStore(join(userDataDir(), 'yogurt.db'))
   storeRef = store
@@ -613,7 +638,7 @@ app.whenReady().then(() => {
   })
   // Windows and Linux: whisper left the graphics card in a meeting, so the speed check (timed with it) runs again next start
   onWhisperGpuOff(() => speedStore(speedFile()).forget())
-  hookTranscription({ store, modelPath: () => setup.installed()?.asr, send: (seg) => {
+  hookTranscription({ store, modelPath: () => setup.speechPath(), send: (seg) => {
     const order = seg.track === 'them' && seg.speaker ? store.speakerOrder(seg.meetingId, seg.speaker) : []
     const colored = { ...seg, speakerColor: speakerColor(seg.track, seg.speaker, order) }
     win?.webContents.send('transcript:segment', colored); sendWidgetTranscript('transcript:segment', colored)
