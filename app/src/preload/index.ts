@@ -65,6 +65,7 @@ const api: YogurtApi = {
     size: (w, h) => { ipcRenderer.send('widget:size', w, h) },
   },
   meetings: {
+    importMarkdown: (note) => ipcRenderer.invoke('meetings:import-markdown', note),
     takeRecordingReminder: () => ipcRenderer.invoke('meetings:take-recording-reminder'),
     get: (id) => ipcRenderer.invoke('meetings:get', id),
     cards: (o) => ipcRenderer.invoke('meetings:cards', o),

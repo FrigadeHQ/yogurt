@@ -56,6 +56,12 @@ Meetings, recordings, settings and downloaded models live here:
 | Windows | `%APPDATA%\Yogurt` |
 | Linux | `~/.config/Yogurt` (or `$XDG_CONFIG_HOME/Yogurt` if set) |
 
+## Bring in Markdown notes
+
+Open **Settings → Import notes** and choose one or more UTF-8 `.md` files. Review each title and date. Yogurt suggests the first Markdown heading for the title and recognizes dates like `2026-02-17` in filenames. Enter the meeting date when it is missing, then select **Import notes**.
+
+Each file becomes a meeting with its Markdown in the Summary. Importing the same filename and contents a second time skips that meeting and preserves any edits you made in Yogurt.
+
 ## Backup and restore
 
 Finish any recording, then open **Settings → Backup** to export your meetings and audio to one ZIP file. Meetings in the Trash are not included.

@@ -388,6 +388,20 @@ export class Store {
     }
   }
 
+  /** Imported summaries belong to their author. Store them with the meeting, protected from automatic rewrites. */
+  importMeeting(m: Pick<Meeting, 'title' | 'startedAt' | 'endedAt' | 'attendees' | 'sourceId'> & { mine: string; summary: string | null },
+    addRelated?: (meeting: Meeting) => void) {
+    return this.writeAtomically(() => {
+      const existing = m.sourceId ? this.meetingFromSource('import', m.sourceId) : undefined
+      if (existing) return { meeting: existing, added: false }
+      const meeting = this.createMeeting({ title: m.title, titleSource: 'user', startedAt: m.startedAt, endedAt: m.endedAt,
+        attendees: m.attendees, keepAttendees: true, eventId: null, app: null, source: 'import', sourceId: m.sourceId, state: 'done' })
+      this.setNotes(meeting.id, { mine: m.mine, enhanced: m.summary, edited: m.summary != null })
+      addRelated?.(meeting)
+      return { meeting, added: true }
+    })
+  }
+
   createMeeting(m: Omit<Meeting, 'id' | 'language' | 'titleSource'> & { language?: string | null; titleSource?: TitleSource; folderId?: string }, id: string = randomUUID()): Meeting {
     return this.writeAtomically(() => {
       const language = m.language ?? null
@@ -536,15 +550,13 @@ export class Store {
   }
   addSegments(segs: Omit<Segment, 'id'>[]) {
     const ins = this.db.prepare('INSERT INTO segments (meeting_id, track, start_ms, end_ms, text, speaker, hidden, echo_confident) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-    this.db.exec('BEGIN')
-    try {
+    this.writeAtomically(() => {
       for (const s of segs) {
         const r = ins.run(s.meetingId, s.track, s.startMs, s.endMs, s.text, segmentSpeaker(s.speaker), s.hidden ? 1 : 0, s.hidden && s.echoConfident ? 1 : 0)
         // a hidden line is not for search
         if (s.hidden) this.db.prepare("INSERT INTO segments_fts(segments_fts, rowid, text) VALUES ('delete', ?, ?)").run(r.lastInsertRowid, s.text)
       }
-      this.db.exec('COMMIT')
-    } catch (e) { this.db.exec('ROLLBACK'); throw e }
+    })
   }
   /** the meeting's lines in order; hidden echo lines left out unless asked for */
   /** last: only the latest lines (the recorder's hover reads a recent tail, however long the meeting runs) */

@@ -83,24 +83,23 @@ export function importHandlers({ d, folderOf, log }: Ctx): Record<string, (a: Ar
     return { title, startedAt, endedAt, attendees, lines, summary: summary?.trim() ? summary : null, mine: mine ?? '', writeSummary, sourceId, folder, newFolder: !folder && createFolder ? folderName : undefined }
   }
   const save = (m: ReturnType<typeof check>) => {
-    const already = m.sourceId ? s.meetingFromSource('import', m.sourceId) : undefined
-    if (already) return { id: already.id, title: already.title, already_imported: true }
+    // Avoid timing a long transcript again when a client retries a completed batch.
+    const previous = m.sourceId && s.meetingFromSource('import', m.sourceId)
+    if (previous) return { id: previous.id, title: previous.title, already_imported: true }
     const timed = timedLines(m.lines)
-    const meeting = s.createMeeting({ title: m.title, titleSource: 'user', startedAt: m.startedAt, endedAt: m.endedAt ?? m.startedAt + (timed.at(-1)?.endMs ?? 0),
-      eventId: null, app: null, attendees: m.attendees, keepAttendees: true, state: 'done', source: 'import', ...(m.sourceId ? { sourceId: m.sourceId } : {}) })
-    try {
-      if (timed.length) s.addSegments(toSegments(meeting.id, timed, d.me()))
-      // the other app's summary counts as edited, so new people never have it rewritten by itself
-      s.setNotes(meeting.id, { mine: m.mine, enhanced: m.summary, edited: m.summary != null })
-      const f = m.folder ?? (m.newFolder ? s.folders().find((x) => x.name.toLowerCase() === m.newFolder!.toLowerCase()) ?? s.createFolder(m.newFolder) : undefined)
-      if (f) s.addToFolder(f.id, meeting.id)
-      log(`create_meeting made ${meeting.id}: ${timed.length} lines${m.summary ? ', a summary' : ''}${f ? `, in ${f.id}` : ''}`)
-      d.app.imported(meeting.id)
-      if (f) d.app.changed('folders')
-      if (m.writeSummary) d.app.rewriteSummary(meeting.id, '')
-      return { id: meeting.id, title: meeting.title, start: new Date(meeting.startedAt).toISOString(), lines: timed.length, folder: f ? { id: f.id, name: f.name } : null,
-        summary: m.summary ? 'given' : m.writeSummary ? (d.app.notesReady() ? 'Yogurt is writing it' : 'Yogurt writes it once its notes model has downloaded') : 'none' }
-    } catch (e) { s.deleteMeeting(meeting.id); throw e }
+    let f = m.folder
+    const { meeting, added } = s.importMeeting({ ...m, endedAt: m.endedAt ?? m.startedAt + (timed.at(-1)?.endMs ?? 0) }, (created) => {
+      if (timed.length) s.addSegments(toSegments(created.id, timed, d.me()))
+      if (!f && m.newFolder) f = s.folders().find((x) => x.name.toLowerCase() === m.newFolder!.toLowerCase()) ?? s.createFolder(m.newFolder)
+      if (f) s.addToFolder(f.id, created.id)
+    })
+    if (!added) return { id: meeting.id, title: meeting.title, already_imported: true }
+    log(`create_meeting made ${meeting.id}: ${timed.length} lines${m.summary ? ', a summary' : ''}${f ? `, in ${f.id}` : ''}`)
+    d.app.imported(meeting.id)
+    if (f) d.app.changed('folders')
+    if (m.writeSummary) d.app.rewriteSummary(meeting.id, '')
+    return { id: meeting.id, title: meeting.title, start: new Date(meeting.startedAt).toISOString(), lines: timed.length, folder: f ? { id: f.id, name: f.name } : null,
+      summary: m.summary ? 'given' : m.writeSummary ? (d.app.notesReady() ? 'Yogurt is writing it' : 'Yogurt writes it once its notes model has downloaded') : 'none' }
   }
   return {
     async create_meeting(a) { return JSON.stringify(save(check(a)), null, 2) },

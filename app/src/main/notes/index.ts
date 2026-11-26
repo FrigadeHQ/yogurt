@@ -1,3 +1,4 @@
+import { NOTES_MAX } from '../../shared/noteLimits'
 import { attendeeMembership as stamp, sameAttendeeMembership } from '../../shared/people'
 import type { Meeting, Store } from '../store'
 import type { NotesModel } from './model'
@@ -11,7 +12,7 @@ export const NAMES_WAIT_MS = 60_000
 /** people changed after the notes were written: they are written again once no more changes came for this long */
 export const PEOPLE_REWRITE_MS = 3000
 /** Reject oversized notes without silently discarding any accepted editor text. */
-export const NOTES_MAX = 2_000_000
+export { NOTES_MAX }
 /** the draft goes to the window at most this often while it is written */
 const DRAFT_EVERY_MS = 50
 

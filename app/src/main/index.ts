@@ -82,6 +82,7 @@ import { createEmbedder } from './library/embedder'
 import { createIndexer } from './library/indexer'
 import { hookConversations } from './library/conversations'
 import { hookShare } from './share'
+import { importMarkdown } from './markdownImport'
 import { hookBackup } from './backupIpc'
 import { hookFolders } from './foldersIpc'
 import { hookMcp } from './mcp'
@@ -940,6 +941,16 @@ app.whenReady().then(() => {
     beforeExport: () => { notes.retryDrafts(); return notes.pendingDraftId() } })
   // AI apps change things only through the functions behind the app's own buttons
   const noteSaved = (id: string, r: ReturnType<typeof notes.replace>) => { if (r === 'saved') win?.webContents.send('meetings:changed'); return r }
+  const meetingImported = (id: string) => {
+    win?.webContents.send('meetings:changed')
+    void indexer.schedule()
+    folderSuggestions.schedule(id)
+  }
+  ipcMain.handle('meetings:import-markdown', (_event, note) => {
+    const { meeting, added } = importMarkdown(store, note)
+    if (added) meetingImported(meeting.id)
+    return added
+  })
   void hookMcp({
     store, profile: userDataDir(), me, version: app.getVersion(),
     enabled: () => !!loadSettings(settingsFile).aiApps, setEnabled: (on) => { updateSettings(settingsFile, { aiApps: on || undefined }) },
@@ -951,7 +962,7 @@ app.whenReady().then(() => {
       settings: () => preferences.read(),
       changed: (what) => { if (what === 'folders') foldersChanged(); else win?.webContents.send('meetings:changed') },
       // a meeting from another notes app: on home, in the library for Ask, and offered a folder like any other
-      imported: (id) => { win?.webContents.send('meetings:changed'); void indexer.schedule(); folderSuggestions.schedule(id) },
+      imported: meetingImported,
       rename: (id, title) => !!renameMeeting(id, title),
       setAttendees: (id, people) => setPeople(id, people),
       linkEvent: (id, eventId, day) => linkMeetingEvent(id, eventId, day).catch(() => false),

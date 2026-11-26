@@ -1,3 +1,4 @@
+import { MarkdownImport } from '../components/MarkdownImport'
 import { AboutYogurt } from '../components/AboutYogurt'
 import { retryToast, toasts } from '../components/TrashToast'
 import { LoadingContent } from '../components/LoadingContent'
@@ -265,6 +266,8 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
             <SpokenSetting />
             <Jargon />
           </div>
+
+          <MarkdownImport />
 
           <Backup onImported={() => { void window.yogurt.settings.get().then(setPrefs) }} />
 
