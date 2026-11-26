@@ -680,7 +680,7 @@ app.whenReady().then(() => {
     queued: () => { void savedTranscriptions.pump() },
     // the mic without the other side's echo is kept beside the recording, for listening back (#166)
     meetingDir: (id) => join(userDataDir(), 'meetings', id),
-    // English only (the default) or Multi-language, read on each chunk so the footer's picker counts at once
+    // Read the spoken-language picker on each chunk so changes take effect during recording
     spoken: () => spokenSetting(loadSettings(settingsFile)),
     // Apple's on-device speech for the live words (macOS 26, Apple Silicon); fake mode has a stand-in when a test asks
     speech: {

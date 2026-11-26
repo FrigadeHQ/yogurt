@@ -69,7 +69,7 @@ function speechOff(s: Session, why: string) {
 /** what the Mac's speech can do, read once at start-up (nothing where it is not available) */
 let speechLocales: SpeechLocales = { available: false, supported: [], installed: [] }
 let speechDeps: { ui: () => string; last: () => string | null; install: (locale: string) => Promise<boolean> } | undefined
-/** the spoken language picked (English only or Multi-language), read each time it matters */
+/** the spoken language picked, read each time it matters */
 let spokenNow: () => Spoken = () => 'en'
 const installing = new Set<string>()
 /**
