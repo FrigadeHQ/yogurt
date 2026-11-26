@@ -92,7 +92,7 @@ export function NoteMenu({ transcription, recording, savePending, onRename, onDe
           <button role="menuitem" data-testid="note-delete" disabled={recording || savePending} onClick={() => run(() => { button.current?.focus(); onDelete() })} className={`${row} text-danger`}>
             <Trash2 size={15} aria-hidden="true" />
             <span className="flex flex-col">
-              {trashed ? t('Delete forever') : t('Delete note')}
+              {trashed ? t('Delete forever') : t('Move to Trash')}
               {recording && <span className="text-xs text-muted">{t('Stop the recording first')}</span>}
               {savePending && <span className="text-xs text-muted">{t('Finish saving first')}</span>}
             </span>

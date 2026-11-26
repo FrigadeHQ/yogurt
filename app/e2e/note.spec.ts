@@ -438,7 +438,7 @@ test('clicking the title renames the note; Escape keeps the old one; home and th
   } finally { await app.close() }
 })
 
-test('delete from the note menu: not while it records; to the Trash with Undo; deleted forever there, the note, its audio and its folder are gone', async () => {
+test('move a note to Trash after recording, undo the move, then delete it forever from Trash', async () => {
   const { app, page, userData } = await launch()
   try {
     const id = await record(app, page)
@@ -454,9 +454,9 @@ test('delete from the note menu: not while it records; to the Trash with Undo; d
     await expect.poll(async () => (await notesOf(page, id)).status, { timeout: 30_000 }).not.toBe('idle')
     const dir = join(userData, 'meetings', id)
     expect(existsSync(dir)).toBe(true)
-    // Delete: no question, the note closes, and it waits in the Trash with everything kept
+    // The note closes and waits in the Trash with everything kept.
     await page.getByTestId('note-menu-button').click()
-    await page.getByTestId('note-delete').click()
+    await page.getByRole('menuitem', { name: 'Move to Trash', exact: true }).click()
     await expect(page.getByTestId('home')).toBeVisible()
     await expect(page.getByTestId('past-note')).toHaveCount(0)
     await expect(page.getByTestId('trash-toast')).toContainText('Moved to the Trash')
@@ -467,7 +467,7 @@ test('delete from the note menu: not while it records; to the Trash with Undo; d
     await expect(page.getByTestId('note-trashed')).toHaveCount(0)
     expect((await page.evaluate((id) => window.yogurt.meetings.get(id), id))?.trashedAt).toBeUndefined()
     await page.getByTestId('note-menu-button').click()
-    await page.getByTestId('note-delete').click()
+    await page.getByRole('menuitem', { name: 'Move to Trash', exact: true }).click()
     await expect(page.getByTestId('home')).toBeVisible()
     // Delete forever, from the Trash: asks first, Cancel focused
     await openFromCorner(page, 'nav-trash')

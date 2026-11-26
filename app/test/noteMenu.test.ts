@@ -8,6 +8,17 @@ vi.mock('../src/renderer/src/motion', () => ({ usePopoverPresence: () => ({ valu
 afterEach(() => setLanguage('en'))
 const available = { hasSummary: true, hasContent: false, recording: false, busy: false, downloading: false, trashed: false }
 
+it.each([
+  { trashed: false, label: 'Move to Trash' },
+  { trashed: true, label: 'Delete forever' },
+])('shows "$label" in the note menu when trashed is $trashed', ({ trashed, label }) => {
+  const html = renderToStaticMarkup(createElement(NoteMenu, {
+    trashed, recording: false, generation: undefined, hasSummary: false, edited: false, rewriteOpen: false,
+    setRewriteOpen() {}, onWriteAgain() {}, onRename() {}, onDelete() {},
+  }))
+  expect(html).toContain(label)
+})
+
 it('shows the correct action for existing summaries and source content, hiding empty notes and Trash', () => {
   expect(summaryAction(available)).toEqual({ label: 'Regenerate summary', reason: undefined })
   expect(summaryAction({ ...available, hasSummary: false, hasContent: true })?.label).toBe('Generate summary')
