@@ -27,9 +27,10 @@ const TAIL_MS = 500
 export type Moment = { correlated: boolean; loud: boolean; pure: boolean }
 /**
  * Echo in this meeting: heard in the audio (asr/echoDetect.ts); whether the mic echoed in the 2 s window holding a
- * moment; and what a line's own span says (undefined before the room's lag is known)
+ * moment; and what a line's own span says (undefined before the room's lag is known). offsetMs: the mic's track sits this
+ * far behind theirs on meeting time (0 or none: together), so a mic line is a copy of what they said that much earlier
  */
-export type EchoCheck = { echo?: boolean; correlatedAt?: (ms: number) => boolean; over?: (startMs: number, endMs: number) => Moment | undefined }
+export type EchoCheck = { echo?: boolean; correlatedAt?: (ms: number) => boolean; over?: (startMs: number, endMs: number) => Moment | undefined; offsetMs?: number }
 
 /** Words, lowercased and without punctuation. Text without spaces (Japanese, Chinese) is compared by character. */
 export function tokens(text: string): string[] {
@@ -71,7 +72,7 @@ const ACK = new Set(['yeah', 'yes', 'yep', 'yup', 'no', 'nope', 'right', 'okay',
  * "I can do that" shares words with theirs too easily). A long line is also judged against their lines together: whisper
  * cuts the two tracks at different pauses, so the echo of one sentence can straddle two lines.
  */
-function echoMatch(m: Seg, them: Seg[], at: (ms: number) => boolean, over?: EchoCheck['over']): false | 'high' | 'uncertain' {
+function echoMatch(m: Seg, them: Seg[], at: (ms: number) => boolean, over?: EchoCheck['over'], offsetMs = 0): false | 'high' | 'uncertain' {
   // an echo is their voice on the mic while the line was said: a copy said a second later (a read-back) is the person's own.
   // The line's own audio decides where it can: the mic followed their track over the line, or in the window holding it
   // while the person talked over them; and never when the mic was far louder than the leak (the person's own words,
@@ -79,6 +80,8 @@ function echoMatch(m: Seg, them: Seg[], at: (ms: number) => boolean, over?: Echo
   const span = over?.(m.startMs, m.endMs)
   const inWindow = at(m.startMs) || at((m.startMs + m.endMs) / 2) || at(m.endMs)
   if (span ? !(span.correlated || inWindow) || !span.loud : !inWindow) return false
+  // tracks apart: from here the line is set against their lines on their own time (the audio above was asked on the mic's)
+  if (offsetMs) m = { ...m, startMs: m.startMs - offsetMs, endMs: m.endMs - offsetMs }
   const mine = tokens(m.text)
   // nothing on the mic but their voice from the speakers, and their line at that moment has most of its words: an echo at a
   // lower word bar than below. Never on the audio alone: a person who speaks as quietly as the leak sounds much the same.
@@ -113,7 +116,7 @@ const always = () => true
 
 /** Pure audio spans or strong word matches can be quiet; weak matches remain reviewable. */
 export function echoConfidence(m: Seg, them: Seg[], o: EchoCheck = {}): false | 'high' | 'uncertain' {
-  return o.echo ? echoMatch(m, them, o.correlatedAt ?? always, o.over) : false
+  return o.echo ? echoMatch(m, them, o.correlatedAt ?? always, o.over, o.offsetMs) : false
 }
 
 /**
@@ -124,7 +127,7 @@ export function echoConfidence(m: Seg, them: Seg[], o: EchoCheck = {}): false | 
 export function dropEcho<T extends Seg>(me: T[], them: Seg[], o: EchoCheck = {}): T[] {
   if (!o.echo) return me
   const at = o.correlatedAt ?? always
-  return me.filter((m) => !echoMatch(m, them, at, o.over))
+  return me.filter((m) => !echoMatch(m, them, at, o.over, o.offsetMs))
 }
 
 /**
@@ -136,5 +139,5 @@ export function echoIds<T extends Seg & { id: number; track: 'me' | 'them' }>(se
   const them = segs.filter((s) => s.track === 'them')
   if (!them.length || !o.echo) return []
   const at = o.correlatedAt ?? always
-  return segs.filter((s) => s.track === 'me' && echoMatch(s, them, at, o.over)).map((s) => s.id)
+  return segs.filter((s) => s.track === 'me' && echoMatch(s, them, at, o.over, o.offsetMs)).map((s) => s.id)
 }

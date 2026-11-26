@@ -81,6 +81,15 @@ describe('echoIds: the sweep after the meeting', () => {
   it('finds nothing without them lines', () => {
     expect(echoIds([line(1, 'me', 'hello there everyone', 0)])).toEqual([])
   })
+  it('tracks apart (offsetMs): a mic line is set against what they said that much earlier', () => {
+    // their short line ended 530 ms before its copy starts on the mic: past the speakers' tail, unless the tracks sit 830 ms apart
+    const segs = [line(1, 'them', 'we should move the launch', 10_000, 10_300), line(2, 'me', 'we should move the launch', 10_830, 11_130)]
+    expect(echoIds(segs, { echo: true })).toEqual([])
+    expect(echoIds(segs, { echo: true, offsetMs: 830 })).toEqual([2])
+    // a read-back a second after their line ended, on their time, is still the person's own
+    const back = [line(1, 'them', 'we should move the launch', 10_000, 10_300), line(2, 'me', 'we should move the launch', 12_130, 12_430)]
+    expect(echoIds(back, { echo: true, offsetMs: 830 })).toEqual([])
+  })
 })
 
 describe('scraps of their sentence on the mic', () => {

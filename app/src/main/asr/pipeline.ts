@@ -59,7 +59,7 @@ export function createPipeline(p: {
   const them: Line[] = []
   /** is their voice reaching the mic in this meeting (no headphones)? only then are echo lines hidden */
   const echo = new EchoDetector()
-  const echoCheck = (): EchoCheck => p.echoForTests ?? { echo: echo.present(), correlatedAt: (ms) => echo.correlatedAt(ms), over: (a, b) => echo.over(a, b) }
+  const echoCheck = (): EchoCheck => p.echoForTests ?? { echo: echo.present(), correlatedAt: (ms) => echo.correlatedAt(ms), over: (a, b) => echo.over(a, b), offsetMs: echo.offsetMs() }
   let held: Array<{ line: Line; readyAt: number; chunkStartMs: number; chunkEndMs: number }> = []
   let timer: NodeJS.Timeout | undefined
   let echoDropped = 0
@@ -295,6 +295,8 @@ export function createPipeline(p: {
     echoPresent: () => echoCheck().echo ?? false,
     echoAt: (ms: number) => echoCheck().correlatedAt?.(ms) ?? true,
     echoOver: (startMs: number, endMs: number) => echoCheck().over?.(startMs, endMs),
+    /** how far the mic's track sits behind theirs on meeting time (0: together) */
+    echoOffset: () => echoCheck().offsetMs ?? 0,
   }
 }
 export type Pipeline = ReturnType<typeof createPipeline>
