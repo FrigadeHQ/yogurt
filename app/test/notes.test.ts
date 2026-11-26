@@ -602,9 +602,9 @@ describe('titles after attendee edits', () => {
     s.store.updateMeeting(s.m.id, { titleSource: 'auto' })
     s.notes.setEnhanced(s.m.id, 'Keep the summary')
     s.notes.applyPeople(s.m.id)
-    await wait(160)
+    // waits for the second ask instead of a fixed 160 ms: a busy Windows runner took longer
+    await vi.waitFor(() => expect(s.changed).toHaveLength(1), { timeout: 5000 })
     expect(s.prompts).toHaveLength(2)
-    expect(s.changed).toHaveLength(1)
     expect(s.prompts[1]).toContain('["Guest"]')
   })
   it('rejects an owner name from the title-only path', async () => {
