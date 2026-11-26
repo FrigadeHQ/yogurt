@@ -98,11 +98,11 @@ function decide(): string | null {
 }
 /**
  * The spoken language was changed (the note's footer or Settings): whisper hears it from the next chunk on. A recording
- * switched to English only whose Apple speech listens in another language gets whisper's quick readings back instead.
+ * switched to a pinned language different from its Apple speech locale gets whisper's quick readings back instead.
  */
 export function spokenChanged() {
   const spoken = spokenNow()
-  for (const s of sessions.values()) if (s.speech && !speechFits(spoken, s.speech)) speechOff(s, 'English only was picked')
+  for (const s of sessions.values()) if (s.speech && !speechFits(spoken, s.speech)) speechOff(s, `spoken language changed to ${spoken}`)
 }
 /** segments and hideSegments: the echo sweep after the meeting (tests may leave them out) */
 type SessionStore = Pick<Store, 'updateMeeting'> & Partial<Pick<Store, 'segments' | 'hideSegments' | 'meeting' | 'deleteSegments'>>

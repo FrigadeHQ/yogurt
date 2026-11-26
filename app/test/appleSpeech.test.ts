@@ -64,3 +64,10 @@ describe('the spoken language picked in Yogurt', () => {
     expect(speechFits('multi', 'es-ES')).toBe(true)
   })
 })
+
+it.each([['es', 'es-MX'], ['pt', 'pt-PT']] as const)('uses only a supported %s locale when pinned', (spoken, locale) => {
+  expect(wantedSpeechLocale({ spoken, supported: ['en-US', locale], ui: 'en-US' })).toBe(locale)
+  expect(wantedSpeechLocale({ spoken, supported: ['en-US'], ui: 'en-US' })).toBeNull()
+  expect(speechFits(spoken, locale)).toBe(true)
+  expect(speechFits(spoken, 'en-US')).toBe(false)
+})

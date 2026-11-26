@@ -137,6 +137,16 @@ describe('transcribe', () => {
     expect(s.seen.map((x) => x.fields.language)).toEqual(['en', 'en', 'en'])
   })
 
+  it.each(['es', 'pt'])('sends pinned %s on the live and final requests for both tracks', async (code) => {
+    const server = await stub([say('OK, sprint review')])
+    const transcribe = createTranscriber({ url: async () => server.url, language: () => code })
+    for (const track of ['me', 'them'] as const) {
+      await transcribe(chunk(track, 0), { partial: true })
+      await transcribe(chunk(track, 0))
+    }
+    expect(server.seen.map(r => r.fields.language)).toEqual([code, code, code, code])
+  })
+
   it('one line in another language (a name, a quote) keeps the lock', async () => {
     const s = await stub([say('Hello everyone thanks for coming'), say('Bonjour mes amis', 'french'), say('Bonjour mes amis', 'french'), say('Back to the plan for today')])
     const t = createTranscriber({ url: async () => s.url })
