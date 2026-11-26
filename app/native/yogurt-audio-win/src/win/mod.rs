@@ -1,4 +1,5 @@
-//! WASAPI: microphones, the computer's sound (process loopback that leaves Yogurt out, else the whole output), device events.
+//! WASAPI: microphones, the computer's sound (the default output and communication device, or process loopback that
+//! leaves Yogurt out when asked for), device events.
 //! Shared mode only, never the communications role or exclusive mode, so a call app keeps its mic just as it was.
 #![allow(non_snake_case)]
 
@@ -24,10 +25,10 @@ use crate::out::log;
 pub enum Ev {
     Mic(Vec<f32>, u64, Option<f64>),
     MicLost(u64),
-    /// the computer's sound and the meeting time it was heard at
-    Sys(Vec<f32>, f64),
+    /// the computer's sound from one output (its place in the mix) and the meeting time it was heard at
+    Sys(usize, Vec<f32>, f64),
     SysLost,
-    /// the default output (true) or input changed
+    /// the default output or communication device (true), or the default input, changed
     Default(bool),
     /// some device came, went or changed state
     Devices,
@@ -342,19 +343,53 @@ pub fn start_mic(uid: Option<String>, tx: Sender<Ev>, generation: u64, clock: Cl
     )
 }
 
-/// The computer's sound: the whole default output, Yogurt's own sound included (Yogurt plays nothing while recording
-/// unless asked). Process loopback, every app except Yogurt (Windows 10 2004 and newer), only on YOGURT_AUDIO_LOOPBACK=process:
-/// it heard nothing of Teams on some computers (#35).
-pub fn start_system(tx: Sender<Ev>, clock: Clock) -> Result<Stream, StartError> {
+/// The outputs to record: the default output, and the default communication device when it's another one (#167)
+pub fn default_outputs() -> Vec<String> {
+    let Ok(e) = enumerator() else { return Vec::new() };
+    let id = |role| unsafe { e.GetDefaultAudioEndpoint(eRender, role) }.ok().as_ref().and_then(device_id);
+    crate::mix::outputs(id(eConsole), id(eCommunications))
+}
+
+/// The computer's sound, one stream per output it plays to; more than one is mixed into `them`.
+/// Every output by default: the default output, and the default communication device where Teams plays calls when it
+/// differs (#167), Yogurt's own sound included (Yogurt plays nothing while recording unless asked).
+/// Process loopback, every app except Yogurt (Windows 10 2004 and newer), only on YOGURT_AUDIO_LOOPBACK=process:
+/// it heard nothing of the new Teams on the very device it played to on some computers (#35, a Jabra headset).
+pub fn start_system(tx: Sender<Ev>, clock: Clock) -> Result<Vec<Stream>, StartError> {
+    if std::env::var("YOGURT_AUDIO_LOOPBACK").as_deref() == Ok("process") {
+        return start_output(0, None, true, tx, clock).map(|s| vec![s]);
+    }
+    let ids = default_outputs();
+    if ids.is_empty() {
+        return Err(StartError::NoDevice);
+    }
+    let mut streams = Vec::new();
+    let mut last = StartError::NoDevice;
+    for id in ids {
+        // its place in the mix: only outputs that started count
+        match start_output(streams.len(), Some(id), false, tx.clone(), clock) {
+            Ok(s) => streams.push(s),
+            Err(e) => {
+                log(&format!("an output couldn't be recorded: {e:?}"));
+                last = e;
+            }
+        }
+    }
+    if streams.is_empty() {
+        Err(last)
+    } else {
+        Ok(streams)
+    }
+}
+
+/// One output's sound: the device with this ID (else the default output), or process loopback when asked for
+fn start_output(lane: usize, id: Option<String>, process: bool, tx: Sender<Ev>, clock: Clock) -> Result<Stream, StartError> {
     let lost_tx = tx.clone();
     let mut gap = GapFiller::new(clock.now_ms());
     spawn(
         move || {
-            let parent = parent_pid();
-            // The whole output by default: process loopback ("every app except Yogurt") heard nothing of the new Teams
-            // on the very device it played to (#35, a Jabra headset as the default output). YOGURT_AUDIO_LOOPBACK=process
-            // still asks for it (CI tests both).
-            if parent != 0 && std::env::var("YOGURT_AUDIO_LOOPBACK").as_deref() == Ok("process") {
+            let parent = if process { parent_pid() } else { 0 };
+            if parent != 0 {
                 match process_loopback(parent) {
                     Ok(client) => match initialize(&client, true) {
                         Ok(ch) => {
@@ -366,10 +401,20 @@ pub fn start_system(tx: Sender<Ev>, clock: Clock) -> Result<Stream, StartError> 
                     Err(e) => log(&format!("process loopback isn't available ({e}): recording the whole output")),
                 }
             }
-            let dev = unsafe { enumerator().map_err(start_error)?.GetDefaultAudioEndpoint(eRender, eConsole) }.map_err(|_| StartError::NoDevice)?;
+            let e = enumerator().map_err(start_error)?;
+            let dev = match &id {
+                Some(id) => unsafe { e.GetDevice(&HSTRING::from(id.as_str())) },
+                None => unsafe { e.GetDefaultAudioEndpoint(eRender, eConsole) },
+            }
+            .map_err(|_| StartError::NoDevice)?;
             let client: IAudioClient = unsafe { dev.Activate(CLSCTX_ALL, None) }.map_err(start_error)?;
             let ch = initialize(&client, true).map_err(start_error)?;
-            log("system audio: the whole output, Yogurt's own sound included");
+            let name = friendly_name(&dev).unwrap_or_default();
+            if lane == 0 {
+                log(&format!("system audio: the whole output, Yogurt's own sound included ({name})"));
+            } else {
+                log(&format!("system audio: the communication device too, where calls play ({name})"));
+            }
             Ok((client, ch, false))
         },
         move |p| match p {
@@ -378,12 +423,12 @@ pub fn start_system(tx: Sender<Ev>, clock: Clock) -> Result<Stream, StartError> 
                 let heard = if qpc != 0 { clock.qpc_ms(qpc) } else { clock.now_ms() - frames as f64 / 48.0 };
                 let skip = gap.packet(heard, frames);
                 if skip < frames {
-                    let _ = tx.send(Ev::Sys(s[skip..].to_vec(), heard + skip as f64 / 48.0));
+                    let _ = tx.send(Ev::Sys(lane, s[skip..].to_vec(), heard + skip as f64 / 48.0));
                 }
             }
             None => {
                 if let Some((at, frames)) = gap.idle(clock.now_ms()) {
-                    let _ = tx.send(Ev::Sys(vec![0.0; frames], at));
+                    let _ = tx.send(Ev::Sys(lane, vec![0.0; frames], at));
                 }
             }
         },
@@ -502,8 +547,11 @@ impl IMMNotificationClient_Impl for Watcher_Impl {
         Ok(())
     }
     fn OnDefaultDeviceChanged(&self, flow: EDataFlow, role: ERole, _id: &PCWSTR) -> WinResult<()> {
-        if role == eConsole {
-            let _ = self.0.send(Ev::Default(flow == eRender));
+        // calls play on the communication device (#167), so a new one is recorded too
+        if flow == eRender && (role == eConsole || role == eCommunications) {
+            let _ = self.0.send(Ev::Default(true));
+        } else if flow == eCapture && role == eConsole {
+            let _ = self.0.send(Ev::Default(false));
         }
         Ok(())
     }

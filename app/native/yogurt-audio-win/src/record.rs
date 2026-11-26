@@ -4,6 +4,7 @@ use std::path::Path;
 use std::sync::mpsc::{channel, RecvTimeoutError};
 use std::time::{Duration, Instant};
 
+use crate::mix::Mix;
 use crate::out::{self, log};
 use crate::track::Track;
 use crate::win::{self, Clock, Ev, StartError, Stream};
@@ -23,7 +24,9 @@ struct Recorder {
     me: Track,
     them: Track,
     mic: Option<Stream>,
-    sys: Option<Stream>,
+    /// one stream per output; more than one is mixed
+    sys: Vec<Stream>,
+    mix: Option<Mix>,
     paused: bool,
     mic_muted: bool,
     mic_generation: u64,
@@ -45,7 +48,8 @@ pub fn run(dir: &Path, o: Options) -> i32 {
         me: Track::new("me", dir, o.part, o.start_ms),
         them: Track::new("them", dir, o.part, o.start_ms),
         mic: None,
-        sys: None,
+        sys: Vec::new(),
+        mix: None,
         paused: false,
         mic_muted: o.mic_muted,
         mic_generation: 0,
@@ -100,9 +104,17 @@ pub fn run(dir: &Path, o: Options) -> i32 {
                     }
                 }
             }
-            Ok(Ev::Sys(b, heard)) => {
+            Ok(Ev::Sys(lane, b, heard)) => {
                 if !r.paused {
-                    r.them.append(&b, Some(heard), r.clock.now_ms())
+                    let now = r.clock.now_ms();
+                    match &mut r.mix {
+                        Some(m) => {
+                            if let Some((s, at)) = m.push(lane, &b, heard) {
+                                r.them.append(&s, Some(at), now)
+                            }
+                        }
+                        None => r.them.append(&b, Some(heard), now),
+                    }
                 }
             }
             Ok(Ev::MicLost(generation)) => { if generation == r.mic_generation { r.mic.take(); r.schedule_mic(SETTLE) } }
@@ -205,7 +217,10 @@ impl Recorder {
 
     fn start_system(&mut self) {
         match win::start_system(self.tx.clone(), self.clock) {
-            Ok(s) => self.sys = Some(s),
+            Ok(s) => {
+                self.sys = s;
+                self.new_mix();
+            }
             Err(e) => {
                 log(&format!("system audio failed: {e:?}"));
                 out::warn("no-system-audio");
@@ -213,12 +228,17 @@ impl Recorder {
         }
     }
 
+    /// A fresh mix of the outputs recording now (none for one)
+    fn new_mix(&mut self) {
+        self.mix = (self.sys.len() > 1).then(|| Mix::new(self.sys.len()));
+    }
+
     fn schedule_mic(&mut self, after: Duration) {
         self.mic_rebuild = Some(Instant::now() + after);
     }
 
     fn rebuild_system(&mut self) {
-        if let Some(s) = self.sys.take() {
+        for s in self.sys.drain(..) {
             s.stop();
         }
         self.them.resync();
@@ -294,6 +314,7 @@ impl Recorder {
                 self.paused = false;
                 self.me.resync();
                 self.them.resync();
+                self.new_mix();
             }
             _ if c.starts_with("mute ") || c.starts_with("unmute ") => {
                 let Some((action, id)) = c.split_once(' ') else { return false };
@@ -323,7 +344,7 @@ impl Recorder {
         if let Some(s) = self.mic.take() {
             s.stop();
         }
-        if let Some(s) = self.sys.take() {
+        for s in self.sys.drain(..) {
             s.stop();
         }
         self.me.flush_pending();
