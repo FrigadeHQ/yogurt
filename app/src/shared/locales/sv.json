@@ -824,5 +824,8 @@
   "Remind me to tell others I’m recording": "Påminn mig om att berätta för andra att jag spelar in",
   "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "Starta och avsluta inspelningar själv. Yogurt öppnas inte när ett samtal börjar.",
   "System notifications": "Systemnotiser",
-  "Microphone access": "Mikrofonåtkomst"
+  "Microphone access": "Mikrofonåtkomst",
+  "Turn off to save battery during calls. Yogurt writes the transcript and notes after you stop recording.": "Stäng av för att spara batteri under samtal. Yogurt skriver transkriptionen och anteckningarna när du stoppar inspelningen.",
+  "Yogurt will transcribe this call after you stop recording.": "Yogurt transkriberar det här samtalet när du stoppar inspelningen.",
+  "Available when the transcript is ready.": "Tillgängligt när transkriptionen är klar."
 }

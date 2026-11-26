@@ -17,7 +17,7 @@ import { clipStart, hearsClip } from './speedCheck'
 import { createTranscriber, type Line, type Transcribe } from './transcribe'
 import { meetingWords, respell, whisperPrompt } from '../vocab'
 import type { TranscriptPartial } from '../../shared/types'
-import type { Chunk } from './chunker'
+import { hasVoice, type Chunk } from './chunker'
 import { MicInput } from './micInput'
 
 /**
@@ -110,17 +110,19 @@ type SessionStore = Pick<Store, 'updateMeeting'> & Partial<Pick<Store, 'segments
 let server: WhisperServer | undefined
 let serverKey: string | undefined
 const sessions = new Map<string, Session>()
+let deferredInput: { id: string; live: NonNullable<Session['live']> } | undefined
 /** Unknown, stale or paused input is not evidence that a conversation ended. */
 export function liveSilentMs(id: string, now = Date.now()): number {
-  const s = sessions.get(id), live = s?.live
-  if (!s?.pipeline || !live || recordingPaused(id)) return 0
+  const s = sessions.get(id)
+  const live = s?.pipeline ? s.live : deferredInput?.id === id ? deferredInput.live : undefined
+  if (!live || recordingPaused(id)) return 0
   const tracks: Track[] = live.micFrom === Infinity ? ['them'] : ['me', 'them']
   if (tracks.some(track => now - (live.frames[track] ?? -Infinity) > 3000)) return 0
   return Math.max(0, now - live.quietSince)
 }
 
 /** language: a code whisper is told for every chunk instead of the spoken setting (a phone recording's own) */
-export type RecordedOptions = { signal?: AbortSignal; progress?: (ms: number) => void; fromMs?: Partial<Record<Track,number>>; save?: (segments: Omit<Segment,'id'>[]) => void; language?: string }
+export type RecordedOptions = { nameOf?: (startMs: number, endMs: number) => string | null; signal?: AbortSignal; progress?: (ms: number) => void; fromMs?: Partial<Record<Track,number>>; save?: (segments: Omit<Segment,'id'>[]) => void; language?: string }
 type Recorded = (id: string, tracks: Partial<Record<Track, AsyncIterable<Float32Array>>>, stopped?: () => boolean, options?: RecordedOptions) => Promise<boolean>
 let recorded: Recorded = async () => false
 /**
@@ -335,7 +337,7 @@ export function hookTranscription(p: {
     const s: Session = {
       cleanMic, aborted: () => !!options?.signal?.aborted,
       complete: () => !!transcribe && !pendingBefore && !saveFailed && !warned.has('transcribe-failed') && !s.failed && !options?.signal?.aborted && !s.pipeline?.paused() && !Object.keys(s.pipeline?.gaps() ?? {}).length,
-      replacement: !!options?.save, liveEngine: !later && !!transcribe, store: p.store, refresh: p.refresh, speech: speechLocaleFor(id), priorLines: new Set(p.store.segments?.(id).map((s) => s.id) ?? []),
+      replacement: !!options?.save, liveEngine: !later && !!transcribe, store: p.store, refresh: p.refresh, speech: later ? null : speechLocaleFor(id), priorLines: new Set(p.store.segments?.(id).map((s) => s.id) ?? []),
       pipeline: transcribe ? createPipeline({ meetingId: id, transcribe, save: (segs) => {
         try { if(options?.save) options.save(segs); else p.store.addSegments(segs) } catch (e) { saveFailed = true; throw e }
         if (segs.some(s => s.hidden)) p.refresh?.(id)
@@ -347,7 +349,7 @@ export function hookTranscription(p: {
         p.sendPartial?.(part)
         if (part.track === 'me' && s.micQuickAfterFinal !== undefined && !part.words?.length) micQuickReads(s, s.micQuickAfterFinal)
       }, holdMs: p.holdMs, extraWaitMs: p.extraWaitMs, onWarn: warnOnce,
-        nameOf: (a, b) => p.store.meeting?.(id)?.source === 'audio-file' ? AUDIO_SPEAKER : p.nameOf?.(id, a, b) ?? previousSpeaker(priorSegments,'them',a,b),
+        nameOf: (a, b) => p.store.meeting?.(id)?.source === 'audio-file' ? AUDIO_SPEAKER : options?.nameOf?.(a, b) ?? p.nameOf?.(id, a, b) ?? previousSpeaker(priorSegments,'them',a,b),
         respell: (t) => { const m = p.store.meeting?.(id); return m ? respell(t, meetingWords(m)) : t },
         cleanMic: cleanMic && ((ms, x) => cleanMic.push(ms, x)) }) : null,
     }
@@ -363,9 +365,9 @@ export function hookTranscription(p: {
     return s
   }
 
-  const offStart = (p.onStart ?? onMeetingStart)((m) => { open(m.id) })
+  const offStart = (p.onStart ?? onMeetingStart)((m) => { if (m.transcriptionDeferred) void releaseIdleSpeech(); else open(m.id) })
   recorded = async (id, tracks, stopped, options) => {
-    if (sessions.has(id) || !p.modelPath()) return false
+    if (options?.signal?.aborted || stopped?.() || sessions.has(id) || !p.modelPath()) return false
     const s = open(id, true, options)
     if (!s.pipeline) { sessions.delete(id); return false }
     const pipe = s.pipeline
@@ -380,16 +382,19 @@ export function hookTranscription(p: {
   }
   // each capture of a meeting (a restarted recorder is a new one) feeds that meeting's session
   const offCapture = onCaptureStart((c, meetingId) => {
-    const s = open(meetingId)
-    const live: NonNullable<Session['live']> = { quietSince: Date.now(), mic: s.live?.mic ?? new MicInput(), micFrom: s.live?.micFrom, frames: {} }
-    s.live = live
-    const silence = (ms: number, samples: Float32Array) => s.pipeline?.push('me', ms, samples)
-    c.on('level', () => { if (s.live === live) live.mic.tick(silence) })
-    let appleMic = !!s.speech, appleCall = !!s.speech
+    const s = p.store.meeting?.(meetingId)?.transcriptionDeferred ? undefined : open(meetingId)
+    const previous = s?.live ?? (deferredInput?.id === meetingId ? deferredInput.live : undefined)
+    const live: NonNullable<Session['live']> = { quietSince: Date.now(), mic: previous?.mic ?? new MicInput(), micFrom: previous?.micFrom, frames: {} }
+    if (s) s.live = live
+    else deferredInput = { id: meetingId, live }
+    const current = () => (s ? s.live : deferredInput?.live) === live
+    const floors: Record<Track, number[]> = { me: [], them: [] }
+    const silence = (ms: number, samples: Float32Array) => s?.pipeline?.push('me', ms, samples)
     c.on('mic-boundary', ({ muted, ms }) => {
-      if (s.live !== live) return
+      if (!current()) return
       live.micFrom = muted ? Infinity : ms
       live.quietSince = Date.now()
+      if (!s) return
       live.mic.boundary(muted, ms, silence)
       if (muted) {
         const part = s.pipeline?.partials().find(part => part.track === 'me')
@@ -400,13 +405,20 @@ export function hookTranscription(p: {
       }
     })
     c.on('pcm', (track, ms, samples) => {
-      if (s.live !== live || !samples.length || (track === 'me' && ms < (live.micFrom ?? 0))) return
-      s.pipeline?.push(track, ms, samples)
+      if (!current() || !samples.length || (track === 'me' && ms < (live.micFrom ?? 0))) return
+      s?.pipeline?.push(track, ms, samples)
+      const talking = s ? s.pipeline?.talking('me') || s.pipeline?.talking('them') : hasVoice(samples, floors[track])
       const now = Date.now()
       // A gap, restart or pause must earn a new quiet minute, not count missing audio as silence.
-      if (now - (live.frames[track] ?? -Infinity) > 3000 || recordingPaused(meetingId) || s.pipeline?.talking('me') || s.pipeline?.talking('them')) live.quietSince = now
+      if (now - (live.frames[track] ?? -Infinity) > 3000 || recordingPaused(meetingId) || talking) live.quietSince = now
       live.frames[track] = now
     })
+    if (!s) {
+      c.on('ended', () => { if (current()) deferredInput = undefined })
+      return
+    }
+    c.on('level', () => { if (current()) live.mic.tick(silence) })
+    let appleMic = !!s.speech, appleCall = !!s.speech
     // Apple's speech that never speaks up: the helper says so, or someone has talked for a while with no word from it
     c.on('speech-off', () => { if (s.live === live) speechOff(s, 'the helper could not run it') })
     // Apple listening on one track only: whisper's own quick readings cover the other
@@ -493,7 +505,9 @@ function finishSession(id: string, s: Session, audioDone: () => Promise<void> = 
     if (s.cleanMic && s.pipeline) s.cleanMic.finish({ echo: s.pipeline.echoPresent(), ...s.pipeline.span(), failed: !!s.failed || !!s.aborted?.() })
     if (!s.replacement) clearAfterGaps(id, s)
     if (!s.replacement) sweepEcho(id, s)
-    if (!s.replacement && s.complete?.()) s.store?.updateMeeting(id, { transcriptionPending: false })
+    if (!s.replacement && s.complete?.()) {
+      if (!s.store?.meeting?.(id)?.transcriptionDeferred) s.store?.updateMeeting(id, { transcriptionPending: false })
+    }
     // whisper-server went down partway (#127): the audio is all in the saved recording, so the rest is transcribed from
     // there, from where the lines end. Queued (not left as is) because a meeting with some lines is otherwise never picked up.
     else if (s.liveEngine) { s.store?.updateMeeting(id, { transcriptionState: 'queued' }); queued = true; console.warn('ASR the transcript is incomplete: the rest is transcribed from the saved recording') }

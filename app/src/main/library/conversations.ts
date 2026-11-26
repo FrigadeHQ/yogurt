@@ -60,9 +60,11 @@ export function hookConversations(p: Deps) {
     }
     return list
   }
+  const waitsForTranscript = (chips: import('../../shared/askContext').ContextChip[]) =>
+    chips.some(chip => chip.kind === 'meeting' && p.store.meeting(chip.id)?.transcriptionDeferred)
   const view = (id: string): ConversationView | undefined => {
     const c = p.library.conversation(id)
-    return c && { id, title: c.title, chips: p.library.describe(c.chips), draftChips: p.library.describe(c.firstChips === null ? c.chips : c.draftChips), firstChips: c.firstChips === null ? null : p.library.describe(c.firstChips), draft: c.draft, turns: turns(id).map((t) => ({ ...t, sources: [...t.sources] })), waitsForMeeting: p.waitsForMeeting(), waitsForModel: p.waitsForModel() }
+    return c && { ...(waitsForTranscript(attachContext(c.chips, c.draftChips)) ? { waitsForTranscript: true } : {}), id, title: c.title, chips: p.library.describe(c.chips), draftChips: p.library.describe(c.firstChips === null ? c.chips : c.draftChips), firstChips: c.firstChips === null ? null : p.library.describe(c.firstChips), draft: c.draft, turns: turns(id).map((t) => ({ ...t, sources: [...t.sources] })), waitsForMeeting: p.waitsForMeeting(), waitsForModel: p.waitsForModel() }
   }
   const list = (): ConversationSummary[] => p.library.conversations().map((c) => ({ id: c.id, title: c.title, updatedAt: c.updatedAt, chips: p.library.describe(c.chips), draft: c.draft }))
   const push = (id: string) => { const v = view(id); if (v) p.send(v) }
@@ -102,15 +104,16 @@ export function hookConversations(p: Deps) {
   }
 
   /** A resumed question keeps its saved turn and context. */
-  function ask(id: string | null, raw: string, o: { scope?: string[] } = {}, resume?: number): { id: string; done: Promise<void> } {
+  function ask(id: string | null, raw: string, o: { scope?: string[] } = {}, resume?: number): { id: string; done: Promise<void>; waitsForTranscript?: true } {
     const question = raw.trim().slice(0, 4000)
     if (id && !p.library.conversation(id)) throw new Error('Conversation not found')
     if (id && running.has(id)) throw new Error('An answer is already running')
     if (!question) return { id: id ?? '', done: Promise.resolve() }
     const cid = id ?? p.library.current([], true)
-    if (!p.library.conversation(cid)?.title) p.library.renameConversation(cid, titleOf(question))
     const conversation = p.library.conversation(cid)!
     const chips = attachContext(conversation.chips, conversation.draftChips)
+    if (waitsForTranscript(chips)) return { id: cid, done: Promise.resolve(), waitsForTranscript: true }
+    if (!conversation.title) p.library.renameConversation(cid, titleOf(question))
     const scope = p.library.scope(chips) ?? o.scope
     const single = singleOf(chips)
     const all = turns(cid)
@@ -237,7 +240,7 @@ export function hookConversations(p: Deps) {
       const c = p.library.conversation(id)
       if (!c || p.waitsForModel() || p.waitsForMeeting() || p.warmAllowed?.() === false) return
       const single = singleOf(attachContext(c.chips, c.draftChips))
-      if (!single || now() - (warmed.get(single) ?? -Infinity) < WARM_AGAIN_MS) return
+      if (!single || p.store.meeting(single)?.transcriptionDeferred || now() - (warmed.get(single) ?? -Infinity) < WARM_AGAIN_MS) return
       warmed.set(single, now())
       void warmMeeting(p, single).catch((e) => console.error('reading a meeting in ahead failed', e))
     },
@@ -264,7 +267,7 @@ export function hookConversations(p: Deps) {
     async askOnce(question: string, chips: import('../../shared/askContext').ContextChip[], o: { timeoutMs?: number } = {}):
       Promise<{ unavailable: 'model' | 'recording' } | { answer: string; sources: LibrarySource[]; stopped?: true }> {
       if (p.waitsForModel()) return { unavailable: 'model' }
-      if (p.waitsForMeeting()) return { unavailable: 'recording' }
+      if (p.waitsForMeeting() || waitsForTranscript(chips)) return { unavailable: 'recording' }
       const cid = p.library.current(chips, true)
       try {
         const { done } = ask(cid, question)

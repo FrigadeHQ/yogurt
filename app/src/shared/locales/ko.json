@@ -779,5 +779,8 @@
   "Remind me to tell others I’m recording": "녹음 중임을 다른 사람에게 알리도록 미리 알림",
   "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "녹음을 직접 시작하고 종료하세요. 통화가 시작되어도 Yogurt가 열리지 않습니다.",
   "System notifications": "시스템 알림",
-  "Microphone access": "마이크 접근 권한"
+  "Microphone access": "마이크 접근 권한",
+  "Turn off to save battery during calls. Yogurt writes the transcript and notes after you stop recording.": "통화 중 배터리를 절약하려면 끄세요. 녹음을 멈추면 Yogurt가 대화록과 노트를 작성합니다.",
+  "Yogurt will transcribe this call after you stop recording.": "녹음을 멈추면 Yogurt가 이 통화의 대화록을 작성합니다.",
+  "Available when the transcript is ready.": "대화록이 준비되면 사용할 수 있습니다."
 }

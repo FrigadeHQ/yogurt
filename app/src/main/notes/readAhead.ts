@@ -197,6 +197,7 @@ export function hookReadAhead(p: {
     // a new recording (of this id too) starts afresh
     sessions.get(m.id)?.stopTimer?.()
     kept.delete(m.id)
+    if (m.transcriptionDeferred) { sessions.delete(m.id); return }
     const s: Session = { startedAt: m.resume ? m.resume.startedAt - m.resume.startMs : m.startedAt, readMs: 0, parts: [], counts: new Map() }
     sessions.set(m.id, s)
     kept.set(m.id, s.parts)

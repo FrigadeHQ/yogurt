@@ -11,6 +11,18 @@ beforeEach(() => { store = openStore(':memory:'); initMeetings(store) })
 const event = { id: 'e1', title: 'Design review', start: 1000, end: 2000, attendees: [{ name: 'Ann', email: 'ann@x.com' }], url: null }
 
 describe('meeting lifecycle', () => {
+  it('keeps unfinished after-call audio in the batch when the note is resumed', () => {
+    let live = false
+    initMeetings(store, () => live)
+    const first = startMeeting({ title: 'Review', app: null, event: null })
+    stopMeeting(first.id)
+    live = true
+    expect(resumeMeeting(first.id, { part: 1, startMs: 1000 })?.transcriptionDeferred).toBe(true)
+    stopMeeting(first.id)
+    store.updateMeeting(first.id, { transcriptionPending: false, transcriptionDeferred: false })
+    expect(resumeMeeting(first.id, { part: 2, startMs: 2000 })?.transcriptionDeferred).toBe(false)
+  })
+
   // #127: a recording ended a second after it started, and nothing in main.log said what ended it
   it('restores just the removed attendee at their old position and ignores a repeated Undo', () => {
     const { id } = startMeeting({ title: '', event, app: null })

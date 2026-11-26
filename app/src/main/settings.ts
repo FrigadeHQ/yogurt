@@ -43,6 +43,7 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   detectMeetingsAutomatically?: boolean
   /** a quiet reminder to ask everyone before recording; on unless turned off */
   recordingReminder?: boolean
+  liveTranscript?: boolean
   /** Credit on copied summaries and saved Markdown; on unless turned off. */
   includeRecordingCredit?: boolean
   /** keep audio after its transcript and summary are saved; on unless turned off */

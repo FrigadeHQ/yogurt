@@ -1,3 +1,5 @@
+import { activeMeeting, initMeetings, onMeetingStart, onMeetingStop, onMeetingStopSaved, startMeeting, stopMeeting } from '../src/main/meeting'
+import { createSavedTranscriptions } from '../src/main/savedTranscription'
 import { AUDIO_SPEAKER } from '../src/shared/audioUpload'
 import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
@@ -434,6 +436,48 @@ describe('when whisper cannot keep up', () => {
   }
   const quietly = () => { const w = vi.spyOn(console, 'warn').mockImplementation(() => {}); return () => w.mockRestore() }
 
+  it('records with Live transcript off and starts speech only after Stop, then summarizes the saved words', async () => {
+    let live = false
+    initMeetings(store, () => live)
+    const speech = vi.fn(() => 'en-US')
+    const server = servers('http://speech.test', Infinity)
+    const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      segments: [{ start: 0, end: 0.5, text: 'A decision after lunch.' }],
+    })))
+    const proc = fakeProc()
+    const start = vi.fn(() => new Capture(proc.proc))
+    hookCapture({ dirOf: () => '/synthetic', onStart: fn => disposers.push(onMeetingStart(fn)),
+      onStop: fn => disposers.push(onMeetingStop(fn)), stopMeeting, speech, start, join: async () => {} })
+    disposers.push(hookTranscription({ store, modelPath: () => '/model.bin', server: server.make, warn: () => {}, send: () => {} }))
+    const summarize = vi.fn()
+    const jobs = createSavedTranscriptions({ store, ready: () => true, recording: () => !!activeMeeting(),
+      tracks: async id => { await recordingFinished(id); return { them: (async function* () { yield tone(1) })() } },
+      transcribe: (id, tracks, options) => transcribeRecorded(id, tracks, undefined, options), summarize, changed: () => {} })
+    disposers.push(onMeetingStopSaved(() => jobs.resume()))
+    const m = startMeeting({ title: 'Lunch', app: null, event: null })
+    try {
+      live = true
+      proc.say('them', 0)
+      await tick()
+      expect(start).toHaveBeenCalledOnce()
+      expect(speech).not.toHaveBeenCalled()
+      expect(server.made).toHaveLength(0)
+      expect(fetch).not.toHaveBeenCalled()
+      expect(store.segments(m.id)).toEqual([])
+      expect(summarize).not.toHaveBeenCalled()
+      stopMeeting(m.id)
+      await vi.waitFor(() => expect(summarize).toHaveBeenCalledExactlyOnceWith(m.id))
+      expect(server.made).toHaveLength(1)
+      expect(store.segments(m.id)).toMatchObject([{ track: 'them', text: 'A decision after lunch.' }])
+      expect(store.meeting(m.id)?.transcriptionPending).toBeFalsy()
+    } finally {
+      jobs.shutdown()
+      if (activeMeeting()) stopMeeting(m.id)
+      await recordingFinished(m.id)
+      fetch.mockRestore()
+    }
+  })
+
   it('too slow on the processor with no smaller model: live transcription pauses, says so, and the saved recording finishes it', async () => {
     const restore = quietly()
     const s = servers(await inference())
@@ -699,11 +743,12 @@ describe('a meeting recorded before the speech model was in (#30)', () => {
 
 
 describe('live silence for call detection', () => {
-  it('requires fresh input on both tracks and resets for either voice, pause, gaps and live words', async () => {
+  it.each([false, true])('requires fresh audio and resets for voices, pause and gaps (deferred %s)', async deferred => {
     let now = 10_000, ms = 0
     const time = vi.spyOn(Date, 'now').mockImplementation(() => now)
     const r = rig('transcription-first', { transcriber: () => [] }), m = meeting()
-    r.begin(m)
+    if (deferred) store.updateMeeting(m.id, { transcriptionDeferred: true, transcriptionPending: true })
+    r.begin(store.meeting(m.id)!)
     const output = r.procs[0].proc.stdout as PassThrough
     const frame = (voice?: 'me' | 'them', tracks: readonly ('me' | 'them')[] = ['me', 'them']) => {
       now += 100; ms += 100
@@ -726,8 +771,10 @@ describe('live silence for call detection', () => {
       now += 3001; expect(liveSilentMs(m.id)).toBe(0)
       frame(); expect(liveSilentMs(m.id)).toBe(0)
       quiet(610)
-      output.write(encodeFrame({ t: 'speech', track: 'me', final: false, text: 'Still talking', startMs: ms, endMs: ms + 100 }))
-      expect(liveSilentMs(m.id)).toBe(0)
+      if (!deferred) {
+        output.write(encodeFrame({ t: 'speech', track: 'me', final: false, text: 'Still talking', startMs: ms, endMs: ms + 100 }))
+        expect(liveSilentMs(m.id)).toBe(0)
+      }
       quiet(610)
       // One missing track is unknown input, not a quiet conversation.
       for (let i = 0; i < 31; i++) { now += 100; ms += 100; output.write(encodeFrame({ t: 'pcm', track: 'me', ms, samples: new Float32Array(1600) })) }

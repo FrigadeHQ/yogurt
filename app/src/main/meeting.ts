@@ -36,7 +36,13 @@ function run(list: Hook[], m: RecordingStart) {
   for (const fn of [...list]) { try { fn(m) } catch (e) { console.error('meeting hook failed', e) } }
 }
 
-export function initMeetings(s: Store) { store = s; active = null; clock = null; pendingStops.clear() }
+let liveTranscript = () => true
+export function initMeetings(s: Store, live = () => true) { store = s; liveTranscript = live; active = null; clock = null; pendingStops.clear() }
+function recordingMode(previous?: Meeting) {
+  // Appending live lines beyond an unfinished batch would skip the earlier audio on its next pass.
+  if (!liveTranscript() || (previous?.transcriptionDeferred && previous.transcriptionPending)) return { transcriptionDeferred: true, transcriptionPending: true }
+  return { transcriptionDeferred: false }
+}
 export const activeMeeting = (): Meeting | null => active
 export const stopSavePending = (id: string): boolean => pendingStops.has(id)
 /** Keep edits made after Stop, but never require a readable database to describe stopped capture. */
@@ -68,7 +74,7 @@ export function startMeeting(p: { title: string; event: CalEvent | null; app: st
     title, titleSource: sourceOf(title, p.event?.id ?? null), startedAt: Date.now(), endedAt: null, eventId: p.event?.id ?? null,
     ...(p.event ? { eventStartedAt: p.event.start, eventEndedAt: p.event.end, eventTitle: p.event.title, ownEmail: p.event.ownEmail ?? null,
       ...(p.event.calendar ? { eventCalendarName: p.event.calendar.name, eventCalendarSource: p.event.calendar.source } : {}) } : {}),
-    app: p.app, attendees: p.event?.attendees ?? [], state: 'recording', folderId: p.folderId,
+    app: p.app, attendees: p.event?.attendees ?? [], state: 'recording', ...recordingMode(), folderId: p.folderId,
   })
   active = m
   clock = { startedAt: Date.now(), before: 0, pausedAt: null, pausedMs: 0, measured: false }
@@ -115,8 +121,9 @@ export function startPreparedMeeting(id: string, app: string | null = null): Mee
   const prepared = store.meeting(id)
   // a note in the Trash records nothing until it is restored
   if (prepared?.state !== 'prepared' || prepared.trashedAt != null) return undefined
-  const m: Meeting = { ...prepared, state: 'recording', startedAt: Date.now(), endedAt: null, app }
-  store.updateMeeting(id, { state: m.state, startedAt: m.startedAt, endedAt: null, app })
+  const patch = { state: 'recording' as const, startedAt: Date.now(), endedAt: null, app, ...recordingMode() }
+  const m = { ...prepared, ...patch }
+  store.updateMeeting(id, patch)
   active = m
   clock = { startedAt: Date.now(), before: 0, pausedAt: null, pausedMs: 0, measured: false }
   run(starts, m); run(changes, m)
@@ -129,8 +136,9 @@ export function resumeMeeting(id: string, append: { part: number; startMs: numbe
   const previous = store.meeting(id)
   if (!previous || (previous.state !== 'stopped' && previous.state !== 'done')) return undefined
   const now = Date.now(), capturedMs = previous.durationMs ?? append.startMs
-  const m: Meeting = { ...previous, state: 'recording', endedAt: null }
-  store.updateMeeting(id, { state: 'recording', endedAt: null })
+  const patch = { state: 'recording' as const, endedAt: null, ...recordingMode(previous) }
+  const m = { ...previous, ...patch }
+  store.updateMeeting(id, patch)
   active = m
   clock = { startedAt: now, before: capturedMs, pausedAt: null, pausedMs: 0, measured: true }
   run(starts, { ...m, resume: { ...append, startedAt: now, capturedMs } }); run(changes, m)
@@ -174,7 +182,7 @@ export function retryStopSave(id: string): boolean {
   const m = latestStopped(pending)
   pendingStops.set(id, m)
   try {
-    store!.updateMeeting(id, { state: 'stopped', endedAt: m.endedAt, ...(m.durationMs == null ? {} : { durationMs: m.durationMs }) })
+    store!.updateMeeting(id, { state: 'stopped', endedAt: m.endedAt, ...(m.transcriptionDeferred ? { transcriptionState: 'queued' } : {}), ...(m.durationMs == null ? {} : { durationMs: m.durationMs }) })
     pendingStops.delete(id)
   } catch (e) {
     console.error('recording stopped but its end time was not saved', id, e)

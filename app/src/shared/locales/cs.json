@@ -857,5 +857,8 @@
   "Remind me to tell others I’m recording": "Připomenout mi, ať ostatním řeknu, že nahrávám",
   "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "Nahrávání spouštíte a ukončujete sami. Při zahájení hovoru se Yogurt neotevře.",
   "System notifications": "Systémová oznámení",
-  "Microphone access": "Přístup k mikrofonu"
+  "Microphone access": "Přístup k mikrofonu",
+  "Turn off to save battery during calls. Yogurt writes the transcript and notes after you stop recording.": "Vypnutím šetříte baterii během hovorů. Yogurt připraví přepis a poznámky po ukončení nahrávání.",
+  "Yogurt will transcribe this call after you stop recording.": "Yogurt tento hovor přepíše, až ukončíte nahrávání.",
+  "Available when the transcript is ready.": "K dispozici po dokončení přepisu."
 }

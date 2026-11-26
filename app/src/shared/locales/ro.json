@@ -842,5 +842,8 @@
   "Remind me to tell others I’m recording": "Amintește-mi să le spun celorlalți că înregistrez",
   "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "Pornește și oprește înregistrările manual. Yogurt nu se va deschide la începutul unui apel.",
   "System notifications": "Notificări de sistem",
-  "Microphone access": "Acces la microfon"
+  "Microphone access": "Acces la microfon",
+  "Turn off to save battery during calls. Yogurt writes the transcript and notes after you stop recording.": "Dezactivează opțiunea pentru a economisi baterie în timpul apelurilor. Yogurt pregătește transcrierea și notițele după ce oprești înregistrarea.",
+  "Yogurt will transcribe this call after you stop recording.": "Yogurt va transcrie acest apel după ce oprești înregistrarea.",
+  "Available when the transcript is ready.": "Disponibil când transcrierea este gata."
 }

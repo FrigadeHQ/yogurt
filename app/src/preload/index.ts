@@ -268,6 +268,7 @@ const api: YogurtApi = {
     setDetectMeetingsAutomatically: on => ipcRenderer.invoke('settings:detect-meetings', on),
     setStopWhenCallEnds: (on) => ipcRenderer.invoke('settings:auto-stop', on),
     setIncludeRecordingCredit: (on) => ipcRenderer.invoke('settings:recording-credit', on),
+    setLiveTranscript: on => ipcRenderer.invoke('settings:live-transcript', on),
     setRecordingReminder: (on) => ipcRenderer.invoke('settings:recording-reminder', on),
     setKeepRecordings: (on) => ipcRenderer.invoke('settings:keep-recordings', on),
     setJargon: (terms) => ipcRenderer.invoke('settings:jargon', terms),

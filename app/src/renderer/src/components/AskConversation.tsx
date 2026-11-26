@@ -38,8 +38,9 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
   id: string; pendingDraftKey?: string; initial?: ConversationView; loadError?: boolean; home?: boolean; panel?: boolean; recording?: boolean; onDeleted: () => void; onClose?: () => void; onExpand?: () => void; onSelect: (id: string) => void; onSource: (source: LibrarySource, match?: string) => void
 }) {
   const [chat, setChat] = useState(initial)
-  const recordingWait = useContext(AskRecordingWait) ?? (onMac() && !!chat?.waitsForMeeting)
-  const waitReason = recordingWait ? t('Available after recording') : undefined
+  const deviceWait = useContext(AskRecordingWait) ?? (onMac() && !!chat?.waitsForMeeting)
+  const recordingWait = deviceWait || !!chat?.waitsForTranscript
+  const waitReason = chat?.waitsForTranscript ? t('Available when the transcript is ready.') : deviceWait ? t('Available after recording') : undefined
   const [text, setText] = useState((pendingDraftKey ? drafts.get(pendingDraftKey) : undefined) ?? drafts.get(id) ?? initial?.draft ?? '')
   const edited = useRef(false)
   const [error, setError] = useState(false)
@@ -329,7 +330,7 @@ export function AskConversation({ id, pendingDraftKey, initial, loadError = fals
         <Tooltip.Root disabled={!recordingWait}>
           <Tooltip.Trigger render={<div />} delay={180} closeOnClick={false}>
             <textarea autoFocus={panel} ref={input} id={panel ? 'meeting-question' : 'library-question'} data-testid={`${prefix}-input`} rows={1} maxLength={4000}
-              placeholder={landing ? undefined : panel ? t('Ask anything') : t('Ask about your meetings')} aria-label={panel ? t('Ask anything') : t('Ask about your meetings')} value={text} disabled={!panel && !chat} readOnly={recordingWait || sending || changing}
+              placeholder={chat?.waitsForTranscript ? waitReason : landing ? undefined : panel ? t('Ask anything') : t('Ask about your meetings')} aria-label={panel ? t('Ask anything') : t('Ask about your meetings')} value={text} disabled={!panel && !chat} readOnly={recordingWait || sending || changing}
               aria-disabled={recordingWait || undefined} aria-description={waitReason}
               role="combobox" aria-autocomplete="list" aria-expanded={!!mention} aria-controls={mention ? `${prefix}-contexts` : undefined}
               aria-activedescendant={mention && selected < rowCount ? `${prefix}-context-${selected}` : undefined}

@@ -824,5 +824,8 @@
   "Remind me to tell others I’m recording": "Ipaalala sa aking sabihing nagre-record ako",
   "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "Ikaw ang magsisimula at magtatapos ng pagre-record. Hindi bubukas ang Yogurt kapag nagsimula ang isang tawag.",
   "System notifications": "Mga notification ng system",
-  "Microphone access": "Access sa mikropono"
+  "Microphone access": "Access sa mikropono",
+  "Turn off to save battery during calls. Yogurt writes the transcript and notes after you stop recording.": "I-off para makatipid ng baterya habang may tawag. Gagawa ang Yogurt ng transcript at mga tala pagkatapos mong ihinto ang pagre-record.",
+  "Yogurt will transcribe this call after you stop recording.": "Ita-transcribe ng Yogurt ang tawag na ito pagkatapos mong ihinto ang pagre-record.",
+  "Available when the transcript is ready.": "Magagamit kapag handa na ang transcript."
 }

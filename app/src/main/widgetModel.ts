@@ -14,7 +14,7 @@ export class WidgetModel {
   private noMic(): string {
     return this.os === 'win32' ? t("Yogurt can't hear your mic. Turn on microphone access for desktop apps in Windows Settings.") : t("Yogurt can't hear your mic. Check your sound settings.")
   }
-  private m: { id: string; title: string; startedAt: number } | null = null
+  private m: { id: string; title: string; startedAt: number; transcriptionDeferred?: boolean } | null = null
   private kind: 'recording' | 'captured' = 'recording'
   private endedAt = 0
   private missingAudio = new Set<'mic' | 'systemAudio'>()
@@ -29,7 +29,7 @@ export class WidgetModel {
   /** the recording stopped by itself because the call ended */
   private byCall = false
 
-  start(m: { id: string; title: string; startedAt: number }) {
+  start(m: { id: string; title: string; startedAt: number; transcriptionDeferred?: boolean }) {
     this.m = m; this.micState = 'on'; this.kind = 'recording'
     this.missingAudio.clear(); this.textHint = null; this.hiccupUntil = 0; this.crashed = false; this.savePending = false
     this.pausedAt = null; this.pausedMs = 0; this.byCall = false
@@ -82,6 +82,7 @@ export class WidgetModel {
     else if (this.micState === 'unconfirmed') note = { tone: 'hint', text: t('Mic mute couldn’t be confirmed.') }
     return {
       ...(this.micState !== 'on' ? { micState: this.micState } : {}),
+      ...(m.transcriptionDeferred ? { transcriptionDeferred: true } : {}),
       kind: this.kind, meetingId: m.id, title: m.title,
       elapsedMs: Math.max(0, end - m.startedAt - this.pausedMs), at: now, note, crashed: this.crashed,
       ...(this.pausedAt !== null ? { paused: true } : {}),

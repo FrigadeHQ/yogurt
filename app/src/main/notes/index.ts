@@ -227,7 +227,7 @@ export function hookNotes(p: {
 
   const queueWrite = (id: string, note?: string, allowPartial = false) => {
     const meeting = p.store.meeting(id)
-    if (meeting?.transcriptionPending && (meeting.transcriptionState || meeting.source==='audio-file') && !allowPartial) return Promise.resolve()
+    if (meeting?.transcriptionPending && (meeting.transcriptionDeferred || meeting.transcriptionState || meeting.source==='audio-file') && !allowPartial) return Promise.resolve()
     console.info('NOTES', `queued the notes of ${id}`)
     stopped.delete(id)
     set(id, 'waiting')
@@ -237,6 +237,8 @@ export function hookNotes(p: {
   /** each meeting's notes after it stopped, until they are written */
   const afterStop = new Map<string, Promise<void>>()
   p.onStop((m) => {
+    // The saved recording queues its notes when the full transcript is ready.
+    if (m.transcriptionDeferred) return
     stopped.delete(m.id)
     set(m.id, 'waiting')
     const done = Promise.resolve().then(async () => {

@@ -809,5 +809,8 @@
   "Remind me to tell others I’m recording": "Emlékeztessen, hogy szóljak a többieknek a felvételről",
   "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "A felvételt kézzel indíthatja el és állíthatja le. A Yogurt nem nyílik meg a hívás kezdetekor.",
   "System notifications": "Rendszerértesítések",
-  "Microphone access": "Mikrofon-hozzáférés"
+  "Microphone access": "Mikrofon-hozzáférés",
+  "Turn off to save battery during calls. Yogurt writes the transcript and notes after you stop recording.": "Kapcsold ki, ha hívás közben kímélni szeretnéd az akkumulátort. A Yogurt a felvétel leállítása után készíti el az átiratot és a jegyzeteket.",
+  "Yogurt will transcribe this call after you stop recording.": "A Yogurt a felvétel leállítása után készíti el a hívás átiratát.",
+  "Available when the transcript is ready.": "Akkor érhető el, amikor elkészült az átirat."
 }

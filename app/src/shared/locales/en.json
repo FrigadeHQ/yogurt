@@ -325,5 +325,9 @@
   "Remind me to tell others I’m recording": "Remind me to tell others I’m recording",
   "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "Start and finish recordings yourself. Yogurt won’t open when a call starts.",
   "System notifications": "System notifications",
-  "Microphone access": "Microphone access"
+  "Microphone access": "Microphone access",
+  "Turn off to save battery during calls. Yogurt writes the transcript and notes after you stop recording.": "Turn off to save battery during calls. Yogurt writes the transcript and notes after you stop recording.",
+  "Yogurt will transcribe this call after you stop recording.": "Yogurt will transcribe this call after you stop recording.",
+  "Available when the transcript is ready.": "Available when the transcript is ready.",
+  "Live transcript": "Live transcript"
 }

@@ -111,11 +111,12 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   const [finishRequested, requestFinish] = useState(false)
   const reducedMotion = useReducedMotion()
   const summaryState = useSummaryPresentation(notes, reducedMotion)
+  const waitingForTranscript = !!m?.transcriptionDeferred && !!m.transcriptionPending
   const hasEnhanced = m?.id === id && m.state !== 'prepared' && m.state !== 'recording' && !!notes && notes.status !== 'idle'
   const finishing = stopRequested && !hasEnhanced
   const summaryPending = notes?.status === 'waiting' || notes?.status === 'writing'
   // Reduced motion selects Summary in the very render that first exposes its tab.
-  const instantSummary = finishRequested && hasEnhanced && reducedMotion
+  const instantSummary = finishRequested && hasEnhanced && !waitingForTranscript && reducedMotion
   const view = instantSummary ? 'enhanced' : viewState
   /** the person picked a side themselves: it is never switched for them after that */
   const picked = useRef(readingViews.has(id))
@@ -227,10 +228,10 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
 
   useEffect(() => { current.current = notes }, [notes])
   useEffect(() => {
-    if (m?.state !== 'recording' && (m?.stopSavePending || notes?.status !== 'idle')) setFinishing(false)
-  }, [m?.state, m?.stopSavePending, notes?.status])
+    if (m?.state !== 'recording' && (m?.stopSavePending || waitingForTranscript || notes?.status !== 'idle')) setFinishing(false)
+  }, [m?.state, m?.stopSavePending, waitingForTranscript, notes?.status])
   useEffect(() => {
-    if (!finishRequested || !hasEnhanced) return
+    if (!finishRequested || !hasEnhanced || waitingForTranscript) return
     const enter = () => {
       pickTab('notes', 'enhanced', true)
       summaryButton.current?.focus({ preventScroll: true })
@@ -238,7 +239,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
     if (reducedMotion) { enter(); return }
     const timer = setTimeout(enter, motion.micro)
     return () => clearTimeout(timer)
-  }, [id, finishRequested, hasEnhanced, reducedMotion])
+  }, [id, finishRequested, hasEnhanced, waitingForTranscript, reducedMotion])
   const mineSave = useAutosave(id, 'mine', notes?.mine ?? '', notes?.saves?.mine)
   changeMine.current = mineSave.change
   const enhancedSave = useAutosave(id, 'enhanced', notes?.enhanced ?? '', notes?.saves?.enhanced)
@@ -274,7 +275,13 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   const [hasAudio,setHasAudio]=useState(false)
   useEffect(()=>{let active=true;const load=()=>void window.yogurt.audio.tracks(id).then(tracks=>{if(active)setHasAudio(!!tracks.length)});load();const off=window.yogurt.meetings.onChange(load);return()=>{active=false;off()}},[id])
   const openedTranscription=useRef<string | undefined>(undefined)
-  useLayoutEffect(()=>{if(m&&openedTranscription.current!==id){openedTranscription.current=id;if(transcriptionBusy(m.transcriptionState))setPrimary('transcript')}},[m,id])
+  useLayoutEffect(() => {
+    if (m?.id !== id) return
+    const stage = waitingForTranscript ? id + '/' + m.state : id
+    if (openedTranscription.current === stage) return
+    openedTranscription.current = stage
+    if (waitingForTranscript || transcriptionBusy(m.transcriptionState)) setPrimary('transcript')
+  }, [m, id, waitingForTranscript])
   const readFailed = meetingReadFailed || notesReadFailed
   if (!m || !notes) return readFailed ? <ReadError testId="note-read-error" retry={retryRead} /> : <LoadingContent pending skeleton={<Loading layout="note" />} className="loading-note-frame" />
   const recording = m.state === 'recording'
@@ -466,7 +473,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                 /> : <Enhanced key={id} presentation={summaryState} focus={primary === 'notes' && at?.ms === null ? at : undefined} notes={notes} disabled={starting} onChange={(md) => { setEditedHere(true); const next = { ...current.current!, enhanced: md }; current.current = next; setNotes(next); enhancedSave.change(md) }} onBlur={enhancedSave.flush} onRetry={requestRewrite} />}
           </NoteReadingPane>
           {(primary === 'transcript' || transcriptVisited) && <section hidden={primary !== 'transcript'} id="note-transcript-panel" role="tabpanel" aria-labelledby="note-transcript-tab" className="note-content note-transcript-pane">
-            <Transcript notice={
+            <Transcript notice={recording && waitingForTranscript ? { kind: 'after-call' } :
               hasAudio && (m.transcriptionPending || !hasTranscript) || m.transcriptionState === 'waiting-model' || m.transcriptionState === 'waiting-recording'
                 ? transcriptionNotice(m.transcriptionState, () => void runTranscript(), recording || !!m.stopSavePending)
                 : !hasAudio && m.transcriptionState === 'error'

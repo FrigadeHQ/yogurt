@@ -364,7 +364,7 @@ export async function recordingSettled(id: string, capMs = 30_000): Promise<void
 /** Records while a meeting is recording: starts with it, stops with it, restarts the helper if it dies (crashPolicy) */
 export function hookCapture(p: {
   dirOf: (id: string) => string
-  onStart: (fn: (m: Pick<RecordingStart, 'id' | 'resume'>) => void) => unknown
+  onStart: (fn: (m: Pick<RecordingStart, 'id' | 'resume' | 'transcriptionDeferred'>) => void) => unknown
   onStop: (fn: (m: { id: string }) => void) => unknown
   /** ends the meeting when recording can't go on */
   stopMeeting: (id: string) => void
@@ -415,7 +415,7 @@ export function hookCapture(p: {
     }
     const s: NonNullable<typeof session> = session = { id: m.id, dir, parts: m.resume?.part ?? 0, paused: false, micState: 'on', requestMic, startedAt: Date.now() - (m.resume?.startMs ?? 0), join: p.join ?? joinParts, settled, settle }
     finished.set(m.id, settled)
-    const speech = p.speech?.(m.id) ?? null
+    const speech = m.transcriptionDeferred ? null : p.speech?.(m.id) ?? null
     const micOpt = () => { const mic = p.mic?.() ?? null; return mic ? { mic } : {} }
     const policy = createCrashPolicy({
       // the new helper writes the next part, with meeting time carried on from where the last audio ended

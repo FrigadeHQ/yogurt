@@ -663,9 +663,9 @@ app.whenReady().then(() => {
   const store = openStore(join(userDataDir(), 'yogurt.db'))
   storeRef = store
   store.markInterrupted()
-  initMeetings(store)
-  // the person's own names, never given to the other side: the one in Settings and the Mac's
   const settingsFile = join(userDataDir(), 'settings.json')
+  initMeetings(store, () => loadSettings(settingsFile).liveTranscript !== false)
+  // the person's own names, never given to the other side: the one in Settings and the Mac's
   setCalendarSelection(() => loadSettings(settingsFile))
   setCalendarOwnEmail(email => {
     try { if (store.rememberOwnEmail(email)) win?.webContents.send('meetings:changed') }
@@ -815,10 +815,13 @@ app.whenReady().then(() => {
       }
       return tracks
     },
-    transcribe: (id,tracks,options) => transcribeRecorded(id,tracks,undefined,options),
+    transcribe: async (id, tracks, options) => {
+      await callNames.finished(id)
+      return transcribeRecorded(id, tracks, undefined, { ...options, nameOf: callNames.savedNames(id) })
+    },
     draft:id=>win?.webContents.send('transcript:draft',id),
     changed: (id,replaced) => {win?.webContents.send('meetings:changed');if(replaced){win?.webContents.send('transcript:replaced',id);void indexer.schedule()}},
-    summarize: id => {void notes.writeAgain(id)},
+    summarize: id => {void notes.writeAgain(id); conversations.refresh()},
   })
   const uploads = hookAudioUploads({
     root: join(userDataDir(), 'meetings'), store, window: () => win, exiting: () => allowQuit,
@@ -930,7 +933,8 @@ app.whenReady().then(() => {
   ipcMain.handle('conversations:ask', (_e, id: unknown, q: unknown) => {
     if ((id !== null && !isId(id)) || typeof q !== 'string' || !q.trim()) return null
     if (askUnavailable()) return { waitsForMeeting: true }
-    return conversations.ask(id, q).id
+    const result = conversations.ask(id, q)
+    return result.waitsForTranscript ? { waitsForTranscript: true } : result.id
   })
   ipcMain.on('conversations:stop', (_e, id: unknown) => { if (isId(id)) conversations.stop(id) })
   ipcMain.on('conversations:warm', (_e, id: unknown) => { if (isId(id)) conversations.warm(id) })

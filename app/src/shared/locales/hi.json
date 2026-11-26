@@ -809,5 +809,8 @@
   "Remind me to tell others I’m recording": "दूसरों को बताने की याद दिलाएँ कि रिकॉर्डिंग हो रही है",
   "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "रिकॉर्डिंग खुद शुरू और खत्म करें। कॉल शुरू होने पर Yogurt नहीं खुलेगा।",
   "System notifications": "सिस्टम सूचनाएँ",
-  "Microphone access": "माइक्रोफ़ोन का ऐक्सेस"
+  "Microphone access": "माइक्रोफ़ोन का ऐक्सेस",
+  "Turn off to save battery during calls. Yogurt writes the transcript and notes after you stop recording.": "कॉल के दौरान बैटरी बचाने के लिए इसे बंद करें। रिकॉर्डिंग रोकने के बाद Yogurt ट्रांसक्रिप्ट और नोट्स तैयार करेगा।",
+  "Yogurt will transcribe this call after you stop recording.": "रिकॉर्डिंग रोकने के बाद Yogurt इस कॉल का ट्रांसक्रिप्ट तैयार करेगा।",
+  "Available when the transcript is ready.": "ट्रांसक्रिप्ट तैयार होने पर उपलब्ध होगा।"
 }

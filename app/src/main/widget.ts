@@ -173,7 +173,7 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
     speech = silentSpeech
     floors.me.length = floors.them.length = 0
     notifyOnChange = false; notice = null; stopPressed = false
-    model.start({ id: m.id, title: m.title, startedAt: m.resume ? m.resume.startedAt - m.resume.capturedMs : m.startedAt })
+    model.start({ id: m.id, title: m.title, transcriptionDeferred: m.transcriptionDeferred, startedAt: m.resume ? m.resume.startedAt - m.resume.capturedMs : m.startedAt })
     open(); push()
   })
   onMeetingStop((m: Meeting) => {

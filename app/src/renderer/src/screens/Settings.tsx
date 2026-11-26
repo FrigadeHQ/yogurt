@@ -155,6 +155,7 @@ export function Settings({ revision = 0, indexing = false, focus, shortcuts }: {
     </>
   }
   const detectionOff = prefs?.detectMeetingsAutomatically === false
+  const liveTranscriptDescription = t('Turn off to save battery during calls. Yogurt writes the transcript and notes after you stop recording.')
   const detectionOffText = t('Automatic meeting detection is off.')
   const heading = useRef<HTMLHeadingElement>(null)
   const previousPage = useRef(focus)
@@ -247,6 +248,21 @@ export function Settings({ revision = 0, indexing = false, focus, shortcuts }: {
             <div className="settings-row">
               <span className="settings-label settings-row-copy">{t('Microphone')}</span>
               <MicMenu recording={false} placement="below" />
+            </div>
+            <div className="settings-row">
+              <div className="settings-row-copy">
+                <label htmlFor="live-transcript" className="settings-label" data-settings-keywords={liveTranscriptDescription}>{t('Live transcript')}</label>
+                <p id="live-transcript-description" className="settings-description">{liveTranscriptDescription}</p>
+              </div>
+              <button id="live-transcript" role="switch" aria-checked={prefs?.liveTranscript ?? true} aria-describedby="live-transcript-description"
+                disabled={!prefs || general.busy} className="settings-toggle" onClick={() => {
+                  if (!prefs) return
+                  const on = !prefs.liveTranscript
+                  void general.save(async () => {
+                    await window.yogurt.settings.setLiveTranscript(on)
+                    setPrefs(p => p && { ...p, liveTranscript: on })
+                  }, 'live-transcript-retry')
+                }}><span className="settings-toggle-knob" /></button>
             </div>
             <div className="settings-row">
               <div className="settings-row-copy">

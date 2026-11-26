@@ -841,5 +841,8 @@
   "Remind me to tell others I’m recording": "Lembrar de avisar aos outros que estou gravando",
   "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "Inicie e encerre as gravações manualmente. O Yogurt não abrirá quando uma chamada começar.",
   "System notifications": "Notificações do sistema",
-  "Microphone access": "Acesso ao microfone"
+  "Microphone access": "Acesso ao microfone",
+  "Turn off to save battery during calls. Yogurt writes the transcript and notes after you stop recording.": "Desative para economizar bateria durante as chamadas. O Yogurt prepara a transcrição e as notas quando você para de gravar.",
+  "Yogurt will transcribe this call after you stop recording.": "O Yogurt vai transcrever esta chamada quando você parar de gravar.",
+  "Available when the transcript is ready.": "Disponível quando a transcrição estiver pronta."
 }

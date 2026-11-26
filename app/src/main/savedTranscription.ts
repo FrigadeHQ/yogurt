@@ -47,13 +47,14 @@ export function createSavedTranscriptions(d: {
           if(!complete)throw new Error('Saved transcription incomplete')
           if(meeting.transcriptionAgain&&!d.store.transcriptionDraft(id).some(line=>!line.hidden&&line.text.trim())){d.store.cancelTranscriptionReplacement(id);d.changed(id);continue}
           if(meeting.transcriptionAgain)d.store.commitTranscriptionDraft(id)
-          else d.store.updateMeeting(id,{transcriptionPending:false,transcriptionState:'done'})
+          else d.store.updateMeeting(id,{transcriptionPending:false,transcriptionDeferred:false,transcriptionState:'done'})
+          d.store.clearRecordingSpeakers(id)
           d.changed(id,!!meeting.transcriptionAgain)
           // Replacing a transcript must not overwrite an existing or edited summary.
           // a phone recording's draft notes are rewritten once, by this computer's notes model
           const phoneDraft=isPhoneDraft(d.store.meeting(id))
           if(phoneDraft)phoneDraftReplaced(d.store,id)
-          if(phoneDraft||!d.store.notes(id).enhanced?.trim())d.summarize(id)
+          if(phoneDraft||(!meeting.transcriptionAgain && meeting.transcriptionDeferred)||!d.store.notes(id).enhanced?.trim())d.summarize(id)
         } catch(error) {
           if(d.store.meeting(id)){if(job.stopped)stopped(id);else set(id,job.abort.signal.aborted?'queued':'error')}
           if(!job.abort.signal.aborted)console.error('Saved transcription failed',id,error)

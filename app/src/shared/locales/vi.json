@@ -779,5 +779,8 @@
   "Remind me to tell others I’m recording": "Nhắc tôi cho mọi người biết tôi đang ghi âm",
   "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "Tự bắt đầu và kết thúc bản ghi. Yogurt sẽ không mở khi cuộc gọi bắt đầu.",
   "System notifications": "Thông báo hệ thống",
-  "Microphone access": "Quyền truy cập micrô"
+  "Microphone access": "Quyền truy cập micrô",
+  "Turn off to save battery during calls. Yogurt writes the transcript and notes after you stop recording.": "Tắt để tiết kiệm pin trong cuộc gọi. Yogurt sẽ tạo bản chép lời và ghi chú sau khi bạn dừng ghi âm.",
+  "Yogurt will transcribe this call after you stop recording.": "Yogurt sẽ chép lời cuộc gọi này sau khi bạn dừng ghi âm.",
+  "Available when the transcript is ready.": "Có thể sử dụng khi bản chép lời đã sẵn sàng."
 }

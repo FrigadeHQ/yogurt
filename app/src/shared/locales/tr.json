@@ -809,5 +809,8 @@
   "Remind me to tell others I’m recording": "Kayıt yaptığımı diğer katılımcılara söylememi hatırlat",
   "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "Kayıtları kendiniz başlatıp bitirin. Bir arama başladığında Yogurt açılmaz.",
   "System notifications": "Sistem bildirimleri",
-  "Microphone access": "Mikrofon erişimi"
+  "Microphone access": "Mikrofon erişimi",
+  "Turn off to save battery during calls. Yogurt writes the transcript and notes after you stop recording.": "Aramalarda pil tasarrufu yapmak için kapatın. Yogurt, kaydı durdurduğunuzda konuşma dökümünü ve notları hazırlar.",
+  "Yogurt will transcribe this call after you stop recording.": "Kaydı durdurduğunuzda Yogurt bu aramanın dökümünü hazırlayacak.",
+  "Available when the transcript is ready.": "Döküm hazır olduğunda kullanılabilir."
 }

@@ -830,5 +830,8 @@
   "Remind me to tell others I’m recording": "Muistuta kertomaan muille tallennuksesta",
   "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "Aloita ja lopeta tallennukset itse. Yogurt ei avaudu puhelun alkaessa.",
   "System notifications": "Järjestelmän ilmoitukset",
-  "Microphone access": "Mikrofonin käyttöoikeus"
+  "Microphone access": "Mikrofonin käyttöoikeus",
+  "Turn off to save battery during calls. Yogurt writes the transcript and notes after you stop recording.": "Poista käytöstä säästääksesi akkua puheluiden aikana. Yogurt tekee litteroinnin ja muistiinpanot, kun lopetat tallennuksen.",
+  "Yogurt will transcribe this call after you stop recording.": "Yogurt litteroi tämän puhelun, kun lopetat tallennuksen.",
+  "Available when the transcript is ready.": "Käytettävissä, kun litterointi on valmis."
 }

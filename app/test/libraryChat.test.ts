@@ -51,6 +51,24 @@ async function rig(o: { llm?: Partial<Llm>; queue?: ReturnType<typeof createQueu
 }
 
 describe('conversations across meetings', () => {
+  it('keeps a question about a deferred recording as a draft until its transcript is ready', async () => {
+    const t = await rig()
+    const id = t.library.current([{ kind: 'meeting', id: t.meeting.id }])
+    const question = 'What did Tarun say?'
+    t.chats.draft(id, question)
+    for (const state of ['recording', 'stopped'] as const) {
+      t.store.updateMeeting(t.meeting.id, { state, transcriptionDeferred: true, transcriptionPending: true })
+      t.chats.warm(id)
+      expect(t.chats.ask(id, question).waitsForTranscript).toBe(true)
+      expect(t.chats.view(id)).toMatchObject({ draft: question, turns: [], waitsForTranscript: true })
+      expect(t.read).toHaveLength(0)
+      expect(t.prompts).toHaveLength(0)
+    }
+    t.store.updateMeeting(t.meeting.id, { transcriptionDeferred: false, transcriptionPending: false })
+    await t.chats.ask(id, question).done
+    expect(t.chats.view(id)?.turns[0]?.status).toBe('done')
+  })
+
   it('a first question starts a conversation named after it; the answer streams in with its sources and is saved', async () => {
     const t = await rig()
     const { id, done } = t.chats.ask(null, '  What did Tarun say about the price?  ')

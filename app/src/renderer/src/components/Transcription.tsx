@@ -13,6 +13,7 @@ export function TranscriptionControl({state,onStop}:{state:TranscriptionState;on
 }
 
 export type TranscriptNotice =
+  | { kind: 'after-call' }
   | { kind: 'waiting'; state: 'waiting-model' | 'waiting-recording' }
   | { kind: 'transcribe'; state?: 'stopped' | 'error'; run: () => void; disabled: boolean }
   | { kind: 'upload'; run: () => void }
@@ -23,7 +24,7 @@ export function transcriptionNotice(state: TranscriptionState | undefined, run: 
 }
 
 export function TranscriptionNotice({ notice, centered, hasLines }: { notice: TranscriptNotice; centered: boolean; hasLines: boolean }) {
-  if (notice.kind === 'waiting') return <p role="status" className={centered ? undefined : 'transcription-notice text-xs text-muted'}>{transcriptionLabel(notice.state)}</p>
+  if (notice.kind === 'after-call' || notice.kind === 'waiting') return <p role="status" className={centered ? undefined : 'transcription-notice text-xs text-muted'}>{notice.kind === 'after-call' ? t('Yogurt will transcribe this call after you stop recording.') : transcriptionLabel(notice.state)}</p>
 
   const upload = notice.kind === 'upload'
   const message = upload ? t("Yogurt couldn't read this audio file.") : transcriptionLabel(notice.state)

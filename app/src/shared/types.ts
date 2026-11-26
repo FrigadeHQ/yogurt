@@ -247,7 +247,7 @@ export type YogurtApi = {
     targets(query: string): Promise<ContextTarget[]>
     get(id: string): Promise<ConversationView | null>
     /** id null starts a new conversation; resolves to its id once the question is saved (null for an invalid request), or the active recording wait. The answer streams in through onChange */
-    ask(id: string | null, question: string): Promise<string | null | { waitsForMeeting: true }>
+    ask(id: string | null, question: string): Promise<string | null | { waitsForMeeting: true } | { waitsForTranscript: true }>
     /** a conversation about one meeting opened: its meeting is read into the model ahead of a question */
     warm(id: string): void
     stop(id: string): void
@@ -297,7 +297,7 @@ export type YogurtApi = {
   settings: {
     /** myName: what the person is called in meetings (their Mac's full name, macName, when they never changed it) */
     setDetectMeetingsAutomatically(on: boolean): Promise<void>
-    get(): Promise<{ detectMeetingsAutomatically: boolean; theme: Theme; openAtLogin: boolean; showInMenuBar: boolean; showNextMeeting: boolean; showRecordingPill: boolean; appVisibility: AppVisibility; /** the language picked; '' follows the Mac */ language: string; /** the language in use */ locale: string; /** the Mac's language, among Yogurt's */ systemLocale: string; myName: string; macName: string; /** a recording stops by itself when its call ends (off: ask first) */ stopWhenCallEnds: boolean; recordingReminder: boolean; includeRecordingCredit: boolean; keepRecordings: boolean; /** personal jargon, spelled as typed */ jargon: string[]; /** the language people speak in meetings */ spoken: import('./spoken').Spoken; /** default summary language; '' follows the meeting */ summaryLanguage: string }>
+    get(): Promise<{ detectMeetingsAutomatically: boolean; theme: Theme; openAtLogin: boolean; showInMenuBar: boolean; showNextMeeting: boolean; showRecordingPill: boolean; appVisibility: AppVisibility; /** the language picked; '' follows the Mac */ language: string; /** the language in use */ locale: string; /** the Mac's language, among Yogurt's */ systemLocale: string; myName: string; macName: string; /** a recording stops by itself when its call ends (off: ask first) */ stopWhenCallEnds: boolean; recordingReminder: boolean; liveTranscript: boolean; includeRecordingCredit: boolean; keepRecordings: boolean; /** personal jargon, spelled as typed */ jargon: string[]; /** the language people speak in meetings */ spoken: import('./spoken').Spoken; /** default summary language; '' follows the meeting */ summaryLanguage: string }>
     /** blank goes back to the Mac's full name */
     setName(name: string): Promise<void>
     setTheme(v: Theme): Promise<void>
@@ -307,6 +307,7 @@ export type YogurtApi = {
     setShowRecordingPill(on: boolean): Promise<void>
     setAppVisibility(choice: AppVisibility): Promise<void>
     setStopWhenCallEnds(on: boolean): Promise<void>
+    setLiveTranscript(on: boolean): Promise<void>
     setRecordingReminder(on: boolean): Promise<void>
     setIncludeRecordingCredit(on: boolean): Promise<void>
     setKeepRecordings(on: boolean): Promise<void>
@@ -451,6 +452,7 @@ export const micIsOff = (state?: MicState) => state === 'off' || state === 'stil
 export const micPendingAction = (state?: MicState) => state === 'restoring-off' ? 'muting' : state === 'muting' || state === 'unmuting' ? state : undefined
 
 export type WidgetView = {
+  transcriptionDeferred?: boolean
   micState?: MicState
   kind: 'recording' | 'captured'
   paused?: true
@@ -488,6 +490,7 @@ export type LibrarySource = {
 export type AskStep = { kind: 'loading' | 'searching' | 'reading'; title?: string; meetings?: number }
 export type ConversationTurn = { id: number; question: string; answer: string; scope?: ContextTarget[]; status: ChatTurn['status']; sources: LibrarySource[]; step?: AskStep }
 export type ConversationView = {
+  waitsForTranscript?: boolean
   id: string; title: string; chips: ContextTarget[]; draft: string; draftChips: ContextTarget[]; firstChips: ContextTarget[] | null; turns: ConversationTurn[]
   /** a Mac with little memory is recording: answers wait for the meeting to end */
   waitsForMeeting: boolean

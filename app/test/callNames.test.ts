@@ -230,6 +230,21 @@ describe('hookCallNames', () => {
     expect(s.hook.nameFor('other', 1500, 4000)).toBeNull()
   })
 
+  it('keeps the call’s timing and speakers for the saved transcript after the live reader closes', async () => {
+    const s = setup()
+    s.store.updateMeeting(s.m.id, { transcriptionDeferred: true })
+    s.start()
+    s.audio(0, 1_005_100)
+    for (let t = 1_006_000; t < 1_014_000; t += 500) s.emit(zoomLine(t, ['Alex Morgan', 'Dana Smith', 'Ann Lee'], t < 1_010_000 ? 'Dana Smith' : 'Ann Lee'))
+    s.stop(); s.transcribed(); await s.hook.finished(s.m.id)
+    const insert = s.store.db.prepare('INSERT INTO recording_speakers (meeting_id,samples) VALUES (?,?)')
+    insert.run(s.m.id, '[{"ms":1500,"participants":[5]}]')
+    insert.run(s.m.id, 'broken')
+    const name = s.hook.savedNames(s.m.id)
+    expect(name?.(1500, 4000)).toBe('Dana Smith')
+    expect(name?.(6000, 8000)).toBe('Ann Lee')
+  })
+
   // #98: two Zoom meetings, two Zoom processes. The helper reads the processes it is given, else the frontmost one,
   // which here is the other meeting.
   const twoMeetings: Record<number, string[]> = { 501: ['Alex Morgan', 'Dana Smith'], 502: ['Alex Morgan', 'Priya Nair', 'Omar Haddad'] }

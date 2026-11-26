@@ -70,6 +70,22 @@ const join = (wins: Win[]) => {
   return out
 }
 
+/** how loud speech may be (voiced) and clearly is (clear) on this track, judged against what it sounds like when nobody talks */
+const thresholdsOf = (history: number[], rms: number): { voiced: number; clear: number } => {
+  history.push(rms)
+  if (history.length > HISTORY_WINS) history.shift()
+  if (history.length < WARMUP_WINS) return { voiced: START_THRESHOLD, clear: START_THRESHOLD * CLEAR_FACTOR }
+  const floor = [...history].sort((a, b) => a - b)[Math.floor(history.length * FLOOR_SHARE)]
+  const level = (factor: number) => Math.min(MAX_THRESHOLD, Math.max(MIN_THRESHOLD, floor * factor))
+  return { voiced: level(SPEECH_FACTOR), clear: level(LOUD_FACTOR) * CLEAR_FACTOR }
+}
+
+/** The call-end detector needs only loudness while transcription is off. */
+export function hasVoice(samples: Float32Array, history: number[]) {
+  const rms = rmsOf(samples)
+  return rms > thresholdsOf(history, rms).voiced
+}
+
 /** onPartial: the open chunk so far, from its start */
 export function chunker(onChunk: (c: Chunk) => void, onPartial?: (c: Chunk) => void) {
   const tracks: Record<Track, State> = {
@@ -90,16 +106,6 @@ export function chunker(onChunk: (c: Chunk) => void, onPartial?: (c: Chunk) => v
     let end = o.wins.length
     while (end > 0 && !o.wins[end - 1].voiced) end--
     emit(track, o.startMs, o.wins.slice(0, Math.min(o.wins.length, end + KEEP_SILENCE_WINS)))
-  }
-
-  /** how loud speech may be (voiced) and clearly is (clear) on this track, judged against what it sounds like when nobody talks */
-  const thresholdsOf = (st: State, rms: number): { voiced: number; clear: number } => {
-    st.history.push(rms)
-    if (st.history.length > HISTORY_WINS) st.history.shift()
-    if (st.history.length < WARMUP_WINS) return { voiced: START_THRESHOLD, clear: START_THRESHOLD * CLEAR_FACTOR }
-    const floor = [...st.history].sort((a, b) => a - b)[Math.floor(st.history.length * FLOOR_SHARE)]
-    const level = (factor: number) => Math.min(MAX_THRESHOLD, Math.max(MIN_THRESHOLD, floor * factor))
-    return { voiced: level(SPEECH_FACTOR), clear: level(LOUD_FACTOR) * CLEAR_FACTOR }
   }
 
   const addWindow = (track: Track, st: State, w: Win) => {
@@ -153,7 +159,7 @@ export function chunker(onChunk: (c: Chunk) => void, onPartial?: (c: Chunk) => v
       for (; i + WIN <= buf.length; i += WIN) {
         const w = buf.slice(i, i + WIN)
         const rms = rmsOf(w)
-        const t = thresholdsOf(st, rms)
+        const t = thresholdsOf(st.history, rms)
         addWindow(track, st, { samples: w, rms, voiced: rms >= t.voiced, clear: rms >= t.clear })
       }
       st.rest = buf.slice(i)

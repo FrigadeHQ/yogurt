@@ -779,5 +779,8 @@
   "Remind me to tell others I’m recording": "提醒我告知他人正在录音",
   "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "请手动开始和结束录音。通话开始时，Yogurt 不会打开。",
   "System notifications": "系统通知",
-  "Microphone access": "麦克风访问权限"
+  "Microphone access": "麦克风访问权限",
+  "Turn off to save battery during calls. Yogurt writes the transcript and notes after you stop recording.": "关闭此选项可节省通话时的电量。停止录音后，Yogurt 会生成转录文本和笔记。",
+  "Yogurt will transcribe this call after you stop recording.": "停止录音后，Yogurt 会转录本次通话。",
+  "Available when the transcript is ready.": "转录完成后即可使用。"
 }

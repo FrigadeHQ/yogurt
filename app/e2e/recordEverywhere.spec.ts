@@ -37,6 +37,28 @@ for (const platform of platforms) {
     } finally { await app.close() }
   })
 
+  test(`@everywhere on ${platform}: transcribe after Stop and then open the summary`, async () => {
+    const { app, page } = await launch(platform)
+    try {
+      await page.evaluate(() => window.yogurt.settings.setLiveTranscript(false))
+      const id = await record(page)
+      await expect(page.getByTestId('transcript-empty')).toContainText('after you stop recording')
+      await page.getByTestId('chat-open').click()
+      await expect(page.getByTestId('chat-input')).toHaveAccessibleDescription('Available when the transcript is ready.')
+      await expect(page.getByTestId('chat-send')).toBeDisabled()
+      await page.getByTestId('chat-close').click()
+      await page.evaluate(() => window.yogurt.settings.setLiveTranscript(true))
+      await expect.poll(() => page.evaluate(async () => (await window.yogurt.widget.state())?.elapsedMs ?? 0), { timeout: 15_000 }).toBeGreaterThan(5000)
+      expect(await page.evaluate(id => window.yogurt.transcript.get(id), id)).toHaveLength(0)
+      await page.getByTestId('note-stop').click()
+      await expect.poll(() => page.evaluate(id => window.yogurt.transcript.get(id), id), { timeout: 30_000 }).not.toHaveLength(0)
+      await expect(page.getByTestId('note-summary-tab')).toHaveAttribute('aria-selected', 'true')
+      await expect(page.getByTestId('note-enhanced')).toHaveAttribute('data-status', 'done', { timeout: 30_000 })
+      await page.getByTestId('chat-open').click()
+      await expect(page.getByTestId('chat-input')).toBeEditable()
+    } finally { await app.close() }
+  })
+
   test(`@everywhere on ${platform}: a meeting finished before the notes model is in says how far its download is, then gets notes`, async () => {
     const { app, page } = await launch(platform, { YOGURT_FAKE_NOTES_MODEL_MS: '16000' })
     try {

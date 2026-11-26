@@ -61,7 +61,7 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
     // what the Mac says, so a change in System Settings shows here
     // locale: every window (main, card, widget) shows the interface language
     // language: the one picked ('' is the Mac's); locale: the one in use; systemLocale: the Mac's, for the picker
-    return { detectMeetingsAutomatically: detectsMeetings(s), theme: s.theme ?? 'system', openAtLogin: d.loginOn(s.openAtLogin), showInMenuBar: visible.showInMenuBar, showNextMeeting: s.showNextMeeting !== false, showRecordingPill: visible.showRecordingPill, appVisibility: !visible.showInMenuBar ? 'dock' : visible.showInDock ? 'both' : 'menu-bar', language: isLocale(s.language) ? s.language : '', locale: localeOf(s, systemLocale()), systemLocale: systemLocale(), myName: s.myName?.trim() || d.macName(), macName: d.macName(), stopWhenCallEnds: stopsWhenCallEnds(s), recordingReminder: recordingReminderOn(s), includeRecordingCredit: includesRecordingCredit(s), keepRecordings: s.keepRecordings !== false, jargon: cleanJargon(s.jargon), spoken: spokenSetting(s), summaryLanguage: summaryLanguageSetting(s) }
+    return { detectMeetingsAutomatically: detectsMeetings(s), theme: s.theme ?? 'system', openAtLogin: d.loginOn(s.openAtLogin), showInMenuBar: visible.showInMenuBar, showNextMeeting: s.showNextMeeting !== false, showRecordingPill: visible.showRecordingPill, appVisibility: !visible.showInMenuBar ? 'dock' : visible.showInDock ? 'both' : 'menu-bar', language: isLocale(s.language) ? s.language : '', locale: localeOf(s, systemLocale()), systemLocale: systemLocale(), myName: s.myName?.trim() || d.macName(), macName: d.macName(), stopWhenCallEnds: stopsWhenCallEnds(s), recordingReminder: recordingReminderOn(s), liveTranscript: s.liveTranscript !== false, includeRecordingCredit: includesRecordingCredit(s), keepRecordings: s.keepRecordings !== false, jargon: cleanJargon(s.jargon), spoken: spokenSetting(s), summaryLanguage: summaryLanguageSetting(s) }
   }
   ipcMain.handle('settings:get', read)
   ipcMain.handle('settings:detect-meetings', (_e, on: unknown) => {
@@ -99,6 +99,9 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
   ipcMain.handle('settings:auto-stop', (_e, on: unknown) => {
     if (typeof on !== 'boolean') return
     updateSettings(d.file, { stopWhenCallEnds: on ? undefined : false })
+  })
+  ipcMain.handle('settings:live-transcript', (_e, on: unknown) => {
+    if (typeof on === 'boolean') updateSettings(d.file, { liveTranscript: on ? undefined : false })
   })
   ipcMain.handle('settings:recording-reminder', (_e, on: unknown) => {
     if (typeof on !== 'boolean') return

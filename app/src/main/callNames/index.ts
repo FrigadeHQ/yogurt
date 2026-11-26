@@ -68,7 +68,7 @@ type Sample = Omit<CallSample, 'ms'> & { t: number }
 type Session = { app: string | null; ids: string[]; pids?: number[]; heardAt: number; quietMs: number; restarts: number; samples: Sample[]; priorLines: Set<number>; watch?: { stop(): void }; everyApp: boolean; offset?: number; startedAt: number; pictured: boolean; missPictured?: boolean; picturedPeople?: boolean; picturedTalking?: boolean; errors: Set<string>; last: string; logged: number; /** a call window with people was read (Zoom, Teams) */ windowSeen?: CallKind; /** since when the readings say that window is gone, and the last one that said so */ goneSince?: number; goneAt?: number }
 
 export function hookCallNames(p: {
-  store: Pick<Store, 'meeting' | 'segments' | 'setSegmentSpeakers' | 'updateMeeting'>
+  store: Pick<Store, 'meeting' | 'segments' | 'setSegmentSpeakers' | 'updateMeeting' | 'saveRecordingSpeakers' | 'recordingSpeakers'>
   watch: Watch
   /** the person's own names (Settings, the Mac's full name): never given to the other side */
   myNames: () => string[]
@@ -216,6 +216,7 @@ export function hookCallNames(p: {
     const final = (async () => {
       await p.transcribed(m.id)
       const tl = timeline(s)
+      if (m.transcriptionDeferred) p.store.saveRecordingSpeakers(m.id, tl)
       const o = { myNames: p.myNames() }
       // every line of the other side again, now that the whole call is known
       const lines = p.store.segments(m.id, { hidden: true }).filter((x) => x.track === 'them' && !s.priorLines.has(x.id))
@@ -259,6 +260,12 @@ export function hookCallNames(p: {
 
   return {
     checkQuiet,
+    savedNames(id: string) {
+      const samples = p.store.recordingSpeakers(id)
+      if (!samples.length) return undefined
+      const myNames = p.myNames()
+      return (startMs: number, endMs: number) => nameFor({ startMs, endMs }, samples, { myNames })
+    },
     /** the name for a line of the other side just heard, or null for Them */
     nameFor(meetingId: string, startMs: number, endMs: number): string | null {
       const s = sessions.get(meetingId)

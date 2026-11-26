@@ -779,5 +779,8 @@
   "Remind me to tell others I’m recording": "เตือนให้ฉันบอกคนอื่นว่ากำลังบันทึกเสียง",
   "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "เริ่มและหยุดบันทึกเสียงด้วยตนเอง Yogurt จะไม่เปิดขึ้นเมื่อเริ่มการโทร",
   "System notifications": "การแจ้งเตือนของระบบ",
-  "Microphone access": "การเข้าถึงไมโครโฟน"
+  "Microphone access": "การเข้าถึงไมโครโฟน",
+  "Turn off to save battery during calls. Yogurt writes the transcript and notes after you stop recording.": "ปิดเพื่อประหยัดแบตเตอรี่ระหว่างการโทร Yogurt จะถอดเสียงและเขียนโน้ตหลังจากที่คุณหยุดบันทึก",
+  "Yogurt will transcribe this call after you stop recording.": "Yogurt จะถอดเสียงสายนี้หลังจากที่คุณหยุดบันทึก",
+  "Available when the transcript is ready.": "ใช้งานได้เมื่อถอดเสียงเสร็จแล้ว"
 }

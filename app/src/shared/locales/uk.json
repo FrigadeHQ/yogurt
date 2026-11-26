@@ -854,5 +854,8 @@
   "Remind me to tell others I’m recording": "Нагадувати мені попередити інших про запис",
   "Start and finish recordings yourself. Yogurt won’t open when a call starts.": "Починайте й завершуйте запис вручну. Yogurt не відкриватиметься на початку виклику.",
   "System notifications": "Системні сповіщення",
-  "Microphone access": "Доступ до мікрофона"
+  "Microphone access": "Доступ до мікрофона",
+  "Turn off to save battery during calls. Yogurt writes the transcript and notes after you stop recording.": "Вимкніть цю функцію, щоб заощаджувати заряд під час дзвінків. Yogurt підготує розшифровку й нотатки, коли ви зупините запис.",
+  "Yogurt will transcribe this call after you stop recording.": "Yogurt розшифрує цей дзвінок, коли ви зупините запис.",
+  "Available when the transcript is ready.": "Доступно, коли розшифровка буде готова."
 }

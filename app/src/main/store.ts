@@ -1,4 +1,5 @@
 import { segmentSpeaker, speakerName } from './speakerName'
+import type { CallSample } from './callNames/attribute'
 import type { TranscriptionState } from '../shared/transcription'
 import { eventIds, type CalEvent } from './calendar'
 import { matchSearchPeople, searchPersonKey, uniqueSearchPeople } from '../shared/searchPeople'
@@ -42,6 +43,8 @@ export type Meeting = {
   durationMs?: number
   /** Some recorded audio still needs a saved transcript, including earlier sessions. */
   transcriptionPending?: boolean
+  /** This recording is transcribed and summarized from its saved audio after Stop. */
+  transcriptionDeferred?: boolean
   transcriptionState?: TranscriptionState
   transcriptionAgain?: boolean
   /** when it was moved to the Trash; there it is out of every list, search and chat until restored */
@@ -60,6 +63,7 @@ export type Notes = { mine: string; enhanced: string | null; edited: boolean }
 const toMeeting = (r: Row): Meeting => ({
   ...(r.transcription_state ? { transcriptionState: r.transcription_state as TranscriptionState } : {}),
   ...(r.transcription_again ? { transcriptionAgain: true } : {}),
+  ...(r.transcription_deferred ? { transcriptionDeferred: true } : {}),
   ...(r.transcription_pending ? { transcriptionPending: true } : {}),
   id: String(r.id), title: String(r.title), startedAt: Number(r.started_at), endedAt: r.ended_at == null ? null : Number(r.ended_at),
   eventId: r.event_id == null ? null : String(r.event_id), app: r.app == null ? null : String(r.app),
@@ -276,7 +280,9 @@ export class Store {
     if (!meetingCols.includes('transcription_state')) this.db.exec('ALTER TABLE meetings ADD COLUMN transcription_state TEXT')
     if (!meetingCols.includes('transcription_was_pending')) this.db.exec('ALTER TABLE meetings ADD COLUMN transcription_was_pending INTEGER NOT NULL DEFAULT 0')
     if (!meetingCols.includes('transcription_again')) this.db.exec('ALTER TABLE meetings ADD COLUMN transcription_again INTEGER NOT NULL DEFAULT 0')
+    this.db.exec('CREATE TABLE IF NOT EXISTS recording_speakers (meeting_id TEXT NOT NULL REFERENCES meetings(id) ON DELETE CASCADE, samples TEXT NOT NULL)')
     this.db.exec('CREATE TABLE IF NOT EXISTS transcription_drafts (meeting_id TEXT NOT NULL REFERENCES meetings(id) ON DELETE CASCADE, payload TEXT NOT NULL)')
+    if (!meetingCols.includes('transcription_deferred')) this.db.exec('ALTER TABLE meetings ADD COLUMN transcription_deferred INTEGER NOT NULL DEFAULT 0')
     if (!meetingCols.includes('transcription_pending')) this.db.exec('ALTER TABLE meetings ADD COLUMN transcription_pending INTEGER NOT NULL DEFAULT 0')
     if (!meetingCols.includes('duration_ms')) this.db.exec('ALTER TABLE meetings ADD COLUMN duration_ms INTEGER')
     if (!meetingCols.includes('language')) this.db.exec('ALTER TABLE meetings ADD COLUMN language TEXT')
@@ -394,8 +400,8 @@ export class Store {
       const ownEmail = m.eventId ? normalizedEmail(m.ownEmail) : null
       this.rememberOwnEmail(ownEmail)
       const titleSource = m.titleSource ?? sourceOf(m.title, m.eventId)
-      this.db.prepare('INSERT INTO meetings (id, title, started_at, ended_at, event_id, app, attendees, state, language, title_source, duration_ms, event_started_at, event_ended_at, event_title, event_calendar_name, event_calendar_source, source, source_id, transcription_pending, own_email, keep_attendees) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-        .run(id, m.title, m.startedAt, m.endedAt, m.eventId, m.app, JSON.stringify(m.attendees), m.state, language, titleSource, m.durationMs ?? null, m.eventStartedAt ?? null, m.eventEndedAt ?? null, m.eventTitle ?? null, m.eventCalendarName ?? null, m.eventCalendarSource ?? null, m.source ?? null, m.sourceId ?? null, Number(!!m.transcriptionPending), ownEmail, Number(!!m.keepAttendees))
+      this.db.prepare('INSERT INTO meetings (id, title, started_at, ended_at, event_id, app, attendees, state, language, title_source, duration_ms, event_started_at, event_ended_at, event_title, event_calendar_name, event_calendar_source, source, source_id, transcription_pending, transcription_deferred, own_email, keep_attendees) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        .run(id, m.title, m.startedAt, m.endedAt, m.eventId, m.app, JSON.stringify(m.attendees), m.state, language, titleSource, m.durationMs ?? null, m.eventStartedAt ?? null, m.eventEndedAt ?? null, m.eventTitle ?? null, m.eventCalendarName ?? null, m.eventCalendarSource ?? null, m.source ?? null, m.sourceId ?? null, Number(!!m.transcriptionPending), Number(!!m.transcriptionDeferred), ownEmail, Number(!!m.keepAttendees))
       rememberPeople(this.db, m.attendees)
       if (m.folderId !== undefined) this.addToFolder(m.folderId, id)
       return this.meeting(id)!
@@ -404,7 +410,7 @@ export class Store {
   updateMeeting(id: string, patch: Partial<Omit<Meeting, 'id'>>) {
     if (patch.ownEmail) this.rememberOwnEmail(patch.ownEmail)
     if (patch.attendees) rememberPeople(this.db, patch.attendees)
-    const col: Record<string, string> = { title: 'title', startedAt: 'started_at', endedAt: 'ended_at', eventId: 'event_id', eventStartedAt: 'event_started_at', eventEndedAt: 'event_ended_at', eventTitle: 'event_title', eventCalendarName: 'event_calendar_name', eventCalendarSource: 'event_calendar_source', ownEmail: 'own_email', app: 'app', attendees: 'attendees', keepAttendees: 'keep_attendees', state: 'state', language: 'language', titleSource: 'title_source', durationMs: 'duration_ms', transcriptionPending: 'transcription_pending', transcriptionState: 'transcription_state', transcriptionAgain: 'transcription_again', sourceId: 'source_id' }
+    const col: Record<string, string> = { title: 'title', startedAt: 'started_at', endedAt: 'ended_at', eventId: 'event_id', eventStartedAt: 'event_started_at', eventEndedAt: 'event_ended_at', eventTitle: 'event_title', eventCalendarName: 'event_calendar_name', eventCalendarSource: 'event_calendar_source', ownEmail: 'own_email', app: 'app', attendees: 'attendees', keepAttendees: 'keep_attendees', state: 'state', language: 'language', titleSource: 'title_source', durationMs: 'duration_ms', transcriptionPending: 'transcription_pending', transcriptionDeferred: 'transcription_deferred', transcriptionState: 'transcription_state', transcriptionAgain: 'transcription_again', sourceId: 'source_id' }
     const keys = Object.keys(patch).filter((k) => k in col && (patch as Row)[k] !== undefined)
     if (!keys.length) return
     const vals = keys.map(k => {
@@ -510,6 +516,20 @@ export class Store {
       this.db.exec('COMMIT')
     } catch(error) {this.db.exec('ROLLBACK');throw error}
   }
+  saveRecordingSpeakers(id: string, samples: CallSample[]) {
+    if (samples.length) this.db.prepare('INSERT INTO recording_speakers (meeting_id,samples) VALUES (?,?)').run(id, JSON.stringify(samples))
+  }
+  recordingSpeakers(id: string): CallSample[] {
+    const names = (value: unknown) => Array.isArray(value) && value.every(name => typeof name === 'string')
+    return this.db.prepare('SELECT samples FROM recording_speakers WHERE meeting_id=? ORDER BY rowid').all(id).flatMap(row => {
+      // A damaged speaker timeline in a backup must not prevent transcription of its audio.
+      try {
+        const samples = JSON.parse(String(row.samples))
+        return Array.isArray(samples) ? samples.filter(s => s && Number.isFinite(s.ms) && names(s.speaking) && names(s.participants) && (s.me == null || typeof s.me === 'string')) : []
+      } catch { return [] }
+    })
+  }
+  clearRecordingSpeakers(id: string) { this.db.prepare('DELETE FROM recording_speakers WHERE meeting_id=?').run(id) }
   transcriptionDraft(id: string): Omit<Segment,'id'>[] {
     return this.db.prepare('SELECT payload FROM transcription_drafts WHERE meeting_id = ? ORDER BY rowid').all(id).flatMap(row => readDraftLines(row.payload))
   }
@@ -530,7 +550,7 @@ export class Store {
       this.clearTranscriptionDraft(id)
       // A replacement can keep the same line count, text length and timestamps.
       this.db.prepare("UPDATE library_sources SET signature='' WHERE meeting_id=?").run(id)
-      this.updateMeeting(id,{transcriptionAgain:false,transcriptionPending:false,transcriptionState:'done'})
+      this.updateMeeting(id,{transcriptionAgain:false,transcriptionPending:false,transcriptionDeferred:false,transcriptionState:'done'})
       this.db.exec('COMMIT')
     } catch(error) { this.db.exec('ROLLBACK'); throw error }
   }
@@ -656,7 +676,7 @@ export class Store {
   /** Resume managed jobs; legacy partial recordings wait for an explicit Continue. */
   untranscribedMeetings(): Meeting[] {
     return (this.db.prepare(`SELECT * FROM meetings m WHERE state IN ('stopped', 'done') AND trashed_at IS NULL AND transcription_pending = 1
-      AND (transcription_state IS NULL OR transcription_state NOT IN ('stopped','error','preparing')) AND (transcription_state IS NOT NULL OR source='audio-file' OR NOT EXISTS (SELECT 1 FROM segments s WHERE s.meeting_id=m.id)) ORDER BY started_at`).all() as Row[]).map(r => this.readMeeting(r))
+      AND (transcription_state IS NULL OR transcription_state NOT IN ('stopped','error','preparing')) AND (transcription_state IS NOT NULL OR transcription_deferred=1 OR source='audio-file' OR NOT EXISTS (SELECT 1 FROM segments s WHERE s.meeting_id=m.id)) ORDER BY started_at`).all() as Row[]).map(r => this.readMeeting(r))
   }
 
   /** Stopped meetings with no enhanced notes: a quit or crash came before they were written */

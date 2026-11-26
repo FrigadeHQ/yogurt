@@ -215,7 +215,7 @@ function Preview({ view, open }: { view: WidgetView; open: boolean }) {
       setBehind(!stick.current)
     }}>
       <div ref={content}>
-      {!loaded ? <Loading layout="transcript" testId="widget-preview-loading" /> : !grouped.length && <p className="widget-preview-empty">{failed ? t("Couldn't load the transcript. Open Yogurt to try again.") : t('Listening for speech…')}</p>}
+      {!loaded ? <Loading layout="transcript" testId="widget-preview-loading" /> : !grouped.length && <p className="widget-preview-empty">{failed ? t("Couldn't load the transcript. Open Yogurt to try again.") : view.transcriptionDeferred ? t('Yogurt will transcribe this call after you stop recording.') : t('Listening for speech…')}</p>}
       {grouped.map((turn, i) => {
         const first = turn[0], me = first.track === 'me'
         const who = transcriptSpeaker(first)
