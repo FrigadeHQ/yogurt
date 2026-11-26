@@ -14,7 +14,7 @@ import { readCall, summarize, type AxWindow, type CallKind } from './parse'
 /** what yogurt-mac call-watch prints each time it reads: the call windows, or why it could not */
 /** macWindows: how many normal windows of the app the Mac itself shows, beside the ones accessibility lists (#138) */
 /** hidden: no call window accessibility can see, but the Mac still has the one that was the call (another desktop, a full
- * screen Space): the call is not over */
+ * screen Space), or Slack still shows the huddle without its window: the call is not over */
 export type WatchLine = { t: number; app?: string; windows?: AxWindow[]; error?: string; macWindows?: number; hidden?: boolean }
 /** pids: read only these processes' windows (the call app's processes on the mic); none known, the app's frontmost with a call */
 export type Watch = (ids: string[], onLine: (l: WatchLine) => void, pids?: number[]) => { stop(): void }
@@ -66,7 +66,7 @@ const MAX_RESTARTS = 20
 const LOGGED_CHANGES = 30
 
 type Sample = Omit<CallSample, 'ms'> & { t: number }
-type Session = { app: string | null; ids: string[]; pids?: number[]; heardAt: number; quietMs: number; restarts: number; samples: Sample[]; priorLines: Set<number>; watch?: { stop(): void }; everyApp: boolean; offset?: number; startedAt: number; pictured: boolean; missPictured?: boolean; picturedPeople?: boolean; picturedTalking?: boolean; errors: Set<string>; last: string; logged: number; /** a call window with people was read (Zoom, Teams) */ windowSeen?: CallKind; /** since when the readings say that window is gone, and the last one that said so */ goneSince?: number; goneAt?: number }
+type Session = { app: string | null; ids: string[]; pids?: number[]; heardAt: number; quietMs: number; restarts: number; samples: Sample[]; priorLines: Set<number>; watch?: { stop(): void }; everyApp: boolean; offset?: number; startedAt: number; pictured: boolean; missPictured?: boolean; picturedPeople?: boolean; picturedTalking?: boolean; errors: Set<string>; last: string; logged: number; /** a call window with people was read (Zoom, Teams), or a huddle's grid (Slack) */ windowSeen?: CallKind; /** since when the readings say that window is gone, and the last one that said so */ goneSince?: number; goneAt?: number }
 
 export function hookCallNames(p: {
   store: Pick<Store, 'meeting' | 'segments' | 'setSegmentSpeakers' | 'updateMeeting'>
@@ -115,7 +115,7 @@ export function hookCallNames(p: {
       // window) says nothing either way.
       const gone = !!l.error && (l.error.startsWith('no-call-window') || l.error === 'not-running')
       if (gone && l.hidden) {
-        if (!s.errors.has('hidden')) { s.errors.add('hidden'); log('call names: the call window is out of sight (another desktop or full screen), not closed') }
+        if (!s.errors.has('hidden')) { s.errors.add('hidden'); log('call names: the call window is out of sight (another desktop, full screen, or only Slack\u2019s huddle bar), not closed') }
         windowBack(s)
       }
       else if (gone && s.windowSeen) {
@@ -153,10 +153,11 @@ export function hookCallNames(p: {
     const most = Math.max(r.participants.length, ...s.samples.filter((x) => x.ok !== false && l.t - x.t <= RECENT_MS).map((x) => x.participants.length))
     if (byMute && most > r.participants.length) r.speaking = []
     s.samples.push({ t: l.t, ...r, most })
-    // Zoom's meeting window and Teams' Leave button are there only during a call. A Meet tab is not followed: switching
+    // Zoom's meeting window, Teams' Leave button and Slack's participant grid are there only during a call (Slack's
+    // counts even when its labels can't be read, in a language not listed). A Meet tab is not followed: switching
     // tabs hides it from the reader, and the browser lets go of the mic as soon as its call ends.
-    if (kind === 'zoom' || kind === 'teams') {
-      if (r.participants.length) s.windowSeen ??= kind
+    if (kind === 'zoom' || kind === 'teams' || kind === 'slack') {
+      if (r.participants.length || kind === 'slack') s.windowSeen ??= kind
       windowBack(s)
     }
     // counts only: main.log is pasted into public issues, and names belong to the people in the call

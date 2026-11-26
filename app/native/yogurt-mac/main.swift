@@ -371,19 +371,32 @@ func hasCallControl(_ w: AXUIElement, budget: Int = 1500) -> Bool {
   return false
 }
 
+/// what Slack's main window carries during a huddle, whatever its language: the bar at the bottom, the channel's header
+let slackInHuddle: Set<String> = ["p-client_workspace_wrapper--huddle_bottom_bar", "p-control_strip--huddles_bottom_bar_visible", "p-huddle_channel_header_button--in_huddle"]
+/// this reading found no participant grid but can't say the huddle is over: a window shows it going on (its window
+/// closed, or not up yet while joining), or the search stopped before the window's end
+var slackMayBeInHuddle = false
+/// the windows that showed so: on another desktop later, they are out of sight like a call window
+var slackBarWindows: [AXUIElement] = []
+
 /// The participant grid of a Slack huddle in a window, found by its page class. Only the grid is returned and copied,
 /// so the messages beside a huddle in Slack's main window are never copied out.
 func huddleGrid(_ w: AXUIElement, budget: Int = 3000) -> AXUIElement? {
-  var queue = [w], next = 0
+  var queue = [w], next = 0, bar = false
   while next < queue.count && next < budget {
     let e = queue[next]; next += 1
     var raw: CFArray?
     AXUIElementCopyMultipleAttributeValues(e, ["AXDOMClassList", kAXChildrenAttribute] as CFArray, AXCopyMultipleAttributeOptions(rawValue: 0), &raw)
     let vals = (raw as? [AnyObject]) ?? []
-    if (vals.first as? [String])?.contains("p-huddle_grid_component") == true { return e }
+    let classes = (vals.first as? [String]) ?? []
+    if classes.contains("p-huddle_grid_component") { return e }
+    if classes.contains(where: slackInHuddle.contains) { bar = true }
     if vals.count > 1, let kids = vals[1] as? [AXUIElement] { queue.append(contentsOf: kids) }
   }
-  let note = next < queue.count ? "Slack: no huddle in the first \(budget) elements of a window" : "Slack: no huddle in a window"
+  let cut = next < queue.count
+  if bar { slackBarWindows.append(w) }
+  if bar || cut { slackMayBeInHuddle = true }
+  let note = bar ? "Slack: in a huddle, no participant grid" : cut ? "Slack: no huddle in the first \(budget) elements of a window" : "Slack: no huddle in a window"
   if !lastControlLook.contains(note) { lastControlLook += (lastControlLook.isEmpty ? "" : " | ") + note }
   return nil
 }
@@ -513,6 +526,7 @@ func watchCalls(every: Int, ids: [String], pids: [pid_t] = []) {
     } else {
       // the frontmost of the apps asked about that shows a call, else the first one that does
       lastControlLook = ""
+      slackMayBeInHuddle = false; slackBarWindows = []
       let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
       // With the processes on the mic given, only their apps: two Zoom meetings are two processes, and the one not
       // being recorded must never give this meeting its names (#98)
@@ -555,7 +569,10 @@ func watchCalls(every: Int, ids: [String], pids: [pid_t] = []) {
         // which windows were looked at and how, so a log can say why a call was missed (#111)
         var o: [String: Any] = ["t": t, "error": running.isEmpty ? "not-running" : lastControlLook.isEmpty ? "no-call-window" : "no-call-window (\(lastControlLook))"]
         // the call window is still there, out of accessibility's sight: Yogurt must not take that for the call ending
-        if running.contains(where: { callWindowOutOfSight(AXUIElementCreateApplication($0.processIdentifier), $0.processIdentifier) }) { o["hidden"] = true }
+        if slackMayBeInHuddle || running.contains(where: { callWindowOutOfSight(AXUIElementCreateApplication($0.processIdentifier), $0.processIdentifier) }) { o["hidden"] = true }
+        if let r = running.first(where: { $0.bundleIdentifier == slack }) {
+          callWindowNumbers[r.processIdentifier, default: []].formUnion(slackBarWindows.compactMap(windowNumber))
+        }
         if let (id, app, pid) = teams {
           misses += 1
           if misses == 10 {
