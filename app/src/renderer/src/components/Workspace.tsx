@@ -16,6 +16,7 @@ import { RecordingTime } from './RecordingTime'
 import { FoldersNav } from './FoldersNav'
 import { FinishSetup } from './FinishSetup'
 import { NotesSetup } from './NotesSetup'
+import { ProcessingSchedule } from './ProcessingSchedule'
 import { CornerMenu } from './CornerMenu'
 
 export function Workspace({ route, meeting, folders, go, back, forward, search, shortcuts, collapsed, sidebarMotion, toggleSidebar, children }: {
@@ -113,6 +114,7 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
           <span data-testid="workspace-heading" aria-current="page" title={label}>{label}</span>
         </div>
       <NotesSetup go={go} />
+      <ProcessingSchedule />
       {returnToRecording && <button className="workspace-recording-link no-drag" data-testid="recording-return" data-paused={recording.paused}
         aria-label={t('Open {title}', { title: recording.title })} title={t('Open {title}', { title: recording.title })} onClick={() => go(`/note/${recording.meetingId}`)}>
         <LevelBars testId="recording-return-wave" height={16} paused={recording.paused} />

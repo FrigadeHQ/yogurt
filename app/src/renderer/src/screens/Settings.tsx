@@ -229,6 +229,23 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
                 className="settings-toggle"><span className="settings-toggle-knob" /></button>
             </div>
 
+            <div className="settings-row">
+              <div className="settings-row-copy">
+                <p className="settings-label">{t('Schedule recording processing')}</p>
+                <p className="settings-description">{t('Record without live transcription and choose when to transcribe and summarize afterward.')}</p>
+              </div>
+              <button disabled={!prefs || general.busy} role="switch" aria-checked={!!prefs?.deferRecordingProcessing} aria-label={t('Schedule recording processing')}
+                onClick={() => {
+                  if (!prefs) return
+                  const on = !prefs.deferRecordingProcessing
+                  void general.save(async () => {
+                    await window.yogurt.settings.setDeferRecordingProcessing(on)
+                    setPrefs(p => p && { ...p, deferRecordingProcessing: on })
+                  }, 'recording-processing-retry')
+                }}
+                className="settings-toggle"><span className="settings-toggle-knob" /></button>
+            </div>
+
             <RecordingSetting reveal={focus === 'recordings' && generalReady && !!perms} on={prefs?.keepRecordings ?? true} disabled={!prefs} onChange={async on => {
               await window.yogurt.settings.setKeepRecordings(on)
               setPrefs(p => p && { ...p, keepRecordings: on })

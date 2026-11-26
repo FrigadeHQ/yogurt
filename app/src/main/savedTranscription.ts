@@ -9,6 +9,7 @@ export function createSavedTranscriptions(d: {
   store: Store; ready: () => boolean; recording: () => boolean
   /** its live transcript is still being finished: reading the saved recording now would race it (#127) */
   live?: (id: string) => boolean
+  held?: (id: string) => boolean
   tracks: (id: string) => Promise<Partial<Record<Track,AsyncIterable<Float32Array>>>>
   transcribe: (id: string, tracks: Partial<Record<Track,AsyncIterable<Float32Array>>>, options: RecordedOptions) => Promise<boolean>
   draft?: (id:string) => void
@@ -29,7 +30,7 @@ export function createSavedTranscriptions(d: {
         const id=meeting.id
         const current=d.store.meeting(id)
         if(!current||current.trashedAt!=null||['stopped','error','preparing','done'].includes(current.transcriptionState??''))continue
-        if(d.live?.(id))continue
+        if(d.live?.(id)||d.held?.(id))continue
         if(d.recording()){set(id,'waiting-recording');continue}
         if(!d.ready()){set(id,'waiting-model');continue}
         const job={id,abort:new AbortController(),stopped:false};running=job;set(id,'transcribing')
@@ -59,12 +60,12 @@ export function createSavedTranscriptions(d: {
           if(!job.abort.signal.aborted)console.error('Saved transcription failed',id,error)
         } finally { if(running===job)running=undefined }
       }
-    } finally {draining=false;if(!quitting&&!d.recording()&&d.ready()&&d.store.untranscribedMeetings().some(m=>m.transcriptionState==='queued'))queueMicrotask(()=>void pump())}
+    } finally {draining=false;if(!quitting&&!d.recording()&&d.ready()&&d.store.untranscribedMeetings().some(m=>m.transcriptionState==='queued'&&!d.held?.(m.id)))queueMicrotask(()=>void pump())}
   }
   return {
     async start(id:string,again=false) {
       const meeting=d.store.meeting(id)
-      if(!meeting||meeting.trashedAt!=null||meeting.state==='recording'||running?.id===id)return false
+      if(!meeting||meeting.trashedAt!=null||meeting.state==='recording'||running?.id===id||d.held?.(id))return false
       if(again)d.store.beginTranscriptionReplacement(id)
       d.store.updateMeeting(id,{transcriptionPending:true,transcriptionState:'queued'});d.changed(id);void pump();return true
     },
@@ -79,5 +80,6 @@ export function createSavedTranscriptions(d: {
     resume(){quitting=false;void pump()},
     pump,
     owns:(id:string)=>running?.id===id,
+    busy:()=>!!running,
   }
 }

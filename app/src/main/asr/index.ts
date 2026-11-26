@@ -180,6 +180,7 @@ function armServerIdle() {
 const NO_MODEL_NOTE_DELAY_MS = 400
 
 export function hookTranscription(p: {
+  deferLive?: (id: string) => boolean
   store: Pick<Store, 'addSegments' | 'updateMeeting'> & Partial<Pick<Store, 'segments' | 'hideSegments' | 'meeting' | 'deleteSegments'>>
   /** the speech model, once setup has it */
   modelPath: () => string | undefined
@@ -363,7 +364,7 @@ export function hookTranscription(p: {
     return s
   }
 
-  const offStart = (p.onStart ?? onMeetingStart)((m) => { open(m.id) })
+  const offStart = (p.onStart ?? onMeetingStart)((m) => { if (!p.deferLive?.(m.id)) open(m.id) })
   recorded = async (id, tracks, stopped, options) => {
     if (sessions.has(id) || !p.modelPath()) return false
     const s = open(id, true, options)
@@ -380,6 +381,7 @@ export function hookTranscription(p: {
   }
   // each capture of a meeting (a restarted recorder is a new one) feeds that meeting's session
   const offCapture = onCaptureStart((c, meetingId) => {
+    if (p.deferLive?.(meetingId)) return
     const s = open(meetingId)
     const live: NonNullable<Session['live']> = { quietSince: Date.now(), mic: s.live?.mic ?? new MicInput(), micFrom: s.live?.micFrom, frames: {} }
     s.live = live

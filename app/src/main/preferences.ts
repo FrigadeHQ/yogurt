@@ -60,7 +60,7 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
     // what the Mac says, so a change in System Settings shows here
     // locale: every window (main, card, widget) shows the interface language
     // language: the one picked ('' is the Mac's); locale: the one in use; systemLocale: the Mac's, for the picker
-    return { theme: s.theme ?? 'system', openAtLogin: d.loginOn(s.openAtLogin), showInMenuBar: visible.showInMenuBar, showNextMeeting: s.showNextMeeting !== false, showRecordingPill: visible.showRecordingPill, appVisibility: !visible.showInMenuBar ? 'dock' : visible.showInDock ? 'both' : 'menu-bar', language: isLocale(s.language) ? s.language : '', locale: localeOf(s, systemLocale()), systemLocale: systemLocale(), myName: s.myName?.trim() || d.macName(), macName: d.macName(), stopWhenCallEnds: stopsWhenCallEnds(s), recordingReminder: recordingReminderOn(s), includeRecordingCredit: includesRecordingCredit(s), keepRecordings: s.keepRecordings !== false, jargon: cleanJargon(s.jargon), spoken: spokenSetting(s), summaryLanguage: summaryLanguageSetting(s) }
+    return { theme: s.theme ?? 'system', openAtLogin: d.loginOn(s.openAtLogin), showInMenuBar: visible.showInMenuBar, showNextMeeting: s.showNextMeeting !== false, showRecordingPill: visible.showRecordingPill, appVisibility: !visible.showInMenuBar ? 'dock' : visible.showInDock ? 'both' : 'menu-bar', language: isLocale(s.language) ? s.language : '', locale: localeOf(s, systemLocale()), systemLocale: systemLocale(), myName: s.myName?.trim() || d.macName(), macName: d.macName(), stopWhenCallEnds: stopsWhenCallEnds(s), recordingReminder: recordingReminderOn(s), includeRecordingCredit: includesRecordingCredit(s), keepRecordings: s.keepRecordings !== false, jargon: cleanJargon(s.jargon), spoken: spokenSetting(s), summaryLanguage: summaryLanguageSetting(s), deferRecordingProcessing: s.deferRecordingProcessing === true }
   }
   ipcMain.handle('settings:get', read)
   // what the person is called in meetings (who "You" is when naming voices); blank: the Mac's full name again
@@ -97,6 +97,9 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
   ipcMain.handle('settings:recording-reminder', (_e, on: unknown) => {
     if (typeof on !== 'boolean') return
     updateSettings(d.file, { recordingReminder: on ? undefined : false })
+  })
+  ipcMain.handle('settings:defer-recording-processing', (_e, on: unknown) => {
+    if (typeof on === 'boolean') updateSettings(d.file, { deferRecordingProcessing: on || undefined })
   })
   ipcMain.handle('settings:recording-credit', (_e, on: unknown) => {
     if (typeof on === 'boolean') updateSettings(d.file, { includeRecordingCredit: on ? undefined : false })

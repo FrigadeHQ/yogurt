@@ -25,6 +25,7 @@ export function hookNotes(p: {
   model: Pick<NotesModel, 'llm'> & Partial<Pick<NotesModel, 'needsLoad'>>
   /** Windows and Linux: say when the notes wait for the model to load (a Mac shows what it always did) */
   showLoading?: boolean
+  held?: (id: string) => boolean
   /** the recording's files and transcript are final */
   transcribed: (id: string) => Promise<void>
   /** the names from the call are on its lines (callNames) */
@@ -122,7 +123,7 @@ export function hookNotes(p: {
    */
   const write = async (id: string, signal: AbortSignal, quiet = false, note?: string) => {
     const m = p.store.meeting(id)
-    if (!m || m.state === 'recording' || resuming.has(id)) return
+    if (!m || m.state === 'recording' || resuming.has(id) || p.held?.(id)) return
     const was = currentNotes(id)
     const mine = was.mine
     const segments = p.store.segments(id)
@@ -191,7 +192,7 @@ export function hookNotes(p: {
   const queueTitle = (id: string, ask?: (llm: Llm) => Promise<string>, people = p.store.meeting(id)?.attendees) => {
     const current = () => {
       const m = p.store.meeting(id)
-      return m && !resuming.has(id) && m.state !== 'recording' && (m.titleSource === 'auto' || (ask && m.titleSource === 'generic'))
+      return m && !p.held?.(id) && !resuming.has(id) && m.state !== 'recording' && (m.titleSource === 'auto' || (ask && m.titleSource === 'generic'))
         && JSON.stringify(m.attendees) === JSON.stringify(people) ? m : undefined
     }
     void p.queue.enqueue(async (signal) => {
@@ -226,6 +227,7 @@ export function hookNotes(p: {
   }
 
   const queueWrite = (id: string, note?: string, allowPartial = false) => {
+    if (p.held?.(id)) return Promise.resolve()
     const meeting = p.store.meeting(id)
     if (meeting?.transcriptionPending && (meeting.transcriptionState || meeting.source==='audio-file') && !allowPartial) return Promise.resolve()
     console.info('NOTES', `queued the notes of ${id}`)
@@ -237,6 +239,7 @@ export function hookNotes(p: {
   /** each meeting's notes after it stopped, until they are written */
   const afterStop = new Map<string, Promise<void>>()
   p.onStop((m) => {
+    if (p.held?.(m.id)) return
     stopped.delete(m.id)
     set(m.id, 'waiting')
     const done = Promise.resolve().then(async () => {

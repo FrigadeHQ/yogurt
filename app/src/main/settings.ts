@@ -42,6 +42,7 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   stopWhenCallEnds?: boolean
   /** a quiet reminder to ask everyone before recording; on unless turned off */
   recordingReminder?: boolean
+  deferRecordingProcessing?: boolean
   /** Credit on copied summaries and saved Markdown; on unless turned off. */
   includeRecordingCredit?: boolean
   /** keep audio after its transcript and summary are saved; on unless turned off */

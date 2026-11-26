@@ -93,6 +93,10 @@ const api: YogurtApi = {
       return () => { ipcRenderer.removeListener('meetings:changed', on) }
     },
   },
+  processing: {
+    pending: () => ipcRenderer.invoke('processing:pending'),
+    choose: (id, at) => ipcRenderer.invoke('processing:choose', id, at),
+  },
   transcript: {
     draft:id=>ipcRenderer.invoke('transcript:draft',id),
     onDraft:cb=>{const listener=(_e:unknown,id:string)=>cb(id);ipcRenderer.on('transcript:draft',listener);return()=>ipcRenderer.removeListener('transcript:draft',listener)},
@@ -268,6 +272,7 @@ const api: YogurtApi = {
     setStopWhenCallEnds: (on) => ipcRenderer.invoke('settings:auto-stop', on),
     setIncludeRecordingCredit: (on) => ipcRenderer.invoke('settings:recording-credit', on),
     setRecordingReminder: (on) => ipcRenderer.invoke('settings:recording-reminder', on),
+    setDeferRecordingProcessing: (on) => ipcRenderer.invoke('settings:defer-recording-processing', on),
     setKeepRecordings: (on) => ipcRenderer.invoke('settings:keep-recordings', on),
     setJargon: (terms) => ipcRenderer.invoke('settings:jargon', terms),
     setLanguage: (id) => ipcRenderer.invoke('settings:language', id),
