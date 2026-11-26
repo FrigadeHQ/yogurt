@@ -15,6 +15,13 @@ describe('the catalog', () => {
   it('a broken bundled catalog is a clear error', () => {
     expect(() => catalog.loadCatalog({ bundled: { version: 1, models: [] }, licenses })).toThrow(/Bundled catalog is invalid/)
   })
+  it('the speaker model pin is the file the release serves today', () => {
+    // measured with curl on Linux and on an Apple-silicon Mac on 2026-11-26; the asset is 1 byte bigger than the
+    // hash this branch first pinned, so a fresh install fails the sha check and voice profiles never work
+    const s = bundled.speaker as { sha256: string; bytes: number }
+    expect(s.sha256).toBe('53cab20ba8f2eb2f6e2d89ecc18e88ef3222169b61b4419cbc13666744a4574b')
+    expect(s.bytes).toBe(28281165)
+  })
 })
 
 /** every file under a folder */
