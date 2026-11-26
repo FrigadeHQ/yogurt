@@ -117,6 +117,21 @@ const api: YogurtApi = {
       return () => { ipcRenderer.removeListener('transcript:partial', on) }
     },
   },
+  // Transcript lab
+  lab: {
+    enabled: () => ipcRenderer.invoke('lab:enabled'),
+    view: (id) => ipcRenderer.invoke('lab:view', id),
+    run: (id) => ipcRenderer.invoke('lab:run', id),
+    stop: (id) => ipcRenderer.invoke('lab:stop', id),
+    use: (id, version) => ipcRenderer.invoke('lab:use', id, version),
+    fix: (id, key, text) => ipcRenderer.invoke('lab:fix', id, key, text),
+    scores: () => ipcRenderer.invoke('lab:scores'),
+    onChanged: (cb) => {
+      const on = (_e: unknown, id: string, transcript: boolean) => cb(id, transcript)
+      ipcRenderer.on('lab:changed', on)
+      return () => { ipcRenderer.removeListener('lab:changed', on) }
+    },
+  },
   notes: {
     get: (id) => ipcRenderer.invoke('notes:get', id),
     setMine: (id, md, revision) => ipcRenderer.invoke('notes:set-mine', id, md, revision),

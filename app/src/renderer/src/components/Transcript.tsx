@@ -19,6 +19,7 @@ import { rememberedScroll, useScrollMemory } from '../useScrollMemory'
 import { followGlide, scrollBehavior } from '../motion'
 import { followTarget, inView } from '../../../shared/follow'
 import { afterFinal, joinWords } from '../../../shared/liveWords'
+import { LabBar, LabCompare, useLab } from './TranscriptLab'
 
 type Line = Omit<Segment, 'id'> & { id?: number; previous?:boolean }
 const key = (l: { track: string; startMs: number }) => `${l.track}:${l.startMs}`
@@ -83,7 +84,9 @@ function useLines(id: string,replacing:boolean) {
       if (draftRef.current.length) setLines(draftRef.current)
       load(true)
     })
-    return () => { active = false; off(); offSpeakers();offReplaced?.() }
+    // the transcript lab put another version in: every line is read again (lines can disappear)
+    const offLab = window.yogurt.lab.onChanged((m, transcript) => { if (m === id && transcript) load(true) })
+    return () => { active = false; off(); offSpeakers();offReplaced?.(); offLab() }
   }, [id])
   return { lines, draft, live, loaded, failed, retry }
 }
@@ -395,10 +398,16 @@ export function Transcript({ id, notice, processing=false, replacing=false, reco
   const noticeContent = notice && <TranscriptionNotice notice={notice} centered={empty} hasLines={timeline.length > 0} />
   const Surface = inline ? 'section' : 'aside'
 
+  // transcript lab: its hooks come after the component's own, so theirs keep upstream's order
+  const lab = useLab(id)
+  const [comparing, setComparing] = useState(false)
+  useEffect(() => { setComparing(false) }, [id])
   return (
     <Surface style={{ '--playback-inset': `${playbackInset}px` } as CSSProperties} data-testid="transcript-panel" aria-label={t('Transcript')} onKeyDown={(e) => { if (!inline && e.key === 'Escape') { e.stopPropagation(); onClose?.() } }}
       className={inline ? 'transcript-inline' : 'chat-in pointer-events-auto absolute inset-x-0 bottom-1 z-20 mx-auto flex h-[min(44vh,480px)] w-[min(720px,calc(100%-48px))] flex-col rounded-xl border border-line bg-float shadow-[var(--shadow)]'}>
-      <TranscriptFind key={id} lines={lines} list={list} active={active} playbackInset={playbackInset} beforeScroll={() => visibility.current?.programmatic()} onFinding={find} toolbar={toolbar} onClose={!inline ? onClose : undefined} />
+      <TranscriptFind key={id} lines={lines} list={list} active={active} playbackInset={playbackInset} beforeScroll={() => visibility.current?.programmatic()} onFinding={find} toolbar={toolbar} onClose={!inline ? onClose : undefined}
+        extra={lab.enabled && <LabBar id={id} view={lab.view} comparing={comparing} onCompare={setComparing} />} />
+      {comparing && lab.view ? <LabCompare id={id} view={lab.view} /> :
       <div className="transcript-scroll-wrap relative flex min-h-0 flex-1 flex-col">
         <ScrollFade enabled={active && loaded}><ol id="transcript-lines" data-loaded={loaded} data-loading-phase={loadingPhase} data-testid="transcript" data-replacing={replacing&&processing} ref={list} onScroll={onScroll} onWheel={theirs} onTouchStart={theirs} onPointerDown={theirs} onKeyDownCapture={theirs} onKeyDown={onKeyDown} className="loading-content transcript-loading-content flex flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4 pt-2 text-sm leading-[1.55]">
           {!empty && noticeContent && <li className="transcription-notice-slot">{noticeContent}</li>}
@@ -454,7 +463,7 @@ export function Transcript({ id, notice, processing=false, replacing=false, reco
             <ArrowDown size={12} aria-hidden="true" className="follow-arrow" data-up={away === 'up'} />{t('Back to playing')}
           </button>
         )}
-      </div>
+      </div>}
       {active && playable && <div ref={playbackDock} className="transcript-player-dock"><Player ref={player} id={id} tracks={tracks} openTranscript={drawn.runs.length ? () => {
         const row = rowOf(drawn.runs[0].k)
         visibility.current?.programmatic()
