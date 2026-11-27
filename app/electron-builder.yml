@@ -24,11 +24,20 @@ extraResources:
   # speech to text; on Windows and Linux the Rust recorder, system helper and AI apps relay, and whisper-server
   - from: resources/bin
     to: bin
+  # nemo-speech's model index (native.sh and nemo-build.mjs copy it from the pin): the CLI resolves a --model against
+  # it and looks beside its own folder first, in the layout its own install uses (<bin>/../share/nemo-speech)
+  - from: resources/share
+    to: share
+  # nemo-speech's shared libraries on Linux (nemo-build.mjs copies them here; its binary looks in ../lib, the layout
+  # NeMo-Speech.cpp's own install uses); empty on a Mac (static binary) and Windows (not built yet)
+  - from: resources/lib
+    to: lib
   # Silero VAD for whisper-server (native.sh or whisper-build.mjs fetch it, checked against its sha256)
   - from: resources/vad
     to: vad
   # the Mac's menu bar icon (tray.ts reads it from Resources; @2x is picked up next to it)
-  - { from: resources, to: ., filter: ["tray.png", "tray@2x.png", "tray-titled.png", "tray-titled@2x.png"] }
+  # tray-labels is the same logo with the red exclamation: as a template it shows only its shape
+  - { from: resources, to: ., filter: ["tray.png", "tray@2x.png", "tray-titled.png", "tray-titled@2x.png", "tray-labels.png", "tray-labels@2x.png"] }
   # licenses of things bundled or downloaded: fonts, whisper.cpp, Silero VAD, libopus, the native recorders' crates,
   # whisper-server's headers, animate-ui, the CUDA runtime and the echo canceller (webrtcaec3.js)
   - from: resources/licenses
@@ -51,6 +60,11 @@ asarUnpack:
   # the notes model's engine loads native binaries; they can't run from inside the asar archive
   - "**/node_modules/node-llama-cpp/**"
   - "**/node_modules/@node-llama-cpp/**"
+  # the diarization worker's entry (src/main/diarize/embed-worker.ts), forked as a utility process
+  - "out/main/diarizeWorker.js"
+  # sherpa-onnx-node's prebuilt N-API binding and the onnxruntime libraries
+  - "**/node_modules/sherpa-onnx-node/**"
+  - "**/node_modules/sherpa-onnx-*/**"
 mac:
   # a platform's files list replaces the one above, so it repeats it
   files:
@@ -105,7 +119,7 @@ win:
     # the speed check's clip (src/main/asr/speedCheck.ts): a Mac never times its speech model
     - { from: resources/speed, to: speed }
     # the tray's colour icons (tray.ts; @2x next to them), a Mac uses its template tray.png
-    - { from: resources, to: ., filter: ["tray-color*.png", "tray-recording*.png"] }
+    - { from: resources, to: ., filter: ["tray-color*.png", "tray-recording*.png", "tray-labels*.png"] }
   artifactName: Yogurt-windows-${arch}.${ext}
   # a release signs the DLLs and native modules too, not just the programs: with Windows Code Integrity on, an unsigned
   # whisper.dll or ggml.dll is blocked from loading and speech setup fails (#99)
@@ -140,7 +154,7 @@ linux:
     # the speed check's clip (src/main/asr/speedCheck.ts): a Mac never times its speech model
     - { from: resources/speed, to: speed }
     # the tray's colour icons (tray.ts; @2x next to them), a Mac uses its template tray.png
-    - { from: resources, to: ., filter: ["tray-color*.png", "tray-recording*.png"] }
+    - { from: resources, to: ., filter: ["tray-color*.png", "tray-recording*.png", "tray-labels*.png"] }
   artifactName: Yogurt-linux-${arch}.${ext}
   target:
     - target: AppImage

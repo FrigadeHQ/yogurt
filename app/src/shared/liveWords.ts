@@ -17,7 +17,7 @@ export type Heard = { startMs: number; endMs: number; text: string; words?: Arra
 
 const mid = (w: LiveWord) => (w.startMs + w.endMs) / 2
 /** whisper's special tokens ([_BEG_], <|en|>) are not words */
-const SPECIAL = /^\[_|^<\|/
+export const SPECIAL = /^\[_|^<\|/
 
 /** about how long a word takes to say (some 180 words a minute) */
 const WORD_MS = 330

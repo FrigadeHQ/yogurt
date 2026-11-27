@@ -51,13 +51,14 @@ export function trayTitle(active: { elapsedMs: number; paused: boolean } | null,
   return t('{title} · in {time}', { title, time })
 }
 
-/** Keep native and hidden-test menus identical; only the native icon is optional. */
-export function trayItems(active: { id?: string; title: string; paused?: boolean; fallingBehind?: boolean } | null, next?: CalEvent, recent: Recent[] = [], now = Date.now(), os = 'darwin', clock = formatTrayTime): TrayItem[] {
+/** Keep native and hidden-test menus identical; only the native icon is optional. A meeting waiting for its speaker labels says so. */
+export function trayItems(active: { id?: string; title: string; paused?: boolean; fallingBehind?: boolean } | null, next?: CalEvent, recent: Recent[] = [], now = Date.now(), os = 'darwin', clock = formatTrayTime, attention = false): TrayItem[] {
   const sep: TrayItem = { id: 'sep', label: '', enabled: true }
   const open: TrayItem = { id: 'open', label: t('Open Yogurt'), enabled: true }
   const ask: TrayItem = { id: 'ask', label: t('Ask Yogurt'), enabled: true }
   const settings: TrayItem = { id: 'settings', label: t('Settings…'), accelerator: os === 'darwin' ? 'Command+,' : 'Ctrl+,', enabled: true }
   const quit: TrayItem = { id: 'quit', label: t('Quit Yogurt'), enabled: true }
+  const waiting: TrayItem = { id: 'status', label: t('Waiting for speaker labels'), enabled: false }
   const history: TrayItem = { id: 'recent', label: t('Recent'), enabled: recent.length > 0, submenu: [...recent].sort((a, b) => b.startedAt - a.startedAt).slice(0, 5)
     .map(m => ({ id: `note:${m.id}`, label: `${m.title || t('Untitled meeting')} · ${dayLabel(m.startedAt)}`, enabled: true })) }
   if (!active) {
@@ -71,25 +72,31 @@ export function trayItems(active: { id?: string; title: string; paused?: boolean
         ? { id: 'join', label: t('Join and record'), enabled: true, eventId: next.id }
         : { id: 'record', label: t('Record {title}', { title }), enabled: true, eventId: next.id })
     }
-    return [...meeting, { id: 'new', label: t('New recording'), enabled: true }, ask, history, sep, open, settings, sep, quit]
+    return [...(attention ? [waiting] : []), ...meeting, { id: 'new', label: t('New recording'), enabled: true }, ask, history, sep, open, settings, sep, quit]
   }
   return [
     { id: 'status', label: active.paused ? t('Paused · {title}', { title: active.title }) : t('Recording · {title}', { title: active.title }), enabled: false },
     ...(active.fallingBehind ? [{ id: 'warning' as const, label: t('Yogurt is falling behind. Some lines may be missing.'), enabled: false }] : []),
     { id: 'pause', label: active.paused ? t('Resume recording') : t('Pause recording'), enabled: true },
     { id: 'stop', label: t('Stop recording'), enabled: true }, sep,
+    ...(attention ? [waiting] : []),
     ask, open, history, settings, sep, quit,
   ]
 }
 
-/** macOS shows the timer beside its template icon. Other platforms mark the running timer in the tooltip. */
-export function trayLook(os: string, active: { paused: boolean } | null, elapsedMs: number, next?: CalEvent, now = Date.now(), clock = formatTrayTime): { icon: 'tray' | 'tray-titled' | 'tray-color' | 'tray-recording'; template: boolean; title: string | null; tooltip: string } {
+/**
+ * macOS shows the timer beside its template icon. Other platforms mark the running timer in the tooltip.
+ * A meeting waiting for its speaker labels shows the red exclamation mark — unless it is recording, whose dot stays.
+ */
+export function trayLook(os: string, active: { paused: boolean } | null, elapsedMs: number, next?: CalEvent, now = Date.now(), clock = formatTrayTime, attention = false): { icon: 'tray' | 'tray-titled' | 'tray-color' | 'tray-recording' | 'tray-labels'; template: boolean; title: string | null; tooltip: string } {
+  const waiting = t('Waiting for speaker labels')
   const tooltip = active?.paused ? t('Recording paused') : active ? t('Yogurt is recording') : 'Yogurt'
   const title = trayTitle(active ? { elapsedMs, paused: active.paused } : null, next, now, clock)
   // The titled template adds 1 pt between the mark and the native title.
-  if (os === 'darwin') return { icon: title ? 'tray-titled' : 'tray', template: true, title, tooltip }
+  if (os === 'darwin') return { icon: attention && !active ? 'tray-labels' : title ? 'tray-titled' : 'tray', template: true, title, tooltip: attention && !active ? waiting : tooltip }
   const recording = active && !active.paused
-  return { icon: recording ? 'tray-recording' : 'tray-color', template: false, title: null, tooltip: recording ? `● ${title}` : title || tooltip }
+  return { icon: recording ? 'tray-recording' : attention ? 'tray-labels' : 'tray-color', template: false, title: null,
+    tooltip: `${recording ? `● ${title}` : title || tooltip}${attention ? ` · ${waiting}` : ''}` }
 }
 
 /** dbus-send's answer to NameHasOwner org.kde.StatusNotifierWatcher: is there a tray to show an icon in? */

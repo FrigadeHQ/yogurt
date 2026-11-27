@@ -45,6 +45,8 @@ export function createTray(d: { show: boolean; visible?: boolean; showNextMeetin
   os?: string
   /** Linux: whether a tray host is there to show the icon */
   host?: () => Promise<boolean>
+  /** a meeting's summary waits for speaker labels: the red exclamation mark */
+  attention?: () => boolean
 }) {
   const os = d.os ?? 'darwin'
   let visible = d.visible !== false, hosted = true, iconName = ''
@@ -78,7 +80,7 @@ export function createTray(d: { show: boolean; visible?: boolean; showNextMeetin
     else if (id === 'quit') quitByUser()
   }
   const look = (m: ReturnType<typeof activeMeeting>, next?: CalEvent, at = now()) =>
-    trayLook(os, m ? { paused: recordingPaused(m.id) } : null, m ? d.elapsed() : 0, next, at, systemTrayTime)
+    trayLook(os, m ? { paused: recordingPaused(m.id) } : null, m ? d.elapsed() : 0, next, at, systemTrayTime, d.attention?.() ?? false)
   const themedIcon = (name: string) => os !== 'darwin' && nativeTheme.shouldUseDarkColors ? name + '-dark' : name
   const image = (name: string) => {
     const icon = nativeImage.createFromPath(iconPath(name))
@@ -114,7 +116,7 @@ export function createTray(d: { show: boolean; visible?: boolean; showNextMeetin
     const at = now()
     if (m?.id !== fallingBehindId) fallingBehindId = undefined
     const fallingBehind = !!m && fallingBehindId === m.id && d.showRecordingPill?.() === false
-    items = trayItems(m ? { id: m.id, title: m.title, paused, fallingBehind } : null, showNextMeeting ? nextTrayEvent(events, at) : undefined, d.recent(), at, os, systemTrayTime)
+    items = trayItems(m ? { id: m.id, title: m.title, paused, fallingBehind } : null, showNextMeeting ? nextTrayEvent(events, at) : undefined, d.recent(), at, os, systemTrayTime, d.attention?.() ?? false)
     if (!tray) return
     tray.setContextMenu(Menu.buildFromTemplate(template(items)))
     updateLook()

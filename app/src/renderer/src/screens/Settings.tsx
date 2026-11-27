@@ -2,8 +2,8 @@ import { AboutYogurt } from '../components/AboutYogurt'
 import { retryToast, toasts } from '../components/TrashToast'
 import { LoadingContent } from '../components/LoadingContent'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Check, ChevronDown, Copy, Download, ExternalLink, Globe, Lock, Upload, FileText } from '../components/Icons'
-import type { Access, AppVisibility, McpStatus, PermissionKind, PermissionStatus, SetupState, Theme, UpdateStatus } from '../../../shared/types'
+import { Check, ChevronDown, Copy, Download, ExternalLink, Globe, Lock, Trash2, Upload, FileText } from '../components/Icons'
+import type { Access, AppVisibility, McpStatus, PermissionKind, PermissionStatus, SetupState, Theme, UpdateStatus, VoiceProfile } from '../../../shared/types'
 import { notesDownloadText, notesUpgradeSize } from '../notesSetup'
 import { permissionCopy } from '../permissionCopy'
 import { LOCALES, t } from '../../../shared/i18n'
@@ -16,6 +16,7 @@ import { useScrollMemory } from '../useScrollMemory'
 import { appShortcuts } from '../components/Shortcuts'
 import { CalendarSettings } from '../components/CalendarSettings'
 import { PhoneSettings } from '../components/PhoneSettings'
+import { Modal, ModalClose } from '../components/Modal'
 import { supportedKinds, settingsPage } from '../../../shared/platform'
 import { Swap, SwapText } from '../components/Swap'
 
@@ -257,6 +258,8 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
           </ul></LoadingContent>
 
           {window.yogurt.capabilities.calendar && <CalendarSettings connect={focus === 'calendar'} />}
+
+          <VoiceRecognition />
 
           <h2 className="settings-section-heading">{t('Language')}</h2>
           <div data-testid="settings-language" className="settings-group">
@@ -536,6 +539,96 @@ function AiApps() {
           </div>
         }
       </div></LoadingContent>
+    </>
+  )
+}
+
+/** Voice recognition: remembering voices across meetings is opt-in, and the voiceprints stay on this computer — named here, deleted here. Toggling off keeps the profiles; only deleting removes them. Speaker separation sits above it: off, the transcript stays one stream and the voices switch waits. */
+function VoiceRecognition() {
+  const [on, setOn] = useState<boolean>()
+  const [diarize, setDiarize] = useState<boolean>()
+  const [labels, setLabels] = useState<boolean>()
+  const [profiles, setProfiles] = useState<VoiceProfile[]>([])
+  const [consent, setConsent] = useState(false)
+  const [confirmAll, setConfirmAll] = useState(false)
+  useEffect(() => {
+    void window.yogurt.settings.get().then((s) => { setOn(s.speakerProfiles); setDiarize(s.speakerDiarization); setLabels(s.speakerLabels) })
+    void window.yogurt.voices.list().then(setProfiles)
+    return window.yogurt.voices.onChange(() => void window.yogurt.voices.list().then(setProfiles))
+  }, [])
+  const set = (next: boolean) => { setOn(next); void window.yogurt.settings.setSpeakerProfiles(next) }
+  const setSeparate = (next: boolean) => { setDiarize(next); void window.yogurt.settings.setSpeakerDiarization(next) }
+  const setLabelsSwitch = (next: boolean) => { setLabels(next); void window.yogurt.settings.setSpeakerLabels(next) }
+  // the first turn-on asks first: a voiceprint is biometric data. After that once, the toggle answers at once
+  const toggle = () => {
+    if (!on && localStorage.getItem('voice-consent') !== '1') { setConsent(true); return }
+    set(!on)
+  }
+  const accept = () => { localStorage.setItem('voice-consent', '1'); setConsent(false); set(true) }
+  return (
+    <>
+      <h2 className="settings-section-heading">{t('Voice recognition')}</h2>
+      <LoadingContent pending={on === undefined} testId="voice-loading"><div data-testid="voice-recognition" className="settings-group">
+        <div className="settings-row">
+          <div className="settings-row-copy">
+            <p className="settings-label">{t('Separate speakers in the transcript')}</p>
+            <p className="settings-description">{t('Splits the transcript by voice once a meeting is saved.')}</p>
+          </div>
+          <button data-testid="diarize-toggle" role="switch" aria-checked={!!diarize} aria-label={t('Separate speakers in the transcript')} onClick={() => setSeparate(!diarize)} className="settings-toggle">
+            <span className="settings-toggle-knob" />
+          </button>
+        </div>
+        <div className="settings-row" data-dimmed={!diarize || undefined}>
+          <div className="settings-row-copy">
+            <p className="settings-label">{t('Remember voices across meetings')}</p>
+            <p className="settings-description">{t('Names a speaker the next time their voice is heard. The voiceprint stays on this computer.')}</p>
+          </div>
+          <button data-testid="voice-toggle" role="switch" aria-checked={!!on} aria-label={t('Remember voices across meetings')} disabled={!diarize} onClick={toggle} className="settings-toggle">
+            <span className="settings-toggle-knob" />
+          </button>
+        </div>
+        <div className="settings-row" data-dimmed={!diarize || undefined}>
+          <div className="settings-row-copy">
+            <p className="settings-label">{t('Wait for speaker labels before summarizing')}</p>
+            <p className="settings-description">{t('A saved meeting waits until voices are named and lines are assigned.')}</p>
+          </div>
+          <button data-testid="labels-toggle" role="switch" aria-checked={!!labels} aria-label={t('Wait for speaker labels before summarizing')} disabled={!diarize} onClick={() => setLabelsSwitch(!labels)} className="settings-toggle">
+            <span className="settings-toggle-knob" />
+          </button>
+        </div>
+        {on && (profiles.length ? profiles.map((p) => (
+          <div className="settings-row" data-testid="voice-profile" key={p.id}>
+            <p className="settings-label settings-row-copy">{p.name}<span className="text-muted text-xs"> · {t('{count} meetings', { count: p.meetings })}</span></p>
+            <button data-testid="voice-delete" aria-label={t('Delete')} title={t('Delete')} onClick={() => void window.yogurt.voices.delete(p.id)} className="ghost-btn"><Trash2 size={14} aria-hidden="true" /></button>
+          </div>
+        )) : <div className="settings-row"><p data-testid="voice-empty" className="settings-description">{t('No voices remembered yet.')}</p></div>)}
+        {!on && profiles.length > 0 && <div className="settings-row"><p data-testid="voice-off-note" className="settings-description">{t('Voice profiles stay on this computer, unused, until you turn this on again.')}</p></div>}
+        {on && profiles.length > 0 && (
+          <div className="settings-row">
+            <button data-testid="voice-delete-all" className="workspace-button settings-action" onClick={() => setConfirmAll(true)}>{t('Delete all voice profiles')}</button>
+          </div>
+        )}
+      </div></LoadingContent>
+      {consent && (
+        <Modal testId="voice-consent" role="dialog" title={t('Voice recognition')}
+          description={t('A voiceprint is biometric data. It stays on this computer and you can delete it at any time.')}
+          onCancel={() => setConsent(false)}>
+          <div className="modal-actions">
+            <button data-testid="voice-consent-accept" className="modal-button primary" onClick={accept}>{t('Turn on')}</button>
+            <ModalClose data-testid="voice-consent-cancel" data-dialog-cancel className="modal-button">{t('Cancel')}</ModalClose>
+          </div>
+        </Modal>
+      )}
+      {confirmAll && (
+        <Modal testId="voice-delete-confirm" role="alertdialog" title={t('Delete all voice profiles')}
+          description={t('This removes every voiceprint from this computer. Names already in your meetings stay.')}
+          onCancel={() => setConfirmAll(false)}>
+          <div className="modal-actions">
+            <button data-testid="voice-delete-all-yes" className="modal-button danger" onClick={() => { setConfirmAll(false); void window.yogurt.voices.deleteAll() }}>{t('Delete')}</button>
+            <ModalClose data-testid="voice-delete-all-cancel" data-dialog-cancel className="modal-button">{t('Cancel')}</ModalClose>
+          </div>
+        </Modal>
+      )}
     </>
   )
 }

@@ -1,0 +1,126 @@
+# Weekly (and by hand): prove speaker diarization on the real engines, not the fake one. Two committed
+# clips, from different voices, are stitched into one recording and run through the recorder helper's decode, the way a
+# meeting's audio is; then the pinned model must name exactly two speakers on every backend it is asked for.
+# Linux builds with Vulkan (Ogg Opus) and runs Vulkan then CPU; macOS builds with Metal (its m4a) and runs Metal then CPU.
+# Nothing is published, and the app itself is not built: this is a runtime check for the engines.
+name: diarization engines
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 5 * * 1' # weekly: engines drift more than the app does
+
+permissions:
+  contents: read
+
+concurrency:
+  group: diarize-engine-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MODEL_URL: https://huggingface.co/nvidia/Nemotron-3-Diarization/resolve/main/Nemotron-3-Diarization.q8_0.gguf
+  MODEL_SHA256: 08456d9e22cd9a323c0364d98375f3746d6e68507ebb705cd46438c534c7a3a1
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build libpulse-dev pkg-config libvulkan-dev vulkan-tools \
+            glslc mesa-vulkan-drivers ffmpeg
+      - name: Rust (the pinned toolchains install themselves)
+        run: rustup show active-toolchain || rustup toolchain install
+      - name: Graphics without a card (lavapipe)
+        run: vulkaninfo --summary
+      - name: Fixtures are the committed bytes
+        working-directory: app/test/fixtures-engine
+        run: sha256sum -c SHA256SUMS
+      - name: Build nemo-speech and helpers
+        working-directory: app
+        env:
+          YOGURT_NO_WHISPER: '1'
+        run: node scripts/native.mjs
+      - name: Model (cached)
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/diar
+          key: diar-model-${{ runner.os }}-${{ env.MODEL_SHA256 }}
+      - name: Model
+        run: |
+          mkdir -p "$RUNNER_TEMP/diar" && cd "$RUNNER_TEMP/diar"
+          [ -f model.gguf ] || curl -sSfL --retry 3 -o model.gguf "$MODEL_URL"
+          echo "$MODEL_SHA256  model.gguf" | sha256sum -c -
+      - name: Fixture (two voices through the app's decode helper)
+        run: |
+          ffmpeg -y -v error -i app/test/fixtures-engine/clip1.wav -i app/test/fixtures-engine/clip2.wav \
+            -filter_complex "[0:a][1:a]concat=n=2:v=0:a=1,aformat=sample_rates=48000:channel_layouts=mono" \
+            -c:a libopus "$RUNNER_TEMP/them.ogg"
+          app/resources/bin/yogurt-audio decode --in "$RUNNER_TEMP/them.ogg" --out "$RUNNER_TEMP/them.wav"
+          # the decoded audio is the recording: a header-only wav (a decode that wrote nothing) fails here, not in a meeting
+          DUR=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$RUNNER_TEMP/them.wav")
+          [ "${DUR%%.*}" -ge 10 ] || { echo "the decode wrote ${DUR}s of audio"; exit 1; }
+      - name: Diarize on Vulkan, then the CPU fallback
+        run: |
+          for device in vulkan cpu; do
+            app/resources/bin/nemo-speech diarize "$RUNNER_TEMP/them.wav" \
+              --model "$RUNNER_TEMP/diar/model.gguf" --format rttm \
+              --output "$RUNNER_TEMP/$device.rttm" --device "$device"
+            # the fixture is two voices: the RTTM names exactly two speakers
+            awk '$1=="SPEAKER"{print $8}' "$RUNNER_TEMP/$device.rttm" | sort -u | wc -l | grep -qx 2
+          done
+
+  macos:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Tools
+        run: brew install cmake ffmpeg
+      - name: Fixtures are the committed bytes
+        working-directory: app/test/fixtures-engine
+        run: shasum -a 256 -c SHA256SUMS
+      - name: Build (Metal, the same script a release uses)
+        working-directory: app
+        env:
+          YOGURT_NO_WHISPER: '1'
+        run: sh scripts/native.sh
+      - name: Model (cached)
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/diar
+          key: diar-model-${{ runner.os }}-${{ env.MODEL_SHA256 }}
+      - name: Model
+        run: |
+          mkdir -p "$RUNNER_TEMP/diar" && cd "$RUNNER_TEMP/diar"
+          [ -f model.gguf ] || curl -sSfL --retry 3 -o model.gguf "$MODEL_URL"
+          echo "$MODEL_SHA256  model.gguf" | shasum -a 256 -c -
+      - name: Fixture, through the app's own decode (a Mac records m4a)
+        run: |
+          # the recorder helper's own format: 48 kHz mono AAC in an mp4, the way a Mac's meeting recording is
+          ffmpeg -y -v error -i app/test/fixtures-engine/clip1.wav -i app/test/fixtures-engine/clip2.wav \
+            -filter_complex "[0:a][1:a]concat=n=2:v=0:a=1,aformat=sample_rates=48000:channel_layouts=mono" \
+            -c:a aac -b:a 128k "$RUNNER_TEMP/them.m4a"
+          app/resources/bin/yogurt-audio decode --in "$RUNNER_TEMP/them.m4a" --out "$RUNNER_TEMP/them.wav"
+          # the diarizer's input is 16 kHz mono PCM, so check what the decode produced
+          [ "$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate,channels -of default=nw=1:nk=1 "$RUNNER_TEMP/them.wav" | tr '\n' ' ')" = '16000 1 ' ]
+          # and that it is the recording: a header-only wav (a decode that wrote nothing) fails here, not in a meeting
+          DUR=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$RUNNER_TEMP/them.wav")
+          [ "${DUR%%.*}" -ge 10 ] || { echo "the decode wrote ${DUR}s of audio"; exit 1; }
+      - name: Diarize on Metal, then the CPU comparison
+        run: |
+          for device in metal cpu; do
+            app/resources/bin/nemo-speech diarize "$RUNNER_TEMP/them.wav" \
+              --model "$RUNNER_TEMP/diar/model.gguf" --format rttm \
+              --output "$RUNNER_TEMP/$device.rttm" --device "$device"
+            awk '$1=="SPEAKER"{print $8}' "$RUNNER_TEMP/$device.rttm" | sort -u | wc -l | grep -qx 2
+          done

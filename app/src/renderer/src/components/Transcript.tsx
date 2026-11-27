@@ -7,11 +7,11 @@ import { ScrollFade } from './ScrollFade'
 import { Loading } from './Loading'
 import { useLoadingState } from '../useLoadingState'
 import { Fragment, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
-import { AudioLines, ArrowDown } from './Icons'
+import { AudioLines, ArrowDown, ChevronDown } from './Icons'
 import type { Segment, TranscriptPartial } from '../../../shared/types'
 import { t } from '../../../shared/i18n'
 import { useLanguage } from '../i18n'
-import { transcriptRowKey, transcriptSpeaker, bubbles, clock, echoRuns, lineAt, recentRuns, stableKeys, turns, withLive, type LiveSaid } from '../../../shared/transcript'
+import { transcriptRowKey, transcriptSpeaker, mergeSaved, bubbles, clock, echoRuns, lineAt, recentRuns, stableKeys, turns, withLive, type LiveSaid } from '../../../shared/transcript'
 import { TranscriptFind } from './TranscriptFind'
 import { Player, type PlayerHandle } from './Player'
 import { attachPlayerVisibility } from '../playerVisibility'
@@ -31,7 +31,7 @@ const HANDS_OFF_MS = 400
 const who = transcriptSpeaker
 
 /** The lines of a meeting, live while it records; `live` holds the lines that arrived while watching */
-function useLines(id: string,replacing:boolean) {
+export function useLines(id: string,replacing:boolean) {
   const [draft,setDraft]=useState<Line[]>([])
   const draftRef=useRef<Line[]>([])
   draftRef.current=draft
@@ -69,11 +69,7 @@ function useLines(id: string,replacing:boolean) {
         if (!active || request !== epoch) return
         setFailed(false); setLoaded(true)
         if (replace) setLines(saved)
-        else setLines(cur => {
-          const fresh = new Map(saved.map(l => [key(l), l]))
-          const have = new Set(cur.map(key))
-          return [...cur.map(l => fresh.get(key(l)) ?? l), ...saved.filter(l => !have.has(key(l)))].sort((a, b) => a.startMs - b.startMs)
-        })
+        else setLines(cur => mergeSaved(cur, saved))
       }, () => { if (active && request === epoch) setFailed(true) })
     }
     load()
@@ -175,6 +171,119 @@ const Row = memo(function Row({ line: l, focused, name, playing, playable, focus
     </span>
   )
 })
+
+/**
+ * A voice of the other side: its name is editable in place, and two voices can be merged (one inline confirm; no undo).
+ * The widget transcript stays read-only.
+ */
+export function WhoName({ meetingId, line, voices }: { meetingId: string; line: Line; voices: Array<{ name: string; key: string }> }) {
+  const named = line.speaker
+  const color = !('speakerColor' in line) ? undefined : line.speakerColor
+  const voiceKey = line.speakerKey
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState('')
+  const [menu, setMenu] = useState(false)
+  const [confirming, setConfirming] = useState<{ name: string; key: string } | null>(null)
+  const input = useRef<HTMLInputElement>(null)
+  useEffect(() => { if (editing) input.current?.select() }, [editing])
+  // a meeting with no voices of its own (speaker separation off, or never diarized): plain heads, like before it
+  if (!voices.length) return (
+    <span className="turn-head-name name-in">
+      <span data-testid="transcript-who" data-color={color} data-folder-color={color === undefined ? undefined : SPEAKER_COLORS[color]} className="line-who font-medium text-muted">{who(line)}</span>
+    </span>
+  )
+  // diarization left this line unclaimed: the person says who said it
+  if (!voiceKey) return (
+    <span className="turn-head-name name-in">
+      <button type="button" data-testid="transcript-who" data-color={color} data-folder-color={color === undefined ? undefined : SPEAKER_COLORS[color]} className="line-who font-medium text-muted" title={t('Assign to speaker')}
+        onClick={() => setMenu((m) => !m)}>{who(line)}</button>
+      <button type="button" data-testid="speaker-menu" aria-label={t('Assign to speaker')} aria-haspopup="menu" aria-expanded={menu}
+        onClick={() => setMenu((m) => !m)} className="speaker-menu-btn"><ChevronDown size={12} aria-hidden="true" /></button>
+      {menu && (
+        <div role="menu" data-testid="speaker-menu-list" onKeyDown={(e) => { if (e.key === 'Escape') setMenu(false) }}>
+          {voices.map((v) => (
+            <button type="button" role="menuitem" data-testid="speaker-assign" key={v.key}
+              onClick={() => { setMenu(false); if (line.id !== undefined) void window.yogurt.transcript.assignSpeaker(meetingId, line.id, v.key) }}>
+              {t('Assign to {name}', { name: v.name })}
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
+  )
+  const commit = () => {
+    const name = draft.replace(/\s+/g, ' ').trim().slice(0, 80)
+    setEditing(false)
+    if (!name || name === named) return
+    // a name another voice already has is that person: ask before folding this voice into it
+    const into = voices.find((v) => v.key !== voiceKey && v.name === name)
+    if (into) { setConfirming(into); setMenu(true); return }
+    void window.yogurt.transcript.renameSpeaker(meetingId, voiceKey, name)
+  }
+  const merge = () => {
+    if (!confirming) return
+    setMenu(false); setConfirming(null)
+    void window.yogurt.transcript.mergeSpeaker(meetingId, voiceKey, confirming.key)
+  }
+  const label = named ? t('Rename') : t('Name this voice')
+  return (
+    <span className="turn-head-name name-in">
+      {editing ? (
+        <input ref={input} data-testid="speaker-name-input" value={draft} aria-label={t('Rename')}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') { setEditing(false); setDraft('') } }}
+          onBlur={commit} spellCheck={false} className="speaker-name-input" />
+      ) : (
+        <>
+          <button type="button" data-testid="transcript-who" data-color={color} data-folder-color={color === undefined ? undefined : SPEAKER_COLORS[color]} className="line-who font-medium text-muted" title={label}
+            onClick={() => { setDraft(named ?? ''); setEditing(true) }}>{who(line)}</button>
+          <button type="button" data-testid="speaker-menu" aria-label={label} aria-haspopup="menu" aria-expanded={menu}
+            onClick={() => { setConfirming(null); setMenu((m) => !m) }} className="speaker-menu-btn"><ChevronDown size={12} aria-hidden="true" /></button>
+          {menu && (
+            <div role="menu" data-testid="speaker-menu-list" onKeyDown={(e) => { if (e.key === 'Escape') { setMenu(false); (e.currentTarget.previousElementSibling as HTMLElement)?.focus() } }}>
+              <button type="button" role="menuitem" data-testid="speaker-rename" onClick={() => { setMenu(false); setDraft(named ?? ''); setEditing(true) }}>{t('Rename')}</button>
+              {confirming ? (
+                <button type="button" role="menuitem" data-testid="speaker-merge-confirm" onClick={merge}>
+                  {t('Merge {a} into {b}?', { a: named ?? t('Them'), b: confirming.name })}
+                </button>
+              ) : voices.filter((v) => v.name !== named && v.key !== voiceKey).map((v) => (
+                <button type="button" role="menuitem" data-testid="speaker-merge" key={v.key} onClick={() => setConfirming(v)}>
+                  {t('Merge into {name}', { name: v.name })}
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </span>
+  )
+}
+
+/**
+ * One line of a named voice: hovering shows a small menu that moves just this line to another voice — the rest of
+ * the voice keeps its name. Renaming or merging on the turn's name is a whole-voice operation; this is the per-sentence one.
+ */
+export function LineAssign({ meetingId, line, voices }: { meetingId: string; line: Line; voices: Array<{ name: string; key: string }> }) {
+  const [menu, setMenu] = useState(false)
+  const others = voices.filter((v) => v.key !== line.speakerKey)
+  if (line.id === undefined || !line.speakerKey || !others.length) return null
+  return (
+    <span className="line-assign" data-testid="line-assign">
+      <button type="button" data-testid="line-assign-menu" aria-label={t('Assign to speaker')} aria-haspopup="menu" aria-expanded={menu}
+        onClick={(e) => { e.stopPropagation(); setMenu((m) => !m) }} className="speaker-menu-btn"><ChevronDown size={12} aria-hidden="true" /></button>
+      {menu && (
+        <div role="menu" data-testid="line-assign-list" onKeyDown={(e) => { if (e.key === 'Escape') setMenu(false) }}>
+          {others.map((v) => (
+            <button type="button" role="menuitem" data-testid="line-assign-item" key={v.key}
+              onClick={(e) => { e.stopPropagation(); setMenu(false); void window.yogurt.transcript.assignSpeaker(meetingId, line.id!, v.key) }}>
+              {t('Assign to {name}', { name: v.name })}
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
+  )
+}
 
 /**
  * The meeting's transcript: each turn carries who said it, following new lines
@@ -349,6 +458,13 @@ export function Transcript({ id, notice, processing=false, replacing=false, reco
     player.current?.playFrom(l.startMs)
   }, [follow])
 
+  /** the meeting's distinct voices of the other side, first appearance order: what a name can be merged into */
+  const themVoices = useMemo(() => {
+    const byKey = new Map<string, string>()
+    for (const l of [...allLines].sort((a, b) => a.startMs - b.startMs)) if (l.track === 'them' && l.speaker && l.speakerKey) byKey.set(l.speakerKey, l.speaker)
+    return [...byKey].map(([k, name]) => ({ key: k, name }))
+  }, [allLines])
+
   // the line an answer pointed to: in the middle of the panel, marked, and the list's tab stop
   const [focusedKey, setFocusedKey] = useState<string>()
   const focusDone = useRef<number | undefined>(undefined)
@@ -423,7 +539,11 @@ export function Transcript({ id, notice, processing=false, replacing=false, reco
               <li key={transcriptRowKey(first.track, groups[i - 1]?.at(-1))} data-testid="transcript-turn" data-track={first.track} className={`transcript-turn flex flex-col gap-[5px] ${me ? 'items-end' : 'items-start'}`}>
                 {/* the other side's name heads their turn; the mic's side needs none, its bubbles sit at the end */}
                 <p className={me ? 'sr-only' : 'turn-head flex items-baseline gap-2 px-1 text-xs'}>
-                  <span data-testid="transcript-who" data-color={color} data-folder-color={color === undefined ? undefined : SPEAKER_COLORS[color]} className={`line-who font-medium ${me ? '' : 'text-muted'} ${named ? 'name-in' : 'invisible'}`}>{who(first)}</span>
+                  {me || 'live' in first ? (
+                    <span data-testid="transcript-who" data-color={color} data-folder-color={color === undefined ? undefined : SPEAKER_COLORS[color]} className={`line-who font-medium ${me ? '' : 'text-muted'} ${named ? 'name-in' : 'invisible'}`}>{who(first)}</span>
+                  ) : (
+                    <WhoName meetingId={id} line={first} voices={themVoices} />
+                  )}
                   <time className="turn-time tabular-nums text-muted">{clock(first.startMs)}</time>
                 </p>
                 {bubbles(turn).map((b, i, groups) => (
@@ -435,6 +555,7 @@ export function Transcript({ id, notice, processing=false, replacing=false, reco
                         <Fragment key={k}>{i > 0 && ' '}
                           <Row line={x} focused={k === focusedKey} name={who(x)}
                             playing={k === shownKey} playable={playable} focusable={k === tabKey} arrived={!x.previous&&live.current.has(k) ? (previewed(x) ? 'settle' : 'fade') : null} onPlay={onPlay} onFocusLine={setFocusKey} />
+                          {!me && x.id !== undefined && x.speakerKey && <LineAssign meetingId={id} line={x} voices={themVoices} />}
                         </Fragment>
                       )
                     })}

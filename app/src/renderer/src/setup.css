@@ -22,6 +22,13 @@
 .settings-permission-icon { display:grid;place-items:center;flex:none;width:30px;height:30px;border-radius:7px;color:var(--written);background:var(--control); }
 .settings-permission-status { display:inline-flex;align-items:center;padding:1px 6px;border-radius:4px;font-size:11px;line-height:16px;font-weight:400;color:var(--muted);background:var(--control); }
 .settings-action { flex:none; }
+.settings-action.workspace-button { height:auto;min-height:30px;white-space:normal;line-height:17px;text-align:center; }
+.settings-link { display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:28px;padding:4px 7px;border-radius:5px;font-size:12px;line-height:18px;color:var(--muted);transition:background-color var(--dur-micro) ease,color var(--dur-micro) ease; }
+.settings-link:hover:not(:disabled) { background:var(--control-hover);color:var(--ink); }
+.settings-link:active:not(:disabled) { background:var(--control-pressed); }
+.settings-link:disabled { opacity:.5; }
+/* a switch that waits on the one above it: the row greys until its gate is on */
+.settings-row[data-dimmed] { opacity:.55; }
 .settings-name-field { flex:none;width:185px;max-width:100%;height:32px;padding:0 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:13px; }
 .settings-select-wrap { position:relative;display:inline-flex;flex:none;max-width:100%; }
 .settings-select { appearance:none;width:auto;min-width:170px;max-width:100%;height:34px;padding-inline:12px 34px;border:1px solid var(--line);border-radius:7px;background:var(--control);color:var(--ink);font-size:13px; }

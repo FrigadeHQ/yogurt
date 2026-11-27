@@ -339,4 +339,30 @@ describe('notes queue', () => {
       expect(ran).toHaveBeenCalledOnce()
     })
   })
+  it('diarization is not notes work: it runs on a bigger Mac with no notes model yet, and waits out a recording on a 16 GB Mac', async () => {
+    const big = createQueue({ recording: () => false, smallMac: false, modelReady: () => false })
+    const ran = vi.fn(async () => {})
+    await big.enqueue(ran, 'diarize')
+    expect(ran).toHaveBeenCalledOnce()
+    let recording = true
+    const small = createQueue({ recording: () => recording, smallMac: true, modelReady: () => false })
+    const done = small.enqueue(ran, 'diarize')
+    await tick(); await tick()
+    expect(ran).toHaveBeenCalledOnce()
+    recording = false
+    small.recordingChanged()
+    await done
+    expect(ran).toHaveBeenCalledTimes(2)
+  })
+  it('a waiting diarization goes before an already-waiting notes job', async () => {
+    const q = createQueue({ recording: () => false, smallMac: false })
+    const log: string[] = []
+    let release!: () => void
+    const blocker = q.enqueue(() => new Promise<void>((r) => { release = r }), 'enhance')
+    const notes = q.enqueue(async () => { log.push('notes') }, 'enhance')
+    const voices = q.enqueue(async () => { log.push('diarize') }, 'diarize')
+    release()
+    await Promise.all([blocker, notes, voices])
+    expect(log).toEqual(['diarize', 'notes'])
+  })
 })

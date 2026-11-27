@@ -9,7 +9,7 @@ export default defineConfig({
       // yauzl, yazl and zod are bundled in, so their licences go next to the bundle
       license: { fileName: 'LICENSES.txt' },
       externalizeDeps: { exclude: ['@yogurt/picker'] },
-      rollupOptions: { input: { index: resolve('src/main/index.ts'), engine: resolve('src/engine/worker.ts') } },
+      rollupOptions: { input: { index: resolve('src/main/index.ts'), engine: resolve('src/engine/worker.ts'), diarizeWorker: resolve('src/main/diarize/embed-worker.ts') } },
     },
   },
   preload: {

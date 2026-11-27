@@ -21,8 +21,8 @@ import { resumesNote } from '../shared/agendaNote'
 import { relaunchOptions, stripAppImageEnv } from './relaunch'
 import { capabilities, micListHelper, platformOf, supportedKinds } from '../shared/platform'
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, Notification, powerMonitor, protocol, safeStorage, screen, shell } from 'electron'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import os from 'node:os'
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import os, { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { isFake, modelsFolder, userDataDir } from './paths'
@@ -73,9 +73,16 @@ import { installAppMenu } from './appMenu'
 import { backendOrder, engineShim, SHIM, UtilityEngine } from './engine'
 import { createNotesModel } from './notes/model'
 import { FakeEngine } from './notes/fake'
-import { hookNotes } from './notes'
+import { hookNotes, NAMES_WAIT_MS } from './notes'
 import { hookReadAhead, readAheadAllowed } from './notes/readAhead'
 import { createQueue, isSmallMac, notesMemory } from './notes/queue'
+import { createDiarizer } from './diarize'
+import { createDiarizeSchedule } from './diarize/afterStop'
+import { sweepDiarizeTemp } from './diarize/temp'
+import { createLabelWait } from './labelsWait'
+import { createEmbedClient } from './diarize/embed-client'
+import { nemoSpeechPath } from './diarize/paths'
+import { diarizeTimeoutMs } from './diarize/run'
 import type { ContextChip } from '../shared/askContext'
 import { Library } from './library/store'
 import { createEmbedder } from './library/embedder'
@@ -231,6 +238,8 @@ function createSetup(): SetupController {
     getCatalog: async () => loadCatalog({ bundled: bundledCatalog, licenses }),
     download: isFake() ? fakeDownloadDeps({ stepMs: Number(process.env.YOGURT_FAKE_STEP_MS ?? 5), notesMs: Number(process.env.YOGURT_FAKE_NOTES_MODEL_MS ?? 0), notesFailOnce: process.env.YOGURT_FAKE_NOTES_MODEL_FAIL_ONCE === '1' }) : realDeps,
     ...(isFake() ? { sha256Override: 'FAKE' } : {}),
+    // the diarization model only downloads when speakers are separated (the settings switch)
+    diarizeWanted: () => loadSettings(join(userDataDir(), 'settings.json')).speakerDiarization === true,
     // Windows and Linux: speech models timed on this computer (asr/speedCheck.ts); a Mac never is
     ...(platform === 'darwin' ? {} : { speed: { ...speedStore(speedFile()), measure: isFake() ? fakeMeasure() : (model: string, o?: { cpu?: boolean }) => measureSpeed(model, { binary: whisperServerPath(), vadModel: vadModelPath(), clip: speedClipPath() ?? '', cpu: o?.cpu }) } }),
   })
@@ -349,6 +358,7 @@ let callWindowOf: (meetingId: string) => { goneMs: number } | null = () => null
 /** fake mode's hooks reach the store and the notes through these */
 let storeRef: Store | undefined
 let indexerRef: { schedule(): Promise<unknown> } | undefined
+let trayRef: { refresh(): void } | undefined
 
 /** Notice calls, offer to take notes, stop when the call ends (or ask, with that setting off). Starts nothing without a click. */
 function startDetection() {
@@ -506,6 +516,7 @@ function startDetection() {
     elapsed: widget.elapsed,
     os: platform,
     host: process.platform === 'linux' && !BACKGROUND ? linuxTrayHost : undefined,
+    attention: () => loadSettings(join(userDataDir(), 'settings.json')).speakerLabels === true && !!storeRef?.anyLabelsPending(),
     event: (event, join) => {
       const m = begin({ title: event.title, event, app: null })
       if (join && m) watcher.joined(m.id)
@@ -514,6 +525,7 @@ function startDetection() {
   })
   refreshCalendarConsumers = () => { signals.invalidateCalendar(); void tray.refreshCalendar() }
   menuBar = tray
+  trayRef = tray
   recordingPillChanged = (on) => {
     showRecordingPill = on
     widget.visibilityChanged()
@@ -659,7 +671,13 @@ app.whenReady().then(() => {
     store, watch: !caps.callNames ? () => ({ stop() {} }) : isFake() ? fakeCallWatch : helperWatch(helperPath), myNames: () => [me(), macName()],
     transcribed: async (id) => { await recordingFinished(id); await transcriptFinished(id) },
     // people seen in the call joined the meeting: unedited notes already written get written again for them
-    changed: (id) => { win?.webContents.send('transcript:speakers', id); sendWidgetTranscript('transcript:speakers', id); win?.webContents.send('meetings:changed'); notes.applyPeople(id) },
+    // names from the call can finish the speaker labels on their own, so the notes held for labels must go on and
+    // the tray's mark must go quiet: a pass nobody asked for changes the labels without asking anyone
+    changed: (id) => {
+      win?.webContents.send('transcript:speakers', id); sendWidgetTranscript('transcript:speakers', id); win?.webContents.send('meetings:changed')
+      labelsWait.recheck(id); trayRef?.refresh()
+      notes.applyPeople(id)
+    },
     onStart: onMeetingStart, onStop: onMeetingStop, onCapture: onCaptureStart, onBind: onMeetingBound, micPids: (app) => micPidsNow(app),
   })
   if (process.platform === 'darwin' || process.platform === 'win32') callWindowOf = (id) => callNames.callWindow(id)
@@ -711,6 +729,65 @@ app.whenReady().then(() => {
     win?.webContents.send('transcript:speakers', id)
     sendWidgetTranscript('transcript:speakers', id)
     notes.refresh(id)
+  })
+  // a speaker's name by hand: rename one voice, or fold two voices of the same person into one
+  let rememberVoice: (id: string, key: string) => void = () => {}
+  // summaries that wait for speaker labels (the settings switch); the notes pipeline and the recovery wait on this
+  const labelsWait = createLabelWait({ wanted: () => loadSettings(settingsFile).speakerLabels === true, pending: (id) => store.labelsPending(id) })
+  const speakersChanged = (id: string) => {
+    win?.webContents.send('transcript:speakers', id)
+    sendWidgetTranscript('transcript:speakers', id)
+    win?.webContents.send('meetings:changed')
+    notes.refresh(id)
+    labelsWait.recheck(id)
+    trayRef?.refresh()
+  }
+  ipcMain.handle('transcript:rename-speaker', (_e, id: unknown, key: unknown, name: unknown) => {
+    if (!isId(id) || typeof key !== 'string' || typeof name !== 'string') return false
+    const ok = store.renameSpeaker(id, key, name)
+    if (ok) { speakersChanged(id); rememberVoice(id, key) }
+    return ok
+  })
+  ipcMain.handle('transcript:merge-speaker', (_e, id: unknown, fromKey: unknown, intoKey: unknown) => {
+    if (!isId(id) || typeof fromKey !== 'string' || typeof intoKey !== 'string') return false
+    const ok = store.mergeSpeakers(id, fromKey, intoKey)
+    if (ok) { speakersChanged(id); rememberVoice(id, intoKey) }
+    return ok
+  })
+  ipcMain.handle('transcript:assign-speaker', (_e, id: unknown, segment: unknown, key: unknown) => {
+    if (!isId(id) || typeof segment !== 'number' || !Number.isInteger(segment) || typeof key !== 'string') return false
+    const ok = store.assignSegment(id, segment, key)
+    if (ok) speakersChanged(id)
+    return ok
+  })
+  ipcMain.handle('voices:list', () => store.voiceProfiles())
+  ipcMain.handle('voices:delete', (_e, id: unknown) => { if (typeof id !== 'string' || !id) return; store.deleteVoiceProfile(id); win?.webContents.send('voices:changed') })
+  ipcMain.handle('voices:delete-all', () => { store.deleteAllVoiceProfiles(); win?.webContents.send('voices:changed') })
+  // off is the default, so only on is written down
+  ipcMain.handle('settings:set-speaker-profiles', (_e, on: unknown) => {
+    if (typeof on !== 'boolean') return
+    updateSettings(settingsFile, { speakerProfiles: on ? true : undefined })
+  })
+  // off is the default (the app behaves as without diarization), so only on is written down
+  ipcMain.handle('settings:set-speaker-diarization', (_e, on: unknown) => {
+    if (typeof on !== 'boolean') return
+    updateSettings(settingsFile, { speakerDiarization: on ? true : undefined })
+    // the model downloads quietly; a meeting saved before it lands keeps its single-voice transcript
+    if (on) setup.ensureDiarization()
+  })
+  // off is the default, so only on is written down
+  ipcMain.handle('settings:set-speaker-labels', (_e, on: unknown) => {
+    if (typeof on !== 'boolean') return
+    updateSettings(settingsFile, { speakerLabels: on ? true : undefined })
+    trayRef?.refresh()
+  })
+  // the person wants the summary of an unlabeled meeting anyway: it never waits again
+  ipcMain.handle('notes:release-labels', (_e, id: unknown) => {
+    if (!isId(id)) return
+    store.releaseLabels(id)
+    labelsWait.forget(id)
+    notes.refresh(id)
+    trayRef?.refresh()
   })
   // each meeting's audio lives in its own folder; a crash keeps what was recorded up to the last 5 s flush
   hookCapture({ dirOf: (id) => join(userDataDir(), 'meetings', id), onStart: onMeetingStart, onStop: onMeetingStop, speech: (id) => speechLocaleFor(id),
@@ -770,12 +847,54 @@ app.whenReady().then(() => {
     removed: id => { for (const w of BrowserWindow.getAllWindows()) w.webContents.send('audio:deleted', id) },
     ...(automatic ? { keep: endedAt => keepsRecording(loadSettings(settingsFile), endedAt) } : {}),
   })
+  // voice profiles: opt-in, local; the worker stays down until a meeting needs it (fake mode uses its own vectors)
+  const speakerProfiles = () => !!loadSettings(settingsFile).speakerProfiles
+  // speaker separation: opt-in; off, the meeting never diarizes, the notes never wait and no model downloads
+  const diarizeOn = () => loadSettings(settingsFile).speakerDiarization === true
+  // the meeting's two tracks, once recording has finished them (fake mode writes wav stand-ins)
+  const audioKinds: AudioExt[] = isFake() && process.env.YOGURT_FAKE_AUDIO_M4A === '1' ? ['m4a'] : audioExts(process.platform, isFake())
+  // the embed worker needs the downloaded speaker model's path without triggering a download; ensureSpeakerModel fills it
+  let speakerModelPath: string | undefined
+  const embedClient = isFake() ? undefined : createEmbedClient({
+    workerPath: join(__dirname, 'diarizeWorker.js'),
+    modelPath: () => speakerModelPath,
+  })
+  const diarizer = createDiarizer({
+    store,
+    queue,
+    audioHelper: () => audioHelperPath(),
+    nemoPath: () => nemoSpeechPath(),
+    modelPath: () => setup.installed()?.diarization,
+    ensureSpeakerModel: async () => { speakerModelPath = await setup.ensureSpeakerModel(); return speakerModelPath },
+    embed: embedClient,
+    dirOf: (id) => join(userDataDir(), 'meetings', id),
+    exts: () => audioKinds,
+    allowed: speakerProfiles,
+    fake: isFake(),
+    timeoutMs: diarizeTimeoutMs,
+    changed: (id) => { win?.webContents.send('transcript:speakers', id); sendWidgetTranscript('transcript:speakers', id); win?.webContents.send('meetings:changed'); labelsWait.recheck(id); trayRef?.refresh() },
+    notesRefresh: (id) => notes.refresh(id),
+    voicesChanged: () => { win?.webContents.send('voices:changed') },
+  })
+  // naming a voice by hand remembers it for later meetings, once its speech has been embedded
+  rememberVoice = (id, key) => { if (diarizeOn()) void diarizer.enroll(id, key) }
+  // one diarization run per stop: the notes wait for it (see diarize/afterStop.ts), a resume starts a fresh one
+  const diarizeSchedule = createDiarizeSchedule({
+    recordingFinished, transcriptFinished, namesFinished: (id) => callNames.finished(id),
+    wanted: diarizeOn,
+    schedule: (id) => diarizer.schedule(id), finished: (id) => diarizer.finished(id),
+    namesWaitMs: NAMES_WAIT_MS, warn: (message, error) => console.warn(message, error),
+  })
+  // voice recognition opt-in is snapshotted per meeting: enabling it mid-call never captures the call in progress
+  onMeetingStart((m) => { try { store.setVoicesAllowed(m.id, speakerProfiles() && diarizeOn()) } catch (e) { console.warn('voices_allowed snapshot failed', e) }; diarizeSchedule.forget(m.id); labelsWait.forget(m.id); store.resetLabels(m.id); trayRef?.refresh() })
+  // diarize once the recording, transcript and call names have settled; the notes of the meeting wait for the chain
+  onMeetingStopSaved((m) => { void diarizeSchedule.start(m.id) })
   const notes = hookNotes({
     summarized: id => { folderSuggestions.schedule(id); void removeRecording(id, true) },
     // Windows and Linux: a note waiting while the model loads says so (a Mac shows what it always did)
     showLoading: platform !== 'darwin',
     summaryLanguage: () => summaryLanguageSetting(loadSettings(settingsFile)),
-    store, queue, model, language: meetingLanguage, onStop: onMeetingStopSaved, named: (id) => callNames.finished(id), earlier: (id) => readAhead.parts(id), me,
+    store, queue, model, language: meetingLanguage, onStop: onMeetingStopSaved, named: (id) => callNames.finished(id), diarized: (id) => diarizeSchedule.wait(id), labeled: (id) => labelsWait.wait(id), labelPending: (id) => loadSettings(settingsFile).speakerLabels === true && store.labelsPending(id), earlier: (id) => readAhead.parts(id), me,
     transcribed: async (id) => { await recordingFinished(id); await transcriptFinished(id) },
     send: (v) => win?.webContents.send('notes:changed', v),
     // the notes are written: the meeting goes into the library for chat across meetings
@@ -829,11 +948,13 @@ app.whenReady().then(() => {
     if (!existing || existing.source === 'audio-file' || uploads.owns(id) || existing.trashedAt != null || (existing.state !== 'stopped' && existing.state !== 'done')) return { error: 'gone' }
     if (transcriptionBusy(existing.transcriptionState) || resumingId || stopSavePending(id) || finishing || !notes.retryDrafts(id)) return { error: 'failed' }
     resumingId = id
+    // a meeting waiting for its labels must not hold its old chain (and so the resume) open
+    labelsWait.forget(id)
     const analysis = notes.suspendForResume(id)
     let started = false, timer: NodeJS.Timeout | undefined
     try {
       await Promise.race([
-        Promise.all([recordingFinished(id), transcriptFinished(id), callNames.finished(id), analysis.settled]),
+        Promise.all([recordingFinished(id), transcriptFinished(id), callNames.finished(id), diarizer.finished(id), analysis.settled]),
         new Promise<never>((_resolve, reject) => { timer = setTimeout(() => reject(new Error('Previous recording is still finishing')), 30_000) }),
       ])
       clearTimeout(timer)
@@ -916,8 +1037,6 @@ app.whenReady().then(() => {
   ipcMain.on('conversations:warm', (_e, id: unknown) => { if (isId(id)) conversations.warm(id) })
   ipcMain.handle('conversations:rename', (_e, id: unknown, title: unknown) => { if (isId(id) && typeof title === 'string') conversations.rename(id, title) })
   ipcMain.handle('conversations:delete', (_e, id: unknown) => { if (isId(id)) conversations.remove(id) })
-  // a meeting's two tracks, once recording has finished them (fake mode writes wav stand-ins)
-  const audioKinds: AudioExt[] = isFake() && process.env.YOGURT_FAKE_AUDIO_M4A === '1' ? ['m4a'] : audioExts(process.platform, isFake())
   const meetingDir = (id: string) => join(userDataDir(), 'meetings', id)
   const finishedMeeting = (id: string) => { const m = store.meeting(id); return !!m && m.state !== 'recording' }
   protocol.handle(AUDIO_SCHEME, createAudioHandler({ dirOf: meetingDir, known: finishedMeeting, ready: async (id) => { await rejoined; await recordingSettled(id); if (isFake()) await waitForFakeAudioMetadata() }, exts: audioKinds }))
@@ -1006,6 +1125,8 @@ app.whenReady().then(() => {
     if (!meeting || meeting.trashedAt != null || activeMeeting() || resumingId) return
     await joinParts(dir)
   })
+  // a crash mid-diarization left a temp wav: sweep the runs' own dirs (never anything else in tmpdir)
+  sweepDiarizeTemp(tmpdir())
   // meetings whose notes a quit or crash cut short: caught up once the models are ready, one at a time
   let caughtUp = false
   // and meetings not in the library yet (or changed since) are indexed, once nothing else is waiting
@@ -1174,6 +1295,7 @@ app.whenReady().then(() => {
     store,
     moved: (id) => {
       indexer.forget(id)
+      labelsWait.forget(id)
       win?.webContents.send('meetings:changed'); win?.webContents.send('folders:changed')
       if (route === `/note/${id}`) { route = ''; win?.webContents.send('nav:go', route) }
     },

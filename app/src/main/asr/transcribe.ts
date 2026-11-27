@@ -4,11 +4,13 @@ import type { Chunk } from './chunker'
 import { languageName } from './appleSpeech'
 import { tokens } from './echo'
 import { isPromptEcho, isSilenceGuess, isSubtitleCredit, withoutPromptLabel } from './hallucination'
+import { SPECIAL } from '../../shared/liveWords'
 
 /** What a chunk turns into: lines on meeting time. The meeting and the speaker are added where they are saved. */
 export type Line = Omit<Segment, 'id' | 'meetingId' | 'speaker'> & {
-  /** whisper's words with their times (live view only, never saved) */
-  words?: Array<{ text: string; startMs: number; endMs: number }>
+  /** whisper's words with their times (saved on the other side's lines, so diarization can re-split them); glue:
+   *  the piece joins the one before it without a space, so " f"+"ühr"+"ung" rebuilds as "Führung" */
+  words?: Array<{ text: string; startMs: number; endMs: number; glue?: boolean }>
 }
 /** partial: a quick greedy reading of a chunk still being spoken (shown, never saved); the default is the careful beam search */
 export type Transcribe = (c: Chunk, o?: { partial?: boolean }) => Promise<Line[]>
@@ -130,7 +132,15 @@ export function createTranscriber(o: Opts): Transcribe {
       if (isPromptEcho(text, prompt) || isSubtitleCredit(text) || (faint && isSilenceGuess(text))) continue
       // the label's words (through the one carrying its colon) go with it
       const kept = text === said ? s.words : s.words?.slice((s.words.findIndex((w) => w.word.includes(':')) + 1) || 0)
-      const words = kept?.map((w) => ({ text: w.word, startMs: Math.round(c.startMs + w.start * 1000), endMs: Math.round(c.startMs + w.end * 1000) }))
+      // whisper's word pieces: a piece with no space before it belongs to the word before it (" f"+"ühr"+"ung"+"sk"+
+      // "rä"+"fte" is "Führungskräfte"), so it is kept as glue; the line rebuilds from that, not from adding a space
+      // between every piece, which is what made "Führungskräfte" read as "f ühr ung sk rä fte".
+      const words: Array<{ text: string; startMs: number; endMs: number; glue?: boolean }> = []
+      for (const w of kept ?? []) {
+        if (!w.word.trim() || SPECIAL.test(w.word.trim())) continue
+        words.push({ text: w.word, startMs: Math.round(c.startMs + w.start * 1000), endMs: Math.round(c.startMs + w.end * 1000),
+          ...(words.length && !/^\s/.test(w.word) ? { glue: true } : {}) })
+      }
       lines.push({ track: c.track, startMs: Math.round(c.startMs + s.start * 1000), endMs: Math.round(c.startMs + s.end * 1000), text, ...(words?.length ? { words } : {}) })
     }
     return { lines, text: lines.map((l) => l.text).join(' '), language: body.detected_language ?? body.language ?? 'auto', prob: body.detected_language_probability ?? 0 }

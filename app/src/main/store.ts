@@ -9,6 +9,7 @@ import { attendeeMembership, matchingOwnEmail, normalizedEmail, personEmail, sam
 import type { FolderSuggestionRecord } from '../shared/folderSuggestion'
 import { unusedPreparedNote } from '../shared/agendaNote'
 import { speakerOrder } from '../shared/speakerColors'
+import { casingOf, textOf } from './diarize/align'
 import { DatabaseSync } from 'node:sqlite'
 import { randomUUID } from 'node:crypto'
 import { sourceOf, type TitleSource } from './titles'
@@ -46,13 +47,26 @@ export type Meeting = {
   transcriptionAgain?: boolean
   /** when it was moved to the Trash; there it is out of every list, search and chat until restored */
   trashedAt?: number
+  /** when the them track was diarized (null: not yet, or it failed) */
+  diarizedAt?: number
+  /** why diarization did not happen, for diagnostics */
+  diarizeError: string | null
+  /** voice profiles were allowed to hear this meeting (snapshotted at recording start) */
+  voicesAllowed: boolean
 }
+/** A whisper word with its times on meeting time (them lines only, persisted so lines can be re-split without re-transcribing).
+ *  glue: joins the word before it without a space (punctuation whisper gives as its own piece); the text itself is trimmed */
+export type Word = { text: string; startMs: number; endMs: number; glue?: boolean }
 /** speaker: 'me' on the mic; on the other side the name the call app showed talking (callNames), null for Them */
 export type Segment = { id: number; meetingId: string; track: 'me' | 'them'; startMs: number; endMs: number; text: string; speaker: string | null
   /** an echo of the other side found on the mic: kept, but out of the transcript, notes, search and export until shown again */
   hidden?: boolean
   /** High-confidence echo: retained for recovery, omitted from inline disclosures. */
   echoConfident?: boolean
+  /** this line's voice in the meeting, from diarization ('v1', 'v2', …); null for me, Them and undiarized lines */
+  speakerKey?: string | null
+  /** the line's words (them lines from now on), so diarization can re-split without re-transcribing */
+  words?: Word[]
   /** Shared display-only palette index, supplied by the transcript bridge. */
   speakerColor?: number }
 export type Notes = { mine: string; enhanced: string | null; edited: boolean }
@@ -76,6 +90,9 @@ const toMeeting = (r: Row): Meeting => ({
   ...(r.event_calendar_source == null ? {} : { eventCalendarSource: String(r.event_calendar_source) }),
   ...(r.duration_ms == null ? {} : { durationMs: Number(r.duration_ms) }),
   ...(r.trashed_at == null ? {} : { trashedAt: Number(r.trashed_at) }),
+  diarizeError: r.diarize_error == null ? null : String(r.diarize_error),
+  voicesAllowed: Number(r.voices_allowed ?? 0) === 1,
+  ...(r.diarized_at == null ? {} : { diarizedAt: Number(r.diarized_at) }),
 })
 const draftLine = (s: Omit<Segment, 'id'>) => ({ ...s, speaker: segmentSpeaker(s.speaker) })
 export const readDraftLines = (payload: unknown): Omit<Segment, 'id'>[] => JSON.parse(String(payload)).map(draftLine)
@@ -84,6 +101,8 @@ const toSegment = (r: Row): Segment => ({
   id: Number(r.id), meetingId: String(r.meeting_id), track: r.track as Segment['track'], startMs: Number(r.start_ms), endMs: Number(r.end_ms),
   text: String(r.text), speaker: segmentSpeaker(r.speaker), hidden: Number(r.hidden ?? 0) === 1,
   ...(Number(r.echo_confident ?? 0) === 1 ? { echoConfident: true } : {}),
+  speakerKey: r.speaker_key == null ? null : String(r.speaker_key),
+  ...(r.words == null ? {} : { words: JSON.parse(String(r.words)) as Word[] }),
 })
 
 /** Chinese, Japanese and Korean letters: searched by pairs of characters (they have NOFOLDERS_P between words) */
@@ -268,6 +287,7 @@ export class Store {
     if (!meetingCols.includes('prepared_event_end')) this.db.exec('ALTER TABLE meetings ADD COLUMN prepared_event_end INTEGER')
     if (!meetingCols.includes('last_opened_at')) this.db.exec('ALTER TABLE meetings ADD COLUMN last_opened_at INTEGER')
     if (!meetingCols.includes('speaker_order')) this.db.exec("ALTER TABLE meetings ADD COLUMN speaker_order TEXT NOT NULL DEFAULT '[]'")
+    if (!meetingCols.includes('labels_released')) this.db.exec('ALTER TABLE meetings ADD COLUMN labels_released INTEGER NOT NULL DEFAULT 0')
     for (const name of ['source', 'source_id']) if (!meetingCols.includes(name)) this.db.exec(`ALTER TABLE meetings ADD COLUMN ${name} TEXT`)
     for (const [name, type] of [['event_ended_at', 'INTEGER'], ['event_title', 'TEXT'], ['event_calendar_name', 'TEXT'], ['event_calendar_source', 'TEXT'], ['own_email', 'TEXT']]) {
       if (!meetingCols.includes(name)) this.db.exec(`ALTER TABLE meetings ADD COLUMN ${name} ${type}`)
@@ -307,6 +327,22 @@ export class Store {
         this.db.exec('COMMIT')
       } catch (e) { this.db.exec('ROLLBACK'); throw e }
     }
+    if (!segmentCols.includes('speaker_key')) this.db.exec('ALTER TABLE segments ADD COLUMN speaker_key TEXT')
+    if (!segmentCols.includes('words')) this.db.exec('ALTER TABLE segments ADD COLUMN words TEXT')
+    const meetingCols2 = meetingCols
+    for (const [name, type] of [['diarized_at', 'INTEGER'], ['diarize_error', 'TEXT'], ['voices_allowed', 'INTEGER NOT NULL DEFAULT 0']] as const) {
+      if (!meetingCols2.includes(name)) this.db.exec(`ALTER TABLE meetings ADD COLUMN ${name} ${type}`)
+    }
+    // voice profiles first: meeting_speakers points at them
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS voice_profiles (
+        id TEXT PRIMARY KEY, name TEXT NOT NULL, model TEXT NOT NULL, dims INTEGER NOT NULL,
+        centroid BLOB NOT NULL, meetings INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS meeting_speakers (
+        meeting_id TEXT NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
+        key TEXT NOT NULL, profile_id TEXT REFERENCES voice_profiles(id) ON DELETE SET NULL,
+        score REAL, start_ms INTEGER NOT NULL, end_ms INTEGER NOT NULL, PRIMARY KEY (meeting_id, key));
+    `)
     // hidden lines are never in the search index, so their deletes and updates must not touch it (an FTS 'delete' of a row
     // that was never indexed corrupts the index). Made fresh on every open: a database from before keeps its old triggers otherwise.
     this.db.exec(`DROP TRIGGER IF EXISTS segments_au; DROP TRIGGER IF EXISTS segments_ad;
@@ -331,6 +367,25 @@ export class Store {
       this.db.exec(`UPDATE meetings SET transcription_pending = 1 WHERE state IN ('stopped', 'done') AND trashed_at IS NULL
         AND NOT EXISTS (SELECT 1 FROM segments s WHERE s.meeting_id = meetings.id)`)
       this.db.exec('PRAGMA user_version = 2')
+    }
+    // a diarization run built its lines by putting a space between every piece whisper split a word at, which saved
+    // "Führungskräfte" as "f ühr ung sk rä fte" (this branch before the spacing fix). Each piece carries the spacing
+    // whisper gave it, so the line can be read as it was said again: done once, on the first launch that knows how
+    // the pieces go together.
+    if (Number((this.db.prepare('PRAGMA user_version').get() as Row).user_version) < 3) {
+      const rows = this.db.prepare("SELECT id, text, words FROM segments WHERE track = 'them' AND words IS NOT NULL").all() as Row[]
+      const up = this.db.prepare('UPDATE segments SET text = ? WHERE id = ?')
+      this.db.exec('BEGIN')
+      try {
+        for (const r of rows) {
+          const words = JSON.parse(String(r.words)) as Word[]
+          if (!words.length) continue
+          const text = textOf(words, (t) => t, casingOf(String(r.text), words))
+          if (text && text !== String(r.text)) up.run(text, Number(r.id))
+        }
+        this.db.exec('PRAGMA user_version = 3')
+        this.db.exec('COMMIT')
+      } catch (e) { this.db.exec('ROLLBACK'); throw e }
     }
   }
   private readMeeting(r: Row): Meeting {
@@ -388,14 +443,14 @@ export class Store {
     }
   }
 
-  createMeeting(m: Omit<Meeting, 'id' | 'language' | 'titleSource'> & { language?: string | null; titleSource?: TitleSource; folderId?: string }, id: string = randomUUID()): Meeting {
+  createMeeting(m: Omit<Meeting, 'id' | 'language' | 'titleSource' | 'diarizeError' | 'voicesAllowed'> & { language?: string | null; titleSource?: TitleSource; folderId?: string; diarizeError?: string | null; voicesAllowed?: boolean }, id: string = randomUUID()): Meeting {
     return this.writeAtomically(() => {
       const language = m.language ?? null
       const ownEmail = m.eventId ? normalizedEmail(m.ownEmail) : null
       this.rememberOwnEmail(ownEmail)
       const titleSource = m.titleSource ?? sourceOf(m.title, m.eventId)
-      this.db.prepare('INSERT INTO meetings (id, title, started_at, ended_at, event_id, app, attendees, state, language, title_source, duration_ms, event_started_at, event_ended_at, event_title, event_calendar_name, event_calendar_source, source, source_id, transcription_pending, own_email, keep_attendees) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-        .run(id, m.title, m.startedAt, m.endedAt, m.eventId, m.app, JSON.stringify(m.attendees), m.state, language, titleSource, m.durationMs ?? null, m.eventStartedAt ?? null, m.eventEndedAt ?? null, m.eventTitle ?? null, m.eventCalendarName ?? null, m.eventCalendarSource ?? null, m.source ?? null, m.sourceId ?? null, Number(!!m.transcriptionPending), ownEmail, Number(!!m.keepAttendees))
+      this.db.prepare('INSERT INTO meetings (id, title, started_at, ended_at, event_id, app, attendees, state, language, title_source, duration_ms, event_started_at, event_ended_at, event_title, event_calendar_name, event_calendar_source, source, source_id, transcription_pending, own_email, keep_attendees, diarize_error, voices_allowed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        .run(id, m.title, m.startedAt, m.endedAt, m.eventId, m.app, JSON.stringify(m.attendees), m.state, language, titleSource, m.durationMs ?? null, m.eventStartedAt ?? null, m.eventEndedAt ?? null, m.eventTitle ?? null, m.eventCalendarName ?? null, m.eventCalendarSource ?? null, m.source ?? null, m.sourceId ?? null, Number(!!m.transcriptionPending), ownEmail, Number(!!m.keepAttendees), m.diarizeError ?? null, Number(!!m.voicesAllowed))
       rememberPeople(this.db, m.attendees)
       if (m.folderId !== undefined) this.addToFolder(m.folderId, id)
       return this.meeting(id)!
@@ -535,11 +590,11 @@ export class Store {
     } catch(error) { this.db.exec('ROLLBACK'); throw error }
   }
   addSegments(segs: Omit<Segment, 'id'>[]) {
-    const ins = this.db.prepare('INSERT INTO segments (meeting_id, track, start_ms, end_ms, text, speaker, hidden, echo_confident) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+    const ins = this.db.prepare('INSERT INTO segments (meeting_id, track, start_ms, end_ms, text, speaker, hidden, echo_confident, speaker_key, words) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
     this.db.exec('BEGIN')
     try {
       for (const s of segs) {
-        const r = ins.run(s.meetingId, s.track, s.startMs, s.endMs, s.text, segmentSpeaker(s.speaker), s.hidden ? 1 : 0, s.hidden && s.echoConfident ? 1 : 0)
+        const r = ins.run(s.meetingId, s.track, s.startMs, s.endMs, s.text, segmentSpeaker(s.speaker), s.hidden ? 1 : 0, s.hidden && s.echoConfident ? 1 : 0, s.speakerKey ?? null, s.words ? JSON.stringify(s.words) : null)
         // a hidden line is not for search
         if (s.hidden) this.db.prepare("INSERT INTO segments_fts(segments_fts, rowid, text) VALUES ('delete', ?, ?)").run(r.lastInsertRowid, s.text)
       }
@@ -622,6 +677,151 @@ export class Store {
       for (const s of list) up.run(segmentSpeaker(s.speaker), s.id)
       this.db.exec('COMMIT')
     } catch (e) { this.db.exec('ROLLBACK'); throw e }
+  }
+
+  /** One transaction: delete the rows being re-split, insert the split runs, write cluster rows. FTS triggers keep search in step. */
+  applyDiarization(meetingId: string, a: { deleteIds: number[]; insert: Array<Omit<Segment, 'id'>>; speakers: Array<{ key: string; speaker: string | null; profileId?: string | null; score?: number | null; startMs: number; endMs: number }> }) {
+    const del = this.db.prepare('DELETE FROM segments WHERE id = ? AND meeting_id = ?')
+    const ins = this.db.prepare('INSERT INTO segments (meeting_id, track, start_ms, end_ms, text, speaker, hidden, echo_confident, speaker_key, words) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    const up = this.db.prepare(`INSERT INTO meeting_speakers (meeting_id, key, profile_id, score, start_ms, end_ms) VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(meeting_id, key) DO UPDATE SET profile_id = excluded.profile_id, score = excluded.score, start_ms = excluded.start_ms, end_ms = excluded.end_ms`)
+    this.db.exec('BEGIN')
+    try {
+      for (const id of a.deleteIds) del.run(id, meetingId)
+      for (const s of a.insert) {
+        const r = ins.run(s.meetingId, s.track, s.startMs, s.endMs, s.text, s.speaker, s.hidden ? 1 : 0, s.hidden && s.echoConfident ? 1 : 0, s.speakerKey ?? null, s.words ? JSON.stringify(s.words) : null)
+        if (s.hidden) this.db.prepare("INSERT INTO segments_fts(segments_fts, rowid, text) VALUES ('delete', ?, ?)").run(r.lastInsertRowid, s.text)
+      }
+      for (const sp of a.speakers) up.run(meetingId, sp.key, sp.profileId ?? null, sp.score ?? null, sp.startMs, sp.endMs)
+      this.db.exec('COMMIT')
+    } catch (e) { this.db.exec('ROLLBACK'); throw e }
+  }
+
+  /** cluster metadata for a meeting */
+  meetingSpeakers(meetingId: string): Array<{ key: string; profileId: string | null; score: number | null; startMs: number; endMs: number }> {
+    if (!(this.db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'meeting_speakers'").get())) return []
+    return (this.db.prepare('SELECT key, profile_id, score, start_ms, end_ms FROM meeting_speakers WHERE meeting_id = ? ORDER BY start_ms, key').all(meetingId) as Row[]).map(r => ({
+      key: String(r.key), profileId: r.profile_id == null ? null : String(r.profile_id), score: r.score == null ? null : Number(r.score), startMs: Number(r.start_ms), endMs: Number(r.end_ms),
+    }))
+  }
+
+  /** The person renames a voice: every line of that voice, in place in the colour order. Renaming onto another live voice's name is refused (that is a merge). */
+  renameSpeaker(meetingId: string, key: string, raw: string): boolean {
+    const name = raw.replace(/\s+/g, ' ').trim().slice(0, 80)
+    if (!name || !key) return false
+    const rows = this.db.prepare("SELECT id, speaker FROM segments WHERE meeting_id = ? AND track = 'them' AND speaker_key = ? AND hidden = 0").all(meetingId, key) as Row[]
+    if (!rows.length) return false
+    const old = rows[0].speaker == null ? null : String(rows[0].speaker)
+    const live = (this.db.prepare("SELECT DISTINCT speaker FROM segments WHERE meeting_id = ? AND track = 'them' AND speaker_key IS NOT NULL AND speaker IS NOT NULL AND hidden = 0").all(meetingId) as Row[]).map(r => String(r.speaker))
+    if (live.some(n => n !== old && n === name)) return false
+    const row = this.db.prepare('SELECT speaker_order FROM meetings WHERE id = ?').get(meetingId) as Row | undefined
+    const order = JSON.parse(String(row?.speaker_order ?? '[]')) as string[]
+    const next = old && order.includes(old) ? order.map(n => n === old ? name : n) : speakerOrder(order, [name])
+    this.db.exec('BEGIN')
+    try {
+      const up = this.db.prepare('UPDATE segments SET speaker = ? WHERE id = ?')
+      for (const r of rows) up.run(name, Number(r.id))
+      this.db.prepare('UPDATE meetings SET speaker_order = ? WHERE id = ?').run(JSON.stringify(next), meetingId)
+      this.db.exec('COMMIT')
+    } catch (e) { this.db.exec('ROLLBACK'); throw e }
+    return true
+  }
+
+  /** Two voices are one person: the source's rows and cluster metadata join the target. The source's colour slot stays, so nobody else's colour moves. */
+  mergeSpeakers(meetingId: string, fromKey: string, intoKey: string): boolean {
+    if (!fromKey || !intoKey || fromKey === intoKey) return false
+    const segs = this.db.prepare("SELECT speaker_key FROM segments WHERE meeting_id = ? AND track = 'them' AND speaker_key IN (?, ?) AND hidden = 0").all(meetingId, fromKey, intoKey) as Row[]
+    const has = (k: string) => segs.some(r => r.speaker_key === k)
+    if (!has(fromKey) || !has(intoKey)) return false
+    const nameOf = (k: string) => { const r = this.db.prepare("SELECT speaker FROM segments WHERE meeting_id = ? AND speaker_key = ? AND speaker IS NOT NULL AND hidden = 0 LIMIT 1").get(meetingId, k) as Row | undefined; return r?.speaker == null ? null : String(r.speaker) }
+    const name = nameOf(intoKey) ?? nameOf(fromKey)
+    const fromSp = this.db.prepare('SELECT * FROM meeting_speakers WHERE meeting_id = ? AND key = ?').get(meetingId, fromKey) as Row | undefined
+    const intoSp = this.db.prepare('SELECT * FROM meeting_speakers WHERE meeting_id = ? AND key = ?').get(meetingId, intoKey) as Row | undefined
+    this.db.exec('BEGIN')
+    try {
+      this.db.prepare('UPDATE segments SET speaker_key = ?, speaker = ? WHERE meeting_id = ? AND speaker_key = ?').run(intoKey, name, meetingId, fromKey)
+      this.db.prepare('DELETE FROM meeting_speakers WHERE meeting_id = ? AND key = ?').run(meetingId, fromKey)
+      if (intoSp && fromSp) this.db.prepare('UPDATE meeting_speakers SET start_ms = ?, end_ms = ?, profile_id = COALESCE(profile_id, ?), score = COALESCE(score, ?) WHERE meeting_id = ? AND key = ?')
+        .run(Math.min(Number(intoSp.start_ms), Number(fromSp.start_ms)), Math.max(Number(intoSp.end_ms), Number(fromSp.end_ms)), (fromSp.profile_id ?? null) as string | null, (fromSp.score ?? null) as number | null, meetingId, intoKey)
+      this.db.exec('COMMIT')
+    } catch (e) { this.db.exec('ROLLBACK'); throw e }
+    return true
+  }
+
+  /** a them line diarization left unclaimed: the person attributes it to one of the meeting's voices by hand */
+  assignSegment(meetingId: string, segmentId: number, key: string): boolean {
+    if (!key) return false
+    const seg = this.db.prepare('SELECT track, hidden FROM segments WHERE meeting_id = ? AND id = ?').get(meetingId, segmentId) as Row | undefined
+    if (!seg || String(seg.track) !== 'them' || Number(seg.hidden) === 1) return false
+    const known = this.db.prepare('SELECT key FROM meeting_speakers WHERE meeting_id = ? AND key = ?').get(meetingId, key) as Row | undefined
+    if (!known) return false
+    const nameOf = (k: string) => { const r = this.db.prepare('SELECT speaker FROM segments WHERE meeting_id = ? AND speaker_key = ? AND speaker IS NOT NULL AND hidden = 0 LIMIT 1').get(meetingId, k) as Row | undefined; return r?.speaker == null ? null : String(r.speaker) }
+    const name = nameOf(key)
+    if (!name) return false
+    this.db.prepare('UPDATE segments SET speaker_key = ?, speaker = ? WHERE id = ?').run(key, name, segmentId)
+    return true
+  }
+
+  /** snapshot at recording start: enabling profiles mid-call must not capture a call already in progress */
+  setVoicesAllowed(id: string, on: boolean) { this.db.prepare('UPDATE meetings SET voices_allowed = ? WHERE id = ?').run(on ? 1 : 0, id) }
+  /** diarization done (error: recorded on the meeting instead, the transcript stays usable) */
+  markDiarized(id: string, error?: string) { this.db.prepare('UPDATE meetings SET diarized_at = ?, diarize_error = ? WHERE id = ?').run(error ? null : Date.now(), error ?? null, id) }
+
+  /** Speaker labels missing: diarized, never released, and still a voice called Speaker N, a voice without a name,
+   * or a line the diarizer left unclaimed. Only meetings the diarizer actually ran on can wait. */
+  labelsPending(id: string): boolean {
+    const m = this.db.prepare('SELECT diarized_at, diarize_error, labels_released FROM meetings WHERE id = ?').get(id) as Row | undefined
+    if (!m || m.diarized_at == null || m.diarize_error != null || Number(m.labels_released) === 1) return false
+    const unclaimed = this.db.prepare("SELECT COUNT(*) n FROM segments WHERE meeting_id = ? AND track = 'them' AND hidden = 0 AND speaker_key IS NULL").get(id) as { n: number }
+    if (Number(unclaimed.n) > 0) return true
+    const named = this.db.prepare("SELECT DISTINCT speaker FROM segments WHERE meeting_id = ? AND track = 'them' AND hidden = 0 AND speaker_key IS NOT NULL AND (speaker IS NULL OR speaker LIKE 'Speaker %')").all(id) as Row[]
+    return named.some(r => r.speaker == null || /^Speaker \d+$/.test(String(r.speaker)))
+  }
+  /** the person asked for the summary without labeling: this meeting never waits again */
+  releaseLabels(id: string) { this.db.prepare('UPDATE meetings SET labels_released = 1 WHERE id = ?').run(id) }
+  /** a meeting records again: its labels start over */
+  resetLabels(id: string) { this.db.prepare('UPDATE meetings SET labels_released = 0 WHERE id = ?').run(id) }
+  /** any meeting the person still has to label (the tray's exclamation mark): a stopped meeting whose summary has
+   * not been written yet and still has unlabeled voices or unclaimed lines. A day after it started, a meeting stops
+   * asking for attention — older ones keep their banner but the tray stays quiet. Already-summarized meetings with
+   * leftover lines never count: their banner is long gone. */
+  anyLabelsPending(now = Date.now()): boolean {
+    const ids = this.db.prepare(`SELECT m.id FROM meetings m WHERE m.trashed_at IS NULL AND m.state = 'stopped' AND m.diarized_at IS NOT NULL
+      AND m.diarize_error IS NULL AND m.labels_released = 0 AND m.started_at >= ?
+      AND NOT EXISTS (SELECT 1 FROM notes n WHERE n.meeting_id = m.id AND n.enhanced IS NOT NULL)`).all(now - 24 * 60 * 60 * 1000) as Row[]
+    return ids.some(r => this.labelsPending(String(r.id)))
+  }
+
+  /** profiles for Settings: names and counts only, never the vectors */
+  voiceProfiles(): Array<{ id: string; name: string; meetings: number; createdAt: number; updatedAt: number }> {
+    return (this.db.prepare('SELECT id, name, meetings, created_at, updated_at FROM voice_profiles ORDER BY created_at').all() as Row[]).map(r =>
+      ({ id: String(r.id), name: String(r.name), meetings: Number(r.meetings), createdAt: Number(r.created_at), updatedAt: Number(r.updated_at) }))
+  }
+  /** full rows for matching, main process only (never over IPC) */
+  voiceCentroids(): Array<{ id: string; name: string; model: string; dims: number; centroid: Float32Array; meetings: number }> {
+    return (this.db.prepare('SELECT id, name, model, dims, centroid, meetings FROM voice_profiles ORDER BY created_at').all() as Row[]).map(r => {
+      const buf = Buffer.from(r.centroid as Uint8Array)
+      const centroid = new Float32Array(Number(r.dims))
+      for (let i = 0; i < centroid.length && buf.length >= (i + 1) * 4; i++) centroid[i] = buf.readFloatLE(i * 4)
+      return { id: String(r.id), name: String(r.name), model: String(r.model), dims: Number(r.dims), centroid, meetings: Number(r.meetings) }
+    })
+  }
+  createVoiceProfile(p: { id: string; name: string; model: string; dims: number; centroid: Buffer }) {
+    const now = Date.now()
+    this.db.prepare('INSERT INTO voice_profiles (id, name, model, dims, centroid, meetings, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?)').run(p.id, p.name, p.model, p.dims, p.centroid, now, now)
+  }
+  updateVoiceCentroid(id: string, centroid: Buffer) { this.db.prepare('UPDATE voice_profiles SET centroid = ?, updated_at = ? WHERE id = ?').run(centroid, Date.now(), id) }
+  bumpVoiceProfile(id: string) { this.db.prepare('UPDATE voice_profiles SET meetings = meetings + 1 WHERE id = ?').run(id) }
+  deleteVoiceProfile(id: string) { this.db.prepare('DELETE FROM voice_profiles WHERE id = ?').run(id) }
+  deleteAllVoiceProfiles() { this.db.exec('DELETE FROM voice_profiles') }
+  /** diarization's profile-match outcome for one cluster, after the split transaction; COALESCE keeps what was there */
+  setMeetingSpeakerProfile(meetingId: string, key: string, patch: { profileId?: string | null; score?: number | null }) {
+    this.db.prepare('UPDATE meeting_speakers SET profile_id = COALESCE(?, profile_id), score = COALESCE(?, score) WHERE meeting_id = ? AND key = ?')
+      .run(patch.profileId ?? null, patch.score ?? null, meetingId, key)
+  }
+  /** a manual enrollment decides the link outright, including clearing one a rename made wrong */
+  linkMeetingSpeakerProfile(meetingId: string, key: string, profileId: string | null, score: number | null) {
+    this.db.prepare('UPDATE meeting_speakers SET profile_id = ?, score = ? WHERE meeting_id = ? AND key = ?').run(profileId, score, meetingId, key)
   }
 
   /** edited: the person changed the enhanced notes since they were written */

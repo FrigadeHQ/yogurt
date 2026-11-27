@@ -51,7 +51,7 @@ function find(node: ReactNode, id: string | typeof NoteMenu | typeof Ask): React
 }
 beforeEach(() => {
   vi.clearAllMocks();meetingListeners.clear();meetingChanged=()=>meetingListeners.forEach(cb=>cb())
-  meeting = { id: 'resume-fixture', title: 'Resume fixture', startedAt: 1, endedAt: 2, eventId: 'event', app: null, attendees: [], state: 'stopped', language: null, titleSource: 'calendar' }
+  meeting = { id: 'resume-fixture', title: 'Resume fixture', startedAt: 1, endedAt: 2, eventId: 'event', app: null, attendees: [], state: 'stopped', language: null, titleSource: 'calendar', diarizeError: null, voicesAllowed: false }
   notes = { meetingId: meeting.id, mine: '', enhanced: null, edited: false, status: 'writing', draft: '', peopleChanged: false }
   requested = () => { consumed(); requested = undefined }
   transcriptGet.mockResolvedValue([])

@@ -13,7 +13,7 @@ vi.mock('react', async importOriginal => {
 
 const event: AgendaEvent = { id: 'event', title: 'Planning', start: 100, end: 200, attendees: [{ name: 'Robin Vale', email: null }], url: null }
 const saved: AgendaEvent = { ...event, note: { id: 'note', state: 'done' } }
-const recording: MeetingCard = { id: 'note', title: 'Planning', state: 'recording', startedAt: 100, endedAt: null, attendees: [], folders: [], preview: '', eventId: event.id, app: null, language: null, titleSource: 'calendar' }
+const recording: MeetingCard = { id: 'note', title: 'Planning', state: 'recording', startedAt: 100, endedAt: null, attendees: [], folders: [], preview: '', eventId: event.id, app: null, language: null, titleSource: 'calendar', diarizeError: null, voicesAllowed: false }
 const render = (props: Partial<Parameters<typeof Event>[0]> = {}) => renderToStaticMarkup(createElement(Event, {
   event, me: '', now: 150, near: true, initial: false, selected: false, onInspect() {}, ...props,
 }))

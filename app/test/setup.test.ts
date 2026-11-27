@@ -304,8 +304,8 @@ describe('SetupController', () => {
     await c.start(); await c.idle()
     expect(rec.asked[0]).toBe(turboUrl)
     expect(rec.asked).not.toContain(starterUrl)
-    // the one notes model, then the embedding model
-    expect(rec.asked.slice(1)).toEqual([expect.stringContaining('E4B-it-Q3_K_S'), embedUrl])
+    // the one notes model, then the embedding model, then the diarization model
+    expect(rec.asked.slice(1)).toEqual([expect.stringContaining('E4B-it-Q3_K_S'), embedUrl, catalog.diarization.url])
     expect(c.state.phase).toBe('ready')
     expect(states.some(s => s.notesUpgradeDownloading || s.notesUpgradeError)).toBe(false)
   })
@@ -867,5 +867,72 @@ describe('optional better notes model', () => {
     expect(existsSync(bigger)).toBe(true)
     expect(c.state.notesUpgradeInstalled).toBe(true)
     expect(c.state.notesUpgradeChanging).toBeUndefined()
+  })
+})
+
+describe('diarization models', () => {
+  it('downloads the diarization gguf in the background; ready never waits for it', async () => {
+    const { c, root, rec } = setup()
+    await c.start()
+    expect(c.state.phase).toBe('ready')
+    await c.idle()
+    expect(c.installed()?.diarization).toBe(join(root, 'diarization', name(catalog.diarization.url)))
+    expect(existsSync(join(root, 'diarization', name(catalog.diarization.url)))).toBe(true)
+    expect(rec.asked).toContain(catalog.diarization.url)
+  })
+  it('the diarization gguf downloads only while speakers are separated; turning it on fetches it then', async () => {
+    let on = false
+    const { c, rec } = setup({ diarizeWanted: () => on })
+    await c.start()
+    await c.idle()
+    expect(rec.asked).not.toContain(catalog.diarization.url)
+    expect(c.installed()?.diarization).toBeUndefined()
+    on = true
+    c.ensureDiarization()
+    await c.idle()
+    expect(rec.asked).toContain(catalog.diarization.url)
+    expect(c.installed()?.diarization).toBeTruthy()
+  })
+  it('ensureSpeakerModel downloads the onnx only when asked', async () => {
+    const { c, root } = setup()
+    await c.start()
+    expect(c.installed()?.diarization).toBeUndefined()
+    const p = await c.ensureSpeakerModel()
+    expect(p).toBe(join(root, 'speaker', name(catalog.speaker.url)))
+    expect(existsSync(p)).toBe(true)
+  })
+  it('a diarization model that keeps failing does not hold up the bigger notes model', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'yogurt-setup-'))
+    const inner = fakeDownloadDeps({ stepMs: 0 })
+    const asked: string[] = []
+    const download: DownloadDeps['download'] = async (u, ...rest) => {
+      asked.push(u)
+      if (u === catalog.diarization.url) throw new Error('fetch failed')
+      return inner.download(u, ...rest)
+    }
+    const c = new SetupController({ getHardware: async () => m1max, getCatalog: async () => catalog, modelsDir: root, download: { ...inner, download }, sha256Override: 'FAKE', retryDelaysMs: [0] })
+    await c.start()
+    expect(c.state.phase).toBe('ready')
+    // while the diarization model keeps being tried on its own, the chain moves on to the bigger notes model
+    await vi.waitFor(() => expect(asked).toContain(bigUrl))
+    await vi.waitFor(() => expect(c.installed()?.recommendedLlm).toMatch(/gemma-4-26B/))
+    expect(c.state.phase).toBe('ready')
+    expect(c.installed()?.diarization).toBeUndefined()
+  })
+  it('a speaker model that failed can be asked for again: the cache does not keep the failure', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'yogurt-setup-'))
+    const inner = fakeDownloadDeps({ stepMs: 0 })
+    let failing = true
+    const download: DownloadDeps['download'] = async (u, ...rest) => {
+      if (u === catalog.speaker.url && failing) throw new Error('fetch failed')
+      return inner.download(u, ...rest)
+    }
+    const c = new SetupController({ getHardware: async () => m1max, getCatalog: async () => catalog, modelsDir: root, download: { ...inner, download }, sha256Override: 'FAKE', retryDelaysMs: [0] })
+    await c.start()
+    await expect(c.ensureSpeakerModel()).rejects.toThrow('fetch failed')
+    failing = false
+    const p = await c.ensureSpeakerModel()
+    expect(p).toBe(join(root, 'speaker', name(catalog.speaker.url)))
+    expect(existsSync(p)).toBe(true)
   })
 })

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bubbles, clock, lineAt, recentRuns, stableKeys, turns, withLive } from '../src/shared/transcript'
+import { bubbles, clock, lineAt, mergeSaved, recentRuns, stableKeys, turns, withLive } from '../src/shared/transcript'
 
 const l = (track: 'me' | 'them', startMs: number, speaker: string | null = null, endMs = startMs + 2000) => ({ track, startMs, endMs, speaker, text: '' })
 
@@ -74,6 +74,28 @@ describe('withLive', () => {
   })
   it('leaves out a side with nothing being said', () => {
     expect(withLive([l('me', 0)], [{ track: 'them', startMs: 0, endMs: 0, text: '', words: [] }])).toHaveLength(1)
+  })
+})
+
+describe('mergeSaved', () => {
+  const row = (track: 'me' | 'them', startMs: number, endMs: number, speaker: string | null, extra: Record<string, unknown> = {}) =>
+    ({ track, startMs, endMs, speaker, text: '', ...extra })
+  it('drops the row diarization re-split into the lines it saved, so its words are not shown again as Andere', () => {
+    // the row whisper saved live starts a little before the first word the diarizer placed, so its key matches nothing
+    const shown = [row('them', 1000, 10_000, null)]
+    const saved = [row('them', 1200, 5000, 'Speaker 1'), row('them', 5000, 10_000, 'Speaker 2')]
+    expect(mergeSaved(shown, saved).map((x) => [x.startMs, x.endMs, x.speaker])).toEqual([[1200, 5000, 'Speaker 1'], [5000, 10_000, 'Speaker 2']])
+  })
+  it('keeps a line that arrived while the saved lines were read', () => {
+    const shown = [row('them', 0, 2000, null), row('them', 5000, 7000, null)]
+    const saved = [row('them', 0, 2000, 'Speaker 1')]
+    expect(mergeSaved(shown, saved).map((x) => [x.startMs, x.speaker])).toEqual([[0, 'Speaker 1'], [5000, null]])
+  })
+  it('takes the saved copy of a line, hidden or renamed', () => {
+    expect(mergeSaved([row('me', 0, 2000, null)], [row('me', 0, 2000, null, { hidden: true })])[0]).toMatchObject({ hidden: true })
+  })
+  it('leaves the other side’s lines alone, even where they overlap in time', () => {
+    expect(mergeSaved([row('me', 0, 2000, null)], [row('them', 0, 2000, 'Speaker 1')]).map((x) => x.track)).toEqual(['me', 'them'])
   })
 })
 

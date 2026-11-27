@@ -3,6 +3,7 @@
 // macOS 14.2+; the audio-capture permission needs 14.4). Yogurt never joins the call.
 //   yogurt-audio record --dir DIR [--part N --start-ms X] [--mic-muted] [--mic UID]
 //   yogurt-audio join --dir DIR
+//   yogurt-audio decode FILE (16 kHz mono f32 on stdout) | decode --in FILE --out WAV
 // A restart after a crash is part N (N >= 1) and carries on at meeting time X: it writes DIR/me.N.m4a and DIR/them.N.m4a,
 // whose file time starts at X, and its pcm ms continue from X. Existing parts are never deleted.
 // join stitches me.m4a, me.1.m4a, ... (and them) into one me.m4a and one them.m4a on meeting time (silence in the gaps),
@@ -1137,6 +1138,46 @@ func compactAudio(_ dir: URL, into destination: URL) {
   _ = writeAll(data + Data([10]))
 }
 
+// MARK: decode
+
+/// A meeting's m4a as 16 kHz mono 16-bit PCM. The m4a's timeline is meeting time, so the WAV is too.
+/// AVAudioFile reads it: the asset track reader cannot be told another sample rate (asked for one it hands back no
+/// samples at all, and a header-only WAV was the whole result), and one converter for the whole file, chunks at a
+/// time, keeps a hours-long meeting out of memory — the way the stdout decode below does it.
+func decodeAudio(input: URL, output: URL) -> Int32 {
+  guard let f = try? AVAudioFile(forReading: input) else { log("unsupported-input"); return 1 }
+  let pcm16 = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16000, channels: 1, interleaved: true)!
+  guard let conv = AVAudioConverter(from: f.processingFormat, to: pcm16) else { log("read failed"); return 1 }
+  FileManager.default.createFile(atPath: output.path, contents: nil)
+  guard let handle = try? FileHandle(forWritingTo: output) else { log("write failed"); return 1 }
+  defer { try? handle.close() }
+  // 44 bytes of header first; rewritten with the real size once the samples are in
+  try? handle.write(contentsOf: wavHeader(bytes: 0))
+  var bytes = 0
+  while let b = AVAudioPCMBuffer(pcmFormat: f.processingFormat, frameCapacity: 48000), (try? f.read(into: b)) != nil, b.frameLength > 0 {
+    autoreleasepool {
+      guard let m = convert(conv, b), m.frameLength > 0, let pcm = m.int16ChannelData else { return }
+      let n = Int(m.frameLength) * MemoryLayout<Int16>.size
+      try? handle.write(contentsOf: Data(bytes: pcm[0], count: n))
+      bytes += n
+    }
+  }
+  try? handle.seek(toOffset: 0)
+  try? handle.write(contentsOf: wavHeader(bytes: bytes))
+  return 0
+}
+
+func wavHeader(bytes: Int) -> Data {
+  var d = Data()
+  func le32(_ v: UInt32) { withUnsafeBytes(of: v.littleEndian) { d.append(contentsOf: $0) } }
+  func le16(_ v: UInt16) { withUnsafeBytes(of: v.littleEndian) { d.append(contentsOf: $0) } }
+  d.append(contentsOf: Array("RIFF".utf8)); le32(UInt32(36 + bytes)); d.append(contentsOf: Array("WAVE".utf8))
+  d.append(contentsOf: Array("fmt ".utf8)); le32(16); le16(1); le16(1)
+  le32(16000); le32(32000); le16(2); le16(16)
+  d.append(contentsOf: Array("data".utf8)); le32(UInt32(bytes))
+  return d
+}
+
 // MARK: main
 
 func argValue(_ name: String) -> String? {
@@ -1190,7 +1231,7 @@ if args.count >= 3, args[1] == "speech-clock", let rate = Double(args[2]) {
 // Local measurement only: a 16 kHz mono wav through Apple's speech in LOCALE, final lines as speech frames on stdout
 // A recording made before the speech model was in, transcribed later (#30): the file as 16 kHz mono float32
 // (little-endian) on stdout, nothing else. One converter for the whole file, so its filter carries across buffers.
-if args.count >= 3, args[1] == "decode" {
+if args.count >= 3, args[1] == "decode", argValue("--in") == nil {
   guard let f = try? AVAudioFile(forReading: URL(fileURLWithPath: args[2])), let conv = AVAudioConverter(from: f.processingFormat, to: mono16) else { fail("can't read \(args[2])") }
   let out = FileHandle.standardOutput
   while let b = AVAudioPCMBuffer(pcmFormat: f.processingFormat, frameCapacity: 48000), (try? f.read(into: b)) != nil, b.frameLength > 0 {
@@ -1289,8 +1330,13 @@ if args.count >= 2, args[1] == "speech-locales" || args[1] == "speech-install" {
   exit(0)
   #endif
 }
+// A meeting's recording as a 16 kHz mono wav for the diarizer. An .ogg here is a cross-platform import: not decoded.
+if args.count > 1, args[1] == "decode" {
+  guard let input = argValue("--in"), let output = argValue("--out") else { fail("usage: yogurt-audio decode --in FILE --out WAV") }
+  work.sync { exit(decodeAudio(input: URL(fileURLWithPath: input), output: URL(fileURLWithPath: output))) }
+}
 guard args.count >= 4, (args[1] == "record" || args[1] == "join" || args[1] == "inspect" || args[1] == "compact"), let dirArg = argValue("--dir") else {
-  fail("usage: yogurt-audio record --dir DIR [--part N --start-ms X] [--speech LOCALE] | join --dir DIR | inspect --dir DIR | compact --dir DIR --out STAGING | speech-locales | speech-install LOCALE")
+  fail("usage: yogurt-audio record --dir DIR [--part N --start-ms X] [--speech LOCALE] | join --dir DIR | inspect --dir DIR | compact --dir DIR --out STAGING | decode FILE | decode --in FILE --out WAV | speech-locales | speech-install LOCALE")
 }
 let dir = URL(fileURLWithPath: dirArg)
 if args[1] == "inspect" { inspectAudio(dir); exit(0) }

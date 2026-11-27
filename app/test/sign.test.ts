@@ -19,6 +19,9 @@ describe('each helper gets only what it uses', () => {
   it('whisper-server: nothing', () => {
     expect(keys(helperEntitlements(`${bin}/whisper-server`, build))).toEqual([])
   })
+  it('nemo-speech (the diarizer): nothing, like whisper-server', () => {
+    expect(keys(helperEntitlements(`${bin}/nemo-speech`, build))).toEqual([])
+  })
   it("Electron's own files keep electron-builder's choice; an unknown helper is an error", () => {
     expect(helperEntitlements('/x/Yogurt.app/Contents/Frameworks/Yogurt Helper.app', build)).toBeNull()
     expect(() => helperEntitlements(`${bin}/something-new`, build)).toThrow(/something-new/)

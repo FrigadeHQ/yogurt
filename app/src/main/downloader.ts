@@ -28,7 +28,7 @@ const DISK_HEADROOM_GB = 10
 
 // plain names only: no "..", no leading dot or slash. Nested parts allowed for model folders
 const SAFE_PART = /^(?!\.)[\w.-]+$/
-const SAFE_URL_NAME = /^[\w.-]+\.(gguf|bin)$/
+const SAFE_URL_NAME = /^[\w.-]+\.(gguf|bin|onnx)$/
 
 /** Throws on anything that could leave the models folder */
 export function safeRelPath(p: string): string {
@@ -37,7 +37,7 @@ export function safeRelPath(p: string): string {
   return p
 }
 
-/** Local file name for a model URL. Throws on anything that isn't a plain `.gguf` or `.bin` name. */
+/** Local file name for a model URL. Throws on anything that isn't a plain `.gguf`, `.bin` or `.onnx` name. */
 export function fileNameFor(url: string): string {
   const name = decodeURIComponent(new URL(url).pathname.split('/').pop() ?? '')
   if (!SAFE_URL_NAME.test(name) || name.startsWith('.')) throw new Error(`Unsafe model file name: ${name}`)

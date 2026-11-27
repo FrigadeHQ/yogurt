@@ -130,12 +130,24 @@ export type YogurtApi = {
     get(meetingId: string, o?: { hidden?: boolean; last?: number }): Promise<Segment[]>
     /** brings hidden lines back: the ones given, or all of the meeting's */
     restore(meetingId: string, ids?: number[]): Promise<void>
+    /** renames every line of one voice (diarization key); refuses a name another voice already has */
+    renameSpeaker(meetingId: string, key: string, name: string): Promise<boolean>
+    /** two voices were one person: the first joins the second, keeping its name and colour */
+    mergeSpeaker(meetingId: string, fromKey: string, intoKey: string): Promise<boolean>
+    assignSpeaker(meetingId: string, segment: number, key: string): Promise<boolean>
     /** each line as it is saved (a me line a couple of seconds after it was said); returns the way to stop listening */
     onSegment(cb: (s: Omit<Segment, 'id'>) => void): () => void
     /** the meeting's saved lines changed (names from the call after it, echo lines shown again): read them again with get */
     onSpeakers(cb: (meetingId: string) => void): () => void
     /** current unfinished words are replayed on subscribe, then updated live (text empty: the partial is over) */
     onPartial(cb: (p: TranscriptPartial) => void): () => void
+  }
+  /** remembered voices across meetings (opt-in, local only; never the vectors) */
+  voices: {
+    list(): Promise<VoiceProfile[]>
+    delete(id: string): Promise<void>
+    deleteAll(): Promise<void>
+    onChange(cb: () => void): () => void
   }
   /** the person's own notes and the enhanced notes written after the meeting (Markdown) */
   notes: {
@@ -154,6 +166,8 @@ export type YogurtApi = {
     /** writes the enhanced notes again */
     writeAgain(meetingId: string, note?: string): Promise<void>
     stop(meetingId: string): Promise<void>
+    /** the person wants the summary of an unlabeled meeting anyway */
+    releaseLabels(meetingId: string): Promise<void>
     /** status, the draft as it is written, and the saved notes; returns the way to stop listening */
     onChange(cb: (v: NoteView) => void): () => void
   }
@@ -296,7 +310,7 @@ export type YogurtApi = {
   }
   settings: {
     /** myName: what the person is called in meetings (their Mac's full name, macName, when they never changed it) */
-    get(): Promise<{ theme: Theme; openAtLogin: boolean; showInMenuBar: boolean; showNextMeeting: boolean; showRecordingPill: boolean; appVisibility: AppVisibility; /** the language picked; '' follows the Mac */ language: string; /** the language in use */ locale: string; /** the Mac's language, among Yogurt's */ systemLocale: string; myName: string; macName: string; /** a recording stops by itself when its call ends (off: ask first) */ stopWhenCallEnds: boolean; recordingReminder: boolean; includeRecordingCredit: boolean; keepRecordings: boolean; /** personal jargon, spelled as typed */ jargon: string[]; /** the language people speak in meetings */ spoken: import('./spoken').Spoken; /** default summary language; '' follows the meeting */ summaryLanguage: string }>
+    get(): Promise<{ theme: Theme; openAtLogin: boolean; showInMenuBar: boolean; showNextMeeting: boolean; showRecordingPill: boolean; appVisibility: AppVisibility; /** the language picked; '' follows the Mac */ language: string; /** the language in use */ locale: string; /** the Mac's language, among Yogurt's */ systemLocale: string; myName: string; macName: string; /** a recording stops by itself when its call ends (off: ask first) */ stopWhenCallEnds: boolean; recordingReminder: boolean; includeRecordingCredit: boolean; keepRecordings: boolean; /** personal jargon, spelled as typed */ jargon: string[]; /** the language people speak in meetings */ spoken: import('./spoken').Spoken; /** default summary language; '' follows the meeting */ summaryLanguage: string; /** remember voices across meetings (opt-in) */ speakerProfiles: boolean; /** speakers are separated in the transcript (opt-in; off: plain Them heads like before) */ speakerDiarization: boolean; /** summaries wait for speaker labels (opt-in) */ speakerLabels: boolean }>
     /** blank goes back to the Mac's full name */
     setName(name: string): Promise<void>
     setTheme(v: Theme): Promise<void>
@@ -309,6 +323,10 @@ export type YogurtApi = {
     setRecordingReminder(on: boolean): Promise<void>
     setIncludeRecordingCredit(on: boolean): Promise<void>
     setKeepRecordings(on: boolean): Promise<void>
+    /** speakers are separated in the transcript after a meeting */
+    setSpeakerDiarization(on: boolean): Promise<void>
+    /** summaries wait until voices are named and lines are assigned */
+    setSpeakerLabels(on: boolean): Promise<void>
     /** saves the whole list; gives back what was kept */
     setJargon(terms: string[]): Promise<string[]>
     /** the interface language ('' follows the Mac); gives back the one now in use */
@@ -318,6 +336,8 @@ export type YogurtApi = {
     onLanguage(cb: (locale: string) => void): () => void
     /** English only or Multi-language: the meeting being recorded and the next ones */
     setSpoken(v: import('./spoken').Spoken): Promise<void>
+    /** remember voices across meetings (opt-in) */
+    setSpeakerProfiles(on: boolean): Promise<void>
   }
   /** finds meetings by date, title, attendees, folders, transcript and notes; nothing typed: the latest. folder: only the meetings in it */
   search: { query(q: string, folder?: string, people?: Person[]): Promise<SearchResult[]>; people(): Promise<Person[]> }
@@ -422,9 +442,14 @@ export type NoteView = {
   rewrittenFrom?: string
   /** My notes were just changed from the iPhone: what they replaced, so an open editor with no edits since takes them */
   mineFrom?: string
+  /** the summary waits for speaker labels: voices without names or lines without a speaker */
+  labels?: boolean
   /** latest acknowledged edit revision on each side; failed text is retained in main and overlaid above */
   saves?: Partial<Record<NoteSide, NoteSaveResult>>
 }
+
+/** a remembered voice: name and how many meetings it was heard in (the voiceprint itself never crosses IPC) */
+export type VoiceProfile = { id: string; name: string; meetings: number; createdAt: number; updatedAt: number }
 
 /** The words of a chunk still being spoken, read quickly: shown at once in a lighter style, replaced by the final line */
 /**

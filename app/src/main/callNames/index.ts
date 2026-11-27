@@ -217,8 +217,10 @@ export function hookCallNames(p: {
       await p.transcribed(m.id)
       const tl = timeline(s)
       const o = { myNames: p.myNames() }
-      // every line of the other side again, now that the whole call is known
-      const lines = p.store.segments(m.id, { hidden: true }).filter((x) => x.track === 'them' && !s.priorLines.has(x.id))
+      // every line of the other side again, now that the whole call is known. A line the diarizer put on a voice
+      // (speaker_key) keeps that voice's name: the call's names are the diarizer's evidence for naming a cluster,
+      // not a rename of one, and writing them here would leave one voice showing two names, and one name on two voices.
+      const lines = p.store.segments(m.id, { hidden: true }).filter((x) => x.track === 'them' && !x.speakerKey && !s.priorLines.has(x.id))
       const names = lines.map((x) => ({ id: x.id, speaker: nameFor(x, tl, o) }))
       const moved = names.filter((x, i) => x.speaker !== lines[i].speaker)
       if (moved.length) p.store.setSegmentSpeakers(moved)

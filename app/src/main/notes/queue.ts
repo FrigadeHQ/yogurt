@@ -6,7 +6,7 @@ import { CONTEXT } from '../../shared/engine-protocol'
  * meeting records, and gives way to anything else (run again after: what it did stays done).
  * folder: one folder proposal per meeting, with the same priority and recording policy as indexing.
  */
-export type JobKind = 'names' | 'enhance' | 'chat' | 'readahead' | 'index' | 'folder'
+export type JobKind = 'names' | 'enhance' | 'chat' | 'readahead' | 'index' | 'folder' | 'diarize'
 /** A job gets a signal: aborted when a recording starts on a small Mac. It is then run again from the start later. */
 export type Job = (signal: AbortSignal) => Promise<void>
 
@@ -68,6 +68,8 @@ export function createQueue(o: {
 
   const backlog = () => o.backlogMs?.() ?? 0
   const allowed = (kind: JobKind) => {
+    // diarization is a local cli, not the notes model: it waits for no download, only for the recording on a small machine
+    if (kind === 'diarize') return o.smallMac ? !o.recording() : true
     if (o.modelReady && !o.modelReady()) return false
     if ((kind === 'index' || kind === 'folder') && o.recording()) return false
     if (kind === 'readahead' && !o.smallMac && backlog() > READ_BACKLOG_MS) return false
@@ -100,8 +102,10 @@ export function createQueue(o: {
   const pump = () => {
     watching()
     if (running) return
-    // a question first (someone is waiting on it), reading ahead only once nothing else can run
+    // a question first (someone is waiting on it), then a meeting's voices before the notes that describe them,
+    // reading ahead only once nothing else can run
     let i = waiting.findIndex((e) => e.kind === 'chat' && allowed(e.kind))
+    if (i === -1) i = waiting.findIndex((e) => e.kind === 'diarize' && allowed(e.kind))
     if (i === -1) i = waiting.findIndex((e) => e.kind !== 'readahead' && e.kind !== 'index' && e.kind !== 'folder' && allowed(e.kind))
     if (i === -1) i = waiting.findIndex((e) => e.kind === 'readahead' && allowed(e.kind))
     if (i === -1) i = waiting.findIndex((e) => (e.kind === 'index' || e.kind === 'folder') && allowed(e.kind))

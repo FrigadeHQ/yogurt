@@ -48,7 +48,7 @@ describe('toClipboard', () => {
 
 const meeting: Meeting = {
   id: 'm1', title: 'Weekly sync', startedAt: new Date(2026, 9, 29, 10, 30).getTime(), endedAt: null, eventId: null, app: null,
-  attendees: [{ name: 'Maya Chen', email: null }, { name: 'Sam', email: 's@x.io' }], state: 'done', language: null, titleSource: 'user',
+  attendees: [{ name: 'Maya Chen', email: null }, { name: 'Sam', email: 's@x.io' }], state: 'done', language: null, titleSource: 'user', diarizeError: null, voicesAllowed: false,
 }
 const seg = (track: 'me' | 'them', startMs: number, text: string, speaker: string | null = null): Segment => ({ id: startMs, meetingId: 'm1', track, startMs, endMs: startMs + 2000, text, speaker })
 const segments = [seg('me', 0, 'Hi all.'), seg('me', 3000, 'Starting now.'), seg('them', 6000, 'Hello *there*', 'Maya'), seg('them', 70_000, 'Hm.')]

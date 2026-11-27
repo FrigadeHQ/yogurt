@@ -29,6 +29,10 @@ export function hookNotes(p: {
   transcribed: (id: string) => Promise<void>
   /** the names from the call are on its lines (callNames) */
   named?: (id: string) => Promise<void>
+  /** the meeting's diarization has settled (successful or not); the notes wait for it with no cap */
+  diarized?: (id: string) => Promise<void>
+  /** speaker labels complete (or the person released the meeting); the notes wait for it with no cap */
+  labeled?: (id: string) => Promise<void>
   /** the language most of the meeting was in, when the transcription knows it */
   language: (id: string) => string | null
   /** read when writing, so regenerations use the current default */
@@ -45,6 +49,8 @@ export function hookNotes(p: {
   peopleRewriteMs?: number
   /** the person's own name, so the invite's other person is known */
   me?: () => string
+  /** the summary of this meeting still waits for speaker labels (shown instead of a plain getting-ready state) */
+  labelPending?: (id: string) => boolean
 }) {
   const stopped = new Set<string>()
   const stopping = new Map<string, Promise<void>>()
@@ -79,7 +85,7 @@ export function hookNotes(p: {
     const saved = edits.get(id)
     const saves = saved && Object.fromEntries(Object.entries(saved).map(([side, edit]) => [side, { revision: edit.revision, status: edit.status, ...(edit.reason ? { reason: edit.reason } : {}) }]))
     const membership = n.enhanced != null && !rewriteTimers.has(id) && !rewriting.has(id) ? changedMembership(id) : null
-    return { meetingId: id, mine: n.mine, enhanced: n.enhanced, edited: n.edited, status: l?.status ?? (n.enhanced != null ? 'done' : 'idle'), draft: l?.draft ?? '', peopleChanged: membership != null && !p.store.attendeeNoticeDismissed(id, membership), ...(l?.part ? { part: l.part } : {}), ...(l?.step ? { step: l.step } : {}), ...(saves ? { saves } : {}) }
+    return { meetingId: id, mine: n.mine, enhanced: n.enhanced, edited: n.edited, status: l?.status ?? (n.enhanced != null ? 'done' : 'idle'), draft: l?.draft ?? '', peopleChanged: membership != null && !p.store.attendeeNoticeDismissed(id, membership), ...(l?.part ? { part: l.part } : {}), ...(l?.step ? { step: l.step } : {}), ...(saves ? { saves } : {}), ...(p.labelPending?.(id) ? { labels: true } : {}) }
   }
   const set = (id: string, status: NoteStatus, draft = '', part?: { part: number; of: number }, step?: 'loading') => { live.set(id, { status, draft, part, step }); p.send(view(id)) }
 
@@ -243,6 +249,11 @@ export function hookNotes(p: {
       await p.transcribed(m.id)
       // the names from the call are quick; a stuck pass never holds the notes back for long
       if (p.named) await upTo(p.named(m.id), p.namesWaitMs ?? NAMES_WAIT_MS)
+      // the notes describe the voices, so a diarization still running is waited for however long it takes;
+      // a broken one settles its promise too and must not keep the notes away
+      if (p.diarized) await p.diarized(m.id).catch(() => {})
+      // the settings switch: an unlabeled meeting waits for its speaker names, however long it takes
+      if (p.labeled) await p.labeled(m.id).catch(() => {})
       if (!resuming.has(m.id) && afterStop.get(m.id) === done) await queueWrite(m.id)
     }).catch((e) => console.error('notes after the meeting failed', e)).finally(() => { if (afterStop.get(m.id) === done) afterStop.delete(m.id) })
     afterStop.set(m.id, done)
@@ -354,7 +365,16 @@ export function hookNotes(p: {
     },
     /** at launch: meetings a quit or crash left without notes get them now, one at a time */
     recover() {
-      for (const m of p.store.unenhancedMeetings()) if (!live.has(m.id) && !resuming.has(m.id)) void queueWrite(m.id)
+      for (const m of p.store.unenhancedMeetings()) if (!live.has(m.id) && !resuming.has(m.id)) {
+        // an import that has not transcribed yet is held by the queue, not by the labels: it is not shown as waiting
+        if (m.transcriptionPending && (m.transcriptionState || m.source === 'audio-file')) continue
+        // held or not, the meeting shows as getting ready; a label wait keeps it there with the banner up
+        set(m.id, 'waiting')
+        void (async () => {
+          if (p.labeled) await p.labeled(m.id).catch(() => {})
+          queueWrite(m.id)
+        })()
+      }
     },
   }
   return notes

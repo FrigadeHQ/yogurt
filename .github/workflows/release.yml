@@ -102,6 +102,7 @@ jobs:
       - name: Test
         run: pnpm -r test
       - name: Build
+        # native (scripts/native.sh) builds the helpers, whisper-server and nemo-speech; the Vulkan SDK isn't needed on a Mac
         run: |
           pnpm -C app run native
           pnpm -C app exec electron-vite build
@@ -122,6 +123,11 @@ jobs:
           SIGNED: ${{ secrets.MAC_CERT_P12_BASE64 != '' }}
         run: |
           node app/scripts/asar-check.mjs app/dist/mac-arm64/Yogurt.app/Contents/Resources/app.asar
+          # the diarizer is one of the helpers, and sherpa's binding must sit outside the asar to load its dylibs
+          test -x app/dist/mac-arm64/Yogurt.app/Contents/Resources/bin/nemo-speech
+          # its CLI resolves a --model against the index beside it: without it diarization fails before it reads anything
+          test -f app/dist/mac-arm64/Yogurt.app/Contents/Resources/share/nemo-speech/model-index.json
+          find app/dist/mac-arm64/Yogurt.app/Contents/Resources/app.asar.unpacked -name sherpa-onnx.node -quit | grep -q .
           pnpm -C app exec electron scripts/engine-smoke.cjs dist/mac-arm64/Yogurt.app/Contents/Resources/app.asar
           if [ "$SIGNED" = true ]; then codesign --verify --deep --strict app/dist/mac-arm64/Yogurt.app; fi
       # the app inside is notarized by electron-builder; the disk image is checked when downloaded too

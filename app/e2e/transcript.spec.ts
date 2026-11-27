@@ -1,13 +1,14 @@
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
-import { mkdtempSync } from 'node:fs'
+import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 const main = join(import.meta.dirname, '../out/main/index.js')
 const zoom = { bundleId: 'us.zoom.xos', name: 'zoom.us' }
 
-async function launch(env: Record<string, string> = {}) {
+async function launch(env: Record<string, string> = {}, settings?: Record<string, unknown>) {
   const userData = mkdtempSync(join(tmpdir(), 'yogurt-e2e-'))
+  if (settings) writeFileSync(join(userData, 'settings.json'), JSON.stringify(settings))
   const app = await electron.launch({ args: [main], env: { ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: userData, ...env } })
   const page = await app.firstWindow()
   await expect(page.getByTestId('home')).toBeVisible()
@@ -28,7 +29,7 @@ const windowOf = async (app: ElectronApplication, hash: string): Promise<Page> =
 const whoOf = (page: Page, text: string) => page.getByTestId('transcript-turn').filter({ has: page.getByTestId('transcript-line').filter({ hasText: text }) }).getByTestId('transcript-who')
 
 test('live, each turn says who: You on the mic, and the name the call app shows talking on the other side', async () => {
-  const { app, page } = await launch()
+  const { app, page } = await launch({}, { speakerDiarization: true })
   try {
     await fake(app, 'signals', { micApps: [zoom], events: [] })
     await (await windowOf(app, '#prompt')).getByTestId('prompt-take-notes').click()
@@ -50,8 +51,9 @@ test('live, each turn says who: You on the mic, and the name the call app shows 
     await page.getByTestId('note-transcript-toggle').click()
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', /^(stopped|done)$/)
     await expect(whoOf(page, 'Can we go over the launch plan')).toHaveText('You', { timeout: 15_000 })
-    await expect(whoOf(page, 'The site goes live on Tuesday')).toHaveText('Ann Lee')
-    await expect(whoOf(page, 'She will send a draft')).toHaveText('Bo Park')
+    await expect(whoOf(page, 'The site goes live on Tuesday')).toHaveText('Ann Lee', { timeout: 15_000 })
+    // Bo Park's 1.5 s claim is under the 2 s bar: that voice stays Speaker 1 rather than take a name it barely held
+    await expect(whoOf(page, 'She will send a draft')).toHaveText('Speaker 1', { timeout: 15_000 })
     // everyone seen in the call is at the meeting now, the person using Yogurt left out
     const id = (await page.evaluate(() => window.yogurt.nav.current())).slice('/note/'.length)
     await expect.poll(async () => (await page.evaluate((i) => window.yogurt.meetings.get(i), id))?.attendees.map((a) => a.name)).toEqual(['Ann Lee', 'Bo Park', 'Cy Dao'])
@@ -166,8 +168,8 @@ test('transcription trouble shows in the widget in plain words', async () => {
   } finally { await app.close() }
 })
 
-test('without Accessibility the other side is Them, live and after; nothing is guessed', async () => {
-  const { app, page } = await launch({ YOGURT_FAKE_AX: 'denied' })
+test('without Accessibility the other side is Them live; after, its voices are numbered, never guessed', async () => {
+  const { app, page } = await launch({ YOGURT_FAKE_AX: 'denied' }, { speakerDiarization: true })
   try {
     await fake(app, 'signals', { micApps: [zoom], events: [] })
     await (await windowOf(app, '#prompt')).getByTestId('prompt-take-notes').click()
@@ -180,9 +182,10 @@ test('without Accessibility the other side is Them, live and after; nothing is g
     await expect(page.getByTestId('note-summary-tab')).toHaveAttribute('aria-selected', 'true')
     await page.getByTestId('note-transcript-toggle').click()
     await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', /^(stopped|done)$/)
-    // both lines of the other side are one Them turn
-    await expect(whoOf(page, 'The site goes live on Tuesday')).toHaveText('Them')
-    await expect(page.getByTestId('transcript')).not.toContainText(/Ann Lee|Bo Park|Speaker/)
+    // the two voices heard are numbered by diarization; no one is named
+    await expect(whoOf(page, 'The site goes live on Tuesday')).toHaveText('Speaker 1', { timeout: 15_000 })
+    await expect(whoOf(page, 'She will send a draft')).toHaveText('Speaker 2', { timeout: 15_000 })
+    await expect(page.getByTestId('transcript')).not.toContainText(/Ann Lee|Bo Park/)
   } finally { await app.close() }
 })
 

@@ -79,6 +79,16 @@ export interface CatalogFile {
   bytes: number
 }
 
+/** One downloaded model file (diarization GGUF, speaker ONNX) */
+export interface CatalogModelFile {
+  id: string
+  name: string
+  license: string
+  url: string
+  sha256: string
+  bytes: number
+}
+
 /** The whisper-server program Yogurt builds itself */
 export interface CatalogBinary {
   id: string
@@ -100,6 +110,9 @@ export interface Catalog {
   asr: CatalogAsr[]
   whisperServer: CatalogBinary
   embedding: CatalogEmbedding
+  diarization: CatalogModelFile
+  speaker: CatalogModelFile
+  diarizationRuntime: CatalogBinary
 }
 
 export interface AsrChoice {

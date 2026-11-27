@@ -160,6 +160,13 @@ export async function exportBackup(o: { db: DatabaseSync; meetingsDir: string; o
     for (const r of snap.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'companion\\_%' ESCAPE '\\'").all() as Row[]) snap.exec(`DROP TRIGGER "${String(r.name)}"`)
     snap.exec('DROP TABLE IF EXISTS companion_changes; DROP TABLE IF EXISTS companion_devices; DROP TABLE IF EXISTS companion_meta')
     if (columns(snap, 'meetings').some((c) => c.name === 'trashed_at')) snap.prepare('DELETE FROM meetings WHERE trashed_at IS NOT NULL').run()
+    // voiceprints never leave this computer: the snapshot drops them, keeping cluster rows without their profile
+    if (tables(snap).has('voice_profiles')) {
+      snap.exec('PRAGMA foreign_keys = OFF')
+      if (columns(snap, 'meeting_speakers').some((c) => c.name === 'profile_id')) snap.exec('UPDATE meeting_speakers SET profile_id = NULL')
+      snap.exec('DROP TABLE IF EXISTS voice_profiles')
+      snap.exec('PRAGMA foreign_keys = ON')
+    }
     // and VACUUM so none of it is left in the file's free pages
     snap.exec('VACUUM')
     const ids = (snap.prepare('SELECT id FROM meetings').all() as Row[]).map((r) => r.id).filter(isId)

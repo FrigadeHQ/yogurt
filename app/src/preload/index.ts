@@ -101,6 +101,9 @@ const api: YogurtApi = {
     stop: id => ipcRenderer.invoke('transcript:stop',id),
     get: (id, o) => ipcRenderer.invoke('transcript:get', id, o),
     restore: (id, ids) => ipcRenderer.invoke('transcript:restore', id, ids),
+    renameSpeaker: (id, key, name) => ipcRenderer.invoke('transcript:rename-speaker', id, key, name),
+    mergeSpeaker: (id, from, into) => ipcRenderer.invoke('transcript:merge-speaker', id, from, into),
+    assignSpeaker: (id, segment, key) => ipcRenderer.invoke('transcript:assign-speaker', id, segment, key),
     onSegment: (cb) => {
       const on = (_e: unknown, seg: Parameters<typeof cb>[0]) => cb(seg)
       ipcRenderer.on('transcript:segment', on)
@@ -116,6 +119,16 @@ const api: YogurtApi = {
       ipcRenderer.on('transcript:partial', on)
       ipcRenderer.send('transcript:subscribe')
       return () => { ipcRenderer.removeListener('transcript:partial', on) }
+    },
+  },
+  voices: {
+    list: () => ipcRenderer.invoke('voices:list'),
+    delete: (id) => ipcRenderer.invoke('voices:delete', id),
+    deleteAll: () => ipcRenderer.invoke('voices:delete-all'),
+    onChange: (cb) => {
+      const on = () => cb()
+      ipcRenderer.on('voices:changed', on)
+      return () => { ipcRenderer.removeListener('voices:changed', on) }
     },
   },
   notes: {
@@ -134,6 +147,7 @@ const api: YogurtApi = {
     dismissPeopleChange: (id, membership) => ipcRenderer.invoke('notes:dismiss-people-change', id, membership),
     writeAgain: (id, note) => ipcRenderer.invoke('notes:write-again', id, note),
     stop: (id) => ipcRenderer.invoke('notes:stop', id),
+    releaseLabels: (id) => ipcRenderer.invoke('notes:release-labels', id),
     onChange: (cb) => {
       const on = (_e: unknown, v: NoteView) => cb(v)
       ipcRenderer.on('notes:changed', on)
@@ -274,6 +288,9 @@ const api: YogurtApi = {
     setSummaryLanguage: (id) => ipcRenderer.invoke('settings:summary-language', id),
     onLanguage: (cb) => { const f = (_e: unknown, locale: string) => cb(locale); ipcRenderer.on('settings:language', f); return () => { ipcRenderer.off('settings:language', f) } },
     setSpoken: (v) => ipcRenderer.invoke('settings:spoken', v),
+    setSpeakerProfiles: (on) => ipcRenderer.invoke('settings:set-speaker-profiles', on),
+    setSpeakerDiarization: (on) => ipcRenderer.invoke('settings:set-speaker-diarization', on),
+    setSpeakerLabels: (on) => ipcRenderer.invoke('settings:set-speaker-labels', on),
   },
   search: { query: (q, folder, people) => ipcRenderer.invoke('search:query', q, folder, people), people: () => ipcRenderer.invoke('search:people') },
   folders: {

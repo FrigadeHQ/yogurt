@@ -3,6 +3,7 @@
 // app keeps the mic as it is. It speaks exactly what app/native/yogurt-audio (the Mac's) speaks:
 //   yogurt-audio record --dir DIR [--part N --start-ms X] [--mic-muted] [--mic UID] [--speech LOCALE]
 //   yogurt-audio join --dir DIR | inspect --dir DIR | compact --dir DIR --out STAGING
+//   yogurt-audio decode FILE (16 kHz mono f32 on stdout) | decode --in FILE --out WAV
 //   yogurt-audio speech-locales | speech-install LOCALE | mic-devices
 // Files are Ogg Opus (48 kHz mono, 20 kb/s): DIR/me.ogg and DIR/them.ogg, or me.N.ogg and them.N.ogg for part N,
 // on meeting time (gaps are silence). stdout: JSON lines; a pcm line is followed by n float32 little-endian samples:
@@ -12,6 +13,7 @@
 // mute ID and unmute ID reply with {"t":"mic-muted","id":ID,"muted":bool,"ms":meeting time}.
 // stdin: pause, resume, stop (end of input also stops), mic UID or mic auto. A mic's UID is its PulseAudio source name.
 
+mod decode;
 mod join;
 mod json;
 mod ogg_opus;
@@ -359,12 +361,18 @@ fn main() {
         "speech-locales" => { println!(r#"{{"available":false,"supported":[],"installed":[]}}"#); return }
         "speech-install" => { println!(r#"{{"installed":false}}"#); return }
         "mic-devices" => { mic_devices(); return }
-        "decode" if args.len() >= 3 => { decode(&args[2]); return }
+        // decode FILE: the file as 16 kHz mono f32 on stdout (backfill, #30)
+        "decode" if args.len() >= 3 && arg_value(&args, "--in").is_none() => { decode(&args[2]); return }
+        // decode --in FILE --out WAV: the file as a 16 kHz mono wav (diarization)
+        "decode" => {
+            let (Some(input), Some(out)) = (arg_value(&args, "--in"), arg_value(&args, "--out")) else { fail("usage: yogurt-audio decode FILE | decode --in FILE --out WAV") };
+            std::process::exit(decode::decode_file(Path::new(&input), Path::new(&out)));
+        }
         _ => {}
     }
     let dir_arg = arg_value(&args, "--dir");
     if args.len() < 4 || !matches!(sub, "record" | "join" | "inspect" | "compact") || dir_arg.is_none() {
-        fail("usage: yogurt-audio record --dir DIR [--part N --start-ms X] [--mic UID] [--speech LOCALE] | join --dir DIR | inspect --dir DIR | compact --dir DIR --out STAGING | decode FILE | speech-locales | speech-install LOCALE | mic-devices");
+        fail("usage: yogurt-audio record --dir DIR [--part N --start-ms X] [--mic UID] [--speech LOCALE] | join --dir DIR | inspect --dir DIR | compact --dir DIR --out STAGING | decode FILE | decode --in FILE --out WAV | speech-locales | speech-install LOCALE | mic-devices");
     }
     let dir = PathBuf::from(dir_arg.unwrap());
     match sub {

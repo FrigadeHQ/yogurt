@@ -6,6 +6,8 @@ const HELPERS = {
   'yogurt-audio': 'entitlements.audio.plist',
   'yogurt-mac': 'entitlements.mac-helper.plist',
   'whisper-server': 'entitlements.none.plist',
+  // nemo-speech reads the meeting's wav and its model, and uses the GPU (Metal): like whisper-server, nothing to entitle
+  'nemo-speech': 'entitlements.none.plist',
   'yogurt-mcp': 'entitlements.none.plist',
 }
 

@@ -119,8 +119,10 @@ jobs:
         run: pnpm -r test
       - name: Build
         # the Rust helpers (scripts/native.mjs); whisper-server is left out here (fake mode doesn't use it), the preview builds and native-whisper.yml build it
+        # nemo-speech is left out the same way (fake mode doesn't use it either)
         env:
           YOGURT_NO_WHISPER: '1'
+          YOGURT_NO_NEMO: '1'
         run: pnpm -C app build
       - name: The helpers run
         shell: bash

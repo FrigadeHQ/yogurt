@@ -85,8 +85,31 @@ export function withLive<L extends Said>(lines: L[], live: LiveSaid[]): Array<L 
 }
 
 /**
+ * The lines the store has now, replacing the ones on screen. Diarization re-splits the lines it saves, so the row it
+ * replaced is gone from the store; keeping it would show its words again as Andere beside the named lines. A line that
+ * arrived while the saved ones were read has no saved line yet and stays.
+ */
+export function mergeSaved<L extends { track: string; startMs: number; endMs: number }>(shown: L[], saved: L[]): L[] {
+  const key = (l: L) => `${l.track}:${l.startMs}`
+  const fresh = new Map(saved.map((l) => [key(l), l]))
+  // a zero-length line (a word whisper left without times) still covers its millisecond
+  const span = (l: L) => [l.startMs, l.endMs > l.startMs ? l.endMs : l.startMs + 1] as const
+  const replaced = (l: L) => {
+    const [a, b] = span(l)
+    return saved.some((s) => {
+      if (s.track !== l.track) return false
+      const [c, d] = span(s)
+      return c < b && a < d
+    })
+  }
+  const kept = shown.filter((l) => fresh.has(key(l)) || !replaced(l))
+  const have = new Set(kept.map(key))
+  return [...kept.map((l) => fresh.get(key(l)) ?? l), ...saved.filter((l) => !have.has(key(l)))].sort((a, b) => a.startMs - b.startMs)
+}
+
+/**
  * Keys for live words, so a word that stays on screen keeps its element (and only new words fade in): the new list is
- * lined up with the old one where it best carries on (its first words may have gone into a final line).
+ * lined up with the old list where it best carries on (its first words may have gone into a final line).
  */
 export function stableKeys(prev: string[], prevKeys: number[], next: string[], nextKey: number): { keys: number[]; next: number } {
   let at = 0, best = 0

@@ -36,10 +36,12 @@ export type SetupDeps = {
   upgradePreference?: { load(): boolean; save(skipped: boolean): void }
   /** Windows and Linux: the speed check picks the speech model (a Mac never has it: turbo, as always) */
   speed?: SpeedDeps
+  /** speakers are separated in meetings (the settings switch); the diarization model only downloads when they are */
+  diarizeWanted?: () => boolean
 }
 
 /** Where the models ended up, for the parts of the app that use them; llm once the first notes model is in (after ready) */
-export type Installed = { asr: string; /** whisper runs on the processor: it kept up there and not on the graphics */ asrCpu?: true; /** whisper can't keep up live here: meetings are transcribed after they end */ asrAfterMeeting?: true; /** smaller speech models already on disk, best first: one takes over when the processor is too slow for asr (#156) */ smallerAsr?: string[]; llm?: string; recommendedLlm?: string; /** meaning search across meetings; word search works without it */ embed?: string }
+export type Installed = { asr: string; /** whisper runs on the processor: it kept up there and not on the graphics */ asrCpu?: true; /** whisper can't keep up live here: meetings are transcribed after they end */ asrAfterMeeting?: true; /** smaller speech models already on disk, best first: one takes over when the processor is too slow for asr (#156) */ smallerAsr?: string[]; llm?: string; recommendedLlm?: string; /** meaning search across meetings; word search works without it */ embed?: string; /** who spoke, once it is in (diarization) */ diarization?: string }
 
 /** the first notes model keeps being tried after ready: a minute, five, then every ten (a download picks up where it stopped) */
 const NOTES_RETRY_MS = [60_000, 5 * 60_000, 10 * 60_000]
@@ -79,6 +81,10 @@ export class SetupController {
   private embedListeners = new Set<() => void>()
   /** the embedding model's download, while it keeps being tried after a failure */
   private embedding: Promise<void> | undefined
+  /** the diarization model's download, while it keeps being tried after a failure */
+  private diarization: Promise<void> | undefined
+  /** the diarization model to fetch, once voice separation is turned on */
+  private diarItem: Item | undefined
   /** Try again after an error: time the speech models again instead of trusting what was stored */
   private recheck = false
 
@@ -180,11 +186,12 @@ export class SetupController {
   /** called once the embedding model is on the Mac (at ready when it already was) */
   onEmbedModel(cb: () => void) { this.embedListeners.add(cb); return () => this.embedListeners.delete(cb) }
 
-  /** Resolves when the notes and embedding models have finished downloading (or the bigger one gave up). Ready never waits for them. */
+  /** Resolves when the notes, embedding and diarization models have finished downloading (or the bigger one gave up). Ready never waits for them. */
   async idle(): Promise<void> {
     await this.background
     await this.upgradeDownload
     await this.embedding
+    await this.diarization
   }
 
   async start() {
@@ -212,7 +219,7 @@ export class SetupController {
       const starter = llm.starter && llm.starter.build.sizeGB < llm.recommended.build.sizeGB ? llm.starter : llm.recommended
       const later = starter === llm.recommended ? undefined : llm.recommended
       console.info('NOTES', `notes models for this computer: ${starter.model.id}${later ? `, then ${later.model.id}` : ''} (graphics ${hw.gpu.kind}${hw.gpu.name ? ` ${hw.gpu.name}` : ''}, ${hw.totalRamGB} GB)`)
-      const dirs = { asr: join(this.deps.modelsDir, 'asr'), llm: join(this.deps.modelsDir, 'llm'), embed: join(this.deps.modelsDir, 'embed') }
+      const dirs = { asr: join(this.deps.modelsDir, 'asr'), llm: join(this.deps.modelsDir, 'llm'), embed: join(this.deps.modelsDir, 'embed'), diarization: join(this.deps.modelsDir, 'diarization'), speaker: join(this.deps.modelsDir, 'speaker') }
 
       // Speech first: ready (recording works) once it is in. The notes models come after.
       let asr = pickAsr(hw, catalog)
@@ -226,6 +233,7 @@ export class SetupController {
       const skipped = this.deps.upgradePreference?.load() ?? false
       const e = catalog.embedding
       const embedItem: Item = { url: e.url, sha256: e.sha256, bytes: e.bytes, dir: dirs.embed, fileName: fileNameFor(e.url) }
+      const diarItem: Item = { url: catalog.diarization.url, sha256: catalog.diarization.sha256, bytes: catalog.diarization.bytes, dir: dirs.diarization, fileName: fileNameFor(catalog.diarization.url) }
 
       // Windows and Linux: the speed check's stored pick for this computer, or the models it will time, best first
       const speed = hw.os === 'darwin' ? undefined : this.deps.speed
@@ -242,7 +250,7 @@ export class SetupController {
       const waitFor: Item[] = [asrItem(speed ? keep ?? candidates[0] : asr.model)]
       const total = waitFor.reduce((n, i) => n + i.bytes, 0)
       // room for the first notes model too, so it never runs out of disk after ready
-      await this.checkDisk([...waitFor, ...(hasUpgrade ? [] : [starterItem]), embedItem])
+      await this.checkDisk([...waitFor, ...(hasUpgrade ? [] : [starterItem]), embedItem, diarItem])
 
       let done = 0
       const report = (item: Item, fraction: number) => this.set({ phase: 'downloading', fraction: Math.min(1, (done + item.bytes * fraction) / total) })
@@ -283,7 +291,8 @@ export class SetupController {
         if (isVerified(starterItem.dir, starterItem.fileName, this.sha(starterItem))) this.paths.llm = join(starterItem.dir, starterItem.fileName)
       }
       this.set({ phase: 'ready', fraction: 1, notesUpgradeBytes: bigger?.bytes, notesUpgradeSkipped: skipped, notesUpgradeInstalled: hasUpgrade })
-      this.startNotes(starterItem, embedItem)
+      this.diarItem = diarItem
+      this.startNotes(starterItem, embedItem, this.deps.diarizeWanted?.() === false ? undefined : diarItem)
     } catch (err) {
       console.error('setup failed', err)
       this.set({ phase: 'error', fraction: this._state.fraction, message: friendly(err) })
@@ -327,7 +336,7 @@ export class SetupController {
    * The first notes model downloads while Yogurt already records: it is tried until it lands (meetings recorded
    * meanwhile get their notes then). The bigger one follows.
    */
-  private startNotes(first: Item, embed: Item) {
+  private startNotes(first: Item, embed: Item, diar: Item | undefined) {
     this.background = (async () => {
       const waits = this.deps.notesRetryMs ?? NOTES_RETRY_MS
       // Waiting notes show whole percents; every 10% goes in the log.
@@ -361,6 +370,7 @@ export class SetupController {
       for (const l of this.notesListeners) { try { l() } catch (e) { console.error('notes model listener failed', e) } }
     })()
     this.background = this.background.then(() => this.startEmbedding(embed))
+    if (diar) this.background = this.background.then(() => this.startDiarization(diar))
     this.background = this.background.then(() => { if (this.backgroundItem) return this.startBackground(this.backgroundItem) })
   }
 
@@ -382,6 +392,41 @@ export class SetupController {
       }
     })()
   }
+
+  /** Voice separation was turned on after setup: the model downloads quietly, on its own, and nothing waits for it. */
+  ensureDiarization() {
+    if (!this.diarItem || this.diarization || this.deps.diarizeWanted?.() === false) return
+    this.background ??= Promise.resolve()
+    this.background = this.background.then(() => this.startDiarization(this.diarItem!))
+  }
+
+  /** The diarization model, after the embedding model. The chain never waits on it: it keeps being tried quietly, on its own. */
+  private async startDiarization(item: Item) {
+    const landed = (path: string) => { if (this.paths) this.paths = { ...this.paths, diarization: path } }
+    try { landed(await this.fetch(item)); return } catch (err) { console.warn('the diarization model did not download yet, trying again', err) }
+    const waits = this.deps.notesRetryMs ?? NOTES_RETRY_MS
+    this.diarization = (async () => {
+      for (let i = 0; ; i++) {
+        await new Promise((r) => setTimeout(r, waits[Math.min(i, waits.length - 1)]))
+        try { landed(await this.fetch(item)); return } catch (err) { console.warn('the diarization model did not download yet, trying again', err) }
+      }
+    })()
+  }
+
+  /** The speaker embedding model, fetched the first time voice recognition is turned on. One retry, then the caller carries on without profiles — and can ask again. */
+  async ensureSpeakerModel(): Promise<string> {
+    this.speakerPromise ??= (async () => {
+      try {
+        const c = (await this.deps.getCatalog()).speaker
+        const item: Item = { url: c.url, sha256: c.sha256, bytes: c.bytes, dir: join(this.deps.modelsDir, 'speaker'), fileName: fileNameFor(c.url) }
+        try { return await this.fetch(item) } catch (err) { console.warn('the speaker model did not download, trying once more', err) }
+        // await, so a second failure reaches the catch below and the cache clears (a bare return adopts the promise outside the try)
+        return await this.fetch(item)
+      } catch (err) { this.speakerPromise = undefined; throw err }
+    })()
+    return this.speakerPromise
+  }
+  private speakerPromise: Promise<string> | undefined
 
   /** The bigger notes model downloads while Yogurt is already usable. Failing here is not an error screen. */
   private startBackground(item: Item): Promise<void> {

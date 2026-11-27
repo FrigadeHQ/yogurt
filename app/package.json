@@ -19,7 +19,8 @@
     "electron-updater": "6.8.10",
     "ical.js": "2.2.1",
     "libsodium-wrappers-sumo": "0.8.4",
-    "node-llama-cpp": "3.22.1"
+    "node-llama-cpp": "3.22.1",
+    "sherpa-onnx-node": "2.0.1"
   },
   "devDependencies": {
     "@animate-ui/react": "2.0.0",

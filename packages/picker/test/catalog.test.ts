@@ -45,6 +45,25 @@ describe('validateCatalog', () => {
     expect(validateCatalog({ ...shipped, embedding: { ...embedding, sha256: '' } }, licenses).ok).toBe(false)
     expect(validateCatalog({ ...shipped, embedding: { ...embedding, license: 'CC-BY-NC-4.0' } }, licenses).ok).toBe(false)
   })
+  it('pins the diarization and speaker models with sha256, size and an allowed license', () => {
+    const r = validateCatalog(real, licenses)
+    if (!r.ok) throw new Error(r.errors.join('; '))
+    expect(r.catalog.diarization.bytes).toBe(107012128)
+    expect(r.catalog.diarization.sha256).toMatch(sha)
+    expect(r.catalog.speaker.bytes).toBe(28281164)
+    expect(r.catalog.speaker.sha256).toMatch(sha)
+  })
+  it('rejects a diarization or speaker model with a disallowed license', () => {
+    const diarization = shipped.diarization as Record<string, unknown>
+    expect(validateCatalog({ ...shipped, diarization: { ...diarization, license: 'CC-BY-NC-4.0' } }, licenses).ok).toBe(false)
+    const speaker = shipped.speaker as Record<string, unknown>
+    expect(validateCatalog({ ...shipped, speaker: { ...speaker, sha256: '' } }, licenses).ok).toBe(false)
+  })
+  it('takes a bundled diarization runtime: nothing to download', () => {
+    const r = validateCatalog(real, licenses)
+    if (!r.ok) throw new Error(r.errors.join('; '))
+    expect(r.catalog.diarizationRuntime.bundled).toBe(true)
+  })
   it('rejects an ASR model without a sha256', () => {
     const asr = (shipped.asr as Record<string, unknown>[]).map((a) => ({ ...a, sha256: '' }))
     expect(validateCatalog({ ...shipped, asr }, licenses).ok).toBe(false)

@@ -289,6 +289,28 @@ describe('store', () => {
     // words before the last are whole words
     expect(s.search('rev budget', 10)).toEqual([])
   })
+
+  it('assigns an unclaimed them line to a speaker by hand', () => {
+    const s = fresh()
+    const m = s.createMeeting({ ...base, startedAt: 1 })
+    s.addSegments([
+      { meetingId: m.id, track: 'them', startMs: 0, endMs: 1000, text: 'said', speaker: 'Ann Lee', speakerKey: 'v1' },
+      { meetingId: m.id, track: 'them', startMs: 2000, endMs: 3000, text: 'unclaimed', speaker: null, speakerKey: null },
+      { meetingId: m.id, track: 'me', startMs: 500, endMs: 800, text: 'mine', speaker: 'me', speakerKey: null },
+    ])
+    s.db.exec("INSERT INTO meeting_speakers (meeting_id, key, start_ms, end_ms) VALUES ('" + m.id + "', 'v1', 0, 1000), ('" + m.id + "', 'v2', 2000, 3000)")
+
+    expect(s.assignSegment(m.id, 2, 'v1')).toBe(true)
+    const rows = s.segments(m.id).filter(x => x.track === 'them')
+    expect(rows.map(x => [x.speakerKey, x.speaker])).toEqual([['v1', 'Ann Lee'], ['v1', 'Ann Lee']])
+
+    // unknown segment, unknown key, hidden and me rows are refused
+    expect(s.assignSegment(m.id, 999, 'v1')).toBe(false)
+    expect(s.assignSegment(m.id, 3, 'v9')).toBe(false)
+
+    // the search index still finds the line after the update
+    expect((s.db.prepare("SELECT text FROM segments_fts WHERE segments_fts MATCH 'unclaimed'").all() as Array<{ text: unknown }>).map(r => String(r.text))).toEqual(['unclaimed'])
+  })
 })
 
 it('deletes the lines given (echoes found after the meeting) and nothing else; search forgets them', () => {

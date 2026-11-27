@@ -217,6 +217,26 @@ describe('hookCallNames', () => {
     expect(s.store.segments(s.m.id).map((line) => line.speaker)).toEqual(['Ann Lee', 'Bo Park'])
   })
 
+  // the diarizer names a voice for its whole cluster (speaker_key): the call's names are its evidence, not a rename
+  it('the names pass keeps the diarizer\'s name on a clustered line, and names only the lines no voice claimed', async () => {
+    const s = setup()
+    s.start(); s.audio(10_000, 2_000_100)
+    // diarization has run: the first line belongs to voice v1, the second line is on no cluster
+    s.store.applyDiarization(s.m.id, {
+      deleteIds: [],
+      insert: [
+        { meetingId: s.m.id, track: 'them', startMs: 11_000, endMs: 13_000, text: 'Clustered line.', speaker: 'Speaker 1', speakerKey: 'v1' },
+        { meetingId: s.m.id, track: 'them', startMs: 14_000, endMs: 16_000, text: 'Plain line.', speaker: null, speakerKey: null },
+      ],
+      speakers: [{ key: 'v1', speaker: 'Speaker 1', startMs: 11_000, endMs: 13_000 }],
+    })
+    for (let t = 2_000_000; t < 2_020_000; t += 500) s.emit(zoomLine(t, ['Alex Morgan', 'Bo Park'], 'Bo Park'))
+    s.stop(); s.transcribed(); await s.hook.finished(s.m.id)
+    expect(s.store.segments(s.m.id).map((line) => [line.speakerKey, line.speaker])).toEqual([['v1', 'Speaker 1'], [null, 'Bo Park']])
+    // the names that landed are told to the app, which is what wakes the notes held for labels and quiets the tray
+    expect(s.changed).toEqual([s.m.id])
+  })
+
   it('reads the meeting\'s app while it records, and a line of the other side gets the name talking then', () => {
     const s = setup()
     s.start()
