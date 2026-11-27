@@ -10,12 +10,26 @@ const MIN_ECHO_TOKENS = 2
 const LONG_ECHO_TOKENS = 4
 /** whisper cuts a read-back off mid-word: the line's last word may be the start of the prompt's */
 const MIN_CUT_CHARS = 3
+/** a loose read-back: at least this many words, nearly all of them the prompt's */
+const LOOSE_ECHO_TOKENS = 4
+const LOOSE_ECHO_SHARE = 0.75
+/** a word and the prompt's are one when one starts the other and the shorter is at least this long ("Fundacion", "Fundacionalba") */
+const MIN_STEM_CHARS = 4
+
+/** without accents: whisper writes the prompt's "Fundación" as "Fundacion" */
+const folded = (w: string) => w.normalize('NFD').replace(/\p{M}/gu, '')
+const sameWord = (a: string, b: string) => {
+  const x = folded(a), y = folded(b)
+  if (x === y) return true
+  const [short, long] = x.length <= y.length ? [x, y] : [y, x]
+  return short.length >= MIN_STEM_CHARS && long.startsWith(short)
+}
 
 /** The line is the prompt, or a stretch of two or more of its words in order, with no words of its own (one, in a long stretch) */
 export function isPromptEcho(text: string, prompt: string): boolean {
   const t = tokens(text)
   const p = tokens(prompt)
-  if (t.length < MIN_ECHO_TOKENS || t.length > p.length + 1) return false
+  if (t.length < MIN_ECHO_TOKENS || t.length > 2 * p.length + 1) return false
   const same = (k: number, w: string) => w === t[k] || (k === t.length - 1 && t[k].length >= MIN_CUT_CHARS && w.startsWith(t[k]))
   // the longest stretch of the line that reads the prompt word for word
   let run = 0
@@ -24,7 +38,12 @@ export function isPromptEcho(text: string, prompt: string): boolean {
     while (a + n < t.length && i + n < p.length && same(a + n, p[i + n])) n++
     run = Math.max(run, n)
   }
-  return run === t.length || (run >= LONG_ECHO_TOKENS && t.length - run <= 1)
+  if (run === t.length || (run >= LONG_ECHO_TOKENS && t.length - run <= 1)) return true
+  // a loose read-back, seen on Spanish meetings: the prompt's words mangled ("Fundacionalba" as "Fundacion", "Fund"),
+  // a made-up word or two among them, or read twice ("With Marta of Fundacion files. With Marta of Fundacion files.")
+  if (t.length < LOOSE_ECHO_TOKENS) return false
+  const theirs = t.filter((w) => p.some((q) => sameWord(w, q))).length
+  return theirs / t.length >= LOOSE_ECHO_SHARE
 }
 
 /** whisper's stock lines on quiet audio, from video subtitles; whole lines only */

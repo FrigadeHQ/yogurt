@@ -24,6 +24,21 @@ describe('prompt echo', () => {
   it('is a long read-back with one stray word', () => {
     expect(isPromptEcho('to Omar and Sam Lee of Northwind.', standup)).toBe(true)
   })
+  // the kinds of read-back seen on Spanish meetings, with made-up names
+  const spanish = 'Revisión trimestral. With Marta of Fundacionalba and Acme. We talk about Orion, OKR and Lumen.'
+  it('is a loose read-back: accents gone, words cut or made up, or read twice', () => {
+    expect(isPromptEcho('With Marta of Fundacion and Acme.', spanish)).toBe(true)
+    expect(isPromptEcho('With Marta of Fundación and Acme.', spanish)).toBe(true)
+    expect(isPromptEcho('With Marta of Fundacion files.', spanish)).toBe(true)
+    expect(isPromptEcho('With Marta of Fundacion files. With Marta of Fundacion files.', spanish)).toBe(true)
+    expect(isPromptEcho('With Marta of Fundacionalba and Acme. With Marta of Fund', spanish)).toBe(true)
+    expect(isPromptEcho('With Marta of Funding, we talk about Orion, OKR and Lumen', spanish)).toBe(true)
+  })
+  it('keeps real Spanish lines that use the prompt\'s names', () => {
+    expect(isPromptEcho('Con Marta de Fundación Alba y Acme hablamos de esto.', spanish)).toBe(false)
+    expect(isPromptEcho('Orion va a tener un núcleo común el año que viene.', spanish)).toBe(false)
+    expect(isPromptEcho('Acme y OKR están en el grupo.', spanish)).toBe(false)
+  })
   it('keeps real lines that use a name or two', () => {
     expect(isPromptEcho('Omar Reyes for some reason.', standup)).toBe(false)
     expect(isPromptEcho('Thanks Dana.', standup)).toBe(false)
