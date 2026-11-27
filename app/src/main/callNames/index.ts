@@ -1,6 +1,6 @@
 import type { RecordingStart } from '../meeting'
 import type { Meeting, Store } from '../store'
-import { nameFor, othersIn, type CallSample } from './attribute'
+import { markedOther, nameFor, norm, othersIn, type CallSample } from './attribute'
 import { readCall, summarize, type AxWindow, type CallKind } from './parse'
 
 /**
@@ -63,9 +63,11 @@ const RECENT_MS = 60_000
 const MAX_RESTARTS = 20
 /** changes of who talks written to the log, per meeting (enough to check a real call, never a flood) */
 const LOGGED_CHANGES = 30
+/** how long after a caption last moved it still counts as being written (Zoom writes one every 0.62 s, median) */
+const CAPTION_LIVE_MS = 1500
 
 type Sample = Omit<CallSample, 'ms'> & { t: number }
-type Session = { app: string | null; ids: string[]; pids?: number[]; heardAt: number; quietMs: number; restarts: number; samples: Sample[]; priorLines: Set<number>; watch?: { stop(): void }; everyApp: boolean; offset?: number; startedAt: number; pictured: boolean; missPictured?: boolean; picturedPeople?: boolean; picturedTalking?: boolean; errors: Set<string>; last: string; logged: number; /** a call window with people was read (Zoom, Teams) */ windowSeen?: CallKind; /** since when the readings say that window is gone, and the last one that said so */ goneSince?: number; goneAt?: number }
+type Session = { app: string | null; ids: string[]; pids?: number[]; heardAt: number; quietMs: number; restarts: number; samples: Sample[]; priorLines: Set<number>; watch?: { stop(): void }; everyApp: boolean; offset?: number; startedAt: number; pictured: boolean; missPictured?: boolean; picturedPeople?: boolean; picturedTalking?: boolean; errors: Set<string>; last: string; logged: number; /** a call window with people was read (Zoom, Teams) */ windowSeen?: CallKind; /** since when the readings say that window is gone, and the last one that said so */ goneSince?: number; goneAt?: number; /** the newest caption's mark at the last reading, and when it last moved, so a frozen caption is not read as speech */ caption?: string; captionAt?: number }
 
 export function hookCallNames(p: {
   store: Pick<Store, 'meeting' | 'segments' | 'setSegmentSpeakers' | 'updateMeeting'>
@@ -134,7 +136,7 @@ export function hookCallNames(p: {
       if (!s.errors.has(why)) { s.errors.add(why); log(`call names: ${why}`) }
       return
     }
-    const { byMute, ...r } = readCall(kind, l.windows)
+    const { byMute, caption, ...r } = readCall(kind, l.windows)
     // The first reading of each meeting goes to the log in short, so a real call shows what its app gives. Teams opens
     // the mic on its join screen, minutes before the call (#138), so the first reading with people in it goes there too.
     // Meet's lobby shows people too (#112), so the first reading with someone marked talking goes there as well, long
@@ -151,7 +153,20 @@ export function hookCallNames(p: {
     // names nobody while someone may be hidden.
     const most = Math.max(r.participants.length, ...s.samples.filter((x) => x.ok !== false && l.t - x.t <= RECENT_MS).map((x) => x.participants.length))
     if (byMute && most > r.participants.length) r.speaking = []
-    s.samples.push({ t: l.t, ...r, most })
+    // A caption that moved in the last CAPTION_LIVE_MS is being written, so it says who is talking now. A frozen one
+    // says only who talked last: on a real call a row sat unchanged for 45 readings while the person who left it was
+    // silent. Zoom writes a growing row every 0.62 s (median, 13-person call), more slowly than the 400 ms readings, so
+    // "moved since the last reading" missed about one reading in three while someone was still talking; a short window
+    // keeps those without trusting a row that has stopped. The first caption of a session is not trusted, since it may
+    // have been on screen long before the reading, and a reading without a caption keeps the last mark: the caption
+    // area can be missing from one reading and a frozen row coming back is not a row that moved.
+    if (caption) {
+      if (s.caption !== undefined && caption.mark !== s.caption) s.captionAt = l.t
+      s.caption = caption.mark
+    }
+    const live = caption && s.captionAt !== undefined && l.t - s.captionAt <= CAPTION_LIVE_MS
+    const speaking = r.speaking.length ? r.speaking : live ? [caption.who] : []
+    s.samples.push({ t: l.t, ...r, speaking, most })
     // Zoom's meeting window and Teams' Leave button are there only during a call. A Meet tab is not followed: switching
     // tabs hides it from the reader, and the browser lets go of the mic as soon as its call ends.
     if (kind === 'zoom' || kind === 'teams') {
@@ -159,7 +174,7 @@ export function hookCallNames(p: {
       windowBack(s)
     }
     // counts only: main.log is pasted into public issues, and names belong to the people in the call
-    const said = `${r.speaking.length} of ${r.participants.length}${r.me ? ', me known' : ''}`
+    const said = `${speaking.length} of ${r.participants.length}${r.me ? ', me known' : ''}`
     if (said !== s.last && s.logged < LOGGED_CHANGES) { s.logged++; log(`call names: ${kind} talking ${said}`) }
     s.last = said
   }
@@ -224,10 +239,20 @@ export function hookCallNames(p: {
       if (moved.length) p.store.setSegmentSpeakers(moved)
       // everyone seen in the call is one of the people at the meeting
       const cur = p.store.meeting(m.id)
-      const known = new Set(cur?.attendees.map((a) => a.name.toLocaleLowerCase()) ?? [])
-      const added = othersIn(tl, o).filter((n) => !known.has(n.toLocaleLowerCase()))
+      // the same name the calendar already gave: "Okafor, Riley" from Exchange is the "Riley Okafor" the call shows
+      const known = new Set(cur?.attendees.map((a) => norm(a.name)) ?? [])
+      const added = othersIn(tl, o).filter((n) => !known.has(norm(n)))
       if (cur && added.length) p.store.updateMeeting(m.id, { attendees: [...cur.attendees, ...added.map((name) => ({ name, email: null }))] })
-      log(`call names: ${s.samples.length} readings, ${names.filter((x) => x.speaker).length} of ${lines.length} lines of the other side named, ${added.length} people added`)
+      // A call that stayed Them throughout says nothing about why, and the readings are gone once the session ends.
+      // Counts only, no names: main.log is pasted into public issues. Enough to tell "the app was never read" from
+      // "it was read, and it marked nobody on the other side". Left off when nothing was read at all, where the
+      // leading "0 readings" already says it, and kept to the numbers the per-reading lines above do not total.
+      const read = s.samples.filter((x) => x.ok !== false)
+      const most = read.reduce((n, x) => Math.max(n, x.participants.length), 0)
+      const why = lines.length && s.samples.length && !names.some((x) => x.speaker)
+        ? `; nobody named: ${read.length} of ${s.samples.length} readings read the app, at most ${most} in the call, ${markedOther(read, o)} marked the other side talking`
+        : ''
+      log(`call names: ${s.samples.length} readings, ${names.filter((x) => x.speaker).length} of ${lines.length} lines of the other side named, ${added.length} people added${why}`)
       if (moved.length || added.length) p.changed(m.id)
     })().catch((e) => console.error('call names after the meeting failed', e)).finally(() => { sessions.delete(m.id); finals.delete(m.id) })
     finals.set(m.id, final)
