@@ -9,6 +9,7 @@ export function createSavedTranscriptions(d: {
   store: Store; ready: () => boolean; recording: () => boolean
   /** its live transcript is still being finished: reading the saved recording now would race it (#127) */
   live?: (id: string) => boolean
+  resolveModel?: (id: string, signal: AbortSignal) => Promise<string>
   tracks: (id: string) => Promise<Partial<Record<Track,AsyncIterable<Float32Array>>>>
   transcribe: (id: string, tracks: Partial<Record<Track,AsyncIterable<Float32Array>>>, options: RecordedOptions) => Promise<boolean>
   draft?: (id:string) => void
@@ -32,16 +33,23 @@ export function createSavedTranscriptions(d: {
         if(d.live?.(id))continue
         if(d.recording()){set(id,'waiting-recording');continue}
         if(!d.ready()){set(id,'waiting-model');continue}
-        const job={id,abort:new AbortController(),stopped:false};running=job;set(id,'transcribing')
+        const model = current.transcriptionAgain ? current.transcriptionModel : undefined
+        const job={id,abort:new AbortController(),stopped:false};running=job;set(id,model?'waiting-model':'transcribing')
         try {
           const tracks=await d.tracks(id)
           if(!Object.keys(tracks).length)throw new Error('No saved audio')
+          const modelPath = model ? await d.resolveModel?.(model, job.abort.signal) : undefined
+          if (model) {
+            job.abort.signal.throwIfAborted()
+            if (!modelPath) throw new Error('Unavailable speech model')
+            set(id, 'transcribing')
+          }
           const segments=meeting.transcriptionAgain?d.store.transcriptionDraft(id):d.store.segments(id,{hidden:true})
           const fromMs:Partial<Record<Track,number>>={}
           for(const segment of segments)fromMs[segment.track]=Math.max(fromMs[segment.track]??0,segment.endMs)
           // a phone recording is heard in the language the phone said; everything else follows the spoken setting
           const language=phoneLanguage(current)
-          const complete=await d.transcribe(id,tracks,{signal:job.abort.signal,fromMs,...(language?{language}:{}),...(meeting.transcriptionAgain?{save:segs=>{d.store.addTranscriptionDraft(id,segs);d.draft?.(id)}}:{})})
+          const complete=await d.transcribe(id,tracks,{signal:job.abort.signal,fromMs,...(modelPath?{modelPath}:{}),...(language?{language}:{}),...(meeting.transcriptionAgain?{save:segs=>{d.store.addTranscriptionDraft(id,segs);d.draft?.(id)}}:{})})
           if(!d.store.meeting(id)||d.store.meeting(id)?.trashedAt!=null)continue
           if(job.abort.signal.aborted){if(job.stopped)stopped(id);else set(id,d.recording()?'waiting-recording':'queued');continue}
           if(!complete)throw new Error('Saved transcription incomplete')
@@ -62,11 +70,11 @@ export function createSavedTranscriptions(d: {
     } finally {draining=false;if(!quitting&&!d.recording()&&d.ready()&&d.store.untranscribedMeetings().some(m=>m.transcriptionState==='queued'))queueMicrotask(()=>void pump())}
   }
   return {
-    async start(id:string,again=false) {
+    async start(id:string,again=false,model?:string) {
       const meeting=d.store.meeting(id)
       if(!meeting||meeting.trashedAt!=null||meeting.state==='recording'||running?.id===id)return false
       if(again)d.store.beginTranscriptionReplacement(id)
-      d.store.updateMeeting(id,{transcriptionPending:true,transcriptionState:'queued'});d.changed(id);void pump();return true
+      d.store.updateMeeting(id,{transcriptionPending:true,transcriptionState:'queued',...(again?{transcriptionModel:model??null}:{})});d.changed(id);void pump();return true
     },
     stop(id:string) {
       const meeting=d.store.meeting(id)

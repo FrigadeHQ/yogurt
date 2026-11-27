@@ -124,7 +124,8 @@ export type YogurtApi = {
     draft(meetingId:string):Promise<Segment[]>
     onDraft(cb:(meetingId:string)=>void):()=>void
     onReplaced(cb:(meetingId:string)=>void):()=>void
-    run(meetingId:string,again:boolean):Promise<boolean>
+    models(): Promise<import('./transcription').RetranscriptionModel[]>
+    run(meetingId:string,again:boolean,model?:string):Promise<boolean>
     stop(meetingId:string):Promise<void>
     /** the meeting's lines; hidden: the echo lines hidden after the meeting too (each marked hidden); last: only the latest lines */
     get(meetingId: string, o?: { hidden?: boolean; last?: number }): Promise<Segment[]>

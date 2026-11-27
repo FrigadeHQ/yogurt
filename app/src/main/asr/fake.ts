@@ -1,3 +1,4 @@
+import { basename } from 'node:path'
 import type { Chunk } from './chunker'
 import type { Line } from './transcribe'
 import { fakePrompts } from '../fake'
@@ -18,9 +19,10 @@ const SAYS = {
   ],
 } as const
 
-export async function fakeTranscribe(c: Chunk, o?: { partial?: boolean }, prompt = '', language?: string): Promise<Line[]> {
+export async function fakeTranscribe(c: Chunk, o?: { partial?: boolean }, prompt = '', language?: string, model?: string): Promise<Line[]> {
   fakePrompts.whisper.push(prompt)
   fakePrompts.languages.push(language ?? 'auto')
+  if (model) fakePrompts.models.push(basename(model))
   const near = SAYS[c.track].reduce((a, b) => (Math.abs(b.at - c.startMs) < Math.abs(a.at - c.startMs) ? b : a))
   // a partial: the first words, about as many as have been said so far
   const words = near.text.split(' ')

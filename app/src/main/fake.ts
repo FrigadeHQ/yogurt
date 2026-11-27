@@ -132,7 +132,7 @@ export const fakeHelper: Helper = async (args) => {
 }
 
 /** Fake mode: every prompt whisper and the notes model were given, for tests to read (prompts()) */
-export const fakePrompts = { whisper: [] as string[], notes: [] as string[], /** what was read in ahead of a prompt */ preloads: [] as string[], /** the language whisper was told for each chunk ('auto': detect) */ languages: [] as string[] }
+export const fakePrompts = { whisper: [] as string[], notes: [] as string[], /** what was read in ahead of a prompt */ preloads: [] as string[], /** the language whisper was told for each chunk ('auto': detect) */ languages: [] as string[], models: [] as string[] }
 
 /** Fake mode: a clock tests can move forward, so "30 seconds without the mic" does not take 30 seconds. YOGURT_FAKE_CALL_GONE_MS shortens the wait before a recording stops by itself when its call ends */
 let skew = 0
