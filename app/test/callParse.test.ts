@@ -521,3 +521,44 @@ describe('summarize: a short picture of the tree for the log', () => {
     expect(s.split('\n').filter((l) => l.startsWith('window ') && !l.includes('minimized'))).toHaveLength(1)
   })
 })
+
+// ---- Slack: shapes from two projects that read Slack 4.53 (see parse.ts), with made-up names ----
+const slackCell = (name: string, id: string, talking = false, label = `View ${name}'s profile`) => node('AXCell', { d: label, i: `huddle-grid-gridcell-${id}`, c: ['p-huddle_peer_tile'] },
+  ...(talking ? [node('AXGroup', { c: ['p-huddle_peer_tile__mic_overlay', 'p-huddle_peer_tile__overlay--active_speaker'] })] : []))
+const huddle = (...cells: AxNode[]) => win(node('AXTable', { c: ['p-huddle_grid_component'] },
+  node('AXRow', {}, ...cells),
+  // Chromium lists every cell again under its column
+  node('AXColumn', {}, ...cells)))
+
+describe('Slack huddle', () => {
+  const me = slackCell('Sam Rivera', 'self_U1')
+
+  it('names the marked tile, each person once, and knows my own tile by its id', () => {
+    const r = readCall('slack', [huddle(me, slackCell('Ann Lee', 'U2', true), slackCell('James', 'U3', false, 'View James\u2019 profile'))])
+    expect(r).toEqual({ speaking: ['Ann Lee'], participants: ['Sam Rivera', 'Ann Lee', 'James'], me: 'Sam Rivera' })
+    expect(nameFor({ startMs: 0, endMs: 1000 }, [{ ms: 0, ...r }])).toBe('Ann Lee')
+  })
+
+  it('a muted mark is no talking mark', () => {
+    const muted = node('AXCell', { d: "View Bo Park's profile", i: 'huddle-grid-gridcell-U4', c: ['p-huddle_peer_tile'] }, node('AXGroup', { c: ['p-huddle_peer_tile__mic_overlay'] }))
+    expect(readCall('slack', [huddle(me, muted)]).speaking).toEqual([])
+  })
+
+  it('German Slack, as read from a huddle of one: the label is the title, the name overlay only says video and audio', () => {
+    const cell = node('AXCell', { t: 'Profil von Sam Rivera anzeigen', d: 'Profil von Sam Rivera anzeigen', i: 'huddle-grid-gridcell-self_U1', c: ['p-huddle_peer_tile'] },
+      node('AXButton', { t: 'Video ist aus, Audio ist an', c: ['p-huddle_peer_tile__name_overlay', 'p-huddle_peer_tile__name_overlay--unmuted'] }))
+    expect(readCall('slack', [huddle(cell)])).toEqual({ speaking: [], participants: ['Sam Rivera'], me: 'Sam Rivera' })
+  })
+
+  it('a label in a language not listed names nobody, and leaves no call of two', () => {
+    const r = readCall('slack', [huddle(me, slackCell('Ann Lee', 'U2'), slackCell('Bo Park', 'U3', true, 'unknown words Bo Park'))])
+    expect(r).toEqual({ speaking: [], participants: [], me: 'Sam Rivera' })
+    expect(nameFor({ startMs: 0, endMs: 1000 }, [{ ms: 0, ...r }])).toBeNull()
+  })
+
+  it('the log keeps names and Slack user ids out', () => {
+    const log = summarize([huddle(me, slackCell('Ann Lee', 'U2ABC', true))])
+    expect(log).not.toMatch(/Ann|Sam|U1|U2ABC/)
+    expect(log).toContain('huddle-grid-gridcell-self_…')
+  })
+})

@@ -87,6 +87,7 @@ describe('watchIds: only the call app the meeting is in', () => {
     expect(watchIds('Edge')).toContain('msedge.exe')
     expect(watchIds('Safari')).toEqual(['com.apple.Safari'])
     expect(watchIds('FaceTime')).toEqual([])
+    expect(watchIds('Slack')).toEqual(['com.tinyspeck.slackmacgap'])
     expect(watchIds(null)).toContain('us.zoom.xos')
     expect(watchIds(null)).toContain('org.mozilla.firefox')
     expect(watchIds(null)).toContain('teams-for-linux')
@@ -531,6 +532,20 @@ describe('callWindow: the call window seen, then gone', () => {
     s.emit({ t: 1_030_000, error: 'not-trusted' })
     s.at(1_040_000); s.emit({ t: 1_040_000, error: 'not-trusted' })
     expect(s.hook.callWindow(s.m.id)).toEqual({ goneMs: 0 })
+  })
+  it('a Slack huddle ends once its grid is gone, in any language; while Slack still shows the huddle bar it does not', () => {
+    const s = setup({ app: 'Slack' })
+    s.start()
+    const app = 'com.tinyspeck.slackmacgap'
+    const tile: AxNode = { r: 'AXCell', t: 'a label in a language not listed', i: 'huddle-grid-gridcell-self_U1', c: ['p-huddle_peer_tile'] }
+    s.at(1_000_000); s.emit({ t: 1_000_000, app, windows: [{ tree: { r: 'AXTable', c: ['p-huddle_grid_component'], k: [tile] } }] })
+    // the huddle's window closed, the huddle going on: the helper says hidden
+    for (let t = 1_000_500; t <= 1_030_000; t += 500) { s.at(t); s.emit({ t, error: 'no-call-window (Slack: in a huddle, no participant grid)', hidden: true }) }
+    expect(s.hook.callWindow(s.m.id)).toEqual({ goneMs: 0 })
+    // left: neither grid nor bar
+    for (let t = 1_030_500; t <= 1_038_500; t += 500) { s.at(t); s.emit({ t, error: 'no-call-window (Slack: no huddle in a window)' }) }
+    expect(s.hook.callWindow(s.m.id)).toEqual({ goneMs: 8_000 })
+    expect(s.logs).toContain('call names: the slack call window went away')
   })
   it('a Meet tab is not followed: switching tabs hides the call from the reader, and the browser lets go of the mic as soon as the call ends', () => {
     const s = setup({ app: 'Chrome' })
