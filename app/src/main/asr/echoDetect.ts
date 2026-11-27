@@ -13,11 +13,18 @@ import type { Moment } from './echo'
  * voice for a moment in an otherwise quiet 2 s), and the leak's level on the mic tells the person's own voice apart
  * from their copy. The envelopes of the last two hours are kept (10 ms blocks, 2.9 MB a track) and every verdict given
  * is remembered, so the sweep after the meeting gets the same answers for lines judged live.
+ *
+ * The two tracks can also sit apart on meeting time, the mic a steady way behind theirs for a whole meeting (830 ms in
+ * #181, on built-in speakers). Windows that follow at none of the room's lags are looked at again out to 2 s. Over that
+ * many lags chance gives plenty of windows a lag, each a different one, so an offset is believed only when a good share
+ * of the windows agree on one lag, strongly; from then on the meeting is judged at it (`offsetMs`).
  */
 const BLOCK_MS = 10
 const WINDOW_BLOCKS = 200
 const WINDOW_MS = WINDOW_BLOCKS * BLOCK_MS
 const MAX_LAG_BLOCKS = 30
+/** the far search, for tracks that sit apart: 310 ms to 2 s */
+const FAR_MAX_LAG_BLOCKS = 200
 /** two hours of envelope; a line is judged within seconds of being said and its verdict kept */
 const RING_BLOCKS = 2 * 3600 * 100
 /** them is talking in a window from this mean level up; the mic shows something from this up */
@@ -32,6 +39,12 @@ const MIN_ACTIVE = 10
 const MIN_RATE = 0.4
 const MIN_STEADY = 0.7
 const STRONG_RATE = 0.55
+/**
+ * an offset between the tracks: this many windows looked at far, a good share of them (MIN_RATE) at one lag (within a
+ * block), most of the far-correlated ones (MIN_STEADY) there, and following closely on average
+ */
+const FAR_MIN_ACTIVE = 15
+const FAR_STRONG = 0.7
 /** a line is judged on its own audio only with this much of their speech inside it (blocks of 10 ms) */
 const LINE_MIN_SPEAKING = 20
 /** a lag behind this share of the correlated windows is one the room has (a second path from the speakers) */
@@ -56,6 +69,10 @@ export class EchoDetector {
   private correlated = new Set<number>()
   /** every span judged, by `start:end`: the sweep after the meeting asks about lines whose audio may be gone */
   private verdicts = new Map<string, Moment>()
+  /** windows the room's lags did not explain, waiting for the mic to reach 2 s past them; and what the far search found in them */
+  private farPending: number[] = []
+  private farActive = 0
+  private far: Array<{ lag: number; corr: number; ratio: number; win: number }> = []
   /** long lines copied almost word for word, found by the words (echo.ts); counted, but no evidence on their own */
   verbatim = 0
 
@@ -83,6 +100,9 @@ export class EchoDetector {
       if (this.latest.them > this.nextCheck + 2 * WINDOW_BLOCKS) { this.nextCheck += WINDOW_BLOCKS; continue }
       break
     }
+    while (this.farPending.length && this.latest.me >= this.farPending[0] + WINDOW_BLOCKS + FAR_MAX_LAG_BLOCKS - 1) this.checkFar(this.farPending.shift()!)
+    // a mic that stopped: an hour of windows at most waits for it
+    if (this.farPending.length > 1800) this.farPending.shift()
   }
 
   /** still in the ring: recorded, and within the last two hours */
@@ -107,13 +127,67 @@ export class EchoDetector {
     let best = 0, bestLag = 0
     for (let lag = 0; lag <= MAX_LAG_BLOCKS; lag++) { const c = pearson(t, pick(me[lag])); if (c > best) { best = c; bestLag = lag } }
     if (best >= CORRELATED) { this.lags.push(bestLag); this.ratios.push(mean(pick(me[bestLag])) / mean(t)); this.correlated.add(Math.floor(from / WINDOW_BLOCKS)) }
+    else this.farPending.push(from)
   }
+
+  /** an active window the room's lags did not explain, against the mic 310 ms to 2 s later */
+  private checkFar(from: number) {
+    const t: number[] = [], idx: number[] = []
+    for (let i = from; i < from + WINDOW_BLOCKS; i++) { const v = this.at('them', i); if (v >= THEM_LOUD) { t.push(v); idx.push(i) } }
+    if (t.length < 20) return
+    this.farActive++
+    let best = 0, bestLag = 0, bestMe: number[] = []
+    for (let lag = MAX_LAG_BLOCKS + 1; lag <= FAR_MAX_LAG_BLOCKS; lag++) {
+      const me = idx.map((i) => this.at('me', i + lag))
+      const c = pearson(t, me)
+      if (c > best) { best = c; bestLag = lag; bestMe = me }
+    }
+    if (best >= CORRELATED) this.far.push({ lag: bestLag, corr: best, ratio: mean(bestMe) / mean(t), win: Math.floor(from / WINDOW_BLOCKS) })
+  }
+
+  /** the far windows at the tracks' offset, when there is one */
+  private steadyFar(): typeof this.far {
+    // asked for every line in the sweep: worked out again only when a window has been added
+    const at = `${this.farActive}:${this.far.length}:${this.lags.length}`
+    if (this.steadyAt !== at) {
+      this.steadyAt = at; this.steadyMemo = this.findSteadyFar()
+      // the offset: the lag most of those windows found
+      const count = new Map<number, number>()
+      for (const f of this.steadyMemo) count.set(f.lag, (count.get(f.lag) ?? 0) + 1)
+      this.offsetMemo = [...count.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0]?.[0] ?? 0
+    }
+    return this.steadyMemo
+  }
+  private steadyAt = ''
+  private steadyMemo: typeof this.far = []
+  private offsetMemo = 0
+  private findSteadyFar(): typeof this.far {
+    if (this.farActive < FAR_MIN_ACTIVE || this.far.length / this.farActive < MIN_RATE) return []
+    const count = new Map<number, number>()
+    for (const f of this.far) count.set(f.lag, (count.get(f.lag) ?? 0) + 1)
+    // the lag with most windows within a block of it
+    let mode = 0, most = 0
+    for (const l of count.keys()) { const n = (count.get(l - 1) ?? 0) + count.get(l)! + (count.get(l + 1) ?? 0); if (n > most) { most = n; mode = l } }
+    const steady = this.far.filter((f) => Math.abs(f.lag - mode) <= 1)
+    if (steady.length / this.farActive < MIN_RATE || steady.length / this.far.length < MIN_STEADY) return []
+    if (mean(steady.map((f) => f.corr)) < FAR_STRONG) return []
+    // the room's own lags explain more of the meeting: no offset
+    if (this.lags.length >= steady.length) return []
+    return steady
+  }
+
+  /** the tracks' offset (blocks), the mic behind theirs; 0 when they are together */
+  private offset(): number { this.steadyFar(); return this.offsetMemo }
+
+  /** how far the mic track sits behind theirs on meeting time, when it is past the room's own lags (ms); undefined: together */
+  offsetMs(): number | undefined { const o = this.offset(); return o ? o * BLOCK_MS : undefined }
 
   /** a line of theirs found copied almost word for word on the mic (kept for the record; the audio decides) */
   noteVerbatim() { this.verbatim++ }
 
   /** echo has been heard in this meeting: a steady share of the active windows, at one lag */
   present(): boolean {
+    if (this.offset()) return true
     if (this.active < MIN_ACTIVE || this.lags.length / this.active < MIN_RATE) return false
     if (this.lags.length / this.active >= STRONG_RATE) return true
     const count = new Map<number, number>()
@@ -124,16 +198,27 @@ export class EchoDetector {
   }
 
   /** the mic followed the system track in the window holding this moment */
-  correlatedAt(ms: number): boolean { return this.correlated.has(Math.floor(ms / WINDOW_MS)) }
+  correlatedAt(ms: number): boolean {
+    const steady = this.steadyFar()
+    // the mic at ms copies their window from the offset earlier
+    if (steady.length) { const w = Math.floor((ms - this.offset() * BLOCK_MS) / WINDOW_MS); return steady.some((f) => f.win === w) }
+    return this.correlated.has(Math.floor(ms / WINDOW_MS))
+  }
 
-  /** the lags the room has shown (blocks) */
+  /** the lags the room has shown (blocks), or the tracks' offset */
   private knownLags(): number[] {
+    const o = this.offset()
+    if (o) return [o]
     const count = new Map<number, number>()
     for (const l of this.lags) count.set(l, (count.get(l) ?? 0) + 1)
     return [...count.entries()].filter(([, n]) => n / this.lags.length >= KNOWN_LAG_SHARE).map(([l]) => l)
   }
   /** the leak's usual level on the mic, as a share of their track's: the middle of the correlated windows */
-  private gain(): number { const r = [...this.ratios].sort((a, b) => a - b); return r.length ? r[Math.floor(r.length / 2)] : 0 }
+  private gain(): number {
+    const steady = this.steadyFar()
+    const r = (steady.length ? steady.map((f) => f.ratio) : [...this.ratios]).sort((a, b) => a - b)
+    return r.length ? r[Math.floor(r.length / 2)] : 0
+  }
 
   /**
    * A mic line judged by its own audio. Over its span: does the mic follow their track at the room's lag (correlated);
@@ -143,13 +228,16 @@ export class EchoDetector {
    * audio older than two hours that was never asked about. Their voice hardly inside the line: none of these.
    */
   over(startMs: number, endMs: number): Moment | undefined {
-    const key = `${startMs}:${endMs}`
+    const shift = this.offset()
+    // a verdict given before the offset was known was judged at the wrong lag: asked again
+    const key = `${shift}:${startMs}:${endMs}`
     const known = this.verdicts.get(key)
     if (known) return known
     const lagsKnown = this.knownLags()
     if (!lagsKnown.length) return undefined
-    const a = Math.floor(startMs / BLOCK_MS), b = Math.ceil(endMs / BLOCK_MS)
-    if (!this.inRing('them', a) || !this.inRing('me', a)) return undefined
+    // their audio that the mic's span copies: the offset earlier
+    const a = Math.floor(startMs / BLOCK_MS) - shift, b = Math.ceil(endMs / BLOCK_MS) - shift
+    if (!this.inRing('them', a) || !this.inRing('me', a + shift)) return undefined
     const remember = (m: Moment) => { this.verdicts.set(key, m); return m }
     const speaking: number[] = []
     for (let i = a; i < b; i++) if (this.at('them', i) >= THEM_LOUD) speaking.push(i)
@@ -158,7 +246,7 @@ export class EchoDetector {
     const them: number[] = []
     for (let i = a; i < b; i++) them.push(this.at('them', i))
     let best = 0, bestLag = lagsKnown[0]
-    for (const known of lagsKnown) for (let lag = Math.max(0, known - LAG_SLACK); lag <= Math.min(MAX_LAG_BLOCKS, known + LAG_SLACK); lag++) {
+    for (const known of lagsKnown) for (let lag = Math.max(0, known - LAG_SLACK); lag <= Math.min(shift ? FAR_MAX_LAG_BLOCKS : MAX_LAG_BLOCKS, known + LAG_SLACK); lag++) {
       const me: number[] = []
       for (let i = a; i < b; i++) me.push(this.at('me', i + lag))
       const c = pearson(them, me)

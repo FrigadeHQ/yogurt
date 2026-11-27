@@ -7,7 +7,7 @@ const RATE = 16000
 function bursts(sec: number, amp = 0.3, seed = 1): Float32Array {
   const out = new Float32Array(Math.round(sec * RATE))
   let x = seed
-  const rnd = () => { x = (x * 1103515245 + 12345) & 0x7fffffff; return x / 0x7fffffff }
+  const rnd = () => { x = (Math.imul(x, 1103515245) + 12345) & 0x7fffffff; return x / 0x7fffffff }
   for (let i = 0; i < out.length; i++) {
     const t = i / RATE
     const on = (t % 0.5) < 0.3 ? 1 : 0.02
@@ -58,7 +58,7 @@ describe('echo evidence from the audio itself', () => {
 describe("round 2: the reviewer's detector probe", () => {
   /** speech-like bursts with random lengths and pauses, seeded */
   function speech(sec: number, seed: number, amp = 0.2) {
-    let x = seed; const rnd = () => { x = (x * 1103515245 + 12345) & 0x7fffffff; return x / 0x7fffffff }
+    let x = seed; const rnd = () => { x = (Math.imul(x, 1103515245) + 12345) & 0x7fffffff; return x / 0x7fffffff }
     const out = new Float32Array(sec * RATE); let i = 0
     while (i < out.length) {
       const on = Math.round((0.08 + rnd() * 0.25) * RATE), off = Math.round((0.03 + rnd() * (rnd() < 0.15 ? 0.6 : 0.12)) * RATE); const a = amp * (0.3 + rnd())
@@ -199,7 +199,7 @@ describe('round 4: a mic line judged by its own audio', () => {
 describe("round 5: the reviewer's probes: a real line of the person's is never hidden on audio", () => {
   const R = RATE
   function speech(sec: number, seed: number, amp = 0.2) {
-    let x = seed; const rnd = () => { x = (x * 1103515245 + 12345) & 0x7fffffff; return x / 0x7fffffff }
+    let x = seed; const rnd = () => { x = (Math.imul(x, 1103515245) + 12345) & 0x7fffffff; return x / 0x7fffffff }
     const out = new Float32Array(Math.round(sec * R)); let i = 0
     while (i < out.length) {
       const on = Math.round((0.08 + rnd() * 0.25) * R), off = Math.round((0.03 + rnd() * (rnd() < 0.15 ? 0.6 : 0.12)) * R); const a = amp * (0.3 + rnd())
@@ -209,7 +209,7 @@ describe("round 5: the reviewer's probes: a real line of the person's is never h
     return out
   }
   function music(sec: number, seed: number, amp = 0.15) {
-    let x = seed; const rnd = () => { x = (x * 1103515245 + 12345) & 0x7fffffff; return x / 0x7fffffff }
+    let x = seed; const rnd = () => { x = (Math.imul(x, 1103515245) + 12345) & 0x7fffffff; return x / 0x7fffffff }
     return Float32Array.from({ length: Math.round(sec * R) }, (_, i) => { const t = i / R; return amp * (0.6 + 0.4 * Math.abs(Math.sin(Math.PI * 2 * t))) * (Math.sin(2 * Math.PI * 220 * t) * 0.5 + (rnd() - 0.5)) })
   }
   const silence = (sec: number) => Float32Array.from({ length: Math.round(sec * R) }, (_, i) => 0.0005 * (((i * 7919) % 1000) / 1000 - 0.5))
@@ -250,7 +250,7 @@ describe("round 5: the reviewer's probes: a real line of the person's is never h
 describe("round 3: the reviewer's turn-taking probe (shortened)", () => {
   const SEC = 120
   function speech(sec: number, seed: number, amp = 0.2) {
-    let x = seed; const rnd = () => { x = (x * 1103515245 + 12345) & 0x7fffffff; return x / 0x7fffffff }
+    let x = seed; const rnd = () => { x = (Math.imul(x, 1103515245) + 12345) & 0x7fffffff; return x / 0x7fffffff }
     const out = new Float32Array(sec * RATE); let i = 0
     while (i < out.length) {
       const on = Math.round((0.08 + rnd() * 0.25) * RATE), off = Math.round((0.03 + rnd() * (rnd() < 0.15 ? 0.6 : 0.12)) * RATE); const a = amp * (0.3 + rnd())
@@ -261,7 +261,7 @@ describe("round 3: the reviewer's turn-taking probe (shortened)", () => {
   }
   /** who talks when: turns of 3 to 12 s, plus random stretches where both talk */
   function turns(seed: number, overlap: number) {
-    let x = seed; const rnd = () => { x = (x * 1103515245 + 12345) & 0x7fffffff; return x / 0x7fffffff }
+    let x = seed; const rnd = () => { x = (Math.imul(x, 1103515245) + 12345) & 0x7fffffff; return x / 0x7fffffff }
     const th = new Float32Array(SEC * RATE), me = new Float32Array(SEC * RATE); let i = 0, who = 0
     while (i < SEC * RATE) { const len = Math.round((3 + rnd() * 9) * RATE); for (let k = 0; k < len && i < SEC * RATE; k++, i++) { if (who === 0) th[i] = 1; else me[i] = 1 } who = 1 - who }
     for (let n = 0; n < overlap * 14; n++) { const at = Math.floor(rnd() * (SEC - 3) * RATE), len = Math.round((0.5 + rnd() * 2) * RATE); for (let k = 0; k < len; k++) { th[at + k] = 1; me[at + k] = 1 } }
@@ -285,4 +285,77 @@ describe("round 3: the reviewer's turn-taking probe (shortened)", () => {
     expect(heard).toBeGreaterThanOrEqual(9)
     // twelve simulated calls: plain number crunching that needs more than 5 s on a busy machine
   }, 30_000)
+})
+
+describe('#181: the mic track sits a steady way behind theirs (up to 2 s), not just the room\'s 0 to 300 ms', () => {
+  /** speech-like bursts with random lengths and pauses; Math.imul keeps the generator exact, so two seeds are two talkers */
+  function talk(sec: number, seed: number, amp = 0.2) {
+    let x = seed; const rnd = () => { x = (Math.imul(x, 1103515245) + 12345) & 0x7fffffff; return x / 0x7fffffff }
+    const out = new Float32Array(Math.round(sec * RATE)); let i = 0
+    while (i < out.length) {
+      const on = Math.round((0.08 + rnd() * 0.25) * RATE), off = Math.round((0.03 + rnd() * (rnd() < 0.15 ? 0.6 : 0.12)) * RATE); const a = amp * (0.3 + rnd())
+      for (let k = 0; k < on && i < out.length; k++, i++) out[i] = a * Math.sin(Math.PI * k / on) * (rnd() - 0.5) * 2
+      for (let k = 0; k < off && i < out.length; k++, i++) out[i] = 0.001 * (rnd() - 0.5)
+    }
+    return out
+  }
+  const add = (a: Float32Array, b: Float32Array) => a.map((v, i) => v + (b[i] ?? 0))
+  const run = (me: Float32Array, them: Float32Array) => { const d = new EchoDetector(); feed(d, me, them); return d }
+  const MEET = 90
+
+  it('an echo 830 ms behind is heard, at that lag, and judged there', () => {
+    const them = talk(MEET, 7919)
+    const d = run(leak(them, 0.3, 830), them)
+    expect(d.present()).toBe(true)
+    expect(d.offsetMs()).toBeGreaterThanOrEqual(820)
+    expect(d.offsetMs()).toBeLessThanOrEqual(840)
+    // a moment on the mic is the copy of their audio 830 ms earlier
+    expect(d.correlatedAt(40_830)).toBe(true)
+    expect(d.over(40_830, 43_830)).toMatchObject({ correlated: true, loud: true })
+  })
+  it('the sweep hides the mic copy of their line 830 ms later; the person\'s own line stays', () => {
+    const them = talk(MEET, 7919)
+    const d = run(leak(them, 0.3, 830), them)
+    const segs = [
+      { id: 1, track: 'them' as const, text: 'can you send me the report by friday please', startMs: 40_000, endMs: 40_900 },
+      { id: 2, track: 'me' as const, text: 'can you send me the report by friday please', startMs: 41_500, endMs: 42_300 },
+      { id: 3, track: 'me' as const, text: 'let me check the budget numbers first and get back', startMs: 60_000, endMs: 62_000 },
+    ]
+    expect(echoIds(segs, { echo: d.present(), correlatedAt: (ms) => d.correlatedAt(ms), over: (a, b) => d.over(a, b), offsetMs: d.offsetMs() })).toEqual([2])
+  })
+  it('the room\'s own lags (60 and 90 ms) still work, with no track offset', () => {
+    for (const lag of [60, 90]) {
+      const them = talk(MEET, 7919)
+      const d = run(leak(them, 0.3, lag), them)
+      expect(d.present(), `${lag} ms`).toBe(true)
+      expect(d.offsetMs(), `${lag} ms`).toBeUndefined()
+      expect(d.correlatedAt(40_000), `${lag} ms`).toBe(true)
+    }
+  })
+  it('two people talking over each other, twenty times, never give an offset, loud or quiet', { timeout: 30_000 }, () => {
+    for (const meAmp of [0.2, 0.002]) for (let seed = 1; seed <= 20; seed++) {
+      const d = run(talk(MEET, seed * 104729 + 3, meAmp), talk(MEET, seed * 7919))
+      expect(d.offsetMs(), `amp ${meAmp} seed ${seed}`).toBeUndefined()
+      expect(d.present(), `amp ${meAmp} seed ${seed}`).toBe(false)
+    }
+  })
+  it('their track carrying the person\'s own voice late (far-end echo) is not the mic copying them', () => {
+    for (let seed = 1; seed <= 5; seed++) {
+      const me = talk(MEET, seed * 104729 + 3)
+      const them = add(talk(MEET, seed * 7919, 0.05), leak(me, 0.5, 600))
+      expect(run(me, them).offsetMs(), `seed ${seed}`).toBeUndefined()
+    }
+  })
+  it('a chance copy now and then, at random lags over the person\'s own voice, is no offset', () => {
+    // the mic copies their track for a few seconds at a time, each at a different lag, inside the person's own talk
+    const them = talk(MEET, 7919)
+    let me = talk(MEET, 104729 + 3)
+    for (let k = 0; k < 6; k++) {
+      const at = (10 + k * 12) * RATE, lag = Math.round((400 + k * 230) * 16), len = 3 * RATE
+      const part = new Float32Array(me.length)
+      for (let i = at; i < at + len && i < me.length; i++) part[i] = 0.3 * them[i - lag]
+      me = add(me, part)
+    }
+    expect(run(me, them).offsetMs()).toBeUndefined()
+  })
 })

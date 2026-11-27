@@ -33,6 +33,16 @@ const KEEP_REF_MS = 5000
  */
 const SILENT_FRAMES = 100
 const SILENT = 1e-7
+/**
+ * AEC3 finds the room's delay itself, but only out to about half a second. With the mic track a steady way behind
+ * theirs (asr/echoDetect.ts offsetMs, #181), their audio is held back by the offset less this much, so what is left for
+ * AEC3 to find is short and their audio still arrives before its copy on the mic. Changed only by a real move: AEC3
+ * starts its search again each time.
+ */
+const LEAD_MS = 100
+/** as far as the echo detector looks */
+const MAX_DELAY_MS = 2000
+const MOVE_MS = 50
 /** a mic piece starting this far from where the last ended is a new run (a pause, a restart) */
 const GAP_MS = 1
 
@@ -41,6 +51,8 @@ export function createEchoCancel(p: {
   make: () => Canceller | null
   out: (track: Track, ms: number, samples: Float32Array) => void
   maxWaitMs?: number
+  /** how far the mic track sits behind theirs, once the echo detector knows (past the room's own lags) */
+  offsetMs?: () => number | undefined
 }) {
   const maxWait = p.maxWaitMs ?? MAX_WAIT_MS
   let canceller: Canceller | null = null
@@ -53,6 +65,13 @@ export function createEchoCancel(p: {
   let mic: { ms: number; samples: Float32Array } | null = null
   /** their frames in a row that were silent */
   let silentFor = 0
+  /** their audio is taken from this much before the mic's moment */
+  let refDelay = 0
+  const updateDelay = () => {
+    const o = p.offsetMs?.()
+    const want = o ? Math.max(0, Math.round((o - LEAD_MS) / FRAME_MS) * FRAME_MS) : 0
+    if (Math.abs(want - refDelay) >= MOVE_MS || (want === 0) !== (refDelay === 0)) refDelay = want
+  }
   const refFrame = new Float32Array(FRAME)
   const outFrame = new Float32Array(FRAME)
 
@@ -71,6 +90,7 @@ export function createEchoCancel(p: {
   const run = (until: number, final = false) => {
     if (!mic) return
     if (!canceller && !closed) canceller = p.make()
+    updateDelay()
     const frames = Math.max(0, Math.floor(Math.min(mic.samples.length / FRAME, (until - mic.ms) / FRAME_MS)))
     const n = frames * FRAME
     if (n) {
@@ -78,7 +98,7 @@ export function createEchoCancel(p: {
       if (canceller) {
         for (let f = 0; f < frames; f++) {
           const frame = mic.samples.subarray(f * FRAME, (f + 1) * FRAME)
-          fillRef(mic.ms + f * FRAME_MS)
+          fillRef(mic.ms + f * FRAME_MS - refDelay)
           let e = 0
           for (let i = 0; i < FRAME; i++) e += refFrame[i] * refFrame[i]
           silentFor = e / FRAME < SILENT ? silentFor + 1 : 0
@@ -90,8 +110,8 @@ export function createEchoCancel(p: {
       } else done.set(mic.samples.subarray(0, n))
       p.out('me', mic.ms, done)
       mic = { ms: mic.ms + frames * FRAME_MS, samples: mic.samples.subarray(n) }
-      // their audio before the mic's position is not needed again
-      ref = ref.filter((r) => r.ms + r.samples.length / 16 > mic!.ms)
+      // their audio from before the mic's position, less the furthest the tracks can sit apart, is not needed again
+      ref = ref.filter((r) => r.ms + r.samples.length / 16 > mic!.ms - Math.max(refDelay, MAX_DELAY_MS))
     }
     if (final && mic.samples.length) { p.out('me', mic.ms, mic.samples.slice()); mic = null }
     if (mic && !mic.samples.length) mic = null

@@ -232,3 +232,16 @@ describe('echo confidence for the inline disclosure', () => {
     expect(echoConfidence(seg('we should move the launch to friday morning', 10_100), theirs, { ...o, over: () => ({ pure: true, loud: false, correlated: true }) })).toBe(false)
   })
 })
+
+describe('#181: the mic track sits behind theirs on meeting time', () => {
+  const them = { id: 1, track: 'them' as const, text: 'can you send me the report by friday please', startMs: 10_000, endMs: 10_900 }
+  it('a copy that starts past the speakers\' tail on their time is still found once the offset is known', () => {
+    const copy = { id: 2, track: 'me' as const, text: 'can you send me the report by friday please', startMs: 11_500, endMs: 12_300 }
+    expect(echoIds([them, copy], { echo: true })).toEqual([])
+    expect(echoIds([them, copy], { echo: true, offsetMs: 830 })).toEqual([2])
+  })
+  it('a read-back well after their line, offset included, stays', () => {
+    const readBack = { id: 2, track: 'me' as const, text: 'can you send me the report by friday please', startMs: 12_600, endMs: 13_400 }
+    expect(echoIds([them, readBack], { echo: true, offsetMs: 830 })).toEqual([])
+  })
+})

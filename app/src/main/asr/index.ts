@@ -458,7 +458,7 @@ function sweepEcho(id: string, s: Session) {
     const pipe = s.pipeline
     // A resumed session may overlap the previous final line; its audio cannot reclassify saved words.
     const lines = store.segments(id).filter(line => !s.priorLines.has(line.id)), them = lines.filter(line => line.track === 'them')
-    const matches = lines.filter(line => line.track === 'me').map(line => ({ id: line.id, confidence: echoConfidence(line, them, { echo: true, correlatedAt: ms => pipe.echoAt(ms), over: (a, b) => pipe.echoOver(a, b) }) }))
+    const matches = lines.filter(line => line.track === 'me').map(line => ({ id: line.id, confidence: echoConfidence(line, them, { echo: true, correlatedAt: ms => pipe.echoAt(ms), over: (a, b) => pipe.echoOver(a, b), offsetMs: pipe.echoOffset() }) }))
     const gone = matches.filter(line => line.confidence).map(line => line.id)
     if (!gone.length) return
     store.hideSegments(gone, matches.filter(line => line.confidence === 'high').map(line => line.id))

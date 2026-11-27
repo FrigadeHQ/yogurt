@@ -29,7 +29,16 @@ export type Moment = { correlated: boolean; loud: boolean; pure: boolean }
  * Echo in this meeting: heard in the audio (asr/echoDetect.ts); whether the mic echoed in the 2 s window holding a
  * moment; and what a line's own span says (undefined before the room's lag is known)
  */
-export type EchoCheck = { echo?: boolean; correlatedAt?: (ms: number) => boolean; over?: (startMs: number, endMs: number) => Moment | undefined }
+export type EchoCheck = {
+  echo?: boolean; correlatedAt?: (ms: number) => boolean; over?: (startMs: number, endMs: number) => Moment | undefined
+  /** the mic track sits this far behind theirs on meeting time (asr/echoDetect.ts offsetMs): their lines are set against the mic's that much later */
+  offsetMs?: number
+}
+
+/** their lines on the mic's time: where their copy lands on it */
+function onMicTime<T extends Seg>(them: T[], o: EchoCheck): T[] {
+  return o.offsetMs ? them.map((s) => ({ ...s, startMs: s.startMs + o.offsetMs!, endMs: s.endMs + o.offsetMs! })) : them
+}
 
 /** Words, lowercased and without punctuation. Text without spaces (Japanese, Chinese) is compared by character. */
 export function tokens(text: string): string[] {
@@ -113,7 +122,7 @@ const always = () => true
 
 /** Pure audio spans or strong word matches can be quiet; weak matches remain reviewable. */
 export function echoConfidence(m: Seg, them: Seg[], o: EchoCheck = {}): false | 'high' | 'uncertain' {
-  return o.echo ? echoMatch(m, them, o.correlatedAt ?? always, o.over) : false
+  return o.echo ? echoMatch(m, onMicTime(them, o), o.correlatedAt ?? always, o.over) : false
 }
 
 /**
@@ -124,7 +133,8 @@ export function echoConfidence(m: Seg, them: Seg[], o: EchoCheck = {}): false | 
 export function dropEcho<T extends Seg>(me: T[], them: Seg[], o: EchoCheck = {}): T[] {
   if (!o.echo) return me
   const at = o.correlatedAt ?? always
-  return me.filter((m) => !echoMatch(m, them, at, o.over))
+  const theirs = onMicTime(them, o)
+  return me.filter((m) => !echoMatch(m, theirs, at, o.over))
 }
 
 /**
@@ -133,7 +143,7 @@ export function dropEcho<T extends Seg>(me: T[], them: Seg[], o: EchoCheck = {})
  * echo heard in the audio; the lines found are hidden, never deleted.
  */
 export function echoIds<T extends Seg & { id: number; track: 'me' | 'them' }>(segs: T[], o: EchoCheck = {}): number[] {
-  const them = segs.filter((s) => s.track === 'them')
+  const them = onMicTime(segs.filter((s) => s.track === 'them'), o)
   if (!them.length || !o.echo) return []
   const at = o.correlatedAt ?? always
   return segs.filter((s) => s.track === 'me' && echoMatch(s, them, at, o.over)).map((s) => s.id)

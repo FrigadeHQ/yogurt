@@ -23,13 +23,33 @@ function fakeCanceller() {
 /** samples whose value is their meeting time in ms, so a frame says where it came from */
 const timed = (ms: number, n: number) => Float32Array.from({ length: n }, (_, i) => ms + Math.floor(i / 16))
 
-function rig(make: () => Canceller | null, maxWaitMs?: number) {
+function rig(make: () => Canceller | null, maxWaitMs?: number, offsetMs?: () => number | undefined) {
   const out: Array<{ track: Track; ms: number; samples: Float32Array }> = []
-  const aec = createEchoCancel({ make, out: (track, ms, samples) => out.push({ track, ms, samples }), maxWaitMs })
+  const aec = createEchoCancel({ make, out: (track, ms, samples) => out.push({ track, ms, samples }), maxWaitMs, offsetMs })
   return { aec, out, mic: () => out.filter((o) => o.track === 'me'), them: () => out.filter((o) => o.track === 'them') }
 }
 
 describe('echo cancel: lining the tracks up', () => {
+  it('#181: with the mic track a steady 830 ms behind theirs, the reference is held back to just ahead of it', () => {
+    const f = fakeCanceller()
+    let offset: number | undefined
+    const r = rig(() => f.c, undefined, () => offset)
+    for (let ms = 0; ms < 1000; ms += 100) { r.aec.push('them', ms, timed(ms, 1600)); r.aec.push('me', ms, timed(ms, 1600)) }
+    expect(f.log.every((x) => x.ref === x.mic)).toBe(true)
+    // the detector finds the offset: the canceller's own search covers the last 100 ms of it
+    offset = 830
+    const from = f.log.length
+    for (let ms = 1000; ms < 3000; ms += 100) { r.aec.push('them', ms, timed(ms, 1600)); r.aec.push('me', ms, timed(ms, 1600)) }
+    const after = f.log.slice(from)
+    expect(after.length).toBe(200)
+    expect(after.every((x) => x.mic - x.ref === 730)).toBe(true)
+  })
+  it('#181: a room lag the canceller finds itself (under 300 ms) leaves the reference where it is', () => {
+    const f = fakeCanceller()
+    const r = rig(() => f.c, undefined, () => undefined)
+    for (let ms = 0; ms < 2000; ms += 100) { r.aec.push('them', ms, timed(ms, 1600)); r.aec.push('me', ms, timed(ms, 1600)) }
+    expect(f.log.every((x) => x.ref === x.mic)).toBe(true)
+  })
   it('passes their track on at once and holds the mic until their track has reached the same time', () => {
     const f = fakeCanceller()
     const r = rig(() => f.c)

@@ -59,7 +59,7 @@ export function createPipeline(p: {
   const them: Line[] = []
   /** is their voice reaching the mic in this meeting (no headphones)? only then are echo lines hidden */
   const echo = new EchoDetector()
-  const echoCheck = (): EchoCheck => p.echoForTests ?? { echo: echo.present(), correlatedAt: (ms) => echo.correlatedAt(ms), over: (a, b) => echo.over(a, b) }
+  const echoCheck = (): EchoCheck => p.echoForTests ?? { echo: echo.present(), correlatedAt: (ms) => echo.correlatedAt(ms), over: (a, b) => echo.over(a, b), offsetMs: echo.offsetMs() }
   let held: Array<{ line: Line; readyAt: number; chunkStartMs: number; chunkEndMs: number }> = []
   let timer: NodeJS.Timeout | undefined
   let echoDropped = 0
@@ -212,7 +212,7 @@ export function createPipeline(p: {
   }
   const cut = chunker(queue, p.emitPartial ? partial : undefined)
   // their voice taken off the mic before it is cut into chunks; the echo detector above hears the mic as recorded
-  const aec = createEchoCancel({ make: p.cancelEcho ?? aec3, out: (track, ms, samples) => {
+  const aec = createEchoCancel({ make: p.cancelEcho ?? aec3, offsetMs: () => echo.offsetMs(), out: (track, ms, samples) => {
     if (track === 'me' && p.cleanMic) { try { p.cleanMic(ms, samples) } catch (e) { console.error('keeping the mic without echo failed', e) } }
     cut.push(track, ms, samples)
   } })
@@ -295,6 +295,8 @@ export function createPipeline(p: {
     echoPresent: () => echoCheck().echo ?? false,
     echoAt: (ms: number) => echoCheck().correlatedAt?.(ms) ?? true,
     echoOver: (startMs: number, endMs: number) => echoCheck().over?.(startMs, endMs),
+    /** how far the mic track sat behind theirs (undefined: together) */
+    echoOffset: () => echoCheck().offsetMs,
   }
 }
 export type Pipeline = ReturnType<typeof createPipeline>
