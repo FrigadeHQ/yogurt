@@ -6,14 +6,15 @@ it('opens Ask with nothing in the way, or only its own panel', () => {
   expect(askOverDialogs(['chat-panel'])).toBe('ask')
 })
 
-it('closes Keyboard shortcuts or Search first, so Ctrl+J still opens Ask (#175)', () => {
+it('closes Keyboard shortcuts first, so Ctrl+J still opens Ask (#175)', () => {
   expect(askOverDialogs(['shortcuts-dialog'])).toBe('dismiss')
-  expect(askOverDialogs(['search'])).toBe('dismiss')
   expect(askOverDialogs(['chat-panel', 'shortcuts-dialog'])).toBe('dismiss')
 })
 
 it('leaves a question or form the person is answering alone', () => {
   expect(askOverDialogs(['delete-confirm'])).toBe('blocked')
   expect(askOverDialogs([undefined])).toBe('blocked')
+  // Search keeps its own ⌘J: it stays open with the typing in place (e2e sidebarMotion, note)
+  expect(askOverDialogs(['search'])).toBe('blocked')
   expect(askOverDialogs(['shortcuts-dialog', 'delete-confirm'])).toBe('blocked')
 })

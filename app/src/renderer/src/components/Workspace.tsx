@@ -48,7 +48,7 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
     const ask = (tries = 0) => {
       const over = dialogs()
       if (over === 'blocked') return
-      // Search or Keyboard shortcuts close first; Ask opens once they're gone, so their focus return can't undo it.
+      // Keyboard shortcuts closes first; Ask opens once it's gone, so its focus return can't undo it.
       if (over === 'dismiss') {
         if (!tries) dismissDialogs()
         if (tries < 30) waiting = requestAnimationFrame(() => ask(tries + 1))

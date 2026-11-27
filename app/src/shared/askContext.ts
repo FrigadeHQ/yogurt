@@ -22,8 +22,8 @@ export function askDestination(route: string): AskDestination {
   return { kind: 'conversation', chips: [] }
 }
 
-/** Dialogs that give way to ⌘J: looking up the shortcut, or searching for it, shouldn't stop it working (#175). */
-const giveWay = new Set(['shortcuts-dialog', 'search'])
+/** Dialogs that give way to ⌘J: looking up the shortcut shouldn't stop it working (#175). Search stays, typing kept. */
+const giveWay = new Set(['shortcuts-dialog'])
 /** What ⌘J does over the open dialogs (by test id; Ask's own panel left out): a question or form the person is answering keeps it. */
 export function askOverDialogs(dialogs: (string | undefined)[]): 'ask' | 'dismiss' | 'blocked' {
   const open = dialogs.filter(d => d !== 'chat-panel')
