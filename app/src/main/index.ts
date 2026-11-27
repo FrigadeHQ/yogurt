@@ -664,10 +664,8 @@ app.whenReady().then(() => {
     changed: (id) => { win?.webContents.send('transcript:speakers', id); sendWidgetTranscript('transcript:speakers', id); win?.webContents.send('meetings:changed'); notes.applyPeople(id) },
     onStart: onMeetingStart, onStop: onMeetingStop, onCapture: onCaptureStart, onBind: onMeetingBound, micPids: (app) => micPidsNow(app),
   })
-  if (process.platform === 'darwin' || process.platform === 'win32') {
-    callWindowOf = (id) => callNames.callWindow(id)
-    lookForCallOf = (app, back) => callNames.lookForCall(app, back)
-  }
+  if (process.platform === 'darwin' || process.platform === 'win32') callWindowOf = (id) => callNames.callWindow(id)
+  if (process.platform === 'darwin' || process.platform === 'win32') lookForCallOf = (app, back) => callNames.lookForCall(app, back)
   // Windows and Linux: whisper left the graphics card in a meeting, so the speed check (timed with it) runs again next start
   onWhisperGpuOff(() => speedStore(speedFile()).forget())
   hookTranscription({ store, modelPath: () => setup.installed()?.asr, smallerModels: () => setup.installed()?.smallerAsr ?? [],
