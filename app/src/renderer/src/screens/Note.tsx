@@ -227,8 +227,8 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
 
   useEffect(() => { current.current = notes }, [notes])
   useEffect(() => {
-    if (m?.state !== 'recording' && (m?.stopSavePending || notes?.status !== 'idle')) setFinishing(false)
-  }, [m?.state, m?.stopSavePending, notes?.status])
+    if (m?.state !== 'recording' && (m?.stopSavePending || m?.transcriptionState === 'scheduled' || notes?.status !== 'idle')) setFinishing(false)
+  }, [m?.state, m?.stopSavePending, m?.transcriptionState, notes?.status])
   useEffect(() => {
     if (!finishRequested || !hasEnhanced) return
     const enter = () => {
@@ -353,11 +353,12 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
     void window.yogurt.notes.writeAgain(id, note)
   }
   const hasSummary = !!notes.enhanced?.trim()
+  const scheduled = m.transcriptionState === 'scheduled'
   const transcribing=transcriptionBusy(m.transcriptionState)
   const runTranscript=async(again=false)=>{if(!await saveAll())return;try{const started=await window.yogurt.transcript.run(id,again);if(started)setPrimary('transcript')}catch{toasts.add({title:t("Yogurt couldn't transcribe this file.")})}}
-  const transcriptReason=recording||m.stopSavePending?t('Available after recording'):transcribing?t('Transcribing…'):summarizing?t('Summarizing…'):!hasAudio?t('Audio is unavailable.'):undefined
+  const transcriptReason=recording||m.stopSavePending?t('Available after recording'):scheduled?t('Waiting to process'):transcribing?t('Transcribing…'):summarizing?t('Summarizing…'):!hasAudio?t('Audio is unavailable.'):undefined
   const generation = summaryAction({ hasSummary, hasContent: hasTranscript || !!notes.mine.trim(), recording, busy: summarizing, downloading: !!(setup?.notesDownloading || setup?.notesError), trashed })
-  if(generation&&transcribing)generation.reason=t('Transcribing…')
+  if(generation&&(transcribing||scheduled))generation.reason=scheduled?t('Waiting to process'):t('Transcribing…')
   const requestRewrite = () => {
     if (!generation || generation.reason) return
     if (hasSummary) setRewriteOpen(true)
@@ -420,6 +421,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
                   </button>}
                 </div>
               </div>
+              {scheduled && <span role="status">{t('Waiting to process')}</span>}
               {transcribing&&<TranscriptionControl state={m.transcriptionState!} onStop={()=>void window.yogurt.transcript.stop(id).catch(()=>toasts.add({title:t("Yogurt couldn't transcribe this file.")}))}/>}
               <ShareMenu id={id} shown={shown} status={notes.status} hasEnhanced={notes.enhanced != null} beforeUse={saveAll} />
             </div>

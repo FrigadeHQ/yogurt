@@ -2,6 +2,7 @@ import { importPhoneRecording } from './companion/phoneImport'
 import { loadWindowState, placeWindow, saveWindowState } from './windowState'
 import { trustSystemCertificates } from './systemCerts'
 import { createSavedTranscriptions } from './savedTranscription'
+import { createProcessingSchedule } from './processingSchedule'
 import { transcriptionBusy } from '../shared/transcription'
 import { hookAudioUploads } from './audioUploadIpc'
 import { uploadedAudio } from './audioUpload'
@@ -646,6 +647,24 @@ app.whenReady().then(() => {
   initMeetings(store)
   // the person's own names, never given to the other side: the one in Settings and the Mac's
   const settingsFile = join(userDataDir(), 'settings.json')
+  const schedule = createProcessingSchedule({
+    file: join(userDataDir(), 'processing-schedule.json'),
+    ready: () => !!setup.installed()?.asr && !activeMeeting() && !resumingId && !finishing && !queue.busy() && !savedTranscriptions.busy(),
+    start: async id => {
+      const meeting = store.meeting(id)
+      if (!meeting || meeting.transcriptionState === 'done') return true
+      if (meeting.trashedAt != null || stopSavePending(id)) return false
+      return savedTranscriptions.start(id)
+    },
+  })
+  const pendingProcessing = () => schedule.pending().flatMap(({ id, at }) => {
+    const m = store.meeting(id)
+    return m && m.state !== 'recording' && m.trashedAt == null && !stopSavePending(id) ? [{ id, at, title: m.title }] : []
+  })
+  const checkProcessing = () => { void schedule.tick().catch(error => console.error('Scheduled processing could not start', error)) }
+  onMeetingStart(m => {
+    if (loadSettings(settingsFile).deferRecordingProcessing && !store.segments(m.id).length) schedule.hold(m.id)
+  })
   setCalendarSelection(() => loadSettings(settingsFile))
   setCalendarOwnEmail(email => {
     try { if (store.rememberOwnEmail(email)) win?.webContents.send('meetings:changed') }
@@ -665,7 +684,7 @@ app.whenReady().then(() => {
   if (process.platform === 'darwin' || process.platform === 'win32') callWindowOf = (id) => callNames.callWindow(id)
   // Windows and Linux: whisper left the graphics card in a meeting, so the speed check (timed with it) runs again next start
   onWhisperGpuOff(() => speedStore(speedFile()).forget())
-  hookTranscription({ store, modelPath: () => setup.installed()?.asr, smallerModels: () => setup.installed()?.smallerAsr ?? [],
+  hookTranscription({ store, deferLive: schedule.held, modelPath: () => setup.installed()?.asr, smallerModels: () => setup.installed()?.smallerAsr ?? [],
     // the speed check's findings: whisper on the processor (faster there than on built-in graphics), or after the meeting
     cpuOnly: () => !!setup.installed()?.asrCpu, afterMeeting: () => !!setup.installed()?.asrAfterMeeting, send: (seg) => {
     const order = seg.track === 'them' && seg.speaker ? store.speakerOrder(seg.meetingId, seg.speaker) : []
@@ -759,7 +778,8 @@ app.whenReady().then(() => {
   // the meeting is read into the model as it happens, so its notes start within seconds of stopping
   const readAhead = hookReadAhead({
     store, queue, model, live: readsAhead, backlogMs: transcriptionBacklogMs, language: meetingLanguage,
-    transcribed: async (id) => { await recordingFinished(id); await transcriptFinished(id) }, onStart: onMeetingStart, onStop: onMeetingStop,
+    transcribed: async (id) => { await recordingFinished(id); await transcriptFinished(id) },
+    onStart: fn => onMeetingStart(m => { if (!schedule.held(m.id)) fn(m) }), onStop: onMeetingStop,
   })
   const folderSuggestions = createFolderSuggestions({ store, queue, model, changed: () => win?.webContents.send('folders:changed') })
   let resumingId: string | null = null
@@ -771,6 +791,7 @@ app.whenReady().then(() => {
     ...(automatic ? { keep: endedAt => keepsRecording(loadSettings(settingsFile), endedAt) } : {}),
   })
   const notes = hookNotes({
+    held: schedule.held,
     summarized: id => { folderSuggestions.schedule(id); void removeRecording(id, true) },
     // Windows and Linux: a note waiting while the model loads says so (a Mac shows what it always did)
     showLoading: platform !== 'darwin',
@@ -782,8 +803,9 @@ app.whenReady().then(() => {
     changed: () => { win?.webContents.send('meetings:changed'); void indexer.schedule() },
   })
   let finishing = false, discardUnsaved = false
-  busyNow = () => !!activeMeeting() || queue.busy() || setup.state.phase === 'checking' || setup.state.phase === 'downloading'
+  busyNow = () => !!activeMeeting() || queue.busy() || savedTranscriptions.busy() || pendingProcessing().some(job => job.at !== null) || setup.state.phase === 'checking' || setup.state.phase === 'downloading'
   const savedTranscriptions = createSavedTranscriptions({
+    held: schedule.held,
     store, ready: () => !!setup.installed()?.asr, recording: () => !!activeMeeting() || !!resumingId || finishing, live: transcriptOpen,
     tracks: async id => {
       await recordingSettled(id)
@@ -807,7 +829,28 @@ app.whenReady().then(() => {
   })
   setup.onState(() => {uploads.resume();savedTranscriptions.resume()})
   onMeetingStart(m => {store.clearTranscriptionState(m.id);savedTranscriptions.pause()})
+  const markScheduled = (id: string) => store.updateMeeting(id, { transcriptionPending: true, transcriptionState: 'scheduled' })
+  for (const job of pendingProcessing()) {
+    if (!store.meeting(job.id)?.transcriptionState) markScheduled(job.id)
+  }
+  onMeetingStopSaved(m => {
+    if (!schedule.held(m.id)) return
+    markScheduled(m.id)
+    win?.webContents.send('meetings:changed')
+    presentMain(true)
+  })
   onMeetingStopSaved(() => {uploads.resume();savedTranscriptions.resume()})
+  ipcMain.handle('processing:pending', e => e.sender === win?.webContents ? pendingProcessing() : [])
+  ipcMain.handle('processing:choose', (e, id: unknown, at: unknown) => {
+    if (e.sender !== win?.webContents || !isId(id) || typeof at !== 'number' || !pendingProcessing().some(job => job.id === id)) return false
+    if (!Number.isFinite(at) || (at !== 0 && at <= Date.now())) return false
+    if (!schedule.choose(id, at)) return false
+    win?.webContents.send('meetings:changed')
+    checkProcessing()
+    return true
+  })
+  const processingTimer = setInterval(checkProcessing, 1000).unref()
+  app.on('will-quit', () => clearInterval(processingTimer))
   ipcMain.handle('transcript:run', (e,id:unknown,again:unknown) => {
     if(e.sender!==win?.webContents||!isId(id)||typeof again!=='boolean')return false
     const meeting=store.meeting(id)
@@ -816,6 +859,7 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('transcript:stop', async (e,id:unknown) => {
     if(e.sender!==win?.webContents||!isId(id))return
+    if(schedule.held(id))return
     const preparing=uploads.preparing(id)
     if(preparing){await uploads.cancel(preparing.owner,preparing.file.token);return}
     savedTranscriptions.stop(id)
@@ -825,6 +869,7 @@ app.whenReady().then(() => {
     const current = activeMeeting()
     if (current) { goTo(`/note/${current.id}`); return { id: current.id } }
     const existing = store.meeting(id)
+    if (schedule.held(id)) return { error: 'gone' }
     // shortcut: imports keep one WAV; add a safe native-recording merge before offering Resume.
     if (!existing || existing.source === 'audio-file' || uploads.owns(id) || existing.trashedAt != null || (existing.state !== 'stopped' && existing.state !== 'done')) return { error: 'gone' }
     if (transcriptionBusy(existing.transcriptionState) || resumingId || stopSavePending(id) || finishing || !notes.retryDrafts(id)) return { error: 'failed' }
