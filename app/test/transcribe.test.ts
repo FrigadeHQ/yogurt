@@ -73,6 +73,21 @@ describe('transcribe', () => {
     expect(s.seen[0].fields).toMatchObject({ response_format: 'verbose_json', language: 'auto', temperature: '0.0', no_timestamps: 'false' })
     expect(s.seen[0].wav.toString('ascii', 0, 4)).toBe('RIFF')
   })
+  // the kind of cut seen on Spanish meetings: "los fact ores clave" in the transcript
+  it('puts a segment whisper started mid-word back on the word before it', async () => {
+    const s = await stub([{ segments: [{ start: 0, end: 1.5, text: ' vamos a revisar los fact' }, { start: 1.5, end: 3, text: 'ores clave' }, { start: 3, end: 4, text: ' para decidir el plan.' }] }])
+    const tr = createTranscriber({ url: async () => s.url })
+    const out = await tr(chunk('them', 10_000, 4))
+    expect(out).toEqual([
+      { track: 'them', startMs: 10_000, endMs: 13_000, text: 'vamos a revisar los factores clave' },
+      { track: 'them', startMs: 13_000, endMs: 14_000, text: 'para decidir el plan.' },
+    ])
+  })
+  it('leaves scripts written without spaces as whisper split them', async () => {
+    const s = await stub([{ segments: [{ start: 0, end: 1, text: '今日は会議です' }, { start: 1, end: 2, text: '始めましょう' }] }])
+    const tr = createTranscriber({ url: async () => s.url })
+    expect((await tr(chunk('them', 0, 4))).map((l) => l.text)).toEqual(['今日は会議です', '始めましょう'])
+  })
 
   it('drops a line that only repeats the prompt, and keeps the real ones around it', async () => {
     const s = await stub([{ segments: [{ start: 0, end: 1, text: ' Alex Morgan of Zentrik.' }, { start: 1, end: 2, text: ' Shall we start with the roadmap?' }] }])

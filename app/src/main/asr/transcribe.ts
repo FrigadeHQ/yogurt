@@ -32,6 +32,14 @@ export function isGarbled(text: string): boolean {
   return ts.length >= 8 && new Set(ts).size / ts.length <= 0.25
 }
 
+/**
+ * A segment whisper started in the middle of the last one's word: no space before it, a letter on each side of the cut.
+ * Scripts written without spaces (Chinese, Japanese, Thai) never start one with a space, so they are left as they are.
+ */
+const NO_SPACES = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}\p{Script=Tibetan}]/u
+export const continuesWord = (raw: string, before: string): boolean =>
+  /^\p{L}/u.test(raw) && /\p{L}$/u.test(before) && !NO_SPACES.test(raw[0]) && !NO_SPACES.test(before.at(-1)!)
+
 /** Noise tags and silence guesses whisper writes when nothing was said */
 const NOISE = /^[[(♪*].*[\])♪*]$|^[♪\s.]+$/
 
@@ -131,6 +139,15 @@ export function createTranscriber(o: Opts): Transcribe {
       // the label's words (through the one carrying its colon) go with it
       const kept = text === said ? s.words : s.words?.slice((s.words.findIndex((w) => w.word.includes(':')) + 1) || 0)
       const words = kept?.map((w) => ({ text: w.word, startMs: Math.round(c.startMs + w.start * 1000), endMs: Math.round(c.startMs + w.end * 1000) }))
+      // whisper can end a segment mid-word ("fact" | "ores clave"): a segment that starts with no space goes on the word
+      // before it, since lines are shown and saved with a space between them ("fact ores")
+      const prev = lines.at(-1)
+      if (prev && text === said && continuesWord(s.text, prev.text)) {
+        prev.text += text
+        prev.endMs = Math.round(c.startMs + s.end * 1000)
+        if (words?.length) prev.words = [...(prev.words ?? []), ...words]
+        continue
+      }
       lines.push({ track: c.track, startMs: Math.round(c.startMs + s.start * 1000), endMs: Math.round(c.startMs + s.end * 1000), text, ...(words?.length ? { words } : {}) })
     }
     return { lines, text: lines.map((l) => l.text).join(' '), language: body.detected_language ?? body.language ?? 'auto', prob: body.detected_language_probability ?? 0 }
