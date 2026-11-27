@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { asrCandidates, KEEPS_UP_RTF, LAGS_A_LITTLE_RTF, pickAsr, pickBySpeed, SPEED_CHECK_VERSION, speedKey } from '../src/asr'
+import { AFTER_MEETING_RTF, asrCandidates, KEEPS_UP_RTF, LAGS_A_LITTLE_RTF, pickAsr, pickBySpeed, SPEED_CHECK_VERSION, speedKey } from '../src/asr'
 import { machines } from './fixtures'
 import real from '../../../catalog/catalog.json'
 import type { Catalog } from '../src/types'
@@ -125,12 +125,37 @@ describe('pickBySpeed', () => {
     const r = await pickBySpeed(list, async (m, onCpu) => (m.id === 'small' ? (onCpu ? 0.7 : 0.95) : null), { cpuToo: (m) => m.id !== 'turbo', lagsOk: () => false })
     expect(r).toMatchObject({ model: list[1], afterMeeting: true, cpu: true })
   })
+  // #107: base keeps up live, but small (or turbo) reads too slowly for live. Outside English base is poor, so the better
+  // one is kept too, to read a meeting's recording after it ends; English keeps base live as before
+  describe('the better model for other languages, read after the meeting', () => {
+    const weak = (m: { id: string }) => m.id === 'base' || m.id === 'tiny'
+    it('base live, small too slow for live but within twice the clip: small for other languages', async () => {
+      const r = await pickBySpeed(list, timed({ turbo: null, small: 1.6, base: 0.3 }).measure, { weak, lagsOk: (m) => m.id === 'small' })
+      expect(r).toEqual({ model: list[2], rtf: { turbo: null, small: 1.6, base: 0.3 }, multi: { model: list[1] } })
+      expect(AFTER_MEETING_RTF).toBe(2)
+    })
+    it('turbo within twice the clip beats small', async () => {
+      expect((await pickBySpeed(list, timed({ turbo: 1.9, small: 1.4, base: 0.3 }).measure, { weak })).multi).toEqual({ model: list[0] })
+    })
+    it('on the processor where that was faster for it', async () => {
+      const r = await pickBySpeed(list, async (m, onCpu) => ({ turbo: null, small: onCpu ? 1.5 : null, base: 0.3 } as Record<string, number | null>)[m.id], { weak, cpuToo: (m) => m.id === 'small' })
+      expect(r.multi).toEqual({ model: list[1], cpu: true })
+    })
+    it('none of the better ones within twice the clip, or a strong model live: no second model', async () => {
+      expect((await pickBySpeed(list, timed({ turbo: null, small: 2.5, base: 0.3 }).measure, { weak })).multi).toBeUndefined()
+      expect((await pickBySpeed(list, timed({ turbo: 1.5, small: 0.4 }).measure, { weak })).multi).toBeUndefined()
+    })
+    it('none keeps up live and base is kept for after the meeting: small instead for other languages', async () => {
+      const r = await pickBySpeed(list, timed({ turbo: null, small: 1.8, base: 0.8, tiny: 0.6 }).measure, { weak })
+      expect(r).toMatchObject({ model: list[2], afterMeeting: true, multi: { model: list[1] } })
+    })
+  })
 })
 
 describe('speedKey: the speed check runs again only when the computer changes', () => {
   it('carries the speed check version, so a change to how it picks measures again once (#107)', () => {
     expect(speedKey(machines.linux3060).startsWith(`${SPEED_CHECK_VERSION}|`)).toBe(true)
-    expect(SPEED_CHECK_VERSION).toBe('v2')
+    expect(SPEED_CHECK_VERSION).toBe('v3')
   })
   it('the same computer gives the same key; other graphics or processor a new one', () => {
     const k = speedKey(machines.linux3060)

@@ -6,12 +6,14 @@ import { ChecksumError, DiskSpaceError, ensureFile, fileNameFor, isVerified, par
 import type { SetupState } from '../shared/types'
 import { t } from '../shared/i18n'
 import { tooSlow, tooWeak } from './localCheck'
+import type { Spoken } from '../shared/spoken'
 
 /** What the speed check found on one computer (speedKey): the model kept (null: none keeps up) and each one's time over the clip's length */
 export type SpeedResult = { key: string; model: string | null; rtf: Record<string, number | null>; at: number; /** whisper had to leave the graphics card while it was timed */ gpuOff?: boolean
   /** times on the processor alone, for models too slow on the graphics */ cpuRtf?: Record<string, number | null>
   /** the model kept up on the processor, not the graphics: whisper stays there */ cpu?: boolean
-  /** none keeps up live: meetings are transcribed from the recording after they end */ afterMeeting?: boolean }
+  /** none keeps up live: meetings are transcribed from the recording after they end */ afterMeeting?: boolean
+  /** the model kept is weak outside English: this better one reads meetings in other languages after they end (#107) */ multi?: { model: string; cpu?: boolean } }
 /** Windows and Linux: time a speech model on this computer (null: it ran out of time), and keep what was found */
 export type SpeedDeps = {
   /** cpu: on the processor alone, never the graphics */
@@ -39,7 +41,16 @@ export type SetupDeps = {
 }
 
 /** Where the models ended up, for the parts of the app that use them; llm once the first notes model is in (after ready) */
-export type Installed = { asr: string; /** whisper runs on the processor: it kept up there and not on the graphics */ asrCpu?: true; /** whisper can't keep up live here: meetings are transcribed after they end */ asrAfterMeeting?: true; /** smaller speech models already on disk, best first: one takes over when the processor is too slow for asr (#156) */ smallerAsr?: string[]; llm?: string; recommendedLlm?: string; /** meaning search across meetings; word search works without it */ embed?: string }
+export type Installed = { asr: string; /** whisper runs on the processor: it kept up there and not on the graphics */ asrCpu?: true; /** whisper can't keep up live here: meetings are transcribed after they end */ asrAfterMeeting?: true; /** asr is weak outside English: meetings in other languages are read with this one after they end (#107) */ asrMulti?: string; /** asrMulti runs on the processor */ asrMultiCpu?: true; /** smaller speech models already on disk, best first: one takes over when the processor is too slow for asr (#156) */ smallerAsr?: string[]; llm?: string; recommendedLlm?: string; /** meaning search across meetings; word search works without it */ embed?: string }
+
+/**
+ * The speech model for a meeting in this spoken language: English only reads with asr as always; Multi-language with
+ * asrMulti where there is one, from the recording after the meeting (#107: base kept up live, but is poor outside English).
+ */
+export function asrFor(i: Installed, spoken: Spoken): { path: string; cpu: boolean; afterMeeting: boolean } {
+  if (spoken !== 'en' && i.asrMulti) return { path: i.asrMulti, cpu: !!i.asrMultiCpu, afterMeeting: true }
+  return { path: i.asr, cpu: !!i.asrCpu, afterMeeting: !!i.asrAfterMeeting }
+}
 
 /** the first notes model keeps being tried after ready: a minute, five, then every ten (a download picks up where it stopped) */
 const NOTES_RETRY_MS = [60_000, 5 * 60_000, 10 * 60_000]
@@ -238,8 +249,10 @@ export class SetupController {
       if (speed && !candidates.length) return this.set({ phase: 'error', fraction: 0, message: tooSlow(hw.os) })
       const keep = known && candidates.find((a) => a.id === known.model)
       let how: Pick<Installed, 'asrCpu' | 'asrAfterMeeting'> = keep ? { ...(known.cpu ? { asrCpu: true } : {}), ...(known.afterMeeting ? { asrAfterMeeting: true } : {}) } : {}
+      const keepMulti = keep && known.multi && candidates.find((a) => a.id === known.multi!.model)
+      let multi: Pick<Installed, 'asrMulti' | 'asrMultiCpu'> = {}
 
-      const waitFor: Item[] = [asrItem(speed ? keep ?? candidates[0] : asr.model)]
+      const waitFor: Item[] = [asrItem(speed ? keep ?? candidates[0] : asr.model), ...(keepMulti ? [asrItem(keepMulti)] : [])]
       const total = waitFor.reduce((n, i) => n + i.bytes, 0)
       // room for the first notes model too, so it never runs out of disk after ready
       await this.checkDisk([...waitFor, ...(hasUpgrade ? [] : [starterItem]), embedItem])
@@ -257,8 +270,10 @@ export class SetupController {
       // speech: if the first choice downloads corrupted twice, the smaller one takes its place
       const tried: string[] = []
       let asrPath: string | undefined
-      if (speed && keep) asrPath = await get(asrItem(keep))
-      else if (speed) {
+      if (speed && keep) {
+        asrPath = await get(asrItem(keep))
+        if (keepMulti) multi = { asrMulti: await get(asrItem(keepMulti)), ...(known.multi!.cpu ? { asrMultiCpu: true } : {}) }
+      } else if (speed) {
         const r = await this.timeSpeech(speed, candidates, get, asrItem, hw.gpu.kind !== 'none')
         speed.save({ key, ...r.result, at: Date.now() })
         // every model downloaded corrupted: nothing to transcribe with
@@ -266,6 +281,10 @@ export class SetupController {
         asrPath = r.path
         how = { ...(r.result.cpu ? { asrCpu: true } : {}), ...(r.result.afterMeeting ? { asrAfterMeeting: true } : {}) }
         if (r.result.afterMeeting) console.warn(`speed check: no speech model keeps up live here; ${r.result.model} transcribes meetings after they end`)
+        if (r.multiPath) {
+          multi = { asrMulti: r.multiPath, ...(r.result.multi?.cpu ? { asrMultiCpu: true } : {}) }
+          console.warn(`speed check: ${r.result.model} is weak outside English; ${r.result.multi!.model} transcribes meetings in other languages after they end`)
+        }
       }
       while (!asrPath) {
         try { asrPath = await get(asrItem(asr.model)) } catch (err) {
@@ -277,7 +296,7 @@ export class SetupController {
       // never downloaded for this: only what is already there (a model the speed check or an earlier pick left)
       const picked = catalog.asr.findIndex((a) => join(dirs.asr, fileNameFor(a.url)) === asrPath)
       const smallerAsr = picked < 0 ? [] : catalog.asr.slice(picked + 1).map(asrItem).filter((i) => isVerified(i.dir, i.fileName, this.sha(i))).map((i) => join(i.dir, i.fileName))
-      this.paths = { asr: asrPath, ...how, ...(smallerAsr.length ? { smallerAsr } : {}) }
+      this.paths = { asr: asrPath, ...how, ...multi, ...(smallerAsr.length ? { smallerAsr } : {}) }
       if (hasUpgrade) {
         this.paths.recommendedLlm = join(bigger!.dir, bigger!.fileName)
         if (isVerified(starterItem.dir, starterItem.fileName, this.sha(starterItem))) this.paths.llm = join(starterItem.dir, starterItem.fileName)
@@ -316,11 +335,13 @@ export class SetupController {
       return t.rtf
     // small may lag a little behind live: base and tiny are very weak outside English (#107). With graphics, a model too
     // slow there is timed on the processor too (turbo never: 4 to 9 times too slow there); a built-in Radeon can be slower
-    }, { lagsOk: (m) => m.id.startsWith('whisper-small'), cpuToo: (m) => graphics && !m.gpuOnly && !ranOnCpu.has(m.id) && !corrupt.has(m.id) })
+    // base and tiny (last resort) are weak outside English: a better one that reads recordings after the meeting is kept too
+    }, { lagsOk: (m) => m.id.startsWith('whisper-small'), cpuToo: (m) => graphics && !m.gpuOnly && !ranOnCpu.has(m.id) && !corrupt.has(m.id), weak: (m) => !!m.lastResort })
     // the smallest fallback may be one that downloaded corrupted: then the smallest that did not
     const model = r.model && !corrupt.has(r.model.id) ? r.model : [...candidates].reverse().find((c) => paths.has(c.id) && !corrupt.has(c.id)) ?? null
-    for (const [id, p] of paths) if (id !== model?.id) rmSync(p, { force: true })
-    return { path: model && paths.get(model.id), result: { model: model?.id ?? null, rtf: r.rtf, ...(r.cpuRtf ? { cpuRtf: r.cpuRtf } : {}), ...(gpuOff ? { gpuOff } : {}), ...(r.cpu && model === r.model ? { cpu: true } : {}), ...(r.afterMeeting || model !== r.model ? { afterMeeting: true } : {}) } }
+    const multi = model === r.model && r.multi && paths.has(r.multi.model.id) ? r.multi : undefined
+    for (const [id, p] of paths) if (id !== model?.id && id !== multi?.model.id) rmSync(p, { force: true })
+    return { path: model && paths.get(model.id), multiPath: multi && paths.get(multi.model.id), result: { model: model?.id ?? null, rtf: r.rtf, ...(r.cpuRtf ? { cpuRtf: r.cpuRtf } : {}), ...(gpuOff ? { gpuOff } : {}), ...(r.cpu && model === r.model ? { cpu: true } : {}), ...(r.afterMeeting || model !== r.model ? { afterMeeting: true } : {}), ...(multi ? { multi: { model: multi.model.id, ...(multi.cpu ? { cpu: true } : {}) } } : {}) } }
   }
 
   /**

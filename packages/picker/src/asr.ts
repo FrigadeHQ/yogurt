@@ -29,7 +29,12 @@ export const KEEPS_UP_RTF = 0.5
  */
 export const LAGS_A_LITTLE_RTF = 1.25
 /** part of the speed check's key: a change to how it picks measures every computer again, once */
-export const SPEED_CHECK_VERSION = 'v2'
+export const SPEED_CHECK_VERSION = 'v3'
+/**
+ * A model that reads the clip within twice its length is good enough to transcribe a meeting from its recording after
+ * it ends (#107: small on a slow processor, for languages base and tiny read poorly). The speed check times up to this.
+ */
+export const AFTER_MEETING_RTF = 2
 
 /**
  * Windows and Linux: the speech models the speed check tries, best first (a Mac has none: it never measures). On the
@@ -51,31 +56,40 @@ export function asrCandidates(hw: Hardware, c: Catalog, opts: { exclude?: string
  * None keeps up: there is still a model, never none (a computer that once got "too slow" could not record at all). It
  * is read after the meeting instead of live (afterMeeting): the best one that read the clip within its own length,
  * else the fastest, else the smallest. A meeting is recorded either way and its transcript follows.
+ *
+ * weak: models poor outside English (base, tiny). When one is kept, the best model before it that read the clip within
+ * AFTER_MEETING_RTF is named too (multi): meetings in other languages are read with it after they end (#107).
  */
-export async function pickBySpeed<M extends { id: string }>(candidates: M[], measure: (m: M, onCpu?: boolean) => Promise<number | null>, opts: { lagsOk?: (m: M) => boolean; cpuToo?: (m: M) => boolean } = {}): Promise<{ model: M | null; rtf: Record<string, number | null>; cpuRtf?: Record<string, number | null>; cpu?: true; afterMeeting?: true }> {
+export async function pickBySpeed<M extends { id: string }>(candidates: M[], measure: (m: M, onCpu?: boolean) => Promise<number | null>, opts: { lagsOk?: (m: M) => boolean; cpuToo?: (m: M) => boolean; weak?: (m: M) => boolean } = {}): Promise<{ model: M | null; rtf: Record<string, number | null>; cpuRtf?: Record<string, number | null>; cpu?: true; afterMeeting?: true; multi?: { model: M; cpu?: true } }> {
   const rtf: Record<string, number | null> = {}
   const cpuRtf: Record<string, number | null> = {}
   const withCpu = () => (Object.keys(cpuRtf).length ? { cpuRtf } : {})
   const keepsUp = (m: M, r: number | null) => r !== null && r <= (opts.lagsOk?.(m) ? LAGS_A_LITTLE_RTF : KEEPS_UP_RTF)
-  for (const m of candidates) {
-    const r = await measure(m)
-    rtf[m.id] = r
-    if (keepsUp(m, r)) return { model: m, rtf, ...withCpu() }
-    if (opts.cpuToo?.(m)) {
-      const c = await measure(m, true)
-      cpuRtf[m.id] = c
-      if (keepsUp(m, c)) return { model: m, rtf, cpuRtf, cpu: true }
-    }
-  }
   const best = (m: M) => {
     const g = rtf[m.id] ?? Infinity, c = cpuRtf[m.id] ?? Infinity
     return { m, t: Math.min(g, c), cpu: c < g }
+  }
+  /** for a weak model kept: the best one before it that can read a recording after the meeting */
+  const multiFor = (kept: M) => {
+    if (!opts.weak?.(kept)) return {}
+    const b = candidates.slice(0, candidates.indexOf(kept)).map(best).find((x) => x.t <= AFTER_MEETING_RTF)
+    return b ? { multi: { model: b.m, ...(b.cpu ? { cpu: true as const } : {}) } } : {}
+  }
+  for (const m of candidates) {
+    const r = await measure(m)
+    rtf[m.id] = r
+    if (keepsUp(m, r)) return { model: m, rtf, ...withCpu(), ...multiFor(m) }
+    if (opts.cpuToo?.(m)) {
+      const c = await measure(m, true)
+      cpuRtf[m.id] = c
+      if (keepsUp(m, c)) return { model: m, rtf, cpuRtf, cpu: true, ...multiFor(m) }
+    }
   }
   const timed = candidates.map(best)
   const fastest = timed.filter((x) => Number.isFinite(x.t)).sort((a, b) => a.t - b.t)[0]
   const chosen = timed.find((x) => x.t <= 1) ?? fastest ?? (candidates.length ? { m: candidates[candidates.length - 1], cpu: false } : undefined)
   if (!chosen) return { model: null, rtf }
-  return { model: chosen.m, rtf, ...withCpu(), ...(chosen.cpu ? { cpu: true as const } : {}), afterMeeting: true }
+  return { model: chosen.m, rtf, ...withCpu(), ...(chosen.cpu ? { cpu: true as const } : {}), afterMeeting: true, ...multiFor(chosen.m) }
 }
 
 /** What the speed depends on: the processor and the graphics. A different one of either and the check runs again. */

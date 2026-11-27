@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import { AFTER_MEETING_RTF } from '@yogurt/picker'
 import type { SpeedDeps, SpeedResult } from '../setup'
 import { createWhisperServer, type WhisperServer } from './server'
 import { createTranscriber } from './transcribe'
@@ -47,8 +48,9 @@ type MeasureOpts = {
 
 /**
  * The realtime factor of one careful (beam 5) reading of the clip: time taken over its length. The first 3 s are read
- * once beforehand, so loading and the graphics' first-run work are not counted. A reading that takes longer than the
- * clip itself is stopped: null, too slow by far.
+ * once beforehand, so loading and the graphics' first-run work are not counted. A reading that takes longer than
+ * AFTER_MEETING_RTF times the clip is stopped: null, too slow by far (up to that it can still read recordings after the
+ * meeting, #107).
  */
 export async function measureSpeed(model: string, o: MeasureOpts): Promise<{ rtf: number | null; gpuOff: boolean }> {
   const srv = o.server?.(model) ?? createWhisperServer({ binary: o.binary, model, vadModel: o.vadModel, gpuFallback: !o.cpu, cpuOnly: o.cpu, startTimeoutMs: 180_000, backoffMs: [0], checkGpu: (url) => hearsClip(url, readWav(readFileSync(o.clip)).subarray(0, 5 * 16000)) })
@@ -59,7 +61,7 @@ export async function measureSpeed(model: string, o: MeasureOpts): Promise<{ rtf
     await srv.url().catch(() => srv.url())
     const language = () => 'en'
     await createTranscriber({ url: () => srv.url(), language, timeoutMs: 120_000 })({ track: 'them', startMs: 0, samples: samples.subarray(0, 3 * 16000) })
-    const read = createTranscriber({ url: () => srv.url(), language, timeoutMs: Math.round(clipMs) })
+    const read = createTranscriber({ url: () => srv.url(), language, timeoutMs: Math.round(clipMs * AFTER_MEETING_RTF) })
     const t0 = performance.now()
     try { await read({ track: 'them', startMs: 0, samples }) } catch (e) {
       if (e instanceof Error && e.name === 'TimeoutError') return { rtf: null, gpuOff: srv.cpuOnly }

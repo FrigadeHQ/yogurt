@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { speedKey, type Catalog, type Hardware } from '@yogurt/picker'
 import bundled from '../../catalog/catalog.json'
-import { SetupController, type SetupDeps, type SpeedDeps, type SpeedResult } from '../src/main/setup'
+import { asrFor, SetupController, type SetupDeps, type SpeedDeps, type SpeedResult } from '../src/main/setup'
 import { fakeDownloadDeps } from '../src/main/fake'
 import { DiskSpaceError, type DownloadDeps } from '../src/main/downloader'
 import type { SetupState } from '../src/shared/types'
@@ -602,6 +602,38 @@ describe('the speed check (Windows and Linux): speech models timed on this compu
     await again.c.start(); await again.c.idle()
     expect(again.c.installed()).toMatchObject({ asrCpu: true })
     expect(s.timed).toHaveLength(3)
+  })
+
+  // #107 (a Xeon with an AMD WX 3200 whose Vulkan fails the hearing test): base keeps up live but small does not. English
+  // keeps base live; a meeting in another language is read with small from its recording after it ends
+  it('base keeps up live but small reads within twice the clip: small is kept too, for meetings in other languages', async () => {
+    const s = speed({ 'whisper-small-q5_1': 1.6, 'whisper-base-q5_1': 0.3 })
+    const { c, root } = setup({ getHardware: async () => cpuPc, speed: s.deps })
+    await c.start(); await c.idle()
+    const small = join(root, 'asr', name(url('whisper-small-q5_1'))), base = join(root, 'asr', name(url('whisper-base-q5_1')))
+    expect(c.installed()).toMatchObject({ asr: base, asrMulti: small })
+    expect(c.installed()?.asrAfterMeeting).toBeUndefined()
+    expect(existsSync(small)).toBe(true)
+    expect(s.stored()).toMatchObject({ model: 'whisper-base-q5_1', multi: { model: 'whisper-small-q5_1' } })
+    expect(asrFor(c.installed()!, 'en')).toEqual({ path: base, cpu: false, afterMeeting: false })
+    expect(asrFor(c.installed()!, 'multi')).toEqual({ path: small, cpu: false, afterMeeting: true })
+
+    const again = setup({ getHardware: async () => cpuPc, speed: s.deps, modelsDir: root })
+    await again.c.start(); await again.c.idle()
+    expect(again.c.installed()).toMatchObject({ asr: base, asrMulti: small })
+    expect(s.timed).toHaveLength(2)
+  })
+  it('the better model for other languages on the processor where the graphics were slower for it', async () => {
+    const s = speed({ 'whisper-large-v3-turbo-q5_0': null, 'whisper-small-q5_1': null, 'whisper-base-q5_1': 0.3 }, undefined, { 'whisper-small-q5_1': 1.5 })
+    const { c } = setup({ getHardware: async () => gpuPc, speed: s.deps })
+    await c.start(); await c.idle()
+    expect(c.installed()).toMatchObject({ asrMultiCpu: true })
+    expect(asrFor(c.installed()!, 'multi')).toMatchObject({ cpu: true, afterMeeting: true })
+    expect(asrFor(c.installed()!, 'en')).toMatchObject({ cpu: false, afterMeeting: false })
+  })
+  it('a strong model live: the same model for every language', () => {
+    expect(asrFor({ asr: '/a/small.bin', asrCpu: true }, 'multi')).toEqual({ path: '/a/small.bin', cpu: true, afterMeeting: false })
+    expect(asrFor({ asr: '/a/base.bin', asrAfterMeeting: true }, 'en')).toEqual({ path: '/a/base.bin', cpu: false, afterMeeting: true })
   })
 
   it('without graphics the processor is not timed twice', async () => {

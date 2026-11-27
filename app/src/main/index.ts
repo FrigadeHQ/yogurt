@@ -44,7 +44,7 @@ import { loginItemOn, openedAtLogin, setLoginItem, syncLoginItem } from './login
 import { createMedia } from './media'
 import { createTray, linuxTrayHost } from './tray'
 import { trayWindowEnd } from './trayMenu'
-import { SetupController } from './setup'
+import { asrFor, SetupController } from './setup'
 import { fakeMeasure, measureSpeed, speedClipPath, speedStore } from './asr/speedCheck'
 import { vadModelPath, whisperServerPath } from './asr/server'
 import { openStore, type Store } from './store'
@@ -668,9 +668,12 @@ app.whenReady().then(() => {
   if (process.platform === 'darwin' || process.platform === 'win32') lookForCallOf = (app, back) => callNames.lookForCall(app, back)
   // Windows and Linux: whisper left the graphics card in a meeting, so the speed check (timed with it) runs again next start
   onWhisperGpuOff(() => speedStore(speedFile()).forget())
-  hookTranscription({ store, modelPath: () => setup.installed()?.asr, smallerModels: () => setup.installed()?.smallerAsr ?? [],
+  // the speech model for the spoken language: where base keeps up live but is poor outside English, Multi-language
+  // meetings are read with a better one from the recording after they end (#107)
+  const asrNow = () => { const i = setup.installed(); return i && asrFor(i, spokenSetting(loadSettings(settingsFile))) }
+  hookTranscription({ store, modelPath: () => asrNow()?.path, smallerModels: () => setup.installed()?.smallerAsr ?? [],
     // the speed check's findings: whisper on the processor (faster there than on built-in graphics), or after the meeting
-    cpuOnly: () => !!setup.installed()?.asrCpu, afterMeeting: () => !!setup.installed()?.asrAfterMeeting, send: (seg) => {
+    cpuOnly: () => !!asrNow()?.cpu, afterMeeting: () => !!asrNow()?.afterMeeting, send: (seg) => {
     const order = seg.track === 'them' && seg.speaker ? store.speakerOrder(seg.meetingId, seg.speaker) : []
     const colored = { ...seg, speakerColor: speakerColor(seg.track, seg.speaker, order) }
     win?.webContents.send('transcript:segment', colored); sendWidgetTranscript('transcript:segment', colored)

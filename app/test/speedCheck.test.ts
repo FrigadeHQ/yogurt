@@ -73,8 +73,14 @@ describe('the speed check (Windows and Linux)', () => {
       expect(s.stopped()).toBe(true)
     })
 
-    it('a reading that takes longer than the clip is stopped: too slow by far', async () => {
-      const s = await standIn(1500)
+    // #107: up to twice the clip is still timed, for a model that reads recordings after the meeting
+    it('a reading that takes up to twice the clip is timed; longer is stopped: too slow by far', async () => {
+      const slow = await standIn(1500)
+      const timed = await measureSpeed('/m/ggml-small-q5_1.bin', { binary: 'x', clip: clip(1), server: () => slow.srv })
+      expect(timed.rtf).toBeGreaterThan(1.4)
+      expect(timed.rtf).toBeLessThan(2)
+      close?.()
+      const s = await standIn(2500)
       const r = await measureSpeed('/m/ggml-small-q5_1.bin', { binary: 'x', clip: clip(1), server: () => s.srv })
       expect(r.rtf).toBeNull()
       expect(s.stopped()).toBe(true)
