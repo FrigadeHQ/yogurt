@@ -489,6 +489,18 @@ describe("Teams' talking mark on a Mac (#138)", () => {
     const samples = [0, 500, 1000, 1500].map((ms) => ({ ms, ...readCall('teams', [macStage([macOwnTile('Alex Morgan'), macTile('Dana Smith', ms < 1500), macTile('Ann Lee', false)])]) }))
     expect(nameFor({ startMs: 0, endMs: 2000 }, samples)).toBe('Dana Smith')
   })
+  it("never takes the poor-network badge on my own tile for my name (#138 11-25)", () => {
+    const badge = (name: string, label: boolean): AxNode => node('AXMenuItem', { d: `Myself video, Bad network connection indicator, ${name}, ${PRODUCTION}, Muted, Has context menu` },
+      node('AXGroup', { c: ['fui-Primitive', '___19sw0rl'] }), ...(label ? [node('AXStaticText', { v: name })] : []))
+    for (const label of [true, false]) {
+      const r = readCall('teams', [macStage([badge('Alex Morgan', label), macTile('Dana Smith', true)])])
+      expect(r.me).toBe('Alex Morgan')
+      expect(r.participants).toEqual(['Alex Morgan', 'Dana Smith'])
+    }
+    // a remote tile with a badge first is no person named for it either
+    const remote = node('AXMenuItem', { d: `Poor network connection indicator, Dana Smith, ${PRODUCTION}, muted, Context menu is available` })
+    expect(readCall('teams', [macStage([remote])]).participants).toEqual(['Dana Smith'])
+  })
 })
 
 describe('summarize: a short picture of the tree for the log', () => {

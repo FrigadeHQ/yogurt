@@ -566,6 +566,43 @@ describe('the call window going away ends the call', () => {
     win = { goneMs: 0 }; clock += 1_500; await w.tick()
     expect(log).toEqual([])
   })
+  // #138 11-25: a Teams popup hid the call for 10 s, the recording stopped as call-ended, and the call went on 7 more
+  // minutes with Teams on the mic. A recording ending dismisses its call until the app lets go of the mic, so no offer came.
+  it('a call that ended by its window but comes back while the app still holds the mic is offered again', async () => {
+    const looks: Array<{ app: string | null; back: () => void }> = []
+    w = new Watcher({
+      read: async () => reading, now: () => clock, active: () => active,
+      bindApp: (_id, app) => (active = { ...active!, app }),
+      offer: (p) => log.push('offer:' + p.key), askStop: () => log.push('stop'), hide: () => log.push('hide'),
+      silentMs: () => silent, callWindow: () => win,
+      autoStop: (m) => { log.push('auto:' + m.id); active = null; w.cleared() }, autoStopOn: () => auto,
+      lookForCall: (m, back) => looks.push({ app: m.app, back }),
+    })
+    active = meeting(); reading = { micApps: [zoom], events: [] }; win = { goneMs: 0 }; await w.tick()
+    clock += 8_000; win = { goneMs: 8_000 }; await w.tick()
+    expect(log).toEqual(['auto:m1'])
+    expect(looks.map((l) => l.app)).toEqual(['Zoom'])
+    // still on the mic, the window not back yet: no offer (a call that ended while the app keeps the mic stays quiet)
+    for (let i = 0; i < 5; i++) { clock += 1_500; await w.tick() }
+    expect(log).toEqual(['auto:m1'])
+    // the window with people is back
+    looks[0].back(); clock += 1_500; await w.tick()
+    expect(log).toEqual(['auto:m1', 'offer:app:us.zoom.xos'])
+    // one offer, not a stream
+    for (let i = 0; i < 5; i++) { clock += 1_500; await w.tick() }
+    expect(log.filter((l) => l.startsWith('offer'))).toHaveLength(1)
+  })
+  it('no look for the call coming back when the app let go of the mic (that call is over)', async () => {
+    const looks: string[] = []
+    w = new Watcher({
+      read: async () => reading, now: () => clock, active: () => active, bindApp: (_id, app) => (active = { ...active!, app }),
+      offer: () => {}, askStop: () => {}, hide: () => {}, silentMs: () => silent, callWindow: () => win,
+      autoStop: () => {}, autoStopOn: () => true, lookForCall: (m) => looks.push(m.id),
+    })
+    active = meeting(); reading = { micApps: [zoom], events: [] }; win = { goneMs: 0 }; await w.tick()
+    reading = { micApps: [], events: [] }; clock += 8_000; win = { goneMs: 8_000 }; await w.tick()
+    expect(looks).toEqual([])
+  })
   it('a card start still ends by the mic as before', async () => {
     active = meeting()
     reading = { micApps: [zoom], events: [] }; await w.tick()

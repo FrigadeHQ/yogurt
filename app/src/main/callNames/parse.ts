@@ -316,6 +316,8 @@ const TEAMS_UNMUTED = /^(?:unmuted|stummschaltung aufgehoben|nicht stummgeschalt
 const TEAMS_HINT = /^(?:context menu is available|has context menu|kontextmenü ist verfügbar)$/i
 /** my own tile on a Mac starts with these words: "Myself video, Name, ..., Unmuted, Has context menu" (#138) */
 const TEAMS_MYSELF = /^myself video,\s*/i
+/** status badges Teams puts before the name: "Myself video, Bad network connection indicator, Name, ..." (#138). Never a name. */
+const TEAMS_BADGE = /^(?:[^,]*\b(?:network|connection|netzwerk|verbindung)\b[^,]*|[^,]*\bindicator|(?:raised hand|hand raised|pinned|spotlighted))\s*(?:,\s*|$)/i
 /** my own tile's label adds a short word after the name: "Christa, Ich" */
 const OWN_LABEL = /^(.+?),\s*(\p{L}{1,5})$/u
 
@@ -323,7 +325,8 @@ const OWN_LABEL = /^(.+?),\s*(\p{L}{1,5})$/u
 function teamsTile(n: AxNode, alone: boolean): { name: string; speaking: boolean; me: boolean; muted: boolean | null } | null {
   const full = (n.t ?? n.d ?? '').normalize('NFKC').trim()
   const myself = TEAMS_MYSELF.test(full)
-  const label = full.replace(TEAMS_MYSELF, '')
+  let label = full.replace(TEAMS_MYSELF, '')
+  while (TEAMS_BADGE.test(label)) label = label.replace(TEAMS_BADGE, '')
   const inner: string[] = [], heads: string[] = []
   walk(n, (x) => {
     if (x === n) return

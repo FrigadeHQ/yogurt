@@ -26,6 +26,8 @@ export type WatchDeps = {
   graceMs?: number
   /** the call names reader's view of the meeting's call window: null before a call window with people was seen */
   callWindow?(meetingId: string): { goneMs: number } | null
+  /** after a stop by the call window while the app still held the mic: `back` runs if that window shows the call again */
+  lookForCall?(m: Meeting, back: () => void): void
 }
 
 const SNOOZE = 5 * 60_000
@@ -52,6 +54,10 @@ export class Watcher {
    */
   private calls = new Map<string, { last: number; key: string; at: number }>()
   private shownApp: string | null = null
+  /** the offers a recording's stop closed, by app, so a call that turns out to go on can be offered again (#138) */
+  private stopKeys = new Map<string, string[]>()
+  /** apps whose call came back after its recording stopped as ended */
+  private back = new Set<string>()
 
   constructor(private d: WatchDeps) {}
 
@@ -91,7 +97,20 @@ export class Watcher {
     // later): that call is done, as if its card were closed. It is forgiven once the app lets go of the mic, as below.
     // A recording ending closes its call: once the app lets go of the mic, the next call is new (back-to-back meetings)
     if (justStopped) this.calls.clear()
-    if (justStopped) for (let p = decide(s, now, this.dismissed); p; p = decide(s, now, this.dismissed)) this.dismissed.add(p.key)
+    if (justStopped) {
+      this.stopKeys.clear()
+      for (let p = decide(s, now, this.dismissed); p; p = decide(s, now, this.dismissed)) {
+        this.dismissed.add(p.key)
+        const app = p.app ?? p.key
+        this.stopKeys.set(app, [...(this.stopKeys.get(app) ?? []), p.key])
+      }
+    }
+    // the call window came back after a stop by it (a popup hid it, #138): that call goes on, so it is offered again
+    for (const app of this.back) {
+      for (const k of this.stopKeys.get(app) ?? []) this.dismissed.delete(k)
+      this.stopKeys.delete(app); this.calls.delete(app)
+    }
+    this.back.clear()
     this.idleMic = new Set(s.micApps.flatMap((m) => callAppName(m.bundleId, s.runningApps) ?? []))
     const call = decide(s, now, new Set())
     this.idleCall = call?.app ? { app: call.app, at: now } : null
@@ -162,6 +181,8 @@ export class Watcher {
       r.stopped = true
       if (this.shown === 'stop') { this.shown = null; this.d.hide() }
       this.d.autoStop(m)
+      // the app still on the mic: the window may only have looked gone, so watch a while for it to show the call again
+      if (byWindow && onMic && m.app) { const app = m.app; this.d.lookForCall?.(m, () => this.back.add(app)) }
       return
     }
     const over = byWindow || ended(now - r.lastMic, silentMs)

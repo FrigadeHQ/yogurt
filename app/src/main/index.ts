@@ -345,6 +345,7 @@ let micPidsNow: (app: string) => number[] = () => []
  * readers also say when the call window is just minimised or on another desktop, so that is never taken for the call
  * ending (#83: on Windows a recording started from the agenda never ended by itself) */
 let callWindowOf: (meetingId: string) => { goneMs: number } | null = () => null
+let lookForCallOf: (app: string, back: () => void) => void = () => {}
 
 /** fake mode's hooks reach the store and the notes through these */
 let storeRef: Store | undefined
@@ -377,6 +378,7 @@ function startDetection() {
     // fake mode: tests can shorten the grace
     graceMs: isFake() && process.env.YOGURT_FAKE_CALL_GONE_MS ? Number(process.env.YOGURT_FAKE_CALL_GONE_MS) : CALL_GONE_MS,
     callWindow: (id) => callWindowOf(id),
+    lookForCall: (m, back) => { if (m.app) lookForCallOf(m.app, back) },
   })
   onMeetingStop(() => { watcher.cleared() })
   const prompts = createPrompts({
@@ -662,7 +664,10 @@ app.whenReady().then(() => {
     changed: (id) => { win?.webContents.send('transcript:speakers', id); sendWidgetTranscript('transcript:speakers', id); win?.webContents.send('meetings:changed'); notes.applyPeople(id) },
     onStart: onMeetingStart, onStop: onMeetingStop, onCapture: onCaptureStart, onBind: onMeetingBound, micPids: (app) => micPidsNow(app),
   })
-  if (process.platform === 'darwin' || process.platform === 'win32') callWindowOf = (id) => callNames.callWindow(id)
+  if (process.platform === 'darwin' || process.platform === 'win32') {
+    callWindowOf = (id) => callNames.callWindow(id)
+    lookForCallOf = (app, back) => callNames.lookForCall(app, back)
+  }
   // Windows and Linux: whisper left the graphics card in a meeting, so the speed check (timed with it) runs again next start
   onWhisperGpuOff(() => speedStore(speedFile()).forget())
   hookTranscription({ store, modelPath: () => setup.installed()?.asr, smallerModels: () => setup.installed()?.smallerAsr ?? [],

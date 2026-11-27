@@ -63,6 +63,8 @@ const RECENT_MS = 60_000
 const MAX_RESTARTS = 20
 /** changes of who talks written to the log, per meeting (enough to check a real call, never a flood) */
 const LOGGED_CHANGES = 30
+/** how long after a stop by the call window a call coming back is still that call */
+const LOOK_BACK_MS = 2 * 60_000
 
 type Sample = Omit<CallSample, 'ms'> & { t: number }
 type Session = { app: string | null; ids: string[]; pids?: number[]; heardAt: number; quietMs: number; restarts: number; samples: Sample[]; priorLines: Set<number>; watch?: { stop(): void }; everyApp: boolean; offset?: number; startedAt: number; pictured: boolean; missPictured?: boolean; picturedPeople?: boolean; picturedTalking?: boolean; errors: Set<string>; last: string; logged: number; /** a call window with people was read (Zoom, Teams) */ windowSeen?: CallKind; /** since when the readings say that window is gone, and the last one that said so */ goneSince?: number; goneAt?: number }
@@ -113,8 +115,12 @@ export function hookCallNames(p: {
       // the call window gone: the reader looked and found none (or the app quit). Anything else (no permission, a slow
       // window) says nothing either way.
       const gone = !!l.error && (l.error.startsWith('no-call-window') || l.error === 'not-running')
-      if (gone && l.hidden) {
-        if (!s.errors.has('hidden')) { s.errors.add('hidden'); log('call names: the call window is out of sight (another desktop or full screen), not closed') }
+      // A popup in the page (Teams' poor-network suggestion, #138) makes Chromium show only the popup, so no Leave button
+      // is found, though the call window is still there. With the app still on the mic that is the call hidden, not over.
+      const popup = gone && !!s.app && l.error!.includes('page shows only a popup') && (p.micPids?.(s.app).length ?? 0) > 0
+      if (gone && (l.hidden || popup)) {
+        const why = popup ? 'popup' : 'hidden'
+        if (!s.errors.has(why)) { s.errors.add(why); log(popup ? 'call names: a popup covers the call window while the app holds the mic, not closed' : 'call names: the call window is out of sight (another desktop or full screen), not closed') }
         windowBack(s)
       }
       else if (gone && s.windowSeen) {
@@ -172,7 +178,11 @@ export function hookCallNames(p: {
     try { s.watch = p.watch(s.ids, (l) => onLine(id, s, l), s.pids) } catch (e) { console.error('call names: the watch did not start', e) }
   }
 
+  /** readers looking for a call that came back after its recording stopped (lookForCall) */
+  const looks = new Set<() => void>()
+
   p.onStart((m) => {
+    for (const end of [...looks]) end()
     const ids = watchIds(m.app)
     const s: Session = { app: m.app, ids, heardAt: now(), quietMs: QUIET_MS, restarts: 0, everyApp: !m.app, samples: [], priorLines: new Set(p.store.segments(m.id, { hidden: true }).map((line) => line.id)), startedAt: m.resume ? m.resume.startedAt - m.resume.startMs : m.startedAt, pictured: false, errors: new Set(), last: '', logged: 0 }
     sessions.set(m.id, s)
@@ -273,6 +283,32 @@ export function hookCallNames(p: {
       if (!s?.windowSeen) return null
       const fresh = s.goneSince !== undefined && s.goneAt !== undefined && now() - s.goneAt <= s.quietMs
       return { goneMs: fresh ? now() - s.goneSince! : 0 }
+    },
+    /**
+     * After a recording stopped because its call window looked gone while the app still held the mic: the window read
+     * again with people in it within `ms` means the call went on (#138), so `back` runs, once.
+     */
+    lookForCall(app: string, back: () => void, ms = LOOK_BACK_MS) {
+      const ids = watchIds(app)
+      if (!ids.length) return
+      const since = now()
+      let w: { stop(): void } | undefined, done = false
+      const end = () => { if (done) return; done = true; looks.delete(end); clearTimeout(timer); w?.stop() }
+      const timer = setTimeout(end, ms); timer.unref?.()
+      looks.add(end)
+      const pids = p.micPids?.(app)
+      try {
+        w = p.watch(ids, (l) => {
+          if (done) return
+          if (now() - since > ms) return end()
+          if (l.error || !l.app || !l.windows) return
+          const kind = kindFor(l.app, l.windows, app)
+          if (!kind || !readCall(kind, l.windows).participants.length) return
+          log(`call names: the ${kind} call window is back after the recording stopped`)
+          end(); back()
+        }, pids?.length ? pids : undefined)
+      } catch (e) { console.error('call names: the watch did not start', e); end() }
+      if (done) w?.stop()
     },
     /** resolves when the names after the meeting are in */
     finished: (id: string): Promise<void> => finals.get(id) ?? Promise.resolve(),

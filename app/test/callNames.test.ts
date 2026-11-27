@@ -490,6 +490,47 @@ describe('callWindow: the call window seen, then gone', () => {
     expect(s.hook.callWindow(s.m.id)?.goneMs).toBe(8_000)
     expect(s.logs).toContain('call names: the teams call window went away')
   })
+  // #138 11-25: Teams' poor-network suggestion covered the page for 10 s; Chromium then shows only the popup, so no Leave
+  // button is found. The window kept its call title and Teams kept the mic: that is the call hidden, not ended.
+  const popup = 'no-call-window (search unavailable (-25213); walk saw the whole window, no page in it | search unavailable (-25213); page shows only a popup; page search saw buttons, none a call control; walk saw the whole window)'
+  const teamsCall = (t: number): WatchLine => ({ t, app: 'com.microsoft.teams2', windows: [{ title: 'Weekly review | Microsoft Teams', tree: { r: 'frame', k: [{ r: 'section', t: 'Dana Smith, speaking' }, { r: 'tree', t: 'Participants', k: [{ r: 'tree item', t: 'Dana Smith, unmuted' }, { r: 'tree item', t: 'Alex Morgan (You)' }] }] } }] })
+  it('a Teams popup covering the call while Teams holds the mic is the window hidden, not gone', () => {
+    const s = setup({ app: 'Teams' })
+    s.start(); s.setMic('Teams', [701])
+    s.at(1_000_000); s.emit(teamsCall(1_000_000))
+    for (let t = 1_000_500; t <= 1_030_000; t += 500) { s.at(t); s.emit({ t, app: 'com.microsoft.teams2', error: popup }) }
+    expect(s.hook.callWindow(s.m.id)).toEqual({ goneMs: 0 })
+    expect(s.logs).not.toContain('call names: the teams call window went away')
+    expect(s.logs.filter((l) => l.includes('popup covers'))).toHaveLength(1)
+  })
+  it('a popup-only page with Teams off the mic still counts as gone (the call is over)', () => {
+    const s = setup({ app: 'Teams' })
+    s.start()
+    s.at(1_000_000); s.emit(teamsCall(1_000_000))
+    for (let t = 1_000_500; t <= 1_008_500; t += 500) { s.at(t); s.emit({ t, app: 'com.microsoft.teams2', error: popup }) }
+    expect(s.hook.callWindow(s.m.id)?.goneMs).toBe(8_000)
+  })
+  it('after a stop, lookForCall says once when the call window with people is back, then stops reading', () => {
+    const s = setup({ app: 'Teams' })
+    s.start(); s.at(1_000_000); s.emit(teamsCall(1_000_000)); s.stop()
+    const back = vi.fn()
+    s.hook.lookForCall('Teams', back)
+    expect(s.watched.at(-1)).toEqual(watchIds('Teams'))
+    const stopped = s.stopped()
+    s.at(1_001_000); s.emit({ t: 1_001_000, app: 'com.microsoft.teams2', error: popup })
+    expect(back).not.toHaveBeenCalled()
+    s.at(1_001_500); s.emit(teamsCall(1_001_500)); s.emit(teamsCall(1_002_000))
+    expect(back).toHaveBeenCalledTimes(1)
+    expect(s.stopped()).toBe(stopped + 1)
+  })
+  it('lookForCall gives up after a while', () => {
+    const s = setup({ app: 'Teams' })
+    s.start(); s.stop()
+    const back = vi.fn()
+    s.hook.lookForCall('Teams', back)
+    s.at(1_000_000 + 3 * 60_000); s.emit(teamsCall(1_000_000 + 3 * 60_000))
+    expect(back).not.toHaveBeenCalled()
+  })
   it('Zoom quitting is the window gone too', () => {
     const s = setup()
     s.start()
