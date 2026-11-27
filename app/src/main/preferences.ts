@@ -6,7 +6,7 @@ import { firstRunPlan, missing, nudge } from '../shared/onboarding'
 import type { OnboardingPlan } from '../shared/types'
 import { cleanJargon } from '../shared/jargon'
 import { isLocale, setLanguage } from '../shared/i18n'
-import { SPOKEN, type Spoken } from '../shared/spoken'
+import { isSpoken, type Spoken } from '../shared/spoken'
 
 const isKind = (k: unknown): k is PermissionKind => PERMISSION_KINDS.includes(k as PermissionKind)
 
@@ -114,11 +114,11 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
     return jargon
   }
   ipcMain.handle('settings:jargon', (_e, v: unknown) => setJargon(v))
-  // English only is the default, so only Multi-language is written down; true: saved
+  // English only is the default, so only Multi-language or another language is written down; true: saved
   const setSpoken = (v: unknown): boolean => {
-    if (!SPOKEN.includes(v as Spoken)) return false
-    updateSettings(d.file, { spoken: v === 'multi' ? 'multi' : undefined })
-    d.onSpoken?.(v as Spoken)
+    if (!isSpoken(v)) return false
+    updateSettings(d.file, { spoken: v === 'en' ? undefined : v })
+    d.onSpoken?.(v)
     return true
   }
   ipcMain.handle('settings:spoken', (_e, v: unknown) => { setSpoken(v) })

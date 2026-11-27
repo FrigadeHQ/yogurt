@@ -34,7 +34,7 @@ brew install --cask frigadehq/yogurt/yogurt
 - **Private by default.** Your audio, transcripts and AI processing stay on your computer.
 - **Free and open source.** You can use Yogurt without an account.
 - **Who said what.** Yogurt names speakers from Zoom, Teams and Meet on Mac, Windows and Linux.
-- **Languages.** Multi-language mode transcribes 99 languages, follows each side of the call in its own language, and keeps up when someone switches languages mid-meeting.
+- **Languages.** Pick any of 99 languages for meetings held in one, or Multi-language mode, which follows each side of the call in its own language and keeps up when someone switches languages mid-meeting.
 - **Recording reminders.** Yogurt offers to record when a supported call starts.
 - **Answers with sources.** Yogurt answers questions across meetings and links to the source.
 - **Folders and search.** You can find meetings by folder, title, notes or transcript.
@@ -188,7 +188,7 @@ Meeting data stays local; Yogurt goes online for model downloads and update chec
 
 <br>
 
-> Pick **Multi-language** in **Settings → Language → Spoken language** to transcribe 99 languages. You can also switch from the **English** menu in a note’s footer before or during recording. English only is the default, and it’s the fastest and most accurate choice for English meetings.
+> Pick the language your meetings are held in under **Settings → Language → Spoken language**: any of 99 languages, or **Multi-language** for meetings that mix them. You can also switch from the **English** menu in a note’s footer before or during recording; it offers your app’s language too. English only is the default. One language picked is the fastest and most accurate choice: nothing is guessed, so no line comes out translated into a language that was misheard.
 >
 > In Multi-language mode, you and the other side of the call can each speak your own language, and Yogurt follows along when someone switches languages mid-meeting. Summaries follow the meeting’s main language, or the one you pick in **Settings → Summary language**. Answers in Ask follow your question’s language. Settings also offers 32 app languages.
 

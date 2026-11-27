@@ -63,4 +63,12 @@ describe('the spoken language picked in Yogurt', () => {
     expect(speechFits('en', 'es-ES')).toBe(false)
     expect(speechFits('multi', 'es-ES')).toBe(true)
   })
+  it('another language picked listens in that one whatever the last meeting was, or not at all when the Mac has no model', () => {
+    expect(wantedSpeechLocale({ spoken: 'es', supported, last: 'german', ui: 'en-GB' })).toBe('es-ES')
+    expect(wantedSpeechLocale({ spoken: 'es', supported: ['es-MX', 'es-ES', 'en-US'], last: null, ui: 'es-MX' })).toBe('es-MX')
+    expect(wantedSpeechLocale({ spoken: 'fr', supported, last: 'french', ui: 'fr-FR' })).toBeNull()
+    expect(wantedSpeechLocale({ spoken: 'no', supported: ['nb-NO', 'en-US'], last: null, ui: 'en-US' })).toBe('nb-NO')
+    expect(speechFits('es', 'es-ES')).toBe(true)
+    expect(speechFits('es', 'en-US')).toBe(false)
+  })
 })

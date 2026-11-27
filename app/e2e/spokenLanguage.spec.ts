@@ -6,8 +6,8 @@ import { join } from 'node:path'
 
 const main = join(import.meta.dirname, '../out/main/index.js')
 
-async function launch(userData = mkdtempSync(join(tmpdir(), 'yogurt-spoken-'))) {
-  const app = await electron.launch({ args: [main], env: { ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: userData } })
+async function launch(userData = mkdtempSync(join(tmpdir(), 'yogurt-spoken-')), system?: string) {
+  const app = await electron.launch({ args: [main], env: { ...process.env, YOGURT_FAKE: '1', YOGURT_USER_DATA: userData, ...(system ? { YOGURT_SYSTEM_LANGUAGES: system } : {}) } })
   const page = await app.firstWindow()
   await expect(page.getByTestId('home')).toBeVisible()
   return { app, page, userData }
@@ -58,14 +58,16 @@ test('the spoken language picker: English only by default, Multi-language for th
     // Settings → Language shows the same choice, and changes it back
     await page.getByTestId('note-stop').click()
     await openFromCorner(page, 'settings-open')
-    await expect(page.getByTestId('settings-spoken-multi')).toHaveAttribute('aria-checked', 'true')
-    await page.getByTestId('settings-spoken-en').click()
-    await expect(page.getByTestId('settings-spoken-en')).toHaveAttribute('aria-checked', 'true')
+    const picker = page.getByTestId('settings-spoken')
+    await expect(picker).toHaveValue('multi')
+    await picker.selectOption('en')
     // English only is the default, so it is not written down
     await expect.poll(() => saved(a.userData)).toBeUndefined()
-    await page.getByTestId('settings-spoken-en').press('ArrowRight')
-    await expect(page.getByTestId('settings-spoken-multi')).toHaveAttribute('aria-checked', 'true')
-    await expect.poll(focused).toBe('settings-spoken-multi')
+    // one other language: English only, Multi-language, a divider, then the 98 others by name
+    await expect(picker.locator('option')).toHaveCount(101)
+    await picker.selectOption('es')
+    await expect.poll(() => saved(a.userData)).toBe('es')
+    await picker.selectOption('multi')
     await expect.poll(() => saved(a.userData)).toBe('multi')
   } finally { await app.close() }
 
@@ -77,4 +79,22 @@ test('the spoken language picker: English only by default, Multi-language for th
     await expect.poll(async () => (await languages(b.app)).length, { timeout: 30_000 }).toBeGreaterThan(0)
     expect(new Set(await languages(b.app))).toEqual(new Set(['auto']))
   } finally { await b.app.close() }
+})
+
+test('one other language: offered under the note when the interface is in it, and whisper is told it', async () => {
+  const { app, page, userData } = await launch(undefined, 'es-ES')
+  try {
+    await page.locator('#workspace-actions').getByRole('button', { name: 'Grabar', exact: true }).click()
+    await expect(page.getByTestId('note-state')).toHaveAttribute('data-state', 'recording')
+    await page.getByTestId('spoken-chip').click()
+    await expect(page.getByTestId('spoken-other')).toHaveText(/Español/)
+    await expect(page.getByTestId('spoken-other')).toHaveAttribute('aria-checked', 'false')
+    const told = (await languages(app)).length
+    await page.getByTestId('spoken-other').click()
+    await expect(page.getByTestId('spoken-name')).toHaveText('Español')
+    await expect.poll(() => saved(userData)).toBe('es')
+    // told Spanish from the next words: nothing guessed, nothing translated
+    await expect.poll(async () => (await languages(app)).slice(told), { timeout: 30_000 }).toContain('es')
+    expect((await languages(app)).slice(told)).not.toContain('auto')
+  } finally { await app.close() }
 })

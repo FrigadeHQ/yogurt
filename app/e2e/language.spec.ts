@@ -85,7 +85,7 @@ test('summary language defaults to the meeting and persists independently of app
     await expect(picker.locator('option')).toHaveCount(33)
     await picker.selectOption('fr')
     await expect(page.getByTestId('settings-app-language')).toHaveValue('')
-    await expect(page.getByTestId('settings-spoken-en')).toHaveAttribute('aria-checked', 'true')
+    await expect(page.getByTestId('settings-spoken')).toHaveValue('en')
     await expect.poll(() => page.evaluate(() => window.yogurt.settings.get().then(s => s.summaryLanguage))).toBe('fr')
     await app.close()
     ;({ app, page } = await launch('en-US', a.userData))

@@ -883,8 +883,8 @@ html:not(.widget) button:focus-visible, html:not(.widget) input:focus-visible { 
 .loading-mask :is(.settings-label,.settings-description,.settings-permission-label) { position:relative;color:transparent!important; }
 .loading-mask :is(.settings-label,.settings-description,.settings-permission-label)::after { content:"";position:absolute;inset-inline-start:0;top:5px;width:min(75%,260px);height:10px;border-radius:4px;background:var(--control); }
 .loading-mask .settings-description::after { width:min(85%,300px);height:8px;top:6px; }
-.loading-mask :is(.settings-toggle,.settings-select,.settings-name-field,.settings-action,.settings-spoken,.settings-jargon-field) { color:transparent!important;background:var(--control)!important;border-color:transparent!important;box-shadow:none!important; }
-.loading-mask :is(.settings-toggle,.settings-action,.settings-spoken,.settings-jargon-field)>*,.loading-mask .settings-select-wrap>svg,.loading-mask .settings-permission-icon>*,.loading-mask .settings-permission-status { visibility:hidden; }
+.loading-mask :is(.settings-toggle,.settings-select,.settings-name-field,.settings-action,.settings-jargon-field) { color:transparent!important;background:var(--control)!important;border-color:transparent!important;box-shadow:none!important; }
+.loading-mask :is(.settings-toggle,.settings-action,.settings-jargon-field)>*,.loading-mask .settings-select-wrap>svg,.loading-mask .settings-permission-icon>*,.loading-mask .settings-permission-status { visibility:hidden; }
 .loading-mask .settings-select { pointer-events:none; }
 @keyframes loading-in { from { opacity:0; } to { opacity:1; } }
 @keyframes loading-out { from { opacity:1; } to { opacity:0; } }
