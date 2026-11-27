@@ -784,6 +784,7 @@ app.whenReady().then(() => {
   let finishing = false, discardUnsaved = false
   busyNow = () => !!activeMeeting() || queue.busy() || setup.state.phase === 'checking' || setup.state.phase === 'downloading'
   const savedTranscriptions = createSavedTranscriptions({
+    resolveModel: (id, signal) => setup.prepareRetranscriptionModel(id, signal),
     store, ready: () => !!setup.installed()?.asr, recording: () => !!activeMeeting() || !!resumingId || finishing, live: transcriptOpen,
     tracks: async id => {
       await recordingSettled(id)
@@ -808,11 +809,13 @@ app.whenReady().then(() => {
   setup.onState(() => {uploads.resume();savedTranscriptions.resume()})
   onMeetingStart(m => {store.clearTranscriptionState(m.id);savedTranscriptions.pause()})
   onMeetingStopSaved(() => {uploads.resume();savedTranscriptions.resume()})
-  ipcMain.handle('transcript:run', (e,id:unknown,again:unknown) => {
+  ipcMain.handle('transcript:models', e => e.sender === win?.webContents ? setup.retranscriptionModels() : [])
+  ipcMain.handle('transcript:run', (e,id:unknown,again:unknown,model:unknown) => {
     if(e.sender!==win?.webContents||!isId(id)||typeof again!=='boolean')return false
+    if(model!==undefined&&(!again||!setup.canRetranscribeWith(model)))return false
     const meeting=store.meeting(id)
     if(!meeting||stopSavePending(id)||transcriptionBusy(meeting.transcriptionState))return false
-    return savedTranscriptions.start(id,again)
+    return savedTranscriptions.start(id,again,model)
   })
   ipcMain.handle('transcript:stop', async (e,id:unknown) => {
     if(e.sender!==win?.webContents||!isId(id))return

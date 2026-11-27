@@ -1,4 +1,5 @@
 import { t } from './i18n'
+export type RetranscriptionModel = { id: string; name: string; bytes: number; downloaded: boolean }
 export type TranscriptionState = 'preparing' | 'queued' | 'transcribing' | 'waiting-model' | 'waiting-recording' | 'stopped' | 'error' | 'done'
 export const transcriptionBusy = (state?: TranscriptionState) => !!state && ['preparing','queued','transcribing','waiting-model','waiting-recording'].includes(state)
 export function transcriptionLabel(state?: TranscriptionState) {

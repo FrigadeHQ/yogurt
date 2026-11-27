@@ -1,5 +1,6 @@
 import { InlineError, ReadError } from '../components/InlineError'
 import { TranscriptionControl, transcriptionNotice } from '../components/Transcription'
+import { RetranscriptionModelDialog } from '../components/RetranscriptionModel'
 import { transcriptionBusy } from '../../../shared/transcription'
 import { citationTargetIndex } from '../../../shared/citations'
 import { NoteReadingPane } from '../components/NoteReadingPane'
@@ -136,6 +137,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   const notesButton = useRef<HTMLButtonElement>(null)
   const summaryButton = useRef<HTMLButtonElement>(null)
   const [rewriteOpen, setRewriteOpen] = useState(false)
+  const [replacementId, setReplacementId] = useState<string>()
   const [editedHere, setEditedHere] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -354,7 +356,12 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   }
   const hasSummary = !!notes.enhanced?.trim()
   const transcribing=transcriptionBusy(m.transcriptionState)
-  const runTranscript=async(again=false)=>{if(!await saveAll())return;try{const started=await window.yogurt.transcript.run(id,again);if(started)setPrimary('transcript')}catch{toasts.add({title:t("Yogurt couldn't transcribe this file.")})}}
+  const runTranscript = async (again = false, model?: string) => {
+    if (!await saveAll()) return false
+    const started = await window.yogurt.transcript.run(id, again, model)
+    if (started) setPrimary('transcript')
+    return started
+  }
   const transcriptReason=recording||m.stopSavePending?t('Available after recording'):transcribing?t('Transcribing…'):summarizing?t('Summarizing…'):!hasAudio?t('Audio is unavailable.'):undefined
   const generation = summaryAction({ hasSummary, hasContent: hasTranscript || !!notes.mine.trim(), recording, busy: summarizing, downloading: !!(setup?.notesDownloading || setup?.notesError), trashed })
   if(generation&&transcribing)generation.reason=t('Transcribing…')
@@ -370,6 +377,8 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
       setChatAnchor(readingArea.current)
       document.dispatchEvent(new CustomEvent('audio-upload-note-ready', { detail: id }))
     }} pending={false} skeleton={<Loading layout="note" />} className="loading-note-frame"><div data-testid="note" className="document-main relative flex h-full bg-bg">
+      {replacementId === id && <RetranscriptionModelDialog key={id}
+        onRun={model => runTranscript(true, model)} onClose={() => setReplacementId(undefined)} />}
       {resumeConfirm && <Modal testId="resume-confirm" role="alertdialog" title={t('Record more in this note?')}
         description={t('Your notes, transcript, and previous audio are kept. Your edited summary will be replaced when you stop recording.')}
         onCancel={() => setResumeConfirm(false)}>
@@ -379,7 +388,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
         </div>
       </Modal>}
       <div data-testid="note-topbar" className="note-topbar no-drag fixed end-4 top-[10px] z-[60]">
-          <NoteMenu key={id} transcription={{reason:transcriptReason,run:()=>void runTranscript(true)}} generation={generation} hasSummary={hasSummary} edited={notes.edited || editedHere} rewriteOpen={rewriteOpen} setRewriteOpen={setRewriteOpen}
+          <NoteMenu key={id} transcription={{reason:transcriptReason,run:()=>setReplacementId(id)}} generation={generation} hasSummary={hasSummary} edited={notes.edited || editedHere} rewriteOpen={rewriteOpen} setRewriteOpen={setRewriteOpen}
             onWriteAgain={(note) => { if (!generation || generation.reason) return; pickPrimary('notes'); pick('enhanced'); void writeAgain(note) }} recording={recording} savePending={m.stopSavePending} trashed={trashed} onRename={() => setRenaming(true)} onDelete={() => { void saveAll().then((saved) => { if (!saved) return; if (trashed) setDeleting(true); else void moveToTrash(id, `/note/${id}`) }) }}
             folders={(close) => <FolderPicker testId="note-menu-folders" meetingId={id} onNew={() => { close(); setNamingFolder(true) }} />} />
       </div>
@@ -468,7 +477,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
           {(primary === 'transcript' || transcriptVisited) && <section hidden={primary !== 'transcript'} id="note-transcript-panel" role="tabpanel" aria-labelledby="note-transcript-tab" className="note-content note-transcript-pane">
             <Transcript notice={
               hasAudio && (m.transcriptionPending || !hasTranscript) || m.transcriptionState === 'waiting-model' || m.transcriptionState === 'waiting-recording'
-                ? transcriptionNotice(m.transcriptionState, () => void runTranscript(), recording || !!m.stopSavePending)
+                ? transcriptionNotice(m.transcriptionState, () => void runTranscript().catch(() => toasts.add({title:t("Yogurt couldn't transcribe this file.")})), recording || !!m.stopSavePending)
                 : !hasAudio && m.transcriptionState === 'error'
                   ? { kind: 'upload', run: () => void openAudioUpload() }
                   : undefined

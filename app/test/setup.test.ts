@@ -50,6 +50,23 @@ const turboUrl = catalog.asr[0].url
 const smallUrl = catalog.asr[1].url
 
 describe('SetupController', () => {
+  it('reuses the installed speech model and caches a verified alternative without changing setup’s choice', async () => {
+    const { c, rec, root } = setup()
+    await c.start(); await c.idle()
+    const [turbo, small] = catalog.asr
+    const automatic = c.installed()?.asr
+    const signal = new AbortController().signal
+    expect(c.retranscriptionModels()).toContainEqual(expect.objectContaining({ id: small.id, downloaded: false }))
+    expect(await c.prepareRetranscriptionModel(turbo.id, signal)).toBe(automatic)
+    const alternative = join(root, 'asr', 'retranscription', name(smallUrl))
+    expect(await c.prepareRetranscriptionModel(small.id, signal)).toBe(alternative)
+    expect(await c.prepareRetranscriptionModel(small.id, signal)).toBe(alternative)
+    expect(c.retranscriptionModels()).toContainEqual(expect.objectContaining({ id: small.id, downloaded: true }))
+    expect(rec.asked.filter(url => url === smallUrl)).toHaveLength(1)
+    expect(c.installed()?.asr).toBe(automatic)
+    await expect(c.prepareRetranscriptionModel('../other.bin', signal)).rejects.toThrow('Unavailable speech model')
+  })
+
   it('keeps a failed fake notes download in the real retry state while recording remains ready', async () => {
     const { c, states } = setup({ download: fakeDownloadDeps({ stepMs: 0, notesFailOnce: true }) })
     await c.start()

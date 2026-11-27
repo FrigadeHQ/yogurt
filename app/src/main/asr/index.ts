@@ -120,7 +120,7 @@ export function liveSilentMs(id: string, now = Date.now()): number {
 }
 
 /** language: a code whisper is told for every chunk instead of the spoken setting (a phone recording's own) */
-export type RecordedOptions = { signal?: AbortSignal; progress?: (ms: number) => void; fromMs?: Partial<Record<Track,number>>; save?: (segments: Omit<Segment,'id'>[]) => void; language?: string }
+export type RecordedOptions = { signal?: AbortSignal; progress?: (ms: number) => void; fromMs?: Partial<Record<Track,number>>; save?: (segments: Omit<Segment,'id'>[]) => void; language?: string; modelPath?: string }
 type Recorded = (id: string, tracks: Partial<Record<Track, AsyncIterable<Float32Array>>>, stopped?: () => boolean, options?: RecordedOptions) => Promise<boolean>
 let recorded: Recorded = async () => false
 /**
@@ -249,13 +249,14 @@ export function hookTranscription(p: {
       if (locked && s.speech && speechDisagrees(s.speech, lang)) speechOff(s, `whisper heard ${lang}, not ${s.speech}`)
     }
     const promptOf = () => { const m = p.store.meeting?.(id); return m ? whisperPrompt(meetingWords(m)) : '' }
+    const automaticModel = p.modelPath()
+    const model = options?.modelPath ?? automaticModel
     if (p.transcriber) { const f = p.transcriber; transcribe = async (c, o) => f(c, (l, n, locked) => hear(l, n, locked), o) }
     // fake mode's stand-in is loaded only in fake mode, so it stays out of what real runs load
-    else if (isFake()) transcribe = async (c, o) => (await import('./fake')).fakeTranscribe(c, o, promptOf(), whisperLanguage(spokenNow()))
+    else if (isFake()) transcribe = async (c, o) => (await import('./fake')).fakeTranscribe(c, o, promptOf(), whisperLanguage(spokenNow()), model)
     else {
-      const model = p.modelPath()
       if (model) {
-        const keepCpu = !!p.cpuOnly?.()
+        const keepCpu = model === automaticModel && !!p.cpuOnly?.()
         let srv = serverFor(model, p.pidFile, p.server, { keepCpu })
         srv.resetBudget()
         // no other meeting on it: a graphics card set aside earlier gets another chance (#156: it stayed off until a restart)
@@ -365,7 +366,7 @@ export function hookTranscription(p: {
 
   const offStart = (p.onStart ?? onMeetingStart)((m) => { open(m.id) })
   recorded = async (id, tracks, stopped, options) => {
-    if (sessions.has(id) || !p.modelPath()) return false
+    if (sessions.has(id) || !(options?.modelPath ?? p.modelPath())) return false
     const s = open(id, true, options)
     if (!s.pipeline) { sessions.delete(id); return false }
     const pipe = s.pipeline

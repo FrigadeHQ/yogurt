@@ -3,13 +3,56 @@ import {openStore,type Store} from '../src/main/store'
 import {createSavedTranscriptions} from '../src/main/savedTranscription'
 import {feedRecording} from '../src/main/asr/backfill'
 let store:Store,model=true,recording=false
-const transcribe=vi.fn(),summarize=vi.fn(),changed=vi.fn()
+const transcribe=vi.fn(),summarize=vi.fn(),changed=vi.fn(),resolveModel=vi.fn()
 let jobs:ReturnType<typeof createSavedTranscriptions>
 const line=(id:string,start=0,end=100,text='A sample line')=>({meetingId:id,track:'them' as const,startMs:start,endMs:end,text,speaker:null})
 const note=()=>store.createMeeting({title:'Planning',startedAt:100,endedAt:200,state:'stopped',attendees:[],eventId:null,app:null})
-const make=()=>createSavedTranscriptions({store,ready:()=>model,recording:()=>recording,tracks:async()=>({them:(async function*(){yield new Float32Array(1600)})()}),transcribe,summarize,changed})
+const make=()=>createSavedTranscriptions({store,ready:()=>model,recording:()=>recording,tracks:async()=>({them:(async function*(){yield new Float32Array(1600)})()}),resolveModel,transcribe,summarize,changed})
 beforeEach(()=>{store=openStore(':memory:');model=true;recording=false;vi.resetAllMocks();transcribe.mockResolvedValue(true);jobs=make()})
 afterEach(async()=>{jobs.shutdown();await vi.waitFor(()=>expect(store.meetings({limit:20}).some(m=>jobs.owns(m.id))).toBe(false));store.close()})
+
+it('keeps a replacement model in the saved job and leaves the next automatic job on its default', async () => {
+ const id=note().id
+ const variant='whisper-small-q5_1'
+ store.addSegments([line(id,0,100,'Original transcript')])
+ model=false
+ await jobs.start(id,true,variant)
+ expect(store.meeting(id)?.transcriptionModel).toBe(variant)
+ expect(store.segments(id)[0].text).toBe('Original transcript')
+ jobs.shutdown();jobs=make();model=true
+ resolveModel.mockResolvedValueOnce('small.bin')
+ transcribe.mockImplementationOnce(async(_id,_tracks,options)=>{
+   expect(options.modelPath).toBe('small.bin')
+   options.save([line(id,0,100,'Replacement transcript')])
+   return true
+ })
+ await jobs.pump()
+ expect(resolveModel).toHaveBeenCalledWith(variant,expect.any(AbortSignal))
+ expect(store.segments(id)[0].text).toBe('Replacement transcript')
+ expect(store.meeting(id)?.transcriptionModel).toBeUndefined()
+
+ const other=note().id
+ await jobs.start(other)
+ await vi.waitFor(()=>expect(store.meeting(other)?.transcriptionState).toBe('done'))
+ expect(resolveModel).toHaveBeenCalledTimes(1)
+ expect(transcribe.mock.calls.at(-1)?.[2].modelPath).toBeUndefined()
+})
+
+it('cancels a pending replacement model download and preserves the existing transcript', async () => {
+ const id=note().id
+ store.addSegments([line(id,0,100,'Original transcript')])
+ resolveModel.mockImplementationOnce((_model,signal:AbortSignal)=>new Promise((_resolve,reject)=>{
+   signal.addEventListener('abort',()=>reject(signal.reason),{once:true})
+ }))
+ await jobs.start(id,true,'whisper-small-q5_1')
+ await vi.waitFor(()=>expect(resolveModel).toHaveBeenCalled())
+ expect(store.meeting(id)?.transcriptionState).toBe('waiting-model')
+ jobs.stop(id)
+ await vi.waitFor(()=>expect(jobs.owns(id)).toBe(false))
+ expect(store.segments(id)[0].text).toBe('Original transcript')
+ expect(store.meeting(id)?.transcriptionModel).toBeUndefined()
+ expect(transcribe).not.toHaveBeenCalled()
+})
 it('stops without deleting lines, continues at their saved boundary, and summarizes only on completion',async()=>{
  const id=note().id
  transcribe.mockImplementationOnce(async(_id,_tracks,options)=>{store.addSegments([line(id)]);return new Promise(resolve=>options.signal.addEventListener('abort',()=>resolve(false),{once:true}))})

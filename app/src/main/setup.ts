@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { ChecksumError, DiskSpaceError, ensureFile, fileNameFor, isVerified, partialDownloadGB, type DownloadDeps } from './downloader'
 import type { SetupState } from '../shared/types'
+import type { RetranscriptionModel } from '../shared/transcription'
 import { t } from '../shared/i18n'
 import { tooSlow, tooWeak } from './localCheck'
 
@@ -61,6 +62,7 @@ export function friendly(err: unknown): string {
 type Item = { url: string; sha256: string; bytes: number; dir: string; fileName: string }
 
 const llmItem = (dir: string, c: Choice): Item => ({ url: c.build.url, sha256: c.build.sha256, bytes: c.build.sizeGB * 1e9, dir, fileName: fileNameFor(c.build.url) })
+const speechItem = (dir: string, model: CatalogAsr): Item => ({ url: model.url, sha256: model.sha256, bytes: model.bytes, dir, fileName: fileNameFor(model.url) })
 
 export class SetupController {
   private _state: SetupState = { phase: 'checking', fraction: 0 }
@@ -75,6 +77,7 @@ export class SetupController {
   private backgroundFailed = false
   private retryNotes: (() => void) | undefined
   private paths: Installed | undefined
+  private replacementModels: CatalogAsr[] = []
   private notesListeners = new Set<() => void>()
   private embedListeners = new Set<() => void>()
   /** the embedding model's download, while it keeps being tried after a failure */
@@ -99,6 +102,32 @@ export class SetupController {
 
   /** Where the models are, once setup is ready. The notes models show up when their downloads finish. */
   installed(): Installed | undefined { return this.paths }
+
+  retranscriptionModels(): RetranscriptionModel[] {
+    return this.replacementModels.map(model => ({
+      id: model.id, name: model.name, bytes: model.bytes, downloaded: !!this.cachedReplacement(model),
+    }))
+  }
+
+  canRetranscribeWith(id: unknown): id is string { return this.replacementModels.some(model => model.id === id) }
+
+  private cachedReplacement(model: CatalogAsr) {
+    const asr = join(this.deps.modelsDir, 'asr')
+    // Reuse verified downloads when available. Keep new alternatives outside the live setup’s speed check.
+    return [asr, join(asr, 'retranscription')].map(dir => speechItem(dir, model))
+      .find(i => isVerified(i.dir, i.fileName, this.sha(i)))
+  }
+
+  async prepareRetranscriptionModel(id: string, signal: AbortSignal): Promise<string> {
+    signal.throwIfAborted()
+    const model = this.replacementModels.find(candidate => candidate.id === id)
+    if (!model) throw new Error('Unavailable speech model')
+    const cached = this.cachedReplacement(model)
+    if (cached) return join(cached.dir, cached.fileName)
+    const item = speechItem(join(this.deps.modelsDir, 'asr', 'retranscription'), model)
+    await this.checkDisk([item])
+    return this.fetch(item, undefined, signal)
+  }
 
   notesPath() { return this.paths?.recommendedLlm ?? this.paths?.llm }
 
@@ -201,6 +230,7 @@ export class SetupController {
   }
 
   private async run() {
+    this.replacementModels = []
     this.set({ phase: 'checking', fraction: 0 })
     try {
       const [hw, catalog] = await Promise.all([this.deps.getHardware(), this.deps.getCatalog()])
@@ -216,7 +246,7 @@ export class SetupController {
 
       // Speech first: ready (recording works) once it is in. The notes models come after.
       let asr = pickAsr(hw, catalog)
-      const asrItem = (m: CatalogAsr): Item => ({ url: m.url, sha256: m.sha256, bytes: m.bytes, dir: dirs.asr, fileName: fileNameFor(m.url) })
+      const asrItem = (m: CatalogAsr) => speechItem(dirs.asr, m)
       // whisper-server is built into the app (catalog.whisperServer.bundled), so only the speech model is downloaded for it.
       const starterItem = llmItem(dirs.llm, starter)
       this.firstItem = starterItem
@@ -278,6 +308,8 @@ export class SetupController {
       const picked = catalog.asr.findIndex((a) => join(dirs.asr, fileNameFor(a.url)) === asrPath)
       const smallerAsr = picked < 0 ? [] : catalog.asr.slice(picked + 1).map(asrItem).filter((i) => isVerified(i.dir, i.fileName, this.sha(i))).map((i) => join(i.dir, i.fileName))
       this.paths = { asr: asrPath, ...how, ...(smallerAsr.length ? { smallerAsr } : {}) }
+      // Saved audio can take longer than real time, even on the processor alone.
+      this.replacementModels = catalog.asr.filter(model => model.minMemGB <= hw.totalRamGB)
       if (hasUpgrade) {
         this.paths.recommendedLlm = join(bigger!.dir, bigger!.fileName)
         if (isVerified(starterItem.dir, starterItem.fileName, this.sha(starterItem))) this.paths.llm = join(starterItem.dir, starterItem.fileName)
