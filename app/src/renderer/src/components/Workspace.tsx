@@ -1,7 +1,7 @@
 import { WorkspaceFolders } from '../folders'
 import { AudioUploadHost } from './AudioUpload'
 import { toasts } from './TrashToast'
-import { askDestination } from '../../../shared/askContext'
+import { askDestination, askOverDialogs } from '../../../shared/askContext'
 import { Tooltip } from '@base-ui/react/tooltip'
 import { ActionTooltipPopup } from './ActionTooltipPopup'
 import { useSidebarPeek } from '../useSidebarPeek'
@@ -18,10 +18,12 @@ import { FinishSetup } from './FinishSetup'
 import { NotesSetup } from './NotesSetup'
 import { CornerMenu } from './CornerMenu'
 
-export function Workspace({ route, meeting, folders, go, back, forward, search, shortcuts, collapsed, sidebarMotion, toggleSidebar, children }: {
+export function Workspace({ route, meeting, folders, go, back, forward, search, shortcuts, dismissDialogs, collapsed, sidebarMotion, toggleSidebar, children }: {
   meeting?: Pick<MeetingView, 'id' | 'title'>
   folders?: Folder[]
   route: string; go: (route: string) => void; back?: () => void; forward?: () => void; search: () => void; shortcuts: () => void; children: ReactNode
+  /** closes Search and Keyboard shortcuts */
+  dismissDialogs: () => void
   collapsed: boolean; sidebarMotion: boolean; toggleSidebar: (animate?: boolean) => void
 }) {
   const [recording, setRecording] = useState<WidgetView | null>(null)
@@ -41,8 +43,17 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
   const section = route.startsWith('/settings/') ? '/settings' : route.startsWith('/chat/') ? '/chat' : route
   const returnToRecording = recording?.kind === 'recording' && route !== `/note/${recording.meetingId}`
   useEffect(() => {
-    const ask = () => {
-      if (document.querySelector('[aria-modal="true"]:not([data-testid="chat-panel"]), [role="alertdialog"]')) return
+    const dialogs = () => askOverDialogs([...document.querySelectorAll<HTMLElement>('[aria-modal="true"], [role="alertdialog"]')].map(d => d.dataset.testid))
+    let waiting = 0
+    const ask = (tries = 0) => {
+      const over = dialogs()
+      if (over === 'blocked') return
+      // Search or Keyboard shortcuts close first; Ask opens once they're gone, so their focus return can't undo it.
+      if (over === 'dismiss') {
+        if (!tries) dismissDialogs()
+        if (tries < 30) waiting = requestAnimationFrame(() => ask(tries + 1))
+        return
+      }
       const target = askDestination(route)
       if (target.kind === 'focus') document.getElementById('library-question')?.focus({ preventScroll: true })
       else if (target.kind === 'panel') document.getElementById('meeting-ask')?.click()
@@ -60,8 +71,8 @@ export function Workspace({ route, meeting, folders, go, back, forward, search, 
     const off = window.yogurt.nav.onAsk(fromMenu)
     fromMenu()
     window.addEventListener('keydown', key)
-    return () => { off(); window.removeEventListener('keydown', key) }
-  }, [route, go])
+    return () => { off(); cancelAnimationFrame(waiting); window.removeEventListener('keydown', key) }
+  }, [route, go, dismissDialogs])
   const links = [
     { route: '', label: t('Meetings'), Icon: MeetingFile },
     { route: '/chat', label: t('Ask'), Icon: AskBubble },

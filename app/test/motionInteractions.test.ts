@@ -102,7 +102,7 @@ it.each(['ltr', 'rtl'])('peeks after a 100ms dwell within the leading 16px below
   vi.stubGlobal('document', { documentElement: { dir }, activeElement: {}, querySelector: () => null })
   vi.stubGlobal('window', { innerWidth: 720 })
   const go = vi.fn()
-  const render = renderer(() => Workspace({ route: '', go, search() {}, shortcuts() {}, collapsed: true, sidebarMotion: false, toggleSidebar() {}, children: null }))
+  const render = renderer(() => Workspace({ route: '', go, search() {}, shortcuts() {}, dismissDialogs() {}, collapsed: true, sidebarMotion: false, toggleSidebar() {}, children: null }))
   const content = () => find(render(), 'workspace-content').props
   const panel = () => find(render(), 'workspace-sidebar').props
   const pointer = { target: { closest: () => null }, clientX: dir === 'rtl' ? 708 : 12, clientY: 52, pointerType: 'mouse', buttons: 0 }
@@ -155,7 +155,7 @@ it('peeks on a deliberate Show sidebar hover', () => {
   vi.useFakeTimers()
   const querySelector = vi.fn()
   vi.stubGlobal('document', { activeElement: {}, querySelector })
-  const render = renderer(() => Workspace({ route: '', go() {}, search() {}, shortcuts() {}, collapsed: true, sidebarMotion: true, toggleSidebar() {}, children: null }))
+  const render = renderer(() => Workspace({ route: '', go() {}, search() {}, shortcuts() {}, dismissDialogs() {}, collapsed: true, sidebarMotion: true, toggleSidebar() {}, children: null }))
   const button = () => find(render(), 'sidebar-expand').props
   const panel = () => find(render(), 'workspace-sidebar').props
   const mouse = { pointerType: 'mouse', buttons: 0 }
@@ -188,7 +188,7 @@ it.each([
   vi.useFakeTimers()
   vi.stubGlobal('document', { documentElement: { dir }, activeElement: {}, querySelector: () => null })
   vi.stubGlobal('window', { innerWidth: 720 })
-  const render = renderer(() => Workspace({ route: '', go() {}, search() {}, shortcuts() {}, collapsed: true, sidebarMotion: true, toggleSidebar() {}, children: null }))
+  const render = renderer(() => Workspace({ route: '', go() {}, search() {}, shortcuts() {}, dismissDialogs() {}, collapsed: true, sidebarMotion: true, toggleSidebar() {}, children: null }))
   const props = (name: string) => find(render(), name).props
   const move = (clientX: number, clientY: number) => props('workspace').onPointerMoveCapture({ clientX, clientY })
   props('workspace-sidebar').ref.current = { offsetLeft: dir === 'rtl' ? 512 : 0, offsetWidth: 208, offsetTop: 52, contains: () => false }
@@ -235,7 +235,7 @@ it.each(['edge', 'button'])('keeps a %s peek open across the titlebar and docks 
   vi.stubGlobal('document', { documentElement: { dir: 'ltr' }, activeElement: {}, querySelector: () => null })
   let collapsed = true
   const toggleSidebar = vi.fn()
-  const render = renderer(() => Workspace({ route: '', go() {}, search() {}, shortcuts() {}, collapsed, sidebarMotion: true, toggleSidebar, children: null }))
+  const render = renderer(() => Workspace({ route: '', go() {}, search() {}, shortcuts() {}, dismissDialogs() {}, collapsed, sidebarMotion: true, toggleSidebar, children: null }))
   const panel = () => find(render(), 'workspace-sidebar')
   const mouse = { pointerType: 'mouse', buttons: 0 }
   if (trigger === 'button') find(render(), 'sidebar-expand').props.onPointerEnter(mouse)
@@ -263,7 +263,7 @@ it('opens a keyboard peek, respects a child menu and returns Escape focus to its
   const querySelector = vi.fn()
   vi.stubGlobal('document', { activeElement: opener, querySelector, addEventListener() {}, removeEventListener() {} })
   vi.stubGlobal('window', { addEventListener: (name: string, fn: Function) => listeners.set(name, fn), removeEventListener() {} })
-  const render = renderer(() => Workspace({ route: '', go() {}, search() {}, shortcuts() {}, collapsed: true, sidebarMotion: false, toggleSidebar() {}, children: null }))
+  const render = renderer(() => Workspace({ route: '', go() {}, search() {}, shortcuts() {}, dismissDialogs() {}, collapsed: true, sidebarMotion: false, toggleSidebar() {}, children: null }))
   find(render(), 'sidebar-expand').props.onKeyDown({ key: 'ArrowDown', preventDefault() {} })
   const tree = render(), panel = find(tree, 'workspace-sidebar').props
   expect(panel.inert).toBe(false)
@@ -752,8 +752,8 @@ it.each(['/chat', '/chat/saved'])('focuses Ask without a conversation lookup or 
   const current = vi.fn().mockResolvedValue('other'), go = vi.fn(), focus = vi.fn()
   const keydown = vi.fn(), onAsk = vi.fn(), takeAsk = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true)
   vi.stubGlobal('window', { addEventListener: keydown, yogurt: { os: 'win32', conversations: { current }, nav: { onAsk, takeAsk } } })
-  vi.stubGlobal('document', { querySelector: () => null, getElementById: (id: string) => id === 'library-question' ? { focus } : null })
-  renderer(() => Workspace({ route, go, search() {}, shortcuts() {}, collapsed: false, sidebarMotion: false, toggleSidebar() {}, children: null }))()
+  vi.stubGlobal('document', { querySelectorAll: () => [], getElementById: (id: string) => id === 'library-question' ? { focus } : null })
+  renderer(() => Workspace({ route, go, search() {}, shortcuts() {}, dismissDialogs() {}, collapsed: false, sidebarMotion: false, toggleSidebar() {}, children: null }))()
   vi.mocked(useEffect).mock.lastCall![0]()
   keydown.mock.calls[0][1]({ code: 'KeyJ', ctrlKey: true, preventDefault() {} })
   onAsk.mock.calls[0][0]()
@@ -770,9 +770,13 @@ it.each(['darwin', 'win32'])('toggles the meeting panel once per shortcut press 
   const renderAsk = renderer(() => Ask({ id: 'm1', recording: false, anchor: null, onSource() {} }))
   let tree = renderAsk()
   const click = vi.fn(() => { find(tree, 'chat-open').props.onClick(); tree = renderAsk() })
-  const querySelector = vi.fn().mockReturnValue(null)
-  vi.stubGlobal('document', { querySelector, getElementById: () => ({ click }) })
-  const renderWorkspace = renderer(() => Workspace({ route: '/note/m1', go() {}, search() {}, shortcuts() {}, collapsed: false, sidebarMotion: false, toggleSidebar() {}, children: null }))
+  let open: { dataset: { testid?: string } }[] = []
+  vi.stubGlobal('document', { querySelectorAll: () => open, getElementById: () => ({ click }) })
+  const frames: (() => void)[] = []
+  vi.stubGlobal('requestAnimationFrame', (fn: () => void) => frames.push(fn))
+  vi.stubGlobal('cancelAnimationFrame', () => {})
+  const dismissDialogs = vi.fn(() => { open = [] })
+  const renderWorkspace = renderer(() => Workspace({ route: '/note/m1', go() {}, search() {}, shortcuts() {}, dismissDialogs, collapsed: false, sidebarMotion: false, toggleSidebar() {}, children: null }))
   renderWorkspace()
   vi.mocked(useEffect).mock.lastCall![0]()
   const press = (extra = {}) => listeners.get('keydown')!({ code: 'KeyJ', metaKey: os === 'darwin', ctrlKey: os !== 'darwin', preventDefault() {}, ...extra })
@@ -786,9 +790,18 @@ it.each(['darwin', 'win32'])('toggles the meeting panel once per shortcut press 
   expect(find(tree, 'chat-open').props['aria-expanded']).toBe(false)
   press()
   expect(find(tree, 'chat-open').props['aria-expanded']).toBe(true)
-  querySelector.mockReturnValue({})
+  // a confirmation or form keeps ⌘J
+  open = [{ dataset: {} }]
   press()
   expect(click).toHaveBeenCalledTimes(3)
+  // Keyboard shortcuts closes, then Ask toggles (#175)
+  open = [{ dataset: { testid: 'shortcuts-dialog' } }]
+  press()
+  expect(dismissDialogs).toHaveBeenCalledTimes(1)
+  expect(click).toHaveBeenCalledTimes(3)
+  frames.shift()!()
+  expect(click).toHaveBeenCalledTimes(4)
+  expect(find(tree, 'chat-open').props['aria-expanded']).toBe(false)
 })
 
 it.each([[false, false], [true, false], [false, true], [true, true]])('clips the suggestions and composer with the moving surface (narrow %s, reduced motion %s)', async (narrow, reduced) => {

@@ -2,7 +2,7 @@ import { ReadError } from './components/InlineError'
 import { LoadingContent } from './components/LoadingContent'
 import { MeetingListLoading } from './screens/Home'
 import { StartRecording } from './components/StartRecording'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { rememberScrollPositions } from './useScrollMemory'
 import { Onboarding } from './screens/Onboarding'
 import { Note } from './screens/Note'
@@ -128,6 +128,7 @@ export function App() {
   const openShortcuts = () => { setSearching(false); setShortcuts(true) }
   const [searching, setSearching] = useState(false)
   const openSearch = () => setSearching(true)
+  const dismissDialogs = useCallback(() => { setSearching(false); setShortcuts(false) }, [])
   const [settingsRevision, setSettingsRevision] = useState(0)
   const { folders, failed: foldersFailed, retry: retryFolders } = useFolderRead()
   const [suggestedFolders, setSuggestedFolders] = useState<Record<string, string>>({})
@@ -211,7 +212,7 @@ export function App() {
   const inWorkspace = !starting && ready
   const page = starting
     ? <><TitleBar />{startupError ? <ReadError testId="setup-read-error" retry={() => setSetupAttempt(n => n + 1)} /> : boot}</>
-    : ready ? <Workspace route={route} meeting={meeting} folders={folders} go={go} back={history.current.length ? back : undefined} forward={future.current.length ? forward : undefined} search={openSearch} shortcuts={openShortcuts} collapsed={sidebarCollapsed} sidebarMotion={sidebarMotion} toggleSidebar={toggleSidebar}>{screen}</Workspace>
+    : ready ? <Workspace route={route} meeting={meeting} folders={folders} go={go} back={history.current.length ? back : undefined} forward={future.current.length ? forward : undefined} search={openSearch} shortcuts={openShortcuts} dismissDialogs={dismissDialogs} collapsed={sidebarCollapsed} sidebarMotion={sidebarMotion} toggleSidebar={toggleSidebar}>{screen}</Workspace>
     : <><TitleBar />{setup.phase === 'checking' && firstRunDone ? boot : <Onboarding state={setup} plan={plan} onDone={() => setPlan({ intro: false, steps: [] })} />}</>
   return <AskRecordingWait value={recordingWait}>
     {mac && <MacLaunch active={launching} />}
