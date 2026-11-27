@@ -153,15 +153,22 @@ it('restores the pill before removing the recording indicator, and guards Dock o
   expect(get()).toBe(true)
 })
 
-it.each(['win32', 'linux'])('keeps the pill on for imported and hand-edited settings on %s', os => {
+it.each(['win32', 'linux'])('lets the pill be turned off on %s: the window in the taskbar/Dock stays as the entry point', os => {
   const dir = mkdtempSync(join(tmpdir(), 'recording-pill-platform-')); dirs.push(dir)
   const file = join(dir, 'settings.json')
   updateSettings(file, { showRecordingPill: false })
-  const deps = hook(file, vi.fn(), vi.fn(), os)
+  const pillChanged = vi.fn()
+  const deps = { ...hook(file, vi.fn(), vi.fn(), os), recordingPillChanged: pillChanged }
   const prefs = hookPreferences(deps)
-  handlers.get('settings:recording-pill')!(null, false)
-  expect(handlers.get('settings:get')!().showRecordingPill).toBe(true)
-  prefs.setRecordingPill(false)
+  // a saved off stays off: the import/hand-edit is kept, not repaired
+  expect(handlers.get('settings:get')!().showRecordingPill).toBe(false)
+  // the toggle turns it back on, and off again
+  handlers.get('settings:recording-pill')!(null, true)
   expect(loadSettings(file).showRecordingPill).toBeUndefined()
+  prefs.setRecordingPill(false)
+  expect(loadSettings(file).showRecordingPill).toBe(false)
+  expect(pillChanged).toHaveBeenCalledWith(false)
+  // only a Mac with its menu bar off still keeps the pill: without it, no Yogurt entry point would remain
   expect(visibilityOf({ showInMenuBar: false, showRecordingPill: false }, 'darwin').showRecordingPill).toBe(true)
+  expect(visibilityOf({ showInMenuBar: false, showRecordingPill: false }, os).showRecordingPill).toBe(false)
 })

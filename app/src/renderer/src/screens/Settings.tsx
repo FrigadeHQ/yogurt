@@ -128,7 +128,9 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
     setPrefs(await window.yogurt.settings.get())
   }
   const recordingPill = () => {
-    if (!prefs?.showInMenuBar || general.busy) return
+    if (!prefs || general.busy) return
+    // only a Mac with its menu bar off keeps the pill: without it, no Yogurt entry point would remain
+    if (onMac() && !prefs.showInMenuBar) return
     const on = !prefs.showRecordingPill
     void general.save(async () => {
       await window.yogurt.settings.setShowRecordingPill(on)
@@ -198,17 +200,17 @@ export function Settings({ revision = 0, focus }: { revision?: number; focus?: s
               await window.yogurt.settings.setShowNextMeeting(on)
               setPrefs(p => p && { ...p, showNextMeeting: on })
             }} />
-            {onMac() && <div className="settings-row">
+            <div className="settings-row">
               <div className="settings-row-copy">
                 <label htmlFor="recording-pill-toggle" className="settings-label">{t('Show floating recording pill')}</label>
-                <p id="recording-pill-description" className="settings-description">{prefs?.showInMenuBar === false
+                <p id="recording-pill-description" className="settings-description">{onMac() && prefs?.showInMenuBar === false
                   ? t('Show Yogurt in the menu bar to hide the pill.')
                   : t('Appears while you record with Yogurt in the background.')}</p>
               </div>
               <button id="recording-pill-toggle" data-testid="recording-pill-toggle" role="switch" disabled={general.busy} aria-checked={prefs?.showRecordingPill ?? true}
-                aria-disabled={!prefs?.showInMenuBar} aria-describedby="recording-pill-description"
+                aria-disabled={onMac() ? !prefs?.showInMenuBar : undefined} aria-describedby="recording-pill-description"
                 className="settings-toggle" onClick={recordingPill}><span className="settings-toggle-knob" /></button>
-            </div>}
+            </div>
             <div className="settings-row">
               <div className="settings-row-copy">
                 <p className="settings-label">{t('Stop recording when the call ends')}</p>

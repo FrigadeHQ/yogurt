@@ -24,7 +24,7 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   showInMenuBar?: boolean
   /** Show a meeting title beside the icon or in its tooltip. Defaults on. */
   showNextMeeting?: boolean
-  /** the floating recording control; on by default */
+  /** the floating recording control; on by default, turned off when another entry point stays (the Mac's menu bar icon, or the taskbar/Dock window elsewhere) */
   showRecordingPill?: boolean
   /** the Dock icon; on unless turned off */
   showInDock?: boolean
@@ -82,11 +82,14 @@ export const autoUpdateOn = (s: Settings): boolean => s.autoUpdate !== false
 
 /** The Dock icon and the menu bar icon, as the person sees them: at least one stays visible, so the app always has an entry point. */
 export type Visibility = { showInMenuBar: boolean; showInDock: boolean; showRecordingPill: boolean }
-/** Restore the Dock if both entry points are hidden. Only the Mac menu bar can replace the recording pill. */
+/** Restore the Dock if both entry points are hidden. Only the Mac menu bar can replace the recording pill; elsewhere the taskbar's own window icon can. */
 export function visibilityOf(s: Settings, os: string = process.platform): Visibility {
   const showInMenuBar = s.showInMenuBar !== false
+  // the pill may be turned off only when another entry point stays: a Mac's menu bar icon, or any other computer's
+  // window in the taskbar/Dock (close hides to the tray there when it is on, and minimizes when it is not — always reachable)
+  const canHidePill = os === 'darwin' ? showInMenuBar : true
   return { showInMenuBar, showInDock: !showInMenuBar || s.showInDock !== false,
-    showRecordingPill: os !== 'darwin' || !showInMenuBar || s.showRecordingPill !== false }
+    showRecordingPill: !canHidePill || s.showRecordingPill !== false }
 }
 
 export function loadSettings(path: string): Settings {

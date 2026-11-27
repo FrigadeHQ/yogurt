@@ -140,7 +140,7 @@ export function hookPreferences(d: { file: string; permissions: Permissions; ask
     d.recordingPillChanged?.(visible)
   }
   ipcMain.handle('settings:recording-pill', (_e, on: unknown) => {
-    if (os === 'darwin' && typeof on === 'boolean') setRecordingPill(on)
+    if (typeof on === 'boolean') setRecordingPill(on)
   })
   ipcMain.handle('settings:visibility', (_e, choice: unknown) => {
     if (os !== 'darwin' || (choice !== 'both' && choice !== 'menu-bar' && choice !== 'dock')) return
