@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createSignals } from '../src/main/detectSignals'
+import { decide } from '../src/main/detect'
 
 const chrome = { bundleId: 'com.google.Chrome', name: 'Google Chrome', pid: 1 }
 const zoom = { bundleId: 'us.zoom.xos', name: 'zoom.us', pid: 2 }
@@ -98,4 +99,34 @@ it('does not turn a failed owner lookup into a false call end', async () => {
 it('keeps the pid of the process on the mic, so names are read from that process only (#98)', async () => {
   const x = createSignals({ helper: async (args) => args[0] === 'mic-apps' ? [{ bundleId: 'us.zoom.xos', name: 'zoom.us', pid: 501 }] : [], events: async () => [] })
   expect((await x.read(0)).micApps).toEqual([{ bundleId: 'us.zoom.xos', name: 'zoom.us', pid: 501 }])
+})
+
+// Dia's mic is held by a helper whose bundle ID matches no app; Arc ships the same one (#131). Core Audio showed it as
+// /Applications/Dia.app/Contents/Frameworks/ArcCore.framework/Helpers/Browser Helper (Aperitif).app, parent
+// /Applications/Dia.app/Contents/MacOS/Dia. yogurt-mac reports the app the process sits inside as `app`.
+describe('a helper inside another app (#131)', () => {
+  const aperitif = (app: string) => ({ bundleId: 'company.thebrowser.browser.helper', name: 'Browser Helper (Aperitif)', pid: 71, app })
+  it('a Meet call in Dia counts as Dia', async () => {
+    const x = setup({ mic: [aperitif('company.thebrowser.dia')] })
+    const r = await x.s.read(0)
+    expect(r.micApps[0]).toMatchObject({ bundleId: 'company.thebrowser.dia', pid: 71, title: 'Meet - abc-defg-hij' })
+    expect(x.titleCalls()).toEqual([['browser-title', 'company.thebrowser.dia']])
+    expect(decide({ micApps: r.micApps, events: [], recording: false, runningApps: r.runningApps }, 0, new Set())).toMatchObject({ app: 'Dia' })
+  })
+  it('the same helper in Arc counts as Arc', async () => {
+    const x = setup({ mic: [aperitif('company.thebrowser.Browser')] })
+    const r = await x.s.read(0)
+    expect(decide({ micApps: r.micApps, events: [], recording: false, runningApps: r.runningApps }, 0, new Set())).toMatchObject({ app: 'Arc' })
+  })
+  it('a helper inside an app that makes no calls stays ignored', async () => {
+    const x = setup({ mic: [{ bundleId: 'com.example.recorder.helper', name: 'Recorder Helper', pid: 72, app: 'com.example.recorder' }] })
+    const r = await x.s.read(0)
+    expect(r.micApps[0].bundleId).toBe('com.example.recorder.helper')
+    expect(x.titleCalls()).toEqual([])
+    expect(decide({ micApps: r.micApps, events: [], recording: false, runningApps: r.runningApps }, 0, new Set())).toBeNull()
+  })
+  it('a helper that already matches keeps its own bundle ID', async () => {
+    const x = setup({ mic: [{ bundleId: 'com.google.Chrome.helper', name: 'Google Chrome Helper', pid: 73, app: 'com.google.Chrome' }] })
+    expect((await x.s.read(0)).micApps[0].bundleId).toBe('com.google.Chrome.helper')
+  })
 })

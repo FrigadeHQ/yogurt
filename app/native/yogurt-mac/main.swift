@@ -4,7 +4,8 @@
 //   yogurt-mac calendar-status       → {"status":"granted"|"denied"|"notDetermined"}
 //   yogurt-mac calendar-auth         → asks once (the system's own prompt), then the status
 //   yogurt-mac events FROM TO        → meetings between two ISO dates (all-day and cancelled ones left out)
-//   yogurt-mac mic-apps              → [{"bundleId","name","pid"}] of processes using audio input right now
+//   yogurt-mac mic-apps              → [{"bundleId","name","pid","app"?}] of processes using audio input right now;
+//                                       app: the app the process sits inside, when that is another one
 //   yogurt-mac mic-watch             → the same as mic-apps, one JSON line at start and on each change, until stdin closes
 //                                       (stdin lines "recording" / "idle" set how often it reads again: 1.5 s / 3 s):
 //                                       one Core Audio client for Yogurt's whole life instead of one per reading (#143)
@@ -115,6 +116,15 @@ func inputDevices() -> [[String: Any]] {
     return ["uid": uid, "name": name, "default": d == def]
   }
 }
+/// The bundle ID of the outermost app a process sits inside: Dia's mic helper lives in Dia.app/Contents/Frameworks/…
+/// under an ID Arc ships too (#131)
+func enclosingAppId(_ pid: pid_t) -> String? {
+  var buf = [CChar](repeating: 0, count: 4096)
+  guard proc_pidpath(pid, &buf, UInt32(buf.count)) > 0 else { return nil }
+  let path = String(cString: buf)
+  guard let r = path.range(of: ".app/") else { return nil }
+  return Bundle(path: String(path[..<r.lowerBound]) + ".app")?.bundleIdentifier
+}
 func audioApps(input: Bool) -> [[String: Any]] {
   let me = ProcessInfo.processInfo.processIdentifier
   return audioProcesses().compactMap { obj in
@@ -126,7 +136,9 @@ func audioApps(input: Bool) -> [[String: Any]] {
     var buf = [CChar](repeating: 0, count: 256)
     _ = proc_name(pid, &buf, 256)
     let name = NSRunningApplication(processIdentifier: pid)?.localizedName ?? (id.isEmpty ? String(cString: buf) : id)
-    return ["bundleId": id, "name": name, "pid": Int(pid)]
+    var row: [String: Any] = ["bundleId": id, "name": name, "pid": Int(pid)]
+    if let app = enclosingAppId(pid), app != id { row["app"] = app }
+    return row
   }
 }
 

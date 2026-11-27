@@ -2,6 +2,12 @@ import type { CalEvent, Helper } from './calendar'
 import { callAppId, tabTitleApp, type MicApp } from './detect'
 
 const MIN = 60_000
+/**
+ * A helper whose own bundle ID matches no call app counts as the app it sits inside (`app`, from its path): Dia's and
+ * Arc's mic helper share one ID, company.thebrowser.browser.helper (#131).
+ */
+const ownerOf = (bundleId: string, app: unknown): string =>
+  !callAppId(bundleId) && typeof app === 'string' && callAppId(app) ? app : bundleId
 const TITLE_TTL = 10_000
 
 /** What the Mac says right now: which apps use the mic, and the calendar around now. */
@@ -27,7 +33,7 @@ export function createSignals(d: { helper: Helper; micApps?: () => Promise<unkno
       try {
         const raw = d.micApps ? await d.micApps() : await d.helper(['mic-apps'])
         if (Array.isArray(raw)) micApps = raw.flatMap((r: Record<string, unknown>) => typeof r?.bundleId === 'string' ? [{
-          bundleId: r.bundleId, name: typeof r.name === 'string' ? r.name : r.bundleId,
+          bundleId: ownerOf(r.bundleId, r.app), name: typeof r.name === 'string' ? r.name : r.bundleId,
           // which process: two Zoom meetings are two processes, and names come only from the one on the mic (#98)
           ...(typeof r.pid === 'number' ? { pid: r.pid } : {}),
         }] : [])
