@@ -3,7 +3,7 @@ import { rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { ChecksumError, DiskSpaceError, ensureFile, fileNameFor, isVerified, partialDownloadGB, type DownloadDeps } from './downloader'
-import type { SetupState } from '../shared/types'
+import type { ModelRecommendations, SetupState } from '../shared/types'
 import { t } from '../shared/i18n'
 import { tooSlow, tooWeak } from './localCheck'
 
@@ -75,6 +75,11 @@ export class SetupController {
   private backgroundFailed = false
   private retryNotes: (() => void) | undefined
   private paths: Installed | undefined
+  private summaryRecommendation: Choice | undefined
+  private starterName: string | undefined
+  private speechRecommendation: Omit<NonNullable<ModelRecommendations['transcription']>, 'current'> | undefined
+  private speechNames = new Map<string, string>()
+  private fallbackSpeechName: string | undefined
   private notesListeners = new Set<() => void>()
   private embedListeners = new Set<() => void>()
   /** the embedding model's download, while it keeps being tried after a failure */
@@ -87,6 +92,7 @@ export class SetupController {
   get state() { return this._state }
   onState(cb: (s: SetupState) => void) { this.listeners.add(cb); return () => this.listeners.delete(cb) }
   private set(s: SetupState) {
+    s = { ...s, models: this.models() }
     // the bar only moves forward, and only speaks up when a whole percent changes
     const prev = this._state
     if (s.phase === prev.phase && s.phase === 'downloading') {
@@ -101,6 +107,29 @@ export class SetupController {
   installed(): Installed | undefined { return this.paths }
 
   notesPath() { return this.paths?.recommendedLlm ?? this.paths?.llm }
+
+  private models(): ModelRecommendations | undefined {
+    const choice = this.summaryRecommendation
+    if (!choice) return undefined
+    const speech = this.speechRecommendation
+    return {
+      ...(speech ? { transcription: { ...speech, current: this.fallbackSpeechName ?? speech.recommended } } : {}),
+      summary: {
+        recommended: choice.model.name,
+        current: this.paths?.recommendedLlm ? choice.model.name : this.paths?.llm ? this.starterName : undefined,
+        device: choice.device,
+        estimatedTokensPerSecond: choice.estTokPerSec,
+      },
+    }
+  }
+
+  /** A smaller Whisper model can take over one meeting; the setup recommendation stays the same. */
+  speechFallback(path?: string) {
+    const name = path ? this.speechNames.get(path) : undefined
+    if (name === this.fallbackSpeechName) return
+    this.fallbackSpeechName = name
+    this.set(this._state)
+  }
 
   /** The engine has disposed the old model and successfully loaded this one, inside the serial job queue. */
   notesModelLoaded(path: string) {
@@ -201,6 +230,9 @@ export class SetupController {
   }
 
   private async run() {
+    this.summaryRecommendation = undefined
+    this.speechRecommendation = undefined
+    this.fallbackSpeechName = undefined
     this.set({ phase: 'checking', fraction: 0 })
     try {
       const [hw, catalog] = await Promise.all([this.deps.getHardware(), this.deps.getCatalog()])
@@ -211,12 +243,15 @@ export class SetupController {
       // The first notes model is the starter when it downloads faster than the pick; otherwise the pick itself.
       const starter = llm.starter && llm.starter.build.sizeGB < llm.recommended.build.sizeGB ? llm.starter : llm.recommended
       const later = starter === llm.recommended ? undefined : llm.recommended
+      this.summaryRecommendation = llm.recommended
+      this.starterName = starter.model.name
       console.info('NOTES', `notes models for this computer: ${starter.model.id}${later ? `, then ${later.model.id}` : ''} (graphics ${hw.gpu.kind}${hw.gpu.name ? ` ${hw.gpu.name}` : ''}, ${hw.totalRamGB} GB)`)
       const dirs = { asr: join(this.deps.modelsDir, 'asr'), llm: join(this.deps.modelsDir, 'llm'), embed: join(this.deps.modelsDir, 'embed') }
 
       // Speech first: ready (recording works) once it is in. The notes models come after.
       let asr = pickAsr(hw, catalog)
       const asrItem = (m: CatalogAsr): Item => ({ url: m.url, sha256: m.sha256, bytes: m.bytes, dir: dirs.asr, fileName: fileNameFor(m.url) })
+      this.speechNames = new Map(catalog.asr.map(m => [join(dirs.asr, fileNameFor(m.url)), m.name]))
       // whisper-server is built into the app (catalog.whisperServer.bundled), so only the speech model is downloaded for it.
       const starterItem = llmItem(dirs.llm, starter)
       this.firstItem = starterItem
@@ -277,6 +312,12 @@ export class SetupController {
       // never downloaded for this: only what is already there (a model the speed check or an earlier pick left)
       const picked = catalog.asr.findIndex((a) => join(dirs.asr, fileNameFor(a.url)) === asrPath)
       const smallerAsr = picked < 0 ? [] : catalog.asr.slice(picked + 1).map(asrItem).filter((i) => isVerified(i.dir, i.fileName, this.sha(i))).map((i) => join(i.dir, i.fileName))
+      const speechName = this.speechNames.get(asrPath) ?? asr.model.name
+      this.speechRecommendation = {
+        recommended: speechName,
+        reason: how.asrAfterMeeting ? 'after-meeting' : speed ? 'speed' : 'memory',
+        ramGB: hw.totalRamGB,
+      }
       this.paths = { asr: asrPath, ...how, ...(smallerAsr.length ? { smallerAsr } : {}) }
       if (hasUpgrade) {
         this.paths.recommendedLlm = join(bigger!.dir, bigger!.fileName)

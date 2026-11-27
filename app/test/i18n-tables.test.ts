@@ -11,6 +11,38 @@ const load = (id: string): Record<string, Entry> => JSON.parse(readFileSync(join
 const blanks = (s: string) => [...new Set(s.match(/\{\w+\}/g) ?? [])].sort()
 const forms = (e: Entry) => (typeof e === 'string' ? [e] : Object.values(e))
 
+it('translates model recommendations and preserves their hardware placeholders in every locale', () => {
+  const modelKeys = [
+    'Models',
+    'Transcription',
+    'Summaries',
+    'Recommended',
+    'In use',
+    'Waiting for download',
+    'Checking which model works on this computer…',
+    'Model recommendation unavailable.',
+    'In the speed check, no model kept up with live audio. Yogurt chose one to transcribe after recording.',
+    'The speed check found that this model can keep up with recordings on this computer.',
+    'Yogurt chose this model based on this computer’s system memory ({ram} GB RAM).',
+    'the GPU',
+    'the processor and GPU',
+    'the processor',
+    'Fits the memory budget for {device}, with an estimated speed of {speed} tokens per second.',
+  ]
+  for (const { id } of LOCALES) {
+    const table = load(id)
+    for (const key of modelKeys) {
+      expect(keys).toContain(key)
+      const text = table[key]
+      expect(text, `${id} · ${key}`).toBeTypeOf('string')
+      expect(String(text).trim()).not.toBe('')
+      expect(blanks(String(text))).toEqual(blanks(key))
+      // A label can share its English spelling, as with “Transcription” in French.
+      if (id !== 'en' && key.includes(' ')) expect(text).not.toBe(key)
+    }
+  }
+})
+
 it('translates summary cancellation and its restart state in every locale', () => {
   for (const { id } of LOCALES) for (const key of ['Stop summarizing', 'Preparing…', 'Writing the summary', 'Summary stopped.', 'Generate summary']) {
     expect(keys).toContain(key)
