@@ -202,6 +202,23 @@ test('each line shows when it was said, from the start of the meeting; no player
     await expect(lines.filter({ hasText: 'Can we go over the launch plan' }).getByTestId('transcript-time')).toHaveText('0:00', { timeout: 30_000 })
     await expect(lines.filter({ hasText: 'The site goes live on Tuesday' }).getByTestId('transcript-time')).toHaveText('0:05', { timeout: 30_000 })
     await expect(page.getByTestId('player')).toHaveCount(0)
+
+    // copied, the words come as shown: each line's time is for screen readers, never pasted mid-sentence
+    await page.evaluate(() => {
+      const ls = [...document.querySelectorAll('[data-testid="transcript-line"]')]
+      const from = ls.find((l) => l.textContent?.includes('Can we go over the launch plan'))!
+      const to = ls.find((l) => l.textContent?.includes('The site goes live on Tuesday'))!
+      const r = document.createRange()
+      r.setStartBefore(from); r.setEndAfter(to)
+      getSelection()!.removeAllRanges(); getSelection()!.addRange(r)
+      document.execCommand('copy')
+    })
+    const copied = await app.evaluate(({ clipboard }) => clipboard.readText())
+    expect(copied).toContain('Can we go over the launch plan')
+    expect(copied).toContain('The site goes live on Tuesday')
+    // a turn's heading (who, and when) is shown, so it comes too, on its own line
+    expect(copied).not.toMatch(/\S\d+:\d\d|\d:\d\d\S/)
+    expect(copied).toMatch(/^Ann Lee\n0:05$/m)
   } finally { await app.close() }
 })
 
