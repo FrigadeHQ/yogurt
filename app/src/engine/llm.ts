@@ -74,9 +74,32 @@ export function createLlm(o: { platform?: string } = {}) {
       if (embedder?.path !== modelPath) {
         await unloadEmbed()
         const l = await getL()
-        const model = await l.loadModel({ modelPath })
-        // a chunk is about 300 words: well inside the model's own 2,048 tokens
-        embedder = { path: modelPath, model, context: await model.createEmbeddingContext({ contextSize: Math.min(2048, model.trainContextSize), ...threads(l) }) }
+        // The notes model can fill the card first (#190): then the same steps as load(), with no layers on the card, then
+        // the processor alone. A 300M model is quick there.
+        const steps: { cpu?: true; gpuLayers?: 0 }[] = [{}, { gpuLayers: 0 }, ...(l.gpu ? [{ cpu: true as const }] : [])]
+        for (const [i, step] of steps.entries()) {
+          const last = i === steps.length - 1
+          const used = step.cpu ? (cpuLlama ??= await getLlama({ gpu: false })) : l
+          let model: LlamaModel
+          try { model = await used.loadModel(step.gpuLayers === undefined ? { modelPath } : { modelPath, gpuLayers: 0 }) } catch (e) {
+            if (last) throw e
+            console.warn('the embedding model did not load; loading it again with fewer layers on the graphics', (e as Error).message)
+            continue
+          }
+          try {
+            // a chunk is about 300 words: well inside the model's own 2,048 tokens
+            const context = await model.createEmbeddingContext({ contextSize: Math.min(2048, model.trainContextSize), ...threads(used) })
+            // the card can run out only as it first computes (#165)
+            try { await context.getEmbeddingFor('Hello') } catch (e) { await context.dispose(); throw e }
+            embedder = { path: modelPath, model, context }
+            break
+          } catch (e) {
+            await model.dispose()
+            if (last || !(e instanceof InsufficientMemoryError || outOfGraphicsMemory((e as Error).message))) throw e
+            console.warn('the embedding model did not fit on the graphics; loading it again with fewer layers there', (e as Error).message)
+          }
+        }
+        if (!embedder) throw new Error('The embedding model did not load')
       }
       const out: number[][] = []
       for (const t of texts) out.push(Array.from((await embedder.context.getEmbeddingFor(t)).vector))
