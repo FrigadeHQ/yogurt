@@ -23,7 +23,7 @@ extension S {
     static let askSearchInstead = String(localized: "You can still search your meetings.")
     static let searchMeetings = String(localized: "Search your meetings")
     static let askSources = String(localized: "Sources")
-    static let openNote = String(localized: "Open note")
+    static let newChat = String(localized: "New chat")
     static let openInTranscript = String(localized: "Open in transcript")
     static let notesSource = String(localized: "The meeting notes")
     static let untitled = String(localized: "Untitled")

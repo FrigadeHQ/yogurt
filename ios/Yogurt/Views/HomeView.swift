@@ -5,6 +5,8 @@ enum Route: Hashable {
     case meeting(String)
     /// a meeting's transcript, scrolled to this moment (ms)
     case transcript(String, Int)
+    /// a meeting's transcript where it says this (an Ask answer's claim from the notes); the notes when it doesn't
+    case cited(String, String)
     case search
     /// Ask across meetings; with a meeting id, about that meeting first
     case ask(String?)
@@ -28,6 +30,7 @@ struct HomeView: View {
                     switch route {
                     case .meeting(let id): NoteView(meetingId: id)
                     case .transcript(let id, let atMs): NoteView(meetingId: id, atMs: atMs)
+                    case .cited(let id, let claim): NoteView(meetingId: id, claim: claim)
                     case .search: SearchView(open: { path.append(.meeting($0)) })
                     case .ask(let id): AskView(meetingId: id)
                     }

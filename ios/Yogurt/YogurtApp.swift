@@ -75,6 +75,9 @@ actor StoreReader {
 
     func segments(_ id: String) -> [Segment] { store.segments(id) }
 
+    /// where a meeting's transcript says what an Ask answer took from its notes
+    func moment(_ id: String, claim: String) -> Int? { CitedMoment.atMs(claim: claim, segments: store.segments(id)) }
+
     func search(_ query: String, limit: Int) -> [Found] {
         store.search(query, limit: limit).map { Found(hit: $0, startedAt: store.meeting($0.meetingId)?.startedAt) }
     }

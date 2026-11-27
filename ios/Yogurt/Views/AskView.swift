@@ -43,6 +43,16 @@ struct AskView: View {
         .background(Theme.bg)
         .navigationTitle(turns.isEmpty ? "" : S.ask)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if !turns.isEmpty {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { withAnimation(.easeOut(duration: 0.2)) { session.newChat(key) }; text = "" } label: {
+                        Label(S.newChat, systemImage: "square.and.pencil")
+                    }
+                    .accessibilityIdentifier("ask-new-chat")
+                }
+            }
+        }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if answerer == .nowhere {
                 NavigationLink(value: Route.search) { Label(S.searchMeetings, systemImage: "magnifyingglass") }
@@ -245,7 +255,7 @@ private struct TurnView: View {
                 }
                 .font(.caption).foregroundStyle(Theme.muted)
                 .accessibilityElement(children: .combine)
-                if !a.sources.isEmpty { SourcesView(sources: a.sources) }
+                if !a.sources.isEmpty { SourcesView(sources: a.sources, answer: a.text) }
             }
         }
     }
@@ -295,20 +305,23 @@ private struct AnswerBody: View {
     }
 }
 
-/// The numbered sources; each opens its meeting, in the transcript at the moment when there is one.
+/// The numbered sources; each opens its meeting's transcript at the moment. The notes have no moment of their own:
+/// they open the transcript where it says what the answer took from them, else the notes.
 private struct SourcesView: View {
     let sources: [AskSource]
+    let answer: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(S.askSources).font(.footnote.weight(.medium)).foregroundStyle(Theme.muted).padding(.bottom, 4)
             ForEach(sources) { s in
-                NavigationLink(value: s.atMs.map { Route.transcript(s.meetingId, $0) } ?? Route.meeting(s.meetingId)) {
+                NavigationLink(value: s.atMs.map { Route.transcript(s.meetingId, $0) }
+                               ?? Route.cited(s.meetingId, CitedMoment.claim(for: s.n, in: answer))) {
                     row(s)
                 }
                 .buttonStyle(RowButtonStyle())
                 .padding(.horizontal, -8)
-                .accessibilityHint(s.atMs == nil ? S.openNote : S.openInTranscript)
+                .accessibilityHint(S.openInTranscript)
             }
         }
         .padding(.top, 4)

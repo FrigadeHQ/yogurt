@@ -13,7 +13,7 @@ public struct AskPassage: Sendable, Hashable {
 }
 
 /// What a [n] in an answer points at.
-public struct AskSource: Sendable, Hashable, Identifiable {
+public struct AskSource: Sendable, Hashable, Identifiable, Codable {
     public var n: Int
     public var meetingId: String
     public var title: String
@@ -24,8 +24,8 @@ public struct AskSource: Sendable, Hashable, Identifiable {
 }
 
 /// An answer across meetings, its citations numbered 1, 2… in the order they first show, each matching a source.
-public struct AskAnswer: Sendable, Hashable {
-    public enum By: Sendable, Hashable { case phone, computer }
+public struct AskAnswer: Sendable, Hashable, Codable {
+    public enum By: Sendable, Hashable, Codable { case phone, computer }
     public var text: String
     public var sources: [AskSource]
     public var by: By

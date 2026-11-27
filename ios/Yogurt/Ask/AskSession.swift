@@ -26,10 +26,11 @@ actor AskReader {
     }
 }
 
-/// Questions asked this session and their answers. Kept in memory only: they go when Yogurt quits.
+/// Questions asked and their answers. Saved beside the meetings, so they stay until New chat (or Unpair) clears them:
+/// iOS restarting Yogurt in the background never takes them away.
 @MainActor @Observable
 final class AskSession {
-    static let shared = AskSession()
+    static let shared = AskSession(file: URL.applicationSupportDirectory.appending(path: "Yogurt/ask.json"))
 
     enum Where: Equatable {
         /// on the same Wi-Fi as the computer, which answers
@@ -40,9 +41,9 @@ final class AskSession {
         case nowhere
     }
 
-    struct Turn: Identifiable {
-        enum State { case answering, answered(AskAnswer), failed }
-        let id = UUID()
+    struct Turn: Identifiable, Codable {
+        enum State: Codable { case answering, answered(AskAnswer), failed }
+        var id = UUID()
         let question: String
         let scope: AskScope?
         /// "All meetings", a folder's name, "This meeting"
@@ -51,13 +52,36 @@ final class AskSession {
     }
 
     /// each conversation's turns: Home's, and one per meeting asked about from its note
-    private var conversations: [String: [Turn]] = [:]
+    private var conversations: [String: [Turn]] = [:] { didSet { save() } }
     @ObservationIgnored private var reader: AskReader?
+    @ObservationIgnored private let file: URL
+
+    init(file: URL) {
+        self.file = file
+        let saved = (try? Data(contentsOf: file)).flatMap { try? JSONDecoder().decode([String: [Turn]].self, from: $0) } ?? [:]
+        // a question still being answered when Yogurt stopped can be asked again
+        conversations = saved.mapValues { $0.map { t in
+            var t = t
+            if case .answering = t.state { t.state = .failed }
+            return t
+        } }
+    }
 
     func turns(_ key: String) -> [Turn] { conversations[key] ?? [] }
 
-    /// Unpaired: the computer's answers and excerpts don't stay on screen.
-    func clear() { conversations = [:] }
+    /// New chat: this conversation starts over. Only ever from a tap.
+    func newChat(_ key: String) { conversations[key] = nil }
+
+    /// Unpaired: the computer's answers and excerpts don't stay on screen, or on this iPhone.
+    func clear() {
+        conversations = [:]
+        try? FileManager.default.removeItem(at: file)
+    }
+
+    private func save() {
+        guard !conversations.isEmpty else { try? FileManager.default.removeItem(at: file); return }
+        try? JSONEncoder().encode(conversations).write(to: file, options: [.atomic, .completeFileProtectionUnlessOpen])
+    }
 
     var busy: Bool { conversations.values.contains { $0.contains { if case .answering = $0.state { true } else { false } } } }
 

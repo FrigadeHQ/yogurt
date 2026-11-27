@@ -9,6 +9,10 @@ struct NoteView: View {
     let meetingId: String
     /// opened from an Ask source: the transcript, at this moment (ms)
     var atMs: Int? = nil
+    /// opened from an Ask source that is the notes: the transcript where it says this, else the notes
+    var claim: String? = nil
+    /// where the transcript says the claim; looked up before the note shows, so it opens there without a flash
+    @State private var found: Int?
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var tab: Tab?
@@ -42,8 +46,15 @@ struct NoteView: View {
         .background(Theme.bg)
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottom) { toastView }
-        .task(id: revision) { loaded = await model.reader.note(meetingId) }
-        .task(id: connected) { player.load(meetingId: meetingId, model: model, startAt: atMs) }
+        .task(id: revision) {
+            let note = await model.reader.note(meetingId)
+            if loaded == nil, let claim { found = await model.reader.moment(meetingId, claim: claim) }
+            loaded = note
+        }
+        // once the note is read, so a moment found for an Ask source is where the audio starts
+        .task(id: [connected, loaded != nil]) {
+            if loaded != nil { player.load(meetingId: meetingId, model: model, startAt: moment) }
+        }
         // leaving the note ends its audio. Going to the background doesn't pause what is playing (the audio mode is on);
         // what isn't playing never starts.
         .onDisappear { player.stop() }
@@ -57,6 +68,8 @@ struct NoteView: View {
             }
         }
     }
+
+    private var moment: Int? { atMs ?? found }
 
     private func content(_ meeting: Meeting, _ loaded: StoreReader.Note) -> some View {
         let notes = loaded.notes
@@ -73,7 +86,7 @@ struct NoteView: View {
                     case .summary: SummaryPane(notes: notes)
                     case .mine: MyNotesPane(meetingId: meetingId, latest: notes?.mine ?? "")
                     case .transcript: TranscriptPane(meetingId: meetingId, oneMic: meeting.oneMic,
-                                                     atMs: tab == nil ? atMs : nil, proxy: proxy, player: player)
+                                                     atMs: tab == nil ? moment : nil, proxy: proxy, player: player)
                     }
                 }
                 .padding(.top, 24)
@@ -170,7 +183,7 @@ struct NoteView: View {
     }
 
     private func defaultTab(_ notes: Notes?) -> Tab {
-        if atMs != nil { return .transcript }
+        if moment != nil { return .transcript }
         // a phone recording opens on its notes being written
         if notes?.summary?.isEmpty == false || notes?.summarySource == .phoneDraft { return .summary }
         return .mine
