@@ -152,7 +152,8 @@ export type YogurtApi = {
     keptEdits(meetingId: string): void
     dismissPeopleChange(meetingId: string, membership: string): Promise<void>
     /** writes the enhanced notes again */
-    writeAgain(meetingId: string, note?: string): Promise<void>
+    summaryModels(): Promise<import('./summaryModels').SummaryModelChoice[]>
+    writeAgain(meetingId: string, note?: string, model?: import('./summaryModels').SummaryModelId): Promise<void>
     stop(meetingId: string): Promise<void>
     /** status, the draft as it is written, and the saved notes; returns the way to stop listening */
     onChange(cb: (v: NoteView) => void): () => void

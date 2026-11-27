@@ -1,6 +1,7 @@
 import { attendeeMembership as stamp, sameAttendeeMembership } from '../../shared/people'
 import type { Meeting, Store } from '../store'
-import type { NotesModel } from './model'
+import type { NotesModel, NotesModelSelection } from './model'
+import type { SummaryModelId } from '../../shared/summaryModels'
 import type { NoteSaveResult, NoteSide, NoteStatus, NoteView } from '../../shared/types'
 import { cleanTitle, enhance, languageName, titlePrompt, type Llm, type PartSummary } from './enhance'
 import { meetingWords } from '../vocab'
@@ -23,6 +24,7 @@ export function hookNotes(p: {
   store: Pick<Store, 'meeting' | 'notes' | 'setNotes' | 'writtenWith' | 'setWrittenWith' | 'attendeeNoticeDismissed' | 'setDismissedAttendees' | 'segments' | 'updateMeeting' | 'unenhancedMeetings'>
   queue: Queue
   model: Pick<NotesModel, 'llm'> & Partial<Pick<NotesModel, 'needsLoad'>>
+  prepareSummaryModel?: (id: SummaryModelId, signal: AbortSignal) => Promise<NotesModelSelection>
   /** Windows and Linux: say when the notes wait for the model to load (a Mac shows what it always did) */
   showLoading?: boolean
   /** the recording's files and transcript are final */
@@ -120,7 +122,7 @@ export function hookNotes(p: {
    * quiet: written again for new people, out of sight. The notes on screen stay as they are until the new ones are done,
    * then change all at once (never if the person edited them meanwhile).
    */
-  const write = async (id: string, signal: AbortSignal, quiet = false, note?: string) => {
+  const write = async (id: string, signal: AbortSignal, quiet = false, note?: string, modelId?: SummaryModelId) => {
     const m = p.store.meeting(id)
     if (!m || m.state === 'recording' || resuming.has(id)) return
     const was = currentNotes(id)
@@ -138,8 +140,11 @@ export function hookNotes(p: {
     const flush = () => { timer = undefined; last = Date.now(); if (!signal.aborted) set(id, 'writing', draft.replace(/\n[ \t]*(?=\n)/g, '')) }
     try {
       console.info('NOTES', `writing the notes of ${id}`)
-      if (!quiet && p.showLoading && p.model.needsLoad?.()) set(id, 'waiting', '', undefined, 'loading')
-      const llm = await p.model.llm(signal)
+      if (!quiet && (modelId || (p.showLoading && p.model.needsLoad?.()))) set(id, 'waiting', '', undefined, 'loading')
+      const selection = modelId ? await p.prepareSummaryModel?.(modelId, signal) : undefined
+      if (modelId && !selection) throw new Error('Unavailable summary model')
+      signal.throwIfAborted()
+      const llm = selection ? await p.model.llm(signal, selection) : await p.model.llm(signal)
       signal.throwIfAborted()
       if (!quiet && live.get(id)?.step) set(id, 'waiting')
       // a generic title (or one made from earlier notes) gets one from these notes; theirs or the calendar's never
@@ -151,7 +156,7 @@ export function hookNotes(p: {
         if (timer) return
         const wait = DRAFT_EVERY_MS - (Date.now() - last)
         if (wait <= 0) flush(); else timer = setTimeout(flush, wait)
-      }, (part, of) => { if (!signal.aborted && !quiet) set(id, 'writing', '', { part, of }) }, p.earlier?.(id))
+      }, (part, of) => { if (!signal.aborted && !quiet) set(id, 'writing', '', { part, of }) }, modelId ? undefined : p.earlier?.(id))
       if (timer) clearTimeout(timer)
       if (quiet) {
         // stopped for a recording: the queue runs it again. Edited (or written again by hand) meanwhile: theirs stands
@@ -225,13 +230,13 @@ export function hookNotes(p: {
     p.send(view(m.id))
   }
 
-  const queueWrite = (id: string, note?: string, allowPartial = false) => {
+  const queueWrite = (id: string, note?: string, allowPartial = false, modelId?: SummaryModelId) => {
     const meeting = p.store.meeting(id)
     if (meeting?.transcriptionPending && (meeting.transcriptionState || meeting.source==='audio-file') && !allowPartial) return Promise.resolve()
     console.info('NOTES', `queued the notes of ${id}`)
     stopped.delete(id)
     set(id, 'waiting')
-    return p.queue.enqueue((signal) => write(id, signal, false, note), 'enhance', id).catch(() => {})
+    return p.queue.enqueue((signal) => write(id, signal, false, note, modelId), 'enhance', id).catch(() => {})
   }
 
   /** each meeting's notes after it stopped, until they are written */
@@ -343,14 +348,14 @@ export function hookNotes(p: {
     pendingDraftId: () => [...edits].find(([, sides]) => Object.values(sides).some((v) => v.text !== undefined))?.[0],
     forgetDrafts: (id: string) => { edits.delete(id) },
     /** "Write again": the same job, now (after anything already waiting) */
-    async writeAgain(id: string, note?: string, allowPartial = false) {
+    async writeAgain(id: string, note?: string, allowPartial = false, modelId?: SummaryModelId) {
       const pending = stopping.get(id)
       if (pending) await pending
       if (resuming.has(id) || p.store.meeting(id)?.state === 'recording') return Promise.resolve()
       if (!retryDrafts(id)) return Promise.resolve()
       const s = live.get(id)?.status
       if (s === 'waiting' || s === 'writing') return Promise.resolve()
-      return queueWrite(id, note, allowPartial)
+      return queueWrite(id, note, allowPartial, modelId)
     },
     /** at launch: meetings a quit or crash left without notes get them now, one at a time */
     recover() {

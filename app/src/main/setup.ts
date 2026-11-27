@@ -1,9 +1,12 @@
 import { asrCandidates, pick, pickAsr, pickBySpeed, speedKey, type Catalog, type CatalogAsr, type Choice, type Hardware } from '@yogurt/picker'
 import { rmSync } from 'node:fs'
+import { addAbortListener } from 'node:events'
 import { join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { ChecksumError, DiskSpaceError, ensureFile, fileNameFor, isVerified, partialDownloadGB, type DownloadDeps } from './downloader'
 import type { SetupState } from '../shared/types'
+import { SUMMARY_MODEL_IDS, type SummaryModelChoice, type SummaryModelId } from '../shared/summaryModels'
+import type { NotesModelSelection } from './notes/model'
 import { t } from '../shared/i18n'
 import { tooSlow, tooWeak } from './localCheck'
 
@@ -75,6 +78,7 @@ export class SetupController {
   private backgroundFailed = false
   private retryNotes: (() => void) | undefined
   private paths: Installed | undefined
+  private rewriteModels = new Map<SummaryModelId, Choice>()
   private notesListeners = new Set<() => void>()
   private embedListeners = new Set<() => void>()
   /** the embedding model's download, while it keeps being tried after a failure */
@@ -101,6 +105,46 @@ export class SetupController {
   installed(): Installed | undefined { return this.paths }
 
   notesPath() { return this.paths?.recommendedLlm ?? this.paths?.llm }
+
+  summaryModelChoices(): SummaryModelChoice[] {
+    return [...this.rewriteModels].map(([id, choice]) => ({
+      id, name: choice.model.name, bytes: choice.build.sizeGB * 1e9, downloaded: !!this.cachedSummaryModel(choice),
+    }))
+  }
+
+  canRegenerateWith(id: unknown): id is SummaryModelId {
+    return SUMMARY_MODEL_IDS.some(model => model === id && this.rewriteModels.has(model))
+  }
+
+  private cachedSummaryModel(choice: Choice) {
+    const dir = join(this.deps.modelsDir, 'llm')
+    // Reuse verified downloads. New manual downloads are separate from the automatic upgrade lifecycle.
+    return [llmItem(dir, choice), llmItem(join(dir, 'regeneration'), choice)]
+      .find(item => isVerified(item.dir, item.fileName, this.sha(item)))
+  }
+
+  async prepareSummaryModel(id: SummaryModelId, signal: AbortSignal): Promise<NotesModelSelection> {
+    signal.throwIfAborted()
+    const choice = this.rewriteModels.get(id)
+    if (!choice) throw new Error('Unavailable summary model')
+    let cached = this.cachedSummaryModel(choice)
+    const upgrading = this.upgradeDownload
+    if (!cached && upgrading && this.backgroundItem?.url === choice.build.url) {
+      let listener: ReturnType<typeof addAbortListener> | undefined
+      try {
+        await Promise.race([upgrading, new Promise<never>((_, reject) => {
+          listener = addAbortListener(signal, () => reject(signal.reason))
+        })])
+      } finally { listener?.[Symbol.dispose]() }
+      signal.throwIfAborted()
+      cached = this.cachedSummaryModel(choice)
+    }
+    if (cached) return { path: join(cached.dir, cached.fileName), contextSize: choice.contextSize }
+    const item = llmItem(join(this.deps.modelsDir, 'llm', 'regeneration'), choice)
+    await this.checkDisk([item])
+    const path = await this.fetch(item, undefined, signal)
+    return { path, contextSize: choice.contextSize }
+  }
 
   /** The engine has disposed the old model and successfully loaded this one, inside the serial job queue. */
   notesModelLoaded(path: string) {
@@ -201,12 +245,20 @@ export class SetupController {
   }
 
   private async run() {
+    this.rewriteModels.clear()
     this.set({ phase: 'checking', fraction: 0 })
     try {
       const [hw, catalog] = await Promise.all([this.deps.getHardware(), this.deps.getCatalog()])
       const llm = pick(hw, catalog.models)
       const weak = tooWeak(hw, !!llm.recommended)
       if (!llm.recommended || weak) return this.set({ phase: 'error', fraction: 0, message: weak ?? '' })
+
+      // A manual regeneration can take longer. Keep the picker’s memory checks, without its speed policy.
+      for (const id of SUMMARY_MODEL_IDS) {
+        const model = catalog.models.find(model => model.id === id)
+        const choice = model && pick(hw, [{ ...model, gpuOnly: false }], { minTokPerSec: 0 }).recommended
+        if (choice) this.rewriteModels.set(id, choice)
+      }
 
       // The first notes model is the starter when it downloads faster than the pick; otherwise the pick itself.
       const starter = llm.starter && llm.starter.build.sizeGB < llm.recommended.build.sizeGB ? llm.starter : llm.recommended

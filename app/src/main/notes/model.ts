@@ -3,6 +3,8 @@ import { GraphicsFullError, GraphicsGaveUpError, type Engine } from '../engine'
 import type { Llm } from './enhance'
 import { readInSteps } from './readAhead'
 
+export type NotesModelSelection = { path: string; contextSize: number }
+
 /**
  * How much of what the model holds a new prompt still starts with, for the log: a long meeting's notes start within
  * seconds only when the prompt extends what was read ahead. Counts only, never the text.
@@ -33,23 +35,29 @@ export function createNotesModel(o: { engine: Engine; modelPath: () => string | 
   /** let go of what must not sit in memory next to the model (whisper-server on a Mac with little memory) */
   beforeLoad?: () => Promise<void>
 }) {
-  let loaded: { path: string; contextSize: number } | undefined
-  let loading: Promise<{ path: string; contextSize: number }> | undefined
+  type Loaded = NotesModelSelection & { requestedContext: number; automatic: boolean }
+  let loaded: Loaded | undefined
+  let loading: Promise<Loaded> | undefined
   /** the text the model's sequence starts with (the first message of what it last read): what a read ahead builds on */
   let held = ''
   o.engine.onExit(() => { loaded = undefined; loading = undefined; held = '' })
 
-  const ensure = async (): Promise<{ path: string; contextSize: number }> => {
-    const path = o.modelPath()
+  const ensure = async (selection?: NotesModelSelection): Promise<Loaded> => {
+    const path = selection?.path ?? o.modelPath()
     if (!path) throw new Error('No notes model yet')
-    if (loaded?.path === path) return loaded
+    const context = Math.min(o.contextSize ?? CONTEXT, selection?.contextSize ?? CONTEXT)
+    if (loaded?.path === path && loaded.requestedContext === context) {
+      if (!selection && !loaded.automatic) { o.onLoaded?.(path); loaded.automatic = true }
+      return loaded
+    }
+    if (loading) { await loading; return ensure(selection) }
     held = ''
     loaded = undefined
     const t0 = performance.now()
-    loading ??= (async () => { await o.beforeLoad?.().catch((e) => console.error('letting go before the notes model loads failed', e)) })().then(() => o.engine.load(path, o.contextSize ?? CONTEXT, MIN_CONTEXT)).then((r) => {
+    loading = (async () => { await o.beforeLoad?.().catch((e) => console.error('letting go before the notes model loads failed', e)) })().then(() => o.engine.load(path, context, Math.min(context, MIN_CONTEXT))).then((r) => {
       console.info('TIMING', `load ${((performance.now() - t0) / 1000).toFixed(1)} s`)
-      o.onLoaded?.(path)
-      return (loaded = { path, contextSize: r.contextSize })
+      if (!selection) o.onLoaded?.(path)
+      return (loaded = { path, contextSize: r.contextSize, requestedContext: context, automatic: !selection })
     }).finally(() => { loading = undefined })
     return loading
   }
@@ -63,12 +71,11 @@ export function createNotesModel(o: { engine: Engine; modelPath: () => string | 
     if (e instanceof GraphicsFullError && full < FULL_TRIES) return again(run, ok, full + 1)
     return run()
   })
-  const load = () => again(ensure)
-
   return {
     /** the model, loaded; a stopped job's signal stops what it is writing */
-    async llm(signal?: AbortSignal): Promise<Llm> {
-      const m = await load()
+    async llm(signal?: AbortSignal, selection?: NotesModelSelection): Promise<Llm> {
+      const ensureSelected = () => ensure(selection)
+      const m = await again(ensureSelected)
       return {
         contextSize: m.contextSize,
         count: (texts) => o.engine.count(texts),
@@ -82,7 +89,7 @@ export function createNotesModel(o: { engine: Engine; modelPath: () => string | 
           const ask = () => o.engine.chat({ messages, ...(opts?.maxTokens ? { maxTokens: opts.maxTokens } : {}), ...(opts?.temperature !== undefined ? { temperature: opts.temperature } : {}) }, (t) => { wrote = true; onToken(t) }, signal)
           // no word came on the graphics card: loaded again without it, and asked again (nothing was shown yet)
           let first = true
-          return again(async () => { if (!first) await ensure(); first = false; return ask() }, () => !wrote && !signal?.aborted)
+          return again(async () => { if (!first) await ensureSelected(); first = false; return ask() }, () => !wrote && !signal?.aborted)
             .then((r) => { if (!signal?.aborted) held = messages[0].content; return r })
         },
         readAhead: async (text, stop) => {

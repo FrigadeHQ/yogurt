@@ -1,17 +1,20 @@
 import type { ChatRequest, Engine } from '../engine'
 import { fakePrompts } from '../fake'
+import { basename } from 'node:path'
 
 /**
  * Fake mode: no model. The notes for the e2e meeting (meeting-me.wav / meeting-them.wav), streamed a few words at a
  * time, and one answer to any question about a meeting. The first line the person typed comes back marked as theirs. YOGURT_FAKE_LLM_MS sets the pause between pieces.
  */
 export class FakeEngine implements Engine {
-  async load() { return { contextSize: 32_768 } }
+  private model = ''
+  async load(path = '') { this.model = basename(path); return { contextSize: 32_768 } }
   async unload() {}
   async count(texts: string[]) { return texts.map((t) => Math.ceil(t.length / 4)) }
   async chat(req: ChatRequest, onToken: (text: string) => void, signal?: AbortSignal): Promise<string> {
     const prompt = req.messages.at(-1)?.content ?? ''
     fakePrompts.notes.push(prompt)
+    fakePrompts.summaryModels.push(this.model)
     if (prompt.startsWith('Suggest one existing folder')) {
       const data = JSON.parse(prompt.slice(prompt.indexOf('{')))
       // sure only of a folder the meeting's title names, like "Customer call with Acme" for Acme
