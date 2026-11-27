@@ -94,6 +94,12 @@ describe('floating recorder placement', () => {
     state.start!({ id: 'meeting2', title: 'Review', startedAt: 0 })
     expect(state.windows.at(-1).options).toMatchObject({ type: 'toolbar', focusable: false, skipTaskbar: true })
   })
+  it('on Linux, never takes keyboard focus: a notification window, not a tool window (#193)', async () => {
+    const { createWidget } = await import('../src/main/widget')
+    createWidget({ open, stop: vi.fn(), foreground: () => false, windowOs: 'linux', platform: 'linux' })
+    state.start!({ id: 'meeting2', title: 'Review', startedAt: 0 })
+    expect(state.windows.at(-1).options).toMatchObject({ type: 'notification', focusable: false, skipTaskbar: true })
+  })
   it('on Linux, hides a stopped pill and destroys it only once the next recording has its own', async () => {
     // X11: Electron crashes on a window destroyed while the X server still answers about its size (a quick stop)
     const { createWidget } = await import('../src/main/widget')

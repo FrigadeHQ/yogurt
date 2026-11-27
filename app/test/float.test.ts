@@ -23,5 +23,12 @@ describe('floating window type', () => {
       expect(floatingType(os, 'panel')).toBe('toolbar')
       expect(floatingType(os)).toBe('toolbar')
     }
+    expect(floatingType('win32', 'panel', false)).toBe('toolbar')
+  })
+  it('Linux makes a window that never takes focus a notification, which window managers never focus (#193)', () => {
+    // a toolbar that refuses focus still gets it on some (Mango on Wayland): the keyboard is then stuck on Yogurt
+    expect(floatingType('linux', 'panel', false)).toBe('notification')
+    expect(floatingType('linux', undefined, false)).toBe('notification')
+    expect(floatingType('darwin', 'panel', false)).toBe('panel')
   })
 })

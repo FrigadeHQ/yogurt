@@ -53,6 +53,13 @@ it("a Mac's Take notes card is a non-activating panel, so its X never brings Yog
   pc.offer({key:'call',app:'Zoom',title:''} as any)
   expect(state.windows.at(-1).options).toMatchObject({type:'toolbar',focusable:false,skipTaskbar:true})
   pc.hide()
+  const linux = createPrompts({windowVisible:()=>true,takeNotes:vi.fn(),stop:vi.fn(),dismissed:vi.fn(),keepGoing:vi.fn(),dismissStop:vi.fn(),open:vi.fn(),os:'linux'})
+  // Linux: a card that never takes focus is a notification, which window managers never focus (#193); the stop card takes it
+  linux.offer({key:'call',app:'Zoom',title:''} as any)
+  expect(state.windows.at(-1).options).toMatchObject({type:'notification',focusable:false})
+  linux.askStop({id:'meeting',title:'Design review'} as any)
+  expect(state.windows.at(-1).options).toMatchObject({type:'toolbar',focusable:true})
+  linux.hide()
 })
 it('uses the current app appearance and updates the native background without leaking listeners', () => {
   state.dark = true

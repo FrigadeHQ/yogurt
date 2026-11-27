@@ -12,5 +12,8 @@ export function floatOverFullScreen(w: Floating): void {
 /**
  * The floating windows' type. A Mac: the widget and the Take notes card are non-activating panels, the stop card a plain window.
  * Windows and Linux have no panels: a tool window stays out of Alt+Tab and the taskbar; focusable: false keeps it from taking focus.
+ * Linux (X11, XWayland on Wayland): some window managers still focus a tool window that refuses focus (Mango, #193), and
+ * the keyboard then stays on Yogurt for every app. A window that never takes focus is a notification there, which they never focus.
  */
-export const floatingType = (os: string, mac?: 'panel'): 'panel' | 'toolbar' | undefined => (os === 'darwin' ? mac : 'toolbar')
+export const floatingType = (os: string, mac?: 'panel', focusable = true): 'panel' | 'toolbar' | 'notification' | undefined =>
+  os === 'darwin' ? mac : os === 'linux' && !focusable ? 'notification' : 'toolbar'

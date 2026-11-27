@@ -35,7 +35,7 @@ function createWindow(os = 'darwin'): BrowserWindow {
   const w = new BrowserWindow({
     ...widgetLayout(bounds, screen.getDisplayMatching(bounds).workArea).bounds,
     // One open-sized window avoids native resizing during the morph; transparent space passes clicks through.
-    type: floatingType(os, 'panel'),
+    type: floatingType(os, 'panel', false),
     // CSS owns the outline; macOS corner clipping cuts through its border.
     frame: false, transparent: true, roundedCorners: false, hasShadow: false, resizable: false, movable: false, minimizable: false, maximizable: false, fullscreenable: false,
     skipTaskbar: true, focusable: false, acceptFirstMouse: true, show: false,
