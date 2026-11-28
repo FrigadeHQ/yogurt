@@ -115,6 +115,10 @@ it('allows bounded metadata reads before creating any output or meeting', async 
   expect(await readFile(path)).toEqual(wavBytes(new Float32Array(320)))
 })
 
+it('accepts the audio of a video file, and nothing it cannot read',async()=>{
+ for(const ext of ['mov','MP4']){const video=join(root,`Screen recording.${ext}`);await writeFile(video,Buffer.alloc(64));expect((await uploads.select(1,video)).title).toBe('Screen recording');for(const token of uploads.tokens(1))await uploads.cancel(1,token)}
+ const other=join(root,'Notes.mkv');await writeFile(other,Buffer.alloc(64));await expect(uploads.select(1,other)).rejects.toThrow('Unsupported audio format')
+})
 it('rejects a future meeting day at the main-process boundary',async()=>{
  const file=await uploads.select(1,path),tomorrow=new Date();tomorrow.setDate(tomorrow.getDate()+1)
  await expect(uploads.start(1,file.token,'Planning',+tomorrow)).rejects.toThrow('Invalid audio details')

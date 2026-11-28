@@ -53,7 +53,7 @@ export function createAudioUploads(d:{
     async select(owner:number,path:string):Promise<AudioUploadFile> {
       for(const [token,j] of jobs)if(j.status?.phase==='done')jobs.delete(token)
       if([...jobs.values()].some(j=>j.status?.phase!=='done'&&!j.cancelled))throw new Error('Audio upload is busy')
-      if(!['.mp3','.m4a','.wav'].includes(extname(path).toLowerCase()))throw new Error('Unsupported audio format')
+      if(!['.mp3','.m4a','.wav','.mov','.mp4'].includes(extname(path).toLowerCase()))throw new Error('Unsupported audio format')
       const input=await open(path,'r')
       try {
         const stat=await input.stat();if(!stat.isFile()||stat.size<12||stat.size>8*1024**3)throw new Error('Unsupported audio file')
