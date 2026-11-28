@@ -10,11 +10,18 @@ import { outOfGraphicsMemory, type EngineMessage } from '../shared/engine-protoc
 const toHistory = (messages: EngineMessage[]): ChatHistoryItem[] =>
   messages.map((m) => (m.role === 'system' ? { type: 'system', text: m.content } : m.role === 'user' ? { type: 'user', text: m.content } : { type: 'model', response: [m.content] }))
 
+/** where the engine's own lines go: the worker sends them to main.log (a utility process's console reaches only a terminal) */
+export type EngineLog = (level: 'info' | 'warn', text: string) => void
+const toConsole: EngineLog = (level, text) => console[level](text)
+
 /**
  * The notes model itself: load, count tokens, write. Used by the worker process. Callers run one thing at a time (the worker's serial()).
+ * log: only Yogurt's own lines about memory and fallbacks, never meeting text.
  */
-export function createLlm(o: { platform?: string } = {}) {
+export function createLlm(o: { platform?: string; log?: EngineLog } = {}) {
   const platform = o.platform ?? process.platform
+  const log = o.log ?? toConsole
+  const warn = (text: string, e: unknown) => log('warn', `${text} (${(e as Error).message})`)
   let llama: Llama | undefined
   /** the processor alone, when the graphics have no room at all (#57) */
   let cpuLlama: Llama | undefined
@@ -34,7 +41,7 @@ export function createLlm(o: { platform?: string } = {}) {
     if (!l.gpu) return l
     found = await l.getVramState()
     const cap = vramCap(found, platform)
-    if (cap !== null) { await l.setVramCap(cap); console.info(`notes engine: plans for ${(cap / 1024 ** 3).toFixed(1)} GiB of graphics memory`) }
+    if (cap !== null) { await l.setVramCap(cap); log('info', `notes engine: plans for ${(cap / 1024 ** 3).toFixed(1)} GiB of graphics memory`) }
     return l
   }
   const getL = async (): Promise<Llama> => {
@@ -74,16 +81,16 @@ export function createLlm(o: { platform?: string } = {}) {
       if (embedder?.path !== modelPath) {
         await unloadEmbed()
         const l = await getL()
-        // The notes model can fill the card first (#190): then the same steps as load(), with no layers on the card, then
-        // the processor alone. A 300M model is quick there.
-        const steps: { cpu?: true; gpuLayers?: 0 }[] = [{}, { gpuLayers: 0 }, ...(l.gpu ? [{ cpu: true as const }] : [])]
+        // The notes model can fill the card first (#190): then the processor alone, where a 300M model is quick. No layers
+        // on the card is no help: node-llama-cpp still plans the context and its buffers on a card with no room left.
+        const steps: { cpu?: true }[] = [{}, ...(l.gpu ? [{ cpu: true as const }] : [])]
         for (const [i, step] of steps.entries()) {
           const last = i === steps.length - 1
           const used = step.cpu ? (cpuLlama ??= await getLlama({ gpu: false })) : l
           let model: LlamaModel
-          try { model = await used.loadModel(step.gpuLayers === undefined ? { modelPath } : { modelPath, gpuLayers: 0 }) } catch (e) {
+          try { model = await used.loadModel({ modelPath }) } catch (e) {
             if (last) throw e
-            console.warn('the embedding model did not load; loading it again with fewer layers on the graphics', (e as Error).message)
+            warn('the embedding model did not load on the graphics; loading it again on the processor', e)
             continue
           }
           try {
@@ -96,7 +103,7 @@ export function createLlm(o: { platform?: string } = {}) {
           } catch (e) {
             await model.dispose()
             if (last || !(e instanceof InsufficientMemoryError || outOfGraphicsMemory((e as Error).message))) throw e
-            console.warn('the embedding model did not fit on the graphics; loading it again with fewer layers there', (e as Error).message)
+            warn('the embedding model did not fit on the graphics; loading it again on the processor', e)
           }
         }
         if (!embedder) throw new Error('The embedding model did not load')
@@ -129,12 +136,12 @@ export function createLlm(o: { platform?: string } = {}) {
         used = step.cpu ? (cpuLlama ??= await getLlama({ gpu: false })) : l
         try { model = await used.loadModel(step.gpuLayers === undefined ? { modelPath } : { modelPath, gpuLayers: step.gpuLayers }) } catch (e) {
           if (last) throw e
-          console.warn('the notes model did not load; loading it again with fewer layers on the graphics', (e as Error).message)
+          warn('the notes model did not load; loading it again with fewer layers on the graphics', e)
           continue
         }
         try { context = await model.createContext({ contextSize: size, ...threads(used) }) } catch (e) {
           if (!(e instanceof InsufficientMemoryError) || last) throw e
-          console.warn('the notes did not fit next to the model; loading it again with fewer layers on the graphics', e.message)
+          warn('the notes did not fit next to the model; loading it again with fewer layers on the graphics', e)
           await model.dispose(); model = undefined
           continue
         }
@@ -143,7 +150,7 @@ export function createLlm(o: { platform?: string } = {}) {
         // can run out of memory only now, as it first computes (#165): fewer layers again.
         try { await main.evaluateWithoutGeneratingNewTokens(model.tokenize('Hello')); break } catch (e) {
           if (!outOfGraphicsMemory((e as Error).message) || last) throw e
-          console.warn('the graphics card ran out of memory reading in; loading it again with fewer layers on the graphics', (e as Error).message)
+          warn('the graphics card ran out of memory reading in; loading it again with fewer layers on the graphics', e)
           main = undefined
           await context.dispose(); context = undefined
           await model.dispose(); model = undefined

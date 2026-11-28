@@ -93,6 +93,6 @@ describe('holds: does the model already hold this text', () => {
     const c = handle({ id: 3, type: 'unload-embed' })
     await Promise.all([a, b, c])
     expect(order).toEqual(['embed /m/e.gguf', 'load', 'unload embed'])
-    expect(sent.find((e) => e.id === 1)).toEqual({ id: 1, type: 'result', data: [[2, 0], [4, 0]] })
+    expect(sent.find((e) => 'id' in e && e.id === 1)).toEqual({ id: 1, type: 'result', data: [[2, 0], [4, 0]] })
   })
 })

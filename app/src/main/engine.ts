@@ -171,6 +171,7 @@ export class UtilityEngine implements Engine {
     const proc = utilityProcess.fork(this.workerPath, [], { serviceName: 'Yogurt Notes', ...(env ? { env } : {}) })
     this.loaded = false
     proc.on('message', (e: EngineEvent) => {
+      if (e.type === 'log') { console[e.level]('NOTES', e.text); return }
       const p = this.pending.get(e.id)
       if (!p) return
       // thinking is never shown: only the answer streams. Any token (thinking too) means the model is writing.

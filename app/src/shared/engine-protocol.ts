@@ -33,3 +33,5 @@ export type EngineEvent =
   /** where a reply's time went, for the log */
   | { id: number; type: 'timing'; text: string }
   | { id: number; type: 'error'; message: string; code?: 'OOM' }
+  /** a line for main.log (a utility process's own console reaches only a terminal): memory and fallbacks, never meeting text */
+  | { type: 'log'; level: 'info' | 'warn'; text: string }

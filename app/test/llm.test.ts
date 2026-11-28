@@ -142,26 +142,38 @@ describe('the embedding model when the card is full (#190)', () => {
     expect(await createLlm().embed('embed.gguf', ['a'])).toEqual([[1, 2]])
     expect(fake.loads).toEqual([undefined])
   })
-  it('its context not fitting next to the notes model: loaded again with no layers on the card', async () => {
+  // no layers on a full card still failed the same way (node-llama-cpp checks the card's room even then): straight to the processor
+  it('its context not fitting next to the notes model: the processor alone', async () => {
     fake.embedFails = 1
     expect(await createLlm().embed('embed.gguf', ['a', 'b'])).toEqual([[1, 2], [1, 2]])
-    expect(fake.loads).toEqual([undefined, 0])
+    expect(fake.loads).toEqual([undefined, undefined])
+    expect(fake.llamas.at(-1)).toEqual({ gpu: false })
     expect(fake.disposed).toBe(1)
   })
-  it('graphics that have no room even with no layers on them: the processor alone', async () => {
-    fake.embedFails = 2
-    expect(await createLlm().embed('embed.gguf', ['a'])).toEqual([[1, 2]])
-    expect(fake.loads).toEqual([undefined, 0, undefined])
-    expect(fake.llamas.at(-1)).toEqual({ gpu: false })
-  })
-  it('a model that fails to load on the card: fewer layers', async () => {
+  it('a model that fails to load on the card: the processor alone', async () => {
     fake.loadFails = 1
     expect(await createLlm().embed('embed.gguf', ['a'])).toEqual([[1, 2]])
-    expect(fake.loads).toEqual([undefined, 0])
+    expect(fake.loads).toEqual([undefined, undefined])
+    expect(fake.llamas.at(-1)).toEqual({ gpu: false })
   })
-  it('running out of memory at the first text: loaded again with fewer layers', async () => {
+  it('running out of memory at the first text: the processor alone', async () => {
     fake.embedReadFails = 1
     expect(await createLlm().embed('embed.gguf', ['a'])).toEqual([[1, 2]])
-    expect(fake.loads).toEqual([undefined, 0])
+    expect(fake.loads).toEqual([undefined, undefined])
+    expect(fake.llamas.at(-1)).toEqual({ gpu: false })
+  })
+})
+
+describe('what the engine says goes to the log it is given (main.log, #190)', () => {
+  it('the fallback and the graphics memory it plans for', async () => {
+    fake.vram = { total: 16 * 1024 ** 3, unifiedSize: 0 }
+    fake.embedFails = 1
+    const lines: [string, string][] = []
+    await createLlm({ platform: 'linux', log: (level, text) => lines.push([level, text]) }).embed('embed.gguf', ['a'])
+    expect(lines.map(([l, t]) => [l, t.split(' (')[0].split(';')[0]])).toEqual([
+      ['info', expect.stringMatching(/^notes engine: plans for [\d.]+ GiB of graphics memory$/)],
+      ['warn', 'the embedding model did not fit on the graphics'],
+    ])
+    expect(lines[1][1]).toContain('A context size of 2048 is too large')
   })
 })

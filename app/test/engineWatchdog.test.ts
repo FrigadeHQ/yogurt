@@ -193,3 +193,14 @@ describe('Linux: big allocations kept away from Electron\'s allocator (#32)', ()
     expect(procs[0].env).toBeUndefined()
   })
 })
+
+describe('the engine\'s own lines reach main.log (#190)', () => {
+  it('a warning or info line from the worker is logged in main, tagged NOTES', () => {
+    const e = new UtilityEngine('engine.js', { gpuFallback: true, ...limits })
+    void e.count(['a']).catch(() => {})
+    procs[0].emit('message', { type: 'log', level: 'warn', text: 'the embedding model did not fit on the graphics' })
+    procs[0].emit('message', { type: 'log', level: 'info', text: 'notes engine: plans for 14.7 GiB of graphics memory' })
+    expect(console.warn).toHaveBeenCalledWith('NOTES', 'the embedding model did not fit on the graphics')
+    expect(console.info).toHaveBeenCalledWith('NOTES', 'notes engine: plans for 14.7 GiB of graphics memory')
+  })
+})
