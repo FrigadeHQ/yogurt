@@ -6,24 +6,28 @@ import { type AudioUploadFile, type AudioUploadStatus } from '../../../shared/au
 import { motion } from '../motion'
 import { Modal } from './Modal'
 import { toasts } from './TrashToast'
+import { TranscriptionLanguageField } from './TranscriptionLanguage'
+import type { TranscriptionLanguage } from '../../../shared/spoken'
 
 export function AudioUploadDialog({ file, durationMs, status, closing, onStart, onInspect, onCancel }: {
   file: AudioUploadFile; closing?:boolean; durationMs?: number; status?: AudioUploadStatus; onInspect?: () => void
-  onStart: (title: string, at: number) => void; onCancel: () => void
+  onStart: (title: string, at: number, language?: TranscriptionLanguage) => void; onCancel: () => void
 }) {
   const inferred=Math.min(Date.now(),file.modifiedAt-(durationMs??0))
   const [at,setAt]=useState(inferred)
+  const [language, setLanguage] = useState<TranscriptionLanguage>()
   useLayoutEffect(()=>setAt(inferred),[file.token,durationMs])
   const busy=!!status&&status.phase!=='error',reading=status?.phase==='reading'
   const heading=reading?t('Reading the file…'):t('Upload a file')
   return <Modal closing={closing} title={heading} onCancel={onCancel} busy={busy} testId="audio-upload">
-    <form onSubmit={e=>{e.preventDefault();if(!busy){if(durationMs==null)onInspect?.();else onStart(file.title,at)}}}>
+    <form onSubmit={e=>{e.preventDefault();if(!busy){if(durationMs==null)onInspect?.();else onStart(file.title,at,language)}}}>
       <div className="audio-upload-fields">
         <p className="audio-upload-file">{reading?<Loader className="flex-none" size={16} aria-hidden="true"/>:<FileAudio size={16} aria-hidden="true"/>}<span title={file.name}>{file.name}</span></p>
         {durationMs!=null&&<div className="audio-upload-when">
           <label htmlFor="upload-start-time">{t('Start time')}</label>
           <AudioUploadWhen key={file.token} disabled={busy} at={at} durationMs={durationMs} onChange={setAt}/>
         </div>}
+        {durationMs != null && <TranscriptionLanguageField value={language} onChange={setLanguage} disabled={busy} />}
         {status?.phase==='error'&&<p className="text-xs text-danger" role="alert">{status.error==='busy'?t('Stop the recording first'):status.error==='format'?t('This audio format is not supported.'):t("Yogurt couldn't read this audio file.")}</p>}
       </div>
       <div className="modal-actions audio-upload-actions"><button type="button" className="ghost-btn" data-dialog-cancel disabled={!!closing||status?.phase==='done'||status?.phase==='cancelling'} onClick={onCancel}>{t('Cancel')}</button>{!reading&&<button type="submit" disabled={busy} aria-busy={busy} className="workspace-button primary audio-upload-submit"><span className="audio-upload-submit-label">{status?.phase==='error'?t('Try again'):t('Transcribe')}</span>{busy&&<span className="audio-upload-submit-icon" aria-hidden="true"><Loader className="flex-none" size={14}/></span>}</button>}</div>
@@ -53,9 +57,9 @@ export function AudioUpload({ file, onClose, onCreated }: { file: AudioUploadFil
       if ((next.phase==='preparing'||next.phase==='done')&&next.meetingId&&!opening.current) { opening.current=next.meetingId;onCreated?.(next.meetingId);window.yogurt.nav.go(`/note/${next.meetingId}`) }
     })
   }, [file, onClose, onCreated])
-  return <AudioUploadDialog closing={closing} file={file} durationMs={durationMs} status={status} onInspect={() => setAttempt(n => n + 1)} onStart={(title, at) => {
+  return <AudioUploadDialog closing={closing} file={file} durationMs={durationMs} status={status} onInspect={() => setAttempt(n => n + 1)} onStart={(title, at, language) => {
     setStatus({ phase: 'preparing' })
-    void window.yogurt.audioUpload.start(file.token, title, at).catch(() => setStatus({ phase: 'error', error: 'read' }))
+    void window.yogurt.audioUpload.start(file.token, title, at, language).catch(() => setStatus({ phase: 'error', error: 'read' }))
   }} onCancel={() => {if(opening.current){onClose();return} setStatus({ phase: 'cancelling' }); void window.yogurt.audioUpload.cancel(file.token).then(onClose, () => setStatus({ phase: 'error', error: 'read' })) }} />
 }
 

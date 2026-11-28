@@ -18,11 +18,11 @@ export const audioUpload:YogurtApi['audioUpload']={
     }
     return task.promise
   },
-  async start(token,title,at){
+  async start(token,title,at,language){
     if(decoding.has(token))return
     const abort=new AbortController();decoding.set(token,abort)
     try{
-      const start=await ipcRenderer.invoke('audio-upload:start',token,title,at)
+      const start=await ipcRenderer.invoke('audio-upload:start',token,title,at,language)
       if(!start.decode)return
       await decodeAudioUpload({size:start.size,read:async(offset,length)=>new Uint8Array(await ipcRenderer.invoke('audio-upload:read',token,offset,length))},async(samples,fraction)=>{
         abort.signal.throwIfAborted()

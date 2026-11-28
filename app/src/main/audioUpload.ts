@@ -5,6 +5,7 @@ import { basename, extname, join } from 'node:path'
 import type { Store } from './store'
 import { uploadDayAllowed, type AudioUploadFile, type AudioUploadStatus } from '../shared/audioUpload'
 import { t } from '../shared/i18n'
+import { isTranscriptionLanguage } from '../shared/spoken'
 import { wavBytes } from './asr/transcribe'
 
 async function writeAll(file: FileHandle, bytes: Uint8Array, position: number) {
@@ -62,15 +63,16 @@ export function createAudioUploads(d:{
       }catch(error){await input.close();throw error}
     },
     info(owner:number,token:unknown){return get(owner,token).file},
-    async start(owner:number,token:unknown,title:unknown,at:unknown):Promise<{size:number;decode:boolean}> {
+    async start(owner:number,token:unknown,title:unknown,at:unknown,language?:unknown):Promise<{size:number;decode:boolean}> {
       const j=get(owner,token)
       return control(j,async()=>{
       if(j.cancelled||j.output)throw new Error('Audio upload is busy')
+      if(language!==undefined&&!isTranscriptionLanguage(language))throw new Error('Invalid transcription language')
       if(typeof title!=='string'||!title.trim()||title.length>200||typeof at!=='number'||!Number.isFinite(at)||!uploadDayAllowed(at)||at<new Date(1900,0,1).getTime()||at>new Date(10000,0,1).getTime()-86400000)throw new Error('Invalid audio details')
       if(d.recording()){tell(j,{phase:'error',error:'busy'});return{size:j.file.size,decode:false}}
       j.title=title.replace(/\s+/g,' ').trim();j.at=at
       if(!j.id){const id=j.file.token;d.store.createMeeting({title:j.title,titleSource:'user',source:'audio-file',startedAt:at,endedAt:null,eventId:null,app:null,attendees:[],state:'stopped',transcriptionPending:true},id);j.id=id}
-      d.store.updateMeeting(j.id,{title:j.title,startedAt:at,transcriptionPending:true,transcriptionState:'preparing'});d.changed()
+      d.store.updateMeeting(j.id,{title:j.title,startedAt:at,transcriptionPending:true,transcriptionState:'preparing',transcriptionLanguage:language??null});d.changed()
       await mkdir(j.dir,{recursive:true});j.output=await open(join(j.dir,'audio.wav'),'w');await writeAll(j.output,wavBytes(new Float32Array(0)),0)
       j.writing=Promise.resolve();j.samples=0;if(!j.cancelled)tell(j,{phase:'preparing',fraction:0});return{size:j.file.size,decode:true}
       })

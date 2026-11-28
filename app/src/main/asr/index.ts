@@ -10,7 +10,7 @@ import { createCleanMic, type CleanMic } from './cleanMic'
 import { loadAec3 } from './aec3'
 import { echoConfidence } from './echo'
 import { appleSpeechAvailable, installSpeechLocale, readSpeechLocales, speechDisagrees, speechFits, wantedSpeechLocale, type SpeechHost, type SpeechLocales } from './appleSpeech'
-import { whisperLanguage, type Spoken } from '../../shared/spoken'
+import { recordedWhisperLanguage, type Spoken } from '../../shared/spoken'
 import { basename } from 'node:path'
 import { createWhisperServer, recoverer, vadModelPath, whisperServerPath, type WhisperServer } from './server'
 import { clipStart, hearsClip } from './speedCheck'
@@ -249,9 +249,10 @@ export function hookTranscription(p: {
       if (locked && s.speech && speechDisagrees(s.speech, lang)) speechOff(s, `whisper heard ${lang}, not ${s.speech}`)
     }
     const promptOf = () => { const m = p.store.meeting?.(id); return m ? whisperPrompt(meetingWords(m)) : '' }
+    const language = () => recordedWhisperLanguage(options?.language, spokenNow())
     if (p.transcriber) { const f = p.transcriber; transcribe = async (c, o) => f(c, (l, n, locked) => hear(l, n, locked), o) }
     // fake mode's stand-in is loaded only in fake mode, so it stays out of what real runs load
-    else if (isFake()) transcribe = async (c, o) => (await import('./fake')).fakeTranscribe(c, o, promptOf(), whisperLanguage(spokenNow()))
+    else if (isFake()) transcribe = async (c, o) => (await import('./fake')).fakeTranscribe(c, o, promptOf(), language())
     else {
       const model = p.modelPath()
       if (model) {
@@ -298,7 +299,7 @@ export function hookTranscription(p: {
           timeoutMs: (n) => (later && srv.cpuOnly ? Math.max(srv.timeoutMs(n), Math.round((n / 16) * 10)) : srv.timeoutMs(n)),
           onTimed: (n, ms, used) => { srv.timed(n, ms, used); tooSlow() },
           onLanguage: (_t, lang, chars, locked) => hear(lang, chars, locked), prompt: promptOf,
-          language: () => options?.language ?? whisperLanguage(spokenNow()), signal: options?.signal })
+          language, signal: options?.signal })
       } else {
         console.warn('no speech model yet: this meeting is recorded but not transcribed')
         setTimeout(() => warnOnce('no-speech-model'), NO_MODEL_NOTE_DELAY_MS)

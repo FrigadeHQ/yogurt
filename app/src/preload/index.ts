@@ -97,7 +97,7 @@ const api: YogurtApi = {
     draft:id=>ipcRenderer.invoke('transcript:draft',id),
     onDraft:cb=>{const listener=(_e:unknown,id:string)=>cb(id);ipcRenderer.on('transcript:draft',listener);return()=>ipcRenderer.removeListener('transcript:draft',listener)},
     onReplaced: cb => {const listener=(_e:unknown,id:string)=>cb(id);ipcRenderer.on('transcript:replaced',listener);return()=>ipcRenderer.removeListener('transcript:replaced',listener)},
-    run: (id,again) => ipcRenderer.invoke('transcript:run',id,again),
+    run: (id,again,language) => ipcRenderer.invoke('transcript:run',id,again,language),
     stop: id => ipcRenderer.invoke('transcript:stop',id),
     get: (id, o) => ipcRenderer.invoke('transcript:get', id, o),
     restore: (id, ids) => ipcRenderer.invoke('transcript:restore', id, ids),

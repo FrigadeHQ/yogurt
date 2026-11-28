@@ -2,6 +2,7 @@ import { importPhoneRecording } from './companion/phoneImport'
 import { loadWindowState, placeWindow, saveWindowState } from './windowState'
 import { trustSystemCertificates } from './systemCerts'
 import { createSavedTranscriptions } from './savedTranscription'
+import { isTranscriptionLanguage } from '../shared/spoken'
 import { transcriptionBusy } from '../shared/transcription'
 import { hookAudioUploads } from './audioUploadIpc'
 import { uploadedAudio } from './audioUpload'
@@ -814,11 +815,12 @@ app.whenReady().then(() => {
   setup.onState(() => {uploads.resume();savedTranscriptions.resume()})
   onMeetingStart(m => {store.clearTranscriptionState(m.id);savedTranscriptions.pause()})
   onMeetingStopSaved(() => {uploads.resume();savedTranscriptions.resume()})
-  ipcMain.handle('transcript:run', (e,id:unknown,again:unknown) => {
+  ipcMain.handle('transcript:run', (e,id:unknown,again:unknown,language:unknown) => {
     if(e.sender!==win?.webContents||!isId(id)||typeof again!=='boolean')return false
+    if(language!==undefined&&language!==null&&!isTranscriptionLanguage(language))return false
     const meeting=store.meeting(id)
     if(!meeting||stopSavePending(id)||transcriptionBusy(meeting.transcriptionState))return false
-    return savedTranscriptions.start(id,again)
+    return savedTranscriptions.start(id,again,language)
   })
   ipcMain.handle('transcript:stop', async (e,id:unknown) => {
     if(e.sender!==win?.webContents||!isId(id))return
