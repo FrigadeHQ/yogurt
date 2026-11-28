@@ -1,15 +1,24 @@
 import { usePopoverPresence } from '../motion'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Check, ChevronDown, Info, Languages } from './Icons'
-import { WHISPER_LANGUAGES, type Spoken } from '../../../shared/spoken'
-import { t } from '../../../shared/i18n'
+import { WHISPER_CODES, WHISPER_LANGUAGES, spokenLanguageName, type Spoken } from '../../../shared/spoken'
+import { language, t } from '../../../shared/i18n'
 
-/** the names shown on the chip and in Settings */
-export const spokenName = (s: Spoken): string => (s === 'en' ? t('English') : t('Multi-language'))
+/** the name shown on the chip */
+export const spokenName = (s: Spoken): string => (s === 'en' ? t('English') : s === 'multi' ? t('Multi-language') : spokenLanguageName(s, language()))
+
+/** the one language offered beside English only: the one picked, else the interface's (none when that is English) */
+const otherLanguage = (s: Spoken): string | undefined => {
+  if (s !== 'en' && s !== 'multi') return s
+  const ui = language().split('-')[0]
+  const code = ui === 'nb' ? 'no' : ui === 'fil' ? 'tl' : ui
+  return code !== 'en' && WHISPER_CODES.includes(code) ? code : undefined
+}
 
 /**
- * The spoken language under the note's bar, beside the mic, as a menu: English only (faster, nothing guessed) or
- * Multi-language. Choosing counts for the recording going on from its next words, and is remembered for the next ones.
+ * The spoken language under the note's bar, beside the mic, as a menu: English only (faster, nothing guessed), one other
+ * language (the one picked, else the interface's; any of them in Settings) or Multi-language. Choosing counts for the
+ * recording going on from its next words, and is remembered for the next ones.
  */
 export function SpokenMenu() {
   const [spoken, setSpoken] = useState<Spoken>()
@@ -57,6 +66,7 @@ export function SpokenMenu() {
   if (!spoken) return null
   const row = 'flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-start text-sm hover:bg-[var(--line)] focus-visible:bg-[var(--line)] focus-visible:outline-none'
   const tick = (on: boolean) => <Check size={15} aria-hidden="true" className={`ms-auto shrink-0 ${on ? '' : 'invisible'}`} />
+  const other = otherLanguage(spoken)
   const about = t('Yogurt listens for the language being spoken. Pick it for meetings that are not in English.')
   return (
     <div ref={root} className="relative flex min-w-0 items-center">
@@ -77,6 +87,15 @@ export function SpokenMenu() {
             </span>
             {tick(spoken === 'en')}
           </button>
+          {other && (
+            <button role="menuitemradio" aria-checked={spoken === other} data-testid="spoken-other" data-code={other} onClick={() => choose(other)} className={row}>
+              <span className="flex min-w-0 flex-col">
+                <span>{spokenLanguageName(other, language())}</span>
+                <span className="text-xs text-muted">{t('Highest quality')}</span>
+              </span>
+              {tick(spoken === other)}
+            </button>
+          )}
           <button role="menuitemradio" aria-checked={spoken === 'multi'} data-testid="spoken-multi" onClick={() => choose('multi')} className={row}>
             <span className="flex min-w-0 flex-col">
               <span>{t('Multi-language')}</span>

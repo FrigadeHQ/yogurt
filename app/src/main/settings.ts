@@ -56,7 +56,7 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   hideEventsWithoutCallLink?: boolean
   /** names, products and acronyms to spell right in transcripts and notes (shared/jargon.ts) */
   jargon?: string[]
-  /** the language people speak in meetings: English only unless 'multi' (shared/spoken.ts) */
+  /** the language people speak in meetings: English only unless 'multi' or another language's code (shared/spoken.ts) */
   spoken?: Spoken
   /** the default for newly written summaries; the meeting's language when left out */
   summaryLanguage?: string
@@ -65,7 +65,7 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   /** when the updater last fetched latest*.yml (ms): checks happen about once a day (updates.ts) */
   lastUpdateCheck?: number }
 
-/** "English only" unless Multi-language was picked */
+/** "English only" unless Multi-language or another language was picked */
 export const spokenSetting = (s: Settings): Spoken => spokenOf(s.spoken)
 
 export const summaryLanguageSetting = (s: Settings): string => isLocale(s.summaryLanguage) ? s.summaryLanguage : ''

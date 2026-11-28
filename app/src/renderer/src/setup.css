@@ -15,7 +15,7 @@
 .settings-row+.settings-row,.settings-calendar-list>.settings-row:first-child { position:relative; }
 .settings-row+.settings-row::before,.settings-calendar-list>.settings-row:first-child::before { content:"";position:absolute;inset-block-start:0;inset-inline:20px;height:1px;background:var(--line); }
 .settings-row-copy { flex:1 1 160px;min-width:0; }
-.settings-row > :is(button,.settings-select-wrap,.settings-spoken,.settings-name-field) { margin-inline-start:auto; }
+.settings-row > :is(button,.settings-select-wrap,.settings-name-field) { margin-inline-start:auto; }
 .settings-label,.settings-permission-label { font-size:13px;line-height:19px;font-weight:500; }
 .settings-permission-label { display:flex;align-items:center;flex-wrap:wrap;gap:7px; }
 .settings-description { margin-top:3px;font-size:12px;line-height:18px;color:var(--muted);text-wrap:pretty; }
@@ -43,11 +43,6 @@
 .settings-toggle:active:not(:disabled,[aria-disabled=true]) .settings-toggle-knob { width:20px; }
 .settings-toggle[aria-checked=true]:active:not(:disabled,[aria-disabled=true]) .settings-toggle-knob { transform:translateX(12px); }
 .settings-toggle:dir(rtl)[aria-checked=true]:active:not(:disabled,[aria-disabled=true]) .settings-toggle-knob { transform:translateX(-12px); }
-.settings-spoken { display:inline-grid;grid-template-columns:repeat(2,minmax(0,1fr));flex:none;max-width:100%;gap:2px;padding:3px;border:1px solid var(--line);border-radius:8px;background:var(--control); }
-.settings-spoken-choice { white-space:nowrap;min-width:0;min-height:30px;padding:5px 10px;border:1px solid transparent;border-radius:5px;text-align:center;font-size:12px;line-height:18px;font-weight:500;color:var(--muted); }
-.settings-spoken-choice[aria-checked=true] { color:var(--ink);background:var(--float);border-color:var(--line); }
-.settings-spoken-choice:hover:not([aria-checked=true]) { color:var(--ink);background:var(--control-hover); }
-.settings-spoken-choice:active:not(:disabled) { background:var(--control-pressed); }
 .settings-shortcuts .settings-row { min-height:42px;padding-block:10px;justify-content:space-between;font-size:12px; }
 .settings-shortcuts kbd { display:block;min-width:40px;text-align:center;padding:2px 6px;border:1px solid var(--line);border-radius:4px;font:11px var(--font-sans);color:var(--muted);background:var(--card); }
 .settings-backup { padding:20px; }
@@ -96,7 +91,6 @@
   .settings-row-copy { flex-basis:180px; }
   .settings-row[data-kind] { display:grid;grid-template-columns:30px minmax(0,1fr); }
   .settings-row[data-kind] > .settings-action { grid-column:2;justify-self:end; }
-  .settings-spoken { grid-column:2;justify-self:start; }
   .settings-name-field { width:100%; }
 }
 @media(prefers-reduced-motion:reduce) {
