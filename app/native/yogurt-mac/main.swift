@@ -10,7 +10,7 @@
 //                                       (stdin lines "recording" / "idle" set how often it reads again: 1.5 s / 3 s):
 //                                       one Core Audio client for Yogurt's whole life instead of one per reading (#143)
 //   yogurt-mac running-apps ID...    → the supplied bundle IDs currently present in NSRunningApplication
-//   yogurt-mac browser-title ID      → {"title":string|null}: the front tab's name in Chrome, Arc, Edge, Brave or Safari (only if running)
+//   yogurt-mac browser-title ID      → {"title":string|null}: the front tab's name in Chrome, Arc, Edge, Brave, Yandex Browser or Safari (only if running)
 //   yogurt-mac permissions           → {"mic":"authorized"|"denied"|"restricted"|"notDetermined","systemAudio":0|1|2,"calendar":…,
 //                                       "accessibility":bool}
 //   yogurt-mac media-auth            → asks once to control each running player (the system's own prompt), then {"players"}
@@ -217,7 +217,7 @@ func browserTitle(_ id: String) -> String? {
     return axText(axAttr(window as! AXUIElement, kAXTitleAttribute))
   }
   let safari = id == "com.apple.Safari"
-  guard ["com.google.Chrome", "company.thebrowser.Browser", "com.ardia.browser", "company.thebrowser.dia", "com.microsoft.edgemac", "com.brave.Browser", "com.apple.Safari"].contains(id),
+  guard ["com.google.Chrome", "company.thebrowser.Browser", "com.ardia.browser", "company.thebrowser.dia", "com.microsoft.edgemac", "com.brave.Browser", "ru.yandex.desktop.yandex-browser", "com.apple.Safari"].contains(id),
         !NSRunningApplication.runningApplications(withBundleIdentifier: id).isEmpty else { return nil }
   let src = "tell application id \"\(id)\" to get " + (safari ? "name of current tab of front window" : "title of active tab of front window")
   var err: NSDictionary?

@@ -63,6 +63,8 @@ describe('parseEvents', () => {
 describe('meetingLink', () => {
   it('finds a call link in text and ignores other links', () => {
     expect(meetingLink('Join: https://meet.google.com/abc-defg-hij thanks')).toBe('https://meet.google.com/abc-defg-hij')
+    expect(meetingLink('Телемост: https://telemost.yandex.ru/j/12345678901234')).toBe('https://telemost.yandex.ru/j/12345678901234')
+    expect(meetingLink('https://telemost.360.yandex.ru/j/12345678901234')).toBe('https://telemost.360.yandex.ru/j/12345678901234')
     expect(meetingLink('Notes at https://docs.example.com/x')).toBeNull()
     expect(meetingLink(undefined)).toBeNull()
   })
