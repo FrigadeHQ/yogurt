@@ -135,6 +135,13 @@ describe('idle meeting title', () => {
     expect(formatTrayTime(start, false, 'en-GB', true)).toMatch(/2:30\s*pm/i)
   })
 
+  it('reads a system locale with keywords, such as the Mac region override en-US@rg=eszzzz, instead of throwing', () => {
+    const start = new Date(2026, 10, 20, 14, 30).getTime()
+    expect(formatTrayTime(start, true, 'en-US@rg=eszzzz')).toBe('20 Nov 14:30')
+    expect(formatTrayTime(start, false, 'en-US@calendar=gregorian;rg=gbzzzz')).toBe('14:30')
+    expect(formatTrayTime(start, false, 'en-US@calendar=gregorian')).toMatch(/2:30\s*pm/i)
+  })
+
   it('keeps the countdown and whole characters when shortening a single-line title', () => {
     const cluster = '👩🏽‍💻'
     const title = (name: string) => trayTitle(null, { ...event, title: name }, now)
