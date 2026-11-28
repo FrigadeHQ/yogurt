@@ -76,6 +76,7 @@ export type YogurtApi = {
     size(w: number, h: number): void
   }
   meetings: {
+    importMarkdown(note: import('./markdownImport').MarkdownNote): Promise<boolean>
     /** consumes the initial recording reminder once, never on Resume */
     takeRecordingReminder(): Promise<string | null>
     get(id: string): Promise<MeetingView | undefined>

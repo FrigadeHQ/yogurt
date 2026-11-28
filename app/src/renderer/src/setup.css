@@ -456,3 +456,9 @@
 .ob-actions > .calendar-link-form { flex:1;max-width:400px; }
 .calendar-link-actions { display:flex;align-items:center;gap:8px;margin-top:8px; }
 .ob-actions > .calendar-link-form .calendar-link-input { height:36px;border-radius:9px;font-size:13px; }
+
+.markdown-import-file { display:flex; align-items:end; flex-wrap:wrap; gap:8px; min-width:0; padding:8px 0; }
+.markdown-import-file legend { overflow-wrap:anywhere; font-weight:500; }
+.markdown-import-file label { display:grid; gap:3px; min-width:0; font-size:12px; }
+.markdown-import-file label:first-of-type { flex:1 1 180px; }
+.markdown-import-file input { min-width:0; padding:5px 8px; border:1px solid var(--line); border-radius:5px; background:var(--control); }

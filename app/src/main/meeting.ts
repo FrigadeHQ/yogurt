@@ -1,3 +1,4 @@
+import { TITLE_MAX } from '../shared/noteLimits'
 import { eventIds, type CalEvent } from './calendar'
 import { searchPersonKey } from '../shared/searchPeople'
 import type { Meeting, Person, Store } from './store'
@@ -187,7 +188,7 @@ export function retryStopSave(id: string): boolean {
 }
 
 /** The longest title kept; a pasted paragraph is cut */
-export const TITLE_MAX = 200
+export { TITLE_MAX }
 /** The person's own title: spaces tidied, at most TITLE_MAX characters; blank leaves it as it was */
 export function renameMeeting(id: string, raw: string): Meeting | undefined {
   if (!store) return undefined
