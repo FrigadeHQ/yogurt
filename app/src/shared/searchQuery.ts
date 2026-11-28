@@ -62,46 +62,51 @@ export function parseSearchQuery(query: string, { now = new Date(), locale = new
     let parser = parsers[lang] ?? parsers[lang.split('-')[0]] ?? en
     if (parser === en && dayFirst) parser = GB
     const midnight = (c: ParsedComponents) => new Date(c.get('year')!, c.get('month')! - 1, c.get('day')!)
-    for (const result of parser.parse(query, now)) {
-      const start = midnight(result.start), last = midnight(result.end ?? result.start)
-      const span = { start: result.index, end: result.index + result.text.trimEnd().length }
-      const before = query.slice(0, span.start)
-      const monthOnly = result.start.isCertain('month') && !result.start.isCertain('day')
-      const weekdayOnly = result.start.isCertain('weekday') && !result.start.isCertain('day')
-      const inMonth = /\bin\s+$/i.exec(before)
-      if (monthOnly) {
-        if (!inMonth || result.end) continue
-        span.start = inMonth.index
-      } else if (weekdayOnly) {
-        // A bare weekday within other words may be a title; standalone weekdays and explicit modifiers are dates.
-        const on = /\bon\s+$/i.exec(before)
-        if (on) span.start = on.index
-        else if (/^\p{L}+\.?$/u.test(result.text.trim()) && query.trim() !== result.text.trim()) continue
-        if (start > day() && !/\b(next|this)\b/i.test(result.text)) {
-          start.setDate(start.getDate() - 7); last.setDate(last.getDate() - 7)
+    const run = (candidateParser: Chrono, allowSlashNumeric: boolean) => {
+      for (const result of candidateParser.parse(query, now)) {
+        const start = midnight(result.start), last = midnight(result.end ?? result.start)
+        const span = { start: result.index, end: result.index + result.text.trimEnd().length }
+        const before = query.slice(0, span.start)
+        const monthOnly = result.start.isCertain('month') && !result.start.isCertain('day')
+        const weekdayOnly = result.start.isCertain('weekday') && !result.start.isCertain('day')
+        const inMonth = /\bin\s+$/i.exec(before)
+        if (monthOnly) {
+          if (!inMonth || result.end) continue
+          span.start = inMonth.index
+        } else if (weekdayOnly) {
+          // A bare weekday within other words may be a title; standalone weekdays and explicit modifiers are dates.
+          const on = /\bon\s+$/i.exec(before)
+          if (on) span.start = on.index
+          else if (/^\p{L}+\.?$/u.test(result.text.trim()) && query.trim() !== result.text.trim()) continue
+          if (start > day() && !/\b(next|this)\b/i.test(result.text)) {
+            start.setDate(start.getDate() - 7); last.setDate(last.getDate() - 7)
+          }
+        } else if (!result.start.isCertain('day')) continue
+        if (candidateParser === en || candidateParser === GB) {
+          // Chrono accepts swapped numeric fields; keep the user's regional month/day order unambiguous.
+          const numeric = [...result.text.matchAll(/\b(\d{1,2})\/(\d{1,2})(?:\/\d{4})?\b/g)]
+          if (numeric.length && (!allowSlashNumeric || numeric.some(m => Number(m[dayFirst ? 2 : 1]) > 12))) continue
         }
-      } else if (!result.start.isCertain('day')) continue
-      if (parser === en || parser === GB) {
-        // Chrono accepts swapped numeric fields; keep the user's regional month/day order unambiguous.
-        const numeric = [...result.text.matchAll(/\b(\d{1,2})\/(\d{1,2})(?:\/\d{4})?\b/g)]
-        if (numeric.some(m => Number(m[dayFirst ? 2 : 1]) > 12)) continue
+        // Go to uses the parsed calendar day. Meeting history searches the most recent occurrence.
+        const calendarStart = start.getTime()
+        if (result.start.isCertain('month') && !result.start.isCertain('year') && !result.end?.isCertain('year') && start > day()) {
+          const month = start.getMonth(), lastMonth = last.getMonth()
+          start.setFullYear(start.getFullYear() - 1); last.setFullYear(last.getFullYear() - 1)
+          if (start.getMonth() !== month || last.getMonth() !== lastMonth) continue
+        }
+        if (result.end) {
+          const from = /\bfrom\s+$/i.exec(before)
+          if (from) span.start = from.index
+        }
+        const end = monthOnly ? new Date(start.getFullYear(), start.getMonth() + 1, 1)
+          : new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1)
+        consume(span, start, end, calendarStart)
+        if (date) break
       }
-      // Go to uses the parsed calendar day. Meeting history searches the most recent occurrence.
-      const calendarStart = start.getTime()
-      if (result.start.isCertain('month') && !result.start.isCertain('year') && !result.end?.isCertain('year') && start > day()) {
-        const month = start.getMonth(), lastMonth = last.getMonth()
-        start.setFullYear(start.getFullYear() - 1); last.setFullYear(last.getFullYear() - 1)
-        if (start.getMonth() !== month || last.getMonth() !== lastMonth) continue
-      }
-      if (result.end) {
-        const from = /\bfrom\s+$/i.exec(before)
-        if (from) span.start = from.index
-      }
-      const end = monthOnly ? new Date(start.getFullYear(), start.getMonth() + 1, 1)
-        : new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1)
-      consume(span, start, end, calendarStart)
-      if (date) break
     }
+    run(parser, true)
+    // Chrono's GB parser reads "Nov 10" as November 2010 without a day; fall back to US English for non-slash dates.
+    if (!date && parser === GB) run(en, false)
   }
   return { text, words: searchWords(text), date, jumpAt, ...(dateSpan ? { dateSpan } : {}) }
 }
