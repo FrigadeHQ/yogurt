@@ -39,6 +39,10 @@ describe('silence guesses', () => {
   it('are not real sentences that start the same way', () => {
     for (const t of ['Thank you for the update on the budget.', 'You said Tuesday.', 'Bye for now, see you Monday.']) expect(isSilenceGuess(t)).toBe(false)
   })
+  it('include the Spanish ones', () => {
+    for (const t of ['Gracias.', '¡Muchas gracias!', 'Gracias por ver el video.', 'Gracias por ver el vídeo.', 'Subtítulos realizados por la comunidad de Amara.org', '¡Suscríbete al canal!']) expect(isSilenceGuess(t)).toBe(true)
+    for (const t of ['Gracias por la actualización del presupuesto.', 'Gracias, nos vemos el lunes.', 'Sí, gracias por ver el video que mandé.']) expect(isSilenceGuess(t)).toBe(false)
+  })
 })
 
 describe('the prompt read back as a speaker label', () => {
