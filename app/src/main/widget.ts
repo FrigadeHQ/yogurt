@@ -3,6 +3,7 @@ import { BrowserWindow, ipcMain, Notification, screen } from 'electron'
 import { join } from 'node:path'
 import type { Meeting } from './store'
 import { WidgetModel } from './widgetModel'
+import { createCallSilence } from './callSilence'
 import { onRecordingEvent, recordingFinished } from './capture'
 import { onMeetingChange, onMeetingStart, onMeetingStop, stopSavePending } from './meeting'
 import { micIsOff, type WidgetView } from '../shared/types'
@@ -71,6 +72,7 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
   platform?: NodeJS.Platform }) {
   const model = new WidgetModel(d.os)
   let speech = silentSpeech
+  let callSilence = createCallSilence()
   const floors = { me: [] as number[], them: [] as number[] }
   let win: BrowserWindow | undefined
   /**
@@ -171,6 +173,7 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
 
   onMeetingStart((m) => {
     speech = silentSpeech
+    callSilence = createCallSilence()
     floors.me.length = floors.them.length = 0
     notifyOnChange = false; notice = null; stopPressed = false
     model.start({ id: m.id, title: m.title, startedAt: m.resume ? m.resume.startedAt - m.resume.capturedMs : m.startedAt })
@@ -212,6 +215,11 @@ export function createWidget(d: { open(meetingId: string): void; stop(meetingId:
     if (e.t === 'level') {
       speech = recordingSpeech(speech, e, floors, micIsOff(model.micState), performance.timeOrigin + performance.now())
       broadcast('widget:level', { me: e.me, them: e.them, speech })
+      // while paused no level is real: nothing is heard, and nobody is "talking here"
+      if (!model.isPaused) {
+        const verdict = callSilence(e.them, !micIsOff(model.micState) && speech.speaking, Date.now())
+        if (verdict !== undefined) { model.callSilent(verdict); push() }
+      }
     } else if (e.t === 'mic-state' && e.meetingId === model.meetingId) {
       if (micIsOff(model.micState) !== micIsOff(e.state)) speech = silentSpeech
       model.micState = e.state

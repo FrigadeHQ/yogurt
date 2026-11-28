@@ -18,6 +18,8 @@ export class WidgetModel {
   private kind: 'recording' | 'captured' = 'recording'
   private endedAt = 0
   private missingAudio = new Set<'mic' | 'systemAudio'>()
+  /** the call side stopped coming through while somebody talks here (callSilence.ts) */
+  private callIsSilent = false
   /** transcription trouble; the recorder's hints come first */
   private textHint: TranscribeWarn | null = null
   private hiccupUntil = 0
@@ -31,7 +33,7 @@ export class WidgetModel {
 
   start(m: { id: string; title: string; startedAt: number }) {
     this.m = m; this.micState = 'on'; this.kind = 'recording'
-    this.missingAudio.clear(); this.textHint = null; this.hiccupUntil = 0; this.crashed = false; this.savePending = false
+    this.missingAudio.clear(); this.callIsSilent = false; this.textHint = null; this.hiccupUntil = 0; this.crashed = false; this.savePending = false
     this.pausedAt = null; this.pausedMs = 0; this.byCall = false
   }
   get meetingId(): string | null { return this.m?.id ?? null }
@@ -43,6 +45,8 @@ export class WidgetModel {
     else if (code === 'live-paused') this.textHint = code
     else if ((code === 'transcribe-failed' || code === 'no-speech-model' || code === 'falling-behind') && this.textHint !== 'live-paused') this.textHint = code
   }
+  callSilent(on: boolean) { this.callIsSilent = on }
+  get isPaused(): boolean { return this.pausedAt !== null }
   /** the helper was restarted: it records again */
   hiccup(now: number) { this.hiccupUntil = now + HICCUP_MS }
   gaveUp() { this.crashed = true }
@@ -73,6 +77,7 @@ export class WidgetModel {
       else if (!muted && this.missingAudio.size === 2) note = { tone: 'hint', code: 'no-mic', missingAudio: ['mic', 'systemAudio'], text: this.mac ? t("Yogurt can't hear your microphone or the call. Turn on microphone and call audio in System Settings.") : this.noMic() }
       else if (!muted && this.missingAudio.has('mic')) note = { tone: 'hint', code: 'no-mic', text: this.mac ? t("Yogurt can't hear your mic. Allow it in System Settings.") : this.noMic() }
       else if (this.missingAudio.has('systemAudio')) note = { tone: 'hint', code: 'no-system-audio', text: this.mac ? t("Yogurt can't hear the call audio. Allow it in System Settings.") : t("Yogurt can't hear the call audio on this computer.") }
+      else if (this.callIsSilent) note = { tone: 'hint', text: t("Yogurt hasn't heard the other side for a few minutes. If they're still talking, check your headset or sound output.") }
       else if (this.textHint === 'live-paused') note = { tone: 'hint', text: t('Live transcription paused. Yogurt will finish the transcript from the recording after the meeting.') }
       else if (this.textHint === 'transcribe-failed') note = { tone: 'hint', text: t('Some lines are missing for now. Yogurt will fill them in from the recording after the meeting.') }
       else if (this.textHint === 'no-speech-model') note = { tone: 'hint', text: t("The speech model isn't ready yet, so only audio is being saved.") }

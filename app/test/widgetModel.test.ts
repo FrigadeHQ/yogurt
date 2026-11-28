@@ -159,6 +159,38 @@ describe('renaming the meeting while it records', () => {
   })
 })
 
+describe('the other side gone silent', () => {
+  const hint = "Yogurt hasn't heard the other side for a few minutes. If they're still talking, check your headset or sound output."
+  const recording = () => { const w = new WidgetModel(); w.start(m); return w }
+  it('is a hint on the recording, and goes when the call is heard again', () => {
+    const w = recording()
+    w.callSilent(true)
+    expect(w.view(2000)?.note).toEqual({ tone: 'hint', text: hint })
+    w.callSilent(false)
+    expect(w.view(2000)?.note).toBeNull()
+  })
+  it('comes after a missing mic or call audio, and before trouble with the transcription', () => {
+    const w = recording()
+    w.callSilent(true); w.warn('falling-behind')
+    expect(w.view(2000)?.note?.text).toBe(hint)
+    w.warn('no-system-audio')
+    expect(w.view(2000)?.note).toMatchObject({ code: 'no-system-audio' })
+  })
+  it('is not carried to the next meeting or to the finished card', () => {
+    const w = recording()
+    w.callSilent(true); w.stop(5000)
+    expect(w.view(5000)?.note).toBeNull()
+    w.start(m)
+    expect(w.view(6000)?.note).toBeNull()
+  })
+  it('knows when the recording is paused', () => {
+    const w = recording()
+    expect(w.isPaused).toBe(false)
+    w.pause(true, 3000)
+    expect(w.isPaused).toBe(true)
+  })
+})
+
 describe('stopped because the call ended', () => {
   it('says so on the finished card', () => {
     const w = new WidgetModel()

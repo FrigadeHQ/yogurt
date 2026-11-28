@@ -472,6 +472,7 @@
   "Yogurt couldn't reopen. Quit it from the menu bar and open it again.": "Yogurt เปิดใหม่ไม่ได้ ออกจากแอปที่แถบเมนูแล้วเปิดอีกครั้ง",
   "Yogurt couldn't start the notes. Try again in a moment.": "Yogurt เริ่มโน้ตไม่ได้ ลองใหม่อีกสักครู่",
   "Yogurt is falling behind. Some lines may be missing.": "Yogurt ตามไม่ทัน อาจมีบางบรรทัดหายไป",
+  "Yogurt hasn't heard the other side for a few minutes. If they're still talking, check your headset or sound output.": "Yogurt ไม่ได้ยินอีกฝ่ายมาสองสามนาทีแล้ว หากพวกเขายังพูดอยู่ ให้ตรวจสอบหูฟังหรือเอาต์พุตเสียงของคุณ",
   "Yogurt is recording": "Yogurt กำลังบันทึก",
   "Yogurt listens for the language being spoken. Pick it for meetings that are not in English.": "Yogurt ฟังว่ากำลังพูดภาษาอะไร เลือกตัวเลือกนี้สำหรับการประชุมที่ไม่ใช่ภาษาอังกฤษ",
   "Yogurt needs a Mac with at least 8 GB of memory.": "Yogurt ต้องใช้ Mac ที่มีหน่วยความจำอย่างน้อย 8 GB",
