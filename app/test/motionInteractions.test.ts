@@ -371,10 +371,12 @@ function watchRetryToast() {
 }
 
 it.each([
-  ['darwin', true, 'Appears while you record with Yogurt in the background.'],
-  ['darwin', false, 'Show Yogurt in the menu bar to hide the pill.'],
-  ['win32', true, null], ['linux', true, null],
-])('describes the pill switch on %s with menu bar visibility %s', async (os, showInMenuBar, description) => {
+  ['darwin', true, 'Appears while you record with Yogurt in the background.', false],
+  ['darwin', false, 'Show Yogurt in the menu bar to hide the pill.', true],
+  ['win32', true, 'Appears while you record with Yogurt in the background.', undefined],
+  ['win32', false, 'Appears while you record with Yogurt in the background.', undefined],
+  ['linux', true, 'Appears while you record with Yogurt in the background.', undefined],
+])('describes the pill switch on %s with menu bar visibility %s', async (os, showInMenuBar, description, disabled) => {
   const { Settings } = await import('../src/renderer/src/screens/Settings')
   const settings = { get: async () => ({ showInMenuBar, showRecordingPill: true }) }
   vi.stubGlobal('window', { yogurt: { os, settings, capabilities: {} } })
@@ -383,13 +385,9 @@ it.each([
   vi.mocked(useEffect).mock.calls.find(([, deps]) => deps?.includes(17))![0]()
   await Promise.resolve()
   const tree = draw()
-  if (description === null) {
-    expect(() => find(tree, 'recording-pill-toggle')).toThrow()
-  } else {
-    const toggle = find(tree, 'recording-pill-toggle')
-    expect(find(tree, toggle.props['aria-describedby']).props.children).toBe(description)
-    expect(toggle.props['aria-disabled']).toBe(!showInMenuBar)
-  }
+  const toggle = find(tree, 'recording-pill-toggle')
+  expect(find(tree, toggle.props['aria-describedby']).props.children).toBe(description)
+  expect(toggle.props['aria-disabled']).toBe(disabled)
 })
 
 it('gives a library read failure a quiet message and keeps its working retry', async () => {
