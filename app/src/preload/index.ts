@@ -132,7 +132,8 @@ const api: YogurtApi = {
     },
     keptEdits: (id) => { ipcRenderer.send('notes:kept-edits', id) },
     dismissPeopleChange: (id, membership) => ipcRenderer.invoke('notes:dismiss-people-change', id, membership),
-    writeAgain: (id, note) => ipcRenderer.invoke('notes:write-again', id, note),
+    summaryModels: () => ipcRenderer.invoke('notes:summary-models'),
+    writeAgain: (id, note, model) => ipcRenderer.invoke('notes:write-again', id, note, model),
     stop: (id) => ipcRenderer.invoke('notes:stop', id),
     onChange: (cb) => {
       const on = (_e: unknown, v: NoteView) => cb(v)

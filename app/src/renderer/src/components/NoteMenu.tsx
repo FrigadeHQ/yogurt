@@ -3,6 +3,7 @@ import { usePopoverPresence } from '../motion'
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { AudioLines, ChevronRight, Ellipsis, Folder as FolderIcon, Pencil, RotateCcw, Trash2 } from './Icons'
 import { RegenerateForm } from './RegenerateForm'
+import type { SummaryModelId } from '../../../shared/summaryModels'
 import { t } from '../../../shared/i18n'
 
 /** Only show generation when it can produce a summary; explain temporary waits. */
@@ -23,7 +24,7 @@ export function NoteMenu({ transcription, recording, savePending, onRename, onDe
   /** in the Trash already: Delete is for good */
   trashed?: boolean
   generation: ReturnType<typeof summaryAction>; hasSummary: boolean; edited: boolean
-  rewriteOpen: boolean; setRewriteOpen: (open: boolean) => void; onWriteAgain: (note: string) => void
+  rewriteOpen: boolean; setRewriteOpen: (open: boolean) => void; onWriteAgain: (note: string, model?: SummaryModelId) => void
 }) {
   const [open, setOpen] = useState<false | 'pointer' | 'keyboard'>(false)
   const presence = usePopoverPresence(rewriteOpen && generation ? 'rewrite' : open)
@@ -62,7 +63,7 @@ export function NoteMenu({ transcription, recording, savePending, onRename, onDe
           aria-describedby={edited ? 'note-rewrite-description' : undefined} {...presence.props} data-anchor="end"
           className="menu-entry summary-regenerate" onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close() } }}>
           <RegenerateForm active={rewriteOpen} hasSummary={hasSummary} edited={edited} disabled={!generation || !!generation.reason}
-            onClose={close} onSubmit={(note) => { if (!generation || generation.reason) return; close(); onWriteAgain(note) }} />
+            onClose={close} onSubmit={(note, model) => { if (!generation || generation.reason) return; close(); onWriteAgain(note, model) }} />
         </div>
       ) : presence.value && (
         <div key="menu" data-testid="note-menu" {...presence.props} role="menu" data-anchor="end" aria-label={t('More')} onKeyDown={onKey}

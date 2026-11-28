@@ -28,6 +28,7 @@ import { MicToggle, MicFeedback } from '../components/MicToggle'
 import { RecordingAction } from '../components/RecordingAction'
 import { ShareMenu } from '../components/ShareMenu'
 import { NoteMenu, summaryAction } from '../components/NoteMenu'
+import type { SummaryModelId } from '../../../shared/summaryModels'
 import { DeleteNote } from '../components/DeleteNote'
 import { openAudioUpload } from '../components/AudioUpload'
 import { moveToTrash, toasts } from '../components/TrashToast'
@@ -347,10 +348,10 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
   }
   const saveStatus = mineSave.status === 'failed' || enhancedSave.status === 'failed' ? 'failed'
     : mineSave.status === 'saving' || enhancedSave.status === 'saving' ? 'saving' : 'saved'
-  const writeAgain = async (note?: string) => {
+  const writeAgain = async (note?: string, model?: SummaryModelId) => {
     if (!await saveAll()) return
     setEditedHere(false)
-    void window.yogurt.notes.writeAgain(id, note)
+    void window.yogurt.notes.writeAgain(id, note, model)
   }
   const hasSummary = !!notes.enhanced?.trim()
   const transcribing=transcriptionBusy(m.transcriptionState)
@@ -380,7 +381,7 @@ export function Note({ id, onTitleChange, at, folderSuggestion, onSource, onResu
       </Modal>}
       <div data-testid="note-topbar" className="note-topbar no-drag fixed end-4 top-[10px] z-[60]">
           <NoteMenu key={id} transcription={{reason:transcriptReason,run:()=>void runTranscript(true)}} generation={generation} hasSummary={hasSummary} edited={notes.edited || editedHere} rewriteOpen={rewriteOpen} setRewriteOpen={setRewriteOpen}
-            onWriteAgain={(note) => { if (!generation || generation.reason) return; pickPrimary('notes'); pick('enhanced'); void writeAgain(note) }} recording={recording} savePending={m.stopSavePending} trashed={trashed} onRename={() => setRenaming(true)} onDelete={() => { void saveAll().then((saved) => { if (!saved) return; if (trashed) setDeleting(true); else void moveToTrash(id, `/note/${id}`) }) }}
+            onWriteAgain={(note, model) => { if (!generation || generation.reason) return; pickPrimary('notes'); pick('enhanced'); void writeAgain(note, model) }} recording={recording} savePending={m.stopSavePending} trashed={trashed} onRename={() => setRenaming(true)} onDelete={() => { void saveAll().then((saved) => { if (!saved) return; if (trashed) setDeleting(true); else void moveToTrash(id, `/note/${id}`) }) }}
             folders={(close) => <FolderPicker testId="note-menu-folders" meetingId={id} onNew={() => { close(); setNamingFolder(true) }} />} />
       </div>
       <div className="note-layout relative flex min-w-0 flex-1 flex-col" data-tab-pointer={tabPointer}>

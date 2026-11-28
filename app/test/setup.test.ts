@@ -50,6 +50,39 @@ const turboUrl = catalog.asr[0].url
 const smallUrl = catalog.asr[1].url
 
 describe('SetupController', () => {
+  it('prepares the explicitly selected Gemma without changing which model Auto uses', async () => {
+    const { c, root, rec } = setup()
+    await c.start(); await c.idle()
+    const auto = c.notesPath()!
+    c.notesModelLoaded(auto) // Auto retires its starter after a successful load.
+    const signal = new AbortController().signal
+    expect(c.summaryModelChoices().map(choice => choice.id)).toEqual(['gemma-4-e4b', 'gemma-4-26b-a4b'])
+    expect((await c.prepareSummaryModel('gemma-4-26b-a4b', signal)).path).toBe(auto)
+    const alternative = join(root, 'llm', 'regeneration', name(starterUrl))
+    expect((await c.prepareSummaryModel('gemma-4-e4b', signal)).path).toBe(alternative)
+    expect((await c.prepareSummaryModel('gemma-4-e4b', signal)).path).toBe(alternative)
+    expect(rec.asked.filter(url => url === starterUrl)).toHaveLength(2)
+    expect(c.notesPath()).toBe(auto)
+    expect(c.canRegenerateWith('../other.gguf')).toBe(false)
+  })
+
+  it('shares an in-progress automatic download without cancelling it when a regeneration stops', async () => {
+    const rec = recorder(url => url === bigUrl)
+    const { c } = setup({ download: rec.deps })
+    await c.start()
+    await vi.waitFor(() => expect(rec.asked).toContain(bigUrl))
+    const stop = new AbortController()
+    const cancelled = c.prepareSummaryModel('gemma-4-26b-a4b', stop.signal)
+    const keep = c.prepareSummaryModel('gemma-4-26b-a4b', new AbortController().signal)
+    try {
+      stop.abort(new Error('Cancelled regeneration'))
+      await expect(cancelled).rejects.toThrow('Cancelled regeneration')
+    } finally { rec.release() }
+    await c.idle()
+    expect((await keep).path).toBe(c.notesPath())
+    expect(rec.asked.filter(url => url === bigUrl)).toHaveLength(1)
+  })
+
   it('keeps a failed fake notes download in the real retry state while recording remains ready', async () => {
     const { c, states } = setup({ download: fakeDownloadDeps({ stepMs: 0, notesFailOnce: true }) })
     await c.start()

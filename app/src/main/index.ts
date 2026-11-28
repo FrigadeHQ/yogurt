@@ -777,6 +777,7 @@ app.whenReady().then(() => {
     ...(automatic ? { keep: endedAt => keepsRecording(loadSettings(settingsFile), endedAt) } : {}),
   })
   const notes = hookNotes({
+    prepareSummaryModel: (id, signal) => setup.prepareSummaryModel(id, signal),
     summarized: id => { folderSuggestions.schedule(id); void removeRecording(id, true) },
     // Windows and Linux: a note waiting while the model loads says so (a Mac shows what it always did)
     showLoading: platform !== 'darwin',
@@ -998,13 +999,17 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('notes:stop', (_e, id: unknown) => { if (known(id)) return notes.stop(id) })
   // "Write again", from the note or an AI app; false when it can't start now
-  const writeAgain = (id: unknown, note: unknown): boolean => {
+  const writeAgain = (id: unknown, note: unknown, model: unknown = undefined): boolean => {
     const instruction = rewriteNote(note)
     if (!known(id) || instruction === undefined || transcriptionBusy(store.meeting(id)?.transcriptionState)) return false
-    void notes.writeAgain(id, instruction, true)
+    if (model !== undefined && (!store.notes(id).enhanced?.trim() || !setup.canRegenerateWith(model))) return false
+    void notes.writeAgain(id, instruction, true, model)
     return true
   }
-  ipcMain.handle('notes:write-again', (_e, id: unknown, note: unknown) => { writeAgain(id, note) })
+  ipcMain.handle('notes:summary-models', e => e.sender === win?.webContents ? setup.summaryModelChoices() : [])
+  ipcMain.handle('notes:write-again', (e, id: unknown, note: unknown, model: unknown) => {
+    if (model === undefined || e.sender === win?.webContents) writeAgain(id, note, model)
+  })
   app.on('will-quit', () => engine.dispose())
   // an earlier quit or crash may have left parts unjoined: try again now
   const rejoined = rejoinInterrupted(join(userDataDir(), 'meetings'), async dir => {
