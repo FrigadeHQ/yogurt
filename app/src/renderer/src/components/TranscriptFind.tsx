@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type RefObject } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown, ChevronUp, Search, X } from './Icons'
 import { t } from '../../../shared/i18n'
@@ -18,10 +18,12 @@ type Props = {
   onFinding: (finding: boolean) => void
   toolbar?: HTMLElement | null
   onClose?: () => void
+  /** local patch: the transcript lab's controls, before the close button */
+  extra?: ReactNode
 }
 
 /** Search owns its state and paints native text ranges; keystrokes never redraw the transcript. */
-export function TranscriptFind({ lines, list, active, playbackInset, beforeScroll, onFinding, toolbar, onClose }: Props) {
+export function TranscriptFind({ lines, list, active, playbackInset, beforeScroll, onFinding, toolbar, onClose, extra }: Props) {
   useLanguage()
   const countId = useId(), fieldId = useId()
   const [open, setOpen] = useState(false), [query, setQuery] = useState('')
@@ -146,6 +148,7 @@ export function TranscriptFind({ lines, list, active, playbackInset, beforeScrol
       </div>
     </div>
   </div>
+    {extra}
     {onClose && <div className="transcript-actions"><button data-testid="transcript-close" onClick={onClose} aria-label={t('Hide transcript')} title={t('Hide transcript')} className="ghost-btn workspace-icon"><ChevronDown size={15} aria-hidden="true" /></button></div>}
   </div>
   return active ? toolbar ? createPortal(control, toolbar) : control : null

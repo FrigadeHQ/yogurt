@@ -48,6 +48,7 @@ import { asrFor, SetupController } from './setup'
 import { fakeMeasure, measureSpeed, speedClipPath, speedStore } from './asr/speedCheck'
 import { vadModelPath, whisperServerPath } from './asr/server'
 import { openStore, type Store } from './store'
+import { hookTranscriptLab } from './lab/ipc'
 import { calendars, eventIds, matchesEvent, setCalendarSelection, setCalendarOwnEmail, calendarStatus, createHelperRunner, helperPath, killAllHelpers, refreshCalendarStatus, requestCalendarAccess, runHelper, setCalendarLinkSource, systemCalendarStatus, setCalendarSupported, setHelper, upcoming, type CalEvent } from './calendar'
 import { createCalendarLinks } from './calendarLink'
 import { getCalendar } from './calendarLink/get'
@@ -812,6 +813,9 @@ app.whenReady().then(() => {
     prepared: id => {void savedTranscriptions.start(id)}, changed: () => win?.webContents.send('meetings:changed'),
   })
   setup.onState(() => {uploads.resume();savedTranscriptions.resume()})
+  // transcript lab: extra speech models re-read meetings when <userData>/transcript-lab.json sets them up (docs/transcript-lab.md)
+  hookTranscriptLab({ store, userData: userDataDir(), dirOf: (id) => join(userDataDir(), 'meetings', id), exts: audioExts(process.platform, isFake()), windows: () => [win],
+    transcriptChanged: (id) => { void indexer.schedule(); sendWidgetTranscript('transcript:speakers', id); notes.refresh(id) } })
   onMeetingStart(m => {store.clearTranscriptionState(m.id);savedTranscriptions.pause()})
   onMeetingStopSaved(() => {uploads.resume();savedTranscriptions.resume()})
   ipcMain.handle('transcript:run', (e,id:unknown,again:unknown) => {
