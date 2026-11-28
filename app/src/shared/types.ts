@@ -316,7 +316,7 @@ export type YogurtApi = {
     setSummaryLanguage(id: string): Promise<void>
     /** every window hears the language change, wherever it was picked */
     onLanguage(cb: (locale: string) => void): () => void
-    /** English only or Multi-language: the meeting being recorded and the next ones */
+    /** The spoken language for the current recording and future meetings */
     setSpoken(v: import('./spoken').Spoken): Promise<void>
   }
   /** finds meetings by date, title, attendees, folders, transcript and notes; nothing typed: the latest. folder: only the meetings in it */

@@ -1,3 +1,4 @@
+import { SPOKEN } from '../../shared/spoken'
 import { isLocale, LOCALES } from '../../shared/i18n'
 import { MAX_TERM, MAX_TERMS } from '../../shared/jargon'
 import { REWRITE_NOTE_MAX } from '../../shared/rewriteNote'
@@ -48,8 +49,8 @@ export const changeTools: Tool[] = [
   tool('stop_recording', 'Stops the recording. Yogurt then finishes the transcript and writes the summary.', { id }, [], true),
   tool('set_custom_words', `Sets the custom words Yogurt spells right in transcripts and notes (names, products, acronyms), replacing the list: at most ${MAX_TERMS}, each at most ${MAX_TERM} characters. Gives the list kept.`,
     { words: { type: 'array', items: { type: 'string' } } }, ['words'], true),
-  tool('set_spoken_language', 'Sets the language spoken in meetings: "en" (English only, the most accurate for English) or "multi" (any language, heard per meeting).',
-    { language: { type: 'string', enum: ['en', 'multi'] } }, ['language']),
+  tool('set_spoken_language', 'Sets the language spoken in meetings: "en" (English), "es" (Spanish), "pt" (Portuguese), or "multi" (any language, heard per meeting).',
+    { language: { type: 'string', enum: SPOKEN } }, ['language']),
   tool('set_summary_language', `Sets the language Yogurt writes new summaries in: a language id (${LOCALES.map((l) => l.id).join(', ')}), or "" for each meeting's own language.`,
     { language: { type: 'string' } }, ['language']),
 ]
@@ -208,10 +209,10 @@ export function changeHandlers({ d, meetingOf, folderOf, summary, log }: Ctx): R
       return ok({ custom_words: d.app.setJargon(words as string[]) })
     },
     async set_spoken_language(a) {
-      const v = oneOf(a, 'language', ['en', 'multi'] as const)
-      if (!v) throw new Refusal('language is needed: "en" or "multi".')
+      const v = oneOf(a, 'language', SPOKEN)
+      if (!v) throw new Refusal('language is needed: "en", "es", "pt", or "multi".')
       d.app.setSpoken(v)
-      return `Meetings are now heard as ${v === 'en' ? 'English only' : 'any language'}.`
+      return `Meetings are now heard as ${v === 'multi' ? 'any language' : v === 'en' ? 'English only' : v}.`
     },
     async set_summary_language(a) {
       const v = str(a, 'language', { max: 16 })

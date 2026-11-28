@@ -2,14 +2,13 @@ import { usePopoverPresence } from '../motion'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Check, ChevronDown, Info, Languages } from './Icons'
 import { WHISPER_LANGUAGES, type Spoken } from '../../../shared/spoken'
-import { t } from '../../../shared/i18n'
+import { language, t } from '../../../shared/i18n'
 
 /** the names shown on the chip and in Settings */
-export const spokenName = (s: Spoken): string => (s === 'en' ? t('English') : t('Multi-language'))
+export const spokenName = (s: Spoken): string => s === 'multi' ? t('Multi-language') : s === 'en' ? t('English') : new Intl.DisplayNames([language()], { type: 'language' }).of(s) ?? s
 
 /**
- * The spoken language under the note's bar, beside the mic, as a menu: English only (faster, nothing guessed) or
- * Multi-language. Choosing counts for the recording going on from its next words, and is remembered for the next ones.
+ * The note footer's picker changes the current recording from its next words and remembers the choice for future meetings.
  */
 export function SpokenMenu() {
   const [spoken, setSpoken] = useState<Spoken>()
@@ -87,6 +86,11 @@ export function SpokenMenu() {
             </span>
             {tick(spoken === 'multi')}
           </button>
+          {(['es', 'pt'] as const).map((v) => (
+            <button key={v} role="menuitemradio" aria-checked={spoken === v} data-testid={`spoken-${v}`} onClick={() => choose(v)} className={row}>
+              {spokenName(v)}{tick(spoken === v)}
+            </button>
+          ))}
         </div>
       )}
     </div>

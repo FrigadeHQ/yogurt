@@ -56,7 +56,7 @@ type Opts = {
   onLanguage?: (track: Track, language: string, chars: number, locked: boolean) => void
   /** the meeting's names and companies (vocab.ts whisperPrompt), read for each chunk since people join during a call */
   prompt?: () => string
-  /** the language to tell whisper on every chunk (English only), read each time so a change counts from the next one; none: detect */
+  /** the language to tell whisper on every chunk when one is pinned, read each time so a change counts from the next one; none: detect */
   language?: () => string | undefined
 }
 

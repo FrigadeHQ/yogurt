@@ -69,7 +69,7 @@ function speechOff(s: Session, why: string) {
 /** what the Mac's speech can do, read once at start-up (nothing where it is not available) */
 let speechLocales: SpeechLocales = { available: false, supported: [], installed: [] }
 let speechDeps: { ui: () => string; last: () => string | null; install: (locale: string) => Promise<boolean> } | undefined
-/** the spoken language picked (English only or Multi-language), read each time it matters */
+/** the spoken language picked, read each time it matters */
 let spokenNow: () => Spoken = () => 'en'
 const installing = new Set<string>()
 /**
@@ -98,11 +98,11 @@ function decide(): string | null {
 }
 /**
  * The spoken language was changed (the note's footer or Settings): whisper hears it from the next chunk on. A recording
- * switched to English only whose Apple speech listens in another language gets whisper's quick readings back instead.
+ * switched to a pinned language different from its Apple speech locale gets whisper's quick readings back instead.
  */
 export function spokenChanged() {
   const spoken = spokenNow()
-  for (const s of sessions.values()) if (s.speech && !speechFits(spoken, s.speech)) speechOff(s, 'English only was picked')
+  for (const s of sessions.values()) if (s.speech && !speechFits(spoken, s.speech)) speechOff(s, `spoken language changed to ${spoken}`)
 }
 /** segments and hideSegments: the echo sweep after the meeting (tests may leave them out) */
 type SessionStore = Pick<Store, 'updateMeeting'> & Partial<Pick<Store, 'segments' | 'hideSegments' | 'meeting' | 'deleteSegments'>>

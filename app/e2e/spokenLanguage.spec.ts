@@ -39,6 +39,13 @@ test('the spoken language picker: English only by default, Multi-language for th
     await expect(page.getByTestId('spoken-multi-info')).toHaveAttribute('title', /not in English/)
 
     // the recording going on detects from its next words, and the choice is kept for the next ones
+    for (const code of ['es', 'pt']) {
+      const before = (await languages(app)).length
+      await page.getByTestId(`spoken-${code}`).click()
+      await expect.poll(() => saved(a.userData)).toBe(code)
+      await expect.poll(async () => (await languages(app)).slice(before), { timeout: 30_000 }).toContain(code)
+      await page.getByTestId('spoken-chip').click()
+    }
     const told = (await languages(app)).length
     await page.getByTestId('spoken-multi').click()
     await expect(menu).toHaveCount(0)

@@ -21,6 +21,10 @@ describe('the spoken language setting', () => {
     updateSettings(file, { spoken: undefined })
     expect(JSON.parse(readFileSync(file, 'utf8'))).not.toHaveProperty('spoken')
   })
+  it.each(['es', 'pt'] as const)('remembers %s and sends it to Whisper', (code) => {
+    expect(spokenSetting({ spoken: code })).toBe(code)
+    expect(whisperLanguage(code)).toBe(code)
+  })
   it('whisper is told English for English only, and left to detect for Multi-language', () => {
     expect(whisperLanguage('en')).toBe('en')
     expect(whisperLanguage('multi')).toBeUndefined()
