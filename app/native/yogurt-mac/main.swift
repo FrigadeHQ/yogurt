@@ -233,15 +233,17 @@ func browserTitle(_ id: String) -> String? {
  * an assistive app asks, so they are asked the way screen readers do (AXManualAccessibility): see askTree.
  */
 let axKeys = [kAXRoleAttribute, kAXSubroleAttribute, kAXDescriptionAttribute, kAXTitleAttribute, kAXValueAttribute, kAXIdentifierAttribute, "AXDOMClassList", kAXChildrenAttribute, kAXSizeAttribute, "AXDOMIdentifier"] as [String]
-let chromium: Set<String> = ["com.google.Chrome", "company.thebrowser.Browser", "com.ardia.browser", "company.thebrowser.dia", "com.brave.Browser", "com.microsoft.edgemac", "com.microsoft.teams", "com.microsoft.teams2"]
+let slack = "com.tinyspeck.slackmacgap"
+let chromium: Set<String> = [slack, "com.google.Chrome", "company.thebrowser.Browser", "com.ardia.browser", "company.thebrowser.dia", "com.brave.Browser", "com.microsoft.edgemac", "com.microsoft.teams", "com.microsoft.teams2"]
 var askedTree = Set<pid_t>()
 
 /// Asks a Chromium or Electron app to build its page's accessibility tree, once per process. A browser is asked only
 /// once a window is a Meet call. Teams is asked before looking: a Teams window counts as a call only by its Leave or
-/// Mute button, and Teams shows those only once asked, so asking afterwards never finds a call (#111).
+/// Mute button, and Teams shows those only once asked, so asking afterwards never finds a call (#111). Slack too: its
+/// huddle is found by the page's own classes.
 func askTree(_ app: AXUIElement, _ r: NSRunningApplication, force: Bool = false) {
   guard let id = r.bundleIdentifier, chromium.contains(id), !askedTree.contains(r.processIdentifier) else { return }
-  guard force || id.hasPrefix("com.microsoft.teams") else { return }
+  guard force || id == slack || id.hasPrefix("com.microsoft.teams") else { return }
   let manual = AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, kCFBooleanTrue)
   // AXManualAccessibility is Electron's. Chrome, and the new Teams (Chromium in a web view, not Electron), can ignore it
   // and show only their own frame, never the page: a Meet call read 0 names that way, and a Teams call never had a Leave
@@ -381,6 +383,23 @@ func hasCallControl(_ w: AXUIElement, budget: Int = 1500) -> Bool {
   return false
 }
 
+/// The participant grid of a Slack huddle in a window, found by its page class. Only the grid is returned and copied,
+/// so the messages beside a huddle in Slack's main window are never copied out.
+func huddleGrid(_ w: AXUIElement, budget: Int = 3000) -> AXUIElement? {
+  var queue = [w], next = 0
+  while next < queue.count && next < budget {
+    let e = queue[next]; next += 1
+    var raw: CFArray?
+    AXUIElementCopyMultipleAttributeValues(e, ["AXDOMClassList", kAXChildrenAttribute] as CFArray, AXCopyMultipleAttributeOptions(rawValue: 0), &raw)
+    let vals = (raw as? [AnyObject]) ?? []
+    if (vals.first as? [String])?.contains("p-huddle_grid_component") == true { return e }
+    if vals.count > 1, let kids = vals[1] as? [AXUIElement] { queue.append(contentsOf: kids) }
+  }
+  let note = next < queue.count ? "Slack: no huddle in the first \(budget) elements of a window" : "Slack: no huddle in a window"
+  if !lastControlLook.contains(note) { lastControlLook += (lastControlLook.isEmpty ? "" : " | ") + note }
+  return nil
+}
+
 func isMeetTitle(_ t: String) -> Bool { t.range(of: #"\bMeet\b"#, options: .regularExpression) != nil }
 
 /// The call windows, and the tab title when the one window was chosen by it because its accessibility title does not say Meet (Ardia's is "Ardia").
@@ -393,6 +412,11 @@ func callWindows(_ app: AXUIElement, _ id: String) -> (wins: [AXUIElement], tab:
       // ("zoom floating video window"), which still shows the tiles and who is talking
       return ident.hasPrefix("zm.meeting") || title.hasPrefix("Zoom Meeting") || title.hasPrefix("Zoom Webinar") || title == "zoom floating video window"
     }, nil)
+  }
+  // Slack: the huddle's participant grid, in its own window or in the main one
+  if id == slack {
+    for w in all.prefix(8) { AXUIElementSetAttributeValue(w, "AXManualAccessibility" as CFString, kCFBooleanTrue) }
+    return (all.prefix(8).compactMap { huddleGrid($0) }, nil)
   }
   // Teams keeps its chat and calendar in windows shaped like the call's: only a window with a call control (Leave,
   // Mute) is a call, so an open chat can't hide a call in another app (#72). The same controls as Linux (calls.rs).

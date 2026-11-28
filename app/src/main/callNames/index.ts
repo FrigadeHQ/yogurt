@@ -4,7 +4,7 @@ import { nameFor, othersIn, type CallSample } from './attribute'
 import { readCall, summarize, type AxWindow, type CallKind } from './parse'
 
 /**
- * Names from the call: while a meeting records, the call app it is in (Zoom, Teams, Meet in a browser) is read through
+ * Names from the call: while a meeting records, the call app it is in (Zoom, Teams, Meet in a browser, Slack on a Mac) is read through
  * the accessibility tree about twice a second (macOS Accessibility, AT-SPI on Linux, UI Automation on Windows), and each line of the other side
  * is named after the person the app shows talking, or the only other person in the call. The mic is always You.
  * Without the permission, in another app, or when the app shows nothing clear, lines of the other side are Them.
@@ -23,6 +23,7 @@ export type Watch = (ids: string[], onLine: (l: WatchLine) => void, pids?: numbe
  * has. A Mac's ids are bundle ids; Linux's are program names or Flatpak app ids; Windows's are program file names,
  * lowercased (detect.ts). Webex's Windows window isn't read yet: its lines stay Them there. */
 const APPS: Record<string, { kind: CallKind; ids: string[] }> = {
+  Slack: { kind: 'slack', ids: ['com.tinyspeck.slackmacgap'] },
   Zoom: { kind: 'zoom', ids: ['us.zoom.xos', 'zoom', 'us.zoom.Zoom', 'zoom.exe'] },
   Teams: { kind: 'teams', ids: ['com.microsoft.teams2', 'com.microsoft.teams', 'teams-for-linux', 'com.github.IsmaelMartinez.teams_for_linux', 'ms-teams.exe', 'teams.exe'] },
   Webex: { kind: 'webex', ids: ['Cisco-Systems.Spark', 'com.cisco.webexmeetingsapp'] },
