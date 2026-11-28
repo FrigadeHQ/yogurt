@@ -810,5 +810,16 @@
   "Unmute my mic in Yogurt": "Slå min mikrofon til i Yogurt",
   "Mic will stay off on resume": "Mikrofonen forbliver slået fra, når optagelsen fortsætter",
   "Mic mute couldn’t be confirmed.": "Det kunne ikke bekræftes, at mikrofonen er slået fra.",
-  "Mic off. Yogurt can’t hear call audio.": "Mikrofon slået fra. Yogurt kan ikke høre lyden fra opkaldet."
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofon slået fra. Yogurt kan ikke høre lyden fra opkaldet.",
+  "Save a copy of each meeting to a folder": "Gem en kopi af hvert møde i en mappe",
+  "Each meeting is saved as a Markdown file and kept up to date. Works with Obsidian, Dropbox and Google Drive.": "Hvert møde gemmes som en Markdown-fil og holdes opdateret. Virker med Obsidian, Dropbox og Google Drev.",
+  "Open folder": "Åbn mappe",
+  "Change": "Skift",
+  "Couldn't save to this folder. Choose another.": "Kunne ikke gemme i denne mappe. Vælg en anden.",
+  "Also save your earlier meetings?": "Vil du også gemme dine tidligere møder?",
+  "Save them": "Gem dem",
+  "Saving {done} of {total}…": "Gemmer {done} af {total}…",
+  "Earlier meetings saved.": "Tidligere møder er gemt.",
+  "Choose a folder for your meetings": "Vælg en mappe til dine møder",
+  "Choose": "Vælg"
 }

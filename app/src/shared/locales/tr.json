@@ -798,5 +798,16 @@
   "Unmute my mic in Yogurt": "Yogurt’ta mikrofonumu aç",
   "Mic will stay off on resume": "Kayıt devam ettiğinde mikrofon kapalı kalacak",
   "Mic mute couldn’t be confirmed.": "Mikrofonun sessize alındığı doğrulanamadı.",
-  "Mic off. Yogurt can’t hear call audio.": "Mikrofon kapalı. Yogurt aramanın sesini alamıyor."
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofon kapalı. Yogurt aramanın sesini alamıyor.",
+  "Save a copy of each meeting to a folder": "Her toplantının bir kopyasını bir klasöre kaydet",
+  "Each meeting is saved as a Markdown file and kept up to date. Works with Obsidian, Dropbox and Google Drive.": "Her toplantı bir Markdown dosyası olarak kaydedilir ve güncel tutulur. Obsidian, Dropbox ve Google Drive ile çalışır.",
+  "Open folder": "Klasörü aç",
+  "Change": "Değiştir",
+  "Couldn't save to this folder. Choose another.": "Bu klasöre kaydedilemedi. Başka bir klasör seçin.",
+  "Also save your earlier meetings?": "Önceki toplantılarınız da kaydedilsin mi?",
+  "Save them": "Kaydet",
+  "Saving {done} of {total}…": "{total} toplantıdan {done} tanesi kaydediliyor…",
+  "Earlier meetings saved.": "Önceki toplantılar kaydedildi.",
+  "Choose a folder for your meetings": "Toplantılarınız için bir klasör seçin",
+  "Choose": "Seç"
 }

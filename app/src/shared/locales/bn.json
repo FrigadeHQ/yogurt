@@ -798,5 +798,16 @@
   "Unmute my mic in Yogurt": "Yogurt-এ আমার মাইক আনমিউট করুন",
   "Mic will stay off on resume": "রেকর্ডিং আবার শুরু হলে মাইক বন্ধ থাকবে",
   "Mic mute couldn’t be confirmed.": "মাইক মিউট হয়েছে কি না নিশ্চিত করা যায়নি।",
-  "Mic off. Yogurt can’t hear call audio.": "মাইক বন্ধ। Yogurt কলের শব্দ শুনতে পাচ্ছে না।"
+  "Mic off. Yogurt can’t hear call audio.": "মাইক বন্ধ। Yogurt কলের শব্দ শুনতে পাচ্ছে না।",
+  "Save a copy of each meeting to a folder": "প্রতিটি মিটিংয়ের একটি কপি একটি ফোল্ডারে সেভ করুন",
+  "Each meeting is saved as a Markdown file and kept up to date. Works with Obsidian, Dropbox and Google Drive.": "প্রতিটি মিটিং একটি Markdown ফাইল হিসেবে সেভ হয় এবং আপডেট থাকে। Obsidian, Dropbox এবং Google Drive-এর সাথে কাজ করে।",
+  "Open folder": "ফোল্ডার খুলুন",
+  "Change": "বদলান",
+  "Couldn't save to this folder. Choose another.": "এই ফোল্ডারে সেভ করা যায়নি। অন্য একটি বেছে নিন।",
+  "Also save your earlier meetings?": "আগের মিটিংগুলোও সেভ করবেন?",
+  "Save them": "সেভ করুন",
+  "Saving {done} of {total}…": "{total}টির মধ্যে {done}টি সেভ হচ্ছে…",
+  "Earlier meetings saved.": "আগের মিটিংগুলো সেভ হয়েছে।",
+  "Choose a folder for your meetings": "আপনার মিটিংয়ের জন্য একটি ফোল্ডার বেছে নিন",
+  "Choose": "বেছে নিন"
 }

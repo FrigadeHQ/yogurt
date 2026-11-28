@@ -827,5 +827,16 @@
   "Unmute my mic in Yogurt": "Pornește-mi microfonul în Yogurt",
   "Mic will stay off on resume": "Microfonul va rămâne oprit la reluare",
   "Mic mute couldn’t be confirmed.": "Oprirea microfonului nu a putut fi confirmată.",
-  "Mic off. Yogurt can’t hear call audio.": "Microfon oprit. Yogurt nu poate auzi sunetul apelului."
+  "Mic off. Yogurt can’t hear call audio.": "Microfon oprit. Yogurt nu poate auzi sunetul apelului.",
+  "Save a copy of each meeting to a folder": "Salvați o copie a fiecărei întâlniri într-un dosar",
+  "Each meeting is saved as a Markdown file and kept up to date. Works with Obsidian, Dropbox and Google Drive.": "Fiecare întâlnire e salvată ca fișier Markdown și ținută la zi. Merge cu Obsidian, Dropbox și Google Drive.",
+  "Open folder": "Deschideți dosarul",
+  "Change": "Schimbați",
+  "Couldn't save to this folder. Choose another.": "Nu am putut salva în acest dosar. Alegeți altul.",
+  "Also save your earlier meetings?": "Salvați și întâlnirile anterioare?",
+  "Save them": "Salvați-le",
+  "Saving {done} of {total}…": "Se salvează {done} din {total}…",
+  "Earlier meetings saved.": "Întâlnirile anterioare au fost salvate.",
+  "Choose a folder for your meetings": "Alegeți un dosar pentru întâlnirile dvs.",
+  "Choose": "Alegeți"
 }

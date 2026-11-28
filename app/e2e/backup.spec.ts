@@ -1,6 +1,6 @@
 import { openFromCorner } from './cornerNavigation'
 import { _electron as electron, expect, test, type ElectronApplication } from '@playwright/test'
-import { existsSync, mkdtempSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -129,5 +129,27 @@ test('Settings shows rejected backup requests and allows retrying', async () => 
     await page.getByTestId('backup-import').click()
     await expect(page.getByTestId('backup-said')).toHaveText('Added 1 meeting.')
     await expect(page.getByTestId('backup-said')).toHaveAttribute('data-kind', 'imported')
+  } finally { await app.close() }
+})
+
+test('a copy of each meeting goes to a chosen folder, and earlier meetings on request', async () => {
+  const folder = mkdtempSync(join(tmpdir(), 'yogurt-auto-export-'))
+  const { app, page } = await launch({ YOGURT_AUTO_EXPORT_PATH: folder })
+  try {
+    await fake(app, 'manyMeetings', { n: 2, clean: true })
+    await openFromCorner(page, 'settings-open')
+    await expect(page.getByTestId('auto-export-toggle')).toHaveAttribute('aria-checked', 'false')
+    await expect(page.getByTestId('auto-export-folder-row')).toHaveCount(0)
+    await page.getByTestId('auto-export-toggle').click()
+    await expect(page.getByTestId('auto-export-toggle')).toHaveAttribute('aria-checked', 'true')
+    await expect(page.getByTestId('auto-export-folder')).toHaveText(folder)
+    await expect(page.getByTestId('auto-export-change')).toBeVisible()
+    await expect(page.getByTestId('auto-export-open')).toBeVisible()
+    await page.getByTestId('auto-export-earlier-save').click()
+    await expect(page.getByTestId('auto-export-earlier-status')).toHaveText('Earlier meetings saved.')
+    await expect(page.getByTestId('auto-export-earlier')).toHaveCount(0)
+    expect(readdirSync(folder).filter((f) => f.endsWith('.md'))).toHaveLength(2)
+    await page.getByTestId('auto-export-toggle').click()
+    await expect(page.getByTestId('auto-export-folder-row')).toHaveCount(0)
   } finally { await app.close() }
 })

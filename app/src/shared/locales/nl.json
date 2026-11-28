@@ -810,5 +810,16 @@
   "Unmute my mic in Yogurt": "Mijn microfoon aanzetten in Yogurt",
   "Mic will stay off on resume": "De microfoon blijft uit bij het hervatten",
   "Mic mute couldn’t be confirmed.": "Het dempen van de microfoon kon niet worden bevestigd.",
-  "Mic off. Yogurt can’t hear call audio.": "Microfoon uit. Yogurt ontvangt geen gespreksaudio."
+  "Mic off. Yogurt can’t hear call audio.": "Microfoon uit. Yogurt ontvangt geen gespreksaudio.",
+  "Save a copy of each meeting to a folder": "Bewaar een kopie van elke meeting in een map",
+  "Each meeting is saved as a Markdown file and kept up to date. Works with Obsidian, Dropbox and Google Drive.": "Elke meeting wordt bewaard als Markdown-bestand en blijft up-to-date. Werkt met Obsidian, Dropbox en Google Drive.",
+  "Open folder": "Map openen",
+  "Change": "Wijzigen",
+  "Couldn't save to this folder. Choose another.": "Kan niet in deze map bewaren. Kies een andere.",
+  "Also save your earlier meetings?": "Ook je eerdere meetings bewaren?",
+  "Save them": "Bewaar ze",
+  "Saving {done} of {total}…": "{done} van {total} bewaren…",
+  "Earlier meetings saved.": "Eerdere meetings bewaard.",
+  "Choose a folder for your meetings": "Kies een map voor je meetings",
+  "Choose": "Kiezen"
 }

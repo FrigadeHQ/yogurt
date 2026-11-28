@@ -768,5 +768,16 @@
   "Unmute my mic in Yogurt": "เปิดไมค์ของฉันใน Yogurt",
   "Mic will stay off on resume": "ไมค์จะยังปิดอยู่เมื่อบันทึกต่อ",
   "Mic mute couldn’t be confirmed.": "ยืนยันไม่ได้ว่าปิดไมค์แล้ว",
-  "Mic off. Yogurt can’t hear call audio.": "ไมค์ปิดอยู่ Yogurt ไม่ได้ยินเสียงการโทร"
+  "Mic off. Yogurt can’t hear call audio.": "ไมค์ปิดอยู่ Yogurt ไม่ได้ยินเสียงการโทร",
+  "Save a copy of each meeting to a folder": "บันทึกสำเนาของทุกการประชุมลงในโฟลเดอร์",
+  "Each meeting is saved as a Markdown file and kept up to date. Works with Obsidian, Dropbox and Google Drive.": "การประชุมแต่ละครั้งจะถูกบันทึกเป็นไฟล์ Markdown และอัปเดตอยู่เสมอ ใช้ได้กับ Obsidian, Dropbox และ Google Drive",
+  "Open folder": "เปิดโฟลเดอร์",
+  "Change": "เปลี่ยน",
+  "Couldn't save to this folder. Choose another.": "บันทึกลงในโฟลเดอร์นี้ไม่ได้ เลือกโฟลเดอร์อื่น",
+  "Also save your earlier meetings?": "บันทึกการประชุมก่อนหน้าด้วยไหม",
+  "Save them": "บันทึกเลย",
+  "Saving {done} of {total}…": "กำลังบันทึก {done} จาก {total}…",
+  "Earlier meetings saved.": "บันทึกการประชุมก่อนหน้าแล้ว",
+  "Choose a folder for your meetings": "เลือกโฟลเดอร์สำหรับการประชุมของคุณ",
+  "Choose": "เลือก"
 }

@@ -826,5 +826,16 @@
   "Unmute my mic in Yogurt": "Réactiver mon micro dans Yogurt",
   "Mic will stay off on resume": "Le micro restera coupé à la reprise",
   "Mic mute couldn’t be confirmed.": "Impossible de confirmer la coupure du micro.",
-  "Mic off. Yogurt can’t hear call audio.": "Micro coupé. Yogurt ne reçoit pas le son de l’appel."
+  "Mic off. Yogurt can’t hear call audio.": "Micro coupé. Yogurt ne reçoit pas le son de l’appel.",
+  "Save a copy of each meeting to a folder": "Enregistrer une copie de chaque réunion dans un dossier",
+  "Each meeting is saved as a Markdown file and kept up to date. Works with Obsidian, Dropbox and Google Drive.": "Chaque réunion est enregistrée dans un fichier Markdown, toujours à jour. Compatible avec Obsidian, Dropbox et Google Drive.",
+  "Open folder": "Ouvrir le dossier",
+  "Change": "Modifier",
+  "Couldn't save to this folder. Choose another.": "Impossible d’enregistrer dans ce dossier. Choisissez-en un autre.",
+  "Also save your earlier meetings?": "Enregistrer aussi vos réunions précédentes ?",
+  "Save them": "Les enregistrer",
+  "Saving {done} of {total}…": "Enregistrement de {done} sur {total}…",
+  "Earlier meetings saved.": "Réunions précédentes enregistrées.",
+  "Choose a folder for your meetings": "Choisissez un dossier pour vos réunions",
+  "Choose": "Choisir"
 }

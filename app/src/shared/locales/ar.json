@@ -866,5 +866,16 @@
   "Unmute my mic in Yogurt": "إلغاء كتم الميكروفون الخاص بي في Yogurt",
   "Mic will stay off on resume": "سيظل الميكروفون مكتومًا عند الاستئناف",
   "Mic mute couldn’t be confirmed.": "تعذّر التأكد من كتم الميكروفون.",
-  "Mic off. Yogurt can’t hear call audio.": "الميكروفون مكتوم. لا يستطيع Yogurt سماع صوت المكالمة."
+  "Mic off. Yogurt can’t hear call audio.": "الميكروفون مكتوم. لا يستطيع Yogurt سماع صوت المكالمة.",
+  "Save a copy of each meeting to a folder": "حفظ نسخة من كل اجتماع في مجلد",
+  "Each meeting is saved as a Markdown file and kept up to date. Works with Obsidian, Dropbox and Google Drive.": "يُحفظ كل اجتماع كملف Markdown ويبقى محدّثًا. يعمل مع Obsidian وDropbox وGoogle Drive.",
+  "Open folder": "فتح المجلد",
+  "Change": "تغيير",
+  "Couldn't save to this folder. Choose another.": "تعذّر الحفظ في هذا المجلد. اختر مجلدًا آخر.",
+  "Also save your earlier meetings?": "هل تريد حفظ اجتماعاتك السابقة أيضًا؟",
+  "Save them": "احفظها",
+  "Saving {done} of {total}…": "جارٍ الحفظ: {done} من {total}…",
+  "Earlier meetings saved.": "تم حفظ الاجتماعات السابقة.",
+  "Choose a folder for your meetings": "اختر مجلدًا لاجتماعاتك",
+  "Choose": "اختيار"
 }

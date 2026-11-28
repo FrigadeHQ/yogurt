@@ -841,5 +841,16 @@
   "Unmute my mic in Yogurt": "Zapnout můj mikrofon v Yogurtu",
   "Mic will stay off on resume": "Po obnovení nahrávání zůstane mikrofon ztlumený",
   "Mic mute couldn’t be confirmed.": "Ztlumení mikrofonu se nepodařilo potvrdit.",
-  "Mic off. Yogurt can’t hear call audio.": "Mikrofon je ztlumený. Yogurt neslyší zvuk hovoru."
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofon je ztlumený. Yogurt neslyší zvuk hovoru.",
+  "Save a copy of each meeting to a folder": "Ukládat kopii každé schůzky do složky",
+  "Each meeting is saved as a Markdown file and kept up to date. Works with Obsidian, Dropbox and Google Drive.": "Každá schůzka se uloží jako soubor Markdown a zůstane aktuální. Funguje s Obsidianem, Dropboxem i Diskem Google.",
+  "Open folder": "Otevřít složku",
+  "Change": "Změnit",
+  "Couldn't save to this folder. Choose another.": "Do této složky se nepodařilo uložit. Vyberte jinou.",
+  "Also save your earlier meetings?": "Uložit i dřívější schůzky?",
+  "Save them": "Uložit je",
+  "Saving {done} of {total}…": "Ukládání {done} z {total}…",
+  "Earlier meetings saved.": "Dřívější schůzky jsou uložené.",
+  "Choose a folder for your meetings": "Vyberte složku pro své schůzky",
+  "Choose": "Vybrat"
 }

@@ -2,8 +2,8 @@ import { AboutYogurt } from '../components/AboutYogurt'
 import { retryToast, toasts } from '../components/TrashToast'
 import { LoadingContent } from '../components/LoadingContent'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Check, ChevronDown, Copy, Download, ExternalLink, Globe, Lock, Upload, FileText } from '../components/Icons'
-import type { Access, AppVisibility, McpStatus, PermissionKind, PermissionStatus, SetupState, Theme, UpdateStatus } from '../../../shared/types'
+import { Check, ChevronDown, Copy, Download, ExternalLink, Folder, Globe, Lock, Upload, FileText } from '../components/Icons'
+import type { Access, AppVisibility, AutoExportState, McpStatus, PermissionKind, PermissionStatus, SetupState, Theme, UpdateStatus } from '../../../shared/types'
 import { notesDownloadText, notesUpgradeSize } from '../notesSetup'
 import { permissionCopy } from '../permissionCopy'
 import { LOCALES, t } from '../../../shared/i18n'
@@ -477,7 +477,65 @@ function Backup({ onImported }: { onImported(): void }) {
           )}
         </div>
       </div>
+      <AutoExport />
     </>
+  )
+}
+
+type Earlier = { done: number; total: number } | 'done' | null
+
+/** a copy of each meeting in a folder of the person's (Obsidian, Dropbox, Google Drive), kept up to date by main */
+function AutoExport() {
+  const [s, setS] = useState<AutoExportState>()
+  const [busy, setBusy] = useState(false)
+  const [earlier, setEarlier] = useState<Earlier>(null)
+  useEffect(() => {
+    void window.yogurt.autoExport.get().then(setS)
+    const offState = window.yogurt.autoExport.onState(setS)
+    const offProgress = window.yogurt.autoExport.onProgress(setEarlier)
+    return () => { offState(); offProgress() }
+  }, [])
+  const act = async (f: () => Promise<AutoExportState>) => {
+    setBusy(true)
+    try { setS(await f()) } catch (e) { console.warn('auto export setting failed', e) } finally { setBusy(false) }
+  }
+  const answer = async (save: boolean) => {
+    setS((p) => p && { ...p, offerEarlier: false })
+    if (save) setEarlier({ done: 0, total: 0 })
+    const r = await window.yogurt.autoExport.earlier(save).catch(() => ({ saved: 0, failed: true }))
+    setEarlier(save && !r.failed ? 'done' : null)
+  }
+  const label = t('Save a copy of each meeting to a folder')
+  return (
+    <LoadingContent pending={!s} testId="auto-export-loading"><div data-testid="auto-export" className="settings-group mt-3">
+      <div className="settings-row">
+        <div className="settings-row-copy">
+          <p className="settings-label">{label}</p>
+          <p id="auto-export-description" className="settings-description">{t('Each meeting is saved as a Markdown file and kept up to date. Works with Obsidian, Dropbox and Google Drive.')}</p>
+        </div>
+        <button data-testid="auto-export-toggle" role="switch" aria-checked={!!s?.on} aria-label={label} aria-describedby="auto-export-description" disabled={!s || busy}
+          onClick={() => { if (s) void act(() => window.yogurt.autoExport.set(!s.on)) }} className="settings-toggle"><span className="settings-toggle-knob" /></button>
+      </div>
+      {s?.on && s.folder && <div data-testid="auto-export-folder-row" className="settings-row">
+        <span className="settings-permission-icon"><Folder size={17} aria-hidden="true" /></span>
+        <div className="settings-row-copy" aria-live="polite">
+          <p data-testid="auto-export-folder" dir="ltr" title={s.folder} className="settings-label truncate text-start">{s.folder}</p>
+          <button data-testid="auto-export-open" onClick={() => void window.yogurt.autoExport.open()} className="ghost-btn">{t('Open folder')}</button>
+          {s.failed && <p data-testid="auto-export-failed" role="alert" className="settings-description text-danger">{t("Couldn't save to this folder. Choose another.")}</p>}
+          {s.offerEarlier && !s.failed && <p data-testid="auto-export-earlier" className="settings-backup-status text-ink">
+            {t('Also save your earlier meetings?')}
+            <button data-testid="auto-export-earlier-save" onClick={() => void answer(true)} className="ghost-btn">{t('Save them')}</button>
+            <button data-testid="auto-export-earlier-skip" onClick={() => void answer(false)} className="ghost-btn">{t('Not now')}</button>
+          </p>}
+          {earlier && !s.failed && <p data-testid="auto-export-earlier-status" className="settings-backup-status text-ink">
+            {earlier === 'done'
+              ? <span className="flex items-center gap-1.5"><Check size={14} aria-hidden="true" className="text-muted" />{t('Earlier meetings saved.')}</span>
+              : t('Saving {done} of {total}…', { done: earlier.done, total: earlier.total || '…' })}
+          </p>}
+        </div>
+        <button data-testid="auto-export-change" disabled={busy} onClick={() => void act(() => window.yogurt.autoExport.choose())} className="workspace-button settings-action">{t('Change')}</button>
+      </div>}
+    </div></LoadingContent>
   )
 }
 

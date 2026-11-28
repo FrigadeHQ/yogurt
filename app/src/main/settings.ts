@@ -60,6 +60,11 @@ export type Settings = { theme?: 'light' | 'dark'; language?: string; /** what t
   spoken?: Spoken
   /** the default for newly written summaries; the meeting's language when left out */
   summaryLanguage?: string
+  /** a copy of each meeting goes to autoExportFolder as Markdown (autoExport.ts); off unless turned on */
+  autoExport?: boolean
+  autoExportFolder?: string
+  /** the folder whose "Also save your earlier meetings?" was answered: asked again only for a new folder */
+  autoExportAsked?: string
   /** new versions download by themselves; on unless turned off */
   autoUpdate?: boolean
   /** when the updater last fetched latest*.yml (ms): checks happen about once a day (updates.ts) */

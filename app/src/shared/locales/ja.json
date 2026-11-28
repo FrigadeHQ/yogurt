@@ -768,5 +768,16 @@
   "Unmute my mic in Yogurt": "Yogurt で自分のマイクのミュートを解除",
   "Mic will stay off on resume": "録音を再開してもマイクはオフのままです",
   "Mic mute couldn’t be confirmed.": "マイクがミュートされたか確認できませんでした。",
-  "Mic off. Yogurt can’t hear call audio.": "マイクはオフです。Yogurt に通話音声が届いていません。"
+  "Mic off. Yogurt can’t hear call audio.": "マイクはオフです。Yogurt に通話音声が届いていません。",
+  "Save a copy of each meeting to a folder": "各ミーティングのコピーをフォルダに保存",
+  "Each meeting is saved as a Markdown file and kept up to date. Works with Obsidian, Dropbox and Google Drive.": "ミーティングごとに Markdown ファイルとして保存し、常に最新に保ちます。Obsidian、Dropbox、Google ドライブで使えます。",
+  "Open folder": "フォルダを開く",
+  "Change": "変更",
+  "Couldn't save to this folder. Choose another.": "このフォルダに保存できませんでした。別のフォルダを選んでください。",
+  "Also save your earlier meetings?": "これまでのミーティングも保存しますか？",
+  "Save them": "保存する",
+  "Saving {done} of {total}…": "{total} 件中 {done} 件を保存中…",
+  "Earlier meetings saved.": "これまでのミーティングを保存しました。",
+  "Choose a folder for your meetings": "ミーティングを保存するフォルダを選んでください",
+  "Choose": "選択"
 }

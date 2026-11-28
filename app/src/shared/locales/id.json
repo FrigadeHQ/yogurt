@@ -768,5 +768,16 @@
   "Unmute my mic in Yogurt": "Aktifkan mikrofon saya di Yogurt",
   "Mic will stay off on resume": "Mikrofon akan tetap nonaktif saat perekaman dilanjutkan",
   "Mic mute couldn’t be confirmed.": "Status bisu mikrofon tidak dapat dipastikan.",
-  "Mic off. Yogurt can’t hear call audio.": "Mikrofon nonaktif. Yogurt tidak dapat mendengar audio panggilan."
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofon nonaktif. Yogurt tidak dapat mendengar audio panggilan.",
+  "Save a copy of each meeting to a folder": "Simpan salinan setiap rapat ke sebuah folder",
+  "Each meeting is saved as a Markdown file and kept up to date. Works with Obsidian, Dropbox and Google Drive.": "Setiap rapat disimpan sebagai file Markdown dan selalu diperbarui. Bisa dipakai dengan Obsidian, Dropbox, dan Google Drive.",
+  "Open folder": "Buka folder",
+  "Change": "Ubah",
+  "Couldn't save to this folder. Choose another.": "Tidak bisa menyimpan ke folder ini. Pilih folder lain.",
+  "Also save your earlier meetings?": "Simpan juga rapat-rapat sebelumnya?",
+  "Save them": "Simpan",
+  "Saving {done} of {total}…": "Menyimpan {done} dari {total}…",
+  "Earlier meetings saved.": "Rapat sebelumnya sudah disimpan.",
+  "Choose a folder for your meetings": "Pilih folder untuk rapatmu",
+  "Choose": "Pilih"
 }

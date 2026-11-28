@@ -813,5 +813,16 @@
   "Unmute my mic in Yogurt": "Ενεργοποίηση του μικροφώνου μου στο Yogurt",
   "Mic will stay off on resume": "Το μικρόφωνο θα παραμείνει σε σίγαση κατά τη συνέχιση",
   "Mic mute couldn’t be confirmed.": "Δεν ήταν δυνατή η επιβεβαίωση της σίγασης του μικροφώνου.",
-  "Mic off. Yogurt can’t hear call audio.": "Μικρόφωνο σε σίγαση. Το Yogurt δεν λαμβάνει τον ήχο της κλήσης."
+  "Mic off. Yogurt can’t hear call audio.": "Μικρόφωνο σε σίγαση. Το Yogurt δεν λαμβάνει τον ήχο της κλήσης.",
+  "Save a copy of each meeting to a folder": "Αποθήκευση αντιγράφου κάθε σύσκεψης σε φάκελο",
+  "Each meeting is saved as a Markdown file and kept up to date. Works with Obsidian, Dropbox and Google Drive.": "Κάθε σύσκεψη αποθηκεύεται ως αρχείο Markdown και μένει ενημερωμένη. Λειτουργεί με Obsidian, Dropbox και Google Drive.",
+  "Open folder": "Άνοιγμα φακέλου",
+  "Change": "Αλλαγή",
+  "Couldn't save to this folder. Choose another.": "Δεν ήταν δυνατή η αποθήκευση σε αυτόν τον φάκελο. Επιλέξτε άλλον.",
+  "Also save your earlier meetings?": "Να αποθηκευτούν και οι προηγούμενες συσκέψεις σας;",
+  "Save them": "Αποθήκευση",
+  "Saving {done} of {total}…": "Αποθήκευση {done} από {total}…",
+  "Earlier meetings saved.": "Οι προηγούμενες συσκέψεις αποθηκεύτηκαν.",
+  "Choose a folder for your meetings": "Επιλέξτε φάκελο για τις συσκέψεις σας",
+  "Choose": "Επιλογή"
 }

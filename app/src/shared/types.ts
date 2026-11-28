@@ -193,6 +193,18 @@ export type YogurtApi = {
     later(): Promise<void>
     onStatus(fn: (s: UpdateStatus) => void): () => void
   }
+  /** Settings → Backup: a copy of each meeting in a folder */
+  autoExport: {
+    get(): Promise<AutoExportState>
+    /** on without a folder asks for one; cancelled stays off */
+    set(on: boolean): Promise<AutoExportState>
+    choose(): Promise<AutoExportState>
+    open(): Promise<void>
+    /** answers "Also save your earlier meetings?": true saves them now */
+    earlier(save: boolean): Promise<{ saved: number; failed: boolean }>
+    onState(fn: (s: AutoExportState) => void): () => void
+    onProgress(fn: (p: { done: number; total: number }) => void): () => void
+  }
   backup: {
     /** import waits while a meeting records */
     status(): Promise<{ recording: boolean }>
@@ -407,6 +419,8 @@ export type SearchResult = {
  * Where a meeting's enhanced notes are: idle (none yet, the meeting may still be on), waiting (for the transcript or
  * the model), writing (draft streaming in), done (enhanced saved), failed, or empty (nothing was said or typed)
  */
+/** failed: the folder couldn't be written last time (tried again on the next change) */
+export type AutoExportState = { on: boolean; folder: string | null; failed: boolean; offerEarlier: boolean }
 export type NoteStatus = 'idle' | 'waiting' | 'writing' | 'done' | 'failed' | 'empty' | 'stopped'
 export type NoteSide = 'mine' | 'enhanced'
 export type NoteSaveResult = { revision: number; status: 'saved' | 'failed'; retained?: boolean; reason?: 'too-long' }

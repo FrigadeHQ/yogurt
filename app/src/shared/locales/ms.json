@@ -768,5 +768,16 @@
   "Unmute my mic in Yogurt": "Aktifkan mikrofon saya dalam Yogurt",
   "Mic will stay off on resume": "Mikrofon akan kekal senyap apabila rakaman disambung",
   "Mic mute couldn’t be confirmed.": "Mikrofon tidak dapat disahkan telah disenyapkan.",
-  "Mic off. Yogurt can’t hear call audio.": "Mikrofon disenyapkan. Yogurt tidak dapat mendengar audio panggilan."
+  "Mic off. Yogurt can’t hear call audio.": "Mikrofon disenyapkan. Yogurt tidak dapat mendengar audio panggilan.",
+  "Save a copy of each meeting to a folder": "Simpan salinan setiap mesyuarat ke dalam folder",
+  "Each meeting is saved as a Markdown file and kept up to date. Works with Obsidian, Dropbox and Google Drive.": "Setiap mesyuarat disimpan sebagai fail Markdown dan sentiasa dikemas kini. Berfungsi dengan Obsidian, Dropbox dan Google Drive.",
+  "Open folder": "Buka folder",
+  "Change": "Tukar",
+  "Couldn't save to this folder. Choose another.": "Tidak dapat menyimpan ke folder ini. Pilih folder lain.",
+  "Also save your earlier meetings?": "Simpan juga mesyuarat anda yang terdahulu?",
+  "Save them": "Simpan",
+  "Saving {done} of {total}…": "Menyimpan {done} daripada {total}…",
+  "Earlier meetings saved.": "Mesyuarat terdahulu telah disimpan.",
+  "Choose a folder for your meetings": "Pilih folder untuk mesyuarat anda",
+  "Choose": "Pilih"
 }

@@ -83,6 +83,7 @@ import { createIndexer } from './library/indexer'
 import { hookConversations } from './library/conversations'
 import { hookShare } from './share'
 import { hookBackup } from './backupIpc'
+import { hookAutoExport } from './autoExportIpc'
 import { hookFolders } from './foldersIpc'
 import { hookMcp } from './mcp'
 import { createQuietStart } from './quietStart'
@@ -944,6 +945,9 @@ app.whenReady().then(() => {
     setRecordingPill: preferences.setRecordingPill, db: store.db, meetingsDir: join(userDataDir(), 'meetings'), window: () => win, recording: () => !!activeMeeting() || !!resumingId,
     changed: () => { win?.webContents.send('meetings:changed'); win?.webContents.send('conversations:list', conversations.list()); void indexer.refresh(); folderSuggestions.refresh() },
     beforeExport: () => { notes.retryDrafts(); return notes.pendingDraftId() } })
+  // a copy of each meeting in the person's own folder, kept up to date; the database itself stays here
+  hookAutoExport({ settingsFile, indexFile: join(userDataDir(), 'auto-export.json'), store, window: () => win,
+    credit: () => includesRecordingCredit(loadSettings(settingsFile)), busy: (id) => ['waiting', 'writing'].includes(notes.view(id).status) })
   // AI apps change things only through the functions behind the app's own buttons
   const noteSaved = (id: string, r: ReturnType<typeof notes.replace>) => { if (r === 'saved') win?.webContents.send('meetings:changed'); return r }
   void hookMcp({

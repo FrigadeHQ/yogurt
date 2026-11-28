@@ -4,7 +4,7 @@ import type { WidgetLayout } from '../shared/widgetMorph'
 import { contextBridge, ipcRenderer } from 'electron'
 import { capabilities, platformOf } from '../shared/platform'
 import { phoneCompanionOn, type CompanionStatus } from '../shared/companion'
-import type { ChatView, ConversationSummary, ConversationView, NoteView, PromptAction, SetupState, UpdateStatus, WidgetView, YogurtApi } from '../shared/types'
+import type { AutoExportState, ChatView, ConversationSummary, ConversationView, NoteView, PromptAction, SetupState, UpdateStatus, WidgetView, YogurtApi } from '../shared/types'
 
 const api: YogurtApi = {
   reportRendererError: report => ipcRenderer.send('renderer:error', report),
@@ -249,6 +249,15 @@ const api: YogurtApi = {
     restart: () => ipcRenderer.invoke('updates:restart'),
     later: () => ipcRenderer.invoke('updates:later'),
     onStatus: (fn) => { const f = (_e: unknown, s: UpdateStatus) => fn(s); ipcRenderer.on('updates:status', f); return () => { ipcRenderer.off('updates:status', f) } },
+  },
+  autoExport: {
+    get: () => ipcRenderer.invoke('auto-export:get'),
+    set: (on) => ipcRenderer.invoke('auto-export:set', on),
+    choose: () => ipcRenderer.invoke('auto-export:choose'),
+    open: () => ipcRenderer.invoke('auto-export:open'),
+    earlier: (save) => ipcRenderer.invoke('auto-export:earlier', save),
+    onState: (fn) => { const f = (_e: unknown, s: AutoExportState) => fn(s); ipcRenderer.on('auto-export:state', f); return () => { ipcRenderer.off('auto-export:state', f) } },
+    onProgress: (fn) => { const f = (_e: unknown, p: { done: number; total: number }) => fn(p); ipcRenderer.on('auto-export:progress', f); return () => { ipcRenderer.off('auto-export:progress', f) } },
   },
   backup: {
     status: () => ipcRenderer.invoke('backup:status'),

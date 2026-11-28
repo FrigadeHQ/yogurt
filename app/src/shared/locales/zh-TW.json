@@ -768,5 +768,16 @@
   "Unmute my mic in Yogurt": "在 Yogurt 中解除我的麥克風靜音",
   "Mic will stay off on resume": "繼續錄製後麥克風會保持靜音",
   "Mic mute couldn’t be confirmed.": "無法確認麥克風是否已靜音。",
-  "Mic off. Yogurt can’t hear call audio.": "麥克風已關閉。Yogurt 無法接收通話音訊。"
+  "Mic off. Yogurt can’t hear call audio.": "麥克風已關閉。Yogurt 無法接收通話音訊。",
+  "Save a copy of each meeting to a folder": "將每場會議的副本儲存到資料夾",
+  "Each meeting is saved as a Markdown file and kept up to date. Works with Obsidian, Dropbox and Google Drive.": "每場會議都會儲存為 Markdown 檔案，並保持最新。適用於 Obsidian、Dropbox 和 Google 雲端硬碟。",
+  "Open folder": "開啟資料夾",
+  "Change": "變更",
+  "Couldn't save to this folder. Choose another.": "無法儲存到這個資料夾。請換一個。",
+  "Also save your earlier meetings?": "也要儲存你以前的會議嗎？",
+  "Save them": "儲存",
+  "Saving {done} of {total}…": "正在儲存 {done}/{total}…",
+  "Earlier meetings saved.": "以前的會議已儲存。",
+  "Choose a folder for your meetings": "為你的會議選擇一個資料夾",
+  "Choose": "選擇"
 }

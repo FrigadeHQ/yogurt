@@ -768,5 +768,16 @@
   "Unmute my mic in Yogurt": "Yogurt에서 내 마이크 음소거 해제",
   "Mic will stay off on resume": "녹음을 재개해도 마이크는 꺼진 상태로 유지됩니다",
   "Mic mute couldn’t be confirmed.": "마이크가 음소거되었는지 확인할 수 없습니다.",
-  "Mic off. Yogurt can’t hear call audio.": "마이크가 꺼져 있습니다. Yogurt에서 통화 소리를 들을 수 없습니다."
+  "Mic off. Yogurt can’t hear call audio.": "마이크가 꺼져 있습니다. Yogurt에서 통화 소리를 들을 수 없습니다.",
+  "Save a copy of each meeting to a folder": "각 회의의 사본을 폴더에 저장",
+  "Each meeting is saved as a Markdown file and kept up to date. Works with Obsidian, Dropbox and Google Drive.": "회의마다 Markdown 파일로 저장되고 항상 최신 상태로 유지돼요. Obsidian, Dropbox, Google Drive에서 쓸 수 있어요.",
+  "Open folder": "폴더 열기",
+  "Change": "변경",
+  "Couldn't save to this folder. Choose another.": "이 폴더에 저장하지 못했어요. 다른 폴더를 고르세요.",
+  "Also save your earlier meetings?": "이전 회의도 저장할까요?",
+  "Save them": "저장하기",
+  "Saving {done} of {total}…": "{total}개 중 {done}개 저장 중…",
+  "Earlier meetings saved.": "이전 회의를 저장했어요.",
+  "Choose a folder for your meetings": "회의를 저장할 폴더를 고르세요",
+  "Choose": "선택"
 }

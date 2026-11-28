@@ -820,5 +820,16 @@
   "Unmute my mic in Yogurt": "ביטול השתקת המיקרופון שלי ב־Yogurt",
   "Mic will stay off on resume": "המיקרופון יישאר מושתק כשההקלטה תתחדש",
   "Mic mute couldn’t be confirmed.": "לא ניתן היה לאשר שהמיקרופון הושתק.",
-  "Mic off. Yogurt can’t hear call audio.": "המיקרופון מושתק. Yogurt לא קולט את שמע השיחה."
+  "Mic off. Yogurt can’t hear call audio.": "המיקרופון מושתק. Yogurt לא קולט את שמע השיחה.",
+  "Save a copy of each meeting to a folder": "שמירת עותק של כל פגישה בתיקייה",
+  "Each meeting is saved as a Markdown file and kept up to date. Works with Obsidian, Dropbox and Google Drive.": "כל פגישה נשמרת כקובץ Markdown ומתעדכנת. עובד עם Obsidian, ‏Dropbox ו-Google Drive.",
+  "Open folder": "פתיחת התיקייה",
+  "Change": "שינוי",
+  "Couldn't save to this folder. Choose another.": "לא ניתן היה לשמור בתיקייה הזו. אפשר לבחור תיקייה אחרת.",
+  "Also save your earlier meetings?": "לשמור גם את הפגישות הקודמות שלך?",
+  "Save them": "לשמור אותן",
+  "Saving {done} of {total}…": "נשמרות {done} מתוך {total}…",
+  "Earlier meetings saved.": "הפגישות הקודמות נשמרו.",
+  "Choose a folder for your meetings": "בחירת תיקייה לפגישות שלך",
+  "Choose": "בחירה"
 }

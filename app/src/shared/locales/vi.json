@@ -768,5 +768,16 @@
   "Unmute my mic in Yogurt": "Bật micrô của tôi trong Yogurt",
   "Mic will stay off on resume": "Micrô sẽ vẫn tắt khi tiếp tục ghi âm",
   "Mic mute couldn’t be confirmed.": "Không thể xác nhận micrô đã tắt.",
-  "Mic off. Yogurt can’t hear call audio.": "Micrô đã tắt. Yogurt không nghe được âm thanh cuộc gọi."
+  "Mic off. Yogurt can’t hear call audio.": "Micrô đã tắt. Yogurt không nghe được âm thanh cuộc gọi.",
+  "Save a copy of each meeting to a folder": "Lưu bản sao của mỗi cuộc họp vào một thư mục",
+  "Each meeting is saved as a Markdown file and kept up to date. Works with Obsidian, Dropbox and Google Drive.": "Mỗi cuộc họp được lưu thành một tệp Markdown và luôn được cập nhật. Dùng được với Obsidian, Dropbox và Google Drive.",
+  "Open folder": "Mở thư mục",
+  "Change": "Thay đổi",
+  "Couldn't save to this folder. Choose another.": "Không thể lưu vào thư mục này. Hãy chọn thư mục khác.",
+  "Also save your earlier meetings?": "Lưu cả các cuộc họp trước đây?",
+  "Save them": "Lưu",
+  "Saving {done} of {total}…": "Đang lưu {done}/{total}…",
+  "Earlier meetings saved.": "Đã lưu các cuộc họp trước đây.",
+  "Choose a folder for your meetings": "Chọn thư mục cho các cuộc họp của bạn",
+  "Choose": "Chọn"
 }

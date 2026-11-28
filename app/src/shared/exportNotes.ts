@@ -133,8 +133,8 @@ export function transcriptDoc(lines: Segment[], o: { gap?: boolean } = {}): PMNo
 
 // ---------- file ----------
 
-/** The Markdown file: title, date and a link to Yogurt, people, the notes, then the transcript with names */
-export function toMarkdownFile(meeting: Meeting, notes: string, segments: Segment[], includeCredit = true): string {
+/** The Markdown file: title, date and a link to Yogurt, people, the notes (and the person's own under them when given), then the transcript with names */
+export function toMarkdownFile(meeting: Meeting, notes: string, segments: Segment[], includeCredit = true, myNotes = ''): string {
   const when = new Date(meeting.startedAt).toLocaleString(language(), { dateStyle: 'long', timeStyle: 'short' })
   const title = meeting.title.replace(/\s+/g, ' ').trim()
   // a small credit on the date line: whoever the file is shared with can find the app
@@ -145,6 +145,7 @@ export function toMarkdownFile(meeting: Meeting, notes: string, segments: Segmen
   const body = notes.replace(/<\/?mine>/g, '').trim()
   const out = [head.join('\n')]
   if (body) out.push(body)
+  if (myNotes.trim()) out.push(`## ${t('My notes')}\n\n${myNotes.trim()}`)
   if (segments.length) out.push(`## ${t('Transcript')}\n\n${docToMd(transcriptDoc(segments, { gap: true }))}`)
   return out.join('\n\n') + '\n'
 }

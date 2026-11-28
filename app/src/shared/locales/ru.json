@@ -838,5 +838,16 @@
   "Unmute my mic in Yogurt": "Включить мой микрофон в Yogurt",
   "Mic will stay off on resume": "При возобновлении записи микрофон останется выключенным",
   "Mic mute couldn’t be confirmed.": "Не удалось подтвердить отключение микрофона.",
-  "Mic off. Yogurt can’t hear call audio.": "Микрофон выключен. Yogurt не слышит звук звонка."
+  "Mic off. Yogurt can’t hear call audio.": "Микрофон выключен. Yogurt не слышит звук звонка.",
+  "Save a copy of each meeting to a folder": "Сохранять копию каждой встречи в папку",
+  "Each meeting is saved as a Markdown file and kept up to date. Works with Obsidian, Dropbox and Google Drive.": "Каждая встреча сохраняется как файл Markdown и остаётся актуальной. Подходит для Obsidian, Dropbox и Google Диска.",
+  "Open folder": "Открыть папку",
+  "Change": "Изменить",
+  "Couldn't save to this folder. Choose another.": "Не удалось сохранить в эту папку. Выберите другую.",
+  "Also save your earlier meetings?": "Сохранить и прошлые встречи?",
+  "Save them": "Сохранить",
+  "Saving {done} of {total}…": "Сохранение: {done} из {total}…",
+  "Earlier meetings saved.": "Прошлые встречи сохранены.",
+  "Choose a folder for your meetings": "Выберите папку для встреч",
+  "Choose": "Выбрать"
 }

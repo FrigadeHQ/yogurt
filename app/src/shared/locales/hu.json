@@ -798,5 +798,16 @@
   "Unmute my mic in Yogurt": "Mikrofonom bekapcsolása a Yogurtban",
   "Mic will stay off on resume": "Folytatáskor a mikrofon néma marad",
   "Mic mute couldn’t be confirmed.": "Nem sikerült megerősíteni a mikrofon némítását.",
-  "Mic off. Yogurt can’t hear call audio.": "A mikrofon néma. A Yogurt nem érzékeli a hívás hangját."
+  "Mic off. Yogurt can’t hear call audio.": "A mikrofon néma. A Yogurt nem érzékeli a hívás hangját.",
+  "Save a copy of each meeting to a folder": "Minden megbeszélés másolatának mentése egy mappába",
+  "Each meeting is saved as a Markdown file and kept up to date. Works with Obsidian, Dropbox and Google Drive.": "Minden megbeszélés Markdown-fájlként mentődik, és naprakész marad. Működik az Obsidiannel, a Dropboxszal és a Google Drive-val.",
+  "Open folder": "Mappa megnyitása",
+  "Change": "Módosítás",
+  "Couldn't save to this folder. Choose another.": "Nem sikerült menteni ebbe a mappába. Válassz másikat.",
+  "Also save your earlier meetings?": "A korábbi megbeszéléseidet is mented?",
+  "Save them": "Mentés",
+  "Saving {done} of {total}…": "Mentés: {done}/{total}…",
+  "Earlier meetings saved.": "A korábbi megbeszélések mentve.",
+  "Choose a folder for your meetings": "Válassz mappát a megbeszéléseidnek",
+  "Choose": "Kiválasztás"
 }
