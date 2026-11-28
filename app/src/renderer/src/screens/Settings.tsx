@@ -18,6 +18,7 @@ import { CalendarSettings } from '../components/CalendarSettings'
 import { PhoneSettings } from '../components/PhoneSettings'
 import { supportedKinds, settingsPage } from '../../../shared/platform'
 import { Swap, SwapText } from '../components/Swap'
+import { earlierStep, type Earlier } from '../autoExportProgress'
 
 export function NextMeetingSetting({ visible, on, onChange }: { visible: boolean; on: boolean; onChange(on: boolean): void }) {
   if (!visible) return null
@@ -482,8 +483,6 @@ function Backup({ onImported }: { onImported(): void }) {
   )
 }
 
-type Earlier = { done: number; total: number } | 'done' | null
-
 /** a copy of each meeting in a folder of the person's (Obsidian, Dropbox, Google Drive), kept up to date by main */
 function AutoExport() {
   const [s, setS] = useState<AutoExportState>()
@@ -492,7 +491,7 @@ function AutoExport() {
   useEffect(() => {
     void window.yogurt.autoExport.get().then(setS)
     const offState = window.yogurt.autoExport.onState(setS)
-    const offProgress = window.yogurt.autoExport.onProgress(setEarlier)
+    const offProgress = window.yogurt.autoExport.onProgress((progress) => setEarlier((s) => earlierStep(s, { progress })))
     return () => { offState(); offProgress() }
   }, [])
   const act = async (f: () => Promise<AutoExportState>) => {
@@ -501,9 +500,9 @@ function AutoExport() {
   }
   const answer = async (save: boolean) => {
     setS((p) => p && { ...p, offerEarlier: false })
-    if (save) setEarlier({ done: 0, total: 0 })
+    if (save) setEarlier((s) => earlierStep(s, { start: true }))
     const r = await window.yogurt.autoExport.earlier(save).catch(() => ({ saved: 0, failed: true }))
-    setEarlier(save && !r.failed ? 'done' : null)
+    setEarlier((s) => earlierStep(s, { finished: save && !r.failed }))
   }
   const label = t('Save a copy of each meeting to a folder')
   return (
